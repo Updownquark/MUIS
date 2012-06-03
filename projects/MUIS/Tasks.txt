@@ -19,19 +19,19 @@ Design layout mechanism:
 Interaction of visible, display, position types 
 
 Write a simple layout manager.  Determine how positioning will work.
-Write a simple WAM file with some nested boxes of different colors that change colors when you click on them.
-Write another WAM file using a templated widget (title pane maybe?)
+Write a simple MUIS file with some nested boxes of different colors that change colors when you click on them.
+Write another MUIS file using a templated widget (title pane maybe?)
 
 Style files!!
-Implement a few styles in WamElement or a subclass.
+Implement a few styles in MuisElement or a subclass.
 
 Implement relative URLs (starting with / or ./ or ../)
-Implement WAM toolkits packaged into jars (signed?).
+Implement MUIS toolkits packaged into jars (signed?).
 
 Implement permissions and a security architecture
-	Permission parsing from the WAM registry
+	Permission parsing from the MUIS registry
 	Popup telling the user what permissions an application (with all associated toolkits) requires
-Find and close or document WAM vulnerabilities (user code entry points):
+Find and close or document MUIS vulnerabilities (user code entry points):
 	All class initializations
 	listeners
 	styles (getDomainInstance, getName, iterator)

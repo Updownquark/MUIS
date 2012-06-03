@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>Base MUIS Toolkit</name>
+	<description>
+		This toolkit provides basic MUIS functionality and is required for all MUIS documents.
+	</description>
+	<version>22Apr2010</version>
+	<dependencies />
+	<types>
+		<type label="background">org.muis.style.BackgroundStyles</type>
+        <type label="block">org.muis.basic.Block</type>
+        <type label="label">org.muis.basic.Label</type>
+	</types>
+	<security />
+</registry>

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<wam xmlns:core="http://webapplicationmarkup.googlecode.com/svn/trunk/WAM/classes/wam.jar">
+<muis xmlns:core="http://webapplicationmarkup.googlecode.com/svn/trunk/MUIS/classes/muis.jar">
     <head>
-        <title>Sample WAM Document</title>
+        <title>Sample MUIS Document</title>
         <style>
         	<group xmlns:other="http://some.other.project/path/to/registry"
         		name="group1"
@@ -17,7 +17,7 @@
     </head>
     <body>
     	<block>
-    		<label>This is a WAM Document</label>
+    		<label>This is a MUIS Document</label>
     		<templated>
     			<block useAs="content1" style="background.color=#4040ff">
     				<label>The Content</label>
@@ -25,4 +25,4 @@
     		</templated>
     	<block>
     </body>
-<wam>
+<muis>

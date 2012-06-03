@@ -1,0 +1,236 @@
+package org.muis.style;
+
+import org.muis.core.MuisElement;
+import org.muis.core.event.MuisEvent;
+
+import prisms.util.ArrayUtils;
+
+/**
+ * Listens for changes to the style of an element
+ */
+public class StyleListener implements org.muis.core.event.MuisEventListener<Object>
+{
+	private final MuisElement theElement;
+
+	private StyleDomain [] theDomains;
+
+	private StyleAttribute<?> [] theAttributes;
+
+	private boolean isDetailed;
+
+	private boolean isAdded;
+
+	/**
+	 * Creates a StyleListener
+	 * 
+	 * @param element The element to listen for style changes to
+	 */
+	public StyleListener(MuisElement element)
+	{
+		theElement = element;
+		theDomains = new StyleDomain [0];
+		theAttributes = new StyleAttribute [0];
+	}
+
+	/**
+	 * Adds this listener to the element
+	 */
+	public void add()
+	{
+		if(isAdded)
+			return;
+		isAdded = true;
+		theElement.addListener(StyleAttributeEvent.TYPE, this);
+		theElement.addListener(GroupMemberEvent.TYPE, this);
+	}
+
+	/**
+	 * Removes this listener from the element.
+	 */
+	public void remove()
+	{
+		theElement.removeListener(this);
+	}
+
+	/**
+	 * @return Whether this listener call the {@link #attributeChanged(StyleAttribute, Object)}
+	 *         method for each attribute changed when a group is added or removed.
+	 */
+	public boolean isDetailed()
+	{
+		return isDetailed;
+	}
+
+	/**
+	 * @param detailed Whether this listener should call the
+	 *        {@link #attributeChanged(StyleAttribute, Object)} method for each attribute changed
+	 *        when a group is added or removed. Leaving this as false will improve performance
+	 *        somewhat.
+	 */
+	public void setDetailed(boolean detailed)
+	{
+		isDetailed = detailed;
+	}
+
+	/**
+	 * @param domain The domain to listen for changes to
+	 */
+	public void addDomain(StyleDomain domain)
+	{
+		if(domain != null && !ArrayUtils.contains(theDomains, domain))
+			theDomains = ArrayUtils.add(theDomains, domain);
+	}
+
+	/**
+	 * @param domain The domain to cease listening for changes to
+	 */
+	public void removeDomain(StyleDomain domain)
+	{
+		theDomains = ArrayUtils.remove(theDomains, domain);
+	}
+
+	/**
+	 * @param attr The attribute to listen for changes to
+	 */
+	public void addAttribute(StyleAttribute<?> attr)
+	{
+		if(attr != null && !ArrayUtils.contains(theAttributes, attr))
+			theAttributes = ArrayUtils.add(theAttributes, attr);
+	}
+
+	/**
+	 * @param attr The attribute to cease listening for changes to
+	 */
+	public void removeAttribute(StyleAttribute<?> attr)
+	{
+		theAttributes = ArrayUtils.remove(theAttributes, attr);
+	}
+
+	@Override
+	public boolean isLocal()
+	{
+		return false;
+	}
+
+	@Override
+	public void eventOccurred(MuisEvent<?> event, MuisElement element)
+	{
+		if(event instanceof GroupMemberEvent)
+			eventOccurred((GroupMemberEvent) event);
+		else if(event instanceof StyleAttributeEvent<?>)
+			eventOccurred((StyleAttributeEvent<?>) event);
+		else
+			return;
+	}
+
+	/**
+	 * Called when a group is added to or removed from an element style
+	 * 
+	 * @param event The group member event representing the change
+	 */
+	public void eventOccurred(GroupMemberEvent event)
+	{
+		java.util.HashSet<StyleAttribute<?>> groupAttrs = new java.util.HashSet<StyleAttribute<?>>();
+		for(StyleAttribute<?> attr : event.getValue().getGroupForType(theElement.getClass()))
+		{
+			if(ArrayUtils.contains(theDomains, attr.domain)
+				|| ArrayUtils.contains(theAttributes, attr))
+				groupAttrs.add(attr);
+		}
+		if(groupAttrs.isEmpty())
+			return; // The group doesn't contain any attributes we care about
+
+		for(StyleAttribute<?> attr : theElement.getStyle().localAttributes())
+			groupAttrs.remove(attr);
+		if(event.getRemoveIndex() < 0)
+		{
+			for(NamedStyleGroup g : theElement.getStyle().groups(false))
+			{
+				if(g == event.getValue())
+					break;
+				for(StyleAttribute<?> attr : g.getGroupForType(theElement.getClass()))
+					groupAttrs.remove(attr);
+			}
+		}
+		else
+		{
+			java.util.ListIterator<NamedStyleGroup> iter;
+			iter = (java.util.ListIterator<NamedStyleGroup>) theElement.getStyle().groups(false)
+				.iterator();
+			while(iter.hasNext())
+			{
+				if(iter.nextIndex() <= event.getRemoveIndex())
+					break;
+				for(StyleAttribute<?> attr : iter.next().getGroupForType(theElement.getClass()))
+					groupAttrs.remove(attr);
+			}
+		}
+		if(groupAttrs.isEmpty())
+			return; // Any interesting attributes are eclipsed by closer styles
+
+		styleChanged(event.getValue());
+		if(isDetailed)
+			for(StyleAttribute<?> attr : groupAttrs)
+			{
+				Object val = theElement.getStyle().get(attr);
+				attributeChanged(attr, val);
+			}
+	}
+
+	/**
+	 * Called when a single attribute changes
+	 * 
+	 * @param event The event representing the change
+	 */
+	public void eventOccurred(StyleAttributeEvent<?> event)
+	{
+		if(!ArrayUtils.contains(theDomains, event.getAttribute().domain)
+			&& !ArrayUtils.contains(theAttributes, event.getAttribute()))
+			return;
+		if(event.getStyle() instanceof TypedStyleGroup<?>)
+		{
+			TypedStyleGroup<?> group = (TypedStyleGroup<?>) event.getStyle();
+			if(!group.getType().isInstance(theElement))
+				return;
+			if(theElement.getStyle().isSet(event.getAttribute()))
+				return;
+			NamedStyleGroup nsg = null;
+			while(group != null && !(group instanceof NamedStyleGroup))
+				group = group.getParent();
+			nsg = (NamedStyleGroup) group;
+			if(!nsg.isMember(theElement))
+				return;
+			for(NamedStyleGroup g : theElement.getStyle().groups(false))
+			{
+				if(g == nsg)
+					break;
+				if(g.isSet(event.getAttribute()))
+					return;
+			}
+		}
+		styleChanged(event.getStyle());
+		attributeChanged(event.getAttribute(), event.getNewValue());
+	}
+
+	/**
+	 * Called whenever any style attribute matching this listener's domains and attributes (or
+	 * possibly more than one if a style group is added or removed) is changed in the style
+	 * 
+	 * @param style The style that was changed--may be an ElementStyle or a TypedStyleGroup
+	 */
+	public void styleChanged(MuisStyle style)
+	{
+	}
+
+	/**
+	 * Called for each attribute matching this listener's domains and attributes that is changed in
+	 * the style. If {@link #isDetailed()} is false, this will not be called when groups are added
+	 * to or removed from the style.
+	 * 
+	 * @param attr The attribute that was changed
+	 * @param newValue The new value of the attribute
+	 */
+	public void attributeChanged(StyleAttribute<?> attr, Object newValue)
+	{
+	}
+}

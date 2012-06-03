@@ -1,0 +1,47 @@
+
+Last left off:
+	Want to get LazyFlowLayout working.  Got the size methods mostly done.  Need the placeChild and layout methods.
+	size methods should be refactored to eliminate duplicate code
+	The way LazyFlowLayout is turning out, it doesn't need to be called "Lazy".  Can be renamed.
+
+Design layout mechanism:
+	minimum, maximum, preferred sizes
+	size policy with properties:
+		stretch factor: How well the widget can make use of extra space (relative factor)
+			=0 means no expand--widget may be given extra space, but there is no advantage to it
+			<0 means prefer not to expand--widget may be given extra space, but can't use it and should have just
+				preferred size if possible.
+			Formal definition of values
+	look into swing's GroupLayout, other layout manager implementations (esp GridBagLayout)
+	http://java.sun.com/docs/books/tutorial/uiswing/layout/using.html
+	docking
+	jgoodies
+Interaction of visible, display, position types 
+
+Write a simple layout manager.  Determine how positioning will work.
+Write a simple WAM file with some nested boxes of different colors that change colors when you click on them.
+Write another WAM file using a templated widget (title pane maybe?)
+
+Style files!!
+Implement a few styles in WamElement or a subclass.
+
+Implement relative URLs (starting with / or ./ or ../)
+Implement WAM toolkits packaged into jars (signed?).
+
+Implement permissions and a security architecture
+	Permission parsing from the WAM registry
+	Popup telling the user what permissions an application (with all associated toolkits) requires
+Find and close or document WAM vulnerabilities (user code entry points):
+	All class initializations
+	listeners
+	styles (getDomainInstance, getName, iterator)
+
+	constructor
+	postInit
+	initChildren
+	postCreate
+	addChild
+	removeChild
+	isFocusable
+	doLayout
+	render (draw, drawChildren)

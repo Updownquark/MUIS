@@ -1,0 +1,33 @@
+
+background
+	color
+	transparency
+	*cursor
+font
+	type
+	color
+	transparency
+	weight
+	italic
+	underline
+	*strikethrough
+	*overline
+	*blink
+	size
+	stretch
+	*all-upper
+	*all-lower
+	*word-caps
+	*line-height?
+	*word-spacing?
+*margin/padding (only one)
+	left
+	right
+	top
+	bottom
+*border ?
+	weight
+	color
+	transparency
+	type (dotted, dashed, etc.)
+	top/bottom/left/right

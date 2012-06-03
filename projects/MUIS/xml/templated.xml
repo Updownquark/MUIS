@@ -1,0 +1,8 @@
+
+<template>
+	<label attachPoint="title">This is a templated widget</label>
+	<block>
+		<block attachPoint="content1"></block>
+		<block attachPoint="content2"></block>
+	</block>
+</template>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<wam>
+    <head>
+        <title>Super-Simple WAM Document</title>
+        <style>
+        	<group name="green"
+        		bg.color="green"
+        	/>
+        </style>
+    </head>
+    <body>
+    	<block group="green" width="100%" height="100%">
+    		<label>This is a WAM Document</label>
+			<block style="bg.color=#4040ff">
+				<label>The Content</label>
+			</block>
+    	<block>
+    </body>
+</wam>

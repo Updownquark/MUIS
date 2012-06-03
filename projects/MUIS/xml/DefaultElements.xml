@@ -1,0 +1,9 @@
+
+<registry>
+	<class-path>
+		<path>http://webapplicationmarkup.googlecode.com/svn/trunk/WAM/classes</path>
+	</class-paths>
+	<class-mappings>
+		<map name="block">org.wam.content.Block</map>
+	</class-mappings>
+</registry>

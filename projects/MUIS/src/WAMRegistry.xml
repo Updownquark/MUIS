@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>Base WAM Toolkit</name>
+	<description>
+		This toolkit provides basic WAM functionality and is required for all WAM documents.
+	</description>
+	<version>22Apr2010</version>
+	<dependencies />
+	<types>
+		<type label="background">org.wam.style.BackgroundStyles</type>
+        <type label="block">org.wam.basic.Block</type>
+        <type label="label">org.wam.basic.Label</type>
+	</types>
+	<security />
+</registry>

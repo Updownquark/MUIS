@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<wam xmlns:core="http://webapplicationmarkup.googlecode.com/svn/trunk/WAM/classes/wam.jar">
+    <head>
+        <title>Sample WAM Document</title>
+        <style>
+        	<group xmlns:other="http://some.other.project/path/to/registry"
+        		name="group1"
+        		other:styleDomain.attr1="value"
+        		other:styleDomain.attr2="value"
+        		<other:someElementTag
+	        		other:styleDomain2.attr1="value"
+	        		other:styleDomain2.attr3="value"
+        		/>
+        	/>
+        </style>
+    </head>
+    <body>
+    	<block>
+    		<label>This is a WAM Document</label>
+    		<templated>
+    			<block useAs="content1" style="background.color=#4040ff">
+    				<label>The Content</label>
+    			</block>
+    		</templated>
+    	<block>
+    </body>
+<wam>

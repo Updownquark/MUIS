@@ -1,0 +1,137 @@
+package org.wam.core.event;
+
+import org.wam.core.WamElement;
+
+/**
+ * A listener specifically designed for listening to mouse events. It contains methods that
+ * subclasses can override to receive mouse events of specific types:
+ * <ul>
+ * <li>{@link #mouseDown(MouseEvent, WamElement)}</li>
+ * <li>{@link #mouseUp(MouseEvent, WamElement)}</li>
+ * <li>{@link #mouseClicked(MouseEvent, WamElement)}</li>
+ * <li>{@link #mouseMoved(MouseEvent, WamElement)}</li>
+ * <li>{@link #mouseEntered(MouseEvent, WamElement)}</li>
+ * <li>{@link #mouseExited(MouseEvent, WamElement)}</li>
+ * </ul>
+ */
+public abstract class MouseListener implements WamEventListener<Void>
+{
+	private boolean isLocal;
+
+	/**
+	 * Creates a mouse listener
+	 * 
+	 * @param local Whether the listener should be a local listener, listening only for events that
+	 *            occur on the element, or a subtree listener, listening for events that occur on
+	 *            the element's children also
+	 */
+	public MouseListener(boolean local)
+	{
+		isLocal = local;
+	}
+
+	public void eventOccurred(WamEvent<? extends Void> event, WamElement element)
+	{
+		if(event instanceof MouseEvent)
+		{
+			MouseEvent mEvt = (MouseEvent) event;
+			boolean switchHit = false;
+			switch (mEvt.getMouseEventType())
+			{
+			case BUTTON_DOWN:
+				switchHit = true;
+				mouseDown(mEvt, element);
+				break;
+			case BUTTON_UP:
+				switchHit = true;
+				mouseUp(mEvt, element);
+				break;
+			case BUTTON_CLICKED:
+				switchHit = true;
+				mouseClicked(mEvt, element);
+				break;
+			case MOUSE_MOVED:
+				switchHit = true;
+				mouseMoved(mEvt, element);
+				break;
+			case MOUSE_ENTERED:
+				switchHit = true;
+				mouseEntered(mEvt, element);
+				break;
+			case MOUSE_EXITED:
+				switchHit = true;
+				mouseExited(mEvt, element);
+				break;
+			}
+			if(!switchHit)
+				throw new IllegalStateException("Unrecognized mouse event type: "
+					+ mEvt.getMouseEventType());
+		}
+	}
+
+	public boolean isLocal()
+	{
+		return isLocal;
+	}
+
+	/**
+	 * Called when the user presses a mouse button over a WAM element
+	 * 
+	 * @param mEvt The mouse event representing the user's action
+	 * @param element The element for which this listener was registered
+	 */
+	public void mouseDown(MouseEvent mEvt, WamElement element)
+	{
+	}
+
+	/**
+	 * Called when the user releases a mouse button over a WAM element
+	 * 
+	 * @param mEvt The mouse event representing the user's action
+	 * @param element The element for which this listener was registered
+	 */
+	public void mouseUp(MouseEvent mEvt, WamElement element)
+	{
+	}
+
+	/**
+	 * Called when the user clicks and releases a mouse button quickly over a WAM element without
+	 * moving the mouse pointer
+	 * 
+	 * @param mEvt The mouse event representing the user's action
+	 * @param element The element for which this listener was registered
+	 */
+	public void mouseClicked(MouseEvent mEvt, WamElement element)
+	{
+	}
+
+	/**
+	 * Called when the user moves the mouse pointer while over a WAM element
+	 * 
+	 * @param mEvt The mouse event representing the user's action
+	 * @param element The element for which this listener was registered
+	 */
+	public void mouseMoved(MouseEvent mEvt, WamElement element)
+	{
+	}
+
+	/**
+	 * Called when the user moves the mouse pointer from outside a WAM element to inside it
+	 * 
+	 * @param mEvt The mouse event representing the user's action
+	 * @param element The element for which this listener was registered
+	 */
+	public void mouseEntered(MouseEvent mEvt, WamElement element)
+	{
+	}
+
+	/**
+	 * Called when the user moves the mouse pointer from inside a WAM element to outside it
+	 * 
+	 * @param mEvt The mouse event representing the user's action
+	 * @param element The element for which this listener was registered
+	 */
+	public void mouseExited(MouseEvent mEvt, WamElement element)
+	{
+	}
+}

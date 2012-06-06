@@ -3,7 +3,8 @@ package org.muis.parser;
 import java.io.IOException;
 import java.io.Reader;
 
-import org.dom4j.Element;
+import org.jdom2.DefaultJDOMFactory;
+import org.jdom2.Element;
 import org.muis.core.*;
 import org.muis.style.StyleDomain;
 
@@ -12,7 +13,7 @@ import org.muis.style.StyleDomain;
  */
 public class MuisDomParser implements MuisParser
 {
-	private org.dom4j.DocumentFactory theDF;
+	private org.jdom2.JDOMFactory theDF;
 
 	java.util.HashMap<String, MuisToolkit> theToolkits;
 
@@ -21,7 +22,7 @@ public class MuisDomParser implements MuisParser
 	 */
 	public MuisDomParser()
 	{
-		this(org.dom4j.DocumentFactory.getInstance());
+		this(new DefaultJDOMFactory());
 		theToolkits = new java.util.HashMap<String, MuisToolkit>();
 	}
 
@@ -30,11 +31,12 @@ public class MuisDomParser implements MuisParser
 	 * 
 	 * @param factory The document factory to use instead of the default
 	 */
-	public MuisDomParser(org.dom4j.DocumentFactory factory)
+	public MuisDomParser(org.jdom2.JDOMFactory factory)
 	{
 		theDF = factory;
 	}
 
+	@Override
 	public MuisToolkit getToolkit(String uri, MuisDocument doc) throws MuisParseException, IOException
 	{
 		MuisToolkit ret = theToolkits.get(uri);
@@ -51,33 +53,33 @@ public class MuisDomParser implements MuisParser
 		Element rootEl;
 		try
 		{
-			rootEl = new org.dom4j.io.SAXReader(theDF).read(
+			rootEl = new org.jdom2.input.SAXBuilder().build(
 				new java.io.InputStreamReader(url.openStream())).getRootElement();
-		} catch(org.dom4j.DocumentException e)
+		} catch(org.jdom2.JDOMException e)
 		{
 			throw new MuisParseException("Could not parse toolkit XML for " + uri, e);
 		}
-		String name = rootEl.elementTextTrim("name");
+		String name = rootEl.getChildTextTrim("name");
 		if(name == null)
 			throw new MuisParseException("No name element for toolkit at " + uri);
-		String descrip = rootEl.elementTextTrim("description");
+		String descrip = rootEl.getChildTextTrim("description");
 		if(descrip == null)
 			throw new MuisParseException("No description element for toolkit at " + uri);
-		String version = rootEl.elementTextTrim("version");
+		String version = rootEl.getChildTextTrim("version");
 		if(version == null)
 			throw new MuisParseException("No version element for toolkit at " + uri);
 		if(doc == null || doc.getDefaultToolkit() == null)
 			ret = new MuisToolkit(url, name, descrip, version);
 		else
 			ret = new MuisToolkit(doc.getDefaultToolkit(), url, name, descrip, version);
-		for(Element el : (java.util.List<Element>) rootEl.elements())
+		for(Element el : rootEl.getChildren())
 		{
 			String elName = el.getName();
 			if(elName.equals("name") || elName.equals("descrip") || elName.equals("version"))
 				continue;
 			if(elName.equals("dependencies"))
 			{
-				for(Element dEl : (java.util.List<Element>) el.elements())
+				for(Element dEl : el.getChildren())
 				{
 					if(!dEl.getName().equals("depends"))
 						throw new MuisParseException("Illegal element under " + elName);
@@ -95,11 +97,11 @@ public class MuisDomParser implements MuisParser
 			}
 			else if(elName.equals("types"))
 			{
-				for(Element tEl : (java.util.List<Element>) el.elements())
+				for(Element tEl : el.getChildren())
 				{
 					if(!tEl.getName().equals("type"))
 						throw new MuisParseException("Illegal element under " + elName);
-					String tagName = tEl.attributeValue("tag");
+					String tagName = tEl.getAttributeValue("tag");
 					if(tagName == null)
 						throw new MuisParseException("tag attribute expected for " + tEl.getName()
 							+ " element");
@@ -120,11 +122,11 @@ public class MuisDomParser implements MuisParser
 			}
 			else if(elName.equals("security"))
 			{
-				for(Element pEl : (java.util.List<Element>) el.elements())
+				for(Element pEl : el.getChildren())
 				{
 					if(!pEl.getName().equals("permission"))
 						throw new MuisParseException("Illegal element under " + elName);
-					String typeName = pEl.attributeValue("type");
+					String typeName = pEl.getAttributeValue("type");
 					if(typeName == null)
 						throw new MuisParseException("No type name in permission element");
 					typeName = typeName.toLowerCase();
@@ -155,14 +157,14 @@ public class MuisDomParser implements MuisParser
 					else if(subTypeName != null)
 						throw new MuisParseException("No sub-types exist (such as " + subTypeName
 							+ ") for permission type " + type);
-					boolean req = "true".equalsIgnoreCase(pEl.attributeValue("required"));
+					boolean req = "true".equalsIgnoreCase(pEl.getAttributeValue("required"));
 					String explanation = pEl.getTextTrim();
 					String [] params = new String [subType == null ? 0
 						: subType.getParameters().length];
 					if(subType != null)
 						for(int p = 0; p < subType.getParameters().length; p++)
 						{
-							params[p] = pEl.attributeValue(subType.getParameters()[p].getKey());
+							params[p] = pEl.getAttributeValue(subType.getParameters()[p].getKey());
 							String val = subType.getParameters()[p].validate(params[p]);
 							if(val != null)
 								throw new MuisParseException("Invalid parameter "
@@ -186,6 +188,7 @@ public class MuisDomParser implements MuisParser
 		return ret;
 	}
 
+	@Override
 	public MuisDocument parseDocument(Reader reader, org.muis.core.MuisDocument.GraphicsGetter graphics)
 		throws MuisParseException, IOException
 	{
@@ -194,32 +197,32 @@ public class MuisDomParser implements MuisParser
 		Element rootEl;
 		try
 		{
-			rootEl = new org.dom4j.io.SAXReader(theDF).read(reader).getRootElement();
-		} catch(org.dom4j.DocumentException e)
+			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
+		} catch(org.jdom2.JDOMException e)
 		{
 			throw new MuisParseException("Could not parse document XML", e);
 		}
 		MuisDocument doc = new MuisDocument(graphics);
 		doc.initDocument(this, dt);
 		initClassView(doc, rootEl);
-		Element [] head = (Element []) rootEl.elements("head").toArray(new Element [0]);
+		Element [] head = rootEl.getChildren("head").toArray(new Element[0]);
 		if(head.length > 1)
 			doc.error("Multiple head elements in document XML", null);
 		if(head.length > 0)
 		{
-			String title = head[0].elementTextTrim("title");
+			String title = head[0].getChildTextTrim("title");
 			if(title != null)
 				doc.getHead().setTitle(title);
-			Element [] styles = (Element []) head[0].elements("style").toArray(new Element [0]);
+			Element [] styles = head[0].getChildren("style").toArray(new Element[0]);
 			for(Element style : styles)
 				applyStyle(doc, style);
 		}
-		Element [] body = (Element []) rootEl.elements("body").toArray(new Element [0]);
+		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
 		if(body.length > 1)
 			doc.error("Multiple body elements in document XML", null);
 		if(body.length == 0)
 			throw new MuisParseException("No body in document XML");
-		for(Element el : (java.util.List<Element>) rootEl.elements())
+		for(Element el : rootEl.getChildren())
 		{
 			if(el.getName().equals("head") || el.getName().equals("body"))
 				continue;
@@ -242,7 +245,7 @@ public class MuisDomParser implements MuisParser
 	protected void initClassView(MuisDocument muis, Element xml)
 	{
 		MuisClassView ret = muis.getClassView();
-		for(org.dom4j.Namespace ns : (java.util.List<org.dom4j.Namespace>) xml.declaredNamespaces())
+		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced())
 		{
 			MuisToolkit toolkit;
 			try
@@ -278,11 +281,11 @@ public class MuisDomParser implements MuisParser
 	{
 		java.util.Map<String, MuisToolkit> styleNamespaces = new java.util.HashMap<String, MuisToolkit>();
 		applyNamespaces(doc, style, styleNamespaces);
-		for(Element groupEl : (java.util.List<Element>) style.elements("group"))
+		for(Element groupEl : style.getChildren("group"))
 		{
 			java.util.Map<String, MuisToolkit> groupNamespaces = new java.util.HashMap<String, MuisToolkit>();
 			applyNamespaces(doc, groupEl, groupNamespaces);
-			String name = groupEl.attributeValue("name");
+			String name = groupEl.getAttributeValue("name");
 			if(name == null)
 				name = "";
 			org.muis.style.NamedStyleGroup group = doc.getGroup(name);
@@ -300,7 +303,7 @@ public class MuisDomParser implements MuisParser
 	protected void applyNamespaces(MuisDocument doc, Element xml,
 		java.util.Map<String, MuisToolkit> namespaces)
 	{
-		for(org.dom4j.Namespace ns : (java.util.List<org.dom4j.Namespace>) xml.declaredNamespaces())
+		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced())
 		{
 			MuisToolkit toolkit;
 			try
@@ -324,10 +327,10 @@ public class MuisDomParser implements MuisParser
 		java.util.Map<String, MuisToolkit> styleNamespaces,
 		java.util.Map<String, MuisToolkit> groupNamespaces)
 	{
-		for(org.dom4j.Attribute attr : (java.util.List<org.dom4j.Attribute>) groupEl.attributes())
+		for(org.jdom2.Attribute attr : groupEl.getAttributes())
 		{
 			String fullDomain = attr.getQualifiedName();
-			String ns = attr.getQName().getNamespacePrefix();
+			String ns = attr.getNamespacePrefix();
 			String domainName = attr.getName();
 			int idx = domainName.indexOf(".");
 			String attrName = null;
@@ -374,10 +377,10 @@ public class MuisDomParser implements MuisParser
 			else
 				applyStyleSet(group, domain, attr.getValue(), doc);
 
-			for(Element typeEl : (java.util.List<Element>) groupEl.elements())
+			for(Element typeEl : groupEl.getChildren())
 			{
 				String fullTypeName = typeEl.getQualifiedName();
-				String typeNS = typeEl.getQName().getNamespacePrefix();
+				String typeNS = typeEl.getNamespacePrefix();
 				String typeName = typeEl.getName();
 				MuisToolkit typeToolkit = getToolkit(doc, styleNamespaces, groupNamespaces, typeNS);
 				if(typeToolkit == null)
@@ -484,14 +487,15 @@ public class MuisDomParser implements MuisParser
 			return doc.getClassView().getToolkit(ns);
 	}
 
+	@Override
 	public MuisElement [] parseContent(Reader reader, MuisElement parent, boolean useRootAttrs)
 		throws IOException, MuisParseException
 	{
 		Element rootEl;
 		try
 		{
-			rootEl = new org.dom4j.io.SAXReader(theDF).read(reader).getRootElement();
-		} catch(org.dom4j.DocumentException e)
+			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
+		} catch(org.jdom2.JDOMException e)
 		{
 			throw new MuisParseException("Could not parse document XML", e);
 		}
@@ -510,7 +514,7 @@ public class MuisDomParser implements MuisParser
 	protected MuisClassView getClassView(MuisElement muis, Element xml)
 	{
 		MuisClassView ret = new MuisClassView(muis);
-		for(org.dom4j.Namespace ns : (java.util.List<org.dom4j.Namespace>) xml.declaredNamespaces())
+		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced())
 		{
 			MuisToolkit toolkit;
 			try
@@ -545,7 +549,7 @@ public class MuisDomParser implements MuisParser
 	 */
 	protected void applyAttributes(MuisElement muis, Element xml)
 	{
-		for(org.dom4j.Attribute attr : (java.util.List<org.dom4j.Attribute>) xml.attributes())
+		for(org.jdom2.Attribute attr : xml.getAttributes())
 		{
 			if(attr.getName().matches("style[0-9]*"))
 				applyElementStyle(muis, attr.getValue());
@@ -731,7 +735,7 @@ public class MuisDomParser implements MuisParser
 	protected MuisElement [] parseContent(Element xml, MuisElement parent)
 	{
 		MuisElement [] ret = new MuisElement [0];
-		for(Element child : (java.util.List<Element>) xml.elements())
+		for(Element child : xml.getChildren())
 		{
 			MuisElement newChild;
 			try

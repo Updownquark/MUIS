@@ -62,4 +62,19 @@ public class MuisBrowser extends javax.swing.JPanel
 		theContentPane.setContent(muisDoc);
 		repaint();
 	}
+
+	/**
+	 * Starts up a MuisBrowser
+	 *
+	 * @param args Command-line arguments. If any are supplied, the first one is used as the initial address of the MUIS document to
+	 *            display.
+	 */
+	public static void main(String [] args)
+	{
+		MuisBrowser browser = new MuisBrowser();
+		browser.setBounds(0, 0, 1200, 900);
+		browser.setVisible(true);
+		if(args.length > 0)
+			browser.goToAddress(args[0]);
+	}
 }

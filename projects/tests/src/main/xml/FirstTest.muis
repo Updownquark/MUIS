@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <muis>
+    <head>
+        <title>Super-Simple MUIS Document</title>
+    </head>
+    <body>
+    	<block layout="simple" style="bg.color=green" width="100%" height="100%">
+    		<label left="0" right="0" height="25%">This is a MUIS Document</label>
+			<block left="0" right="0" height="75%" style="bg.color=#4040ff">
+				<label left="0" right="0">The Content</label>
+			</block>
+    	<block>
+    </body>
 </muis>

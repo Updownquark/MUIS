@@ -5,49 +5,41 @@ package org.muis.core;
 
 import java.awt.Point;
 
-import org.muis.core.event.*;
+import org.muis.core.event.DocumentEvent;
+import org.muis.core.event.KeyBoardEvent;
+import org.muis.core.event.MouseEvent;
+import org.muis.core.event.ScrollEvent;
 import org.muis.style.NamedStyleGroup;
 
 import prisms.util.ArrayUtils;
 
-/**
- * Contains all data pertaining to a MUIS application
- */
+/** Contains all data pertaining to a MUIS application */
 public class MuisDocument implements MuisMessage.MuisMessageCenter
 {
-	/**
-	 * The different policies this document can take with regards to scrolling events
-	 */
+	/** The different policies this document can take with regards to scrolling events */
 	public static enum ScrollPolicy
 	{
 		/**
-		 * With this policy, scroll events will fire as if the event came from the mouse pointer.
-		 * The position fields will represent the position of the pointer when the scroll event was
-		 * fired.
+		 * With this policy, scroll events will fire as if the event came from the mouse pointer. The position fields will represent the
+		 * position of the pointer when the scroll event was fired.
 		 */
 		MOUSE,
 		/**
-		 * With this policy, scroll events will fire as if the event came from the upper-left corner
-		 * of the currently focused widget. The position fields will represent the (0, 0) position
-		 * relative to that widget.
+		 * With this policy, scroll events will fire as if the event came from the upper-left corner of the currently focused widget. The
+		 * position fields will represent the (0, 0) position relative to that widget.
 		 */
 		FOCUS,
 		/**
-		 * With this policy, scroll events generated from a mouse wheel will fire the same as
-		 * {@link #MOUSE}, while scroll events generated from the keyboard will fire the same as
-		 * {@link #FOCUS}.
+		 * With this policy, scroll events generated from a mouse wheel will fire the same as {@link #MOUSE}, while scroll events generated
+		 * from the keyboard will fire the same as {@link #FOCUS}.
 		 */
 		MIXED;
 	}
 
-	/**
-	 * Allows a MUIS document to retrieve graphics to draw itself on demand
-	 */
+	/** Allows a MUIS document to retrieve graphics to draw itself on demand */
 	public interface GraphicsGetter
 	{
-		/**
-		 * @return The graphics object that this document should use at the moment
-		 */
+		/** @return The graphics object that this document should use at the moment */
 		java.awt.Graphics2D getGraphics();
 	}
 
@@ -99,21 +91,20 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Creates a document
-	 * 
-	 * @param graphics The graphics getter that this document will use for retrieving the graphics
-	 *        object to draw itself on demand
+	 *
+	 * @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand
 	 */
 	public MuisDocument(GraphicsGetter graphics)
 	{
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessages = new java.util.ArrayList<MuisMessage>();
-		theDocumentGroups = new NamedStyleGroup [] {new NamedStyleGroup(this, "")};
+		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
 		theDocEvents = new java.util.ArrayList<DocumentEvent>();
 		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;
-		thePressedButtons = new MouseEvent.ButtonType [0];
-		thePressedKeys = new KeyBoardEvent.KeyCode [0];
+		thePressedButtons = new MouseEvent.ButtonType[0];
+		thePressedKeys = new KeyBoardEvent.KeyCode[0];
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
@@ -133,61 +124,47 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theDefaultToolkit = defaultToolkit;
 	}
 
-	/**
-	 * @return The parser that created this document
-	 */
+	/** @return The parser that created this document */
 	public org.muis.parser.MuisParser getParser()
 	{
 		return theParser;
 	}
 
-	/**
-	 * @return The default toolkit to load core MUIS classes from
-	 */
+	/** @return The default toolkit to load core MUIS classes from */
 	public MuisToolkit getDefaultToolkit()
 	{
 		return theDefaultToolkit;
 	}
 
-	/**
-	 * @return The class map that applies to the whole document
-	 */
+	/** @return The class map that applies to the whole document */
 	public MuisClassView getClassView()
 	{
 		return theClassView;
 	}
 
-	/**
-	 * @return The head section of this document
-	 */
+	/** @return The head section of this document */
 	public MuisHeadSection getHead()
 	{
 		return theHead;
 	}
 
-	/**
-	 * @return The root element of the document
-	 */
+	/** @return The root element of the document */
 	public BodyElement getRoot()
 	{
 		return theRoot;
 	}
 
-	/**
-	 * @return The number of named groups that exist in this document
-	 */
+	/** @return The number of named groups that exist in this document */
 	public int getGroupCount()
 	{
 		return theDocumentGroups.length;
 	}
 
-	/**
-	 * @return An Iterable to iterate through this document's groups
-	 */
+	/** @return An Iterable to iterate through this document's groups */
 	public Iterable<NamedStyleGroup> groups()
 	{
-		return new Iterable<NamedStyleGroup>()
-		{
+		return new Iterable<NamedStyleGroup>() {
+			@Override
 			public java.util.Iterator<NamedStyleGroup> iterator()
 			{
 				return new GroupIterator(theDocumentGroups);
@@ -209,7 +186,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Gets a group by name, or creates one if no such group exists
-	 * 
+	 *
 	 * @param name The name of the group to get or create
 	 * @return The group in this document with the given name. Will never be null.
 	 */
@@ -220,8 +197,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				return group;
 		NamedStyleGroup ret = new NamedStyleGroup(this, name);
 		theDocumentGroups = ArrayUtils.add(theDocumentGroups, ret);
-		java.util.Arrays.sort(theDocumentGroups, new java.util.Comparator<NamedStyleGroup>()
-		{
+		java.util.Arrays.sort(theDocumentGroups, new java.util.Comparator<NamedStyleGroup>() {
+			@Override
 			public int compare(NamedStyleGroup g1, NamedStyleGroup g2)
 			{
 				return g1.getName().compareToIgnoreCase(g2.getName());
@@ -231,9 +208,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	}
 
 	/**
-	 * Removes a group from a document. This will remove the group from every element that is a
-	 * member of the group as well.
-	 * 
+	 * Removes a group from a document. This will remove the group from every element that is a member of the group as well.
+	 *
 	 * @param name The name of the group to remove from this document
 	 */
 	public void removeGroup(String name)
@@ -250,9 +226,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			}
 	}
 
-	/**
-	 * Called to initalize the document after all the parsing and linking has been performed
-	 */
+	/** Called to initalize the document after all the parsing and linking has been performed */
 	public void postCreate()
 	{
 		theRoot.postCreate();
@@ -260,7 +234,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Adds an event to be performed after a user action invocation completes
-	 * 
+	 *
 	 * @param evt The event to perform
 	 */
 	public void addEvent(DocumentEvent evt)
@@ -274,7 +248,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				if(de.contains(evt))
 					break;
 				else if(evt.contains(de))
-				{
 					if(!added)
 					{
 						theDocEvents.set(i, evt);
@@ -285,7 +258,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 						theDocEvents.remove(i);
 						i--;
 					}
-				}
 			}
 		}
 	}
@@ -295,7 +267,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		DocumentEvent [] events;
 		synchronized(theDocEvents)
 		{
-			events = theDocEvents.toArray(new DocumentEvent [theDocEvents.size()]);
+			events = theDocEvents.toArray(new DocumentEvent[theDocEvents.size()]);
 			theDocEvents.clear();
 		}
 		for(DocumentEvent evt : events)
@@ -304,12 +276,13 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Records a message in this document
-	 * 
+	 *
 	 * @param type The type of the message
 	 * @param text The text of the message
 	 * @param exception The exception which may have caused the message
 	 * @param params Any parameters relevant to the message
 	 */
+	@Override
 	public void message(MuisMessage.Type type, String text, Throwable exception, Object... params)
 	{
 		MuisMessage message = new MuisMessage(this, type, theRoot.getStage(), text, exception, params);
@@ -318,24 +291,25 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			theWorstMessageType = type;
 	}
 
+	@Override
 	public final void fatal(String message, Throwable exception, Object... params)
 	{
 		message(MuisMessage.Type.FATAL, message, exception, params);
 	}
 
+	@Override
 	public final void error(String message, Throwable exception, Object... params)
 	{
 		message(MuisMessage.Type.ERROR, message, exception, params);
 	}
 
+	@Override
 	public final void warn(String message, Object... params)
 	{
 		message(MuisMessage.Type.WARNING, message, null, params);
 	}
 
-	/**
-	 * @param message The message to remove from this element
-	 */
+	/** @param message The message to remove from this element */
 	public void removeMessage(MuisMessage message)
 	{
 		if(!theMessages.remove(message))
@@ -353,9 +327,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			theWorstMessageType = type;
 	}
 
-	/**
-	 * @return The worst type of message associated with the MUIS document
-	 */
+	/** @return The worst type of message associated with the MUIS document */
+	@Override
 	public MuisMessage.Type getWorstMessageType()
 	{
 		if(theWorstMessageType == null)
@@ -365,9 +338,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		return theRoot.getWorstMessageType();
 	}
 
-	/**
-	 * @return All messages attached to this element or its descendants
-	 */
+	/** @return All messages attached to this element or its descendants */
+	@Override
 	public final MuisMessage [] getAllMessages()
 	{
 		java.util.ArrayList<MuisMessage> ret = new java.util.ArrayList<MuisMessage>();
@@ -375,28 +347,22 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		if(theRoot != null)
 			for(MuisMessage msg : theRoot.getAllMessages())
 				ret.add(msg);
-		return ret.toArray(new MuisMessage [ret.size()]);
+		return ret.toArray(new MuisMessage[ret.size()]);
 	}
 
-	/**
-	 * @return The policy that this document uses to dispatch scroll events
-	 */
+	/** @return The policy that this document uses to dispatch scroll events */
 	public ScrollPolicy getScrollPolicy()
 	{
 		return theScrollPolicy;
 	}
 
-	/**
-	 * @param policy The policy that this document should use to dispatch scroll events
-	 */
+	/** @param policy The policy that this document should use to dispatch scroll events */
 	public void setScrollPolicy(ScrollPolicy policy)
 	{
 		theScrollPolicy = policy;
 	}
 
-	/**
-	 * @return The graphics that this document should use to render itself
-	 */
+	/** @return The graphics that this document should use to render itself */
 	public java.awt.Graphics2D getGraphics()
 	{
 		return theGraphics.getGraphics();
@@ -404,26 +370,23 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Renders this MUIS document in a graphics context
-	 * 
+	 *
 	 * @param graphics The graphics context to render in
 	 */
 	public void paint(java.awt.Graphics2D graphics)
 	{
-		theRoot.paint(graphics);
+		theRoot.paint(graphics, null);
 	}
 
-	/**
-	 * @return Whether the mouse is over this document
-	 */
+	/** @return Whether the mouse is over this document */
 	public boolean hasMouse()
 	{
 		return hasMouse;
 	}
 
 	/**
-	 * @return The x-coordinate of either the mouse's current position relative to the document (if
-	 *         {@link #hasMouse()} is true) or the mouse's position where it exited the document (if
-	 *         {@link #hasMouse()} is false).
+	 * @return The x-coordinate of either the mouse's current position relative to the document (if {@link #hasMouse()} is true) or the
+	 *         mouse's position where it exited the document (if {@link #hasMouse()} is false).
 	 */
 	public int getMouseX()
 	{
@@ -431,9 +394,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	}
 
 	/**
-	 * @return The y-coordinate of either the mouse's current position relative to the document (if
-	 *         {@link #hasMouse()} is true) or the mouse's position where it exited the document (if
-	 *         {@link #hasMouse()} is false).
+	 * @return The y-coordinate of either the mouse's current position relative to the document (if {@link #hasMouse()} is true) or the
+	 *         mouse's position where it exited the document (if {@link #hasMouse()} is false).
 	 */
 	public int getMouseY()
 	{
@@ -449,9 +411,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		return ArrayUtils.contains(thePressedButtons, button);
 	}
 
-	/**
-	 * @return All mouse buttons that are currently pressed
-	 */
+	/** @return All mouse buttons that are currently pressed */
 	public MouseEvent.ButtonType[] getPressedButtons()
 	{
 		return thePressedButtons;
@@ -466,68 +426,49 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		return ArrayUtils.contains(thePressedKeys, code);
 	}
 
-	/**
-	 * @return All key codes whose keys are currently pressed
-	 */
+	/** @return All key codes whose keys are currently pressed */
 	public KeyBoardEvent.KeyCode[] getPressedKeys()
 	{
 		return thePressedKeys;
 	}
 
-	/**
-	 * @return Whether a shift button is currently pressed
-	 */
+	/** @return Whether a shift button is currently pressed */
 	public boolean isShiftPressed()
 	{
-		return isKeyPressed(KeyBoardEvent.KeyCode.SHIFT_LEFT)
-			|| isKeyPressed(KeyBoardEvent.KeyCode.SHIFT_RIGHT);
+		return isKeyPressed(KeyBoardEvent.KeyCode.SHIFT_LEFT) || isKeyPressed(KeyBoardEvent.KeyCode.SHIFT_RIGHT);
 	}
 
-	/**
-	 * @return Whether a control button is currently pressed
-	 */
+	/** @return Whether a control button is currently pressed */
 	public boolean isControlPressed()
 	{
-		return isKeyPressed(KeyBoardEvent.KeyCode.CTRL_LEFT)
-			|| isKeyPressed(KeyBoardEvent.KeyCode.CTRL_RIGHT);
+		return isKeyPressed(KeyBoardEvent.KeyCode.CTRL_LEFT) || isKeyPressed(KeyBoardEvent.KeyCode.CTRL_RIGHT);
 	}
 
-	/**
-	 * @return Whether an alt button is currently pressed
-	 */
+	/** @return Whether an alt button is currently pressed */
 	public boolean isAltPressed()
 	{
-		return isKeyPressed(KeyBoardEvent.KeyCode.ALT_LEFT)
-			|| isKeyPressed(KeyBoardEvent.KeyCode.ALT_RIGHT);
+		return isKeyPressed(KeyBoardEvent.KeyCode.ALT_LEFT) || isKeyPressed(KeyBoardEvent.KeyCode.ALT_RIGHT);
 	}
 
-	/**
-	 * @return Whether caps lock is toggled on at the moment
-	 */
+	/** @return Whether caps lock is toggled on at the moment */
 	public boolean isCapsLocked()
 	{
 		return theAwtToolkit.getLockingKeyState(java.awt.event.KeyEvent.VK_CAPS_LOCK);
 	}
 
-	/**
-	 * @return Whether num lock is toggled on at the moment
-	 */
+	/** @return Whether num lock is toggled on at the moment */
 	public boolean isNumLocked()
 	{
 		return theAwtToolkit.getLockingKeyState(java.awt.event.KeyEvent.VK_NUM_LOCK);
 	}
 
-	/**
-	 * @return Whether scroll lock is toggled on at the moment
-	 */
+	/** @return Whether scroll lock is toggled on at the moment */
 	public boolean isScrollLocked()
 	{
 		return theAwtToolkit.getLockingKeyState(java.awt.event.KeyEvent.VK_SCROLL_LOCK);
 	}
 
-	/**
-	 * @return Whether kana lock is toggled on at the moment (for Japanese keyboard layout)
-	 */
+	/** @return Whether kana lock is toggled on at the moment (for Japanese keyboard layout) */
 	public boolean isKanaLocked()
 	{
 		return theAwtToolkit.getLockingKeyState(java.awt.event.KeyEvent.VK_KANA_LOCK);
@@ -535,26 +476,26 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a mouse event on the document
-	 * 
+	 *
 	 * @param x The x-coordinate where the event occurred
 	 * @param y The y-coordinate where the event occurred
 	 * @param type The type of the event
 	 * @param buttonType The button that caused the event
 	 * @param clickCount The click count for the event
 	 */
-	public void mouse(int x, int y, MouseEvent.MouseEventType type,
-		MouseEvent.ButtonType buttonType, int clickCount)
+	public void mouse(int x, int y, MouseEvent.MouseEventType type, MouseEvent.ButtonType buttonType, int clickCount)
 	{
 		hasMouse = type != MouseEvent.MouseEventType.MOUSE_EXITED;
 		theMouseX = x;
 		theMouseY = y;
 		MuisElement element = theRoot.deepestChildAt(x, y);
 		MouseEvent evt;
-		switch(type)
+		switch (type)
 		{
 		case MOUSE_MOVED:
-			/* This means it moved within the document.  We have to determine any elements that it
-			 * might have exited or entered. */
+			/*
+			 * This means it moved within the document. We have to determine any elements that it might have exited or entered.
+			 */
 			checkMouse();
 			break;
 		case BUTTON_DOWN:
@@ -614,10 +555,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		}
 	}
 
-	/**
-	 * Checks the mouse's current position, firing necessary mouse events if it has moved relative
-	 * to any elements
-	 */
+	/** Checks the mouse's current position, firing necessary mouse events if it has moved relative to any elements */
 	public void checkMouse()
 	{
 		if(!hasMouse)
@@ -632,8 +570,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			Point dp = element.getDocumentPosition();
 			if(x - dp.x != theRelativeMouseX || y - dp.y != theRelativeMouseY)
 			{
-				evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_MOVED, x, y,
-					null, 0);
+				evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_MOVED, x, y, null, 0);
 				theRoot.firePositionEvent(evt, x, y);
 			}
 		}
@@ -644,19 +581,16 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			{
 				if(branch[1] != null)
 				{ // The mouse exited this subtree
-					evt = new MouseEvent(this, theMousedOver,
-						MouseEvent.MouseEventType.MOUSE_EXITED, x, y, null, 0);
+					evt = new MouseEvent(this, theMousedOver, MouseEvent.MouseEventType.MOUSE_EXITED, x, y, null, 0);
 					branch[1].firePositionEvent(evt, x, y);
 				}
 				if(branch[2] != null)
 				{
 					// The mouse exited
-					evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_ENTERED, x,
-						y, null, 0);
+					evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_ENTERED, x, y, null, 0);
 					branch[2].firePositionEvent(evt, x, y);
 				}
-				evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_MOVED, x, y,
-					null, 0);
+				evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_MOVED, x, y, null, 0);
 				branch[0].fireUserEvent(evt); // Fire this event up the path, not on children
 			}
 		}
@@ -664,9 +598,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	}
 
 	/**
-	 * Sets the document's focused element. This method does not invoke
-	 * {@link MuisElement#isFocusable()}, so this will work on any element.
-	 * 
+	 * Sets the document's focused element. This method does not invoke {@link MuisElement#isFocusable()}, so this will work on any element.
+	 *
 	 * @param toFocus The element to give the focus to
 	 */
 	public void setFocus(MuisElement toFocus)
@@ -681,32 +614,26 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		}
 	}
 
-	/**
-	 * Moves this document's focus to the focusable widget previous to the currently focused widget
-	 */
+	/** Moves this document's focus to the focusable widget previous to the currently focused widget */
 	public void backupFocus()
 	{
 		if(theFocus == null)
 			return;
 		if(searchFocus(theFocus, false))
 			return;
-		/* If we get here, then there was no previous focusable element.  We must wrap around to the
-		 * last focusable element. */
+		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable element. */
 		MuisElement deepest = getDeepestElement(theRoot, false);
 		searchFocus(deepest, false);
 	}
 
-	/**
-	 * Moves this document's focus to the focusable widget after the currently focused widget
-	 */
+	/** Moves this document's focus to the focusable widget after the currently focused widget */
 	public void advanceFocus()
 	{
 		if(theFocus == null)
 			return;
 		if(searchFocus(theFocus, true))
 			return;
-		/* If we get here, then there was no previous focusable element.  We must wrap around to the
-		 * last focusable element. */
+		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable element. */
 		MuisElement deepest = getDeepestElement(theRoot, true);
 		searchFocus(deepest, true);
 		fireEvents();
@@ -728,7 +655,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			}
 			boolean foundLastChild = false;
 			for(int c = 0; c < children.length; c++)
-			{
 				if(foundLastChild)
 				{
 					MuisElement deepest = getDeepestElement(children[c], forward);
@@ -746,7 +672,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				}
 				else if(children[c] == lastChild)
 					foundLastChild = true;
-			}
 			if(parent.isFocusable())
 			{
 				setFocus(parent);
@@ -761,18 +686,16 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	static MuisElement getDeepestElement(MuisElement root, boolean first)
 	{
 		while(root.getChildCount() > 0)
-		{
 			if(first)
 				root = root.getChild(0);
 			else
 				root = root.getChild(root.getChildCount() - 1);
-		}
 		return root;
 	}
 
 	/**
 	 * Emulates a scroll event on the document
-	 * 
+	 *
 	 * @param x The x-coordinate where the event occurred
 	 * @param y The y-coordinate where the event occurred
 	 * @param amount The amount that the mouse wheel was scrolled
@@ -780,7 +703,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	public void scroll(int x, int y, int amount)
 	{
 		MuisElement element = null;
-		switch(theScrollPolicy)
+		switch (theScrollPolicy)
 		{
 		case MOUSE:
 		case MIXED:
@@ -795,9 +718,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			y = dp.y;
 			break;
 		}
-		ScrollEvent evt = new ScrollEvent(this, element, x, y, ScrollEvent.ScrollType.UNIT, true,
-			amount, null);
-		switch(theScrollPolicy)
+		ScrollEvent evt = new ScrollEvent(this, element, x, y, ScrollEvent.ScrollType.UNIT, true, amount, null);
+		switch (theScrollPolicy)
 		{
 		case MOUSE:
 		case MIXED:
@@ -813,7 +735,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a key event on this document
-	 * 
+	 *
 	 * @param code The key code of the event
 	 * @param pressed Whether the key was pressed or released
 	 */
@@ -833,17 +755,14 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				if(!ArrayUtils.contains(thePressedKeys, code))
 					thePressedKeys = ArrayUtils.add(thePressedKeys, code);
 			}
-			else
-			{
-				if(ArrayUtils.contains(thePressedKeys, code))
-					thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
-			}
+			else if(ArrayUtils.contains(thePressedKeys, code))
+				thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
 		}
 		if(!evt.isCanceled())
 		{
 			MuisElement scrollElement = null;
 			int x = 0, y = 0;
-			switch(theScrollPolicy)
+			switch (theScrollPolicy)
 			{
 			case MOUSE:
 				if(hasMouse)
@@ -872,7 +791,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			{
 				ScrollEvent.ScrollType scrollType = null;
 				boolean vertical = true, downOrRight = true;
-				switch(code)
+				switch (code)
 				{
 				case LEFT_ARROW:
 					scrollType = ScrollEvent.ScrollType.UNIT;
@@ -909,26 +828,23 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				}
 				if(scrollType != null)
 				{
-					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, x, y, scrollType,
-						vertical, downOrRight ? 1 : -1, evt);
+					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, x, y, scrollType, vertical, downOrRight ? 1 : -1, evt);
 					scrollElement.fireUserEvent(scrollEvt);
 				}
 			}
 
 			if(code == KeyBoardEvent.KeyCode.TAB)
-			{
 				if(isShiftPressed())
 					backupFocus();
 				else
 					advanceFocus();
-			}
 		}
 		fireEvents();
 	}
 
 	/**
 	 * Emulates textual input to the document
-	 * 
+	 *
 	 * @param c The character that was input
 	 */
 	public void character(char c)
@@ -971,8 +887,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		@Override
 		public void remove()
 		{
-			throw new UnsupportedOperationException(
-				"Document's group iterator does not support modification");
+			throw new UnsupportedOperationException("Document's group iterator does not support modification");
 		}
 	}
 }

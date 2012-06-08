@@ -1,13 +1,17 @@
 package org.muis.layout;
 
-import static org.muis.layout.LayoutConstants.*;
-
-import java.awt.Rectangle;
+import static org.muis.layout.LayoutConstants.bottom;
+import static org.muis.layout.LayoutConstants.height;
+import static org.muis.layout.LayoutConstants.included;
+import static org.muis.layout.LayoutConstants.left;
+import static org.muis.layout.LayoutConstants.right;
+import static org.muis.layout.LayoutConstants.top;
+import static org.muis.layout.LayoutConstants.width;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
-import org.muis.layout.FlowLayout.BreakPolicy;
+import org.muis.layout.AbstractFlowLayout.BreakPolicy;
 
 public class SimpleFlowLayout implements org.muis.core.MuisLayout
 {
@@ -115,7 +119,7 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children, Rectangle box)
+	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		// TODO Auto-generated method stub
 

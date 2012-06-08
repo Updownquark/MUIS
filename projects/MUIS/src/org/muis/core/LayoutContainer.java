@@ -60,29 +60,28 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 	}
 
 	@Override
-	public SizePolicy getHSizer(int height)
+	public SizePolicy getWSizer(int height)
 	{
 		if(theLayout != null)
 			return theLayout.getWSizer(this, getChildren(), height);
 		else
-			return super.getHSizer(height);
+			return super.getWSizer(height);
 	}
 
 	@Override
-	public SizePolicy getVSizer(int width)
+	public SizePolicy getHSizer(int width)
 	{
 		if(theLayout != null)
 			return theLayout.getHSizer(this, getChildren(), width);
 		else
-			return super.getVSizer(width);
+			return super.getHSizer(width);
 	}
 
 	@Override
 	public void doLayout()
 	{
 		if(theLayout != null)
-			theLayout.layout(this, getChildren(), new java.awt.Rectangle(0, 0, getWidth(),
-				getHeight()));
+			theLayout.layout(this, getChildren());
 		super.doLayout();
 	}
 

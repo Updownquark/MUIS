@@ -21,7 +21,7 @@ import org.muis.core.*;
 public class FlowLayout extends AbstractFlowLayout
 {
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children, java.awt.Rectangle box)
+	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		if(!isShapeSet)
 			checkLayoutAttributes(parent);

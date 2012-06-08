@@ -81,8 +81,7 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 	public void doLayout()
 	{
 		if(theLayout != null)
-			theLayout.layout(this, getChildren(), new java.awt.Rectangle(0, 0, getWidth(),
-				getHeight()));
+			theLayout.layout(this, getChildren());
 		super.doLayout();
 	}
 

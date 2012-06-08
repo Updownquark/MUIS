@@ -13,6 +13,12 @@ public class LayoutConstants
 			return defVal;
 	}
 
+	public static final MuisAttribute<Direction> direction = new MuisAttribute<Direction>("direction",
+		new MuisAttribute.MuisEnumAttribute<>(Direction.class));
+
+	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<Alignment>("align", new MuisAttribute.MuisEnumAttribute<>(
+		Alignment.class));
+
 	public static final MuisAttribute<Length> left = new MuisAttribute<Length>("left", LengthAttributeType.instance);
 
 	public static final MuisAttribute<Length> minLeft = new MuisAttribute<Length>("min-left", LengthAttributeType.instance);

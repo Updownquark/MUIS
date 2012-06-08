@@ -740,7 +740,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	}
 
 	@Override
-	public SizePolicy getHSizer(int height)
+	public SizePolicy getWSizer(int height)
 	{
 		if(theHSizer == null)
 			theHSizer = new SimpleSizePolicy();
@@ -748,7 +748,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	}
 
 	@Override
-	public SizePolicy getVSizer(int width)
+	public SizePolicy getHSizer(int width)
 	{
 		if(theVSizer == null)
 			theVSizer = new SimpleSizePolicy();

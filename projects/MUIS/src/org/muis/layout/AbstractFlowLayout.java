@@ -167,9 +167,9 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 			break;
 		}
 		if(horizontal)
-			return child.getHSizer(oppositeSize);
+			return child.getWSizer(oppositeSize);
 		else
-			return child.getVSizer(oppositeSize);
+			return child.getHSizer(oppositeSize);
 	}
 
 	protected Length getChildConstraint(MuisElement child, boolean major, int type, int minMax)

@@ -5,6 +5,7 @@ Last left off:
 	The way LazyFlowLayout is turning out, it doesn't need to be called "Lazy".  Can be renamed.
 
 Design layout mechanism:
+	Should initChildren be called each time a child is added or removed from a parent or should there be add/remove methods in the layout interface?
 	minimum, maximum, preferred sizes
 	size policy with properties:
 		stretch factor: How well the widget can make use of extra space (relative factor)

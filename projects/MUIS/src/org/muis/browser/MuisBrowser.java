@@ -72,8 +72,10 @@ public class MuisBrowser extends javax.swing.JPanel
 	public static void main(String [] args)
 	{
 		MuisBrowser browser = new MuisBrowser();
-		browser.setBounds(0, 0, 1200, 900);
-		browser.setVisible(true);
+		javax.swing.JFrame frame = new javax.swing.JFrame("MUIS Browser");
+		frame.setContentPane(browser);
+		frame.setBounds(0, 0, 1200, 900);
+		frame.setVisible(true);
 		if(args.length > 0)
 			browser.goToAddress(args[0]);
 	}

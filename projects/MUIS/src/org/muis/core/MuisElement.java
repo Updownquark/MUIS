@@ -9,16 +9,10 @@ import java.awt.Rectangle;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.MuisSecurityPermission.PermissionType;
-import org.muis.core.event.MuisEvent;
-import org.muis.core.event.MuisEventListener;
-import org.muis.core.event.MuisEventType;
-import org.muis.core.event.MuisPropertyEvent;
+import org.muis.core.event.*;
 import org.muis.layout.SimpleSizePolicy;
 import org.muis.layout.SizePolicy;
-import org.muis.style.BackgroundStyles;
-import org.muis.style.ElementStyle;
-import org.muis.style.MuisStyle;
-import org.muis.style.TextStyle;
+import org.muis.style.*;
 
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
@@ -407,7 +401,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 				child.removeListener(listener);
 	}
 
-	/** Called to initalize an element after all the parsing and linking has been performed */
+	/** Called to initialize an element after all the parsing and linking has been performed */
 	public void postCreate()
 	{
 		if(theStage.compareTo(Stage.STARTUP) >= 0)

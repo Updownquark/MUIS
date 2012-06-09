@@ -2,72 +2,46 @@ package org.muis.parser;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.net.URL;
 
-import org.jdom2.DefaultJDOMFactory;
 import org.jdom2.Element;
 import org.muis.core.*;
 import org.muis.style.StyleDomain;
 
-/**
- * Parses MUIS components using the DOM4J library
- */
+/** Parses MUIS components using the JDOM library */
 public class MuisDomParser implements MuisParser
 {
-	private org.jdom2.JDOMFactory theDF;
-
 	java.util.HashMap<String, MuisToolkit> theToolkits;
 
-	/**
-	 * Creates a MUIS parser
-	 */
+	/** Creates a MUIS parser */
 	public MuisDomParser()
 	{
-		this(new DefaultJDOMFactory());
 		theToolkits = new java.util.HashMap<String, MuisToolkit>();
 	}
 
-	/**
-	 * Creates a MUIS parser with a non-default document factory
-	 * 
-	 * @param factory The document factory to use instead of the default
-	 */
-	public MuisDomParser(org.jdom2.JDOMFactory factory)
-	{
-		theDF = factory;
-	}
-
 	@Override
-	public MuisToolkit getToolkit(String uri, MuisDocument doc) throws MuisParseException, IOException
+	public MuisToolkit getToolkit(URL url, MuisDocument doc) throws MuisParseException, IOException
 	{
-		MuisToolkit ret = theToolkits.get(uri);
+		MuisToolkit ret = theToolkits.get(url.toString());
 		if(ret != null)
 			return ret;
-		java.net.URL url;
-		try
-		{
-			url = new java.net.URL(uri);
-		} catch(java.net.MalformedURLException e)
-		{
-			throw new MuisParseException("Could not parse URL " + uri, e);
-		}
 		Element rootEl;
 		try
 		{
-			rootEl = new org.jdom2.input.SAXBuilder().build(
-				new java.io.InputStreamReader(url.openStream())).getRootElement();
+			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(url.openStream())).getRootElement();
 		} catch(org.jdom2.JDOMException e)
 		{
-			throw new MuisParseException("Could not parse toolkit XML for " + uri, e);
+			throw new MuisParseException("Could not parse toolkit XML for " + url, e);
 		}
 		String name = rootEl.getChildTextTrim("name");
 		if(name == null)
-			throw new MuisParseException("No name element for toolkit at " + uri);
+			throw new MuisParseException("No name element for toolkit at " + url);
 		String descrip = rootEl.getChildTextTrim("description");
 		if(descrip == null)
-			throw new MuisParseException("No description element for toolkit at " + uri);
+			throw new MuisParseException("No description element for toolkit at " + url);
 		String version = rootEl.getChildTextTrim("version");
 		if(version == null)
-			throw new MuisParseException("No version element for toolkit at " + uri);
+			throw new MuisParseException("No version element for toolkit at " + url);
 		if(doc == null || doc.getDefaultToolkit() == null)
 			ret = new MuisToolkit(url, name, descrip, version);
 		else
@@ -85,7 +59,7 @@ public class MuisDomParser implements MuisParser
 						throw new MuisParseException("Illegal element under " + elName);
 					if(doc == null || doc.getDefaultToolkit() == null)
 						throw new MuisParseException("Default toolkit cannot have dependencies");
-					MuisToolkit dependency = getToolkit(dEl.getTextTrim(), doc);
+					MuisToolkit dependency = getToolkit(new URL(dEl.getTextTrim()), doc);
 					try
 					{
 						ret.addDependency(dependency);
@@ -103,13 +77,11 @@ public class MuisDomParser implements MuisParser
 						throw new MuisParseException("Illegal element under " + elName);
 					String tagName = tEl.getAttributeValue("tag");
 					if(tagName == null)
-						throw new MuisParseException("tag attribute expected for " + tEl.getName()
-							+ " element");
+						throw new MuisParseException("tag attribute expected for " + tEl.getName() + " element");
 					// TODO check validity of tag name
 					String className = tEl.getTextTrim();
 					if(className == null || className.length() == 0)
-						throw new MuisParseException("Class name expected for element "
-							+ tEl.getName());
+						throw new MuisParseException("Class name expected for element " + tEl.getName());
 					// TODO check validity of class name
 					try
 					{
@@ -145,40 +117,32 @@ public class MuisDomParser implements MuisParser
 					if(allSubTypes != null && allSubTypes.length > 0)
 					{
 						if(subType == null)
-							throw new MuisParseException(
-								"No sub-type specified for permission type " + type);
+							throw new MuisParseException("No sub-type specified for permission type " + type);
 						for(MuisPermission.SubType st : allSubTypes)
 							if(st.getKey().equals(subTypeName))
 								subType = st;
 						if(subType == null)
-							throw new MuisParseException("No such sub-type " + subTypeName
-								+ " for permission type " + type);
+							throw new MuisParseException("No such sub-type " + subTypeName + " for permission type " + type);
 					}
 					else if(subTypeName != null)
-						throw new MuisParseException("No sub-types exist (such as " + subTypeName
-							+ ") for permission type " + type);
+						throw new MuisParseException("No sub-types exist (such as " + subTypeName + ") for permission type " + type);
 					boolean req = "true".equalsIgnoreCase(pEl.getAttributeValue("required"));
 					String explanation = pEl.getTextTrim();
-					String [] params = new String [subType == null ? 0
-						: subType.getParameters().length];
+					String [] params = new String[subType == null ? 0 : subType.getParameters().length];
 					if(subType != null)
 						for(int p = 0; p < subType.getParameters().length; p++)
 						{
 							params[p] = pEl.getAttributeValue(subType.getParameters()[p].getKey());
 							String val = subType.getParameters()[p].validate(params[p]);
 							if(val != null)
-								throw new MuisParseException("Invalid parameter "
-									+ subType.getParameters()[p].getName() + ": " + val);
+								throw new MuisParseException("Invalid parameter " + subType.getParameters()[p].getName() + ": " + val);
 						}
 					try
 					{
-						ret
-							.addPermission(new MuisPermission(type, subType, params, req,
-								explanation));
+						ret.addPermission(new MuisPermission(type, subType, params, req, explanation));
 					} catch(MuisException e)
 					{
-						throw new MuisParseException("Unexpected MUIS Exception: toolkit is sealed?",
-							e);
+						throw new MuisParseException("Unexpected MUIS Exception: toolkit is sealed?", e);
 					}
 				}
 			}
@@ -189,11 +153,10 @@ public class MuisDomParser implements MuisParser
 	}
 
 	@Override
-	public MuisDocument parseDocument(Reader reader, org.muis.core.MuisDocument.GraphicsGetter graphics)
-		throws MuisParseException, IOException
+	public MuisDocument parseDocument(Reader reader, org.muis.core.MuisDocument.GraphicsGetter graphics) throws MuisParseException,
+		IOException
 	{
-		MuisToolkit dt = getToolkit(MuisDocument.class.getResource("/MuisRegistry.xml").getQuery(),
-			null);
+		MuisToolkit dt = getToolkit(MuisDocument.class.getResource("/MuisRegistry.xml").getQuery(), null);
 		Element rootEl;
 		try
 		{
@@ -300,8 +263,7 @@ public class MuisDomParser implements MuisParser
 	 * @param xml The XML element to parse the namespaces from
 	 * @param namespaces The map to put the toolkits mapped to namespaces in the XML element
 	 */
-	protected void applyNamespaces(MuisDocument doc, Element xml,
-		java.util.Map<String, MuisToolkit> namespaces)
+	protected void applyNamespaces(MuisDocument doc, Element xml, java.util.Map<String, MuisToolkit> namespaces)
 	{
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced())
 		{
@@ -322,10 +284,8 @@ public class MuisDomParser implements MuisParser
 		}
 	}
 
-	private <T extends MuisElement> void applyStyleGroupAttribs(MuisDocument doc,
-		org.muis.style.TypedStyleGroup<T> group, Element groupEl,
-		java.util.Map<String, MuisToolkit> styleNamespaces,
-		java.util.Map<String, MuisToolkit> groupNamespaces)
+	private <T extends MuisElement> void applyStyleGroupAttribs(MuisDocument doc, org.muis.style.TypedStyleGroup<T> group, Element groupEl,
+		java.util.Map<String, MuisToolkit> styleNamespaces, java.util.Map<String, MuisToolkit> groupNamespaces)
 	{
 		for(org.jdom2.Attribute attr : groupEl.getAttributes())
 		{
@@ -348,9 +308,7 @@ public class MuisDomParser implements MuisParser
 			String domainType = toolkit.getMappedClass(domainName);
 			if(domainType == null)
 			{
-				doc
-					.error("No such style domain " + fullDomain + " in toolkit "
-						+ toolkit.getName(), null);
+				doc.error("No such style domain " + fullDomain + " in toolkit " + toolkit.getName(), null);
 				continue;
 			}
 			Class<? extends org.muis.style.StyleDomain> domainClass;
@@ -365,8 +323,7 @@ public class MuisDomParser implements MuisParser
 			org.muis.style.StyleDomain domain;
 			try
 			{
-				domain = (org.muis.style.StyleDomain) domainClass.getMethod("getDomainInstance",
-					new Class [0]).invoke(null, new Object [0]);
+				domain = (org.muis.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null, new Object[0]);
 			} catch(Exception e)
 			{
 				doc.error("Could not get domain instance", e);
@@ -391,8 +348,7 @@ public class MuisDomParser implements MuisParser
 				String javaTypeName = typeToolkit.getMappedClass(typeName);
 				if(javaTypeName == null)
 				{
-					doc.error("No such element type " + fullTypeName + " in toolkit "
-						+ typeToolkit.getName(), null);
+					doc.error("No such element type " + fullTypeName + " in toolkit " + typeToolkit.getName(), null);
 					continue;
 				}
 				Class<? extends MuisElement> typeClass;
@@ -406,20 +362,19 @@ public class MuisDomParser implements MuisParser
 				}
 				if(!group.getType().isAssignableFrom(typeClass))
 				{
-					doc.error("Element type " + javaTypeName + " is not a subtype of "
-						+ group.getType().getName(), null);
+					doc.error("Element type " + javaTypeName + " is not a subtype of " + group.getType().getName(), null);
 					continue;
 				}
-				org.muis.style.TypedStyleGroup<? extends MuisElement> subGroup = group
-					.insertTypedGroup(typeClass.asSubclass(group.getType()));
+				org.muis.style.TypedStyleGroup<? extends MuisElement> subGroup = group.insertTypedGroup(typeClass.asSubclass(group
+					.getType()));
 				applyStyleGroupAttribs(doc, subGroup, typeEl, styleNamespaces, groupNamespaces);
 			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	void applyStyleAttribute(org.muis.style.MuisStyle style, StyleDomain domain, String attrName,
-		String valueStr, MuisMessage.MuisMessageCenter messager)
+	void applyStyleAttribute(org.muis.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
+		MuisMessage.MuisMessageCenter messager)
 	{
 		org.muis.style.StyleAttribute styleAttr = null;
 		for(org.muis.style.StyleAttribute attrib : domain)
@@ -438,27 +393,25 @@ public class MuisDomParser implements MuisParser
 			value = styleAttr.parse(valueStr);
 		} catch(MuisException e)
 		{
-			messager.warn("Value " + valueStr + " is not appropriate for style attribute "
-				+ attrName + " of domain " + domain.getName(), e);
+			messager
+				.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(), e);
 			return;
 		}
 		String error = styleAttr.validate(value);
 		if(error != null)
 		{
-			messager.warn("Value " + valueStr + " is not appropriate for style attribute "
-				+ attrName + " of domain " + domain.getName() + ": " + error);
+			messager.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName()
+				+ ": " + error);
 			return;
 		}
 		style.set(styleAttr, value);
 	}
 
-	private void applyStyleSet(org.muis.style.MuisStyle style, StyleDomain domain, String valueStr,
-		MuisMessage.MuisMessageCenter messager)
+	private void applyStyleSet(org.muis.style.MuisStyle style, StyleDomain domain, String valueStr, MuisMessage.MuisMessageCenter messager)
 	{ // Setting domain attributes in bulk--value must be JSON
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}')
 		{
-			messager.warn("When only a domain is specified, styles must be in the form"
-				+ " {property:value, property:value}");
+			messager.warn("When only a domain is specified, styles must be in the form" + " {property:value, property:value}");
 			return;
 		}
 		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(",");
@@ -488,8 +441,7 @@ public class MuisDomParser implements MuisParser
 	}
 
 	@Override
-	public MuisElement [] parseContent(Reader reader, MuisElement parent, boolean useRootAttrs)
-		throws IOException, MuisParseException
+	public MuisElement [] parseContent(Reader reader, MuisElement parent, boolean useRootAttrs) throws IOException, MuisParseException
 	{
 		Element rootEl;
 		try
@@ -618,8 +570,7 @@ public class MuisDomParser implements MuisParser
 			String domainClassName = toolkit.getMappedClass(domainName);
 			if(domainClassName == null)
 			{
-				muis.warn("No style domain mapped to " + domainName + " in toolkit "
-					+ toolkit.getName());
+				muis.warn("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName());
 				continue;
 			}
 			Class<? extends org.muis.style.StyleDomain> domainClass;
@@ -628,15 +579,13 @@ public class MuisDomParser implements MuisParser
 				domainClass = toolkit.loadClass(domainClassName, org.muis.style.StyleDomain.class);
 			} catch(MuisException e)
 			{
-				muis.warn("Could not load domain class " + domainClassName + " from toolkit "
-					+ toolkit.getName(), e);
+				muis.warn("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
 				continue;
 			}
 			org.muis.style.StyleDomain domain;
 			try
 			{
-				domain = (org.muis.style.StyleDomain) domainClass.getMethod("getDomainInstance",
-					new Class [0]).invoke(null, new Object [0]);
+				domain = (org.muis.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null, new Object[0]);
 			} catch(Exception e)
 			{
 				muis.warn("Could not get domain instance", e);
@@ -698,8 +647,7 @@ public class MuisDomParser implements MuisParser
 			String attachClassName = toolkit.getMappedClass(tag);
 			if(attachClassName == null)
 			{
-				muis.warn("No attachment class mapped to " + tag + " in toolkit "
-					+ toolkit.getName());
+				muis.warn("No attachment class mapped to " + tag + " in toolkit " + toolkit.getName());
 				continue;
 			}
 			Class<? extends MuisElementAttachment> clazz;
@@ -708,8 +656,7 @@ public class MuisDomParser implements MuisParser
 				clazz = toolkit.loadClass(attachClassName, MuisElementAttachment.class);
 			} catch(MuisException e)
 			{
-				muis.warn("Could not load attachment class " + attachClassName + " from toolkit "
-					+ toolkit.getName(), e);
+				muis.warn("Could not load attachment class " + attachClassName + " from toolkit " + toolkit.getName(), e);
 				continue;
 			}
 			MuisElementAttachment attachInstance;
@@ -734,7 +681,7 @@ public class MuisDomParser implements MuisParser
 	 */
 	protected MuisElement [] parseContent(Element xml, MuisElement parent)
 	{
-		MuisElement [] ret = new MuisElement [0];
+		MuisElement [] ret = new MuisElement[0];
 		for(Element child : xml.getChildren())
 		{
 			MuisElement newChild;
@@ -774,8 +721,7 @@ public class MuisDomParser implements MuisParser
 			throw new MuisParseException("No MUIS toolkit mapped to namespace " + ns);
 		String className = toolkit.getMappedClass(xml.getName());
 		if(className == null)
-			throw new MuisParseException("No tag name " + xml.getName() + " mapped for namespace "
-				+ ns);
+			throw new MuisParseException("No tag name " + xml.getName() + " mapped for namespace " + ns);
 		Class<? extends MuisElement> muisClass;
 		try
 		{

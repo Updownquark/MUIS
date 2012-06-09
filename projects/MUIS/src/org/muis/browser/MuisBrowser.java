@@ -11,7 +11,7 @@ public class MuisBrowser extends javax.swing.JPanel
 	/** Creates a MUIS browser */
 	public MuisBrowser()
 	{
-		setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.X_AXIS));
+		setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 		theAddressBar = new javax.swing.JTextField(250);
 		add(theAddressBar);
 		theContentPane = new MuisContentPane();
@@ -74,7 +74,8 @@ public class MuisBrowser extends javax.swing.JPanel
 		MuisBrowser browser = new MuisBrowser();
 		javax.swing.JFrame frame = new javax.swing.JFrame("MUIS Browser");
 		frame.setContentPane(browser);
-		frame.setBounds(0, 0, 1200, 900);
+		frame.setBounds(0, 0, 900, 600);
+		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		if(args.length > 0)
 			browser.goToAddress(args[0]);

@@ -8,6 +8,8 @@ public class MuisBrowser extends javax.swing.JPanel
 
 	private MuisContentPane theContentPane;
 
+	private boolean theDataLock;
+
 	/** Creates a MUIS browser */
 	public MuisBrowser()
 	{
@@ -31,6 +33,17 @@ public class MuisBrowser extends javax.swing.JPanel
 	/** @param address The address of the document to get */
 	public void goToAddress(String address)
 	{
+		if(!theDataLock && !theAddressBar.getText().equals(address))
+		{
+			theDataLock = true;
+			try
+			{
+				theAddressBar.setText(address);
+			} finally
+			{
+				theDataLock = false;
+			}
+		}
 		java.net.URL url;
 		try
 		{
@@ -65,7 +78,7 @@ public class MuisBrowser extends javax.swing.JPanel
 
 	/**
 	 * Starts up a MuisBrowser
-	 *
+	 * 
 	 * @param args Command-line arguments. If any are supplied, the first one is used as the initial address of the MUIS document to
 	 *            display.
 	 */

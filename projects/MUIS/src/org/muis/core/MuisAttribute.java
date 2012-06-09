@@ -56,16 +56,19 @@ public final class MuisAttribute<T>
 	/** A string attribute type--this type validates anything */
 	public static final MuisAttribute.AttributeType<String> stringAttr = new AttributeType<String>()
 	{
+		@Override
 		public String validate(MuisElement element, String value)
 		{
 			return null;
 		}
 
+		@Override
 		public String parse(MuisElement element, String value)
 		{
 			return value;
 		}
 
+		@Override
 		public String cast(Object value)
 		{
 			if(value instanceof String)
@@ -78,6 +81,7 @@ public final class MuisAttribute<T>
 	/** A boolean attribute type--values must be either true or false */
 	public static final MuisAttribute.AttributeType<Boolean> boolAttr = new AttributeType<Boolean>()
 	{
+		@Override
 		public String validate(MuisElement element, String value)
 		{
 			if(value.equals("true") || value.equals("false"))
@@ -85,6 +89,7 @@ public final class MuisAttribute<T>
 			return "must be a either \"true\" or \"false\": " + value + " is invalid";
 		}
 
+		@Override
 		public Boolean parse(MuisElement element, String value) throws MuisException
 		{
 			if(value == null)
@@ -97,6 +102,7 @@ public final class MuisAttribute<T>
 				throw new MuisException("Value " + value + " is not a boolean representation");
 		}
 
+		@Override
 		public Boolean cast(Object value)
 		{
 			if(value instanceof Boolean)
@@ -109,6 +115,7 @@ public final class MuisAttribute<T>
 	/** An integer attribute type--values must be valid integers */
 	public static final MuisAttribute.AttributeType<Long> intAttr = new AttributeType<Long>()
 	{
+		@Override
 		public String validate(MuisElement element, String value)
 		{
 			try
@@ -121,6 +128,7 @@ public final class MuisAttribute<T>
 			}
 		}
 
+		@Override
 		public Long parse(MuisElement element, String value) throws MuisException
 		{
 			try
@@ -132,6 +140,7 @@ public final class MuisAttribute<T>
 			}
 		}
 
+		@Override
 		public Long cast(Object value)
 		{
 			if(value instanceof Long)
@@ -146,6 +155,7 @@ public final class MuisAttribute<T>
 	/** A floating-point attribute type--values must be valid real numbers */
 	public static final MuisAttribute.AttributeType<Double> floatAttr = new AttributeType<Double>()
 	{
+		@Override
 		public String validate(MuisElement element, String value)
 		{
 			try
@@ -158,6 +168,7 @@ public final class MuisAttribute<T>
 			}
 		}
 
+		@Override
 		public Double parse(MuisElement element, String value) throws MuisException
 		{
 			try
@@ -170,6 +181,7 @@ public final class MuisAttribute<T>
 			}
 		}
 
+		@Override
 		public Double cast(Object value)
 		{
 			if(value instanceof Double)
@@ -188,19 +200,16 @@ public final class MuisAttribute<T>
 	 */
 	public static class MuisTypeAttribute<T> implements AttributeType<Class<? extends T>>
 	{
-		/**
-		 * The subtype that the value must map to
-		 */
+		/** The subtype that the value must map to */
 		public final Class<T> type;
 
-		/**
-		 * @param aType The subtype that the value must map to
-		 */
+		/** @param aType The subtype that the value must map to */
 		public MuisTypeAttribute(Class<T> aType)
 		{
 			type = aType;
 		}
 
+		@Override
 		public String validate(MuisElement element, String value)
 		{
 			MuisToolkit toolkit = element.getClassView().getToolkitForQName(value);
@@ -224,6 +233,7 @@ public final class MuisAttribute<T>
 			return null;
 		}
 
+		@Override
 		public Class<? extends T> parse(MuisElement element, String value) throws MuisException
 		{
 			if(value == null)
@@ -251,6 +261,7 @@ public final class MuisAttribute<T>
 			return (Class<? extends T>) valueClass;
 		}
 
+		@Override
 		public Class<? extends T> cast(Object value)
 		{
 			if(!(value instanceof Class<?>))
@@ -258,6 +269,12 @@ public final class MuisAttribute<T>
 			if(!type.isAssignableFrom((Class<?>) value))
 				return null;
 			return (Class<? extends T>) value;
+		}
+
+		@Override
+		public String toString()
+		{
+			return type.isPrimitive() ? type.getSimpleName() : type.getName();
 		}
 	}
 
@@ -287,6 +304,7 @@ public final class MuisAttribute<T>
 			enumType = enumClass;
 		}
 
+		@Override
 		public String validate(MuisElement element, String value)
 		{
 			T [] consts = enumType.getEnumConstants();
@@ -308,6 +326,7 @@ public final class MuisAttribute<T>
 				return "does not match any of the allowable values";
 		}
 
+		@Override
 		public T parse(MuisElement element, String value) throws MuisException
 		{
 			if(value == null)
@@ -320,6 +339,7 @@ public final class MuisAttribute<T>
 				+ " does not match any of the allowable values for type " + enumType.getName());
 		}
 
+		@Override
 		public T cast(Object value)
 		{
 			if(enumType.isInstance(value))

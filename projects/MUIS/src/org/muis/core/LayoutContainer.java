@@ -24,6 +24,7 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 	@Override
 	public void postCreate()
 	{
+		super.postCreate();
 		Class<? extends MuisLayout> layoutClass = getAttribute(LAYOUT_ATTR);
 		MuisLayout layout;
 		try
@@ -36,7 +37,6 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 		}
 		theLayout = layout;
 		theLayout.initChildren(this, getChildren());
-		super.postCreate();
 	}
 
 	/**

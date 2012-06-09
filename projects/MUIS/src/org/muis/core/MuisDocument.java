@@ -5,10 +5,7 @@ package org.muis.core;
 
 import java.awt.Point;
 
-import org.muis.core.event.DocumentEvent;
-import org.muis.core.event.KeyBoardEvent;
-import org.muis.core.event.MouseEvent;
-import org.muis.core.event.ScrollEvent;
+import org.muis.core.event.*;
 import org.muis.style.NamedStyleGroup;
 
 import prisms.util.ArrayUtils;
@@ -91,7 +88,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Creates a document
-	 *
+	 * 
 	 * @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand
 	 */
 	public MuisDocument(GraphicsGetter graphics)
@@ -122,6 +119,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theClassView = new MuisClassView(this);
 		theHead = new MuisHeadSection();
 		theDefaultToolkit = defaultToolkit;
+		theRoot.init(this, theDefaultToolkit, theClassView, null, null, null);
 	}
 
 	/** @return The parser that created this document */
@@ -186,7 +184,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Gets a group by name, or creates one if no such group exists
-	 *
+	 * 
 	 * @param name The name of the group to get or create
 	 * @return The group in this document with the given name. Will never be null.
 	 */
@@ -209,7 +207,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Removes a group from a document. This will remove the group from every element that is a member of the group as well.
-	 *
+	 * 
 	 * @param name The name of the group to remove from this document
 	 */
 	public void removeGroup(String name)
@@ -234,7 +232,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Adds an event to be performed after a user action invocation completes
-	 *
+	 * 
 	 * @param evt The event to perform
 	 */
 	public void addEvent(DocumentEvent evt)
@@ -276,7 +274,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Records a message in this document
-	 *
+	 * 
 	 * @param type The type of the message
 	 * @param text The text of the message
 	 * @param exception The exception which may have caused the message
@@ -370,7 +368,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Renders this MUIS document in a graphics context
-	 *
+	 * 
 	 * @param graphics The graphics context to render in
 	 */
 	public void paint(java.awt.Graphics2D graphics)
@@ -476,7 +474,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a mouse event on the document
-	 *
+	 * 
 	 * @param x The x-coordinate where the event occurred
 	 * @param y The y-coordinate where the event occurred
 	 * @param type The type of the event
@@ -599,7 +597,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Sets the document's focused element. This method does not invoke {@link MuisElement#isFocusable()}, so this will work on any element.
-	 *
+	 * 
 	 * @param toFocus The element to give the focus to
 	 */
 	public void setFocus(MuisElement toFocus)
@@ -695,7 +693,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a scroll event on the document
-	 *
+	 * 
 	 * @param x The x-coordinate where the event occurred
 	 * @param y The y-coordinate where the event occurred
 	 * @param amount The amount that the mouse wheel was scrolled
@@ -735,7 +733,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a key event on this document
-	 *
+	 * 
 	 * @param code The key code of the event
 	 * @param pressed Whether the key was pressed or released
 	 */
@@ -844,7 +842,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates textual input to the document
-	 *
+	 * 
 	 * @param c The character that was input
 	 */
 	public void character(char c)

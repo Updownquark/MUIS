@@ -57,12 +57,10 @@ public class MuisUtils
 	public static MuisElement commonAncestor(MuisElement el1, MuisElement el2)
 	{
 		MuisElement [] path1 = path(el1);
-		MuisElement [] path2 = path(el2);
-		if(path1.length == 0 || path2.length == 0 || path1[0] != path2[0])
-			return null;
-		int i;
-		for(i = 0; i < path1.length && i < path2.length && path1[i] == path2[i]; i++);
-		return path1[i - 1];
+		MuisElement test = el2;
+		while(test != null && !prisms.util.ArrayUtils.contains(path1, test))
+			test = test.getParent();
+		return test;
 	}
 
 	/**

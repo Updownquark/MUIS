@@ -200,8 +200,7 @@ public class MuisDomParser implements MuisParser
 				continue;
 			doc.error("Extra element " + el.getName() + " in document XML", null);
 		}
-		MuisClassView classView = getClassView(doc.getRoot(), body[0]);
-		doc.getRoot().init(doc, doc.getDefaultToolkit(), classView, null, null, body[0].getName());
+		doc.getRoot().init(doc, doc.getDefaultToolkit(), doc.getClassView(), null, null, body[0].getName());
 		applyAttributes(doc.getRoot(), body[0]);
 		MuisElement [] content = parseContent(body[0], doc.getRoot());
 		doc.getRoot().initChildren(content);
@@ -759,7 +758,7 @@ public class MuisDomParser implements MuisParser
 		{
 			throw new MuisParseException("Could not instantiate MUIS element class " + className, e);
 		}
-		MuisClassView classView = getClassView(ret, xml);
+		MuisClassView classView = getClassView(parent, xml);
 		ret.init(parent.getDocument(), toolkit, classView, parent, ns, xml.getName());
 		return ret;
 	}

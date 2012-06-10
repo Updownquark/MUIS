@@ -119,7 +119,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theClassView = new MuisClassView(this);
 		theHead = new MuisHeadSection();
 		theDefaultToolkit = defaultToolkit;
-		theRoot.init(this, theDefaultToolkit, theClassView, null, null, null);
 	}
 
 	/** @return The parser that created this document */
@@ -364,6 +363,18 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	public java.awt.Graphics2D getGraphics()
 	{
 		return theGraphics.getGraphics();
+	}
+
+	/**
+	 * Sets the size that this document can render its content in
+	 * 
+	 * @param width The width of the document size
+	 * @param height The height of the document size
+	 */
+	public void setSize(int width, int height)
+	{
+		// TODO Process asynchronously in the MuisEventQueue
+		theRoot.setSize(width, height);
 	}
 
 	/**

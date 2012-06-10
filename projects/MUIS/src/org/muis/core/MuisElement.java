@@ -151,6 +151,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	private ConcurrentHashMap<MuisAttribute<?>, Object> theAttrValues;
 
+	private ConcurrentHashMap<String, String> theRawAttributes;
+
 	private MuisElement [] theChildren;
 
 	private final ElementStyle theStyle;
@@ -188,16 +190,16 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	private long theLayoutDirtyTime;
 
 	/** Creates a MUIS element */
-	@SuppressWarnings({"rawtypes"})
 	public MuisElement()
 	{
 		theStage = Stage.PARSE;
 		theChildren = new MuisElement[0];
-		theAcceptedAttrs = new ConcurrentHashMap<String, AttributeHolder>();
-		theAttrValues = new ConcurrentHashMap<MuisAttribute<?>, Object>();
-		theListeners = new ListenerManager<MuisEventListener>(MuisEventListener.class);
+		theAcceptedAttrs = new ConcurrentHashMap<>();
+		theAttrValues = new ConcurrentHashMap<>();
+		theRawAttributes = new ConcurrentHashMap<>();
+		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theChildListeners = new ListenerManager<>(MuisEventListener.class);
-		theMessages = new java.util.ArrayList<MuisMessage>();
+		theMessages = new java.util.ArrayList<>();
 		if(this instanceof MuisTextElement)
 			theStyle = new TextStyle((MuisTextElement) this);
 		else
@@ -306,7 +308,12 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	{
 		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder == null)
-			throw new MuisException("Attribute " + attr + " is not accepted in this element");
+		{
+			if(getStage().compareTo(Stage.STARTUP) >= 0)
+				throw new MuisException("Attribute " + attr + " is not accepted in this element");
+			theRawAttributes.put(attr, value);
+			return null;
+		}
 		return setAttribute(holder.attr, value);
 	}
 
@@ -325,6 +332,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	public final <T> T setAttribute(MuisAttribute<T> attr, String value) throws MuisException
 	{
 		checkSecurity(PermissionType.setAttribute, attr);
+		if(theRawAttributes != null)
+			theRawAttributes.remove(attr.name);
 		if(getStage().compareTo(Stage.STARTUP) >= 0)
 		{
 			AttributeHolder holder = theAcceptedAttrs.get(attr.name);
@@ -355,6 +364,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	public <T> void setAttribute(MuisAttribute<T> attr, T value) throws MuisException
 	{
 		checkSecurity(PermissionType.setAttribute, attr);
+		if(theRawAttributes != null)
+			theRawAttributes.remove(attr.name);
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder == null)
 			throw new MuisException("Attribute " + attr + " is not accepted in this element");
@@ -441,12 +452,16 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 						theAttrValues.remove(attr);
 					}
 				}
+				fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 			}
+			for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
+				error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());
 			for(MuisElement child : theChildren)
 				child.postCreate();
 		} finally
 		{
 			theStage = Stage.RUNTIME;
+			theRawAttributes = null;
 		}
 	}
 
@@ -753,9 +768,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 		return theVSizer;
 	}
 
-	/**
-	 * @return This element's position relative to the document's root
-	 */
+	/** @return This element's position relative to the document's root */
 	public final Point getDocumentPosition()
 	{
 		int x = 0;
@@ -770,17 +783,13 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 		return new Point(x, y);
 	}
 
-	/**
-	 * @return Whether this element is able to accept the focus for the document
-	 */
+	/** @return Whether this element is able to accept the focus for the document */
 	public boolean isFocusable()
 	{
 		return isFocusable;
 	}
 
-	/**
-	 * @param focusable Whether this element should be focusable
-	 */
+	/** @param focusable Whether this element should be focusable */
 	protected final void setFocusable(boolean focusable)
 	{
 		isFocusable = focusable;
@@ -808,11 +817,29 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 					+ ") is already accepted in this element");
 		}
 		else
-			theAcceptedAttrs.put(attr.name, new AttributeHolder(attr, true));
+		{
+			holder = new AttributeHolder(attr, true);
+			theAcceptedAttrs.put(attr.name, holder);
+			String strVal = theRawAttributes.remove(attr.name);
+			if(strVal != null)
+			{
+				String valError = holder.validate(strVal);
+				if(valError != null)
+					error(valError, null, "attribute", attr);
+				else
+					try
+					{
+						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(this, strVal));
+					} catch(MuisException e)
+					{
+						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
+					}
+			}
+		}
 	}
 
 	/**
-	 * Marks an accepted attribute as not requirede
+	 * Marks an accepted attribute as not required
 	 * 
 	 * @param attr The attribute to accept but not require
 	 */
@@ -849,13 +876,31 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 		if(holder != null)
 		{
 			if(holder.attr.equals(attr))
-				return; // The attribute is already required
+				return; // The attribute is already accepted
 			else
 				throw new IllegalStateException("An attribute named " + attr.name + " (" + holder.attr
 					+ ") is already accepted in this element");
 		}
 		else
-			theAcceptedAttrs.put(attr.name, new AttributeHolder(attr, false));
+		{
+			holder = new AttributeHolder(attr, false);
+			theAcceptedAttrs.put(attr.name, holder);
+			String strVal = theRawAttributes.remove(attr.name);
+			if(strVal != null)
+			{
+				String valError = holder.validate(strVal);
+				if(valError != null)
+					error(valError, null, "attribute", attr);
+				else
+					try
+					{
+						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(this, strVal));
+					} catch(MuisException e)
+					{
+						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
+					}
+			}
+		}
 	}
 
 	/**

@@ -1,8 +1,7 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.muis.browser;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 import org.muis.core.event.KeyBoardEvent.KeyCode;
 import org.muis.core.event.MouseEvent.MouseEventType;
@@ -20,6 +19,15 @@ public class MuisContentPane extends java.awt.Component
 	public MuisContentPane()
 	{
 		super();
+		addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e)
+			{
+				super.componentResized(e);
+				if(theContent != null)
+					theContent.setSize(getWidth(), getHeight());
+			}
+		});
 		addMouseListener(new java.awt.event.MouseListener() {
 			@Override
 			public void mousePressed(MouseEvent e)
@@ -101,6 +109,7 @@ public class MuisContentPane extends java.awt.Component
 	public void setContent(org.muis.core.MuisDocument doc)
 	{
 		theContent = doc;
+		theContent.setSize(getWidth(), getHeight());
 	}
 
 	/**

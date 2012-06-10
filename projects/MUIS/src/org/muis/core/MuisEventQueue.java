@@ -40,7 +40,7 @@ public class MuisEventQueue
 
 	/**
 	 * Schedules a core event
-	 *
+	 * 
 	 * @param event The event that MUIS needs to take action on
 	 * @param fireNow Whether to take action on the event immediately and wait with this thread until the event has been acted on
 	 */
@@ -190,6 +190,7 @@ public class MuisEventQueue
 					final long pdt = getPaintDirtyTolerance();
 					final long ldt = getLayoutDirtyTolerance();
 					long now = System.currentTimeMillis();
+					boolean acted = false;
 					while(iter.hasNext())
 					{
 						MuisCoreEvent evt = iter.next();
@@ -198,6 +199,8 @@ public class MuisEventQueue
 						case paint:
 							if(now - evt.element.getPaintDirtyTime() < pdt)
 								continue;
+							acted = true;
+							iter.remove();
 							evt.act();
 							repaint(evt);
 							evt.done();
@@ -206,6 +209,8 @@ public class MuisEventQueue
 						case layout:
 							if(now - evt.element.getLayoutDirtyTime() < ldt)
 								continue;
+							acted = true;
+							iter.remove();
 							evt.act();
 							relayout(evt);
 							evt.done();
@@ -213,7 +218,8 @@ public class MuisEventQueue
 							break;
 						}
 					}
-					Thread.sleep(getFrequency());
+					if(!acted)
+						Thread.sleep(getFrequency());
 				} catch(InterruptedException e)
 				{
 				}
@@ -224,7 +230,7 @@ public class MuisEventQueue
 
 	/**
 	 * Takes action on a {@link MuisCoreEvent.CoreEventType#paint paint} event
-	 *
+	 * 
 	 * @param event The paint event to fulfill
 	 */
 	protected void repaint(MuisCoreEvent event)
@@ -237,7 +243,7 @@ public class MuisEventQueue
 
 	/**
 	 * Takes action on a {@link MuisCoreEvent.CoreEventType#layout layout} event
-	 *
+	 * 
 	 * @param event The layout event to fulfill
 	 */
 	protected void relayout(MuisCoreEvent event)

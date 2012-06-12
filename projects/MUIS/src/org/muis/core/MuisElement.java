@@ -249,6 +249,21 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 			}
 		});
 		acceptAttribute(StyleAttributeType.ATTRIBUTE);
+		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
+			@Override
+			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element)
+			{
+				Rectangle old = ((MuisPropertyEvent<Rectangle>) event).getOldValue();
+				if(event.getValue().width != old.width || event.getValue().height != old.height)
+					relayout(false);
+			}
+
+			@Override
+			public boolean isLocal()
+			{
+				return true;
+			}
+		});
 	}
 
 	/**
@@ -396,7 +411,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 		theChildren = children;
 		for(MuisElement child : children)
 			registerChild(child);
-		relayout(false);
+		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
+			relayout(false);
 	}
 
 	/**
@@ -1414,6 +1430,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public void relayout(boolean now)
 	{
+		if(theW <= 0 || theH <= 0)
+			return; // No point layout out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
 		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(this, MuisCoreEvent.CoreEventType.layout), now);
 	}
@@ -1473,6 +1491,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public final void repaint(Rectangle area, boolean now)
 	{
+		if(theW <= 0 || theH <= 0)
+			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
 		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(this, MuisCoreEvent.CoreEventType.paint, area), now);
 	}

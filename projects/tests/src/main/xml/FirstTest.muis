@@ -5,8 +5,8 @@
         <title>Super-Simple MUIS Document</title>
     </head>
     <body layout="simple">
-    	<block layout="simple" style="bg.color=green" width="100%" top="0"s height="100%">
-    		<label left="0" right="100%" height="25%">This is a MUIS Document</label>
+    	<block layout="simple" style="bg.color=green" width="100%" top="0" height="100%">
+    		<label left="0" right="100%" top="0" height="25%">This is a MUIS Document</label>
 			<block layout="simple" left="0" right="100%" top="25%" height="75%" style="bg.color=#4040ff">
 				<label left="0" right="100%">The Content</label>
 			</block>

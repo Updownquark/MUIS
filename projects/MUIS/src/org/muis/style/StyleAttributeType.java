@@ -4,10 +4,13 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType implements org.muis.core.MuisAttribute.AttributeType<AttributeStyle>
+public class StyleAttributeType implements org.muis.core.MuisAttribute.AttributeType<ElementStyle>
 {
 	/** The instance to use */
 	public static StyleAttributeType TYPE = new StyleAttributeType();
+
+	/** The style attribute on MUIS elements */
+	public static final org.muis.core.MuisAttribute<ElementStyle> ATTRIBUTE = new org.muis.core.MuisAttribute<ElementStyle>("style", TYPE);
 
 	/** Protected so developers will use {@link #TYPE} */
 	protected StyleAttributeType()
@@ -21,9 +24,9 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	}
 
 	@Override
-	public AttributeStyle parse(MuisElement element, String value) throws MuisException
+	public ElementStyle parse(MuisElement element, String value) throws MuisException
 	{
-		AttributeStyle ret = new AttributeStyle(element);
+		ElementStyle ret = element.getStyle();
 		String [] styles = value.split(";");
 		for(String style : styles)
 		{
@@ -130,35 +133,7 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	protected void applyStyleAttribute(org.muis.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
 		org.muis.core.MuisMessage.MuisMessageCenter messager)
 	{
-		StyleAttribute<?> styleAttr = null;
-		for(StyleAttribute<?> attrib : domain)
-			if(attrib.name.equals(attrName))
-				styleAttr = attrib;
-
-		if(styleAttr == null)
-		{
-			messager.warn("No such attribute " + attrName + " in domain " + domain.getName());
-			return;
-		}
-
-		Object value;
-		try
-		{
-			value = styleAttr.parse(valueStr);
-		} catch(MuisException e)
-		{
-			messager
-				.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(), e);
-			return;
-		}
-		String error = styleAttr.validate(value);
-		if(error != null)
-		{
-			messager.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName()
-				+ ": " + error);
-			return;
-		}
-		style.set((StyleAttribute<Object>) styleAttr, value);
+		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager);
 	}
 
 	/**
@@ -171,30 +146,13 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 */
 	protected void applyStyleSet(org.muis.style.MuisStyle style, StyleDomain domain, String valueStr,
 		org.muis.core.MuisMessage.MuisMessageCenter messager)
-	{ // Setting domain attributes in bulk--value must be JSON
-		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}')
-		{
-			messager.warn("When only a domain is specified, styles must be in the form {property:value, property:value}");
-			return;
-		}
-		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(",");
-		for(String propEntry : propEntries)
-		{
-			int idx = propEntry.indexOf(':');
-			if(idx < 0)
-			{
-				messager.warn("Bulk style setting " + propEntry.trim() + " is missing a colon");
-				continue;
-			}
-			String attrName = propEntry.substring(0, idx).trim();
-			String propVal = propEntry.substring(idx + 1).trim();
-			applyStyleAttribute(style, domain, attrName, propVal, messager);
-		}
+	{
+		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager);
 	}
 
 	@Override
-	public AttributeStyle cast(Object value)
+	public ElementStyle cast(Object value)
 	{
-		return value instanceof AttributeStyle ? (AttributeStyle) value : null;
+		return value instanceof ElementStyle ? (ElementStyle) value : null;
 	}
 }

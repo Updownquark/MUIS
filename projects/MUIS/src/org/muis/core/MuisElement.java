@@ -9,7 +9,10 @@ import java.awt.Rectangle;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.MuisSecurityPermission.PermissionType;
-import org.muis.core.event.*;
+import org.muis.core.event.MuisEvent;
+import org.muis.core.event.MuisEventListener;
+import org.muis.core.event.MuisEventType;
+import org.muis.core.event.MuisPropertyEvent;
 import org.muis.layout.SimpleSizePolicy;
 import org.muis.layout.SizePolicy;
 import org.muis.style.*;
@@ -36,7 +39,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 		/**
 		 * Validates an attribute value
-		 * 
+		 *
 		 * @param attr The attribute to validate
 		 * @param value The non-null attribute value to validate
 		 * @param el The element that the attribute is for
@@ -245,11 +248,12 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 				return true;
 			}
 		});
+		acceptAttribute(StyleAttributeType.ATTRIBUTE);
 	}
 
 	/**
 	 * Initializes an element's core information
-	 * 
+	 *
 	 * @param doc The document that this element belongs to
 	 * @param toolkit The toolkit that this element belongs to
 	 * @param classView The class view for this element
@@ -283,7 +287,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Checks whether the given permission can be executed in the current context
-	 * 
+	 *
 	 * @param type The type of permission
 	 * @param value The value associated with the permission
 	 * @throws SecurityException If the permission is denied
@@ -297,7 +301,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Sets an attribute typelessly
-	 * 
+	 *
 	 * @param attr The name of the attribute to set
 	 * @param value The string representation of the attribute's value
 	 * @return The parsed value for the attribute, or null if this element has not been initialized
@@ -321,7 +325,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 * Sets the value of an attribute for the element. If this element has not been fully initialized (by {@link #postCreate()}, the
 	 * attribute's value will be validated and parsed during {@link #postCreate()}. If this element has been initialized, the value will be
 	 * validated immediately and a {@link MuisException} will be thrown if the value is not valid.
-	 * 
+	 *
 	 * @param <T> The type of the attribute to set
 	 * @param attr The attribute to set
 	 * @param value The value for the attribute
@@ -355,7 +359,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Sets an attribute's type-correct value
-	 * 
+	 *
 	 * @param <T> The type of the attribute to set
 	 * @param attr The attribute to set
 	 * @param value The value to set for the attribute in this element
@@ -383,7 +387,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Initializes an element's descendants
-	 * 
+	 *
 	 * @param children The child elements specified in the MUIS XML
 	 */
 	public void initChildren(MuisElement [] children)
@@ -397,7 +401,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Called when a child is introduced to this parent
-	 * 
+	 *
 	 * @param child The child that has been added to this parent
 	 */
 	protected void registerChild(MuisElement child)
@@ -409,7 +413,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Called when a child is removed to this parent
-	 * 
+	 *
 	 * @param child The child that has been removed from this parent
 	 */
 	protected void unregisterChild(MuisElement child)
@@ -521,7 +525,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Gets the value of an attribute in this element
-	 * 
+	 *
 	 * @param <T> The type of the attribute to get
 	 * @param attr The attribute to get the value of
 	 * @return The value of the attribute in this element
@@ -581,7 +585,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Sets this element's parent after initialization
-	 * 
+	 *
 	 * @param parent The new parent for this element
 	 */
 	protected final void setParent(MuisElement parent)
@@ -601,7 +605,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/**
 	 * Adds a child to this element. Protected because this operation will not be desirable to all implementations (e.g. images). Override
 	 * as public in implementations where this functionality should be exposed publicly (containers).
-	 * 
+	 *
 	 * @param child The child to add
 	 * @param index The index to add the child at, or -1 to add the child as the last element
 	 */
@@ -618,7 +622,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/**
 	 * Removes a child from this element. Protected because this operation will not be desirable to all implementations (e.g. images).
 	 * Override as public in implementations where this functionality should be exposed publicly (containers).
-	 * 
+	 *
 	 * @param index The index of the child to remove, or -1 to remove the last element
 	 * @return The element that was removed
 	 */
@@ -797,7 +801,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Specifies a required attribute for this element
-	 * 
+	 *
 	 * @param attr The attribute that must be specified for this element
 	 */
 	public final void requireAttribute(MuisAttribute<?> attr)
@@ -840,7 +844,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Marks an accepted attribute as not required
-	 * 
+	 *
 	 * @param attr The attribute to accept but not require
 	 */
 	public final void unrequireAttribute(MuisAttribute<?> attr)
@@ -865,7 +869,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Specifies an optional attribute for this element
-	 * 
+	 *
 	 * @param attr The attribute that must be specified for this element
 	 */
 	public final void acceptAttribute(MuisAttribute<?> attr)
@@ -906,7 +910,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/**
 	 * Undoes acceptance of an attribute. This method does not remove any attribute value associated with this element. It merely disables
 	 * the attribute. If the attribute is accepted on this element later, this element's value of that attribute will be preserved.
-	 * 
+	 *
 	 * @param attr The attribute to not allow in this element
 	 */
 	public final void rejectAttribute(MuisAttribute<?> attr)
@@ -966,7 +970,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Adds a listener for an event type to this element
-	 * 
+	 *
 	 * @param <T> The type of the property that the event type represents
 	 * @param type The event type to listen for
 	 * @param listener The listener to notify when an event of the given type occurs
@@ -984,7 +988,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Adds a listener for an event type to this element's direct children
-	 * 
+	 *
 	 * @param <T> The type of the property that the event represents
 	 * @param type The event type to listen for
 	 * @param listener The listener to notify when an event of the given type occurs
@@ -1006,7 +1010,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Fires an event on this element
-	 * 
+	 *
 	 * @param <T> The type of the event's property
 	 * @param event The event to fire
 	 * @param fromDescendant Whether the event was fired on one of this element's descendants or on this element specifically
@@ -1025,7 +1029,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Fires a user-generated event on this element, propagating up toward the document root unless canceled
-	 * 
+	 *
 	 * @param event The event to fire
 	 */
 	public final void fireUserEvent(org.muis.core.event.UserEvent event)
@@ -1041,7 +1045,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Fires appropriate listeners on this element's subtree for a positioned event which occurred within this element's bounds
-	 * 
+	 *
 	 * @param event The event that occurred
 	 * @param x The x-coordinate of the position at which the event occurred, relative to this element's upper-left corner
 	 * @param y The y-coordinate of the position at which the event occurred, relative to this element's upper-left corner
@@ -1083,7 +1087,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Records a message in this element
-	 * 
+	 *
 	 * @param type The type of the message
 	 * @param text The text of the message
 	 * @param exception The exception which may have caused the message
@@ -1235,7 +1239,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Checks to see if this element is in the subtree rooted at the given element
-	 * 
+	 *
 	 * @param ancestor The element whose subtree to check
 	 * @return Whether this element is in the ancestor's subtree
 	 */
@@ -1256,7 +1260,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/**
 	 * Sorts a set of elements by z-index in ascending order. This operation is useful for rendering children in correct sequence and in
 	 * determining which elements should receive events first.
-	 * 
+	 *
 	 * @param children The children to sort by z-index. This array is not modified.
 	 * @return The sorted array
 	 */
@@ -1329,7 +1333,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Generates an XML-representation of this element's content
-	 * 
+	 *
 	 * @param indent The indention string to use for each level away from the margin
 	 * @return The XML string representing this element
 	 */
@@ -1342,7 +1346,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Appends this element's XML-representation to a string builder
-	 * 
+	 *
 	 * @param str The string builder to append to
 	 * @param indent The indention string to use for each level away from the margin
 	 * @param level The depth of this element in the structure being printed
@@ -1405,7 +1409,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Causes a call to {@link #doLayout()}
-	 * 
+	 *
 	 * @param now Whether to perform the layout action now or allow it to be performed asynchronously
 	 */
 	public void relayout(boolean now)
@@ -1437,7 +1441,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Renders this element in a graphics context.
-	 * 
+	 *
 	 * @param graphics The graphics context to render this element in
 	 * @param area The area to draw
 	 */
@@ -1460,7 +1464,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Causes this element to be repainted.
-	 * 
+	 *
 	 * @param area The area in this element that needs to be repainted. May be null to specify that the entire element needs to be redrawn.
 	 * @param now Whether this element should be repainted immediately or not. This parameter should usually be false when this is called as
 	 *            a result of a user operation such as a mouse or keyboard event because this allows all necessary paint events to be
@@ -1476,7 +1480,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/**
 	 * Renders this element's background or its content, but NOT its children. Children are rendered by
 	 * {@link #paintChildren(java.awt.Graphics2D, MuisElement [], Rectangle)}. By default, this merely draws the element's background color.
-	 * 
+	 *
 	 * @param graphics The graphics context to draw in
 	 * @param area The area to paint
 	 */
@@ -1493,7 +1497,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 
 	/**
 	 * Draws this element's children
-	 * 
+	 *
 	 * @param graphics The graphics context to render in
 	 * @param children The children to render
 	 * @param area The area in this element's coordinates to repaint

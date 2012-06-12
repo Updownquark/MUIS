@@ -8,7 +8,7 @@
 	<version>08Jun2012</version>
 	<dependencies />
 	<types>
-		<type tag="background">org.muis.style.BackgroundStyles</type>
+		<type tag="bg">org.muis.style.BackgroundStyles</type>
         <type tag="block">org.muis.basic.Block</type>
         <type tag="label">org.muis.basic.Label</type>
         <type tag="simple">org.muis.layout.SimpleLayout</type>

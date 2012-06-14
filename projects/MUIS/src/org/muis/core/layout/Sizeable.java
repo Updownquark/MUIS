@@ -1,6 +1,6 @@
 package org.muis.core.layout;
 
-
+/** Represents an item that may report constraints and preferences for its size */
 public interface Sizeable
 {
 	/**

@@ -1,6 +1,6 @@
 package org.muis.core;
 
-import org.muis.layout.SizePolicy;
+import org.muis.core.layout.SizePolicy;
 
 /** Manages the position and size of children in a container */
 public interface MuisLayout

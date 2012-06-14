@@ -1,7 +1,7 @@
 package org.muis.core;
 
 import org.muis.core.event.MuisEvent;
-import org.muis.layout.SizePolicy;
+import org.muis.core.layout.SizePolicy;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
 public class LayoutContainer extends MuisElement implements MuisContainer

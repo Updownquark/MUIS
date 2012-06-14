@@ -5,14 +5,10 @@ package org.muis.core;
 
 import org.muis.core.MuisElement.Stage;
 
-/**
- * Represents an error, warning, or information message attached to a MUIS element
- */
+/** Represents an error, warning, or information message attached to a MUIS element */
 public class MuisMessage
 {
-	/**
-	 * The types of element messages available
-	 */
+	/** The types of element messages available */
 	public static enum Type
 	{
 		/**
@@ -33,14 +29,12 @@ public class MuisMessage
 		FATAL;
 	}
 
-	/**
-	 * Defines a center that can store MUIS messages
-	 */
+	/** Defines a center that can store MUIS messages */
 	public interface MuisMessageCenter
 	{
 		/**
 		 * Records a message in this message center
-		 * 
+		 *
 		 * @param type The type of the message
 		 * @param text The text of the message
 		 * @param exception The exception which may have caused the message
@@ -49,10 +43,9 @@ public class MuisMessage
 		void message(Type type, String text, Throwable exception, Object... params);
 
 		/**
-		 * Records an fatal error in this message center. A fatal error disables this item so that
-		 * it will not function. Short-hand for
+		 * Records an fatal error in this message center. A fatal error disables this item so that it will not function. Short-hand for
 		 * {@link #message(MuisMessage.Type, String, Throwable, Object...)}
-		 * 
+		 *
 		 * @param text A description of the error
 		 * @param exception The exception that may have caused the error
 		 * @param params Any parameters that may be relevant to the error
@@ -60,9 +53,8 @@ public class MuisMessage
 		void fatal(String text, Throwable exception, Object... params);
 
 		/**
-		 * Records an error in this message center. Short-hand for
-		 * {@link #message(MuisMessage.Type, String, Throwable, Object...)}
-		 * 
+		 * Records an error in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+		 *
 		 * @param text A description of the error
 		 * @param exception The exception that may have caused the error
 		 * @param params Any parameters that may be relevant to the error
@@ -70,68 +62,58 @@ public class MuisMessage
 		void error(String text, Throwable exception, Object... params);
 
 		/**
-		 * Records a warning in this message center. Short-hand for
-		 * {@link #message(MuisMessage.Type, String, Throwable, Object...)}
-		 * 
+		 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+		 *
 		 * @param text A description of the warning
 		 * @param params Any parameters that may be relevant to the warning
 		 */
 		void warn(String text, Object... params);
 
 		/**
-		 * @return The worst type of message associated with this message center
+		 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+		 *
+		 * @param text A description of the warning
+		 * @param exception The exception that may have caused the warning
+		 * @param params Any parameters that may be relevant to the warning
 		 */
+		void warn(String text, Throwable exception, Object... params);
+
+		/** @return The worst type of message associated with this message center */
 		Type getWorstMessageType();
 
-		/**
-		 * @return All messages attached to this message center
-		 */
+		/** @return All messages attached to this message center */
 		MuisMessage [] getAllMessages();
 	}
 
-	/**
-	 * The MUIS document that the message is for
-	 */
+	/** The MUIS document that the message is for */
 	public final MuisDocument document;
 
-	/**
-	 * The MUIS element that the message is for
-	 */
+	/** The MUIS element that the message is for */
 	public final MuisElement element;
 
-	/**
-	 * The type of this message
-	 */
+	/** The type of this message */
 	public final Type type;
 
-	/**
-	 * The stage of processing at which this message occurred
-	 */
+	/** The stage of processing at which this message occurred */
 	public final Stage stage;
 
-	/**
-	 * The text of the message, describing the problem
-	 */
+	/** The text of the message, describing the problem */
 	public final String text;
 
-	/**
-	 * The exception that may have caused this message
-	 */
+	/** The exception that may have caused this message */
 	public final Throwable exception;
 
 	private java.util.Map<String, Object> theParams;
 
-	private MuisMessage(MuisDocument doc, MuisElement anElement, Type aType, Stage aStage,
-		String aText, Throwable anException, Object... params)
+	private MuisMessage(MuisDocument doc, MuisElement anElement, Type aType, Stage aStage, String aText, Throwable anException,
+		Object... params)
 	{
 		if(doc == null && anElement == null)
-			throw new NullPointerException("A MUIS message cannot be created without a document or"
-				+ " an element");
+			throw new NullPointerException("A MUIS message cannot be created without a document or" + " an element");
 		if(aType == null)
 			throw new NullPointerException("A MUIS message cannot be created without a type");
 		if(aStage == null)
-			throw new NullPointerException(
-				"A MUIS message cannot be created without a creation stage");
+			throw new NullPointerException("A MUIS message cannot be created without a creation stage");
 		if(aText == null)
 			throw new NullPointerException("A MUIS message cannnot be created without a description");
 		document = doc;
@@ -157,14 +139,12 @@ public class MuisMessage
 		}
 	}
 
-	MuisMessage(MuisDocument doc, Type aType, Stage aStage, String aText, Throwable anException,
-		Object... params)
+	MuisMessage(MuisDocument doc, Type aType, Stage aStage, String aText, Throwable anException, Object... params)
 	{
 		this(doc, null, aType, aStage, aText, anException, params);
 	}
 
-	MuisMessage(MuisElement anElement, Type aType, Stage aStage, String aText, Throwable anException,
-		Object... params)
+	MuisMessage(MuisElement anElement, Type aType, Stage aStage, String aText, Throwable anException, Object... params)
 	{
 		this(null, anElement, aType, aStage, aText, anException, params);
 	}
@@ -180,14 +160,12 @@ public class MuisMessage
 		return theParams.get(param);
 	}
 
-	/**
-	 * @return All parameter names with values in this message
-	 */
+	/** @return All parameter names with values in this message */
 	public String [] getParams()
 	{
 		if(theParams == null)
-			return new String [0];
-		return theParams.keySet().toArray(new String [theParams.size()]);
+			return new String[0];
+		return theParams.keySet().toArray(new String[theParams.size()]);
 	}
 
 	@Override
@@ -202,34 +180,27 @@ public class MuisMessage
 		return super.hashCode();
 	}
 
-	/**
-	 * Prints out a representation of the path to the problem element and the description of the
-	 * error
-	 */
+	/** Prints out a representation of the path to the problem element and the description of the error */
 	@Override
 	public String toString()
 	{
 		MuisElement el = element;
 		String ret = "";
 		while(el != null)
-			ret = (el.getNamespace() != null ? el.getNamespace() + ":" : "") + el.getTagName()
-				+ "/" + ret;
+			ret = (el.getNamespace() != null ? el.getNamespace() + ":" : "") + el.getTagName() + "/" + ret;
 		return ret + ": " + text;
 	}
 
 	/**
-	 * @return A full description of the message, including the path to the problem element, the
-	 *         description of the error, any parameters in the message, and the stack trace of the
-	 *         exception that caused the problem
+	 * @return A full description of the message, including the path to the problem element, the description of the error, any parameters in
+	 *         the message, and the stack trace of the exception that caused the problem
 	 */
 	public String toFullString()
 	{
 		String ret = toString();
 		if(theParams != null)
-		{
 			for(java.util.Map.Entry<String, Object> param : theParams.entrySet())
 				ret += "\n" + param.getKey() + "=" + param.getValue();
-		}
 		if(exception != null)
 			ret += "\n" + exception;
 		return ret;

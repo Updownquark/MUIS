@@ -5,8 +5,11 @@ package org.muis.core;
 
 import java.awt.Point;
 
-import org.muis.core.event.*;
-import org.muis.style.NamedStyleGroup;
+import org.muis.core.event.DocumentEvent;
+import org.muis.core.event.KeyBoardEvent;
+import org.muis.core.event.MouseEvent;
+import org.muis.core.event.ScrollEvent;
+import org.muis.core.style.NamedStyleGroup;
 
 import prisms.util.ArrayUtils;
 
@@ -40,9 +43,11 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		java.awt.Graphics2D getGraphics();
 	}
 
+	private final java.net.URL theLocation;
+
 	private java.awt.Toolkit theAwtToolkit;
 
-	private org.muis.parser.MuisParser theParser;
+	private org.muis.core.parser.MuisParser theParser;
 
 	private MuisToolkit theDefaultToolkit;
 
@@ -88,11 +93,13 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Creates a document
-	 * 
+	 *
+	 * @param location The location of the file that this document was generated from
 	 * @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand
 	 */
-	public MuisDocument(GraphicsGetter graphics)
+	public MuisDocument(java.net.URL location, GraphicsGetter graphics)
 	{
+		theLocation = location;
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessages = new java.util.ArrayList<MuisMessage>();
@@ -111,7 +118,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 * @param parser The parser that created this document
 	 * @param defaultToolkit The default toolkit to load core MUIS classes with
 	 */
-	public void initDocument(org.muis.parser.MuisParser parser, MuisToolkit defaultToolkit)
+	public void initDocument(org.muis.core.parser.MuisParser parser, MuisToolkit defaultToolkit)
 	{
 		if(theParser != null)
 			throw new IllegalArgumentException("Cannot initialize a document twice");
@@ -121,8 +128,14 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theDefaultToolkit = defaultToolkit;
 	}
 
+	/** @return The location of the file that this document was generated from */
+	public java.net.URL getLocation()
+	{
+		return theLocation;
+	}
+
 	/** @return The parser that created this document */
-	public org.muis.parser.MuisParser getParser()
+	public org.muis.core.parser.MuisParser getParser()
 	{
 		return theParser;
 	}
@@ -183,7 +196,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Gets a group by name, or creates one if no such group exists
-	 * 
+	 *
 	 * @param name The name of the group to get or create
 	 * @return The group in this document with the given name. Will never be null.
 	 */
@@ -206,7 +219,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Removes a group from a document. This will remove the group from every element that is a member of the group as well.
-	 * 
+	 *
 	 * @param name The name of the group to remove from this document
 	 */
 	public void removeGroup(String name)
@@ -231,7 +244,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Adds an event to be performed after a user action invocation completes
-	 * 
+	 *
 	 * @param evt The event to perform
 	 */
 	public void addEvent(DocumentEvent evt)
@@ -273,7 +286,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Records a message in this document
-	 * 
+	 *
 	 * @param type The type of the message
 	 * @param text The text of the message
 	 * @param exception The exception which may have caused the message
@@ -304,6 +317,12 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	public final void warn(String message, Object... params)
 	{
 		message(MuisMessage.Type.WARNING, message, null, params);
+	}
+
+	@Override
+	public final void warn(String message, Throwable exception, Object... params)
+	{
+		message(MuisMessage.Type.WARNING, message, exception, params);
 	}
 
 	/** @param message The message to remove from this element */
@@ -367,7 +386,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Sets the size that this document can render its content in
-	 * 
+	 *
 	 * @param width The width of the document size
 	 * @param height The height of the document size
 	 */
@@ -379,7 +398,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Renders this MUIS document in a graphics context
-	 * 
+	 *
 	 * @param graphics The graphics context to render in
 	 */
 	public void paint(java.awt.Graphics2D graphics)
@@ -485,7 +504,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a mouse event on the document
-	 * 
+	 *
 	 * @param x The x-coordinate where the event occurred
 	 * @param y The y-coordinate where the event occurred
 	 * @param type The type of the event
@@ -608,7 +627,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Sets the document's focused element. This method does not invoke {@link MuisElement#isFocusable()}, so this will work on any element.
-	 * 
+	 *
 	 * @param toFocus The element to give the focus to
 	 */
 	public void setFocus(MuisElement toFocus)
@@ -704,7 +723,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a scroll event on the document
-	 * 
+	 *
 	 * @param x The x-coordinate where the event occurred
 	 * @param y The y-coordinate where the event occurred
 	 * @param amount The amount that the mouse wheel was scrolled
@@ -744,7 +763,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates a key event on this document
-	 * 
+	 *
 	 * @param code The key code of the event
 	 * @param pressed Whether the key was pressed or released
 	 */
@@ -853,7 +872,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * Emulates textual input to the document
-	 * 
+	 *
 	 * @param c The character that was input
 	 */
 	public void character(char c)

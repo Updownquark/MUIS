@@ -227,12 +227,25 @@ public final class MuisAttribute<T>
 		{
 			if(value == null)
 				return null;
-			MuisToolkit toolkit = element.getClassView().getToolkitForQName(value);
+			int sep = value.indexOf(':');
+			String ns, tag;
+			if(sep >= 0)
+			{
+				ns = value.substring(0, sep);
+				tag = value.substring(sep + 1);
+			}
+			else
+			{
+				ns = null;
+				tag = value;
+			}
+			MuisToolkit toolkit = element.getClassView().getToolkit(ns);
 			if(toolkit == null)
-				throw new MuisException("Value " + value + " refers to a toolkit that is inaccessible from its element");
-			String className = toolkit.getMappedClass(value);
+				throw new MuisException("Value " + value + " refers to a toolkit \"" + ns + "\" that is inaccessible from its element");
+			String className = toolkit.getMappedClass(tag);
 			if(className == null)
-				throw new MuisException("Value " + value + " refers to a type that is not mapped within toolkit " + toolkit.getName());
+				throw new MuisException("Value " + value + " refers to a type \"" + tag + "\" that is not mapped within toolkit "
+					+ toolkit.getName());
 			Class<?> valueClass;
 			try
 			{

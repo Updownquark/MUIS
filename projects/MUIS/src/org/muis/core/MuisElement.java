@@ -13,15 +13,15 @@ import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
 import org.muis.core.event.MuisPropertyEvent;
-import org.muis.layout.SimpleSizePolicy;
-import org.muis.layout.SizePolicy;
-import org.muis.style.*;
+import org.muis.core.layout.SimpleSizePolicy;
+import org.muis.core.layout.SizePolicy;
+import org.muis.core.style.*;
 
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /** The base display element in MUIS. Contains base methods to administrate content (children, style, placement, etc.) */
-public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessage.MuisMessageCenter
+public abstract class MuisElement implements org.muis.core.layout.Sizeable, MuisMessage.MuisMessageCenter
 {
 	// TODO Add code for attach events
 
@@ -207,14 +207,14 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 			theStyle = new TextStyle((MuisTextElement) this);
 		else
 			theStyle = new ElementStyle(this);
-		org.muis.style.StyleListener sl = new org.muis.style.StyleListener(this) {
+		org.muis.core.style.StyleListener sl = new org.muis.core.style.StyleListener(this) {
 			@Override
 			public void styleChanged(MuisStyle style)
 			{
 				repaint(null, false);
 			}
 		};
-		sl.addDomain(org.muis.style.BackgroundStyles.getDomainInstance());
+		sl.addDomain(org.muis.core.style.BackgroundStyles.getDomainInstance());
 		sl.add();
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
@@ -1115,6 +1115,12 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	public final void warn(String message, Object... params)
 	{
 		message(MuisMessage.Type.WARNING, message, null, params);
+	}
+
+	@Override
+	public final void warn(String message, Throwable exception, Object... params)
+	{
+		message(MuisMessage.Type.WARNING, message, exception, params);
 	}
 
 	/**

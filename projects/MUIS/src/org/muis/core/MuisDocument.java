@@ -392,8 +392,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 */
 	public void setSize(int width, int height)
 	{
-		// TODO Process asynchronously in the MuisEventQueue
-		theRoot.setSize(width, height);
+		MuisEventQueue.getInstance().scheduleEvent(
+			new MuisCoreEvent(theRoot, MuisCoreEvent.CoreEventType.rebound, new java.awt.Rectangle(0, 0, width, height)), false);
 	}
 
 	/**

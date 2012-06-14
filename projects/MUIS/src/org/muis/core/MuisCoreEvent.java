@@ -9,7 +9,9 @@ public class MuisCoreEvent
 		/** Represents a need to repaint all or part of an element */
 		paint,
 		/** Represents a need to re-layout a container's elements */
-		layout
+		layout,
+		/** Represents a need to set the bounds of an element */
+		rebound
 	}
 
 	/** The element that the event is for */
@@ -40,7 +42,7 @@ public class MuisCoreEvent
 	/**
 	 * @param el The element that the event is for
 	 * @param aType The type of the event
-	 * @param anArea The area that needs to be repainted in the element, or null for a layout event or to repaint the entire element
+	 * @param anArea The area for the event. May be null.
 	 */
 	public MuisCoreEvent(MuisElement el, CoreEventType aType, java.awt.Rectangle anArea)
 	{

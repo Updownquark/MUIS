@@ -92,6 +92,9 @@ public class MuisEventQueue
 			case layout:
 				if(evt.element == event.element)
 					return; // Element already scheduled to be layed out
+				break;
+			case rebound:
+				break;
 			}
 		}
 		addEvent(event, fireNow);
@@ -222,6 +225,13 @@ public class MuisEventQueue
 							evt.done();
 							now = System.currentTimeMillis(); // Update the time, since the relayout may have taken some
 							break;
+						case rebound:
+							acted = true;
+							iter.remove();
+							evt.act();
+							rebound(evt);
+							evt.done();
+							now = System.currentTimeMillis(); // Update the time, since the rebound may have taken some
 						}
 					}
 					if(!acted)
@@ -255,5 +265,15 @@ public class MuisEventQueue
 	protected void relayout(MuisCoreEvent event)
 	{
 		event.element.doLayout();
+	}
+
+	/**
+	 * Takes action ono a {@link org.muis.core.MuisCoreEvent.CoreEventType#rebound} event
+	 *
+	 * @param event The rebound event to fulfill
+	 */
+	protected void rebound(MuisCoreEvent event)
+	{
+		event.element.setBounds(event.area.x, event.area.y, event.area.width, event.area.height);
 	}
 }

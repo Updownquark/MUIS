@@ -1143,9 +1143,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		fireEvent(new MuisEvent<MuisMessage>(MESSAGE_ADDED, message), false, true);
 	}
 
-	/**
-	 * @param message The message to remove from this element
-	 */
+	/** @param message The message to remove from this element */
 	public final void removeMessage(MuisMessage message)
 	{
 		if(!theMessages.remove(message))
@@ -1156,9 +1154,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		fireEvent(new MuisEvent<MuisMessage>(MESSAGE_REMOVED, message), false, true);
 	}
 
-	/**
-	 * @return The number of messages in this element
-	 */
+	/** @return The number of messages in this element */
 	public final int getMessageCount()
 	{
 		return theMessages.size();
@@ -1173,17 +1169,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return theMessages.get(index);
 	}
 
-	/**
-	 * @return All messages attached to this element
-	 */
+	/** @return All messages attached to this element */
 	public final MuisMessage [] getElementMessages()
 	{
 		return theMessages.toArray(new MuisMessage[theMessages.size()]);
 	}
 
-	/**
-	 * @return All messages attached to this element or its descendants
-	 */
+	/** @return All messages attached to this element or its descendants */
 	@Override
 	public final MuisMessage [] getAllMessages()
 	{
@@ -1201,9 +1193,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			addMessages(ret, child);
 	}
 
-	/**
-	 * @return The worst type of message associated with the MUIS element subtree rooted at this element
-	 */
+	/** @return The worst type of message associated with the MUIS element subtree rooted at this element */
 	@Override
 	public final MuisMessage.Type getWorstMessageType()
 	{
@@ -1214,17 +1204,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return theWorstChildMessageType;
 	}
 
-	/**
-	 * @return The worst type of message associated with this element
-	 */
+	/** @return The worst type of message associated with this element */
 	public final MuisMessage.Type getWorstElementMessageType()
 	{
 		return theWorstMessageType;
 	}
 
-	/**
-	 * @return The worst type of message associated with any of this element's descendants
-	 */
+	/** @return The worst type of message associated with any of this element's descendants */
 	public final MuisMessage.Type getWorstChildMessageType()
 	{
 		return theWorstChildMessageType;

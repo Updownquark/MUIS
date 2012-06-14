@@ -1,9 +1,6 @@
 package org.muis.core.layout;
 
-
-/**
- * A simple implementation of SizePolicy that allows all its parameters to be set
- */
+/** A simple implementation of SizePolicy that allows all its parameters to be set directly */
 public class SimpleSizePolicy implements SizePolicy
 {
 	private int theMin;
@@ -14,6 +11,7 @@ public class SimpleSizePolicy implements SizePolicy
 
 	private int theStretch;
 
+	/** Creates a SimpleSizePolicy with zero minimum and preferred sizes, infinite maximum size, and zero stretch benefit */
 	public SimpleSizePolicy()
 	{
 		theMin = 0;
@@ -22,21 +20,25 @@ public class SimpleSizePolicy implements SizePolicy
 		theStretch = 0;
 	}
 
+	@Override
 	public int getMin()
 	{
 		return theMin;
 	}
 
+	@Override
 	public int getPreferred()
 	{
 		return thePref;
 	}
 
+	@Override
 	public int getMax()
 	{
 		return theMax;
 	}
 
+	@Override
 	public int getStretch()
 	{
 		return theStretch;

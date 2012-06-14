@@ -189,7 +189,7 @@ public abstract class MuisTemplate extends MuisElement
 		} catch(java.io.IOException e)
 		{
 			error("Could not read template XML " + template, e, "url", template);
-		} catch(org.muis.parser.MuisParseException e)
+		} catch(org.muis.core.parser.MuisParseException e)
 		{
 			error("Could not parse template XML " + template, e, "url", template);
 		}

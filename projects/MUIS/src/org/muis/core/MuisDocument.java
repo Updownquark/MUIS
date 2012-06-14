@@ -6,7 +6,7 @@ package org.muis.core;
 import java.awt.Point;
 
 import org.muis.core.event.*;
-import org.muis.style.NamedStyleGroup;
+import org.muis.core.style.NamedStyleGroup;
 
 import prisms.util.ArrayUtils;
 
@@ -42,7 +42,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private java.awt.Toolkit theAwtToolkit;
 
-	private org.muis.parser.MuisParser theParser;
+	private org.muis.core.parser.MuisParser theParser;
 
 	private MuisToolkit theDefaultToolkit;
 
@@ -111,7 +111,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 * @param parser The parser that created this document
 	 * @param defaultToolkit The default toolkit to load core MUIS classes with
 	 */
-	public void initDocument(org.muis.parser.MuisParser parser, MuisToolkit defaultToolkit)
+	public void initDocument(org.muis.core.parser.MuisParser parser, MuisToolkit defaultToolkit)
 	{
 		if(theParser != null)
 			throw new IllegalArgumentException("Cannot initialize a document twice");
@@ -122,7 +122,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	}
 
 	/** @return The parser that created this document */
-	public org.muis.parser.MuisParser getParser()
+	public org.muis.core.parser.MuisParser getParser()
 	{
 		return theParser;
 	}

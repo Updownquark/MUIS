@@ -1,7 +1,7 @@
 package org.muis.core;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
-public class MuisTextElement extends MuisElement implements org.muis.layout.Splittable
+public class MuisTextElement extends MuisElement
 {
 	private String theText;
 
@@ -30,23 +30,5 @@ public class MuisTextElement extends MuisElement implements org.muis.layout.Spli
 	public String getText()
 	{
 		return theText;
-	}
-
-	public java.awt.Font getFont()
-	{
-		// TODO
-		return java.awt.Font.getFont("Arial");
-	}
-
-	@Override
-	public MuisTextElement split(int width, int height)
-	{
-		return this; // TODO
-	}
-
-	@Override
-	public void combine(org.muis.layout.Splittable split)
-	{
-		theText += ((MuisTextElement) split).theText;
 	}
 }

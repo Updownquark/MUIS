@@ -170,6 +170,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private int theH;
 
+	private int theCacheX;
+
+	private int theCacheY;
+
+	private int theCacheW;
+
+	private int theCacheH;
+
 	private SizePolicy theHSizer;
 
 	private SizePolicy theVSizer;
@@ -1476,6 +1484,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	{
 		if((area != null && (area.width == 0 || area.height == 0)) || theW == 0 || theH == 0)
 			return;
+		theCacheW = theW;
+		theCacheH = theH;
 		paintSelf(graphics, area);
 		Rectangle clipBounds = graphics.getClipBounds();
 		if(clipBounds == null)
@@ -1528,6 +1538,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		graphics.fillRect(x, y, w, h);
 	}
 
+	/** Updates this element's cached position with its real position */
+	protected final void updateCachePosition()
+	{
+		theCacheX = theX;
+		theCacheY = theY;
+	}
+
 	/**
 	 * Draws this element's children
 	 *
@@ -1568,6 +1585,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			Rectangle childArea = new Rectangle();
 			for(MuisElement child : children)
 			{
+				child.updateCachePosition();
 				int childX = child.theX;
 				int childY = child.theY;
 				translateX += childX;
@@ -1606,5 +1624,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public long getLayoutDirtyTime()
 	{
 		return theLayoutDirtyTime;
+	}
+
+	/** @return This element's bounds as of the last time it was painted */
+	public Rectangle getCacheBounds()
+	{
+		return new Rectangle(theCacheX, theCacheY, theCacheW, theCacheH);
 	}
 }

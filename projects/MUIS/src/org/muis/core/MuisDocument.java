@@ -516,8 +516,11 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		hasMouse = type != MouseEvent.MouseEventType.MOUSE_EXITED;
 		theMouseX = x;
 		theMouseY = y;
-		MuisElement element = theRoot.deepestChildAt(x, y);
-		MouseEvent evt;
+		java.util.Map<MuisElement, Point> pos = new java.util.HashMap<>();
+		MuisElement el = MuisUtils.getMousePositions(theRoot, x, y, pos);
+		MouseEvent evt = new MouseEvent(this, el, type, x, y, buttonType, clickCount);
+
+		// TODO
 		switch (type)
 		{
 		case MOUSE_MOVED:
@@ -532,8 +535,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				if(!ArrayUtils.contains(thePressedButtons, buttonType))
 					thePressedButtons = ArrayUtils.add(thePressedButtons, buttonType);
 			}
-			focusByMouse(element, x, y);
-			evt = new MouseEvent(this, element, type, x, y, buttonType, clickCount);
+			focusByMouse(evt.getElement(), x, y);
 			theRoot.firePositionEvent(evt, x, y);
 			break;
 		case BUTTON_UP:
@@ -542,11 +544,9 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				if(ArrayUtils.contains(thePressedButtons, buttonType))
 					thePressedButtons = ArrayUtils.remove(thePressedButtons, buttonType);
 			}
-			evt = new MouseEvent(this, element, type, x, y, buttonType, clickCount);
 			theRoot.firePositionEvent(evt, x, y);
 			break;
 		default:
-			evt = new MouseEvent(this, element, type, x, y, buttonType, clickCount);
 			theRoot.firePositionEvent(evt, x, y);
 			break;
 		}

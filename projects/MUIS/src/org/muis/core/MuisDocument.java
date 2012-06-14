@@ -319,6 +319,12 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		message(MuisMessage.Type.WARNING, message, null, params);
 	}
 
+	@Override
+	public final void warn(String message, Throwable exception, Object... params)
+	{
+		message(MuisMessage.Type.WARNING, message, exception, params);
+	}
+
 	/** @param message The message to remove from this element */
 	public void removeMessage(MuisMessage message)
 	{

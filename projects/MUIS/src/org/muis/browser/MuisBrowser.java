@@ -8,10 +8,12 @@ public class MuisBrowser extends javax.swing.JPanel
 
 	private MuisContentPane theContentPane;
 
+	private boolean theDataLock;
+
 	/** Creates a MUIS browser */
 	public MuisBrowser()
 	{
-		setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.X_AXIS));
+		setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 		theAddressBar = new javax.swing.JTextField(250);
 		add(theAddressBar);
 		theContentPane = new MuisContentPane();
@@ -31,6 +33,17 @@ public class MuisBrowser extends javax.swing.JPanel
 	/** @param address The address of the document to get */
 	public void goToAddress(String address)
 	{
+		if(!theDataLock && !theAddressBar.getText().equals(address))
+		{
+			theDataLock = true;
+			try
+			{
+				theAddressBar.setText(address);
+			} finally
+			{
+				theDataLock = false;
+			}
+		}
 		java.net.URL url;
 		try
 		{
@@ -48,7 +61,7 @@ public class MuisBrowser extends javax.swing.JPanel
 					@Override
 					public java.awt.Graphics2D getGraphics()
 					{
-						return (java.awt.Graphics2D) MuisBrowser.this.getGraphics();
+						return (java.awt.Graphics2D) theContentPane.getGraphics();
 					}
 				});
 		} catch(java.io.IOException e)
@@ -61,5 +74,39 @@ public class MuisBrowser extends javax.swing.JPanel
 		muisDoc.postCreate();
 		theContentPane.setContent(muisDoc);
 		repaint();
+		for(org.muis.core.MuisMessage msg : muisDoc.getAllMessages())
+			switch (msg.type)
+			{
+			case FATAL:
+			case ERROR:
+			case WARNING:
+				System.err.println(msg.type + ": " + msg.text);
+				if(msg.exception != null)
+					msg.exception.printStackTrace();
+				break;
+			case INFO:
+				System.out.println(msg.type + ": " + msg.text);
+				if(msg.exception != null)
+					msg.exception.printStackTrace(System.out);
+				break;
+			}
+	}
+
+	/**
+	 * Starts up a MuisBrowser
+	 *
+	 * @param args Command-line arguments. If any are supplied, the first one is used as the initial address of the MUIS document to
+	 *            display.
+	 */
+	public static void main(String [] args)
+	{
+		MuisBrowser browser = new MuisBrowser();
+		javax.swing.JFrame frame = new javax.swing.JFrame("MUIS Browser");
+		frame.setContentPane(browser);
+		frame.setBounds(0, 0, 900, 600);
+		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+		frame.setVisible(true);
+		if(args.length > 0)
+			browser.goToAddress(args[0]);
 	}
 }

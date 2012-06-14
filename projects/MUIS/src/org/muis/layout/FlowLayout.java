@@ -21,7 +21,7 @@ import org.muis.core.*;
 public class FlowLayout extends AbstractFlowLayout
 {
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children, java.awt.Rectangle box)
+	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		if(!isShapeSet)
 			checkLayoutAttributes(parent);
@@ -39,7 +39,7 @@ public class FlowLayout extends AbstractFlowLayout
 	protected SizePolicy getMajorSize(MuisElement [] children, int minorSize)
 	{
 		final MuisAttribute<Length> posAtt, rPosAtt, sizeAtt;
-		switch(theDirection)
+		switch(getDirection())
 		{
 		case RIGHT:
 			posAtt=left;

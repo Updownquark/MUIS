@@ -108,10 +108,8 @@ public class LazyFlowLayout extends AbstractFlowLayout
 						SizePolicy minPolicy = getChildSizer(children[i], false, childSizers[i].getMin());
 						SizePolicy prefPolicy = getChildSizer(children[i], false, childSizers[i].getPreferred());
 						if(minPolicy.getMin() <= prefPolicy.getMin())
-						{
 							// Not an inverse-dependent element--using preferred major size doesn't gain anything
 							continue;
-						}
 						inverse[i] = true;
 						while(vl.getConstraintCount() > i)
 							vl.removeConstraint(vl.getConstraintCount() - 1);
@@ -165,7 +163,6 @@ public class LazyFlowLayout extends AbstractFlowLayout
 							} while(minWIndex >= 0 && vl.getUsedHeight() > minorSize);
 						}
 						if(vl.getUsedHeight() > minorSize)
-						{
 							// 4) Shrink the inverse-dependent elements that are too long down to the maximum of their
 							// min length and the minorSize
 							for(int i = 0; i < children.length; i++)
@@ -187,7 +184,6 @@ public class LazyFlowLayout extends AbstractFlowLayout
 									placeChild(children, j, childSizers[j], null, iter, type, 0, onRow[j]);
 								}
 							}
-						}
 					}
 					int diff = minorSize - vl.getUsedHeight();
 					if(diff > 0)
@@ -295,10 +291,8 @@ public class LazyFlowLayout extends AbstractFlowLayout
 						SizePolicy minPolicy = getChildSizer(children[i], true, childSizers[i].getMin());
 						SizePolicy prefPolicy = getChildSizer(children[i], true, childSizers[i].getPreferred());
 						if(minPolicy.getMin() <= prefPolicy.getMin())
-						{
 							// Not an inverse-dependent element--using preferred minor size doesn't gain anything
 							continue;
-						}
 						inverse[i] = true;
 						while(vl.getConstraintCount() > i)
 							vl.removeConstraint(vl.getConstraintCount() - 1);
@@ -352,7 +346,6 @@ public class LazyFlowLayout extends AbstractFlowLayout
 							} while(minHIndex >= 0 && vl.getUsedWidth() > majorSize);
 						}
 						if(vl.getUsedWidth() > majorSize)
-						{
 							// 4) Shrink the inverse-dependent elements that are too long down to the maximum of their
 							// min length and the majorSize
 							for(int i = 0; i < children.length; i++)
@@ -374,7 +367,6 @@ public class LazyFlowLayout extends AbstractFlowLayout
 									placeChild(children, j, null, childSizers[j], iter, 0, type, !onCol[j]);
 								}
 							}
-						}
 					}
 					int diff = majorSize - vl.getUsedWidth();
 					if(diff > 0)
@@ -391,7 +383,7 @@ public class LazyFlowLayout extends AbstractFlowLayout
 	}
 
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children, Rectangle box)
+	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		// TODO Auto-generated method stub
 

@@ -1,13 +1,17 @@
 package org.muis.layout;
 
-import static org.muis.layout.LayoutConstants.*;
-
-import java.awt.Rectangle;
+import static org.muis.layout.LayoutConstants.bottom;
+import static org.muis.layout.LayoutConstants.height;
+import static org.muis.layout.LayoutConstants.included;
+import static org.muis.layout.LayoutConstants.left;
+import static org.muis.layout.LayoutConstants.right;
+import static org.muis.layout.LayoutConstants.top;
+import static org.muis.layout.LayoutConstants.width;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
-import org.muis.layout.FlowLayout.BreakPolicy;
+import org.muis.layout.AbstractFlowLayout.BreakPolicy;
 
 public class SimpleFlowLayout implements org.muis.core.MuisLayout
 {
@@ -28,7 +32,7 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 	protected void checkLayoutAttributes(MuisElement parent)
 	{
 		isShapeSet = true;
-		theDirection = parent.getAttribute(FlowLayout.FLOW_DIRECTION);
+		theDirection = parent.getAttribute(LayoutConstants.direction);
 		if(theDirection == null)
 			theDirection = Direction.RIGHT;
 		theBreakPolicy = parent.getAttribute(FlowLayout.FLOW_BREAK);
@@ -40,10 +44,9 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
 		MuisEventListener<MuisElement> addListener;
-		addListener = new MuisEventListener<MuisElement>()
-		{
+		addListener = new MuisEventListener<MuisElement>() {
 			@Override
-			public void eventOccurred(MuisEvent<? extends MuisElement> event, MuisElement element)
+			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
 			{
 				allowChild(element);
 			}
@@ -55,10 +58,9 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 			}
 		};
 		MuisEventListener<MuisElement> removeListener;
-		removeListener = new MuisEventListener<MuisElement>()
-		{
+		removeListener = new MuisEventListener<MuisElement>() {
 			@Override
-			public void eventOccurred(MuisEvent<? extends MuisElement> event, MuisElement element)
+			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
 			{
 				removeChild(element);
 			}
@@ -71,8 +73,8 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 		};
 		parent.addListener(MuisElement.CHILD_ADDED, addListener);
 		parent.addListener(MuisElement.CHILD_REMOVED, removeListener);
-		theContainerListeners.put(parent, new MuisEventListener [] {addListener, removeListener});
-		parent.acceptAttribute(FlowLayout.FLOW_DIRECTION);
+		theContainerListeners.put(parent, new MuisEventListener[] {addListener, removeListener});
+		parent.acceptAttribute(LayoutConstants.direction);
 		parent.acceptAttribute(FlowLayout.FLOW_BREAK);
 		for(MuisElement child : children)
 			allowChild(child);
@@ -115,7 +117,7 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children, Rectangle box)
+	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		// TODO Auto-generated method stub
 
@@ -130,7 +132,7 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 		parent.removeListener(listeners[0]);
 		parent.removeListener(listeners[1]);
 		theContainerListeners.remove(parent);
-		parent.rejectAttribute(FlowLayout.FLOW_DIRECTION);
+		parent.rejectAttribute(LayoutConstants.direction);
 		parent.rejectAttribute(FlowLayout.FLOW_BREAK);
 		for(int c = 0; c < parent.getChildCount(); c++)
 			removeChild(parent.getChild(c));

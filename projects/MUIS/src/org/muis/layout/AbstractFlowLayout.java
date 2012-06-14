@@ -1,6 +1,24 @@
 package org.muis.layout;
 
-import static org.muis.layout.LayoutConstants.*;
+import static org.muis.layout.LayoutConstants.bottom;
+import static org.muis.layout.LayoutConstants.direction;
+import static org.muis.layout.LayoutConstants.height;
+import static org.muis.layout.LayoutConstants.left;
+import static org.muis.layout.LayoutConstants.maxBottom;
+import static org.muis.layout.LayoutConstants.maxHeight;
+import static org.muis.layout.LayoutConstants.maxLeft;
+import static org.muis.layout.LayoutConstants.maxRight;
+import static org.muis.layout.LayoutConstants.maxTop;
+import static org.muis.layout.LayoutConstants.maxWidth;
+import static org.muis.layout.LayoutConstants.minBottom;
+import static org.muis.layout.LayoutConstants.minHeight;
+import static org.muis.layout.LayoutConstants.minLeft;
+import static org.muis.layout.LayoutConstants.minRight;
+import static org.muis.layout.LayoutConstants.minTop;
+import static org.muis.layout.LayoutConstants.minWidth;
+import static org.muis.layout.LayoutConstants.right;
+import static org.muis.layout.LayoutConstants.top;
+import static org.muis.layout.LayoutConstants.width;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
@@ -21,12 +39,6 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 		/** Attempts to make content fit squarely in its container, breaking as much as needed */
 		SQUARE;
 	}
-
-	/**
-	 * The attribute in the layout container that specifies the direction in which items should be layed out
-	 */
-	public static final MuisAttribute<Direction> FLOW_DIRECTION = new MuisAttribute<Direction>("flow-direction",
-		new MuisAttribute.MuisEnumAttribute<Direction>(Direction.class));
 
 	/** The attribute in the layout container that specifies the break policy for laying out items */
 	public static final MuisAttribute<BreakPolicy> FLOW_BREAK = new MuisAttribute<BreakPolicy>("flow-break",
@@ -71,7 +83,7 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	protected void checkLayoutAttributes(MuisElement parent)
 	{
 		isShapeSet = true;
-		theDirection = parent.getAttribute(FLOW_DIRECTION);
+		theDirection = parent.getAttribute(direction);
 		if(theDirection == null)
 			theDirection = Direction.RIGHT;
 		theBreakPolicy = parent.getAttribute(FLOW_BREAK);
@@ -82,7 +94,7 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
-		parent.acceptAttribute(FLOW_DIRECTION);
+		parent.acceptAttribute(direction);
 		parent.acceptAttribute(FLOW_BREAK);
 		for(MuisElement child : children)
 		{
@@ -167,9 +179,9 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 			break;
 		}
 		if(horizontal)
-			return child.getHSizer(oppositeSize);
+			return child.getWSizer(oppositeSize);
 		else
-			return child.getVSizer(oppositeSize);
+			return child.getHSizer(oppositeSize);
 	}
 
 	protected Length getChildConstraint(MuisElement child, boolean major, int type, int minMax)
@@ -196,15 +208,12 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 				else
 					return child.getAttribute(maxLeft);
 			}
+			else if(minMax < 0)
+				return child.getAttribute(minTop);
+			else if(minMax == 0)
+				return child.getAttribute(top);
 			else
-			{
-				if(minMax < 0)
-					return child.getAttribute(minTop);
-				else if(minMax == 0)
-					return child.getAttribute(top);
-				else
-					return child.getAttribute(maxTop);
-			}
+				return child.getAttribute(maxTop);
 		}
 		else if(type == 0)
 		{
@@ -217,37 +226,28 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 				else
 					return child.getAttribute(maxWidth);
 			}
+			else if(minMax < 0)
+				return child.getAttribute(minHeight);
+			else if(minMax == 0)
+				return child.getAttribute(height);
 			else
-			{
-				if(minMax < 0)
-					return child.getAttribute(minHeight);
-				else if(minMax == 0)
-					return child.getAttribute(height);
-				else
-					return child.getAttribute(maxHeight);
-			}
+				return child.getAttribute(maxHeight);
 		}
-		else
+		else if(horizontal)
 		{
-			if(horizontal)
-			{
-				if(minMax < 0)
-					return child.getAttribute(minRight);
-				else if(minMax == 0)
-					return child.getAttribute(right);
-				else
-					return child.getAttribute(maxRight);
-			}
+			if(minMax < 0)
+				return child.getAttribute(minRight);
+			else if(minMax == 0)
+				return child.getAttribute(right);
 			else
-			{
-				if(minMax < 0)
-					return child.getAttribute(minBottom);
-				else if(minMax == 0)
-					return child.getAttribute(bottom);
-				else
-					return child.getAttribute(maxBottom);
-			}
+				return child.getAttribute(maxRight);
 		}
+		else if(minMax < 0)
+			return child.getAttribute(minBottom);
+		else if(minMax == 0)
+			return child.getAttribute(bottom);
+		else
+			return child.getAttribute(maxBottom);
 	}
 
 	public int getMajorGap()

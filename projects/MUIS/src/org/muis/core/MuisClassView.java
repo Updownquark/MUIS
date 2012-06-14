@@ -15,6 +15,8 @@ public class MuisClassView
 
 	private MuisClassView(MuisDocument doc, MuisElement el)
 	{
+		if(doc == null)
+			throw new NullPointerException("doc is null");
 		theDocument = doc;
 		theElement = el;
 		theNamespaces = new java.util.HashMap<String, MuisToolkit>();
@@ -33,7 +35,7 @@ public class MuisClassView
 	/**
 	 * Creates a class map for a document
 	 * 
-	 * @param doc The document to createt the class map for
+	 * @param doc The document to create the class map for
 	 */
 	public MuisClassView(MuisDocument doc)
 	{
@@ -90,8 +92,7 @@ public class MuisClassView
 	 * Gets the toolkit mapped to a given namespace
 	 * 
 	 * @param namespace The namespace to get the toolkit for
-	 * @return The toolkit mapped to the given namespace under this view, or null if the namespace
-	 *         is not mapped in this view
+	 * @return The toolkit mapped to the given namespace under this view, or null if the namespace is not mapped in this view
 	 */
 	public MuisToolkit getToolkit(String namespace)
 	{
@@ -143,8 +144,7 @@ public class MuisClassView
 	 * Gets the fully-qualified class name mapped to a qualified tag name (namespace:tagName)
 	 * 
 	 * @param qName The qualified tag name of the class to get
-	 * @return The fully-qualified class name mapped to the qualified tag name, or null if no such
-	 *         class has been mapped in this domain.
+	 * @return The fully-qualified class name mapped to the qualified tag name, or null if no such class has been mapped in this domain.
 	 */
 	public String getMappedClass(String qName)
 	{
@@ -160,8 +160,7 @@ public class MuisClassView
 	 * 
 	 * @param namespace The namespace of the tag
 	 * @param tag The tag name
-	 * @return The fully-qualified class name mapped to the tag name, or null if no such class has
-	 *         been mapped in this domain
+	 * @return The fully-qualified class name mapped to the tag name, or null if no such class has been mapped in this domain
 	 */
 	public String getMappedClass(String namespace, String tag)
 	{
@@ -172,19 +171,17 @@ public class MuisClassView
 	}
 
 	/**
-	 * A combination of {@link #getMappedClass(String)} and
-	 * {@link MuisToolkit#loadClass(String, Class)} for simpler code.
+	 * A combination of {@link #getMappedClass(String)} and {@link MuisToolkit#loadClass(String, Class)} for simpler code.
 	 * 
 	 * @param <T> The type of interface or superclass to return the class as
 	 * @param qName The qualified tag name
 	 * @param superClass The superclass or interface class to cast the class as an subclass of
-	 * @return The loaded class, as an implementation or subclass of the interface or super class;
-	 *         or null if no such class has been mapped in this domain
-	 * @throws MuisException If the class cannot be found, cannot be loaded, or is not an
-	 *             subclass/implementation of the given class or interface
+	 * @return The loaded class, as an implementation or subclass of the interface or super class; or null if no such class has been mapped
+	 *         in this domain
+	 * @throws MuisException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
+	 *             interface
 	 */
-	public <T> Class<? extends T> loadMappedClass(String qName, Class<T> superClass)
-		throws MuisException
+	public <T> Class<? extends T> loadMappedClass(String qName, Class<T> superClass) throws MuisException
 	{
 		int idx = qName.indexOf(':');
 		String ns, tag;
@@ -202,28 +199,25 @@ public class MuisClassView
 	}
 
 	/**
-	 * A combination of {@link #getMappedClass(String, String)} and
-	 * {@link MuisToolkit#loadClass(String, Class)} for simpler code.
+	 * A combination of {@link #getMappedClass(String, String)} and {@link MuisToolkit#loadClass(String, Class)} for simpler code.
 	 * 
 	 * @param <T> The type of interface or superclass to return the class as
 	 * @param namespace The namespace of the tag
 	 * @param tag The tag name
 	 * @param superClass The superclass or interface class to cast the class as an subclass of
-	 * @return The loaded class, as an implementation or subclass of the interface or super class;
-	 *         or null if no such class has been mapped in this domain
-	 * @throws MuisException If the class cannot be found, cannot be loaded, or is not an
-	 *             subclass/implementation of the given class or interface
+	 * @return The loaded class, as an implementation or subclass of the interface or super class; or null if no such class has been mapped
+	 *         in this domain
+	 * @throws MuisException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
+	 *             interface
 	 */
-	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass)
-		throws MuisException
+	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass) throws MuisException
 	{
 		MuisToolkit toolkit = getToolkit(namespace);
 		if(toolkit == null)
 			throw new MuisException("No toolkit mapped to namespace " + namespace);
 		String className = toolkit.getMappedClass(tag);
 		if(className == null)
-			throw new MuisException("No class mapped to " + tag + " for namespace " + namespace
-				+ " (toolkit " + toolkit.getName() + ")");
+			throw new MuisException("No class mapped to " + tag + " for namespace " + namespace + " (toolkit " + toolkit.getName() + ")");
 		return toolkit.loadClass(className, superClass);
 	}
 }

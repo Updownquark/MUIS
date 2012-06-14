@@ -39,7 +39,7 @@ public class FlowLayout extends AbstractFlowLayout
 	protected SizePolicy getMajorSize(MuisElement [] children, int minorSize)
 	{
 		final MuisAttribute<Length> posAtt, rPosAtt, sizeAtt;
-		switch(theDirection)
+		switch(getDirection())
 		{
 		case RIGHT:
 			posAtt=left;

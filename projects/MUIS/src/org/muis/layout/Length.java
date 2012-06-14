@@ -16,7 +16,7 @@ public class Length
 
 	/**
 	 * Creates a length with the given value and unit
-	 * 
+	 *
 	 * @param value The value for the length
 	 * @param unit The unit for the length
 	 */
@@ -52,18 +52,18 @@ public class Length
 
 	/**
 	 * Evaluates a length for a particular case
-	 * 
+	 *
 	 * @param totalSize The size of the element to use if this length is a percentage.
 	 * @return The number of pixels that this length represents in the given case
 	 */
 	public int evaluate(int totalSize)
 	{
-		switch(theUnit)
+		switch (theUnit)
 		{
 		case pixels:
 			return Math.round(theValue);
 		case percent:
-			return Math.round(theValue * totalSize);
+			return Math.round(theValue * totalSize / 100);
 		}
 		throw new IllegalStateException("Unrecognized length unit: " + theUnit);
 	}

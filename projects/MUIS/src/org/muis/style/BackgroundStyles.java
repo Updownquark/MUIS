@@ -3,7 +3,7 @@ package org.muis.style;
 /**
  * Contains style attributes pertaining to the background of a widget. These styles are supported by
  * {@link org.muis.core.MuisElement} and all of its subclasses unless the
- * {@link org.muis.core.MuisElement#draw(java.awt.Graphics2D)} method is overridden in a way that
+ * {@link org.muis.core.MuisElement#paintSelf(java.awt.Graphics2D)} method is overridden in a way that
  * ignores them.
  */
 public class BackgroundStyles implements StyleDomain

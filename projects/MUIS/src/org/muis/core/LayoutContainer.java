@@ -1,18 +1,52 @@
 package org.muis.core;
 
+import org.muis.core.event.MuisEvent;
 import org.muis.layout.SizePolicy;
 
-/**
- * A simple container element that lays its children out using an implementation of
- * {@link MuisLayout}
- */
+/** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
 public class LayoutContainer extends MuisElement implements MuisContainer
 {
 	/** The attribute that specifies the layout type for a layout container */
-	public static MuisAttribute<Class<? extends MuisLayout>> LAYOUT_ATTR = new MuisAttribute<Class<? extends MuisLayout>>(
-		"layout", new MuisAttribute.MuisTypeAttribute<MuisLayout>(MuisLayout.class));
+	public static MuisAttribute<Class<? extends MuisLayout>> LAYOUT_ATTR = new MuisAttribute<Class<? extends MuisLayout>>("layout",
+		new MuisAttribute.MuisTypeAttribute<MuisLayout>(MuisLayout.class));
 
 	private MuisLayout theLayout;
+
+	@Override
+	public void initChildren(MuisElement [] children)
+	{
+		super.initChildren(children);
+		addListener(ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
+			@Override
+			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
+			{
+				if(event.getValue() != LAYOUT_ATTR)
+					return;
+				Class<? extends MuisLayout> layoutClass = getAttribute(LAYOUT_ATTR);
+				if(layoutClass == null)
+					setLayout(null);
+				else
+				{
+					MuisLayout layout;
+					try
+					{
+						layout = layoutClass.newInstance();
+					} catch(InstantiationException | IllegalAccessException e)
+					{
+						error("Could not instantiate layout of type " + layoutClass.getName(), e);
+						return;
+					}
+					setLayout(layout);
+				}
+			}
+
+			@Override
+			public boolean isLocal()
+			{
+				return true;
+			}
+		});
+	}
 
 	@Override
 	protected void postInit()
@@ -24,32 +58,16 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 	@Override
 	public void postCreate()
 	{
-		Class<? extends MuisLayout> layoutClass = getAttribute(LAYOUT_ATTR);
-		MuisLayout layout;
-		try
-		{
-			layout = layoutClass.newInstance();
-		} catch(Throwable e)
-		{
-			error("Could not instantiate layout class " + layoutClass.getName(), e);
-			return;
-		}
-		theLayout = layout;
-		theLayout.initChildren(this, getChildren());
 		super.postCreate();
 	}
 
-	/**
-	 * @return The MuisLayout that lays out this container's children
-	 */
+	/** @return The MuisLayout that lays out this container's children */
 	public MuisLayout getLayout()
 	{
 		return theLayout;
 	}
 
-	/**
-	 * @param layout The MuisLayout to lay out this container's children
-	 */
+	/** @param layout The MuisLayout to lay out this container's children */
 	public void setLayout(MuisLayout layout)
 	{
 		if(theLayout != null)

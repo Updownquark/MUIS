@@ -3,9 +3,7 @@ package org.muis.style;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 
-/**
- * A style controlling the appearance of a specific element
- */
+/** A style controlling the appearance of a specific element */
 public class ElementStyle extends MuisStyle
 {
 	private final MuisElement theElement;
@@ -14,15 +12,14 @@ public class ElementStyle extends MuisStyle
 
 	/**
 	 * Creates an element style
-	 * 
+	 *
 	 * @param element The element that this style is for
 	 */
 	public ElementStyle(MuisElement element)
 	{
 		theElement = element;
-		theStyleGroups = new NamedStyleGroup [0];
-		addListener(new org.muis.core.event.MuisEventListener<Void>()
-		{
+		theStyleGroups = new NamedStyleGroup[0];
+		addListener(new org.muis.core.event.MuisEventListener<Void>() {
 			@Override
 			public boolean isLocal()
 			{
@@ -30,16 +27,14 @@ public class ElementStyle extends MuisStyle
 			}
 
 			@Override
-			public void eventOccurred(MuisEvent<? extends Void> event, MuisElement evtElement)
+			public void eventOccurred(MuisEvent<Void> event, MuisElement evtElement)
 			{
 				theElement.fireEvent(event, false, false);
 			}
 		});
 	}
 
-	/**
-	 * @return The element that this style is for
-	 */
+	/** @return The element that this style is for */
 	public MuisElement getElement()
 	{
 		return theElement;
@@ -54,21 +49,16 @@ public class ElementStyle extends MuisStyle
 	@Override
 	public MuisStyle [] getDependencies()
 	{
-		return prisms.util.ArrayUtils.concat(MuisStyle.class, super.getDependencies(),
-			theStyleGroups);
+		return prisms.util.ArrayUtils.concat(MuisStyle.class, super.getDependencies(), theStyleGroups);
 	}
 
-	/**
-	 * @return The number of named style groups in this element style
-	 */
+	/** @return The number of named style groups in this element style */
 	public int getGroupCount()
 	{
 		return theStyleGroups.length;
 	}
 
-	/**
-	 * @param group The named style group to add to this element style
-	 */
+	/** @param group The named style group to add to this element style */
 	public void addGroup(NamedStyleGroup group)
 	{
 		group.addMember(theElement);
@@ -78,9 +68,7 @@ public class ElementStyle extends MuisStyle
 		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1), false, false);
 	}
 
-	/**
-	 * @param group The named style group to remove from this element style
-	 */
+	/** @param group The named style group to remove from this element style */
 	public void removeGroup(NamedStyleGroup group)
 	{
 		group.removeDependent(this);
@@ -93,14 +81,13 @@ public class ElementStyle extends MuisStyle
 	}
 
 	/**
-	 * @return All style attributes applying to this style's element directly--those local to this
-	 *         element style or any named style groups attached to it. It does not include
-	 *         attributes inherited from the element's ancestors
+	 * @return All style attributes applying to this style's element directly--those local to this element style or any named style groups
+	 *         attached to it. It does not include attributes inherited from the element's ancestors
 	 */
 	public Iterable<StyleAttribute<?>> elementAttributes()
 	{
-		return new Iterable<StyleAttribute<?>>()
-		{
+		return new Iterable<StyleAttribute<?>>() {
+			@Override
 			public java.util.Iterator<StyleAttribute<?>> iterator()
 			{
 				return new AttributeIterator(ElementStyle.this, theStyleGroups);
@@ -114,8 +101,8 @@ public class ElementStyle extends MuisStyle
 	 */
 	public Iterable<NamedStyleGroup> groups(final boolean forward)
 	{
-		return new Iterable<NamedStyleGroup>()
-		{
+		return new Iterable<NamedStyleGroup>() {
+			@Override
 			public NamedStyleIterator iterator()
 			{
 				return new NamedStyleIterator(theStyleGroups, forward);

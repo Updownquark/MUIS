@@ -40,7 +40,7 @@ public class MuisEventQueue
 
 	/**
 	 * Schedules a core event
-	 * 
+	 *
 	 * @param event The event that MUIS needs to take action on
 	 * @param fireNow Whether to take action on the event immediately and wait with this thread until the event has been acted on
 	 */
@@ -168,6 +168,11 @@ public class MuisEventQueue
 
 	private class EventQueueThread extends Thread
 	{
+		EventQueueThread()
+		{
+			super("MUIS Event Queue");
+		}
+
 		/**
 		 * The queue thread’s action is to go through the events in the queue. When an event is come to, the dirty paint or layout state of
 		 * the element is checked. If not dirty, remove the event and do nothing. If the dirty time is <=10ms ago, skip the event so that it
@@ -207,7 +212,8 @@ public class MuisEventQueue
 							now = System.currentTimeMillis(); // Update the time, since the repaint may have taken some
 							break;
 						case layout:
-							if(now - evt.element.getLayoutDirtyTime() < ldt)
+							long dirtyTime = evt.element.getLayoutDirtyTime();
+							if(dirtyTime == 0 || now - dirtyTime < ldt)
 								continue;
 							acted = true;
 							iter.remove();
@@ -230,7 +236,7 @@ public class MuisEventQueue
 
 	/**
 	 * Takes action on a {@link MuisCoreEvent.CoreEventType#paint paint} event
-	 * 
+	 *
 	 * @param event The paint event to fulfill
 	 */
 	protected void repaint(MuisCoreEvent event)
@@ -243,7 +249,7 @@ public class MuisEventQueue
 
 	/**
 	 * Takes action on a {@link MuisCoreEvent.CoreEventType#layout layout} event
-	 * 
+	 *
 	 * @param event The layout event to fulfill
 	 */
 	protected void relayout(MuisCoreEvent event)

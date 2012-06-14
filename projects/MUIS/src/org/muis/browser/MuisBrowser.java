@@ -61,7 +61,7 @@ public class MuisBrowser extends javax.swing.JPanel
 					@Override
 					public java.awt.Graphics2D getGraphics()
 					{
-						return (java.awt.Graphics2D) MuisBrowser.this.getGraphics();
+						return (java.awt.Graphics2D) theContentPane.getGraphics();
 					}
 				});
 		} catch(java.io.IOException e)
@@ -75,7 +75,6 @@ public class MuisBrowser extends javax.swing.JPanel
 		theContentPane.setContent(muisDoc);
 		repaint();
 		for(org.muis.core.MuisMessage msg : muisDoc.getAllMessages())
-		{
 			switch (msg.type)
 			{
 			case FATAL:
@@ -91,12 +90,11 @@ public class MuisBrowser extends javax.swing.JPanel
 					msg.exception.printStackTrace(System.out);
 				break;
 			}
-		}
 	}
 
 	/**
 	 * Starts up a MuisBrowser
-	 * 
+	 *
 	 * @param args Command-line arguments. If any are supplied, the first one is used as the initial address of the MUIS document to
 	 *            display.
 	 */

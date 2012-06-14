@@ -1,21 +1,20 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.muis.browser;
 
-import java.awt.event.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 
 import org.muis.core.event.KeyBoardEvent.KeyCode;
 import org.muis.core.event.MouseEvent.MouseEventType;
 
-/**
- * An AWT component that renders a MUIS document
- */
+/** An AWT component that renders a MUIS document */
 public class MuisContentPane extends java.awt.Component
 {
 	private org.muis.core.MuisDocument theContent;
 
-	/**
-	 * Creates a MuisContentPane
-	 */
+	/** Creates a MuisContentPane */
 	public MuisContentPane()
 	{
 		super();
@@ -103,7 +102,7 @@ public class MuisContentPane extends java.awt.Component
 
 	/**
 	 * Sets this pane's content
-	 * 
+	 *
 	 * @param doc The document to render
 	 */
 	public void setContent(org.muis.core.MuisDocument doc)
@@ -112,9 +111,6 @@ public class MuisContentPane extends java.awt.Component
 		theContent.setSize(getWidth(), getHeight());
 	}
 
-	/**
-	 * @see java.awt.Component#paint(java.awt.Graphics)
-	 */
 	@Override
 	public void paint(java.awt.Graphics g)
 	{

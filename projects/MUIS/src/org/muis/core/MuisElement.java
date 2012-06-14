@@ -663,6 +663,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/** @param x The x-coordinate for this element's upper left corner */
 	public final void setX(int x)
 	{
+		if(theX == x)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
@@ -678,6 +680,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/** @param y The y-coordinate for this element's upper left corner */
 	public final void setY(int y)
 	{
+		if(theY == y)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theY = y;
@@ -690,6 +694,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public final void setPosition(int x, int y)
 	{
+		if(theX == x && theY == y)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
@@ -706,6 +712,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/** @param z The z-index determining the order in which this element is drawn among its siblings */
 	public final void setZ(int z)
 	{
+		if(theZ == z)
+			return;
 		checkSecurity(PermissionType.setZ, null);
 		theZ = z;
 		if(theParent != null)
@@ -721,6 +729,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/** @param width The width for this element */
 	public final void setWidth(int width)
 	{
+		if(theW == width)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theW = width;
@@ -736,6 +746,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	/** @param height The height for this element */
 	public final void setHeight(int height)
 	{
+		if(theH == height)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theH = height;
@@ -748,6 +760,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public final void setSize(int width, int height)
 	{
+		if(theW == width && theH == height)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theW = width;
@@ -763,6 +777,8 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public final void setBounds(int x, int y, int width, int height)
 	{
+		if(theX == x && theY == y && theW == width && theH == height)
+			return;
 		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
@@ -1419,6 +1435,7 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public void doLayout()
 	{
+		theLayoutDirtyTime = 0;
 		for(MuisElement child : getChildren())
 			child.doLayout();
 	}
@@ -1465,12 +1482,14 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 	 */
 	public void paint(java.awt.Graphics2D graphics, Rectangle area)
 	{
+		if((area != null && (area.width == 0 || area.height == 0)) || theW == 0 || theH == 0)
+			return;
 		paintSelf(graphics, area);
 		Rectangle clipBounds = graphics.getClipBounds();
 		if(clipBounds == null)
-			clipBounds = new Rectangle(theX, theY, theW, theH);
+			clipBounds = new Rectangle(0, 0, theW, theH);
 		// TODO Should we clip?
-		graphics.setClip(clipBounds.x + theX, clipBounds.y + theY, theW, theH);
+		graphics.setClip(clipBounds.x, clipBounds.y, theW, theH);
 		try
 		{
 			paintChildren(graphics, theChildren, area);
@@ -1510,9 +1529,11 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 		if(getStyle().isSet(BackgroundStyles.transparency))
 			bg = new java.awt.Color(bg.getRGB() | (getStyle().get(BackgroundStyles.transparency).intValue() << 24));
 		graphics.setColor(bg);
+		int x = area == null ? 0 : area.x;
+		int y = area == null ? 0 : area.y;
 		int w = area == null ? theW : (area.width < theW ? area.width : theW);
 		int h = area == null ? theH : (area.height < theH ? area.height : theH);
-		graphics.fillRect(area == null ? 0 : area.x, area == null ? 0 : area.y, w, h);
+		graphics.fillRect(x, y, w, h);
 	}
 
 	/**
@@ -1559,12 +1580,16 @@ public abstract class MuisElement implements org.muis.layout.Sizeable, MuisMessa
 				int childY = child.theY;
 				translateX += childX;
 				translateY += childY;
-				childArea.x = area.x + translateX;
-				childArea.y = area.y + translateY;
-				childArea.width = area.width - translateX;
+				childArea.x = area.x - translateX;
+				childArea.y = area.y - translateY;
+				if(childArea.x < 0)
+					childArea.x = 0;
+				if(childArea.y < 0)
+					childArea.y = 0;
+				childArea.width = area.width - childArea.x;
 				if(childArea.x + childArea.width > child.getWidth())
 					childArea.width = child.getWidth() - childArea.x;
-				childArea.height = area.height - translateY;
+				childArea.height = area.height - childArea.y;
 				if(childArea.y + childArea.height > child.getHeight())
 					childArea.height = child.getHeight() - childArea.y;
 				graphics.translate(translateX, translateY);

@@ -8,7 +8,7 @@
     	<block layout="simple" style="bg.color=green" width="100%" top="0" height="100%">
     		<label left="0" right="100%" top="0" height="25%">This is a MUIS Document</label>
 			<block layout="simple" left="0" right="100%" top="25%" height="75%" style="bg.color=#4040ff">
-				<label left="0" right="100%">The Content</label>
+				<label left="0" right="100%" top="0">The Content</label>
 			</block>
     	</block>
     </body>

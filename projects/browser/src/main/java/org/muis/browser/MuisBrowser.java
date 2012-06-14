@@ -23,8 +23,9 @@ public class MuisBrowser extends javax.swing.JPanel
 			@Override
 			public void keyReleased(java.awt.event.KeyEvent evt)
 			{
-				if(evt.getKeyCode() != java.awt.event.KeyEvent.VK_ENTER)
-					return;
+				if(evt.getKeyCode() != java.awt.event.KeyEvent.VK_ENTER) {
+                    return;
+                }
 				goToAddress(theAddressBar.getText());
 			}
 		});
@@ -56,7 +57,7 @@ public class MuisBrowser extends javax.swing.JPanel
 		org.muis.core.MuisDocument muisDoc;
 		try
 		{
-			muisDoc = muisParser.parseDocument(new java.io.InputStreamReader(url.openStream()),
+            muisDoc = muisParser.parseDocument(url, new java.io.InputStreamReader(url.openStream()),
 				new org.muis.core.MuisDocument.GraphicsGetter() {
 					@Override
 					public java.awt.Graphics2D getGraphics()
@@ -74,22 +75,25 @@ public class MuisBrowser extends javax.swing.JPanel
 		muisDoc.postCreate();
 		theContentPane.setContent(muisDoc);
 		repaint();
-		for(org.muis.core.MuisMessage msg : muisDoc.getAllMessages())
-			switch (msg.type)
+		for(org.muis.core.MuisMessage msg : muisDoc.getAllMessages()) {
+            switch (msg.type)
 			{
 			case FATAL:
 			case ERROR:
 			case WARNING:
 				System.err.println(msg.type + ": " + msg.text);
-				if(msg.exception != null)
-					msg.exception.printStackTrace();
+				if(msg.exception != null) {
+                    msg.exception.printStackTrace();
+                }
 				break;
 			case INFO:
 				System.out.println(msg.type + ": " + msg.text);
-				if(msg.exception != null)
-					msg.exception.printStackTrace(System.out);
+				if(msg.exception != null) {
+                    msg.exception.printStackTrace(System.out);
+                }
 				break;
 			}
+        }
 	}
 
 	/**
@@ -106,7 +110,8 @@ public class MuisBrowser extends javax.swing.JPanel
 		frame.setBounds(0, 0, 900, 600);
 		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
-		if(args.length > 0)
-			browser.goToAddress(args[0]);
+		if(args.length > 0) {
+            browser.goToAddress(args[0]);
+        }
 	}
 }

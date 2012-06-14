@@ -1,14 +1,14 @@
 /*
  * Created Mar 8, 2009 by Andrew
  */
-package org.muis.core.style;
+package org.muis.base.style;
 
 import java.awt.Color;
 
-/**
- * Style attribute that affect the display of text rendered from {@link org.muis.core.MuisTextElement}
- * s
- */
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleDomain;
+
+/** Style attribute that affect the display of text rendered from {@link org.muis.core.MuisTextElement}s */
 public class FontStyle implements StyleDomain
 {
 	private StyleAttribute<?> [] theAttributes;
@@ -70,11 +70,13 @@ public class FontStyle implements StyleDomain
 		instance.register(stretch);
 	}
 
+	@Override
 	public String getName()
 	{
 		return "font";
 	}
 
+	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator()
 	{
 		return new DomainAttributeIterator(theAttributes);

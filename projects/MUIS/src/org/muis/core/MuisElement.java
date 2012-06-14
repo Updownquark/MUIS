@@ -1117,6 +1117,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		message(MuisMessage.Type.WARNING, message, null, params);
 	}
 
+	@Override
+	public final void warn(String message, Throwable exception, Object... params)
+	{
+		message(MuisMessage.Type.WARNING, message, exception, params);
+	}
+
 	/**
 	 * Records a message in this element
 	 *

@@ -23,8 +23,10 @@ public class MuisContentPane extends java.awt.Component
 			public void componentResized(ComponentEvent e)
 			{
 				super.componentResized(e);
-				if(theContent != null)
-					theContent.setSize(getWidth(), getHeight());
+				if(getContent() != null)
+				{
+					getContent().setSize(getWidth(), getHeight());
+				}
 			}
 		});
 		addMouseListener(new java.awt.event.MouseListener() {
@@ -100,6 +102,12 @@ public class MuisContentPane extends java.awt.Component
 		});
 	}
 
+	/** @return The document that is currently being rendered by this content pane */
+	public org.muis.core.MuisDocument getContent()
+	{
+		return theContent;
+	}
+
 	/**
 	 * Sets this pane's content
 	 *
@@ -115,14 +123,18 @@ public class MuisContentPane extends java.awt.Component
 	public void paint(java.awt.Graphics g)
 	{
 		if(theContent == null)
+		{
 			return;
+		}
 		theContent.paint((java.awt.Graphics2D) g);
 	}
 
 	void moused(org.muis.core.event.MouseEvent.MouseEventType type, MouseEvent evt)
 	{
 		if(theContent == null)
+		{
 			return;
+		}
 		org.muis.core.event.MouseEvent.ButtonType buttonType;
 		switch (evt.getButton())
 		{
@@ -148,18 +160,26 @@ public class MuisContentPane extends java.awt.Component
 	void scrolled(java.awt.event.MouseWheelEvent evt)
 	{
 		if(theContent == null)
+		{
 			return;
+		}
 		theContent.scroll(evt.getX(), evt.getY(), evt.getWheelRotation());
 	}
 
 	void keyed(Boolean pressed, KeyEvent evt)
 	{
 		if(theContent == null)
+		{
 			return;
+		}
 		if(pressed != null)
+		{
 			theContent.keyed(getKeyCodeFromAWT(evt.getKeyCode(), evt.getKeyLocation()), pressed.booleanValue());
+		}
 		else
+		{
 			theContent.character(evt.getKeyChar());
+		}
 	}
 
 	/**
@@ -183,19 +203,31 @@ public class MuisContentPane extends java.awt.Component
 			return KeyCode.CLEAR;
 		case KeyEvent.VK_SHIFT:
 			if(keyLocation == KeyEvent.KEY_LOCATION_LEFT)
+			{
 				return KeyCode.SHIFT_LEFT;
+			}
 			else
+			{
 				return KeyCode.SHIFT_RIGHT;
+			}
 		case KeyEvent.VK_CONTROL:
 			if(keyLocation == KeyEvent.KEY_LOCATION_LEFT)
+			{
 				return KeyCode.CTRL_LEFT;
+			}
 			else
+			{
 				return KeyCode.CTRL_RIGHT;
+			}
 		case KeyEvent.VK_ALT:
 			if(keyLocation == KeyEvent.KEY_LOCATION_LEFT)
+			{
 				return KeyCode.ALT_LEFT;
+			}
 			else
+			{
 				return KeyCode.ALT_RIGHT;
+			}
 		case KeyEvent.VK_PAUSE:
 			return KeyCode.PAUSE;
 		case KeyEvent.VK_CAPS_LOCK:
@@ -225,23 +257,35 @@ public class MuisContentPane extends java.awt.Component
 			return KeyCode.COMMA;
 		case KeyEvent.VK_MINUS:
 			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			{
 				return KeyCode.PAD_MINUS;
+			}
 			else
+			{
 				return KeyCode.MINUS;
+			}
 		case KeyEvent.VK_UNDERSCORE:
 			return KeyCode.MINUS;
 		case KeyEvent.VK_PERIOD:
 			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			{
 				return KeyCode.PAD_DOT;
+			}
 			else
+			{
 				return KeyCode.DOT;
+			}
 		case KeyEvent.VK_GREATER:
 			return KeyCode.DOT;
 		case KeyEvent.VK_SLASH:
 			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			{
 				return KeyCode.PAD_SLASH;
+			}
 			else
+			{
 				return KeyCode.FORWARD_SLASH;
+			}
 		case KeyEvent.VK_0:
 		case KeyEvent.VK_RIGHT_PARENTHESIS:
 			return KeyCode.NUM_0;
@@ -276,9 +320,13 @@ public class MuisContentPane extends java.awt.Component
 			return KeyCode.SEMICOLON;
 		case KeyEvent.VK_EQUALS:
 			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			{
 				return KeyCode.PAD_EQUAL;
+			}
 			else
+			{
 				return KeyCode.EQUAL;
+			}
 		case KeyEvent.VK_A:
 			return KeyCode.A;
 		case KeyEvent.VK_B:

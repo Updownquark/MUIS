@@ -18,6 +18,7 @@ public class MuisContentPane extends java.awt.Component
 	public MuisContentPane()
 	{
 		super();
+		setFocusable(true);
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentResized(ComponentEvent e)

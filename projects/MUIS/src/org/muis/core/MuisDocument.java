@@ -51,7 +51,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private org.muis.core.parser.MuisParser theParser;
 
-	private MuisToolkit theDefaultToolkit;
+	private MuisToolkit theCoreToolkit;
 
 	private MuisClassView theClassView;
 
@@ -112,16 +112,16 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	/**
 	 * @param parser The parser that created this document
-	 * @param defaultToolkit The default toolkit to load core MUIS classes with
+	 * @param coreToolkit The toolkit to load core MUIS classes with
 	 */
-	public void initDocument(org.muis.core.parser.MuisParser parser, MuisToolkit defaultToolkit)
+	public void initDocument(org.muis.core.parser.MuisParser parser, MuisToolkit coreToolkit)
 	{
 		if(theParser != null)
 			throw new IllegalArgumentException("Cannot initialize a document twice");
 		theParser = parser;
 		theClassView = new MuisClassView(this);
 		theHead = new MuisHeadSection();
-		theDefaultToolkit = defaultToolkit;
+		theCoreToolkit = coreToolkit;
 	}
 
 	/** @return The location of the file that this document was generated from */
@@ -136,10 +136,10 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		return theParser;
 	}
 
-	/** @return The default toolkit to load core MUIS classes from */
-	public MuisToolkit getDefaultToolkit()
+	/** @return The toolkit to load core MUIS classes from */
+	public MuisToolkit getCoreToolkit()
 	{
-		return theDefaultToolkit;
+		return theCoreToolkit;
 	}
 
 	/** @return The class map that applies to the whole document */

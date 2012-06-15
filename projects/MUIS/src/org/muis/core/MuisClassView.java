@@ -103,9 +103,9 @@ public class MuisClassView
 			}
 			else if(namespace == null)
 				if(theElement != null)
-					ret = theElement.getDocument().getDefaultToolkit();
+					ret = theElement.getDocument().getCoreToolkit();
 				else
-					ret = theDocument.getDefaultToolkit();
+					ret = theDocument.getCoreToolkit();
 		return ret;
 	}
 

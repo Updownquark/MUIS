@@ -4,8 +4,10 @@
 package org.muis.core;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Map;
 
-import org.muis.core.event.DocumentEvent;
+import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
 import org.muis.core.event.ScrollEvent;
@@ -57,13 +59,11 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private BodyElement theRoot;
 
-	private java.util.ArrayList<MuisMessage> theMessages;
+	private ArrayList<MuisMessage> theMessages;
 
 	private MuisMessage.Type theWorstMessageType;
 
 	private NamedStyleGroup [] theDocumentGroups;
-
-	private java.util.List<DocumentEvent> theDocEvents;
 
 	private GraphicsGetter theGraphics;
 
@@ -77,12 +77,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private int theMouseY;
 
-	private MuisElement theMousedOver;
-
-	private int theRelativeMouseX;
-
-	private int theRelativeMouseY;
-
 	private MouseEvent.ButtonType[] thePressedButtons;
 
 	private KeyBoardEvent.KeyCode[] thePressedKeys;
@@ -91,7 +85,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private final Object theKeysLock;
 
-	private MuisLock.Locker theLocker;
+	private final MuisLock.Locker theLocker;
 
 	/**
 	 * Creates a document
@@ -104,9 +98,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theLocation = location;
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
-		theMessages = new java.util.ArrayList<MuisMessage>();
+		theMessages = new ArrayList<MuisMessage>();
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
-		theDocEvents = new java.util.ArrayList<DocumentEvent>();
 		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new MouseEvent.ButtonType[0];
@@ -252,48 +245,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	}
 
 	/**
-	 * Adds an event to be performed after a user action invocation completes
-	 *
-	 * @param evt The event to perform
-	 */
-	public void addEvent(DocumentEvent evt)
-	{
-		synchronized(theDocEvents)
-		{
-			boolean added = false;
-			for(int i = 0; i < theDocEvents.size(); i++)
-			{
-				DocumentEvent de = theDocEvents.get(i);
-				if(de.contains(evt))
-					break;
-				else if(evt.contains(de))
-					if(!added)
-					{
-						theDocEvents.set(i, evt);
-						added = true;
-					}
-					else
-					{
-						theDocEvents.remove(i);
-						i--;
-					}
-			}
-		}
-	}
-
-	private void fireEvents()
-	{
-		DocumentEvent [] events;
-		synchronized(theDocEvents)
-		{
-			events = theDocEvents.toArray(new DocumentEvent[theDocEvents.size()]);
-			theDocEvents.clear();
-		}
-		for(DocumentEvent evt : events)
-			evt.doAction();
-	}
-
-	/**
 	 * Records a message in this document
 	 *
 	 * @param type The type of the message
@@ -367,7 +318,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	@Override
 	public final MuisMessage [] getAllMessages()
 	{
-		java.util.ArrayList<MuisMessage> ret = new java.util.ArrayList<MuisMessage>();
+		ArrayList<MuisMessage> ret = new ArrayList<>();
 		ret.addAll(theMessages);
 		if(theRoot != null)
 			for(MuisMessage msg : theRoot.getAllMessages())
@@ -401,8 +352,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 */
 	public void setSize(int width, int height)
 	{
-		MuisEventQueue.getInstance().scheduleEvent(
-			new MuisCoreEvent(theRoot, MuisCoreEvent.CoreEventType.rebound, new java.awt.Rectangle(0, 0, width, height)), false);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.ReboundEvent(theRoot, new java.awt.Rectangle(0, 0, width, height)), false);
 	}
 
 	/**
@@ -522,117 +472,112 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 */
 	public void mouse(int x, int y, MouseEvent.MouseEventType type, MouseEvent.ButtonType buttonType, int clickCount)
 	{
-		hasMouse = type != MouseEvent.MouseEventType.MOUSE_EXITED;
+		boolean oldHasMouse = hasMouse;
+		int oldX = theMouseX;
+		int oldY = theMouseY;
+		hasMouse = type != MouseEvent.MouseEventType.exited;
 		theMouseX = x;
 		theMouseY = y;
-		java.util.Map<MuisElement, Point> pos = new java.util.HashMap<>();
-		MuisElement el = MuisUtils.getMousePositions(theRoot, x, y, pos);
-		MouseEvent evt = new MouseEvent(this, el, type, x, y, buttonType, clickCount);
+		Map<MuisElement, Point> newPos = new java.util.LinkedHashMap<>();
+		MuisElement target = MuisUtils.getMousePositions(theRoot, x, y, newPos);
+		Map<MuisElement, Point> oldPos = new java.util.LinkedHashMap<>();
+		MuisUtils.getMousePositions(theRoot, oldX, oldY, oldPos);
+		MouseEvent evt = new MouseEvent(this, target, type, x, y, buttonType, clickCount);
+		for(Map.Entry<MuisElement, Point> p : newPos.entrySet())
+			evt.addElementLocation(p.getKey(), p.getValue());
 
-		// TODO
+		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
+
 		switch (type)
 		{
-		case MOUSE_MOVED:
-			/*
-			 * This means it moved within the document. We have to determine any elements that it might have exited or entered.
-			 */
-			checkMouse();
+		case moved:
+			// This means it moved within the document. We have to determine any elements that it might have exited or entered.
+			if(oldHasMouse)
+				mouseMove(oldPos, newPos, events);
+			else
+			{
+				evt = new MouseEvent(this, target, MouseEvent.MouseEventType.entered, x, y, buttonType, clickCount);
+				for(Map.Entry<MuisElement, Point> p : newPos.entrySet())
+					evt.addElementLocation(p.getKey(), p.getValue());
+				events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
+			}
 			break;
-		case BUTTON_DOWN:
+		case pressed:
 			synchronized(theButtonsLock)
 			{
 				if(!ArrayUtils.contains(thePressedButtons, buttonType))
 					thePressedButtons = ArrayUtils.add(thePressedButtons, buttonType);
 			}
-			focusByMouse(evt.getElement(), x, y);
-			theRoot.firePositionEvent(evt, x, y);
+			focusByMouse(target, events);
+			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
 			break;
-		case BUTTON_UP:
+		case released:
 			synchronized(theButtonsLock)
 			{
 				if(ArrayUtils.contains(thePressedButtons, buttonType))
 					thePressedButtons = ArrayUtils.remove(thePressedButtons, buttonType);
 			}
-			theRoot.firePositionEvent(evt, x, y);
+			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
 			break;
-		default:
-			theRoot.firePositionEvent(evt, x, y);
+		case clicked:
+		case exited:
+			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
+			break;
+		case entered:
+			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
 			break;
 		}
-		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(evt), false); // TODO Need to interrupt the thread, but not wait
-		fireEvents();
-	}
-
-	private void focusByMouse(MuisElement element, int x, int y)
-	{
-		if(element.isFocusable())
-		{
-			setFocus(element);
-			return;
-		}
-		MuisElement lastChild = element;
-		element = element.getParent();
-		while(element != null)
-		{
-			Point relPos = element.getDocumentPosition();
-			MuisElement [] children = element.childrenAt(x - relPos.x, y - relPos.y);
-			children = MuisElement.sortByZ(children);
-			for(int c = children.length - 1; c >= 0; c--)
-				if(children[c] != lastChild && children[c].isFocusable())
-				{
-					setFocus(children[c]);
-					return;
-				}
-			if(element.isFocusable())
-			{
-				setFocus(element);
-				return;
-			}
-			lastChild = element;
-			element = element.getParent();
-		}
+		for(MuisEventQueue.Event event : events)
+			MuisEventQueue.get().scheduleEvent(event, true);
 	}
 
 	/** Checks the mouse's current position, firing necessary mouse events if it has moved relative to any elements */
-	public void checkMouse()
+	private void mouseMove(Map<MuisElement, Point> oldPos, Map<MuisElement, Point> newPos, java.util.List<MuisEventQueue.Event> events)
 	{
-		if(!hasMouse)
+		MuisElement [] oldMousePath = oldPos.keySet().toArray(new MuisElement[oldPos.size()]);
+		MuisElement [] newMousePath = newPos.keySet().toArray(new MuisElement[newPos.size()]);
+		MuisElement branchPoint = null;
+		int branchIdx;
+		for(branchIdx = oldMousePath.length - 1; branchIdx >= 0; branchIdx--)
+			if(newPos.containsKey(oldMousePath[branchIdx]))
+			{
+				branchPoint = oldMousePath[branchIdx];
+				break;
+			}
+		if(branchPoint == null)
+		{
+			error("Disjointed element paths for mouse move", null);
 			return;
-		int x = theMouseX;
-		int y = theMouseY;
-		MuisElement element = theRoot.deepestChildAt(x, y);
-		MouseEvent evt;
-		if(theMousedOver == null || theMousedOver == element)
-		{
-			// The mouse is in the same element as last check
-			Point dp = element.getDocumentPosition();
-			if(x - dp.x != theRelativeMouseX || y - dp.y != theRelativeMouseY)
-			{
-				evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_MOVED, x, y, null, 0);
-				theRoot.firePositionEvent(evt, x, y);
-			}
 		}
-		else
+		if(branchIdx < oldMousePath.length - 1)
 		{
-			MuisElement [] branch = MuisUtils.getBranchPoint(theMousedOver, element);
-			if(branch != null)
-			{
-				if(branch[1] != null)
-				{ // The mouse exited this subtree
-					evt = new MouseEvent(this, theMousedOver, MouseEvent.MouseEventType.MOUSE_EXITED, x, y, null, 0);
-					branch[1].firePositionEvent(evt, x, y);
-				}
-				if(branch[2] != null)
-				{
-					// The mouse exited
-					evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_ENTERED, x, y, null, 0);
-					branch[2].firePositionEvent(evt, x, y);
-				}
-				evt = new MouseEvent(this, element, MouseEvent.MouseEventType.MOUSE_MOVED, x, y, null, 0);
-				branch[0].fireUserEvent(evt); // Fire this event up the path, not on children
-			}
+			MouseEvent exit = new MouseEvent(this, oldMousePath[oldMousePath.length - 1], MouseEvent.MouseEventType.exited, theMouseX,
+				theMouseY, null, 0);
+			for(int i = branchIdx + 1; i < oldMousePath.length; i++)
+				exit.addElementLocation(oldMousePath[i], oldPos.get(oldMousePath[i]));
+			events.add(new MuisEventQueue.PositionQueueEvent(branchPoint, exit, false));
 		}
-		fireEvents();
+		MouseEvent move = new MouseEvent(this, branchPoint, MouseEvent.MouseEventType.moved, theMouseX, theMouseY, null, 0);
+		for(int i = 0; i <= branchIdx; i++)
+			move.addElementLocation(oldMousePath[i], newPos.get(oldMousePath[i]));
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(theRoot, move, false), true);
+		if(branchIdx < newMousePath.length - 1)
+		{
+			MouseEvent enter = new MouseEvent(this, newMousePath[newMousePath.length - 1], MouseEvent.MouseEventType.entered, theMouseX,
+				theMouseY, null, 0);
+			for(int i = branchIdx + 1; i < newMousePath.length; i++)
+				enter.addElementLocation(newMousePath[i], newPos.get(newMousePath[i]));
+			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(branchPoint, enter, false), true);
+		}
+	}
+
+	private void focusByMouse(MuisElement element, java.util.List<MuisEventQueue.Event> events)
+	{
+		while(element != null && !element.isFocusable())
+			element = element.getParent();
+		if(element == null || element == theFocus)
+			return; // No focus change
+		setFocus(element, events);
 	}
 
 	/**
@@ -642,14 +587,20 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 */
 	public void setFocus(MuisElement toFocus)
 	{
-		if(toFocus != theFocus)
-		{
-			if(theFocus != null)
-				theFocus.fireUserEvent(new org.muis.core.event.FocusEvent(this, theFocus, false));
-			theFocus = toFocus;
-			if(theFocus != null)
-				theFocus.fireUserEvent(new org.muis.core.event.FocusEvent(this, theFocus, true));
-		}
+		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
+		setFocus(toFocus, events);
+		for(MuisEventQueue.Event event : events)
+			MuisEventQueue.get().scheduleEvent(event, true);
+	}
+
+	private void setFocus(MuisElement focus, java.util.List<MuisEventQueue.Event> events)
+	{
+		MuisElement oldFocus = theFocus;
+		theFocus = focus;
+		if(oldFocus != null)
+			events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, oldFocus, false), false));
+		if(theFocus != null)
+			events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, theFocus, true), false));
 	}
 
 	/** Moves this document's focus to the focusable widget previous to the currently focused widget */
@@ -674,7 +625,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable element. */
 		MuisElement deepest = getDeepestElement(theRoot, true);
 		searchFocus(deepest, true);
-		fireEvents();
 	}
 
 	boolean searchFocus(MuisElement el, boolean forward)
@@ -740,35 +690,26 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 */
 	public void scroll(int x, int y, int amount)
 	{
+		ScrollEvent evt = null;
 		MuisElement element = null;
 		switch (theScrollPolicy)
 		{
 		case MOUSE:
 		case MIXED:
-			element = theRoot.deepestChildAt(x, y);
+			Map<MuisElement, Point> pos = new java.util.LinkedHashMap<>();
+			element = MuisUtils.getMousePositions(theRoot, x, y, pos);
+			evt = new ScrollEvent(this, element, x, y, ScrollEvent.ScrollType.UNIT, true, amount, null);
+			for(Map.Entry<MuisElement, Point> entry : pos.entrySet())
+				evt.addElementLocation(entry.getKey(), entry.getValue());
 			break;
 		case FOCUS:
 			element = theFocus;
 			if(element == null)
 				element = theRoot;
-			Point dp = element.getDocumentPosition();
-			x = dp.x;
-			y = dp.y;
+			evt = new ScrollEvent(this, element, -1, -1, ScrollEvent.ScrollType.UNIT, true, amount, null);
 			break;
 		}
-		ScrollEvent evt = new ScrollEvent(this, element, x, y, ScrollEvent.ScrollType.UNIT, true, amount, null);
-		switch (theScrollPolicy)
-		{
-		case MOUSE:
-		case MIXED:
-			theRoot.firePositionEvent(evt, x, y);
-			break;
-		case FOCUS:
-			if(theFocus != null)
-				theFocus.fireUserEvent(evt);
-			break;
-		}
-		fireEvents();
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false), true);
 	}
 
 	/**
@@ -784,6 +725,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			evt = new KeyBoardEvent(this, theFocus, code, pressed);
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, pressed);
+
 		if(theFocus != null)
 			theFocus.fireUserEvent(evt);
 		synchronized(theKeysLock)
@@ -805,7 +747,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			case MOUSE:
 				if(hasMouse)
 				{
-					scrollElement = theRoot.deepestChildAt(theMouseX, theMouseY);
+					scrollElement = MuisUtils.getMousePositions(theRoot, theMouseX, theMouseY, null);
 					x = theMouseX;
 					y = theMouseY;
 				}
@@ -815,14 +757,11 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			case FOCUS:
 			case MIXED:
 				if(theFocus != null)
-				{
 					scrollElement = theFocus;
-					Point dp = theFocus.getDocumentPosition();
-					x = dp.x;
-					y = dp.y;
-				}
 				else
 					scrollElement = theRoot;
+				x = -1;
+				y = -1;
 				break;
 			}
 			if(scrollElement != null)
@@ -867,7 +806,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				if(scrollType != null)
 				{
 					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, x, y, scrollType, vertical, downOrRight ? 1 : -1, evt);
-					scrollElement.fireUserEvent(scrollEvt);
+					MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(scrollEvt, false), true);
 				}
 			}
 
@@ -877,7 +816,6 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				else
 					advanceFocus();
 		}
-		fireEvents();
 	}
 
 	/**
@@ -892,9 +830,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			evt = new org.muis.core.event.CharInputEvent(this, theFocus, c);
 		else
 			evt = new org.muis.core.event.CharInputEvent(this, theRoot, c);
-		if(theFocus != null)
-			theFocus.fireUserEvent(evt);
-		fireEvents();
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false), true);
 	}
 
 	private static class GroupIterator implements java.util.Iterator<NamedStyleGroup>

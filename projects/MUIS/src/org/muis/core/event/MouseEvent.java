@@ -1,7 +1,5 @@
 package org.muis.core.event;
 
-import java.awt.Point;
-
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
@@ -27,17 +25,17 @@ public class MouseEvent extends PositionedUserEvent
 	public static enum MouseEventType
 	{
 		/** Represents the user pressing a mouse button */
-		BUTTON_DOWN,
+		pressed,
 		/** Represents the user releasing a mouse button */
-		BUTTON_UP,
+		released,
 		/** Represents the user pressing and releasing a mouse button quickly without moving the mouse pointer */
-		BUTTON_CLICKED,
+		clicked,
 		/** Represents the user moving the mouse pointer while over an element */
-		MOUSE_MOVED,
+		moved,
 		/** Represents the user moving the mouse pointer into an element */
-		MOUSE_ENTERED,
+		entered,
 		/** Represents the user moving the mouse pointer out of an element */
-		MOUSE_EXITED;
+		exited;
 	}
 
 	private final MouseEventType theType;
@@ -45,8 +43,6 @@ public class MouseEvent extends PositionedUserEvent
 	private final ButtonType theButtonType;
 
 	private final int theClickCount;
-
-	private java.util.Map<MuisElement, Point> theElementLocations;
 
 	private final long theTime;
 
@@ -68,25 +64,6 @@ public class MouseEvent extends PositionedUserEvent
 		theType = type;
 		theButtonType = buttonType;
 		theClickCount = clickCount;
-		theElementLocations = new java.util.HashMap<>();
-	}
-
-	/**
-	 * @param element The element
-	 * @param p The location of this event over the element
-	 */
-	public void addElementLocation(MuisElement element, Point p)
-	{
-		theElementLocations.put(element, p);
-	}
-
-	/**
-	 * @param element The element
-	 * @return The location of this event over the element
-	 */
-	public Point getPosition(MuisElement element)
-	{
-		return theElementLocations.get(element);
 	}
 
 	/** @return The type of this mouse event */

@@ -20,7 +20,7 @@ import org.muis.core.style.*;
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
-/** The base display element in MUIS. Contains base methods to administrate content (children, style, placement, etc.) */
+/** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
 public abstract class MuisElement implements org.muis.core.layout.Sizeable, MuisMessage.MuisMessageCenter
 {
 	// TODO Add code for attach events
@@ -621,6 +621,15 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/**
+	 * @param child The child to get the index of
+	 * @return The index of the given child in this element's children, or -1 if the given element is not a child under this element
+	 */
+	public final int getChildIndex(MuisElement child)
+	{
+		return ArrayUtils.indexOf(theChildren, child);
+	}
+
+	/**
 	 * Sets this element's parent after initialization
 	 *
 	 * @param parent The new parent for this element
@@ -1043,6 +1052,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public final void removeListener(MuisEventListener<?> listener)
 	{
 		theListeners.removeListener(listener);
+	}
+
+	/**
+	 * Removes all listeners for the given event type whose class is exactly equal (not an extension of) the given listener type
+	 *
+	 * @param type The type of event to stop listening for
+	 * @param listenerType The listener type to remove
+	 */
+	public final void removeListener(MuisEventType<?> type, Class<? extends MuisEventListener<?>> listenerType)
+	{
+		for(MuisEventListener<?> listener : theListeners.getListeners(type))
+			if(listener.getClass() == listenerType)
+				theListeners.removeListener(listener);
 	}
 
 	/**
@@ -1469,7 +1491,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theW <= 0 || theH <= 0)
 			return; // No point layout out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(this, MuisCoreEvent.CoreEventType.layout), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this), now);
 	}
 
 	/** @return The graphics object to use to draw this element */
@@ -1534,7 +1556,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theW <= 0 || theH <= 0)
 			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(this, MuisCoreEvent.CoreEventType.paint, area), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area), now);
 	}
 
 	/**
@@ -1578,25 +1600,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(area == null)
 			area = new Rectangle(theX, theY, theW, theH);
 		children = sortByZ(children);
-		boolean sameZ = true;
-		int z = children[0].theZ;
-		for(int c = 1; c < children.length; c++)
-			if(children[c].theZ != z)
-			{
-				sameZ = false;
-				break;
-			}
-		if(!sameZ)
-		{
-			children = children.clone();
-			java.util.Arrays.sort(children, new java.util.Comparator<MuisElement>() {
-				@Override
-				public int compare(MuisElement el1, MuisElement el2)
-				{
-					return el1.theZ - el2.theZ;
-				}
-			});
-		}
 		int translateX = 0;
 		int translateY = 0;
 		try

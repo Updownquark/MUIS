@@ -95,6 +95,8 @@ public class MuisEventQueue
 				break;
 			case rebound:
 				break;
+			case mouse:
+				break;
 			}
 		}
 		addEvent(event, fireNow);
@@ -232,6 +234,15 @@ public class MuisEventQueue
 							rebound(evt);
 							evt.done();
 							now = System.currentTimeMillis(); // Update the time, since the rebound may have taken some
+							break;
+						case mouse:
+							acted = true;
+							iter.remove();
+							evt.act();
+							mouse(evt);
+							evt.done();
+							now = System.currentTimeMillis(); // Update the time
+							break;
 						}
 					}
 					if(!acted)
@@ -268,12 +279,16 @@ public class MuisEventQueue
 	}
 
 	/**
-	 * Takes action ono a {@link org.muis.core.MuisCoreEvent.CoreEventType#rebound} event
-	 *
+	 * Takes action on a {@link org.muis.core.MuisCoreEvent.CoreEventType#rebound} event
+	 * 
 	 * @param event The rebound event to fulfill
 	 */
 	protected void rebound(MuisCoreEvent event)
 	{
 		event.element.setBounds(event.area.x, event.area.y, event.area.width, event.area.height);
+	}
+
+	protected void mouse(MuisCoreEvent event)
+	{
 	}
 }

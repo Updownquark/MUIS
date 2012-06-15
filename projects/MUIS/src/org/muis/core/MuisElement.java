@@ -136,6 +136,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/** The event type representing the removal of a message from an element. */
 	public static final MuisEventType<MuisMessage> MESSAGE_REMOVED = new MuisEventType<MuisMessage>("Message Removed", MuisMessage.class);
 
+	/**
+	 * Used to lock this elements' child sets
+	 *
+	 * @see MuisLock
+	 */
+	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
+
 	private MuisDocument theDocument;
 
 	private MuisToolkit theToolkit;
@@ -416,7 +423,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public void initChildren(MuisElement [] children)
 	{
 		theStage = Stage.INIT_CONTENT;
-		theChildren = children;
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			for(MuisElement child : theChildren)
+				if(child.getParent() == this)
+					child.setParent(null);
+			theChildren = children;
+		}
 		for(MuisElement child : children)
 			registerChild(child);
 		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
@@ -638,8 +651,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		checkSecurity(PermissionType.addChild, child);
 		if(index < 0)
 			index = theChildren.length;
-		child.setParent(this);
-		theChildren = ArrayUtils.add(theChildren, child, index);
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			child.setParent(this);
+			theChildren = ArrayUtils.add(theChildren, child, index);
+		}
 		fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 	}
 
@@ -656,8 +672,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			index = theChildren.length - 1;
 		MuisElement ret = theChildren[index];
 		checkSecurity(PermissionType.removeChild, ret);
-		ret.theParent = null;
-		theChildren = ArrayUtils.remove(theChildren, index);
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			ret.setParent(null);
+			theChildren = ArrayUtils.remove(theChildren, index);
+		}
 		fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, ret), false, false);
 		return ret;
 	}

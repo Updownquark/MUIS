@@ -48,6 +48,8 @@ public class MouseEvent extends PositionedUserEvent
 
 	private java.util.Map<MuisElement, Point> theElementLocations;
 
+	private final long theTime;
+
 	/**
 	 * Creates a mouse event
 	 *
@@ -62,6 +64,7 @@ public class MouseEvent extends PositionedUserEvent
 	public MouseEvent(MuisDocument doc, MuisElement element, MouseEventType type, int docX, int docY, ButtonType buttonType, int clickCount)
 	{
 		super(MuisElement.MOUSE_EVENT, doc, element, docX, docY);
+		theTime = System.currentTimeMillis();
 		theType = type;
 		theButtonType = buttonType;
 		theClickCount = clickCount;
@@ -102,5 +105,11 @@ public class MouseEvent extends PositionedUserEvent
 	public int getClickCount()
 	{
 		return theClickCount;
+	}
+
+	/** @return The time that this event was created */
+	public long getTime()
+	{
+		return theTime;
 	}
 }

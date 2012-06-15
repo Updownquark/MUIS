@@ -91,6 +91,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private final Object theKeysLock;
 
+	private MuisLock.Locker theLocker;
+
 	/**
 	 * Creates a document
 	 *
@@ -112,6 +114,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
+		theLocker = new MuisLock.Locker();
 	}
 
 	/**
@@ -156,6 +159,12 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	public MuisHeadSection getHead()
 	{
 		return theHead;
+	}
+
+	/** @return The locker to keep track of element locks */
+	public MuisLock.Locker getLocker()
+	{
+		return theLocker;
 	}
 
 	/** @return The root element of the document */
@@ -236,7 +245,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			}
 	}
 
-	/** Called to initalize the document after all the parsing and linking has been performed */
+	/** Called to initialize the document after all the parsing and linking has been performed */
 	public void postCreate()
 	{
 		theRoot.postCreate();
@@ -550,6 +559,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			theRoot.firePositionEvent(evt, x, y);
 			break;
 		}
+		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(evt), false); // TODO Need to interrupt the thread, but not wait
 		fireEvents();
 	}
 

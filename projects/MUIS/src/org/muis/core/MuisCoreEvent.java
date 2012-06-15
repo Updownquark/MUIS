@@ -11,7 +11,9 @@ public class MuisCoreEvent
 		/** Represents a need to re-layout a container's elements */
 		layout,
 		/** Represents a need to set the bounds of an element */
-		rebound
+		rebound,
+		/** Represents a mouse event that needs to be propagated */
+		mouse;
 	}
 
 	/** The element that the event is for */
@@ -22,6 +24,9 @@ public class MuisCoreEvent
 
 	/** The type of this event */
 	public final CoreEventType type;
+
+	/** The mouse event */
+	public org.muis.core.event.MouseEvent mouseEvent;
 
 	/** The time this event was initiated */
 	public final long time;
@@ -50,6 +55,16 @@ public class MuisCoreEvent
 		type = aType;
 		time = System.currentTimeMillis();
 		area = anArea;
+	}
+
+	/** @param evt The mouse event that this event is for */
+	public MuisCoreEvent(org.muis.core.event.MouseEvent evt)
+	{
+		element = evt.getElement();
+		type = CoreEventType.mouse;
+		time = evt.getTime();
+		area = null;
+		mouseEvent = evt;
 	}
 
 	/** Called by the event queue when it begins taking action on this event */

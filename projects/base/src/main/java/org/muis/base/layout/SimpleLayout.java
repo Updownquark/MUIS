@@ -3,6 +3,7 @@ package org.muis.base.layout;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
+import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 
@@ -14,9 +15,36 @@ import org.muis.core.layout.SizePolicy;
  */
 public class SimpleLayout implements MuisLayout
 {
+	private static class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
+	{
+		private final MuisElement theParent;
+
+		RelayoutListener(MuisElement parent)
+		{
+			theParent = parent;
+		}
+
+		@Override
+		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
+		{
+			MuisAttribute<?> attr = event.getValue();
+			if(attr == LayoutConstants.left || attr == LayoutConstants.right || attr == LayoutConstants.top
+				|| attr == LayoutConstants.bottom || attr == LayoutConstants.width || attr == LayoutConstants.height
+				|| attr == LayoutConstants.minWidth || attr == LayoutConstants.minHeight)
+				theParent.relayout(false);
+		}
+
+		@Override
+		public boolean isLocal()
+		{
+			return true;
+		}
+	}
+
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
+		RelayoutListener listener = new RelayoutListener(parent);
 		for(MuisElement child : children)
 		{
 			child.acceptAttribute(LayoutConstants.left);
@@ -27,6 +55,7 @@ public class SimpleLayout implements MuisLayout
 			child.acceptAttribute(LayoutConstants.height);
 			child.acceptAttribute(LayoutConstants.minWidth);
 			child.acceptAttribute(LayoutConstants.minHeight);
+			child.addListener(MuisElement.ATTRIBUTE_SET, listener);
 		}
 	}
 
@@ -46,7 +75,7 @@ public class SimpleLayout implements MuisLayout
 
 	/**
 	 * Gets a sizer for a container in one dimension
-	 *
+	 * 
 	 * @param children The children to lay out
 	 * @param minPosAtt The attribute to control the minimum position of a child (left or top)
 	 * @param maxPosAtt The attribute to control the maximum position of a child (right or bottom)
@@ -147,7 +176,7 @@ public class SimpleLayout implements MuisLayout
 
 	/**
 	 * Lays out a single child on one dimension within its parent based on its attributes and its size policy
-	 *
+	 * 
 	 * @param child The child to position
 	 * @param vertical Whether the layout dimension is vertical (to get the child's sizer if needed)
 	 * @param breadth The size of the non-layout dimension of the parent
@@ -216,6 +245,7 @@ public class SimpleLayout implements MuisLayout
 	{
 		for(MuisElement child : parent.getChildren())
 		{
+			child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutListener.class);
 			child.rejectAttribute(LayoutConstants.left);
 			child.rejectAttribute(LayoutConstants.right);
 			child.rejectAttribute(LayoutConstants.top);

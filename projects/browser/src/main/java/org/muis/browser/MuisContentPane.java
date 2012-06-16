@@ -34,6 +34,7 @@ public class MuisContentPane extends java.awt.Component
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
+				requestFocusInWindow();
 				moused(MouseEventType.pressed, e);
 			}
 

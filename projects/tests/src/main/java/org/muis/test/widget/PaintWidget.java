@@ -94,7 +94,7 @@ public class PaintWidget extends org.muis.base.widget.Block
 		});
 		addListener(KEYBOARD_EVENT, new org.muis.core.event.KeyBoardListener(true) {
 			@Override
-			public void keyReleased(KeyBoardEvent kEvt, MuisElement element)
+			public void keyPressed(KeyBoardEvent kEvt, MuisElement element)
 			{
 				if(kEvt.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null)
 				{

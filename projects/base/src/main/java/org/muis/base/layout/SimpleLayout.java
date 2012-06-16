@@ -254,8 +254,6 @@ public class SimpleLayout implements MuisLayout
 			child.rejectAttribute(LayoutConstants.height);
 			child.rejectAttribute(LayoutConstants.minWidth);
 			child.rejectAttribute(LayoutConstants.minHeight);
-			child.rejectAttribute(LayoutConstants.maxWidth);
-			child.rejectAttribute(LayoutConstants.maxHeight);
 		}
 	}
 }

@@ -1,10 +1,9 @@
 package org.muis.core.style;
 
 /**
- * Contains style attributes pertaining to the background of a widget. These styles are supported by
- * {@link org.muis.core.MuisElement} and all of its subclasses unless the
- * {@link org.muis.core.MuisElement#paintSelf(java.awt.Graphics2D)} method is overridden in a way that
- * ignores them.
+ * Contains style attributes pertaining to the background of a widget. These styles are supported by {@link org.muis.core.MuisElement} and
+ * all of its subclasses unless the {@link org.muis.core.MuisElement#paintSelf(java.awt.Graphics2D, java.awt.Rectangle)} method is
+ * overridden in a way that ignores them.
  */
 public class BackgroundStyles implements StyleDomain
 {
@@ -12,7 +11,7 @@ public class BackgroundStyles implements StyleDomain
 
 	private BackgroundStyles()
 	{
-		theAttributes = new StyleAttribute [0];
+		theAttributes = new StyleAttribute[0];
 	}
 
 	private void register(StyleAttribute<?> attr)
@@ -37,19 +36,19 @@ public class BackgroundStyles implements StyleDomain
 		instance.register(transparency);
 	}
 
-	/**
-	 * @return The style domain for all background styles
-	 */
+	/** @return The style domain for all background styles */
 	public static BackgroundStyles getDomainInstance()
 	{
 		return instance;
 	}
 
+	@Override
 	public String getName()
 	{
 		return "bg";
 	}
 
+	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator()
 	{
 		return new DomainAttributeIterator(theAttributes);

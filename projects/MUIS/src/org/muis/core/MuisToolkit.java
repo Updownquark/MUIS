@@ -26,27 +26,6 @@ public class MuisToolkit extends java.net.URLClassLoader
 	/**
 	 * Creates a MUIS toolkit
 	 *
-	 * @param defaultToolkit The default toolkit that loads core MUIS types
-	 * @param uri The URI location of the toolkit
-	 * @param name The name of the toolkit
-	 * @param descrip The description of the toolkit
-	 * @param version The version of the toolkit
-	 */
-	public MuisToolkit(MuisToolkit defaultToolkit, URL uri, String name, String descrip, String version)
-	{
-		super(new URL[0]);
-		theURI = uri;
-		theName = name;
-		theDescription = descrip;
-		theVersion = version;
-		theClassMappings = new ClassMapping[0];
-		theDependencies = new MuisToolkit[0];
-		thePermissions = new MuisPermission[0];
-	}
-
-	/**
-	 * Creates the default MUIS toolkit
-	 *
 	 * @param uri The URI location of the toolkit
 	 * @param name The name of the toolkit
 	 * @param descrip The description of the toolkit
@@ -183,7 +162,7 @@ public class MuisToolkit extends java.net.URLClassLoader
 	}
 
 	/**
-	 * Loads a class from its fully-qualified java name and returns it as a implementation of an interface or a suclass of a super class
+	 * Loads a class from its fully-qualified java name and returns it as a implementation of an interface or a subclass of a super class
 	 *
 	 * @param <T> The type of interface or superclass to return the class as
 	 * @param name The fully-qualified java name of the class, not the MUIS-tag name (e.g. "org.muis.core.BlockElement", not "block")
@@ -214,7 +193,33 @@ public class MuisToolkit extends java.net.URLClassLoader
 	}
 
 	@Override
-	protected Class<?> findClass(String name) throws ClassNotFoundException
+	protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
+	{
+		ClassNotFoundException cnfe;
+		try
+		{
+			return super.loadClass(name, resolve);
+		} catch(ClassNotFoundException e)
+		{
+			cnfe = e;
+		}
+		for(MuisToolkit depend : theDependencies)
+			try
+			{
+				return depend.loadClass(name, resolve);
+			} catch(ClassNotFoundException e)
+			{
+			}
+		throw cnfe;
+	}
+
+	/**
+	 * Attempts to find the given class, returning null the class resource cannot be found
+	 *
+	 * @param name The name of the class to try to find the definition for
+	 * @return The class defined for the given name, if it could be found
+	 */
+	protected Class<?> tryFindClass(String name)
 	{
 		String path = name.replace('.', '/').concat(".class");
 		for(URL url : getURLs())
@@ -254,6 +259,15 @@ public class MuisToolkit extends java.net.URLClassLoader
 			}
 			return defineClass(name, content.toByteArray(), 0, content.size());
 		}
+		return null;
+	}
+
+	@Override
+	protected Class<?> findClass(String name) throws ClassNotFoundException
+	{
+		Class<?> ret = tryFindClass(name);
+		if(ret != null)
+			return ret;
 		return super.findClass(name);
 	}
 

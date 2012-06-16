@@ -18,57 +18,61 @@ public class MuisContentPane extends java.awt.Component
 	public MuisContentPane()
 	{
 		super();
+		setFocusable(true);
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentResized(ComponentEvent e)
 			{
 				super.componentResized(e);
-				if(theContent != null)
-					theContent.setSize(getWidth(), getHeight());
+				if(getContent() != null)
+				{
+					getContent().setSize(getWidth(), getHeight());
+				}
 			}
 		});
 		addMouseListener(new java.awt.event.MouseListener() {
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				moused(MouseEventType.BUTTON_DOWN, e);
+				requestFocusInWindow();
+				moused(MouseEventType.pressed, e);
 			}
 
 			@Override
 			public void mouseReleased(MouseEvent e)
 			{
-				moused(MouseEventType.BUTTON_UP, e);
+				moused(MouseEventType.released, e);
 			}
 
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				moused(MouseEventType.BUTTON_CLICKED, e);
+				moused(MouseEventType.clicked, e);
 			}
 
 			@Override
 			public void mouseEntered(MouseEvent e)
 			{
-				moused(MouseEventType.MOUSE_ENTERED, e);
+				moused(MouseEventType.entered, e);
 			}
 
 			@Override
 			public void mouseExited(MouseEvent e)
 			{
-				moused(MouseEventType.MOUSE_EXITED, e);
+				moused(MouseEventType.exited, e);
 			}
 		});
 		addMouseMotionListener(new java.awt.event.MouseMotionListener() {
 			@Override
 			public void mouseDragged(MouseEvent e)
 			{
-				moused(MouseEventType.MOUSE_MOVED, e);
+				moused(MouseEventType.moved, e);
 			}
 
 			@Override
 			public void mouseMoved(MouseEvent e)
 			{
-				moused(MouseEventType.MOUSE_MOVED, e);
+				moused(MouseEventType.moved, e);
 			}
 		});
 		addMouseWheelListener(new java.awt.event.MouseWheelListener() {
@@ -100,9 +104,15 @@ public class MuisContentPane extends java.awt.Component
 		});
 	}
 
+	/** @return The document that is currently being rendered by this content pane */
+	public org.muis.core.MuisDocument getContent()
+	{
+		return theContent;
+	}
+
 	/**
 	 * Sets this pane's content
-	 *
+	 * 
 	 * @param doc The document to render
 	 */
 	public void setContent(org.muis.core.MuisDocument doc)
@@ -114,9 +124,8 @@ public class MuisContentPane extends java.awt.Component
 	@Override
 	public void paint(java.awt.Graphics g)
 	{
-		if(theContent == null)
-			return;
-		theContent.paint((java.awt.Graphics2D) g);
+		if(theContent != null)
+			theContent.paint((java.awt.Graphics2D) g);
 	}
 
 	void moused(org.muis.core.event.MouseEvent.MouseEventType type, MouseEvent evt)

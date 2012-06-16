@@ -20,7 +20,7 @@ import org.muis.core.style.*;
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
-/** The base display element in MUIS. Contains base methods to administrate content (children, style, placement, etc.) */
+/** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
 public abstract class MuisElement implements org.muis.core.layout.Sizeable, MuisMessage.MuisMessageCenter
 {
 	// TODO Add code for attach events
@@ -136,6 +136,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/** The event type representing the removal of a message from an element. */
 	public static final MuisEventType<MuisMessage> MESSAGE_REMOVED = new MuisEventType<MuisMessage>("Message Removed", MuisMessage.class);
 
+	/**
+	 * Used to lock this elements' child sets
+	 *
+	 * @see MuisLock
+	 */
+	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
+
 	private MuisDocument theDocument;
 
 	private MuisToolkit theToolkit;
@@ -169,6 +176,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	private int theW;
 
 	private int theH;
+
+	private int theCacheX;
+
+	private int theCacheY;
+
+	private int theCacheW;
+
+	private int theCacheH;
 
 	private SizePolicy theHSizer;
 
@@ -408,7 +423,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public void initChildren(MuisElement [] children)
 	{
 		theStage = Stage.INIT_CONTENT;
-		theChildren = children;
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			for(MuisElement child : theChildren)
+				if(child.getParent() == this)
+					child.setParent(null);
+			theChildren = children;
+		}
 		for(MuisElement child : children)
 			registerChild(child);
 		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
@@ -600,6 +621,15 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/**
+	 * @param child The child to get the index of
+	 * @return The index of the given child in this element's children, or -1 if the given element is not a child under this element
+	 */
+	public final int getChildIndex(MuisElement child)
+	{
+		return ArrayUtils.indexOf(theChildren, child);
+	}
+
+	/**
 	 * Sets this element's parent after initialization
 	 *
 	 * @param parent The new parent for this element
@@ -630,8 +660,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		checkSecurity(PermissionType.addChild, child);
 		if(index < 0)
 			index = theChildren.length;
-		child.setParent(this);
-		theChildren = ArrayUtils.add(theChildren, child, index);
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			child.setParent(this);
+			theChildren = ArrayUtils.add(theChildren, child, index);
+		}
 		fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 	}
 
@@ -648,8 +681,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			index = theChildren.length - 1;
 		MuisElement ret = theChildren[index];
 		checkSecurity(PermissionType.removeChild, ret);
-		ret.theParent = null;
-		theChildren = ArrayUtils.remove(theChildren, index);
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			ret.setParent(null);
+			theChildren = ArrayUtils.remove(theChildren, index);
+		}
 		fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, ret), false, false);
 		return ret;
 	}
@@ -1019,6 +1055,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/**
+	 * Removes all listeners for the given event type whose class is exactly equal (not an extension of) the given listener type
+	 *
+	 * @param type The type of event to stop listening for
+	 * @param listenerType The listener type to remove
+	 */
+	public final void removeListener(MuisEventType<?> type, Class<? extends MuisEventListener<?>> listenerType)
+	{
+		for(MuisEventListener<?> listener : theListeners.getListeners(type))
+			if(listener.getClass() == listenerType)
+				theListeners.removeListener(listener);
+	}
+
+	/**
 	 * Adds a listener for an event type to this element's direct children
 	 *
 	 * @param <T> The type of the property that the event represents
@@ -1143,9 +1192,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		fireEvent(new MuisEvent<MuisMessage>(MESSAGE_ADDED, message), false, true);
 	}
 
-	/**
-	 * @param message The message to remove from this element
-	 */
+	/** @param message The message to remove from this element */
 	public final void removeMessage(MuisMessage message)
 	{
 		if(!theMessages.remove(message))
@@ -1156,9 +1203,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		fireEvent(new MuisEvent<MuisMessage>(MESSAGE_REMOVED, message), false, true);
 	}
 
-	/**
-	 * @return The number of messages in this element
-	 */
+	/** @return The number of messages in this element */
 	public final int getMessageCount()
 	{
 		return theMessages.size();
@@ -1173,17 +1218,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return theMessages.get(index);
 	}
 
-	/**
-	 * @return All messages attached to this element
-	 */
+	/** @return All messages attached to this element */
 	public final MuisMessage [] getElementMessages()
 	{
 		return theMessages.toArray(new MuisMessage[theMessages.size()]);
 	}
 
-	/**
-	 * @return All messages attached to this element or its descendants
-	 */
+	/** @return All messages attached to this element or its descendants */
 	@Override
 	public final MuisMessage [] getAllMessages()
 	{
@@ -1201,9 +1242,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			addMessages(ret, child);
 	}
 
-	/**
-	 * @return The worst type of message associated with the MUIS element subtree rooted at this element
-	 */
+	/** @return The worst type of message associated with the MUIS element subtree rooted at this element */
 	@Override
 	public final MuisMessage.Type getWorstMessageType()
 	{
@@ -1214,17 +1253,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return theWorstChildMessageType;
 	}
 
-	/**
-	 * @return The worst type of message associated with this element
-	 */
+	/** @return The worst type of message associated with this element */
 	public final MuisMessage.Type getWorstElementMessageType()
 	{
 		return theWorstMessageType;
 	}
 
-	/**
-	 * @return The worst type of message associated with any of this element's descendants
-	 */
+	/** @return The worst type of message associated with any of this element's descendants */
 	public final MuisMessage.Type getWorstChildMessageType()
 	{
 		return theWorstChildMessageType;
@@ -1456,7 +1491,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theW <= 0 || theH <= 0)
 			return; // No point layout out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(this, MuisCoreEvent.CoreEventType.layout), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now), now);
 	}
 
 	/** @return The graphics object to use to draw this element */
@@ -1490,6 +1525,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	{
 		if((area != null && (area.width == 0 || area.height == 0)) || theW == 0 || theH == 0)
 			return;
+		theCacheW = theW;
+		theCacheH = theH;
 		paintSelf(graphics, area);
 		Rectangle clipBounds = graphics.getClipBounds();
 		if(clipBounds == null)
@@ -1519,7 +1556,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theW <= 0 || theH <= 0)
 			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.getInstance().scheduleEvent(new MuisCoreEvent(this, MuisCoreEvent.CoreEventType.paint, area), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area, now), now);
 	}
 
 	/**
@@ -1542,6 +1579,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		graphics.fillRect(x, y, w, h);
 	}
 
+	/** Updates this element's cached position with its real position */
+	protected final void updateCachePosition()
+	{
+		theCacheX = theX;
+		theCacheY = theY;
+	}
+
 	/**
 	 * Draws this element's children
 	 *
@@ -1556,25 +1600,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(area == null)
 			area = new Rectangle(theX, theY, theW, theH);
 		children = sortByZ(children);
-		boolean sameZ = true;
-		int z = children[0].theZ;
-		for(int c = 1; c < children.length; c++)
-			if(children[c].theZ != z)
-			{
-				sameZ = false;
-				break;
-			}
-		if(!sameZ)
-		{
-			children = children.clone();
-			java.util.Arrays.sort(children, new java.util.Comparator<MuisElement>() {
-				@Override
-				public int compare(MuisElement el1, MuisElement el2)
-				{
-					return el1.theZ - el2.theZ;
-				}
-			});
-		}
 		int translateX = 0;
 		int translateY = 0;
 		try
@@ -1582,6 +1607,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			Rectangle childArea = new Rectangle();
 			for(MuisElement child : children)
 			{
+				child.updateCachePosition();
 				int childX = child.theX;
 				int childY = child.theY;
 				translateX += childX;
@@ -1620,5 +1646,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public long getLayoutDirtyTime()
 	{
 		return theLayoutDirtyTime;
+	}
+
+	/** @return This element's bounds as of the last time it was painted */
+	public Rectangle getCacheBounds()
+	{
+		return new Rectangle(theCacheX, theCacheY, theCacheW, theCacheH);
 	}
 }

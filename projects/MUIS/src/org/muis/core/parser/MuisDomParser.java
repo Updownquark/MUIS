@@ -42,10 +42,10 @@ public class MuisDomParser implements MuisParser
 		String version = rootEl.getChildTextTrim("version");
 		if(version == null)
 			throw new MuisParseException("No version element for toolkit at " + url);
-		if(doc == null || doc.getDefaultToolkit() == null)
+		if(doc == null || doc.getCoreToolkit() == null)
 			ret = new MuisToolkit(url, name, descrip, version);
 		else
-			ret = new MuisToolkit(doc.getDefaultToolkit(), url, name, descrip, version);
+			ret = new MuisToolkit(url, name, descrip, version);
 		for(Element el : rootEl.getChildren())
 		{
 			String elName = el.getName();
@@ -56,7 +56,15 @@ public class MuisDomParser implements MuisParser
 				{
 					if(dEl.getName().equals("depends"))
 					{
-						MuisToolkit dependency = getToolkit(new URL(dEl.getTextTrim()), doc);
+						MuisToolkit dependency;
+						try
+						{
+							dependency = getToolkit(resolveURL(url, dEl.getTextTrim()), doc);
+						} catch(MuisException e)
+						{
+							doc.error(e.getMessage(), e);
+							continue;
+						}
 						try
 						{
 							ret.addDependency(dependency);
@@ -86,7 +94,7 @@ public class MuisDomParser implements MuisParser
 					}
 					else
 						throw new MuisParseException("Illegal element under " + elName);
-					if(doc == null || doc.getDefaultToolkit() == null)
+					if(doc == null || doc.getCoreToolkit() == null)
 						throw new MuisParseException("Default toolkit cannot have dependencies");
 				}
 			else if(elName.equals("types"))
@@ -250,7 +258,7 @@ public class MuisDomParser implements MuisParser
 				continue;
 			doc.error("Extra element " + el.getName() + " in document XML", null);
 		}
-		doc.getRoot().init(doc, doc.getDefaultToolkit(), getClassView(doc, doc.getRoot(), body[0]), null, null, body[0].getName());
+		doc.getRoot().init(doc, doc.getCoreToolkit(), getClassView(doc, doc.getRoot(), body[0]), null, null, body[0].getName());
 		applyAttributes(doc.getRoot(), body[0]);
 		MuisElement [] content = parseContent(body[0], doc.getRoot());
 		doc.getRoot().initChildren(content);
@@ -652,7 +660,7 @@ public class MuisDomParser implements MuisParser
 			ns = null;
 		MuisToolkit toolkit = parent.getClassView().getToolkit(ns);
 		if(toolkit == null && ns == null)
-			toolkit = parent.getDocument().getDefaultToolkit();
+			toolkit = parent.getDocument().getCoreToolkit();
 		String nsStr = ns == null ? "default namespace" : "namespace " + ns;
 		if(toolkit == null)
 			throw new MuisParseException("No MUIS toolkit mapped to " + nsStr);

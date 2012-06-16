@@ -66,13 +66,13 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 			{
 				toolkit = element.getToolkit();
 				domainClassName = toolkit.getMappedClass(domainName);
-				if(domainClassName == null && toolkit != element.getDocument().getDefaultToolkit())
+				if(domainClassName == null && toolkit != element.getDocument().getCoreToolkit())
 				{
-					toolkit = element.getDocument().getDefaultToolkit();
+					toolkit = element.getDocument().getCoreToolkit();
 					domainClassName = toolkit.getMappedClass(domainName);
 				}
 				if(domainClassName == null)
-					if(element.getToolkit() != element.getDocument().getDefaultToolkit())
+					if(element.getToolkit() != element.getDocument().getCoreToolkit())
 						element.warn("No style domain mapped to " + domainName + " in element's toolkit (" + element.getToolkit().getName()
 							+ ") or default toolkit");
 					else

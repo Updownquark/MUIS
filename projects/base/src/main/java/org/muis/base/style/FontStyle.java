@@ -37,7 +37,7 @@ public class FontStyle implements StyleDomain
 	/** The weight of the font's stroke */
 	public static final StyleAttribute<Integer> weight;
 
-	/** Whether the font is italicised */
+	/** Whether the font is italicized */
 	public static final StyleAttribute<Boolean> italic;
 
 	/** Whether the font is underlined */
@@ -68,6 +68,12 @@ public class FontStyle implements StyleDomain
 		instance.register(size);
 		stretch = StyleAttribute.createFloatStyle(instance, "stretch", 0.05f, 100, 1);
 		instance.register(stretch);
+	}
+
+	/** @return The style domain for all font styles */
+	public static FontStyle getDomainInstance()
+	{
+		return instance;
 	}
 
 	@Override

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>MUIS Test</name>
+	<description>
+		This toolkit provides access to code used for testing MUIS functionality
+	</description>
+	<version>15Jun2012</version>
+	<dependencies>
+		<classpath>classes</classpath>
+		<depends>../base/MuisRegistry.xml</depends>
+	</dependencies>
+	<types>
+		<type tag="paint">org.muis.test.widget.PaintWidget</type>
+	</types>
+	<security />
+</registry>

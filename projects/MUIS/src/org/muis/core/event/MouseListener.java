@@ -38,27 +38,27 @@ public abstract class MouseListener implements MuisEventListener<Void>
 			boolean switchHit = false;
 			switch (mEvt.getMouseEventType())
 			{
-			case BUTTON_DOWN:
+			case pressed:
 				switchHit = true;
 				mouseDown(mEvt, element);
 				break;
-			case BUTTON_UP:
+			case released:
 				switchHit = true;
 				mouseUp(mEvt, element);
 				break;
-			case BUTTON_CLICKED:
+			case clicked:
 				switchHit = true;
 				mouseClicked(mEvt, element);
 				break;
-			case MOUSE_MOVED:
+			case moved:
 				switchHit = true;
 				mouseMoved(mEvt, element);
 				break;
-			case MOUSE_ENTERED:
+			case entered:
 				switchHit = true;
 				mouseEntered(mEvt, element);
 				break;
-			case MOUSE_EXITED:
+			case exited:
 				switchHit = true;
 				mouseExited(mEvt, element);
 				break;

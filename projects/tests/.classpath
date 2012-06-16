@@ -4,5 +4,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MUIS"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/PRISMS"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/MUIS-base"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

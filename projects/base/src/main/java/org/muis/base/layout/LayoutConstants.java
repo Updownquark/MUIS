@@ -19,6 +19,9 @@ public class LayoutConstants
 	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<Alignment>("align", new MuisAttribute.MuisEnumAttribute<>(
 		Alignment.class));
 
+	public static final MuisAttribute<Region> region = new MuisAttribute<Region>("region", new MuisAttribute.MuisEnumAttribute<>(
+		Region.class));
+
 	public static final MuisAttribute<Length> left = new MuisAttribute<Length>("left", LengthAttributeType.instance);
 
 	public static final MuisAttribute<Length> minLeft = new MuisAttribute<Length>("min-left", LengthAttributeType.instance);

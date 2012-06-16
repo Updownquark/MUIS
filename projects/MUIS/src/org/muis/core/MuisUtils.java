@@ -158,7 +158,7 @@ public class MuisUtils
 			Rectangle bounds = child.getCacheBounds();
 			int relX = x - bounds.x;
 			int relY = y - bounds.y;
-			if(relX >= 0 && relY >= 0 && relX < bounds.width && relY < bounds.width)
+			if(relX >= 0 && relY >= 0 && relX < bounds.width && relY < bounds.height)
 				return getMousePositions(child, relX, relY, pos);
 		}
 		return root;

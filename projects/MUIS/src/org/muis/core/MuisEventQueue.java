@@ -430,19 +430,21 @@ public class MuisEventQueue
 
 	private java.util.Comparator<Event> theComparator;
 
-	private final Object theLock;
+	final Object theLock;
 
 	private volatile Thread theThread;
 
 	private volatile boolean isShuttingDown;
 
-	private volatile boolean isInterrupted;
+	volatile boolean isInterrupted;
 
 	private long theFrequency;
 
 	private long thePaintDirtyTolerance;
 
 	private long theLayoutDirtyTolerance;
+
+	private boolean isPrioritized;
 
 	private MuisEventQueue()
 	{
@@ -462,6 +464,7 @@ public class MuisEventQueue
 		theFrequency = 50;
 		thePaintDirtyTolerance = 10;
 		theLayoutDirtyTolerance = 10;
+		isPrioritized = true;
 	}
 
 	/**
@@ -495,16 +498,23 @@ public class MuisEventQueue
 	{
 		synchronized(theLock)
 		{
-			int spot = java.util.Arrays.binarySearch(theEvents, event, theComparator);
-			if(spot < 0)
-				spot = -(spot + 1);
+			int spot;
+			if(isPrioritized)
+			{
+				spot = java.util.Arrays.binarySearch(theEvents, event, theComparator);
+				if(spot < 0)
+					spot = -(spot + 1);
+			}
+			else
+				spot = theEvents.length;
 			theEvents = prisms.util.ArrayUtils.add(theEvents, event, spot);
 		}
 		start();
 		if(now)
 		{
 			isInterrupted = true;
-			theThread.interrupt();
+			if(theThread != null)
+				theThread.interrupt();
 		}
 	}
 
@@ -514,6 +524,11 @@ public class MuisEventQueue
 		{
 			theEvents = prisms.util.ArrayUtils.remove(theEvents, event);
 		}
+	}
+
+	Event [] getEvents()
+	{
+		return theEvents;
 	}
 
 	private void start()
@@ -594,7 +609,7 @@ public class MuisEventQueue
 				try
 				{
 					isInterrupted = false;
-					Event [] events = theEvents;
+					Event [] events = getEvents();
 					boolean acted = false;
 					long now = System.currentTimeMillis();
 					for(Event evt : events)

@@ -20,13 +20,11 @@ Design layout mechanism:
 Interaction of visible, display, position types 
 
 Write a simple layout manager.  Determine how positioning will work.
-Write a simple MUIS file with some nested boxes of different colors that change colors when you click on them.
 Write another MUIS file using a templated widget (title pane maybe?)
 
 Style files!!
 Implement a few styles in MuisElement or a subclass.
 
-Implement relative URLs (starting with / or ./ or ../)
 Implement MUIS toolkits packaged into jars (signed?).
 
 Implement permissions and a security architecture

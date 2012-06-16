@@ -1491,7 +1491,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theW <= 0 || theH <= 0)
 			return; // No point layout out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now), now);
 	}
 
 	/** @return The graphics object to use to draw this element */
@@ -1556,7 +1556,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theW <= 0 || theH <= 0)
 			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area, now), now);
 	}
 
 	/**

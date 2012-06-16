@@ -147,15 +147,19 @@ public class MuisEventQueue
 
 		private final Rectangle theArea;
 
+		private final boolean isNow;
+
 		/**
 		 * @param element The element that needs to be repainted
 		 * @param area The area in the element that needs to be repainted, or null if the element needs to be repainted entirely
+		 * @param now Whether the repaint should happen quickly or be processed in normal time
 		 */
-		public PaintEvent(MuisElement element, Rectangle area)
+		public PaintEvent(MuisElement element, Rectangle area, boolean now)
 		{
 			super(PRIORITY);
 			theElement = element;
 			theArea = area;
+			isNow = now;
 		}
 
 		/** @return The element that needs to be repainted */
@@ -170,10 +174,16 @@ public class MuisEventQueue
 			return theArea;
 		}
 
+		/** @return Whether this event is meant to happen immediately or in normal time */
+		public boolean isNow()
+		{
+			return isNow;
+		}
+
 		@Override
 		public boolean shouldHandle(long time)
 		{
-			return time >= theElement.getPaintDirtyTime() + MuisEventQueue.get().getPaintDirtyTolerance();
+			return isNow || time >= theElement.getPaintDirtyTime() + MuisEventQueue.get().getPaintDirtyTolerance();
 		}
 
 		@Override
@@ -220,11 +230,17 @@ public class MuisEventQueue
 
 		private final MuisElement theElement;
 
-		/** @param element The element that needs to be layed out */
-		public LayoutEvent(MuisElement element)
+		private final boolean isNow;
+
+		/**
+		 * @param element The element that needs to be layed out
+		 * @param now Whether the layout should happen quickly or be processed in normal time
+		 */
+		public LayoutEvent(MuisElement element, boolean now)
 		{
 			super(PRIORITY);
 			theElement = element;
+			isNow = now;
 		}
 
 		/** @return The element that needs to be layed out */
@@ -233,10 +249,16 @@ public class MuisEventQueue
 			return theElement;
 		}
 
+		/** @return Whether this event is meant to happen immediately or in normal time */
+		public boolean isNow()
+		{
+			return isNow;
+		}
+
 		@Override
 		public boolean shouldHandle(long time)
 		{
-			return time >= theElement.getLayoutDirtyTime() + MuisEventQueue.get().getLayoutDirtyTolerance();
+			return isNow || time >= theElement.getLayoutDirtyTime() + MuisEventQueue.get().getLayoutDirtyTolerance();
 		}
 
 		@Override

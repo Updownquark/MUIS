@@ -1,4 +1,9 @@
 
+Do more lifecycle work.  Define the lifecycle stages for an element well and describe what kind of initialization work should be done in
+	each stage.  May want to allow the possibility of additional stages not recognized in the core (e.g. for initialization of templated
+	children).  Create a mechanism allowing the addition of lifecycle listeners that would be notified before and after each transition
+	between lifecycle stages.  This ability should be protected--that is, the java keyword protected--not exposed publicly.
+
 Last left off:
 	Want to get LazyFlowLayout working.  Got the size methods mostly done.  Need the placeChild and layout methods.
 	size methods should be refactored to eliminate duplicate code
@@ -19,7 +24,6 @@ Design layout mechanism:
 	jgoodies
 Interaction of visible, display, position types 
 
-Write a simple layout manager.  Determine how positioning will work.
 Write another MUIS file using a templated widget (title pane maybe?)
 
 Style files!!

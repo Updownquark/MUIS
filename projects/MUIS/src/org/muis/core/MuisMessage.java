@@ -1,9 +1,7 @@
-/**
- * Created by andrew Mar 19, 2010
+/*
+ * Created by Andrew Mar 19, 2010
  */
 package org.muis.core;
-
-import org.muis.core.MuisElement.Stage;
 
 /** Represents an error, warning, or information message attached to a MUIS element */
 public class MuisMessage
@@ -94,8 +92,8 @@ public class MuisMessage
 	/** The type of this message */
 	public final Type type;
 
-	/** The stage of processing at which this message occurred */
-	public final Stage stage;
+	/** The stage in the element's life cycle at which this message occurred */
+	public final String stage;
 
 	/** The text of the message, describing the problem */
 	public final String text;
@@ -105,7 +103,7 @@ public class MuisMessage
 
 	private java.util.Map<String, Object> theParams;
 
-	private MuisMessage(MuisDocument doc, MuisElement anElement, Type aType, Stage aStage, String aText, Throwable anException,
+	private MuisMessage(MuisDocument doc, MuisElement anElement, Type aType, String aStage, String aText, Throwable anException,
 		Object... params)
 	{
 		if(doc == null && anElement == null)
@@ -139,12 +137,12 @@ public class MuisMessage
 		}
 	}
 
-	MuisMessage(MuisDocument doc, Type aType, Stage aStage, String aText, Throwable anException, Object... params)
+	MuisMessage(MuisDocument doc, Type aType, String aStage, String aText, Throwable anException, Object... params)
 	{
 		this(doc, null, aType, aStage, aText, anException, params);
 	}
 
-	MuisMessage(MuisElement anElement, Type aType, Stage aStage, String aText, Throwable anException, Object... params)
+	MuisMessage(MuisElement anElement, Type aType, String aStage, String aText, Throwable anException, Object... params)
 	{
 		this(null, anElement, aType, aStage, aText, anException, params);
 	}

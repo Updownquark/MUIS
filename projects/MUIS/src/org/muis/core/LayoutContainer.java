@@ -12,6 +12,12 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 
 	private MuisLayout theLayout;
 
+	/** Creates a layout container */
+	public LayoutContainer()
+	{
+		requireAttribute(LAYOUT_ATTR);
+	}
+
 	@Override
 	public void initChildren(MuisElement [] children)
 	{
@@ -46,13 +52,6 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 				return true;
 			}
 		});
-	}
-
-	@Override
-	protected void postInit()
-	{
-		super.postInit();
-		requireAttribute(LAYOUT_ATTR);
 	}
 
 	@Override

@@ -140,27 +140,28 @@ public class MuisUtils
 
 	/**
 	 * Sinks into the element hierarchy by position using the cached bounds of the elements
-	 *
-	 * @param root The element that the mouse event occurred over
+	 * 
+	 * @param root The element hierarchy to fire the mouse event for
 	 * @param x The x-position of the mouse event within the element
 	 * @param y The y-position of the mouse event within the element
 	 * @param pos The map to put positions for each element that the event occurred over into. May be null if this information is not
 	 *            needed.
 	 * @return The deepest element with the greatest z-value that the event occurred over
 	 */
-	public static MuisElement getMousePositions(MuisElement root, int x, int y, java.util.Map<MuisElement, Point> pos)
+	public static MuisElementCapture getMousePositions(MuisElement root, int x, int y, java.util.Map<MuisElement, Point> pos)
 	{
 		if(pos != null)
 			pos.put(root, new Point(x, y));
-		MuisElement [] children = MuisElement.sortByZ(root.getChildren());
+		MuisElementCapture ret = new MuisElementCapture(root, x, y);
+		MuisElement [] children = prisms.util.ArrayUtils.reverse(MuisElement.sortByZ(root.getChildren()));
 		for(MuisElement child : children)
 		{
 			Rectangle bounds = child.getCacheBounds();
 			int relX = x - bounds.x;
 			int relY = y - bounds.y;
 			if(relX >= 0 && relY >= 0 && relX < bounds.width && relY < bounds.height)
-				return getMousePositions(child, relX, relY, pos);
+				ret.addChild(getMousePositions(child, relX, relY, pos));
 		}
-		return root;
+		return ret;
 	}
 }

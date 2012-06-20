@@ -479,12 +479,10 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theMouseX = x;
 		theMouseY = y;
 		Map<MuisElement, Point> newPos = new java.util.LinkedHashMap<>();
-		MuisElement target = MuisUtils.getMousePositions(theRoot, x, y, newPos);
+		MuisElementCapture capture = MuisUtils.getMousePositions(theRoot, x, y, newPos);
 		Map<MuisElement, Point> oldPos = new java.util.LinkedHashMap<>();
 		MuisUtils.getMousePositions(theRoot, oldX, oldY, oldPos);
-		MouseEvent evt = new MouseEvent(this, target, type, x, y, buttonType, clickCount);
-		for(Map.Entry<MuisElement, Point> p : newPos.entrySet())
-			evt.addElementLocation(p.getKey(), p.getValue());
+		MouseEvent evt = new MouseEvent(this, capture.getTarget(), type, x, y, buttonType, clickCount, capture);
 
 		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
 
@@ -496,9 +494,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				mouseMove(oldPos, newPos, events);
 			else
 			{
-				evt = new MouseEvent(this, target, MouseEvent.MouseEventType.entered, x, y, buttonType, clickCount);
-				for(Map.Entry<MuisElement, Point> p : newPos.entrySet())
-					evt.addElementLocation(p.getKey(), p.getValue());
+				evt = new MouseEvent(this, capture.getTarget(), MouseEvent.MouseEventType.entered, x, y, buttonType, clickCount, capture);
 				events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
 			}
 			break;
@@ -508,7 +504,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 				if(!ArrayUtils.contains(thePressedButtons, buttonType))
 					thePressedButtons = ArrayUtils.add(thePressedButtons, buttonType);
 			}
-			focusByMouse(target, events);
+			focusByMouse(capture.getTarget(), events);
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
 			break;
 		case released:

@@ -23,6 +23,183 @@ import prisms.util.ArrayUtils;
 /** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
 public abstract class MuisElement implements org.muis.core.layout.Sizeable, MuisMessage.MuisMessageCenter
 {
+	/** Manages the life cycle of an element */
+	public class MuisLifeCycleManager
+	{
+		private volatile String [] theStages;
+
+		private int theCurrentStage;
+
+		private volatile LifeCycleListener [] theLifeCycleListeners;
+
+		private final Object theListenerLock;
+
+		MuisLifeCycleManager(String... stages)
+		{
+			theStages = stages;
+			theLifeCycleListeners = new LifeCycleListener[0];
+			theListenerLock = new Object();
+		}
+
+		/** @return The current stage in the element's life cycle */
+		public String getStage()
+		{
+			return theStages[theCurrentStage];
+		}
+
+		/** @return All stages in this life cycle, past, present, and future */
+		public String [] getStages()
+		{
+			return theStages.clone();
+		}
+
+		/**
+		 * @param stage The stage to check
+		 * @return <0 if the current stage is before the given stage, 0, if the current stage is the given stage, or >0 if the current stage
+		 *         is after the given stage
+		 */
+		public int isAfter(String stage)
+		{
+			int index = ArrayUtils.indexOf(theStages, stage);
+			if(index < 0)
+				throw new IllegalArgumentException("Unrecognized life cycle stage \"" + stage + "\"");
+			return theCurrentStage - index;
+		}
+
+		/** @param listener The listener to be notified when the life cycle stage changes */
+		public void addListener(LifeCycleListener listener)
+		{
+			synchronized(theListenerLock)
+			{
+				int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
+				if(idx < 0)
+					theLifeCycleListeners = ArrayUtils.add(theLifeCycleListeners, listener);
+			}
+		}
+
+		/** @param listener The listener to remove from notification */
+		public void removeListener(LifeCycleListener listener)
+		{
+			synchronized(theListenerLock)
+			{
+				int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
+				if(idx >= 0)
+					theLifeCycleListeners = ArrayUtils.remove(theLifeCycleListeners, idx);
+			}
+		}
+
+		/**
+		 * @param stage The stage to add to this life cycle
+		 * @param afterStage The stage (already registered in this life cycle manager) to add the new stage after
+		 */
+		public void addStage(String stage, String afterStage)
+		{
+			if(theCurrentStage > 0)
+				error("Life cycle stages may not be added after the " + theStages[0] + " stage", null, "stage", stage);
+			if(afterStage == null && theStages.length > 0)
+			{
+				error("afterStage must not be null--stages cannot be inserted before " + theStages[0], null, "stage", stage);
+				return;
+			}
+			int idx = prisms.util.ArrayUtils.indexOf(theStages, afterStage);
+			if(idx < 0)
+			{
+				error("afterStage \"" + afterStage + "\" not found. Cannot add stage.", null, "stage", stage);
+				return;
+			}
+			theStages = prisms.util.ArrayUtils.add(theStages, stage, idx + 1);
+		}
+
+		/** Advances the life cycle stage of the element to the given stage. Called from MuisElement. */
+		private void advanceLifeCycle(String toStage)
+		{
+			String [] stages = theStages;
+			LifeCycleListener [] listeners = theLifeCycleListeners;
+			int goal = ArrayUtils.indexOf(stages, toStage);
+			if(goal <= theCurrentStage)
+			{
+				error("Stage " + toStage + " has already been transitioned", null, "stage", toStage);
+				return;
+			}
+			while(theCurrentStage < stages.length - 1 && !stages[theCurrentStage].equals(toStage))
+			{
+				// Transition one stage forward
+				String oldStage = stages[theCurrentStage];
+				String newStage = stages[theCurrentStage + 1];
+				/*
+				 * Call listeners for the pre-transition in reverse order so that the first listener added gets notified just before the
+				 * transition actually occurs so nobody has a chance to override its actions
+				 */
+				for(int L = listeners.length - 1; L >= 0; L--)
+					listeners[L].preTransition(oldStage, newStage);
+				theCurrentStage++;
+				for(LifeCycleListener listener : listeners)
+					listener.postTransition(oldStage, newStage);
+			}
+		}
+	}
+
+	/** A listener to be notified when the life cycle of an element transitions to a new stage */
+	public interface LifeCycleListener
+	{
+		/**
+		 * @param fromStage The stage that is being concluded and transitioned out of
+		 * @param toStage The stage to be transitioned into
+		 */
+		void preTransition(String fromStage, String toStage);
+
+		/**
+		 * @param oldStage The stage that is concluded and transitioned out of
+		 * @param newStage The stage that has just begun
+		 */
+		void postTransition(String oldStage, String newStage);
+	}
+
+	/** The stages of MUIS element creation recognized by the MUIS core, except for {@link #OTHER} */
+	public static enum CoreStage
+	{
+		/**
+		 * The element is being constructed without any knowledge of its document or other context. During this stage, internal variables
+		 * should be created and initialized with default values. Initial listeners may be added to the element at this time as well.
+		 */
+		CREATION,
+		/** The element is being populated with the attributes from its XML. This is a transition time where no work is done by the core. */
+		PARSE_SELF,
+		/**
+		 * The {@link MuisElement#init(MuisDocument, MuisToolkit, MuisClassView, MuisElement, String, String)} method is initializing this
+		 * element's context.
+		 */
+		INIT_SELF,
+		/** The children of this element as configured in XML are being parsed. This is a transition time where no work is done by the core. */
+		PARSE_CHILDREN,
+		/** The {@link MuisElement#initChildren(MuisElement[])} method is populating this element with its contents */
+		INIT_CHILDREN,
+		/**
+		 * This element is fully initialized, but the rest of the document may be loading. This is a transition time where no work is done
+		 * by the core.
+		 */
+		INITIALIZED,
+		/** The {@link MuisElement#postCreate()} method is performing context-sensitive initialization work */
+		STARTUP,
+		/** The element has been fully initialized within the full document context and is ready to render and receive events */
+		RUNTIME,
+		/** Represents any stage that the core does not know about */
+		OTHER;
+
+		/**
+		 * @param name The name of the stage to get the enum value for
+		 * @return The enum value of the named stage, unless the stage is not recognized by the MUIS core, in which case {@link #OTHER} is
+		 *         returned
+		 */
+		public static CoreStage get(String name)
+		{
+			for(CoreStage stage : values())
+				if(stage != OTHER && stage.toString().equals(name))
+					return stage;
+			return OTHER;
+		}
+	}
+
 	// TODO Add code for attach events
 
 	private class AttributeHolder
@@ -62,23 +239,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		}
 	}
 
-	/** The stages of MUIS document creation at which an error may occur */
-	public static enum Stage
-	{
-		/** Set by the constructor */
-		PARSE,
-		/**
-		 * Set by {@link MuisElement#init(MuisDocument, MuisToolkit, MuisClassView, MuisElement, String, String)}
-		 */
-		INIT_SELF,
-		/** Set by {@link MuisElement#initChildren(MuisElement[])} */
-		INIT_CONTENT,
-		/** Set by {@link MuisElement#postCreate()} */
-		STARTUP,
-		/** Set after {@link MuisElement#postCreate()} */
-		RUNTIME;
-	}
-
 	/** The event type representing a mouse event */
 	public static final MuisEventType<Void> MOUSE_EVENT = new MuisEventType<Void>("Mouse Event", null);
 
@@ -110,7 +270,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		(Class<MuisAttribute<?>>) (Class<?>) MuisAttribute.class);
 
 	/** The event type representing the change of an element's stage property */
-	public static final MuisEventType<Stage> STAGE_CHANGED = new MuisEventType<Stage>("Stage Changed", Stage.class);
+	public static final MuisEventType<CoreStage> STAGE_CHANGED = new MuisEventType<CoreStage>("Stage Changed", CoreStage.class);
 
 	/**
 	 * The event type representing the event when an element is moved from one parent element to another. The event property is the new
@@ -143,6 +303,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
 
+	private MuisLifeCycleManager theLifeCycleManager;
+
 	private MuisDocument theDocument;
 
 	private MuisToolkit theToolkit;
@@ -154,8 +316,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	private String theNamespace;
 
 	private String theTagName;
-
-	private Stage theStage;
 
 	private ConcurrentHashMap<String, AttributeHolder> theAcceptedAttrs;
 
@@ -210,7 +370,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/** Creates a MUIS element */
 	public MuisElement()
 	{
-		theStage = Stage.PARSE;
+		theLifeCycleManager = new MuisLifeCycleManager();
 		theChildren = new MuisElement[0];
 		theAcceptedAttrs = new ConcurrentHashMap<>();
 		theAttrValues = new ConcurrentHashMap<>();
@@ -279,6 +439,41 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				return true;
 			}
 		});
+		theLifeCycleManager.addListener(new LifeCycleListener() {
+
+			@Override
+			public void preTransition(String fromStage, String toStage)
+			{
+			}
+
+			@Override
+			public void postTransition(String oldStage, String newStage)
+			{
+				if(oldStage.equals(CoreStage.INIT_SELF.toString()))
+					repaint(null, false);
+			}
+		});
+		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_SELF.toString());
+	}
+
+	/**
+	 * Returns a life cycle manager that allows subclasses to customize and hook into the life cycle for this element.
+	 *
+	 * @return The life cycle manager for this element
+	 */
+	public MuisLifeCycleManager getLifeCycleManager()
+	{
+		return theLifeCycleManager;
+	}
+
+	/**
+	 * Short-hand for {@link #getLifeCycleManager()}
+	 *
+	 * @return The life cycle manager for this element
+	 */
+	public MuisLifeCycleManager life()
+	{
+		return getLifeCycleManager();
 	}
 
 	/**
@@ -294,7 +489,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public final void init(MuisDocument doc, MuisToolkit toolkit, MuisClassView classView, MuisElement parent, String namespace,
 		String tagName)
 	{
-		theStage = Stage.INIT_SELF;
+		theLifeCycleManager.advanceLifeCycle(CoreStage.INIT_SELF.toString());
 		if(doc == null)
 			throw new IllegalArgumentException("Cannot create an element without a document");
 		if(theDocument != null)
@@ -306,13 +501,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theTagName = tagName;
 		theClassView = classView;
 		theChildren = new MuisElement[0];
-		postInit();
-	}
-
-	/** Called for custom initialization */
-	protected void postInit()
-	{
-		repaint(null, false);
+		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_CHILDREN.toString());
 	}
 
 	/**
@@ -343,7 +532,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder == null)
 		{
-			if(getStage().compareTo(Stage.STARTUP) >= 0)
+			if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
 			theRawAttributes.put(attr, value);
 			return null;
@@ -368,7 +557,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		checkSecurity(PermissionType.setAttribute, attr);
 		if(theRawAttributes != null)
 			theRawAttributes.remove(attr.name);
-		if(getStage().compareTo(Stage.STARTUP) >= 0)
+		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
 		{
 			AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 			if(holder == null)
@@ -422,7 +611,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public void initChildren(MuisElement [] children)
 	{
-		theStage = Stage.INIT_CONTENT;
+		theLifeCycleManager.advanceLifeCycle(CoreStage.INIT_CHILDREN.toString());
 		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
 		{
 			for(MuisElement child : theChildren)
@@ -434,6 +623,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			registerChild(child);
 		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
 			relayout(false);
+		theLifeCycleManager.advanceLifeCycle(CoreStage.INITIALIZED.toString());
 	}
 
 	/**
@@ -463,59 +653,44 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/** Called to initialize an element after all the parsing and linking has been performed */
 	public void postCreate()
 	{
-		if(theStage.compareTo(Stage.STARTUP) >= 0)
-			return;
-		theStage = Stage.STARTUP;
-		try
+		for(AttributeHolder holder : theAcceptedAttrs.values())
 		{
-			for(AttributeHolder holder : theAcceptedAttrs.values())
+			MuisAttribute<?> attr = holder.attr;
+			boolean required = holder.required;
+			Object value = theAttrValues.get(attr);
+			if(value == null && required)
+				fatal("Required attribute " + attr + " not set", null);
+			if(value instanceof String)
 			{
-				MuisAttribute<?> attr = holder.attr;
-				boolean required = holder.required;
-				Object value = theAttrValues.get(attr);
-				if(value == null && required)
-					fatal("Required attribute " + attr + " not set", null);
-				if(value instanceof String)
+				String valError = holder.validate((String) value);
+				if(valError != null)
+					fatal(valError, null);
+				try
 				{
-					String valError = holder.validate((String) value);
-					if(valError != null)
-						fatal(valError, null);
-					try
-					{
-						value = attr.type.parse(this, (String) value);
-						theAttrValues.put(attr, value);
-					} catch(MuisException e)
-					{
-						if(required)
-							fatal("Required attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
-						else
-							error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
-						theAttrValues.remove(attr);
-					}
+					value = attr.type.parse(this, (String) value);
+					theAttrValues.put(attr, value);
+				} catch(MuisException e)
+				{
+					if(required)
+						fatal("Required attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
+					else
+						error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
+					theAttrValues.remove(attr);
 				}
-				fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 			}
-			for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
-				error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());
-			for(MuisElement child : theChildren)
-				child.postCreate();
-		} finally
-		{
-			theStage = Stage.RUNTIME;
-			theRawAttributes = null;
+			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 		}
+		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
+			error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());
+		for(MuisElement child : theChildren)
+			child.postCreate();
+		theRawAttributes = null;
 	}
 
 	/** @return The style that modifies this element's appearance */
 	public final ElementStyle getStyle()
 	{
 		return theStyle;
-	}
-
-	/** @return The stage of processing that this element is in */
-	public final Stage getStage()
-	{
-		return theStage;
 	}
 
 	/** @return The document that this element belongs to */
@@ -575,7 +750,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		Object stored = theAttrValues.get(attr);
 		if(stored == null)
 			return null;
-		if(theStage.compareTo(Stage.STARTUP) < 0 && stored instanceof String)
+		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) < 0 && stored instanceof String)
 			try
 			{
 				T ret = attr.type.parse(this, (String) stored);
@@ -874,7 +1049,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public final void requireAttribute(MuisAttribute<?> attr)
 	{
-		if(getStage().compareTo(Stage.STARTUP) > 0)
+		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
@@ -917,7 +1092,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public final void unrequireAttribute(MuisAttribute<?> attr)
 	{
-		if(getStage().compareTo(Stage.STARTUP) > 0)
+		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
@@ -942,7 +1117,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public final void acceptAttribute(MuisAttribute<?> attr)
 	{
-		if(getStage().compareTo(Stage.STARTUP) > 0)
+		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
@@ -983,7 +1158,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public final void rejectAttribute(MuisAttribute<?> attr)
 	{
-		if(getStage().compareTo(Stage.STARTUP) > 0)
+		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
 			return;
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
@@ -1183,7 +1358,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	@Override
 	public final void message(MuisMessage.Type type, String text, Throwable exception, Object... params)
 	{
-		MuisMessage message = new MuisMessage(this, type, getStage(), text, exception, params);
+		MuisMessage message = new MuisMessage(this, type, theLifeCycleManager.getStage(), text, exception, params);
 		theMessages.add(message);
 		if(theWorstMessageType == null || theWorstMessageType.compareTo(type) > 0)
 			theWorstMessageType = type;

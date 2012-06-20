@@ -255,7 +255,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	@Override
 	public void message(MuisMessage.Type type, String text, Throwable exception, Object... params)
 	{
-		MuisMessage message = new MuisMessage(this, type, theRoot.getStage(), text, exception, params);
+		MuisMessage message = new MuisMessage(this, type, theRoot.life().getStage(), text, exception, params);
 		theMessages.add(message);
 		if(theWorstMessageType == null || type.compareTo(theWorstMessageType) > 0)
 			theWorstMessageType = type;

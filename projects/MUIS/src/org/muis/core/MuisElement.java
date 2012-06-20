@@ -179,10 +179,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		 * by the core.
 		 */
 		INITIALIZED,
-		/** The {@link MuisElement#postCreate()} method is performing context-sensitive initialization work */
+		/**
+		 * The {@link MuisElement#postCreate()} method is performing context-sensitive initialization work. The core performs attribute
+		 * checks during this time. Before this stage, attributes may be added which are not recognized by the element. During this stage,
+		 * all unchecked attributes are checked and errors are logged for any attributes that are unrecognized or malformatted as well as
+		 * for any required attributes whose values have not been set. During and after this stage, no attributes may be set in the element
+		 * unless they have been {@link MuisElement#acceptAttribute(MuisAttribute) accepted} and the type is correct. An element's children
+		 * are started up at the tail end of this stage, so note that when an element transitions out of this stage, its contents will be in
+		 * the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all its attribute work has
+		 * completed.
+		 */
 		STARTUP,
 		/** The element has been fully initialized within the full document context and is ready to render and receive events */
-		RUNTIME,
+		READY,
 		/** Represents any stage that the core does not know about */
 		OTHER;
 
@@ -303,7 +312,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
 
-	private MuisLifeCycleManager theLifeCycleManager;
+	private final MuisLifeCycleManager theLifeCycleManager;
 
 	private MuisDocument theDocument;
 
@@ -456,6 +465,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_SELF.toString());
 	}
 
+	// Life cycle methods
+
 	/**
 	 * Returns a life cycle manager that allows subclasses to customize and hook into the life cycle for this element.
 	 *
@@ -493,7 +504,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(doc == null)
 			throw new IllegalArgumentException("Cannot create an element without a document");
 		if(theDocument != null)
-			error("An element cannot be initialized twice", null);
+			throw new IllegalStateException("An element cannot be initialized twice", null);
 		theDocument = doc;
 		theToolkit = toolkit;
 		theParent = parent;
@@ -503,6 +514,93 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theChildren = new MuisElement[0];
 		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_CHILDREN.toString());
 	}
+
+	/**
+	 * Initializes an element's descendants
+	 *
+	 * @param children The child elements specified in the MUIS XML
+	 */
+	public void initChildren(MuisElement [] children)
+	{
+		theLifeCycleManager.advanceLifeCycle(CoreStage.INIT_CHILDREN.toString());
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			for(MuisElement child : theChildren)
+				if(child.getParent() == this)
+					child.setParent(null);
+			theChildren = children;
+		}
+		for(MuisElement child : children)
+			registerChild(child);
+		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
+			relayout(false);
+		theLifeCycleManager.advanceLifeCycle(CoreStage.INITIALIZED.toString());
+	}
+
+	/**
+	 * Called when a child is introduced to this parent
+	 *
+	 * @param child The child that has been added to this parent
+	 */
+	protected void registerChild(MuisElement child)
+	{
+		for(Object type : theChildListeners.getAllProperties())
+			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
+				child.addListener((MuisEventType<Object>) type, listener);
+	}
+
+	/**
+	 * Called when a child is removed to this parent
+	 *
+	 * @param child The child that has been removed from this parent
+	 */
+	protected void unregisterChild(MuisElement child)
+	{
+		for(Object type : theChildListeners.getAllProperties())
+			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
+				child.removeListener(listener);
+	}
+
+	/** Called to initialize an element after all the parsing and linking has been performed */
+	public void postCreate()
+	{
+		theLifeCycleManager.advanceLifeCycle(CoreStage.STARTUP.toString());
+		for(AttributeHolder holder : theAcceptedAttrs.values())
+		{
+			MuisAttribute<?> attr = holder.attr;
+			boolean required = holder.required;
+			Object value = theAttrValues.get(attr);
+			if(value == null && required)
+				fatal("Required attribute " + attr + " not set", null);
+			if(value instanceof String)
+			{
+				String valError = holder.validate((String) value);
+				if(valError != null)
+					fatal(valError, null);
+				try
+				{
+					value = attr.type.parse(this, (String) value);
+					theAttrValues.put(attr, value);
+				} catch(MuisException e)
+				{
+					if(required)
+						fatal("Required attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
+					else
+						error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
+					theAttrValues.remove(attr);
+				}
+			}
+			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
+		}
+		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
+			error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());
+		for(MuisElement child : theChildren)
+			child.postCreate();
+		theRawAttributes = null;
+		theLifeCycleManager.advanceLifeCycle(CoreStage.READY.toString());
+	}
+
+	// End life cycle methods
 
 	/**
 	 * Checks whether the given permission can be executed in the current context
@@ -517,6 +615,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(mgr != null)
 			mgr.checkPermission(new MuisSecurityPermission(type, null, this, value));
 	}
+
+	// Attribute methods
 
 	/**
 	 * Sets an attribute typelessly
@@ -605,125 +705,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/**
-	 * Initializes an element's descendants
-	 *
-	 * @param children The child elements specified in the MUIS XML
-	 */
-	public void initChildren(MuisElement [] children)
-	{
-		theLifeCycleManager.advanceLifeCycle(CoreStage.INIT_CHILDREN.toString());
-		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
-		{
-			for(MuisElement child : theChildren)
-				if(child.getParent() == this)
-					child.setParent(null);
-			theChildren = children;
-		}
-		for(MuisElement child : children)
-			registerChild(child);
-		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
-			relayout(false);
-		theLifeCycleManager.advanceLifeCycle(CoreStage.INITIALIZED.toString());
-	}
-
-	/**
-	 * Called when a child is introduced to this parent
-	 *
-	 * @param child The child that has been added to this parent
-	 */
-	protected void registerChild(MuisElement child)
-	{
-		for(Object type : theChildListeners.getAllProperties())
-			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
-				child.addListener((MuisEventType<Object>) type, listener);
-	}
-
-	/**
-	 * Called when a child is removed to this parent
-	 *
-	 * @param child The child that has been removed from this parent
-	 */
-	protected void unregisterChild(MuisElement child)
-	{
-		for(Object type : theChildListeners.getAllProperties())
-			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
-				child.removeListener(listener);
-	}
-
-	/** Called to initialize an element after all the parsing and linking has been performed */
-	public void postCreate()
-	{
-		for(AttributeHolder holder : theAcceptedAttrs.values())
-		{
-			MuisAttribute<?> attr = holder.attr;
-			boolean required = holder.required;
-			Object value = theAttrValues.get(attr);
-			if(value == null && required)
-				fatal("Required attribute " + attr + " not set", null);
-			if(value instanceof String)
-			{
-				String valError = holder.validate((String) value);
-				if(valError != null)
-					fatal(valError, null);
-				try
-				{
-					value = attr.type.parse(this, (String) value);
-					theAttrValues.put(attr, value);
-				} catch(MuisException e)
-				{
-					if(required)
-						fatal("Required attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
-					else
-						error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
-					theAttrValues.remove(attr);
-				}
-			}
-			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
-		}
-		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
-			error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());
-		for(MuisElement child : theChildren)
-			child.postCreate();
-		theRawAttributes = null;
-	}
-
-	/** @return The style that modifies this element's appearance */
-	public final ElementStyle getStyle()
-	{
-		return theStyle;
-	}
-
-	/** @return The document that this element belongs to */
-	public final MuisDocument getDocument()
-	{
-		return theDocument;
-	}
-
-	/** @return The tool kit that this element belongs to */
-	public final MuisToolkit getToolkit()
-	{
-		return theToolkit;
-	}
-
-	/** @return This element's parent in the DOM tree */
-	public final MuisElement getParent()
-	{
-		return theParent;
-	}
-
-	/** @return The namespace that this tag was instantiated in */
-	public final String getNamespace()
-	{
-		return theNamespace;
-	}
-
-	/** @return The name of the tag that was used to instantiate this element */
-	public final String getTagName()
-	{
-		return theTagName;
-	}
-
-	/**
 	 * @param name The name of the attribute to get
 	 * @return The value of the named attribute
 	 */
@@ -766,280 +747,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			}
 		else
 			return (T) stored;
-	}
-
-	/** @return The MUIS class view that allows for instantiation of child elements */
-	public final MuisClassView getClassView()
-	{
-		return theClassView;
-	}
-
-	/** @return The number of children that this element has */
-	public final int getChildCount()
-	{
-		return theChildren.length;
-	}
-
-	/**
-	 * @param index The index of the child to get
-	 * @return This element's child at the given index
-	 */
-	public final MuisElement getChild(int index)
-	{
-		return theChildren[index];
-	}
-
-	/** @return This element's children */
-	public final MuisElement [] getChildren()
-	{
-		return theChildren.clone();
-	}
-
-	/**
-	 * @param child The child to get the index of
-	 * @return The index of the given child in this element's children, or -1 if the given element is not a child under this element
-	 */
-	public final int getChildIndex(MuisElement child)
-	{
-		return ArrayUtils.indexOf(theChildren, child);
-	}
-
-	/**
-	 * Sets this element's parent after initialization
-	 *
-	 * @param parent The new parent for this element
-	 */
-	protected final void setParent(MuisElement parent)
-	{
-		checkSecurity(PermissionType.setParent, parent);
-		if(theParent != null)
-		{
-			int parentIndex = ArrayUtils.indexOf(theParent.theChildren, this);
-			if(parentIndex >= 0)
-				theParent.removeChild(parentIndex);
-		}
-		theParent = parent;
-		reEvalChildWorstMessage();
-		fireEvent(new MuisEvent<MuisElement>(ELEMENT_MOVED, theParent), false, false);
-	}
-
-	/**
-	 * Adds a child to this element. Protected because this operation will not be desirable to all implementations (e.g. images). Override
-	 * as public in implementations where this functionality should be exposed publicly (containers).
-	 *
-	 * @param child The child to add
-	 * @param index The index to add the child at, or -1 to add the child as the last element
-	 */
-	protected void addChild(MuisElement child, int index)
-	{
-		checkSecurity(PermissionType.addChild, child);
-		if(index < 0)
-			index = theChildren.length;
-		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
-		{
-			child.setParent(this);
-			theChildren = ArrayUtils.add(theChildren, child, index);
-		}
-		fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
-	}
-
-	/**
-	 * Removes a child from this element. Protected because this operation will not be desirable to all implementations (e.g. images).
-	 * Override as public in implementations where this functionality should be exposed publicly (containers).
-	 *
-	 * @param index The index of the child to remove, or -1 to remove the last element
-	 * @return The element that was removed
-	 */
-	protected MuisElement removeChild(int index)
-	{
-		if(index < 0)
-			index = theChildren.length - 1;
-		MuisElement ret = theChildren[index];
-		checkSecurity(PermissionType.removeChild, ret);
-		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
-		{
-			ret.setParent(null);
-			theChildren = ArrayUtils.remove(theChildren, index);
-		}
-		fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, ret), false, false);
-		return ret;
-	}
-
-	/** @return The x-coordinate of this element's upper left corner */
-	public final int getX()
-	{
-		return theX;
-	}
-
-	/** @param x The x-coordinate for this element's upper left corner */
-	public final void setX(int x)
-	{
-		if(theX == x)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/** @return The y-coordinate of this element's upper left corner */
-	public final int getY()
-	{
-		return theY;
-	}
-
-	/** @param y The y-coordinate for this element's upper left corner */
-	public final void setY(int y)
-	{
-		if(theY == y)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theY = y;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/**
-	 * @param x The x-coordinate for this element's upper left corner
-	 * @param y The y-coordinate for this element's upper left corner
-	 */
-	public final void setPosition(int x, int y)
-	{
-		if(theX == x && theY == y)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		theY = y;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/** @return The z-index determining the order in which this element is drawn among its siblings */
-	public final int getZ()
-	{
-		return theZ;
-	}
-
-	/** @param z The z-index determining the order in which this element is drawn among its siblings */
-	public final void setZ(int z)
-	{
-		if(theZ == z)
-			return;
-		checkSecurity(PermissionType.setZ, null);
-		theZ = z;
-		if(theParent != null)
-			theParent.repaint(new Rectangle(theX, theY, theW, theH), false);
-	}
-
-	/** @return The width of this element */
-	public final int getWidth()
-	{
-		return theW;
-	}
-
-	/** @param width The width for this element */
-	public final void setWidth(int width)
-	{
-		if(theW == width)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theW = width;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/** @return The height of this element */
-	public final int getHeight()
-	{
-		return theH;
-	}
-
-	/** @param height The height for this element */
-	public final void setHeight(int height)
-	{
-		if(theH == height)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theH = height;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/**
-	 * @param width The width for this element
-	 * @param height The height for this element
-	 */
-	public final void setSize(int width, int height)
-	{
-		if(theW == width && theH == height)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theW = width;
-		theH = height;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/**
-	 * @param x The x-coordinate for this element's upper left corner
-	 * @param y The y-coordinate for this element's upper left corner
-	 * @param width The width for this element
-	 * @param height The height for this element
-	 */
-	public final void setBounds(int x, int y, int width, int height)
-	{
-		if(theX == x && theY == y && theW == width && theH == height)
-			return;
-		checkSecurity(PermissionType.setBounds, null);
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		theY = y;
-		theW = width;
-		theH = height;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	@Override
-	public SizePolicy getWSizer(int height)
-	{
-		if(theHSizer == null)
-			theHSizer = new SimpleSizePolicy();
-		return theHSizer;
-	}
-
-	@Override
-	public SizePolicy getHSizer(int width)
-	{
-		if(theVSizer == null)
-			theVSizer = new SimpleSizePolicy();
-		return theVSizer;
-	}
-
-	/** @return This element's position relative to the document's root */
-	public final Point getDocumentPosition()
-	{
-		int x = 0;
-		int y = 0;
-		MuisElement el = this;
-		while(el.theParent != null)
-		{
-			x += el.theX;
-			y += el.theY;
-			el = el.theParent;
-		}
-		return new Point(x, y);
-	}
-
-	/** @return Whether this element is able to accept the focus for the document */
-	public boolean isFocusable()
-	{
-		return isFocusable;
-	}
-
-	/** @param focusable Whether this element should be focusable */
-	protected final void setFocusable(boolean focusable)
-	{
-		isFocusable = focusable;
 	}
 
 	/**
@@ -1211,6 +918,389 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return holder.required;
 	}
 
+	// End attribute methods
+
+	// Hierarchy methods
+
+	/** @return The document that this element belongs to */
+	public final MuisDocument getDocument()
+	{
+		return theDocument;
+	}
+
+	/** @return This element's parent in the DOM tree */
+	public final MuisElement getParent()
+	{
+		return theParent;
+	}
+
+	/**
+	 * Sets this element's parent after initialization
+	 *
+	 * @param parent The new parent for this element
+	 */
+	protected final void setParent(MuisElement parent)
+	{
+		checkSecurity(PermissionType.setParent, parent);
+		if(theParent != null)
+		{
+			int parentIndex = ArrayUtils.indexOf(theParent.theChildren, this);
+			if(parentIndex >= 0)
+				theParent.removeChild(parentIndex);
+		}
+		theParent = parent;
+		reEvalChildWorstMessage();
+		fireEvent(new MuisEvent<MuisElement>(ELEMENT_MOVED, theParent), false, false);
+	}
+
+	/** @return The number of children that this element has */
+	public final int getChildCount()
+	{
+		return theChildren.length;
+	}
+
+	/**
+	 * @param index The index of the child to get
+	 * @return This element's child at the given index
+	 */
+	public final MuisElement getChild(int index)
+	{
+		return theChildren[index];
+	}
+
+	/** @return This element's children */
+	public final MuisElement [] getChildren()
+	{
+		return theChildren.clone();
+	}
+
+	/**
+	 * @param child The child to get the index of
+	 * @return The index of the given child in this element's children, or -1 if the given element is not a child under this element
+	 */
+	public final int getChildIndex(MuisElement child)
+	{
+		return ArrayUtils.indexOf(theChildren, child);
+	}
+
+	/**
+	 * Adds a child to this element. Protected because this operation will not be desirable to all implementations (e.g. images). Override
+	 * as public in implementations where this functionality should be exposed publicly (containers).
+	 *
+	 * @param child The child to add
+	 * @param index The index to add the child at, or -1 to add the child as the last element
+	 */
+	protected void addChild(MuisElement child, int index)
+	{
+		checkSecurity(PermissionType.addChild, child);
+		if(index < 0)
+			index = theChildren.length;
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			child.setParent(this);
+			theChildren = ArrayUtils.add(theChildren, child, index);
+		}
+		fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
+	}
+
+	/**
+	 * Removes a child from this element. Protected because this operation will not be desirable to all implementations (e.g. images).
+	 * Override as public in implementations where this functionality should be exposed publicly (containers).
+	 *
+	 * @param index The index of the child to remove, or -1 to remove the last element
+	 * @return The element that was removed
+	 */
+	protected MuisElement removeChild(int index)
+	{
+		if(index < 0)
+			index = theChildren.length - 1;
+		MuisElement ret = theChildren[index];
+		checkSecurity(PermissionType.removeChild, ret);
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
+		{
+			ret.setParent(null);
+			theChildren = ArrayUtils.remove(theChildren, index);
+		}
+		fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, ret), false, false);
+		return ret;
+	}
+
+	/**
+	 * Checks to see if this element is in the subtree rooted at the given element
+	 *
+	 * @param ancestor The element whose subtree to check
+	 * @return Whether this element is in the ancestor's subtree
+	 */
+	public final boolean isAncestor(MuisElement ancestor)
+	{
+		if(ancestor == this)
+			return true;
+		MuisElement parent = theParent;
+		while(parent != null)
+		{
+			if(parent == ancestor)
+				return true;
+			parent = parent.theParent;
+		}
+		return false;
+	}
+
+	/**
+	 * @param x The x-coordinate of a point relative to this element's upper left corner
+	 * @param y The y-coordinate of a point relative to this element's upper left corner
+	 * @return All children of this element whose bounds contain the given point
+	 */
+	public final MuisElement [] childrenAt(int x, int y)
+	{
+		MuisElement [] children = sortByZ(theChildren);
+		MuisElement [] ret = new MuisElement[0];
+		for(MuisElement child : children)
+		{
+			int relX = x - child.theX;
+			if(relX < 0 || relX >= child.theW)
+				continue;
+			int relY = y - child.theY;
+			if(relY < 0 || relY >= child.theH)
+				continue;
+			ret = ArrayUtils.add(ret, child);
+		}
+		return ret;
+	}
+
+	/**
+	 * @param x The x-coordinate of a point relative to this element's upper left corner
+	 * @param y The y-coordinate of a point relative to this element's upper left corner
+	 * @return The deepest (and largest-Z) descendant of this element whose bounds contain the given point
+	 */
+	public final MuisElement deepestChildAt(int x, int y)
+	{
+		MuisElement current = this;
+		MuisElement [] children = current.childrenAt(x, y);
+		while(children.length > 0)
+		{
+			x -= current.theX;
+			y -= current.theY;
+			current = children[0];
+			children = current.childrenAt(x, y);
+		}
+		return current;
+	}
+
+	// End hierarchy methods
+
+	/** @return The style that modifies this element's appearance */
+	public final ElementStyle getStyle()
+	{
+		return theStyle;
+	}
+
+	/** @return The tool kit that this element belongs to */
+	public final MuisToolkit getToolkit()
+	{
+		return theToolkit;
+	}
+
+	/** @return The MUIS class view that allows for instantiation of child elements */
+	public final MuisClassView getClassView()
+	{
+		return theClassView;
+	}
+
+	/** @return The namespace that this tag was instantiated in */
+	public final String getNamespace()
+	{
+		return theNamespace;
+	}
+
+	/** @return The name of the tag that was used to instantiate this element */
+	public final String getTagName()
+	{
+		return theTagName;
+	}
+
+	// Bounds methods
+
+	/** @return The x-coordinate of this element's upper left corner */
+	public final int getX()
+	{
+		return theX;
+	}
+
+	/** @param x The x-coordinate for this element's upper left corner */
+	public final void setX(int x)
+	{
+		if(theX == x)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theX = x;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	/** @return The y-coordinate of this element's upper left corner */
+	public final int getY()
+	{
+		return theY;
+	}
+
+	/** @param y The y-coordinate for this element's upper left corner */
+	public final void setY(int y)
+	{
+		if(theY == y)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theY = y;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	/**
+	 * @param x The x-coordinate for this element's upper left corner
+	 * @param y The y-coordinate for this element's upper left corner
+	 */
+	public final void setPosition(int x, int y)
+	{
+		if(theX == x && theY == y)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theX = x;
+		theY = y;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	/** @return The z-index determining the order in which this element is drawn among its siblings */
+	public final int getZ()
+	{
+		return theZ;
+	}
+
+	/** @param z The z-index determining the order in which this element is drawn among its siblings */
+	public final void setZ(int z)
+	{
+		if(theZ == z)
+			return;
+		checkSecurity(PermissionType.setZ, null);
+		theZ = z;
+		if(theParent != null)
+			theParent.repaint(new Rectangle(theX, theY, theW, theH), false);
+	}
+
+	/** @return The width of this element */
+	public final int getWidth()
+	{
+		return theW;
+	}
+
+	/** @param width The width for this element */
+	public final void setWidth(int width)
+	{
+		if(theW == width)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theW = width;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	/** @return The height of this element */
+	public final int getHeight()
+	{
+		return theH;
+	}
+
+	/** @param height The height for this element */
+	public final void setHeight(int height)
+	{
+		if(theH == height)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theH = height;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	/**
+	 * @param width The width for this element
+	 * @param height The height for this element
+	 */
+	public final void setSize(int width, int height)
+	{
+		if(theW == width && theH == height)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theW = width;
+		theH = height;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	/**
+	 * @param x The x-coordinate for this element's upper left corner
+	 * @param y The y-coordinate for this element's upper left corner
+	 * @param width The width for this element
+	 * @param height The height for this element
+	 */
+	public final void setBounds(int x, int y, int width, int height)
+	{
+		if(theX == x && theY == y && theW == width && theH == height)
+			return;
+		checkSecurity(PermissionType.setBounds, null);
+		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
+		theX = x;
+		theY = y;
+		theW = width;
+		theH = height;
+		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	}
+
+	@Override
+	public SizePolicy getWSizer(int height)
+	{
+		if(theHSizer == null)
+			theHSizer = new SimpleSizePolicy();
+		return theHSizer;
+	}
+
+	@Override
+	public SizePolicy getHSizer(int width)
+	{
+		if(theVSizer == null)
+			theVSizer = new SimpleSizePolicy();
+		return theVSizer;
+	}
+
+	/** @return This element's position relative to the document's root */
+	public final Point getDocumentPosition()
+	{
+		int x = 0;
+		int y = 0;
+		MuisElement el = this;
+		while(el.theParent != null)
+		{
+			x += el.theX;
+			y += el.theY;
+			el = el.theParent;
+		}
+		return new Point(x, y);
+	}
+
+	// End bounds methods
+
+	/** @return Whether this element is able to accept the focus for the document */
+	public boolean isFocusable()
+	{
+		return isFocusable;
+	}
+
+	/** @param focusable Whether this element should be focusable */
+	protected final void setFocusable(boolean focusable)
+	{
+		isFocusable = focusable;
+	}
+
+	// Event methods
+
 	/**
 	 * Adds a listener for an event type to this element
 	 *
@@ -1322,6 +1412,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(!event.isCanceled())
 			fireEvent(event, event.getElement() == this, false);
 	}
+
+	// End event methods
+
+	// Messaging events
 
 	@Override
 	public final void fatal(String message, Throwable exception, Object... params)
@@ -1485,25 +1579,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		}
 	}
 
-	/**
-	 * Checks to see if this element is in the subtree rooted at the given element
-	 *
-	 * @param ancestor The element whose subtree to check
-	 * @return Whether this element is in the ancestor's subtree
-	 */
-	public final boolean isAncestor(MuisElement ancestor)
-	{
-		if(ancestor == this)
-			return true;
-		MuisElement parent = theParent;
-		while(parent != null)
-		{
-			if(parent == ancestor)
-				return true;
-			parent = parent.theParent;
-		}
-		return false;
-	}
+	// End messaging methods
 
 	/**
 	 * Sorts a set of elements by z-index in ascending order. This operation is useful for rendering children in correct sequence and in
@@ -1536,47 +1612,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			});
 		}
 		return children;
-	}
-
-	/**
-	 * @param x The x-coordinate of a point relative to this element's upper left corner
-	 * @param y The y-coordinate of a point relative to this element's upper left corner
-	 * @return All children of this element whose bounds contain the given point
-	 */
-	public final MuisElement [] childrenAt(int x, int y)
-	{
-		MuisElement [] children = sortByZ(theChildren);
-		MuisElement [] ret = new MuisElement[0];
-		for(MuisElement child : children)
-		{
-			int relX = x - child.theX;
-			if(relX < 0 || relX >= child.theW)
-				continue;
-			int relY = y - child.theY;
-			if(relY < 0 || relY >= child.theH)
-				continue;
-			ret = ArrayUtils.add(ret, child);
-		}
-		return ret;
-	}
-
-	/**
-	 * @param x The x-coordinate of a point relative to this element's upper left corner
-	 * @param y The y-coordinate of a point relative to this element's upper left corner
-	 * @return The deepest (and largest-Z) descendant of this element whose bounds contain the given point
-	 */
-	public final MuisElement deepestChildAt(int x, int y)
-	{
-		MuisElement current = this;
-		MuisElement [] children = current.childrenAt(x, y);
-		while(children.length > 0)
-		{
-			x -= current.theX;
-			y -= current.theY;
-			current = children[0];
-			children = current.childrenAt(x, y);
-		}
-		return current;
 	}
 
 	/**
@@ -1645,6 +1680,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		str.append('>');
 	}
 
+	// Layout methods
+
 	/**
 	 * Causes this element to adjust the position and size of its children in a way defined in this element type's implementation. By
 	 * default this does nothing.
@@ -1668,6 +1705,16 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theLayoutDirtyTime = System.currentTimeMillis();
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now), now);
 	}
+
+	/** @return The last time a layout event was scheduled for this element */
+	public long getLayoutDirtyTime()
+	{
+		return theLayoutDirtyTime;
+	}
+
+	// End layout methods
+
+	// Paint methods
 
 	/** @return The graphics object to use to draw this element */
 	public Graphics2D getGraphics()
@@ -1817,15 +1864,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return thePaintDirtyTime;
 	}
 
-	/** @return The last time a layout event was scheduled for this element */
-	public long getLayoutDirtyTime()
-	{
-		return theLayoutDirtyTime;
-	}
-
 	/** @return This element's bounds as of the last time it was painted */
 	public Rectangle getCacheBounds()
 	{
 		return new Rectangle(theCacheX, theCacheY, theCacheW, theCacheH);
 	}
+
+	// End paint methods
 }

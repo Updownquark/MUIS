@@ -4,7 +4,7 @@
 package org.muis.core;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
@@ -528,19 +528,19 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	/** Checks the mouse's current position, firing necessary mouse events if it has moved relative to any elements */
 	private void mouseMove(MuisElementCapture oldCapture, MuisElementCapture newCapture, java.util.List<MuisEventQueue.Event> events)
 	{
-		HashSet<MuisElementCapture> oldSet = new HashSet<>();
-		HashSet<MuisElementCapture> newSet = new HashSet<>();
+		LinkedHashSet<MuisElementCapture> oldSet = new LinkedHashSet<>();
+		LinkedHashSet<MuisElementCapture> newSet = new LinkedHashSet<>();
+		LinkedHashSet<MuisElementCapture> common = new LinkedHashSet<>();
 		for(MuisElementCapture mec : oldCapture)
-			oldSet.add(mec);
+			if(newSet.contains(mec))
+				common.add(mec);
+			else
+				oldSet.add(mec);
 		for(MuisElementCapture mec : newCapture)
-			newSet.add(mec);
-		// Remove common elements
-		java.util.Iterator<MuisElementCapture> iter = oldSet.iterator();
-		while(iter.hasNext())
-			if(newSet.remove(iter.next()))
-				iter.remove();
+			if(!common.contains(mec))
+				newSet.add(mec);
 		// Remove child elements
-		iter = oldSet.iterator();
+		java.util.Iterator<MuisElementCapture> iter = oldSet.iterator();
 		while(iter.hasNext())
 		{
 			MuisElementCapture mec = iter.next();
@@ -560,6 +560,12 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 			MouseEvent exit = new MouseEvent(this, mec.getTarget().element, MouseEvent.MouseEventType.exited, theMouseX, theMouseY, null,
 				0, mec);
 			events.add(new MuisEventQueue.PositionQueueEvent(exit.getElement(), exit, false));
+		}
+		for(MuisElementCapture mec : common)
+		{
+			MouseEvent move = new MouseEvent(this, mec.getTarget().element, MouseEvent.MouseEventType.moved, theMouseX, theMouseY, null, 0,
+				mec);
+			events.add(new MuisEventQueue.PositionQueueEvent(move.getElement(), move, false));
 		}
 		// Fire enter events
 		for(MuisElementCapture mec : newSet)

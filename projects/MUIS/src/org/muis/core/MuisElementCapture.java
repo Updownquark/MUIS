@@ -159,6 +159,18 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 		isSealed = true;
 	}
 
+	@Override
+	public int hashCode()
+	{
+		return element.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		return obj instanceof MuisElementCapture && ((MuisElementCapture) obj).element.equals(element);
+	}
+
 	private class SelfIterator implements Iterator<MuisElementCapture>
 	{
 		private boolean hasReturned;

@@ -1,7 +1,5 @@
 package org.muis.core.event;
 
-import java.awt.Point;
-
 import org.muis.core.MuisElement;
 
 /** An event caused by user interaction for which an x,y point location is relevant */
@@ -11,7 +9,7 @@ public class PositionedUserEvent extends UserEvent
 
 	private final int theDocumentY;
 
-	private java.util.Map<MuisElement, Point> theElementLocations;
+	private org.muis.core.MuisElementCapture theCapture;
 
 	/**
 	 * Creates a positioned user event
@@ -21,13 +19,17 @@ public class PositionedUserEvent extends UserEvent
 	 * @param element The deepest-level element that the event occurred in
 	 * @param docX The absolute x-coordinate of the event relative to the document's root element
 	 * @param docY The absolute y-coordinate of the event relative to the document's root element
+	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public PositionedUserEvent(MuisEventType<Void> type, org.muis.core.MuisDocument doc, MuisElement element, int docX, int docY)
+	public PositionedUserEvent(MuisEventType<Void> type, org.muis.core.MuisDocument doc, MuisElement element, int docX, int docY,
+		org.muis.core.MuisElementCapture capture)
 	{
 		super(type, doc, element);
 		theDocumentX = docX;
 		theDocumentY = docY;
-		theElementLocations = new java.util.LinkedHashMap<>();
+		theCapture = capture;
+		if(theCapture != null)
+			theCapture.seal();
 	}
 
 	/** @return The absolute x-coordinate of the event relative to the document's root element */
@@ -42,27 +44,28 @@ public class PositionedUserEvent extends UserEvent
 		return theDocumentY;
 	}
 
-	/**
-	 * @param element The element
-	 * @param p The location of this event over the element
-	 */
-	public void addElementLocation(MuisElement element, Point p)
+	/** @return The capture of all elements that this event might be relevant to */
+	public org.muis.core.MuisElementCapture getCapture()
 	{
-		theElementLocations.put(element, p);
+		return theCapture;
 	}
 
 	/**
-	 * @param element The element
-	 * @return The location of this event over the element. This may be null for events that may be but are not always positioned.
+	 * @param element The element to get the position of for this event
+	 * @return The position of this event over the given element, or null if this information cannot be obtained from this event's capture
 	 */
-	public Point getPosition(MuisElement element)
+	public java.awt.Point getPosition(MuisElement element)
 	{
-		return theElementLocations.get(element);
-	}
-
-	/** @return The element-position pairs in this user event, from root to deepest pointed descendant */
-	public Iterable<java.util.Map.Entry<MuisElement, Point>> elements()
-	{
-		return theElementLocations.entrySet();
+		if(theCapture == null)
+			return null;
+		org.muis.core.MuisElementCapture capture = theCapture.find(element);
+		if(capture == null)
+			for(org.muis.core.MuisElementCapture mec : theCapture.iterate(false))
+				if(mec.element == element)
+				{
+					capture = mec;
+					break;
+				}
+		return capture == null ? null : new java.awt.Point(capture.x, capture.y);
 	}
 }

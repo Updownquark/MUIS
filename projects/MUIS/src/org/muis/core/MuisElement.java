@@ -1299,6 +1299,15 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	// End bounds methods
 
+	/**
+	 * @return Whether positional events are consumed by this element, or whether they should be propagated to elements under this element.
+	 *         By default, this method returns true if and only if the background transparency is one.
+	 */
+	public boolean isClickThrough()
+	{
+		return getStyle().get(BackgroundStyles.transparency) >= 1;
+	}
+
 	/** @return Whether this element is able to accept the focus for the document */
 	public boolean isFocusable()
 	{

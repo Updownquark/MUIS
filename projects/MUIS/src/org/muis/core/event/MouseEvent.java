@@ -48,7 +48,7 @@ public class MouseEvent extends PositionedUserEvent
 
 	/**
 	 * Creates a mouse event
-	 *
+	 * 
 	 * @param doc The document that the mouse event occurred in
 	 * @param element The deepest-level element that the mouse event occurred over
 	 * @param type The type of event that this represents
@@ -56,10 +56,12 @@ public class MouseEvent extends PositionedUserEvent
 	 * @param docY The absolute y-coordinate of the event relative to the document's root element
 	 * @param buttonType The type of the button that caused this mouse event
 	 * @param clickCount The number of clicks in quick succession that caused this mouse event
+	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public MouseEvent(MuisDocument doc, MuisElement element, MouseEventType type, int docX, int docY, ButtonType buttonType, int clickCount)
+	public MouseEvent(MuisDocument doc, MuisElement element, MouseEventType type, int docX, int docY, ButtonType buttonType,
+		int clickCount, org.muis.core.MuisElementCapture capture)
 	{
-		super(MuisElement.MOUSE_EVENT, doc, element, docX, docY);
+		super(MuisElement.MOUSE_EVENT, doc, element, docX, docY, capture);
 		theTime = System.currentTimeMillis();
 		theType = type;
 		theButtonType = buttonType;

@@ -101,6 +101,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				error("afterStage must not be null--stages cannot be inserted before " + theStages[0], null, "stage", stage);
 				return;
 			}
+			if(theStages.length == 0)
+			{
+				theStages = new String[] {stage};
+				return;
+			}
 			int idx = prisms.util.ArrayUtils.indexOf(theStages, afterStage);
 			if(idx < 0)
 			{

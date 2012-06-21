@@ -176,6 +176,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 		@Override
 		public MuisElementCapture next()
 		{
+			hasReturned = true;
 			return MuisElementCapture.this;
 		}
 

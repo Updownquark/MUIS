@@ -360,7 +360,7 @@ public class MuisEventQueue
 		@Override
 		protected void doHandleAction()
 		{
-			if(!theEvent.elements().iterator().hasNext()) // Non-positioned event
+			if(theEvent.getCapture() == null) // Non-positioned event
 			{
 				if(isDownward)
 					for(MuisElement pathEl : MuisUtils.path(theEvent.getElement()))
@@ -375,17 +375,9 @@ public class MuisEventQueue
 					}
 				}
 			}
-			else if(isDownward)
-				for(java.util.Map.Entry<MuisElement, Point> pos : theEvent.elements())
-					pos.getKey().fireEvent(theEvent, pos.getKey() != theEvent.getElement(), false);
 			else
-			{
-				java.util.ArrayList<MuisElement> els = new java.util.ArrayList<>();
-				for(java.util.Map.Entry<MuisElement, Point> pos : theEvent.elements())
-					els.add(pos.getKey());
-				for(int i = els.size() - 1; i >= 0; i--)
-					els.get(i).fireEvent(theEvent, els.get(i) != theEvent.getElement(), false);
-			}
+				for(MuisElementCapture el : theEvent.getCapture().iterate(!isDownward))
+					el.element.fireEvent(theEvent, !theEvent.isCanceled(), false);
 		}
 	}
 

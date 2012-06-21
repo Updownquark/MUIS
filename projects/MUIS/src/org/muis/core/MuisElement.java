@@ -351,14 +351,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private int theH;
 
-	private int theCacheX;
-
-	private int theCacheY;
-
-	private int theCacheW;
-
-	private int theCacheH;
-
 	private SizePolicy theHSizer;
 
 	private SizePolicy theVSizer;
@@ -376,6 +368,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	private MuisMessage.Type theWorstChildMessageType;
 
 	private boolean isFocusable;
+
+	private Rectangle theCacheBounds;
 
 	private long thePaintDirtyTime;
 
@@ -399,6 +393,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theChildListeners = new ListenerManager<>(MuisEventListener.class);
 		theMessages = new java.util.ArrayList<>();
+		theCacheBounds = new Rectangle();
 		if(this instanceof MuisTextElement)
 			theStyle = new TextStyle((MuisTextElement) this);
 		else
@@ -574,7 +569,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
-	public void postCreate()
+	public final void postCreate()
 	{
 		theLifeCycleManager.advanceLifeCycle(CoreStage.STARTUP.toString());
 		for(AttributeHolder holder : theAcceptedAttrs.values())
@@ -696,7 +691,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param value The value to set for the attribute in this element
 	 * @throws MuisException If the attribute is not accepted in this element or the value is not valid
 	 */
-	public <T> void setAttribute(MuisAttribute<T> attr, T value) throws MuisException
+	public final <T> void setAttribute(MuisAttribute<T> attr, T value) throws MuisException
 	{
 		checkSecurity(PermissionType.setAttribute, attr);
 		if(theRawAttributes != null)
@@ -735,7 +730,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param attr The attribute to get the value of
 	 * @return The value of the attribute in this element
 	 */
-	public <T> T getAttribute(MuisAttribute<T> attr)
+	public final <T> T getAttribute(MuisAttribute<T> attr)
 	{
 		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.name);
 		if(storedAttr != null && !storedAttr.attr.equals(attr))
@@ -888,17 +883,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				return;
 	}
 
-	/**
-	 * @return The number of attributes set for this element
-	 */
+	/** @return The number of attributes set for this element */
 	public final int getAttributeCount()
 	{
 		return theAcceptedAttrs.size();
 	}
 
-	/**
-	 * @return All attributes that are accepted in this element
-	 */
+	/** @return All attributes that are accepted in this element */
 	public final MuisAttribute<?> [] getAttributes()
 	{
 		MuisAttribute<?> [] ret = new MuisAttribute[theAcceptedAttrs.size()];
@@ -1719,7 +1710,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param now Whether to perform the layout action now or allow it to be performed asynchronously
 	 */
-	public void relayout(boolean now)
+	public final void relayout(boolean now)
 	{
 		if(theW <= 0 || theH <= 0)
 			return; // No point layout out if there's nothing to show
@@ -1728,7 +1719,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/** @return The last time a layout event was scheduled for this element */
-	public long getLayoutDirtyTime()
+	public final long getLayoutDirtyTime()
 	{
 		return theLayoutDirtyTime;
 	}
@@ -1759,29 +1750,35 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/**
+	 * @return The bounds within which this element may draw and receive events, relative to the layout x,y position. This may extend
+	 *         outside the element's layout bounds (e.g. for a menu, which expands, but does not cause a relayout when it does so).
+	 */
+	public Rectangle getPaintBounds()
+	{
+		return new Rectangle(0, 0, theW, theH);
+	}
+
+	/**
 	 * Renders this element in a graphics context.
-	 *
+	 * 
 	 * @param graphics The graphics context to render this element in
 	 * @param area The area to draw
 	 */
-	public void paint(java.awt.Graphics2D graphics, Rectangle area)
+	public final void paint(java.awt.Graphics2D graphics, Rectangle area)
 	{
 		if((area != null && (area.width == 0 || area.height == 0)) || theW == 0 || theH == 0)
 			return;
-		theCacheW = theW;
-		theCacheH = theH;
-		paintSelf(graphics, area);
-		Rectangle clipBounds = graphics.getClipBounds();
-		if(clipBounds == null)
-			clipBounds = new Rectangle(0, 0, theW, theH);
-		// TODO Should we clip?
-		graphics.setClip(clipBounds.x, clipBounds.y, theW, theH);
+		Rectangle paintBounds = getPaintBounds();
+		theCacheBounds.setBounds(paintBounds);
+		Rectangle preClip = graphics.getClipBounds();
 		try
 		{
+			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
+			paintSelf(graphics, area);
 			paintChildren(graphics, theChildren, area);
 		} finally
 		{
-			graphics.setClip(clipBounds.x, clipBounds.y, clipBounds.width, clipBounds.height);
+			graphics.setClip(preClip);
 		}
 	}
 
@@ -1822,13 +1819,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		graphics.fillRect(x, y, w, h);
 	}
 
-	/** Updates this element's cached position with its real position */
-	protected final void updateCachePosition()
-	{
-		theCacheX = theX;
-		theCacheY = theY;
-	}
-
 	/**
 	 * Draws this element's children
 	 *
@@ -1836,7 +1826,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param children The children to render
 	 * @param area The area in this element's coordinates to repaint
 	 */
-	public void paintChildren(java.awt.Graphics2D graphics, MuisElement [] children, Rectangle area)
+	public final void paintChildren(java.awt.Graphics2D graphics, MuisElement [] children, Rectangle area)
 	{
 		if(children.length == 0)
 			return;
@@ -1850,7 +1840,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			Rectangle childArea = new Rectangle();
 			for(MuisElement child : children)
 			{
-				child.updateCachePosition();
 				int childX = child.theX;
 				int childY = child.theY;
 				translateX += childX;
@@ -1880,15 +1869,15 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/** @return The last time a paint event was scheduled for this element */
-	public long getPaintDirtyTime()
+	public final long getPaintDirtyTime()
 	{
 		return thePaintDirtyTime;
 	}
 
 	/** @return This element's bounds as of the last time it was painted */
-	public Rectangle getCacheBounds()
+	public final Rectangle getCacheBounds()
 	{
-		return new Rectangle(theCacheX, theCacheY, theCacheW, theCacheH);
+		return theCacheBounds;
 	}
 
 	// End paint methods

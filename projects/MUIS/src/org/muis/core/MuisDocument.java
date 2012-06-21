@@ -4,6 +4,7 @@
 package org.muis.core;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
@@ -527,40 +528,45 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	/** Checks the mouse's current position, firing necessary mouse events if it has moved relative to any elements */
 	private void mouseMove(MuisElementCapture oldCapture, MuisElementCapture newCapture, java.util.List<MuisEventQueue.Event> events)
 	{
-		MuisElement [] oldMousePath = oldPos.keySet().toArray(new MuisElement[oldPos.size()]);
-		MuisElement [] newMousePath = newPos.keySet().toArray(new MuisElement[newPos.size()]);
-		MuisElement branchPoint = null;
-		int branchIdx;
-		for(branchIdx = oldMousePath.length - 1; branchIdx >= 0; branchIdx--)
-			if(newPos.containsKey(oldMousePath[branchIdx]))
-			{
-				branchPoint = oldMousePath[branchIdx];
-				break;
-			}
-		if(branchPoint == null)
+		HashSet<MuisElementCapture> oldSet = new HashSet<>();
+		HashSet<MuisElementCapture> newSet = new HashSet<>();
+		for(MuisElementCapture mec : oldCapture)
+			oldSet.add(mec);
+		for(MuisElementCapture mec : newCapture)
+			newSet.add(mec);
+		// Remove common elements
+		java.util.Iterator<MuisElementCapture> iter = oldSet.iterator();
+		while(iter.hasNext())
+			if(newSet.remove(iter.next()))
+				iter.remove();
+		// Remove child elements
+		iter = oldSet.iterator();
+		while(iter.hasNext())
 		{
-			error("Disjointed element paths for mouse move", null);
-			return;
+			MuisElementCapture mec = iter.next();
+			if(oldSet.contains(mec.parent))
+				iter.remove();
 		}
-		if(branchIdx < oldMousePath.length - 1)
+		iter = newSet.iterator();
+		while(iter.hasNext())
 		{
-			MouseEvent exit = new MouseEvent(this, oldMousePath[oldMousePath.length - 1], MouseEvent.MouseEventType.exited, theMouseX,
-				theMouseY, null, 0);
-			for(int i = branchIdx + 1; i < oldMousePath.length; i++)
-				exit.addElementLocation(oldMousePath[i], oldPos.get(oldMousePath[i]));
-			events.add(new MuisEventQueue.PositionQueueEvent(branchPoint, exit, false));
+			MuisElementCapture mec = iter.next();
+			if(newSet.contains(mec.parent))
+				iter.remove();
 		}
-		MouseEvent move = new MouseEvent(this, branchPoint, MouseEvent.MouseEventType.moved, theMouseX, theMouseY, null, 0);
-		for(int i = 0; i <= branchIdx; i++)
-			move.addElementLocation(oldMousePath[i], newPos.get(oldMousePath[i]));
-		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(theRoot, move, false), true);
-		if(branchIdx < newMousePath.length - 1)
+		// Fire exit events
+		for(MuisElementCapture mec : oldSet)
 		{
-			MouseEvent enter = new MouseEvent(this, newMousePath[newMousePath.length - 1], MouseEvent.MouseEventType.entered, theMouseX,
-				theMouseY, null, 0);
-			for(int i = branchIdx + 1; i < newMousePath.length; i++)
-				enter.addElementLocation(newMousePath[i], newPos.get(newMousePath[i]));
-			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(branchPoint, enter, false), true);
+			MouseEvent exit = new MouseEvent(this, mec.getTarget().element, MouseEvent.MouseEventType.exited, theMouseX, theMouseY, null,
+				0, mec);
+			events.add(new MuisEventQueue.PositionQueueEvent(exit.getElement(), exit, false));
+		}
+		// Fire enter events
+		for(MuisElementCapture mec : newSet)
+		{
+			MouseEvent enter = new MouseEvent(this, mec.getTarget().element, MouseEvent.MouseEventType.entered, theMouseX, theMouseY, null,
+				0, mec);
+			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(enter.getElement(), enter, false), true);
 		}
 	}
 

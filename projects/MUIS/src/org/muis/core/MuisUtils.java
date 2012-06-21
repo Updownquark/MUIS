@@ -148,8 +148,12 @@ public class MuisUtils
 	 */
 	public static MuisElementCapture captureEventTargets(MuisElement root, int x, int y)
 	{
-		MuisElementCapture ret = new MuisElementCapture(root, x, y);
-		MuisElement [] children = prisms.util.ArrayUtils.reverse(MuisElement.sortByZ(root.getChildren()));
+		return captureEventTargets(new MuisElementCapture(null, root, x, y), x, y);
+	}
+
+	private static MuisElementCapture captureEventTargets(MuisElementCapture root, int x, int y)
+	{
+		MuisElement [] children = prisms.util.ArrayUtils.reverse(MuisElement.sortByZ(root.element.getChildren()));
 		for(MuisElement child : children)
 		{
 			Rectangle bounds = child.getCacheBounds();
@@ -158,7 +162,7 @@ public class MuisUtils
 			if(relX >= 0 && relY >= 0 && relX < bounds.width && relY < bounds.height)
 			{
 				MuisElementCapture childCapture = captureEventTargets(child, relX, relY);
-				ret.addChild(childCapture);
+				root.addChild(childCapture);
 				boolean isClickThrough = true;
 				for(MuisElementCapture mec : childCapture)
 					if(!mec.element.isClickThrough())
@@ -170,6 +174,6 @@ public class MuisUtils
 					break;
 			}
 		}
-		return ret;
+		return root;
 	}
 }

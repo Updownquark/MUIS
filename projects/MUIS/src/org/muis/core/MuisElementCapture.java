@@ -2,48 +2,76 @@ package org.muis.core;
 
 import java.util.Iterator;
 
+/**
+ * Represents a capture of an element structure at a point in time. X and Y attributes are available if this is used for elements under a
+ * screen point
+ */
 public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisElementCapture>
 {
+	/** This capture element's parent in the hierarchy */
+	public final MuisElementCapture parent;
+
+	/** The element that this capture represents */
 	public final MuisElement element;
 
+	/** The x-coordinate of the screen point relative to this element */
 	public final int x;
 
+	/** The y-coordinate of the screen point relative to this element */
 	public final int y;
 
 	private MuisElementCapture [] theChildren;
 
 	private boolean isSealed;
 
-	public MuisElementCapture(MuisElement el, int anX, int aY)
+	/**
+	 * @param aParent This capture element's parent in the hierarchy
+	 * @param el The element that this capture represents
+	 * @param anX The x-coordinate of the screen point relative to this element
+	 * @param aY The y-coordinate of the screen point relative to this element
+	 */
+	public MuisElementCapture(MuisElementCapture aParent, MuisElement el, int anX, int aY)
 	{
+		parent = aParent;
 		element = el;
 		x = anX;
 		y = aY;
 		theChildren = new MuisElementCapture[0];
 	}
 
-	public void addChild(MuisElementCapture child)
+	/**
+	 * @param child The child to add to this capture
+	 * @throws SealedException If this capture has been sealed
+	 */
+	public void addChild(MuisElementCapture child) throws SealedException
 	{
 		if(isSealed)
 			throw new SealedException(this);
 		theChildren = prisms.util.ArrayUtils.add(theChildren, child);
 	}
 
+	/** @return The number of children this capture has--that is, the number of children this capture's element had at the moment of capture */
 	public int getChildCount()
 	{
 		return theChildren.length;
 	}
 
+	/**
+	 * @param index The index of the child to get
+	 * @return This capture's child at the given index
+	 */
 	public MuisElementCapture getChild(int index)
 	{
 		return theChildren[index];
 	}
 
+	/** @return An iterator over this capture's immediate children */
 	public Iterable<MuisElementCapture> getChildren()
 	{
 		return prisms.util.ArrayUtils.iterable(theChildren);
 	}
 
+	/** @return An iterator of each end point (leaf node) in this hierarchy */
 	public Iterable<MuisElementCapture> getTargets()
 	{
 		if(theChildren.length == 0)
@@ -64,17 +92,17 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 			};
 	}
 
-	/**
-	 * Performs a depth-first iteration of this capture structure
-	 *
-	 * @see java.lang.Iterable#iterator()
-	 */
+	/** Performs a depth-first iteration of this capture structure */
 	@Override
 	public Iterator<MuisElementCapture> iterator()
 	{
 		return new MuisCaptureIterator(true, true);
 	}
 
+	/**
+	 * @param depthFirst Whether to iterate depth-first or breadth-first
+	 * @return An iterable to iterate over every element in this hierarchy
+	 */
 	public Iterable<MuisElementCapture> iterate(final boolean depthFirst)
 	{
 		return new Iterable<MuisElementCapture>() {
@@ -86,6 +114,10 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 		};
 	}
 
+	/**
+	 * @param el The element to search for
+	 * @return The capture of the given element in this hierarhcy, or null if the given element was not located in this capture
+	 */
 	public MuisElementCapture find(MuisElement el)
 	{
 		MuisElement [] path = MuisUtils.path(el);
@@ -107,6 +139,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 		return ret;
 	}
 
+	/** @return The last end point (leaf node) in this hierarchy */
 	public MuisElementCapture getTarget()
 	{
 		if(theChildren.length == 0)

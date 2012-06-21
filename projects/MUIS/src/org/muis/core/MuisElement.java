@@ -44,7 +44,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		/** @return The current stage in the element's life cycle */
 		public String getStage()
 		{
-			return theStages[theCurrentStage];
+			return theStages.length == 0 ? null : theStages[theCurrentStage];
 		}
 
 		/** @return All stages in this life cycle, past, present, and future */

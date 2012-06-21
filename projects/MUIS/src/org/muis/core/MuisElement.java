@@ -380,6 +380,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public MuisElement()
 	{
 		theLifeCycleManager = new MuisLifeCycleManager();
+		String lastStage = null;
+		for(CoreStage stage : CoreStage.values())
+			if(stage != CoreStage.OTHER)
+			{
+				theLifeCycleManager.addStage(stage.toString(), lastStage);
+				lastStage = stage.toString();
+			}
 		theChildren = new MuisElement[0];
 		theAcceptedAttrs = new ConcurrentHashMap<>();
 		theAttrValues = new ConcurrentHashMap<>();

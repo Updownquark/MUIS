@@ -597,7 +597,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					theAttrValues.remove(attr);
 				}
 			}
-			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
+			if(value != null)
+				fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 		}
 		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
 			error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());

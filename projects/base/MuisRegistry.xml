@@ -13,7 +13,12 @@
 		<type tag="font">org.muis.base.style.FontStyle</type>
         <type tag="block">org.muis.base.widget.Block</type>
         <type tag="label">org.muis.base.widget.Label</type>
+        <type tag="image">org.muis.base.widget.Image</type>
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
 	</types>
+	<resources>
+		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>
+		<resource tag="img-load-failed-icon">src/main/resources/imageLoadFailed.gif</resource>
+	</resources>
 	<security />
 </registry>

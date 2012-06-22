@@ -20,6 +20,22 @@ public class SimpleSizePolicy implements SizePolicy
 		theStretch = 0;
 	}
 
+	/**
+	 * Creates a filled-in SimpleSizePolicy
+	 *
+	 * @param min The minimum size for the widget
+	 * @param pref The preferred size for the widget
+	 * @param max The maximum size for the widget
+	 * @param stretch The stretch factor for the widget
+	 */
+	public SimpleSizePolicy(int min, int pref, int max, int stretch)
+	{
+		theMin = min;
+		thePref = pref;
+		theMax = max;
+		theStretch = stretch;
+	}
+
 	@Override
 	public int getMin()
 	{

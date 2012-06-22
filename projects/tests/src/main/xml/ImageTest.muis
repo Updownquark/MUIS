@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<muis>
+    <head>
+        <title>Paint Test (for Mouse Events)</title>
+    </head>
+    <body layout="base:simple" xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
+    	<base:block layout="base:simple" style="bg.color=green" width="100%" height="100%">
+    		<base:image src="test:hello-world" style="bg.color=white" left="10%" right="90%" top="10%" bottom="90%"
+    			h-resize="resize" v-resize="repeat" />
+    	</base:block>
+    </body>
+</muis>

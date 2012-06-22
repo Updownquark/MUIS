@@ -59,7 +59,7 @@ public class MuisDomParser implements MuisParser
 						MuisToolkit dependency;
 						try
 						{
-							dependency = getToolkit(resolveURL(url, dEl.getTextTrim()), doc);
+							dependency = getToolkit(MuisUtils.resolveURL(url, dEl.getTextTrim()), doc);
 						} catch(MuisException e)
 						{
 							doc.error(e.getMessage(), e);
@@ -78,7 +78,7 @@ public class MuisDomParser implements MuisParser
 						URL classPath;
 						try
 						{
-							classPath = resolveURL(url, dEl.getTextTrim());
+							classPath = MuisUtils.resolveURL(url, dEl.getTextTrim());
 						} catch(MuisException e)
 						{
 							doc.error("Could not resolve classpath " + dEl.getTextTrim() + " for toolkit \"" + name + "\" at " + url, e);
@@ -105,11 +105,14 @@ public class MuisDomParser implements MuisParser
 					String tagName = tEl.getAttributeValue("tag");
 					if(tagName == null)
 						throw new MuisParseException("tag attribute expected for element \"" + tEl.getName() + "\"");
-					// TODO check validity of tag name
+					if(!checkTagName(tagName))
+						throw new MuisParseException("\"" + tagName
+							+ "\" is not a valid tag name: tag names may only contain letters, numbers, underscores, dashes, and dots");
 					String className = tEl.getTextTrim();
 					if(className == null || className.length() == 0)
 						throw new MuisParseException("Class name expected for element " + tEl.getName());
-					// TODO check validity of class name
+					if(!checkClassName(className))
+						throw new MuisParseException("\"" + className + "\" is not a valid class name");
 					try
 					{
 						ret.map(tagName, className);
@@ -126,7 +129,9 @@ public class MuisDomParser implements MuisParser
 					String tagName = tEl.getAttributeValue("tag");
 					if(tagName == null)
 						throw new MuisParseException("tag attribute expected for element \"" + tEl.getName() + "\"");
-					// TODO check validity of tag name
+					if(!checkTagName(tagName))
+						throw new MuisParseException("\"" + tagName
+							+ "\" is not a valid tag name: tag names may only contain letters, numbers, underscores, dashes, and dots");
 					String resourceLocation = tEl.getTextTrim();
 					if(resourceLocation == null || resourceLocation.length() == 0)
 						throw new MuisParseException("Resource location expected for element " + tEl.getName());
@@ -197,40 +202,14 @@ public class MuisDomParser implements MuisParser
 		return ret;
 	}
 
-	private URL resolveURL(URL reference, final String classPathText) throws MuisException
+	private boolean checkTagName(String tagName)
 	{
-		java.util.regex.Pattern urlPattern = java.util.regex.Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*:/");
-		java.util.regex.Matcher matcher = urlPattern.matcher(classPathText);
-		if(matcher.find() && matcher.start() == 0)
-			try
-			{
-				return new URL(classPathText);
-			} catch(MalformedURLException e)
-			{
-				throw new MuisException("Malformed classpath URL " + classPathText, e);
-			}
-		String file = reference.getFile();
-		int slashIdx = file.lastIndexOf('/');
-		if(slashIdx >= 0)
-			file = file.substring(0, slashIdx);
-		String [] cp = classPathText.split("[/\\\\]");
-		while(cp.length > 0 && cp[0].equals(".."))
-		{
-			slashIdx = file.lastIndexOf('/');
-			if(slashIdx < 0)
-				throw new MuisException("Cannot resolve " + classPathText + " with respect to " + reference);
-			file = file.substring(0, slashIdx);
-			cp = prisms.util.ArrayUtils.remove(cp, 0);
-		}
-		for(String cps : cp)
-			file += "/" + cps;
-		try
-		{
-			return new URL(reference.getProtocol(), reference.getHost(), file);
-		} catch(MalformedURLException e)
-		{
-			throw new MuisException("Cannot resolve \"" + file + "\"", e);
-		}
+		return tagName.matches("[.A-Za-z0-9_-]+");
+	}
+
+	private boolean checkClassName(String className)
+	{
+		return className.matches("([A-Za-z_][A-Za-z0-9_]*\\.)*[A-Za-z_][A-Za-z0-9_]*");
 	}
 
 	@Override
@@ -510,7 +489,7 @@ public class MuisDomParser implements MuisParser
 			MuisToolkit toolkit;
 			try
 			{
-				toolkit = getToolkit(resolveURL(doc.getLocation(), ns.getURI()), doc);
+				toolkit = getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc);
 			} catch(MalformedURLException e)
 			{
 				muis.error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);

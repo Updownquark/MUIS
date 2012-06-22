@@ -18,7 +18,7 @@
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>
-		<resource tag="img-load-failed-icon">src/main/resources/imageLoadFailed.gif</resource>
+		<resource tag="img-load-failed-icon">src/main/resources/imageLoadFailed.png</resource>
 	</resources>
 	<security />
 </registry>

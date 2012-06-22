@@ -118,6 +118,27 @@ public class MuisDomParser implements MuisParser
 						throw new MuisParseException("Toolkit is already sealed?", e);
 					}
 				}
+			else if(elName.equals("resources"))
+				for(Element tEl : el.getChildren())
+				{
+					if(!tEl.getName().equals("resource"))
+						throw new MuisParseException("Illegal element under " + elName);
+					String tagName = tEl.getAttributeValue("tag");
+					if(tagName == null)
+						throw new MuisParseException("tag attribute expected for element \"" + tEl.getName() + "\"");
+					// TODO check validity of tag name
+					String resourceLocation = tEl.getTextTrim();
+					if(resourceLocation == null || resourceLocation.length() == 0)
+						throw new MuisParseException("Resource location expected for element " + tEl.getName());
+					// TODO check validity of resource location
+					try
+					{
+						ret.mapResource(tagName, resourceLocation);
+					} catch(MuisException e)
+					{
+						throw new MuisParseException("Toolkit is already sealed?", e);
+					}
+				}
 			else if(elName.equals("security"))
 				for(Element pEl : el.getChildren())
 				{

@@ -19,6 +19,8 @@ public class MuisToolkit extends java.net.URLClassLoader
 
 	private ClassMapping [] theClassMappings;
 
+	private ResourceMapping [] theResourceMappings;
+
 	private MuisToolkit [] theDependencies;
 
 	private MuisPermission [] thePermissions;
@@ -104,6 +106,20 @@ public class MuisToolkit extends java.net.URLClassLoader
 		if(isSealed)
 			throw new MuisException("Cannot modify a sealed toolkit");
 		theClassMappings = ArrayUtils.add(theClassMappings, new ClassMapping(tagName, className));
+	}
+
+	/**
+	 * Maps a resource to a tag name for this toolkit
+	 *
+	 * @param tagName The tag name to map the resource to
+	 * @param resourceLocation The location of the resource to map the tag to
+	 * @throws MuisException If this toolkit has been sealed
+	 */
+	public void mapResource(String tagName, String resourceLocation) throws MuisException
+	{
+		if(isSealed)
+			throw new MuisException("Cannot modify a sealed toolkit");
+		theResourceMappings = ArrayUtils.add(theResourceMappings, new ResourceMapping(tagName, resourceLocation));
 	}
 
 	/**

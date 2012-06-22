@@ -9,6 +9,7 @@
 	<dependencies />
 	<types>
 		<type tag="bg">org.muis.core.style.BackgroundStyles</type>
+		<type tag="layer">org.muis.core.LayerLayout</type>
 	</types>
 	<security />
 </registry>

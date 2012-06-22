@@ -26,6 +26,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		resize
 	}
 
+	/** The cache type to load images from URLs */
 	public static final org.muis.core.MuisCache.CacheItemType<URL, Image, java.io.IOException> cacheType;
 
 	static
@@ -180,6 +181,11 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		theVResizePolicy = ImageResizePolicy.lockIfEmpty;
 	}
 
+	/**
+	 * Sets this widget's image via URL
+	 *
+	 * @param location The URL for the image file
+	 */
 	public void setImageLocation(URL location)
 	{
 		theLocation = location;
@@ -216,6 +222,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		}
 	}
 
+	/** @param image The image that this widget should render */
 	public void setImage(Image image)
 	{
 		theLocation = null;
@@ -225,6 +232,13 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		repaint(null, false);
 	}
 
+	/** @return The error that caused the failure of this widget's last attempted image load */
+	public Throwable getLoadingError()
+	{
+		return theLoadError;
+	}
+
+	/** @param image The image to display while the target image is loading */
 	public void setLoadingImage(Image image)
 	{
 		theLoadingImage = image;
@@ -236,6 +250,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		}
 	}
 
+	/** @param image The image to display when a target image fails to load */
 	public void setErrorImage(Image image)
 	{
 		theErrorImage = image;
@@ -247,11 +262,13 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		}
 	}
 
+	/** @return The policy that this widget follows when it is resized horizontally */
 	public ImageResizePolicy getHorizontalResizePolicy()
 	{
 		return theHResizePolicy;
 	}
 
+	/** @param policy The policy that this widget should follow when it is resized horizontally */
 	public void setHorizontalResizePolicy(ImageResizePolicy policy)
 	{
 		if(policy == null)
@@ -264,11 +281,13 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		repaint(null, false);
 	}
 
+	/** @return The policy that this widget follows when it is resized vertically */
 	public ImageResizePolicy getVerticalResizePolicy()
 	{
 		return theVResizePolicy;
 	}
 
+	/** @param policy The policy that this widget should follow when it is resized vertically */
 	public void setVerticalResizePolicy(ImageResizePolicy policy)
 	{
 		if(policy == null)
@@ -276,6 +295,29 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		if(theVResizePolicy == policy)
 			return;
 		theVResizePolicy = policy;
+		if(getParent() != null)
+			getParent().relayout(false);
+		repaint(null, false);
+	}
+
+	/**
+	 * @return Whether this widget renders the image proportionally. Only works if both resize policies are {@link ImageResizePolicy#resize}
+	 *         .
+	 */
+	public boolean isProportionLocked()
+	{
+		return isProportionLocked;
+	}
+
+	/**
+	 * @param locked Whether this widget renders the image proportionally. Only works if both resize policies are
+	 *            {@link ImageResizePolicy#resize}.
+	 */
+	public void setProportionLocked(boolean locked)
+	{
+		if(locked == isProportionLocked)
+			return;
+		isProportionLocked = locked;
 		if(getParent() != null)
 			getParent().relayout(false);
 		repaint(null, false);
@@ -363,6 +405,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		return super.getHSizer(width);
 	}
 
+	/** @return The image that would be displayed if this widget were painted now (may be the loading or error image) */
 	public Image getDisplayedImage()
 	{
 		if(isLoading)
@@ -393,7 +436,16 @@ public class GenericImage extends org.muis.core.LayoutContainer
 				drawImage(graphics, img, y, y + h, 0, h, area);
 			break;
 		case resize:
-			drawImage(graphics, img, 0, getHeight(), 0, h, area);
+			if(isProportionLocked)
+			{
+				int w = img.getWidth(null);
+				if(h * getWidth() / getHeight() / w > 0)
+					drawImage(graphics, img, 0, getHeight(), 0, h, area);
+				else
+					drawImage(graphics, img, 0, h * getWidth() / w, 0, h, area);
+			}
+			else
+				drawImage(graphics, img, 0, getHeight(), 0, h, area);
 			break;
 		}
 	}
@@ -413,7 +465,13 @@ public class GenericImage extends org.muis.core.LayoutContainer
 				drawImage(graphics, img, x, gfxY1, x + w, gfxY2, 0, imgY1, w, imgY2, area);
 			break;
 		case resize:
-			drawImage(graphics, img, 0, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area);
+			if(isProportionLocked)
+			{
+				int gfxW = (gfxY2 - gfxY1) * w / (imgY2 - imgY1);
+				drawImage(graphics, img, 0, gfxY1, gfxW, gfxY2, 0, imgY1, w, imgY2, area);
+			}
+			else
+				drawImage(graphics, img, 0, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area);
 			break;
 		}
 	}

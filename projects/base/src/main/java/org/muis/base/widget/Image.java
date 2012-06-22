@@ -2,19 +2,29 @@ package org.muis.base.widget;
 
 import org.muis.core.MuisAttribute;
 
+/** An extension of GenericImage that allows users to specify its content and behavior with attributes */
 public class Image extends GenericImage
 {
-	/** The attribute to use to specify the image resource that this image is to render */
+	/** The attribute to use to specify the image resource that an image is to render */
 	public static final MuisAttribute<java.net.URL> src = new MuisAttribute<java.net.URL>("src", MuisAttribute.resourceAttr);
 
+	/**
+	 * The attribute to use to specify both resize policies at once for an image. Will be overridden if either the horizontal or vertical
+	 * resize policies are set.
+	 */
 	public static final MuisAttribute<ImageResizePolicy> resize = new MuisAttribute<ImageResizePolicy>("resize",
 		new MuisAttribute.MuisEnumAttribute<>(ImageResizePolicy.class));
 
+	/** The attribute to use to specify the horizontal resize policy for an image */
 	public static final MuisAttribute<ImageResizePolicy> hResize = new MuisAttribute<ImageResizePolicy>("h-resize",
 		new MuisAttribute.MuisEnumAttribute<>(ImageResizePolicy.class));
 
+	/** The attribute to use to specify the vertical resize policy for an image */
 	public static final MuisAttribute<ImageResizePolicy> vResize = new MuisAttribute<ImageResizePolicy>("v-resize",
 		new MuisAttribute.MuisEnumAttribute<>(ImageResizePolicy.class));
+
+	/** The attribute to use to specify the {@link #isProportionLocked() proportion-locked} attribute of an image */
+	public static final MuisAttribute<Boolean> propLocked = new MuisAttribute<Boolean>("prop-locked", MuisAttribute.boolAttr);
 
 	/** Creates an image element */
 	public Image()
@@ -23,6 +33,7 @@ public class Image extends GenericImage
 		acceptAttribute(resize);
 		acceptAttribute(hResize);
 		acceptAttribute(vResize);
+		acceptAttribute(propLocked);
 		addListener(ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisAttribute<?>> event, org.muis.core.MuisElement element)
@@ -68,6 +79,11 @@ public class Image extends GenericImage
 					if(policy == null)
 						policy = ImageResizePolicy.lockIfEmpty;
 					setVerticalResizePolicy(policy);
+				}
+				else if(event.getValue() == propLocked)
+				{
+					Boolean locked = element.getAttribute(propLocked);
+					setProportionLocked(locked == null ? false : locked.booleanValue());
 				}
 			}
 

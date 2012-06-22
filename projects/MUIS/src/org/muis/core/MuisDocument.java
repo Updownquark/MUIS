@@ -54,6 +54,8 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 
 	private MuisClassView theClassView;
 
+	private MuisCache theCache;
+
 	private MuisHeadSection theHead;
 
 	private BodyElement theRoot;
@@ -97,6 +99,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 		theLocation = location;
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
+		theCache = new MuisCache();
 		theMessages = new ArrayList<MuisMessage>();
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
 		theGraphics = graphics;
@@ -145,6 +148,12 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	public MuisClassView getClassView()
 	{
 		return theClassView;
+	}
+
+	/** @return The resource cache for this document */
+	public MuisCache getCache()
+	{
+		return theCache;
 	}
 
 	/** @return The head section of this document */

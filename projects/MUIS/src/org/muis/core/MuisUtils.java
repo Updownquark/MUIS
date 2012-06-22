@@ -2,6 +2,7 @@ package org.muis.core;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.net.URL;
 import java.util.ArrayList;
 
 /** A set of utilities to use with core MUIS elements */
@@ -175,5 +176,47 @@ public class MuisUtils
 			}
 		}
 		return root;
+	}
+
+	/**
+	 * @param reference The URL to be the reference of the relative path
+	 * @param relativePath The path relative to the reference URL to resolve
+	 * @return A URL that is equivalent to <code>relativePath</code> resolved with reference to <code>reference</code>
+	 * @throws MuisException If the given path is not either an absolute URL or a relative path
+	 */
+	public static URL resolveURL(URL reference, final String relativePath) throws MuisException
+	{
+		java.util.regex.Pattern urlPattern = java.util.regex.Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*:/");
+		java.util.regex.Matcher matcher = urlPattern.matcher(relativePath);
+		if(matcher.find() && matcher.start() == 0)
+			try
+			{
+				return new URL(relativePath);
+			} catch(java.net.MalformedURLException e)
+			{
+				throw new MuisException("Malformed URL " + relativePath, e);
+			}
+		String file = reference.getFile();
+		int slashIdx = file.lastIndexOf('/');
+		if(slashIdx >= 0)
+			file = file.substring(0, slashIdx);
+		String [] cp = relativePath.split("[/\\\\]");
+		while(cp.length > 0 && cp[0].equals(".."))
+		{
+			slashIdx = file.lastIndexOf('/');
+			if(slashIdx < 0)
+				throw new MuisException("Cannot resolve " + relativePath + " with respect to " + reference);
+			file = file.substring(0, slashIdx);
+			cp = prisms.util.ArrayUtils.remove(cp, 0);
+		}
+		for(String cps : cp)
+			file += "/" + cps;
+		try
+		{
+			return new URL(reference.getProtocol(), reference.getHost(), file);
+		} catch(java.net.MalformedURLException e)
+		{
+			throw new MuisException("Cannot resolve \"" + file + "\"", e);
+		}
 	}
 }

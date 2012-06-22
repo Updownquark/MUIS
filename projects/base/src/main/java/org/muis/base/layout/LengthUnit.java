@@ -8,7 +8,9 @@ public enum LengthUnit
 	/** Represents a length in pixels */
 	pixels("px", false),
 	/** Represents a length as a fraction of the total length available in the parent */
-	percent("%", true);
+	percent("%", true),
+	/** Represents a length in pixels away from the far edget of the container */
+	lexips("xp", true);
 
 	/** The attribute value that represents this length unit */
 	public final String attrValue;

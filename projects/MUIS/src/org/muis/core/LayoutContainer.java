@@ -54,12 +54,6 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 		});
 	}
 
-	@Override
-	public void postCreate()
-	{
-		super.postCreate();
-	}
-
 	/** @return The MuisLayout that lays out this container's children */
 	public MuisLayout getLayout()
 	{

@@ -1760,7 +1760,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	/**
 	 * Renders this element in a graphics context.
-	 * 
+	 *
 	 * @param graphics The graphics context to render this element in
 	 * @param area The area to draw
 	 */
@@ -1770,6 +1770,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			return;
 		Rectangle paintBounds = getPaintBounds();
 		theCacheBounds.setBounds(paintBounds);
+		theCacheBounds.x += theX;
+		theCacheBounds.y += theY;
 		Rectangle preClip = graphics.getClipBounds();
 		try
 		{

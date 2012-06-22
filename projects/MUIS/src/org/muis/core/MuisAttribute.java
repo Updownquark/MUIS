@@ -1,5 +1,7 @@
 package org.muis.core;
 
+import java.net.URL;
+
 /**
  * A MuisAttribute represents an option that may or must be specified in a MUIS element either from the document(XML) or from code. A
  * MuisAttribute must be created in java (prefereably in the form of a static constant) and given to the element to tell it that the
@@ -179,6 +181,77 @@ public final class MuisAttribute<T>
 				return (Double) value;
 			else if(value instanceof Float)
 				return Double.valueOf(((Number) value).doubleValue());
+			else
+				return null;
+		}
+	};
+
+	/**
+	 * A resource attribute--values may be:
+	 * <ul>
+	 * <li>namespace:tag, where <code>tag</code> maps to a resource in the <code>namespace</code> toolkit</li>
+	 * <li>A relative path to a resource that may be resolved from the element's toolkit. A <code>namespace:</code> prefix may be used to
+	 * specify a different toolkit</li>
+	 * <li>An absolute URL. Permissions will be checked before resources at any external URLs are retrieved. TODO cite specific permission.</li>
+	 * </ul>
+	 */
+	public static final MuisAttribute.AttributeType<URL> resourceAttr = new AttributeType<java.net.URL>() {
+		@Override
+		public String validate(MuisElement element, String value)
+		{
+			try
+			{
+				parse(element, value);
+			} catch(MuisException e)
+			{
+				return e.getMessage().substring("Resource attribute ".length());
+			}
+			return null;
+		}
+
+		@Override
+		public URL parse(MuisElement element, String value) throws MuisException
+		{
+			int sepIdx = value.indexOf(':');
+			String namespace = sepIdx < 0 ? null : value.substring(0, sepIdx);
+			String content = sepIdx < 0 ? value : value.substring(sepIdx + 1);
+			MuisToolkit toolkit = namespace == null ? element.getToolkit() : element.getClassView().getToolkit(namespace);
+			if(toolkit == null)
+				try
+				{
+					return new URL(value);
+				} catch(java.net.MalformedURLException e)
+				{
+					throw new MuisException("Resource attribute is not a valid URL: \"" + value + "\"", e);
+				}
+			ResourceMapping mapping = toolkit.getMappedResource(content);
+			if(mapping == null)
+				throw new MuisException("Resource attribute must map to a declared resource: \"" + value + "\" in toolkit "
+					+ toolkit.getName() + " or one of its dependencies");
+			if(mapping.getLocation().contains(":"))
+				try
+				{
+					return new URL(mapping.getLocation());
+				} catch(java.net.MalformedURLException e)
+				{
+					throw new MuisException("Resource attribute maps to an invalid URL \"" + mapping.getLocation() + "\" in toolkit "
+						+ mapping.getOwner().getName() + ": \"" + value + "\"");
+				}
+			try
+			{
+				return MuisUtils.resolveURL(mapping.getOwner().getURI(), mapping.getLocation());
+			} catch(MuisException e)
+			{
+				throw new MuisException("Resource attribute maps to a resource (" + mapping.getLocation()
+					+ ") that cannot be resolved with respect to toolkit \"" + mapping.getOwner().getName() + "\"'s URL: \"" + value + "\"");
+			}
+		}
+
+		@Override
+		public URL cast(Object value)
+		{
+			if(value instanceof URL)
+				return (URL) value;
 			else
 				return null;
 		}

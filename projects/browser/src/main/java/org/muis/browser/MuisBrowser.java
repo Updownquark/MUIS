@@ -16,6 +16,7 @@ public class MuisBrowser extends javax.swing.JPanel
 		setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 		theAddressBar = new javax.swing.JTextField(250);
 		add(theAddressBar);
+		theAddressBar.setMaximumSize(theAddressBar.getPreferredSize());
 		theContentPane = new MuisContentPane();
 		add(theContentPane);
 		theContentPane.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -24,9 +25,7 @@ public class MuisBrowser extends javax.swing.JPanel
 			public void keyReleased(java.awt.event.KeyEvent evt)
 			{
 				if(evt.getKeyCode() != java.awt.event.KeyEvent.VK_ENTER)
-				{
 					return;
-				}
 				goToAddress(theAddressBar.getText());
 			}
 		});
@@ -77,7 +76,6 @@ public class MuisBrowser extends javax.swing.JPanel
 		theContentPane.setContent(muisDoc);
 		repaint();
 		for(org.muis.core.MuisMessage msg : muisDoc.getAllMessages())
-		{
 			switch (msg.type)
 			{
 			case FATAL:
@@ -85,19 +83,14 @@ public class MuisBrowser extends javax.swing.JPanel
 			case WARNING:
 				System.err.println(msg.type + ": " + msg.text);
 				if(msg.exception != null)
-				{
 					msg.exception.printStackTrace();
-				}
 				break;
 			case INFO:
 				System.out.println(msg.type + ": " + msg.text);
 				if(msg.exception != null)
-				{
 					msg.exception.printStackTrace(System.out);
-				}
 				break;
 			}
-		}
 	}
 
 	/** @return The content pane that renders content pointed to from this browser */
@@ -121,8 +114,6 @@ public class MuisBrowser extends javax.swing.JPanel
 		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		if(args.length > 0)
-		{
 			browser.goToAddress(args[0]);
-		}
 	}
 }

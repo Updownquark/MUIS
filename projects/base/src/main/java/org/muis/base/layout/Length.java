@@ -64,6 +64,8 @@ public class Length
 			return Math.round(theValue);
 		case percent:
 			return Math.round(theValue * totalSize / 100);
+		case lexips:
+			return totalSize - Math.round(theValue);
 		}
 		throw new IllegalStateException("Unrecognized length unit: " + theUnit);
 	}

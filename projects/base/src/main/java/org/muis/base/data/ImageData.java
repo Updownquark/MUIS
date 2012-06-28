@@ -1,6 +1,8 @@
 package org.muis.base.data;
 
 import java.awt.Image;
+import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import javax.imageio.metadata.IIOMetadataNode;
@@ -11,6 +13,8 @@ public class ImageData implements Iterable<Image>
 	private Image [] theImages;
 
 	private int [] theDelays;
+
+	private Point [] theOffsets;
 
 	private int theWidth;
 
@@ -23,6 +27,7 @@ public class ImageData implements Iterable<Image>
 	{
 		theImages = new Image[] {img};
 		theDelays = new int[] {0};
+		theOffsets = new Point[] {new Point(0, 0)};
 		theSize = -1;
 		theWidth = -1;
 		theHeight = -1;
@@ -36,17 +41,20 @@ public class ImageData implements Iterable<Image>
 	{
 		String format = reader.getFormatName();
 		int count = reader.getNumImages(false);
-		java.util.ArrayList<Image> images = null;
+		ArrayList<Image> images = null;
 		prisms.util.IntList delays = null;
+		ArrayList<Point> offsets = null;
 		if(count >= 0)
 		{
 			theImages = new Image[count];
 			theDelays = new int[count];
+			theOffsets = new Point[count];
 		}
 		else
 		{
-			images = new java.util.ArrayList<>();
+			images = new ArrayList<>();
 			delays = new prisms.util.IntList();
+			offsets = new ArrayList<>();
 		}
 		int index;
 		for(index = 0; count < 0 || index < count; index++)
@@ -65,21 +73,25 @@ public class ImageData implements Iterable<Image>
 				theHeight = img.getHeight();
 			theSize += img.getWidth() * img.getHeight() * 4;
 			int delay = getDelay(reader, format, index);
+			Point offset = getOffset(reader, format, index);
 			if(theImages != null)
 			{
 				theImages[index] = img;
 				theDelays[index] = delay;
+				theOffsets[index] = offset;
 			}
 			else
 			{
 				images.add(img);
 				delays.add(delay);
+				offsets.add(offset);
 			}
 		}
 		if(theImages == null)
 		{
 			theImages = images.toArray(new Image[images.size()]);
 			theDelays = delays.toArray();
+			theOffsets = offsets.toArray(new Point[offsets.size()]);
 		}
 	}
 
@@ -167,6 +179,15 @@ public class ImageData implements Iterable<Image>
 		return theDelays[index];
 	}
 
+	/**
+	 * @param index The index of the frame to get the offset of
+	 * @return The offset from the top-left corner to place the given frame of this image at
+	 */
+	public Point getOffset(int index)
+	{
+		return theOffsets[index];
+	}
+
 	private static int getDelay(javax.imageio.ImageReader reader, String format, int index) throws java.io.IOException
 	{
 		if(format.toLowerCase().contains("gif"))
@@ -186,5 +207,27 @@ public class ImageData implements Iterable<Image>
 		}
 		else
 			return 0;
+	}
+
+	private static Point getOffset(javax.imageio.ImageReader reader, String format, int index) throws java.io.IOException
+	{
+		if(format.toLowerCase().contains("gif"))
+		{
+			org.w3c.dom.Node root = reader.getImageMetadata(index).getAsTree("javax_imageio_gif_image_1.0");
+			for(org.w3c.dom.Node c = root.getFirstChild(); c != null; c = c.getNextSibling())
+				if(c instanceof IIOMetadataNode)
+				{
+					IIOMetadataNode metaNode = (IIOMetadataNode) c;
+					if(c.getNodeName().equals("ImageDescriptor"))
+						if(metaNode.getAttribute("imageLeftPosition") != null && metaNode.getAttribute("imageTopPosition") != null)
+							return new Point(Integer.parseInt(metaNode.getAttribute("imageLeftPosition")), Integer.parseInt(metaNode
+								.getAttribute("imageTopPosition")));
+						else
+							return new Point(0, 0);
+				}
+			return new Point(0, 0);
+		}
+		else
+			return new Point(0, 0);
 	}
 }

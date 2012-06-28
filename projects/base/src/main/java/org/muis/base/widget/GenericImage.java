@@ -534,28 +534,38 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		int imgIdx = theImageIndex;
 		imgIdx %= img.getImageCount();
 		int h = img.getHeight();
+		java.awt.Point off = img.getOffset(imgIdx);
 		switch (theVResizePolicy)
 		{
 		case none:
 		case lock:
 		case lockIfEmpty:
-			drawImage(graphics, img, 0, h, 0, h, area, imgIdx);
+			drawImage(graphics, img, off.y, off.y + h, 0, h, area, imgIdx);
 			break;
 		case repeat:
 			for(int y = 0; y < getHeight(); y += h)
-				drawImage(graphics, img, y, y + h, 0, h, area, imgIdx);
+				drawImage(graphics, img, y + off.y, y + off.y + h, 0, h, area, imgIdx);
 			break;
 		case resize:
 			if(isProportionLocked)
 			{
 				int w = img.getWidth();
-				if(h * getWidth() / getHeight() / w > 0)
-					drawImage(graphics, img, 0, getHeight(), 0, h, area, imgIdx);
+				if((off.y + h) * getWidth() / getHeight() / (off.x + w) > 0)
+				{
+					int offY = off.y * getHeight() / (off.y + h);
+					drawImage(graphics, img, offY, getHeight(), 0, h, area, imgIdx);
+				}
 				else
-					drawImage(graphics, img, 0, h * getWidth() / w, 0, h, area, imgIdx);
+				{
+					int offY = off.y * getWidth() / (off.x + w);
+					drawImage(graphics, img, offY, (off.y + h) * getWidth() / (off.x + w), 0, h, area, imgIdx);
+				}
 			}
 			else
-				drawImage(graphics, img, 0, getHeight(), 0, h, area, imgIdx);
+			{
+				int offY = off.y * getHeight() / (off.y + h);
+				drawImage(graphics, img, offY, getHeight(), 0, h, area, imgIdx);
+			}
 			break;
 		}
 	}
@@ -563,25 +573,30 @@ public class GenericImage extends org.muis.core.LayoutContainer
 	private void drawImage(Graphics2D graphics, ImageData img, int gfxY1, int gfxY2, int imgY1, int imgY2, Rectangle area, int imgIdx)
 	{
 		int w = img.getWidth();
+		java.awt.Point off = img.getOffset(imgIdx);
 		switch (theHResizePolicy)
 		{
 		case none:
 		case lock:
 		case lockIfEmpty:
-			drawImage(graphics, img, 0, gfxY1, w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
+			drawImage(graphics, img, off.x, gfxY1, off.x + w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		case repeat:
 			for(int x = 0; x < getWidth(); x += w)
-				drawImage(graphics, img, x, gfxY1, x + w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
+				drawImage(graphics, img, x + off.x, gfxY1, x + off.x + w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		case resize:
 			if(isProportionLocked)
 			{
-				int gfxW = (gfxY2 - gfxY1) * w / (imgY2 - imgY1);
-				drawImage(graphics, img, 0, gfxY1, gfxW, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
+				int gfxW = (gfxY2 - gfxY1) * (off.x + w) / (imgY2 - imgY1);
+				int offX = off.x * gfxW / (off.x + w);
+				drawImage(graphics, img, offX, gfxY1, gfxW, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			}
 			else
-				drawImage(graphics, img, 0, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
+			{
+				int offX = off.x * getWidth() / (off.x + w);
+				drawImage(graphics, img, offX, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
+			}
 			break;
 		}
 	}

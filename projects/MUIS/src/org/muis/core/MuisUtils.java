@@ -219,4 +219,9 @@ public class MuisUtils
 			throw new MuisException("Cannot resolve \"" + file + "\"", e);
 		}
 	}
+
+	public static java.awt.Font getFont(org.muis.core.style.MuisStyle style)
+	{
+		java.awt.Font.getFont(null)
+	}
 }

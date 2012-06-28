@@ -6,7 +6,7 @@
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
     	<base:block layout="base:simple" style="bg.color=green">
-    		<base:image src="test:hello-world" style="bg.color=white" left="30px" right="30xp" top="30px" bottom="30xp"
+    		<base:image src="test:big-animation" style="bg.color=white" left="30px" right="30xp" top="30px" bottom="30xp"
     			h-resize="resize" v-resize="resize" prop-locked="true" />
     	</base:block>
     </body>

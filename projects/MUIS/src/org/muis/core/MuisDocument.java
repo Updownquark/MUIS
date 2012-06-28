@@ -360,7 +360,7 @@ public class MuisDocument implements MuisMessage.MuisMessageCenter
 	 */
 	public void setSize(int width, int height)
 	{
-		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.ReboundEvent(theRoot, new java.awt.Rectangle(0, 0, width, height)), false);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.ReboundEvent(theRoot, new java.awt.Rectangle(0, 0, width, height)), true);
 	}
 
 	/**

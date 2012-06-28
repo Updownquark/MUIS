@@ -5,6 +5,7 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.net.URL;
 
+import org.muis.base.data.ImageData;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 
@@ -26,56 +27,105 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		resize
 	}
 
+	public class ImageAnimator implements org.muis.motion.Animation
+	{
+		private volatile boolean isStopped;
+
+		@Override
+		public boolean update(long time)
+		{
+			ImageData img = getDisplayedImage();
+			if(img == null || isStopped)
+				return true;
+			int total = 0;
+			for(int i = 0; i < img.getImageCount(); i++)
+			{
+				if(time < total)
+				{
+					setImageIndex(i);
+					break;
+				}
+				total += img.getDelay(i);
+			}
+			if(time >= total)
+			{
+				if(total == 0)
+					return true;
+				time = time % total;
+				total = 0;
+				for(int i = 0; i < img.getImageCount(); i++)
+				{
+					if(time < total)
+					{
+						setImageIndex(i);
+						break;
+					}
+					total += img.getDelay(i);
+				}
+			}
+			return isStopped;
+		}
+
+		@Override
+		public long getMaxFrequency()
+		{
+			ImageData img = getDisplayedImage();
+			if(img == null)
+				return 0;
+			int ret = 0;
+			boolean hetero = false;
+			for(int i = 0; i < img.getImageCount(); i++)
+			{
+				int delay = img.getDelay(i);
+				if(ret == 0)
+					ret = delay;
+				else if(ret != delay)
+				{
+					hetero = true;
+					if(delay < ret)
+						ret = delay;
+				}
+			}
+			if(hetero)
+				ret /= 4;
+			return ret;
+		}
+
+		public void stop()
+		{
+			isStopped = true;
+		}
+	}
+
 	/** The cache type to load images from URLs */
-	public static final org.muis.core.MuisCache.CacheItemType<URL, Image, java.io.IOException> cacheType;
+	public static final org.muis.core.MuisCache.CacheItemType<URL, ImageData, java.io.IOException> cacheType;
 
 	static
 	{
-		cacheType = new org.muis.core.MuisCache.CacheItemType<URL, Image, java.io.IOException>() {
+		cacheType = new org.muis.core.MuisCache.CacheItemType<URL, ImageData, java.io.IOException>() {
 			@Override
-			public Image generate(org.muis.core.MuisDocument doc, URL key) throws java.io.IOException
+			public ImageData generate(org.muis.core.MuisDocument doc, URL key) throws java.io.IOException
 			{
-				java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
-				java.io.InputStream input = null;
-				try
+				javax.imageio.stream.ImageInputStream imInput = javax.imageio.ImageIO.createImageInputStream(key.openStream());
+				if(imInput == null)
+					throw new java.io.IOException("File format not recognized: " + key.getPath());
+				java.util.Iterator<javax.imageio.ImageReader> readers = javax.imageio.ImageIO.getImageReaders(imInput);
+				if(!readers.hasNext())
+					throw new java.io.IOException("File format not recognized: " + key.getPath());
+				javax.imageio.ImageReader reader = readers.next();
+				synchronized(reader)
 				{
-					input = new java.io.BufferedInputStream(key.openStream());
-					int read = input.read();
-					while(read >= 0)
-					{
-						bytes.write(read);
-						read = input.read();
-					}
-				} catch(java.io.IOException e)
-				{
-					throw new java.io.IOException("Could not retrieve image at " + key, e);
-				} finally
-				{
-					if(input != null)
-						try
-						{
-							input.close();
-						} catch(java.io.IOException e)
-						{
-						}
+					reader.setInput(imInput);
+					return new ImageData(reader);
 				}
-				Image ret = java.awt.Toolkit.getDefaultToolkit().createImage(bytes.toByteArray());
-				while(ret.getWidth(null) < 0 || ret.getHeight(null) < 0)
-					try
-					{
-						Thread.sleep(10);
-					} catch(InterruptedException e)
-					{
-					}
-				return ret;
 			}
 
 			@Override
-			public int size(Image value)
+			public int size(ImageData value)
 			{
-				int size = value.getHeight(null) * value.getWidth(null) * 4;
+				int size = value.getSize();
 				if(size < 0)
-					size = 0;
+					return 0;
 				return size;
 			}
 		};
@@ -87,11 +137,11 @@ public class GenericImage extends org.muis.core.LayoutContainer
 
 	volatile URL theLocation;
 
-	volatile Image theImage;
+	volatile ImageData theImage;
 
-	volatile Image theLoadingImage;
+	volatile ImageData theLoadingImage;
 
-	volatile Image theErrorImage;
+	volatile ImageData theErrorImage;
 
 	private ImageResizePolicy theHResizePolicy;
 
@@ -101,9 +151,18 @@ public class GenericImage extends org.muis.core.LayoutContainer
 
 	boolean isSizeLocked;
 
+	private int theImageIndex;
+
+	private ImageAnimator theAnimator;
+
+	private ImageData thePreDisplayed;
+
+	private Object theLock;
+
 	/** Creates a generic image */
 	public GenericImage()
 	{
+		theLock = new Object();
 		try
 		{
 			setAttribute(LAYOUT_ATTR, org.muis.base.layout.SimpleLayout.class);
@@ -125,12 +184,15 @@ public class GenericImage extends org.muis.core.LayoutContainer
 						{
 							getDocument().getCache().get(getDocument(), cacheType,
 								org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
-								new org.muis.core.MuisCache.ItemReceiver<URL, Image>() {
+								new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 									@Override
-									public void itemGenerated(URL key, Image value)
+									public void itemGenerated(URL key, ImageData value)
 									{
 										if(theLoadingImage == null)
+										{
 											theLoadingImage = value;
+											imageChanged();
+										}
 									}
 
 									@Override
@@ -146,17 +208,20 @@ public class GenericImage extends org.muis.core.LayoutContainer
 					res = getToolkit().getMappedResource("img-load-failed-icon");
 					if(res == null)
 						error("No configured img-load-failed-icon", null);
-					if(res != null && theLoadingImage == null)
+					if(res != null && theErrorImage == null)
 						try
 						{
 							getDocument().getCache().get(getDocument(), cacheType,
 								org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
-								new org.muis.core.MuisCache.ItemReceiver<URL, Image>() {
+								new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 									@Override
-									public void itemGenerated(URL key, Image value)
+									public void itemGenerated(URL key, ImageData value)
 									{
-										if(theLoadingImage == null)
+										if(theErrorImage == null)
+										{
 											theLoadingImage = value;
+											imageChanged();
+										}
 									}
 
 									@Override
@@ -195,17 +260,15 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		try
 		{
 			theImage = getDocument().getCache().get(getDocument(), cacheType, location,
-				new org.muis.core.MuisCache.ItemReceiver<URL, java.awt.Image>() {
+				new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 					@Override
-					public void itemGenerated(URL key, Image value)
+					public void itemGenerated(URL key, ImageData value)
 					{
 						if(!key.equals(theLocation))
 							return;
 						theImage = value;
 						isLoading = false;
-						if(getParent() != null)
-							getParent().relayout(false);
-						repaint(null, false);
+						imageChanged();
 					}
 
 					@Override
@@ -215,21 +278,33 @@ public class GenericImage extends org.muis.core.LayoutContainer
 							return;
 						theLoadError = exception;
 						isLoading = false;
+						imageChanged();
 					}
 				});
+			imageChanged();
 		} catch(java.io.IOException e)
 		{
 		}
 	}
 
+	/** @return The image that this widget should render */
+	public ImageData getImage()
+	{
+		return theImage;
+	}
+
 	/** @param image The image that this widget should render */
-	public void setImage(Image image)
+	public void setImage(ImageData image)
 	{
 		theLocation = null;
 		theImage = image;
-		if(getParent() != null)
-			getParent().relayout(false);
-		repaint(null, false);
+		imageChanged();
+	}
+
+	/** @param image The image that this widget should render */
+	public void setImage(Image image)
+	{
+		setImage(image == null ? null : new ImageData(image));
 	}
 
 	/** @return The error that caused the failure of this widget's last attempted image load */
@@ -239,23 +314,37 @@ public class GenericImage extends org.muis.core.LayoutContainer
 	}
 
 	/** @param image The image to display while the target image is loading */
-	public void setLoadingImage(Image image)
+	public void setLoadingImage(ImageData image)
 	{
 		theLoadingImage = image;
-		if(isLoading)
-		{
-			if(getParent() != null)
-				getParent().relayout(false);
-			repaint(null, false);
-		}
+		imageChanged();
 	}
 
 	/** @param image The image to display when a target image fails to load */
-	public void setErrorImage(Image image)
+	public void setErrorImage(ImageData image)
 	{
 		theErrorImage = image;
-		if(theLoadError != null)
+		imageChanged();
+	}
+
+	void imageChanged()
+	{
+		ImageData img = getDisplayedImage();
+		if(img == thePreDisplayed)
+			return;
+		synchronized(theLock)
 		{
+			img = getDisplayedImage();
+			if(img == thePreDisplayed)
+				return;
+			ImageAnimator anim = theAnimator;
+			theAnimator = null;
+			if(anim != null)
+				anim.stop();
+			theImageIndex = 0;
+			thePreDisplayed = img;
+			theAnimator = new ImageAnimator();
+			org.muis.motion.AnimationManager.get().start(theAnimator);
 			if(getParent() != null)
 				getParent().relayout(false);
 			repaint(null, false);
@@ -302,7 +391,6 @@ public class GenericImage extends org.muis.core.LayoutContainer
 
 	/**
 	 * @return Whether this widget renders the image proportionally. Only works if both resize policies are {@link ImageResizePolicy#resize}
-	 *         .
 	 */
 	public boolean isProportionLocked()
 	{
@@ -326,12 +414,12 @@ public class GenericImage extends org.muis.core.LayoutContainer
 	@Override
 	public SizePolicy getWSizer(int height)
 	{
-		Image img = getDisplayedImage();
+		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null)
 		{
-			w = img.getWidth(null);
-			h = img.getHeight(null);
+			w = img.getWidth();
+			h = img.getHeight();
 		}
 		else
 			return super.getWSizer(height);
@@ -367,12 +455,12 @@ public class GenericImage extends org.muis.core.LayoutContainer
 	@Override
 	public SizePolicy getHSizer(int width)
 	{
-		Image img = getDisplayedImage();
+		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null)
 		{
-			w = img.getWidth(null);
-			h = img.getHeight(null);
+			w = img.getWidth();
+			h = img.getHeight();
 		}
 		else
 			return super.getHSizer(width);
@@ -406,7 +494,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 	}
 
 	/** @return The image that would be displayed if this widget were painted now (may be the loading or error image) */
-	public Image getDisplayedImage()
+	public ImageData getDisplayedImage()
 	{
 		if(isLoading)
 			return theLoadingImage;
@@ -416,71 +504,87 @@ public class GenericImage extends org.muis.core.LayoutContainer
 			return theImage;
 	}
 
+	public void setImageIndex(int index)
+	{
+		ImageData img = getDisplayedImage();
+		if(img == null || img.getImageCount() < 2)
+			index = 0;
+		else
+			index %= img.getImageCount();
+		if(theImageIndex != index)
+		{
+			theImageIndex = index;
+			repaint(null, true);
+		}
+	}
+
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area)
 	{
 		super.paintSelf(graphics, area);
-		Image img = getDisplayedImage();
+		ImageData img = getDisplayedImage();
 		if(img == null)
 			return;
-		int h = img.getHeight(null);
+		int imgIdx = theImageIndex;
+		imgIdx %= img.getImageCount();
+		int h = img.getHeight();
 		switch (theVResizePolicy)
 		{
 		case none:
 		case lock:
 		case lockIfEmpty:
-			drawImage(graphics, img, 0, h, 0, h, area);
+			drawImage(graphics, img, 0, h, 0, h, area, imgIdx);
 			break;
 		case repeat:
 			for(int y = 0; y < getHeight(); y += h)
-				drawImage(graphics, img, y, y + h, 0, h, area);
+				drawImage(graphics, img, y, y + h, 0, h, area, imgIdx);
 			break;
 		case resize:
 			if(isProportionLocked)
 			{
-				int w = img.getWidth(null);
+				int w = img.getWidth();
 				if(h * getWidth() / getHeight() / w > 0)
-					drawImage(graphics, img, 0, getHeight(), 0, h, area);
+					drawImage(graphics, img, 0, getHeight(), 0, h, area, imgIdx);
 				else
-					drawImage(graphics, img, 0, h * getWidth() / w, 0, h, area);
+					drawImage(graphics, img, 0, h * getWidth() / w, 0, h, area, imgIdx);
 			}
 			else
-				drawImage(graphics, img, 0, getHeight(), 0, h, area);
+				drawImage(graphics, img, 0, getHeight(), 0, h, area, imgIdx);
 			break;
 		}
 	}
 
-	private void drawImage(Graphics2D graphics, Image img, int gfxY1, int gfxY2, int imgY1, int imgY2, Rectangle area)
+	private void drawImage(Graphics2D graphics, ImageData img, int gfxY1, int gfxY2, int imgY1, int imgY2, Rectangle area, int imgIdx)
 	{
-		int w = img.getWidth(null);
+		int w = img.getWidth();
 		switch (theHResizePolicy)
 		{
 		case none:
 		case lock:
 		case lockIfEmpty:
-			drawImage(graphics, img, 0, gfxY1, w, gfxY2, 0, imgY1, w, imgY2, area);
+			drawImage(graphics, img, 0, gfxY1, w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		case repeat:
 			for(int x = 0; x < getWidth(); x += w)
-				drawImage(graphics, img, x, gfxY1, x + w, gfxY2, 0, imgY1, w, imgY2, area);
+				drawImage(graphics, img, x, gfxY1, x + w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		case resize:
 			if(isProportionLocked)
 			{
 				int gfxW = (gfxY2 - gfxY1) * w / (imgY2 - imgY1);
-				drawImage(graphics, img, 0, gfxY1, gfxW, gfxY2, 0, imgY1, w, imgY2, area);
+				drawImage(graphics, img, 0, gfxY1, gfxW, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			}
 			else
-				drawImage(graphics, img, 0, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area);
+				drawImage(graphics, img, 0, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		}
 	}
 
-	private void drawImage(Graphics2D graphics, Image img, int gfxX1, int gfxY1, int gfxX2, int gfxY2, int imgX1, int imgY1, int imgX2,
-		int imgY2, Rectangle area)
+	private void drawImage(Graphics2D graphics, ImageData img, int gfxX1, int gfxY1, int gfxX2, int gfxY2, int imgX1, int imgY1, int imgX2,
+		int imgY2, Rectangle area, int imgIdx)
 	{
 		if(area != null && (area.x >= gfxX2 || area.x + area.width <= gfxX1 || area.y >= gfxY2 || area.y + area.height <= gfxY1))
 			return;
-		graphics.drawImage(img, gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
+		graphics.drawImage(img.get(imgIdx), gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
 	}
 }

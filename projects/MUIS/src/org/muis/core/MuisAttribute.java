@@ -363,6 +363,9 @@ public final class MuisAttribute<T>
 		/** The enumeration that this attribute represents */
 		public final Class<T> enumType;
 
+		/** Whether all values in this enum are unique case-insensitively. If this is true, attribute values are case-insensitive. */
+		public final boolean ciUnique;
+
 		/**
 		 * Creates an enumeration attribute from an enumerated type. The options will be all the type's constants in lower-case.
 		 *
@@ -371,14 +374,30 @@ public final class MuisAttribute<T>
 		public MuisEnumAttribute(Class<T> enumClass)
 		{
 			enumType = enumClass;
+			java.util.HashSet<String> values = new java.util.HashSet<>();
+			boolean unique = true;
+			for(T value : enumType.getEnumConstants())
+				if(!values.add(value.name().toLowerCase()))
+				{
+					unique = false;
+					break;
+				}
+			ciUnique = unique;
 		}
 
 		@Override
 		public String validate(MuisElement element, String value)
 		{
+			if(value == null)
+				return null;
 			T [] consts = enumType.getEnumConstants();
 			for(T e : consts)
-				if(e.name().equals(value))
+				if(ciUnique)
+				{
+					if(e.name().equalsIgnoreCase(value))
+						return null;
+				}
+				else if(e.name().equals(value))
 					return null;
 			if(consts.length <= 5)
 			{
@@ -402,7 +421,12 @@ public final class MuisAttribute<T>
 				return null;
 			T [] consts = enumType.getEnumConstants();
 			for(T e : consts)
-				if(e.name().equals(value))
+				if(ciUnique)
+				{
+					if(e.name().equalsIgnoreCase(value))
+						return e;
+				}
+				else if(e.name().equals(value))
 					return e;
 			throw new MuisException("Value " + value + " does not match any of the allowable values for type " + enumType.getName());
 		}
@@ -415,23 +439,6 @@ public final class MuisAttribute<T>
 			else
 				return null;
 		}
-	}
-
-	/**
-	 * Parses an enumerated value from a validated attribute value
-	 *
-	 * @param <T> The type of the enumeration
-	 * @param value The validated attribute value
-	 * @param def The default to return if the value does not match any of the enumeration's constants. This cannot be null.
-	 * @return The parsed value
-	 */
-	public static <T extends Enum<T>> T parseEnum(String value, T def)
-	{
-		Enum<T> [] consts = def.getClass().getEnumConstants();
-		for(Enum<T> val : consts)
-			if(val.name().toLowerCase().equals(value))
-				return (T) val;
-		return def;
 	}
 
 	/** The name of the attribute */

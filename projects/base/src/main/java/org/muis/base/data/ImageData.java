@@ -5,6 +5,7 @@ import java.util.Iterator;
 
 import javax.imageio.metadata.IIOMetadataNode;
 
+/** Represents an image, with easy access to animation parameters */
 public class ImageData implements Iterable<Image>
 {
 	private Image [] theImages;
@@ -17,6 +18,7 @@ public class ImageData implements Iterable<Image>
 
 	private int theSize;
 
+	/** @param img The image to wrap. If the image is animated, the new ImageData will see it as a single frame. */
 	public ImageData(Image img)
 	{
 		theImages = new Image[] {img};
@@ -26,6 +28,10 @@ public class ImageData implements Iterable<Image>
 		theHeight = -1;
 	}
 
+	/**
+	 * @param reader The image reader that is reading the image
+	 * @throws java.io.IOException If an error occurs reading the image
+	 */
 	public ImageData(javax.imageio.ImageReader reader) throws java.io.IOException
 	{
 		String format = reader.getFormatName();
@@ -77,6 +83,7 @@ public class ImageData implements Iterable<Image>
 		}
 	}
 
+	/** @return Approximately how many bytes of memory this image holds */
 	public int getSize()
 	{
 		if(theSize < 0)
@@ -94,6 +101,7 @@ public class ImageData implements Iterable<Image>
 		return theSize;
 	}
 
+	/** @return The maximum width of all the frames in this image */
 	public int getWidth()
 	{
 		if(theWidth < 0)
@@ -111,6 +119,7 @@ public class ImageData implements Iterable<Image>
 		return theWidth;
 	}
 
+	/** @return The maximum height of all the frames in this image */
 	public int getHeight()
 	{
 		if(theHeight < 0)
@@ -128,6 +137,7 @@ public class ImageData implements Iterable<Image>
 		return theHeight;
 	}
 
+	/** @return The number of frames in this image */
 	public int getImageCount()
 	{
 		return theImages.length;
@@ -139,11 +149,19 @@ public class ImageData implements Iterable<Image>
 		return prisms.util.ArrayUtils.iterator(theImages);
 	}
 
+	/**
+	 * @param index The index of the frame to get
+	 * @return The frame in this image at the given index
+	 */
 	public Image get(int index)
 	{
 		return theImages[index];
 	}
 
+	/**
+	 * @param index The index of the frame to get the delay of
+	 * @return The number of milliseconds to delay switching to the next frame after displaying the given frame
+	 */
 	public int getDelay(int index)
 	{
 		return theDelays[index];

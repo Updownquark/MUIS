@@ -27,6 +27,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		resize
 	}
 
+	/** An animator that repaints this GenericImage when the image is animated */
 	public class ImageAnimator implements org.muis.motion.Animation
 	{
 		private volatile boolean isStopped;
@@ -91,6 +92,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 			return ret;
 		}
 
+		/** Called to stop animation for this image */
 		public void stop()
 		{
 			isStopped = true;
@@ -343,8 +345,11 @@ public class GenericImage extends org.muis.core.LayoutContainer
 				anim.stop();
 			theImageIndex = 0;
 			thePreDisplayed = img;
-			theAnimator = new ImageAnimator();
-			org.muis.motion.AnimationManager.get().start(theAnimator);
+			if(img.getImageCount() > 1)
+			{
+				theAnimator = new ImageAnimator();
+				org.muis.motion.AnimationManager.get().start(theAnimator);
+			}
 			if(getParent() != null)
 				getParent().relayout(false);
 			repaint(null, false);
@@ -504,6 +509,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 			return theImage;
 	}
 
+	/** @param index The index of the frame in the animated image to display */
 	public void setImageIndex(int index)
 	{
 		ImageData img = getDisplayedImage();

@@ -157,8 +157,10 @@ public class SimpleLayout implements MuisLayout
 						SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
 						max = childSizer.getMax();
 					}
-					if(ret.getMax() > x + max)
-						ret.setMax(x + max);
+					if(max + x > max)
+						max += x;
+					if(ret.getMax() > max)
+						ret.setMax(max);
 				}
 			}
 			else if(minSizeL != null && !minSizeL.getUnit().isRelative())
@@ -185,8 +187,10 @@ public class SimpleLayout implements MuisLayout
 						max = maxSizeL.evaluate(0);
 					else
 						max = childSizer.getMax();
-					if(ret.getMax() > x + max)
-						ret.setMax(x + max);
+					if(max + x > max)
+						max += x;
+					if(ret.getMax() > max)
+						ret.setMax(max);
 				}
 			}
 			else if(minPosL != null && !minPosL.getUnit().isRelative())
@@ -204,8 +208,10 @@ public class SimpleLayout implements MuisLayout
 						max = maxSizeL.evaluate(0);
 					else
 						max = childSizer.getMax();
-					if(ret.getMax() > x + max)
-						ret.setMax(x + max);
+					if(max + x > max)
+						max += x;
+					if(ret.getMax() > max)
+						ret.setMax(max);
 				}
 			}
 		}
@@ -240,7 +246,7 @@ public class SimpleLayout implements MuisLayout
 
 	/**
 	 * Lays out a single child on one dimension within its parent based on its attributes and its size policy
-	 *
+	 * 
 	 * @param child The child to position
 	 * @param vertical Whether the layout dimension is vertical (to get the child's sizer if needed)
 	 * @param breadth The size of the non-layout dimension of the parent

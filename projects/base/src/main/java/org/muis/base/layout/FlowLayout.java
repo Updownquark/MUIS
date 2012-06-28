@@ -1,9 +1,7 @@
 package org.muis.base.layout;
 
-import static org.muis.layout.LayoutConstants.*;
-
-import org.muis.core.*;
-import org.muis.layout.SizePolicy;
+import org.muis.core.MuisElement;
+import org.muis.core.layout.SizePolicy;
 
 /**
  * An extremely flexible and useful layout, FlowLayout renders similarly to HTML. By default, this layout will lay out
@@ -24,8 +22,6 @@ public class FlowLayout extends AbstractFlowLayout
 	@Override
 	public void layout(MuisElement parent, MuisElement [] children)
 	{
-		if(!isShapeSet)
-			checkLayoutAttributes(parent);
 		// TODO Auto-generated method stub
 	}
 
@@ -39,57 +35,14 @@ public class FlowLayout extends AbstractFlowLayout
 	@Override
 	protected SizePolicy getMajorSize(MuisElement [] children, int minorSize)
 	{
-		final MuisAttribute<Length> posAtt, rPosAtt, sizeAtt;
-		switch(getDirection())
-		{
-		case RIGHT:
-			posAtt=left;
-			rPosAtt=right;
-			sizeAtt=width;
-			break;
-		case LEFT:
-			posAtt=right;
-			rPosAtt=left;
-			sizeAtt=width;
-			prisms.util.ArrayUtils.reverse(children);
-			break;
-		case DOWN:
-			posAtt=top;
-			rPosAtt=bottom;
-			sizeAtt=height;
-			break;
-		case UP:
-			posAtt=bottom;
-			rPosAtt=top;
-			sizeAtt=height;
-			prisms.util.ArrayUtils.reverse(children);
-			break;
-		}
-		java.util.ArrayList<MuisElement> loners = new java.util.ArrayList<MuisElement>(0);
-		for(int i = 0; i < children.length; i++)
-		{
-			if(isLoner(children[i]))
-			{
-				loners.add(children[i]);
-				children[i] = null;
-				continue;
-			}
-			if(children[i].getAttribute(posAtt)!=null || children[i].getAttribute(rPosAtt)!=null)
-		}
-		if(minorSize > 0)
-		{
-		}
-		else
-		{}
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	protected SizePolicy getMinorSize(MuisElement [] children, int majorSize)
 	{
-	}
-
-	private static boolean isLoner(MuisElement element)
-	{
-		return Boolean.FALSE.equals(element.getAttribute(included));
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

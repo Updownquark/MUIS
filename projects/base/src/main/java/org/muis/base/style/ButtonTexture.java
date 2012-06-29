@@ -35,6 +35,73 @@ public class ButtonTexture implements org.muis.core.style.Texture
 			source -= 90;
 		try
 		{
+			/*for(int i = 0; i < radius; i++)
+			{
+				float brighten;
+				// Vertical edges
+				int lineStartY = i;
+				int lineEndY = h - i;
+				if(lineStartY < startY)
+					lineStartY = startY;
+				if(lineEndY > endY)
+					lineEndY = endY;
+				if(lineStartY < lineEndY)
+				{
+					int x = i;
+					// Left edge
+					if(x >= startX || x < endX)
+					{
+						brighten = -sin * (radius - i) / radius;
+						if(brighten > 0)
+							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+						else
+							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+						graphics.drawLine(x, lineStartY, x, lineEndY);
+					}
+					x = w - i - 1;
+					// Right edge
+					if(x >= startX || x < endX)
+					{
+						brighten = sin * (radius - i) / radius;
+						if(brighten > 0)
+							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+						else
+							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+						graphics.drawLine(x, lineStartY, x, lineEndY);
+					}
+				}
+				int lineStartX = i;
+				int lineEndX = w - i;
+				if(lineStartX < startX)
+					lineStartX = startX;
+				if(lineEndX > endX)
+					lineEndX = endX;
+				if(lineStartX < lineEndX)
+				{
+					int y = i;
+					// Top edge
+					if(y >= startY || y < endY)
+					{
+						brighten = cos * (radius - i) / radius;
+						if(brighten > 0)
+							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+						else
+							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+						graphics.drawLine(lineStartX, y, lineEndX, y);
+					}
+					y = h - i - 1;
+					// Right edge
+					if(y >= startY || y < endY)
+					{
+						brighten = -cos * (radius - i) / radius;
+						if(brighten > 0)
+							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+						else
+							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+						graphics.drawLine(lineStartX, y, lineEndX, y);
+					}
+				}
+			}*/
 			for(int y = startY; y < endY; y++)
 				for(int x = startX; x < endX; x++)
 				{
@@ -56,17 +123,14 @@ public class ButtonTexture implements org.muis.core.style.Texture
 		}
 	}
 
-	/**
-	 *
-	 * @param x The x-value of the pixel to brighten or darken
+	/** @param x The x-value of the pixel to brighten or darken
 	 * @param y The y-value of the pixel to brighten or darken
 	 * @param w The width of the element being rendered
 	 * @param h The height of the element being rendered
 	 * @param radius The button radius to render with
 	 * @param sinSource The sin of the light source angle from the vertical
 	 * @param cosSource The cosine of the light source angle from the vertical
-	 * @return A number between -1 (to darken completely) and 1 (to wash out completely) to lighten or darken the background color
-	 */
+	 * @return A number between -1 (to darken completely) and 1 (to wash out completely) to lighten or darken the background color */
 	public float getBrighten(int x, int y, int w, int h, int radius, float sinSource, float cosSource)
 	{
 		int minDist;

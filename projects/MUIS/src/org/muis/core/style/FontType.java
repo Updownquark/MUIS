@@ -1,7 +1,7 @@
 /*
  * Created Mar 18, 2009 by Andrew
  */
-package org.muis.base.style;
+package org.muis.core.style;
 
 /**
  * A type of font to render text in

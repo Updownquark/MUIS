@@ -38,10 +38,4 @@ public class TextStyle extends ElementStyle
 			}
 		});
 	}
-
-	@Override
-	public MuisStyle getParent()
-	{
-		return theParentStyle;
-	}
 }

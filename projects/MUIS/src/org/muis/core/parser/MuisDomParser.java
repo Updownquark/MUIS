@@ -233,6 +233,8 @@ public class MuisDomParser implements MuisParser
 			throw new MuisParseException("Could not parse document XML", e);
 		}
 		MuisDocument doc = new MuisDocument(location, graphics);
+		if(rootEl.getTextTrim().length() > 0)
+			doc.warn("Text found under root element: " + rootEl.getTextTrim());
 		doc.initDocument(this, dt);
 		initClassView(doc, rootEl);
 		Element [] head = rootEl.getChildren("head").toArray(new Element[0]);
@@ -240,6 +242,8 @@ public class MuisDomParser implements MuisParser
 			doc.error("Multiple head elements in document XML", null);
 		if(head.length > 0)
 		{
+			if(head[0].getTextTrim().length() > 0)
+				doc.warn("Text found in head section: " + head[0].getTextTrim());
 			String title = head[0].getChildTextTrim("title");
 			if(title != null)
 				doc.getHead().setTitle(title);
@@ -626,22 +630,39 @@ public class MuisDomParser implements MuisParser
 	protected MuisElement [] parseContent(Element xml, MuisElement parent)
 	{
 		MuisElement [] ret = new MuisElement[0];
-		for(Element child : xml.getChildren())
-		{
-			MuisElement newChild;
-			try
+		for(org.jdom2.Content content : xml.getContent())
+			if(content instanceof Element)
 			{
-				newChild = createElement(child, parent);
-			} catch(MuisParseException e)
-			{
-				parent.error("Could not create MUIS element for " + xml.getQualifiedName(), e);
-				continue;
+				Element child = (Element) content;
+				MuisElement newChild;
+				try
+				{
+					newChild = createElement(child, parent);
+				} catch(MuisParseException e)
+				{
+					parent.error("Could not create MUIS element for " + xml.getQualifiedName(), e);
+					continue;
+				}
+				applyAttributes(newChild, child);
+				ret = prisms.util.ArrayUtils.add(ret, newChild);
+				MuisElement [] subContent = parseContent(child, newChild);
+				newChild.initChildren(subContent);
 			}
-			applyAttributes(newChild, child);
-			ret = prisms.util.ArrayUtils.add(ret, newChild);
-			MuisElement [] subContent = parseContent(child, newChild);
-			newChild.initChildren(subContent);
-		}
+			else if(content instanceof org.jdom2.Text || content instanceof org.jdom2.CDATA)
+			{
+				String text;
+				if(content instanceof org.jdom2.Text)
+					text = ((org.jdom2.Text) content).getTextNormalize();
+				else
+					text = ((org.jdom2.CDATA) content).getTextTrim().replaceAll("\r", "");
+				if(text.length() == 0)
+					continue;
+				MuisTextElement newChild = new MuisTextElement(text);
+				ret = prisms.util.ArrayUtils.add(ret, newChild);
+				newChild.init(parent.getDocument(), parent.getDocument().getCoreToolkit(), parent.getDocument().getClassView(), parent,
+					null, content instanceof org.jdom2.CDATA ? "CDATA" : null);
+				newChild.initChildren(new MuisElement[0]);
+			}
 		return ret;
 	}
 

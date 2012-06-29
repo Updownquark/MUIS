@@ -5,10 +5,11 @@
 	<description>
 		This required toolkit provides core functionality to run other MUIS toolkits
 	</description>
-	<version>14Jun2012</version>
+	<version>29Jun2012</version>
 	<dependencies />
 	<types>
 		<type tag="bg">org.muis.core.style.BackgroundStyles</type>
+		<type tag="font">org.muis.core.style.FontStyle</type>
 		<type tag="layer">org.muis.core.LayerLayout</type>
 	</types>
 	<security />

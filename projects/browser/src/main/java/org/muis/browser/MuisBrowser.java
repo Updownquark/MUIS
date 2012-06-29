@@ -81,12 +81,12 @@ public class MuisBrowser extends javax.swing.JPanel
 			case FATAL:
 			case ERROR:
 			case WARNING:
-				System.err.println(msg.type + ": " + msg.text);
+				System.err.println(msg.type + (msg.element == null ? "" : " on " + msg.element.getTagName()) + ": " + msg.text);
 				if(msg.exception != null)
 					msg.exception.printStackTrace();
 				break;
 			case INFO:
-				System.out.println(msg.type + ": " + msg.text);
+				System.out.println(msg.type + (msg.element == null ? "" : " on " + msg.element.getTagName()) + ": " + msg.text);
 				if(msg.exception != null)
 					msg.exception.printStackTrace(System.out);
 				break;

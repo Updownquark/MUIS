@@ -68,7 +68,7 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>>
 			return ret;
 		for(MuisStyle dep : getDependencies())
 		{
-			ret = dep.getLocal(attr);
+			ret = dep.get(attr);
 			if(ret != null)
 				return ret;
 		}

@@ -119,7 +119,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size policy in the main direction of the container
-	 * 
+	 *
 	 * @param children The children to get the sizer for
 	 * @param vertical Whether the main direction is vertical
 	 * @param crossSize The size of the opposite (non-main) dimension of the space to lay out the children in
@@ -158,7 +158,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size policy in the non-main direction of the container
-	 * 
+	 *
 	 * @param children The children to get the sizer for
 	 * @param vertical Whether the non-main direction is vertical
 	 * @param mainSize The size of the opposite (main) dimension of the space to lay out the children in
@@ -256,6 +256,7 @@ public class BoxLayout implements MuisLayout
 					crossSize = parent.getWidth();
 				else
 					crossSize = getCrossSize(child, false, parent.getHeight(), parent.getWidth(), w, minW);
+				bounds.width = crossSize;
 				switch (align)
 				{
 				case begin:
@@ -291,6 +292,7 @@ public class BoxLayout implements MuisLayout
 					crossSize = parent.getHeight();
 				else
 					crossSize = getCrossSize(child, true, parent.getWidth(), parent.getHeight(), h, minH);
+				bounds.height = crossSize;
 				switch (align)
 				{
 				case begin:
@@ -314,7 +316,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size for a child in the main direction of the container
-	 * 
+	 *
 	 * @param child The child to size
 	 * @param vertical Whether the main direction is vertical
 	 * @param mainSize The size of the parent in the main dimension
@@ -348,7 +350,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size for a child in the non-main direction of the container
-	 * 
+	 *
 	 * @param child The child to size
 	 * @param vertical Whether the cross direction is vertical
 	 * @param mainSize The size of the parent in the main dimension

@@ -68,7 +68,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
                 if (isMouseDown) {
                     Point pos = mEvt.getPosition(PaintWidget.this);
                     try {
-                        theImage.setRGB(pos.x, pos.y, getStyle().get(org.muis.base.style.FontStyle.color).getRGB());
+                        theImage.setRGB(pos.x, pos.y, getStyle().get(org.muis.core.style.FontStyle.color).getRGB());
                     } catch (ArrayIndexOutOfBoundsException e) {
                         System.err.println("Position " + pos + " out of bounds (" + getWidth() + "x" + getHeight() + ")");
                     }

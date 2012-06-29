@@ -1,9 +1,14 @@
 package org.muis.core;
 
+import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
+
+import org.muis.core.style.BackgroundStyles;
+import org.muis.core.style.FontStyle;
 
 /** A set of utilities to use with core MUIS elements */
 public class MuisUtils
@@ -220,8 +225,70 @@ public class MuisUtils
 		}
 	}
 
+	/**
+	 * Derives a partially transparent color
+	 *
+	 * @param base The base color
+	 * @param transparency The transparency of the color to make
+	 * @return The resulting partially transparent color
+	 */
+	public static Color getColor(Color base, float transparency)
+	{
+		if(transparency == 0)
+			return base;
+		else if(transparency == 1)
+			return org.muis.core.style.Colors.transparent;
+		else if(transparency < 0 || transparency > 1)
+			throw new IllegalArgumentException("Illegal transparency value " + transparency + ". Must be between 0 and 1.");
+		return new Color((base.getRGB() & 0xffffff) | ((int) (transparency * 256)) << 24);
+	}
+
+	/**
+	 * Gets the (potentially partially transparent) background color for a style
+	 *
+	 * @param style The style to get the background color for
+	 * @return The background color to paint for the style
+	 */
+	public static Color getBackground(org.muis.core.style.MuisStyle style)
+	{
+		return getColor(style.get(BackgroundStyles.color), style.get(BackgroundStyles.transparency));
+	}
+
+	/**
+	 * @param style The style to derive the font from
+	 * @return The font to use to render text in the specified style
+	 */
 	public static java.awt.Font getFont(org.muis.core.style.MuisStyle style)
 	{
-		java.awt.Font.getFont(null)
+		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
+		attribs.put(TextAttribute.FAMILY, style.get(FontStyle.family));
+		attribs.put(TextAttribute.BACKGROUND, getBackground(style));
+		attribs.put(TextAttribute.FOREGROUND, getColor(style.get(FontStyle.color), style.get(FontStyle.transparency)));
+		if(style.get(FontStyle.kerning))
+			attribs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);
+		if(style.get(FontStyle.ligatures))
+			attribs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
+		attribs.put(TextAttribute.SIZE, style.get(FontStyle.size));
+		switch (style.get(FontStyle.underline))
+		{
+		case none:
+			break;
+		case on:
+			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_ONE_PIXEL);
+			break;
+		case heavy:
+			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_TWO_PIXEL);
+			break;
+		case dashed:
+			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_DASHED);
+			break;
+		case dotted:
+			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_DOTTED);
+			break;
+		}
+		attribs.put(TextAttribute.WEIGHT, style.get(FontStyle.weight));
+		attribs.put(TextAttribute.STRIKETHROUGH, style.get(FontStyle.strike));
+		attribs.put(TextAttribute.POSTURE, style.get(FontStyle.slant));
+		return java.awt.Font.getFont(attribs);
 	}
 }

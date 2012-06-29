@@ -18,7 +18,10 @@ public class StyleParsingUtils
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
 			if(attrib.name.equals(attrName))
+			{
 				styleAttr = attrib;
+				break;
+			}
 
 		if(styleAttr == null)
 		{

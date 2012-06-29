@@ -29,10 +29,28 @@ public class MuisCache
 		int size(V value);
 	}
 
+	/**
+	 * Receives an item from the cache when it is ready
+	 *
+	 * @param <K> The type key that the cache item is to be generated for
+	 * @param <V> The type of value to be generated for the key
+	 */
 	public interface ItemReceiver<K, V>
 	{
+		/**
+		 * Called when the item becomes available in the cache
+		 *
+		 * @param key The key that the item was generated for
+		 * @param value The value that was generated
+		 */
 		public void itemGenerated(K key, V value);
 
+		/**
+		 * Called when an item fails to generate
+		 *
+		 * @param key The key for which item generation failed
+		 * @param exception The exception that was thrown representing the failure
+		 */
 		public void errorOccurred(K key, Throwable exception);
 	}
 

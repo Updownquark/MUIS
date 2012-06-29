@@ -1704,6 +1704,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theLayoutDirtyTime = 0;
 		for(MuisElement child : getChildren())
 			child.doLayout();
+		repaint(null, false);
 	}
 
 	/**
@@ -1811,9 +1812,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area)
 	{
-		java.awt.Color bg = getStyle().get(BackgroundStyles.color);
-		if(getStyle().isSet(BackgroundStyles.transparency))
-			bg = new java.awt.Color(bg.getRGB() | (getStyle().get(BackgroundStyles.transparency).intValue() << 24));
+		java.awt.Color bg = MuisUtils.getBackground(getStyle());
 		graphics.setColor(bg);
 		int x = area == null ? 0 : area.x;
 		int y = area == null ? 0 : area.y;
@@ -1861,8 +1860,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					childArea.height = child.getHeight() - childArea.y;
 				graphics.translate(translateX, translateY);
 				child.paint(graphics, childArea);
-				translateX -= childX;
-				translateY -= childY;
+				translateX = -childX;
+				translateY = -childY;
 			}
 		} finally
 		{

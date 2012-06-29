@@ -1,13 +1,11 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.muis.browser;
 
-import java.awt.Dimension;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 
-import org.muis.core.MuisElement;
 import org.muis.core.event.KeyBoardEvent.KeyCode;
 import org.muis.core.event.MouseEvent.MouseEventType;
 
@@ -128,7 +126,7 @@ public class MuisContentPane extends java.awt.Component
 			theContent.paint((java.awt.Graphics2D) g);
 	}
 
-	@Override
+	/*@Override
 	public Dimension getPreferredSize()
 	{
 		if(theContent == null)
@@ -153,7 +151,7 @@ public class MuisContentPane extends java.awt.Component
 			return super.getPreferredSize();
 		MuisElement root = theContent.getRoot();
 		return new Dimension(root.getWSizer(getHeight()).getMax(), root.getHSizer(getWidth()).getMax());
-	}
+	}*/
 
 	void moused(org.muis.core.event.MouseEvent.MouseEventType type, MouseEvent evt)
 	{

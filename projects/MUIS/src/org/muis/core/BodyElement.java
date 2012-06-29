@@ -12,10 +12,10 @@ public class BodyElement extends LayoutContainer
 			public void preTransition(String fromStage, String toStage)
 			{
 				if(toStage.equals(CoreStage.STARTUP.toString()))
-				 if(getAttribute(LAYOUT_ATTR) == null)
+					if(getAttribute(LAYOUT_ATTR) == null)
 						try
 						{
-						setAttribute(LAYOUT_ATTR, LayerLayout.class);
+							setAttribute(LAYOUT_ATTR, LayerLayout.class);
 						} catch(MuisException e)
 						{
 							error("Could not set default layout in body element", e);

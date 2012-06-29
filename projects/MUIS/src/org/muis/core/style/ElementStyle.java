@@ -43,7 +43,7 @@ public class ElementStyle extends MuisStyle
 	@Override
 	public MuisStyle getParent()
 	{
-		return null;
+		return theElement == null || theElement.getParent() == null ? null : theElement.getParent().getStyle();
 	}
 
 	@Override

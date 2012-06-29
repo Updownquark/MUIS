@@ -341,6 +341,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private final ElementStyle theStyle;
 
+	private final StyleListener theDefaultStyleListener;
+
 	private int theX;
 
 	private int theY;
@@ -398,15 +400,16 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			theStyle = new TextStyle((MuisTextElement) this);
 		else
 			theStyle = new ElementStyle(this);
-		org.muis.core.style.StyleListener sl = new org.muis.core.style.StyleListener(this) {
+		theDefaultStyleListener = new StyleListener(this) {
 			@Override
 			public void styleChanged(MuisStyle style)
 			{
 				repaint(null, false);
 			}
 		};
-		sl.addDomain(org.muis.core.style.BackgroundStyles.getDomainInstance());
-		sl.add();
+		theDefaultStyleListener.addDomain(BackgroundStyles.getDomainInstance());
+		theDefaultStyleListener.addDomain(TextureStyle.getDomainInstance());
+		theDefaultStyleListener.add();
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
@@ -1096,6 +1099,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public final ElementStyle getStyle()
 	{
 		return theStyle;
+	}
+
+	public final StyleListener getDefaultStyleListener()
+	{
+		return theDefaultStyleListener;
 	}
 
 	/** @return The tool kit that this element belongs to */
@@ -1819,6 +1827,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		int w = area == null ? theW : (area.width < theW ? area.width : theW);
 		int h = area == null ? theH : (area.height < theH ? area.height : theH);
 		graphics.fillRect(x, y, w, h);
+		Texture tex = getStyle().get(TextureStyle.texture);
+		if(tex != null)
+			tex.render(graphics, this, area);
 	}
 
 	/**

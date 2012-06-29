@@ -74,6 +74,8 @@ public class MuisBrowser extends javax.swing.JPanel
 		}
 		muisDoc.postCreate();
 		theContentPane.setContent(muisDoc);
+		if(getParent() instanceof java.awt.Frame)
+			((java.awt.Frame) getParent()).setTitle(muisDoc.getHead().getTitle());
 		repaint();
 		for(org.muis.core.MuisMessage msg : muisDoc.getAllMessages())
 			switch (msg.type)

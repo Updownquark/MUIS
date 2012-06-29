@@ -11,9 +11,10 @@ public class StyleParsingUtils
 	 * @param attrName The name of the attribute
 	 * @param valueStr The serialized value for the attribute
 	 * @param messager The message center to issue warnings to if there is an error with the style
+	 * @param classView The class view to use for parsing if needed
 	 */
 	public static void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.MuisMessage.MuisMessageCenter messager)
+		org.muis.core.MuisMessage.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
 	{
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
@@ -32,7 +33,7 @@ public class StyleParsingUtils
 		Object value;
 		try
 		{
-			value = styleAttr.parse(valueStr);
+			value = styleAttr.parse(valueStr, classView);
 		} catch(org.muis.core.MuisException e)
 		{
 			messager
@@ -51,14 +52,15 @@ public class StyleParsingUtils
 
 	/**
 	 * Applies a bulk style setting to a style
-	 *
+	 * 
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
 	 * @param messager The message center to issue warnings to if there are errors with the styles
+	 * @param classView The class view to use for parsing if needed
 	 */
 	public static void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.MuisMessage.MuisMessageCenter messager)
+		org.muis.core.MuisMessage.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
 	{ // Setting domain attributes in bulk--value must be JSON
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}')
 		{
@@ -76,7 +78,7 @@ public class StyleParsingUtils
 			}
 			String attrName = propEntry.substring(0, idx).trim();
 			String propVal = propEntry.substring(idx + 1).trim();
-			applyStyleAttribute(style, domain, attrName, propVal, messager);
+			applyStyleAttribute(style, domain, attrName, propVal, messager, classView);
 		}
 	}
 }

@@ -51,6 +51,6 @@ public class BackgroundStyles implements StyleDomain
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator()
 	{
-		return new DomainAttributeIterator(theAttributes);
+		return prisms.util.ArrayUtils.iterator(theAttributes);
 	}
 }

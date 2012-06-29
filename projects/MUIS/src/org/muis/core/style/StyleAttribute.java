@@ -25,6 +25,8 @@ public final class StyleAttribute<T>
 		ENUM,
 		/** An attribute whose value must be a color */
 		COLOR,
+		/** An attribute specified as a muis type */
+		MUIS_TYPE,
 		/** An attribute whose value must match a predefined constant name */
 		ARBITRARY;
 	}
@@ -75,10 +77,11 @@ public final class StyleAttribute<T>
 	 * Parses a value for this attribute
 	 *
 	 * @param value The string value to parse
+	 * @param classView The class view to use for parsing if needed
 	 * @return A value of this attribute's type (unchecked--may not be valid)
 	 * @throws MuisException If the value cannot be parsed
 	 */
-	public T parse(String value) throws MuisException
+	public T parse(String value, org.muis.core.MuisClassView classView) throws MuisException
 	{
 		if(namedValues != null && namedValues.containsKey(value))
 			return namedValues.get(value);
@@ -118,6 +121,17 @@ public final class StyleAttribute<T>
 				+ " does not match any valid values");
 		case COLOR:
 			return (T) Colors.parseColor(value);
+		case MUIS_TYPE:
+			Class<? extends T> mapped = classView.loadMappedClass(value, javaType);
+			if(mapped == null)
+				throw new MuisException("Value \"" + value + "\" does not map to a type");
+			try
+			{
+				return mapped.newInstance();
+			} catch(InstantiationException | IllegalAccessException e)
+			{
+				throw new MuisException("Could not instantiate type " + mapped.getName() + " mapped to " + value, e);
+			}
 		case ARBITRARY:
 			throw new MuisException("Value \"" + value + "\" for arbitrary-typed property " + domain.getName() + "." + name
 				+ " does not match any valid values");
@@ -190,6 +204,7 @@ public final class StyleAttribute<T>
 			if(!(value instanceof Color))
 				return value + " is not a color";
 			break;
+		case MUIS_TYPE:
 		case ARBITRARY:
 			switchHit = true;
 			if(!javaType.isInstance(value))
@@ -327,6 +342,39 @@ public final class StyleAttribute<T>
 	{
 		checkTypes(namedValues, Color.class);
 		return new StyleAttribute<Color>(domain, name, AttributeType.COLOR, Color.class, def, Float.NaN, Float.NaN, namedValues);
+	}
+
+	/**
+	 * Creates a style attribute of a MUIS-registered type
+	 *
+	 * @param domain The style domain to create the attribute for
+	 * @param name The name for the new attribute
+	 * @param type The type of the style attribute
+	 * @param def The default value for the attribute
+	 * @param namedValues Name, value pairs that may be referenced by name from style attribute values
+	 * @return The new attribute
+	 */
+	public static <T> StyleAttribute<T> createMuisTypeStyle(StyleDomain domain, String name, Class<T> type, T def, Object... namedValues)
+	{
+		return new StyleAttribute<T>(domain, name, AttributeType.MUIS_TYPE, type, def, Float.NaN, Float.NaN, compileNamedValues(
+			namedValues, type));
+	}
+
+	/**
+	 * Creates a style attribute of a MUIS-registered type
+	 *
+	 * @param domain The style domain to create the attribute for
+	 * @param name The name for the new attribute
+	 * @param type The type of the style attribute
+	 * @param def The default value for the attribute
+	 * @param namedValues Name, value pairs that may be referenced by name from style attribute values
+	 * @return The new attribute
+	 */
+	public static <T> StyleAttribute<T> createMuisTypeStyle(StyleDomain domain, String name, Class<T> type, T def,
+		Map<String, T> namedValues)
+	{
+		checkTypes(namedValues, type);
+		return new StyleAttribute<T>(domain, name, AttributeType.MUIS_TYPE, type, def, Float.NaN, Float.NaN, namedValues);
 	}
 
 	/**

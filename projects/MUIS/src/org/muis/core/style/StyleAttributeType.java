@@ -106,7 +106,8 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 			org.muis.core.style.StyleDomain domain;
 			try
 			{
-				domain = (org.muis.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null, new Object[0]);
+				domain = (org.muis.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null,
+					new Object[0]);
 			} catch(Exception e)
 			{
 				element.warn("Could not get domain instance", e);
@@ -114,9 +115,9 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 			}
 
 			if(attrName != null)
-				applyStyleAttribute(ret, domain, attrName, valueStr, element);
+				applyStyleAttribute(ret, domain, attrName, valueStr, element, element.getClassView());
 			else
-				applyStyleSet(ret, domain, valueStr, element);
+				applyStyleSet(ret, domain, valueStr, element, element.getClassView());
 		}
 		return ret;
 	}
@@ -129,11 +130,12 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 * @param attrName The name of the attribute
 	 * @param valueStr The serialized value for the attribute
 	 * @param messager The message center to issue warnings to if there is an error with the style
+	 * @param classView The class view to use for parsing if needed
 	 */
 	protected void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.MuisMessage.MuisMessageCenter messager)
+		org.muis.core.MuisMessage.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
 	{
-		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager);
+		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager, classView);
 	}
 
 	/**
@@ -143,11 +145,12 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
 	 * @param messager The message center to issue warnings to if there are errors with the styles
+	 * @param classView The class view to use for parsing if needed
 	 */
 	protected void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.MuisMessage.MuisMessageCenter messager)
+		org.muis.core.MuisMessage.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
 	{
-		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager);
+		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
 	}
 
 	@Override

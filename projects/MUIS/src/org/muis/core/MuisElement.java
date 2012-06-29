@@ -1101,6 +1101,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		return theStyle;
 	}
 
+	/**
+	 * @return The default style listener to add domains and styles to listen to. When one of the registered styles changes, this element
+	 *         repaints itself.
+	 */
 	public final StyleListener getDefaultStyleListener()
 	{
 		return theDefaultStyleListener;

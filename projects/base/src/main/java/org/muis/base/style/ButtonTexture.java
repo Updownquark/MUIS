@@ -16,7 +16,7 @@ public class ButtonTexture implements org.muis.core.style.Texture
 		int startY = area == null ? 0 : area.y;
 		int endX = area == null ? w : startX + area.width;
 		int endY = area == null ? h : startY + area.height;
-		Color orig = graphics.getBackground();
+		Color orig = graphics.getColor();
 		int radius = element.getStyle().get(ButtonStyles.radius);
 		float source = element.getStyle().get(org.muis.core.style.TextureStyle.lightSource);
 		float sin = (float) Math.sin(source * Math.PI / 180);
@@ -35,7 +35,7 @@ public class ButtonTexture implements org.muis.core.style.Texture
 			source -= 90;
 		try
 		{
-			/*for(int i = 0; i < radius; i++)
+			for(int i = 0; i < radius; i++)
 			{
 				float brighten;
 				// Vertical edges
@@ -53,9 +53,9 @@ public class ButtonTexture implements org.muis.core.style.Texture
 					{
 						brighten = -sin * (radius - i) / radius;
 						if(brighten > 0)
-							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+							graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255)));
 						else
-							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+							graphics.setColor(new Color(0, 0, 0, (int) (-brighten * 255)));
 						graphics.drawLine(x, lineStartY, x, lineEndY);
 					}
 					x = w - i - 1;
@@ -64,9 +64,9 @@ public class ButtonTexture implements org.muis.core.style.Texture
 					{
 						brighten = sin * (radius - i) / radius;
 						if(brighten > 0)
-							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+							graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255)));
 						else
-							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+							graphics.setColor(new Color(0, 0, 0, (int) (-brighten * 255)));
 						graphics.drawLine(x, lineStartY, x, lineEndY);
 					}
 				}
@@ -84,9 +84,9 @@ public class ButtonTexture implements org.muis.core.style.Texture
 					{
 						brighten = cos * (radius - i) / radius;
 						if(brighten > 0)
-							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+							graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255)));
 						else
-							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+							graphics.setColor(new Color(0, 0, 0, (int) (-brighten * 255)));
 						graphics.drawLine(lineStartX, y, lineEndX, y);
 					}
 					y = h - i - 1;
@@ -95,14 +95,14 @@ public class ButtonTexture implements org.muis.core.style.Texture
 					{
 						brighten = -cos * (radius - i) / radius;
 						if(brighten > 0)
-							graphics.setBackground(new Color(255, 255, 255, (int) (brighten * 255)));
+							graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255)));
 						else
-							graphics.setBackground(new Color(0, 0, 0, (int) (-brighten * 255)));
+							graphics.setColor(new Color(0, 0, 0, (int) (-brighten * 255)));
 						graphics.drawLine(lineStartX, y, lineEndX, y);
 					}
 				}
-			}*/
-			for(int y = startY; y < endY; y++)
+			}
+			/*for(int y = startY; y < endY; y++)
 				for(int x = startX; x < endX; x++)
 				{
 					float brighten = getBrighten(x, y, w, h, radius, sin, cos);
@@ -116,10 +116,10 @@ public class ButtonTexture implements org.muis.core.style.Texture
 						graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255)));
 						graphics.drawRect(x, y, 1, 1);
 					}
-				}
+				}*/
 		} finally
 		{
-			graphics.setBackground(orig);
+			graphics.setColor(orig);
 		}
 	}
 

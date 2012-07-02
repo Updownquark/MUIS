@@ -27,7 +27,7 @@ public class TextureStyle implements StyleDomain
 	{
 		instance = new TextureStyle();
 		texture = StyleAttribute.createStyle(instance, "texture", new org.muis.core.MuisAttribute.MuisTypeInstanceAttribute<Texture>(
-			Texture.class), null);
+			Texture.class), new BaseTexture());
 		instance.register(texture);
 		lightSource = StyleAttribute.createBoundedStyle(instance, "light-source", org.muis.core.MuisAttribute.floatAttr, 315d, 0d, 360d,
 			"top", 0d, "top-right", 45d, "right", 90d, "bottom-right", 135d, "bottom", 180d, "bottom-left", 225d, "left", 270d, "top-left",

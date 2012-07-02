@@ -1,6 +1,4 @@
-/*
- * Created Feb 23, 2009 by Andrew Butler
- */
+/* Created Feb 23, 2009 by Andrew Butler */
 package org.muis.core;
 
 import java.awt.Graphics2D;
@@ -1824,13 +1822,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area)
 	{
-		java.awt.Color bg = MuisUtils.getBackground(getStyle());
-		graphics.setColor(bg);
-		int x = area == null ? 0 : area.x;
-		int y = area == null ? 0 : area.y;
-		int w = area == null ? theW : (area.width < theW ? area.width : theW);
-		int h = area == null ? theH : (area.height < theH ? area.height : theH);
-		graphics.fillRect(x, y, w, h);
 		Texture tex = getStyle().get(TextureStyle.texture);
 		if(tex != null)
 			tex.render(graphics, this, area);

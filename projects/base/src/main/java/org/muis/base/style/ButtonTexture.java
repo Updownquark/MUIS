@@ -5,11 +5,12 @@ import java.awt.Color;
 import org.muis.core.MuisElement;
 
 /** Renders a button-looking texture over an element */
-public class ButtonTexture implements org.muis.core.style.Texture
+public class ButtonTexture extends org.muis.core.style.BaseTexture
 {
 	@Override
 	public void render(java.awt.Graphics2D graphics, MuisElement element, java.awt.Rectangle area)
 	{
+		super.render(graphics, element, area);
 		int w = element.getWidth();
 		int h = element.getHeight();
 		int startX = area == null ? 0 : area.x;

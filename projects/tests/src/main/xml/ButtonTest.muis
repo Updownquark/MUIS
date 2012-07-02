@@ -8,7 +8,7 @@
     	<base:block layout="base:simple" style="bg.color=green" width="100%" top="0" height="100%">
     		<base:block layout="base:simple" left="0" right="100%" top="0" height="25%">This is a MUIS Document</base:block>
 			<base:block layout="base:simple" left="0" right="100%" top="25%" height="75%" style="bg.color=#4040ff;
-				tex.texture=base:button-texture;tex.light-source=100;bg.corner-radius=8">
+				bg.corner-radius=15%">
 				<base:label left="0" right="100%" top="0">The Content</base:label>
 			</base:block>
     	</base:block>

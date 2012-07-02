@@ -106,4 +106,10 @@ public class Position implements Comparable<Position>
 		}
 		throw new IllegalStateException("Unrecognized position units: " + theUnit + " or " + o.theUnit);
 	}
+
+	@Override
+	public String toString()
+	{
+		return theValue + " " + theUnit;
+	}
 }

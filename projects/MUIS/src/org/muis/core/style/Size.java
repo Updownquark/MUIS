@@ -108,4 +108,10 @@ public class Size implements Comparable<Size>
 		}
 		throw new IllegalStateException("Unrecognized sizes units: " + theUnit + " or " + o.theUnit);
 	}
+
+	@Override
+	public String toString()
+	{
+		return theValue + " " + theUnit;
+	}
 }

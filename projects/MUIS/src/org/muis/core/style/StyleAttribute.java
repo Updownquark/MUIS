@@ -92,7 +92,7 @@ public final class StyleAttribute<T>
 	 */
 	public String validate(Object value)
 	{
-		if(namedValues.containsValue(value))
+		if(namedValues != null && namedValues.containsValue(value))
 			return null;
 		T val = type.cast(value);
 		if(val == null)

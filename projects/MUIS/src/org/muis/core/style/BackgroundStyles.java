@@ -39,6 +39,7 @@ public class BackgroundStyles implements StyleDomain
 		instance.register(transparency);
 		cornerRadius = StyleAttribute.createBoundedStyle(instance, "corner-radius", SizeAttributeType.instance, new Size(3,
 			LengthUnit.pixels), new Size(), null);
+		instance.register(cornerRadius);
 	}
 
 	/** @return The style domain for all background styles */

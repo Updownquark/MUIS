@@ -10,7 +10,7 @@
 	<types>
 		<type tag="bg">org.muis.core.style.BackgroundStyles</type>
 		<type tag="font">org.muis.core.style.FontStyle</type>
-		<type tag="tex">org.muis.core.style.TextureStyle</type>
+		<type tag="light">org.muis.core.style.LightedStyle</type>
 		<type tag="layer">org.muis.core.LayerLayout</type>
 	</types>
 	<security />

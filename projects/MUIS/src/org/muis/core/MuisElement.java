@@ -406,7 +406,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			}
 		};
 		theDefaultStyleListener.addDomain(BackgroundStyles.getDomainInstance());
-		theDefaultStyleListener.addDomain(TextureStyle.getDomainInstance());
 		theDefaultStyleListener.add();
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
@@ -1822,7 +1821,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area)
 	{
-		Texture tex = getStyle().get(TextureStyle.texture);
+		Texture tex = getStyle().get(BackgroundStyles.texture);
 		if(tex != null)
 			tex.render(graphics, this, area);
 	}

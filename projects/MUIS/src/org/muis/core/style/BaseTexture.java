@@ -27,6 +27,16 @@ public class BaseTexture implements Texture
 			int hRad = cornerRad.evaluate(h);
 			int wRad2 = wRad * 2;
 			int hRad2 = hRad * 2;
+			if(wRad2 > w)
+			{
+				wRad = w / 2;
+				wRad2 = wRad * 2;
+			}
+			if(hRad2 > h)
+			{
+				hRad = h / 2;
+				hRad2 = hRad * 2;
+			}
 			if(wRad >= hRad)
 			{
 				if(y >= hRad && y + renderH <= h - hRad)
@@ -39,20 +49,20 @@ public class BaseTexture implements Texture
 					{
 						// Upper left corner
 						if(y < hRad)
-							graphics.fillOval(0, 0, wRad2, hRad2);
+							graphics.fillArc(0, 0, wRad2, hRad2, 90, 90);
 						// Lower left corner
 						if(y + renderH > h - hRad)
-							graphics.fillOval(0, h - hRad2, wRad2, hRad2);
+							graphics.fillArc(0, h - hRad2, wRad2, hRad2, 180, 90);
 					}
 					// Right side
 					if(x + renderW > w - wRad)
 					{
 						// Upper right corner
 						if(y < hRad)
-							graphics.fillOval(w - wRad2, 0, wRad2, hRad2);
+							graphics.fillArc(w - wRad2, 0, wRad2, hRad2, 0, 90);
 						// Lower right corner
 						if(y + renderH > h - hRad)
-							graphics.fillOval(w - wRad2, h - hRad2, wRad2, hRad2);
+							graphics.fillArc(w - wRad2, h - hRad2, wRad2, hRad2, 270, 90);
 					}
 					graphics.fillRect(wRad, 0, w - wRad2, hRad);
 					graphics.fillRect(wRad, h - hRad, w - wRad2, hRad);
@@ -70,20 +80,20 @@ public class BaseTexture implements Texture
 					{
 						// Upper left corner
 						if(x < wRad)
-							graphics.fillOval(0, 0, wRad2, hRad2);
+							graphics.fillArc(0, 0, wRad2, hRad2, 90, 90);
 						// Upper right corner
 						if(x + renderW > w - wRad)
-							graphics.fillOval(w - wRad2, 0, wRad2, hRad2);
+							graphics.fillArc(w - wRad2, 0, wRad2, hRad2, 0, 90);
 					}
 					// Bottom side
 					if(y + renderH > h - hRad)
 					{
 						// Lower left corner
 						if(x < wRad)
-							graphics.fillOval(0, h - hRad2, wRad2, hRad2);
+							graphics.fillArc(0, h - hRad2, wRad2, hRad2, 180, 90);
 						// Lower right corner
 						if(x + renderW > w - wRad)
-							graphics.fillOval(w - wRad2, h - hRad2, wRad2, hRad2);
+							graphics.fillArc(w - wRad2, h - hRad2, wRad2, hRad2, 270, 90);
 					}
 					graphics.fillRect(0, hRad, wRad, h - hRad2);
 					graphics.fillRect(w - wRad, hRad, wRad, h - hRad2);

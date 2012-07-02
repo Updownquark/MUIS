@@ -22,7 +22,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		if(element.getHeight() < minDim)
 			minDim = element.getHeight();
 		int radius = element.getStyle().get(org.muis.core.style.BackgroundStyles.cornerRadius).evaluate(minDim);
-		float source = element.getStyle().get(org.muis.core.style.TextureStyle.lightSource).floatValue();
+		float source = element.getStyle().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
 		float sin = (float) Math.sin(source * Math.PI / 180);
 		float cos = (float) Math.cos(source * Math.PI / 180);
 

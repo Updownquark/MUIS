@@ -23,6 +23,9 @@ public class BackgroundStyles implements StyleDomain
 
 	private static final BackgroundStyles instance;
 
+	/** The texture to render an element's background with */
+	public static final StyleAttribute<? extends Texture> texture;
+
 	/** The color of a widget's background */
 	public static final StyleAttribute<java.awt.Color> color;
 
@@ -35,6 +38,9 @@ public class BackgroundStyles implements StyleDomain
 	static
 	{
 		instance = new BackgroundStyles();
+		texture = StyleAttribute.createStyle(instance, "texture", new org.muis.core.MuisAttribute.MuisTypeInstanceAttribute<Texture>(
+			Texture.class), new BaseTexture());
+		instance.register(texture);
 		color = StyleAttribute.createStyle(instance, "color", MuisAttribute.colorAttr, new java.awt.Color(255, 255, 255));
 		instance.register(color);
 		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.floatAttr, 0d, 0d, 1d);

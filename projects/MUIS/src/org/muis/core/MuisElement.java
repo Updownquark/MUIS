@@ -239,7 +239,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		 */
 		private String validate(String value)
 		{
-			String val = attr.type.validate(MuisElement.this, value);
+			String val = attr.type.validate(getClassView(), value);
 			if(val == null)
 				return null;
 			else
@@ -589,7 +589,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					fatal(valError, null);
 				try
 				{
-					value = attr.type.parse(this, (String) value);
+					value = attr.type.parse(getClassView(), (String) value);
 					theAttrValues.put(attr, value);
 				} catch(MuisException e)
 				{
@@ -678,7 +678,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			String valError = holder.validate(value);
 			if(valError != null)
 				throw new MuisException(valError);
-			T ret = attr.type.parse(this, value);
+			T ret = attr.type.parse(getClassView(), value);
 			theAttrValues.put(attr, ret);
 			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 			return ret;
@@ -745,7 +745,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) < 0 && stored instanceof String)
 			try
 			{
-				T ret = attr.type.parse(this, (String) stored);
+				T ret = attr.type.parse(getClassView(), (String) stored);
 				theAttrValues.put(attr, ret);
 				return ret;
 			} catch(MuisException e)
@@ -794,7 +794,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				else
 					try
 					{
-						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(this, strVal));
+						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(getClassView(), strVal));
 					} catch(MuisException e)
 					{
 						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
@@ -859,7 +859,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				else
 					try
 					{
-						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(this, strVal));
+						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(getClassView(), strVal));
 					} catch(MuisException e)
 					{
 						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);

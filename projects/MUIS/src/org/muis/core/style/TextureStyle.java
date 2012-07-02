@@ -18,18 +18,20 @@ public class TextureStyle implements StyleDomain
 	private static final TextureStyle instance;
 
 	/** The radius of the button texture's influence over the border of a widget */
-	public static final StyleAttribute<Texture> texture;
+	public static final StyleAttribute<? extends Texture> texture;
 
 	/** The direction (in degrees clockwise from the top) from which the light source lighting the texture is coming */
-	public static final StyleAttribute<Float> lightSource;
+	public static final StyleAttribute<Double> lightSource;
 
 	static
 	{
 		instance = new TextureStyle();
-		texture = StyleAttribute.createMuisTypeStyle(instance, "texture", Texture.class, null);
+		texture = StyleAttribute.createStyle(instance, "texture", new org.muis.core.MuisAttribute.MuisTypeInstanceAttribute<Texture>(
+			Texture.class), null);
 		instance.register(texture);
-		lightSource = StyleAttribute.createFloatStyle(instance, "light-source", 0, 360, 315, "top", 0f, "top-right", 45f, "right", 90f,
-			"bottom-right", 135f, "bottom", 180f, "bottom-left", 225f, "left", 270f, "top-left", 315f);
+		lightSource = StyleAttribute.createBoundedStyle(instance, "light-source", org.muis.core.MuisAttribute.floatAttr, 315d, 0d, 360d,
+			"top", 0d, "top-right", 45d, "right", 90d, "bottom-right", 135d, "bottom", 180d, "bottom-left", 225d, "left", 270d, "top-left",
+			315d);
 		instance.register(lightSource);
 	}
 

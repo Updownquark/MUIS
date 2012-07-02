@@ -18,14 +18,23 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	}
 
 	@Override
-	public String validate(MuisElement element, String value)
+	public Class<ElementStyle> getType()
+	{
+		return ElementStyle.class;
+	}
+
+	@Override
+	public String validate(org.muis.core.MuisClassView classView, String value)
 	{
 		return null; // Style error are only warnings
 	}
 
 	@Override
-	public ElementStyle parse(MuisElement element, String value) throws MuisException
+	public ElementStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException
 	{
+		MuisElement element = classView.getElement();
+		if(element == null)
+			throw new MuisException("Style attributes may only be parsed for elements");
 		ElementStyle ret = element.getStyle();
 		String [] styles = value.split(";");
 		for(String style : styles)

@@ -232,7 +232,7 @@ public class MuisUtils
 	 * @param transparency The transparency of the color to make
 	 * @return The resulting partially transparent color
 	 */
-	public static Color getColor(Color base, float transparency)
+	public static Color getColor(Color base, double transparency)
 	{
 		if(transparency == 0)
 			return base;

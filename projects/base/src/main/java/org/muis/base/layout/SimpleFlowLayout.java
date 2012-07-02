@@ -1,12 +1,6 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.bottom;
-import static org.muis.base.layout.LayoutConstants.height;
-import static org.muis.base.layout.LayoutConstants.included;
-import static org.muis.base.layout.LayoutConstants.left;
-import static org.muis.base.layout.LayoutConstants.right;
-import static org.muis.base.layout.LayoutConstants.top;
-import static org.muis.base.layout.LayoutConstants.width;
+import static org.muis.base.layout.LayoutConstants.*;
 
 import org.muis.base.layout.AbstractFlowLayout.BreakPolicy;
 import org.muis.core.MuisElement;
@@ -89,7 +83,6 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 		child.acceptAttribute(bottom);
 		child.acceptAttribute(width);
 		child.acceptAttribute(height);
-		child.acceptAttribute(included);
 	}
 
 	void removeChild(MuisElement child)
@@ -100,7 +93,6 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 		child.rejectAttribute(bottom);
 		child.rejectAttribute(width);
 		child.rejectAttribute(height);
-		child.rejectAttribute(included);
 	}
 
 	@Override

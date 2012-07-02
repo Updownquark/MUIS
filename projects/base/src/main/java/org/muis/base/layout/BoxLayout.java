@@ -6,6 +6,7 @@ import org.muis.core.MuisLayout;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.style.Size;
 
 /**
  * Lays out children one-by-one along a given {@link LayoutConstants#direction direction} ({@link Direction#DOWN DOWN} by default), with a
@@ -127,14 +128,14 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, int crossSize, MuisAttribute<Length> sizeAttr,
-		MuisAttribute<Length> minSizeAttr)
+	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, int crossSize, MuisAttribute<Size> sizeAttr,
+		MuisAttribute<Size> minSizeAttr)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Length size = child.getAttribute(sizeAttr);
-			Length minSize = child.getAttribute(minSizeAttr);
+			Size size = child.getAttribute(sizeAttr);
+			Size minSize = child.getAttribute(minSizeAttr);
 			if(size != null && !size.getUnit().isRelative())
 			{
 				ret.setMin(ret.getMin() + size.evaluate(0));
@@ -166,14 +167,14 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, int mainSize, MuisAttribute<Length> sizeAttr,
-		MuisAttribute<Length> minSizeAttr)
+	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, int mainSize, MuisAttribute<Size> sizeAttr,
+		MuisAttribute<Size> minSizeAttr)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Length size = child.getAttribute(sizeAttr);
-			Length minSize = child.getAttribute(minSizeAttr);
+			Size size = child.getAttribute(sizeAttr);
+			Size minSize = child.getAttribute(minSizeAttr);
 			if(size != null && !size.getUnit().isRelative())
 			{
 				int sz = size.evaluate(0);
@@ -228,10 +229,10 @@ public class BoxLayout implements MuisLayout
 		}
 		for(MuisElement child : children)
 		{
-			Length w = child.getAttribute(LayoutConstants.width);
-			Length h = child.getAttribute(LayoutConstants.height);
-			Length minW = child.getAttribute(LayoutConstants.minWidth);
-			Length minH = child.getAttribute(LayoutConstants.minHeight);
+			Size w = child.getAttribute(LayoutConstants.width);
+			Size h = child.getAttribute(LayoutConstants.height);
+			Size minW = child.getAttribute(LayoutConstants.minWidth);
+			Size minH = child.getAttribute(LayoutConstants.minHeight);
 
 			int mainSize;
 			int crossSize;
@@ -325,7 +326,7 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The value of the attribute to control the minimum size of the child (minWidth or minHeight)
 	 * @return The main-dimension size of the child
 	 */
-	protected int getMainSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Length sizeAttr, Length minSizeAttr)
+	protected int getMainSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Size sizeAttr, Size minSizeAttr)
 	{
 		int ret;
 		if(sizeAttr != null)
@@ -359,7 +360,7 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The value of the attribute to control the minimum size of the child (minWidth or minHeight)
 	 * @return The non-main-dimension size of the child
 	 */
-	protected int getCrossSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Length sizeAttr, Length minSizeAttr)
+	protected int getCrossSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Size sizeAttr, Size minSizeAttr)
 	{
 		return getMainSize(child, vertical, crossSize, mainSize, sizeAttr, minSizeAttr);
 	}

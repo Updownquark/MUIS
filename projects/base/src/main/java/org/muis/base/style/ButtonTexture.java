@@ -17,8 +17,11 @@ public class ButtonTexture implements org.muis.core.style.Texture
 		int endX = area == null ? w : startX + area.width;
 		int endY = area == null ? h : startY + area.height;
 		Color orig = graphics.getColor();
-		int radius = element.getStyle().get(ButtonStyles.radius);
-		float source = element.getStyle().get(org.muis.core.style.TextureStyle.lightSource);
+		int minDim = element.getWidth();
+		if(element.getHeight() < minDim)
+			minDim = element.getHeight();
+		int radius = element.getStyle().get(org.muis.core.style.BackgroundStyles.cornerRadius).evaluate(minDim);
+		float source = element.getStyle().get(org.muis.core.style.TextureStyle.lightSource).floatValue();
 		float sin = (float) Math.sin(source * Math.PI / 180);
 		float cos = (float) Math.cos(source * Math.PI / 180);
 

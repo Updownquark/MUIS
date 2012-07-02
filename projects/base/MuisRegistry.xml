@@ -16,7 +16,6 @@
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>
         <type tag="button-texture">org.muis.base.style.ButtonTexture</type>
-        <type tag="btn">org.muis.base.style.ButtonStyles</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>

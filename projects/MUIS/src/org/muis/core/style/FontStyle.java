@@ -87,7 +87,7 @@ public class FontStyle implements StyleDomain
 		instance.register(family);
 		color = StyleAttribute.createStyle(instance, "color", MuisAttribute.colorAttr, Color.black);
 		instance.register(color);
-		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.floatAttr, 0d, 0d, 1d);
+		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.amountAttr, 0d, 0d, 1d);
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
 		weights.put("normal", 1d);
@@ -103,7 +103,7 @@ public class FontStyle implements StyleDomain
 		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
 		weight = StyleAttribute.createBoundedStyle(instance, "weight", MuisAttribute.floatAttr, 1d, 0.25d, 3d, weights);
 		instance.register(weight);
-		slant = StyleAttribute.createBoundedStyle(instance, "slant", MuisAttribute.floatAttr, 0d, -1d, 1d, "normal", 0d, "italic",
+		slant = StyleAttribute.createBoundedStyle(instance, "slant", MuisAttribute.amountAttr, 0d, -1d, 1d, "normal", 0d, "italic",
 			(double) TextAttribute.POSTURE_OBLIQUE);
 		instance.register(slant);
 		underline = StyleAttribute.createStyle(instance, "underline", new MuisAttribute.MuisEnumAttribute<Underline>(Underline.class),
@@ -121,7 +121,7 @@ public class FontStyle implements StyleDomain
 		instance.register(antiAlias);
 		wordWrap = StyleAttribute.createStyle(instance, "word-wrap", MuisAttribute.boolAttr, true);
 		instance.register(wordWrap);
-		stretch = StyleAttribute.createBoundedStyle(instance, "stretch", MuisAttribute.floatAttr, 1d, 0.05d, 100d);
+		stretch = StyleAttribute.createBoundedStyle(instance, "stretch", MuisAttribute.amountAttr, 1d, 0.05d, 100d);
 		instance.register(stretch);
 	}
 

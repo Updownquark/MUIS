@@ -43,7 +43,7 @@ public class BackgroundStyles implements StyleDomain
 		instance.register(texture);
 		color = StyleAttribute.createStyle(instance, "color", MuisAttribute.colorAttr, new java.awt.Color(255, 255, 255));
 		instance.register(color);
-		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.floatAttr, 0d, 0d, 1d);
+		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.amountAttr, 0d, 0d, 1d);
 		instance.register(transparency);
 		cornerRadius = StyleAttribute.createBoundedStyle(instance, "corner-radius", SizeAttributeType.instance, new Size(), new Size(),
 			null);

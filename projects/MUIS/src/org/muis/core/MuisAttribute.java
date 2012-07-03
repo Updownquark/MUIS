@@ -56,7 +56,7 @@ public final class MuisAttribute<T>
 	}
 
 	/** A string attribute type--this type validates anything */
-	public static final MuisAttribute.AttributeType<String> stringAttr = new AttributeType<String>() {
+	public static final AttributeType<String> stringAttr = new AttributeType<String>() {
 		@Override
 		public String validate(MuisClassView classView, String value)
 		{
@@ -86,7 +86,7 @@ public final class MuisAttribute<T>
 	};
 
 	/** A boolean attribute type--values must be either true or false */
-	public static final MuisAttribute.AttributeType<Boolean> boolAttr = new AttributeType<Boolean>() {
+	public static final AttributeType<Boolean> boolAttr = new AttributeType<Boolean>() {
 		@Override
 		public String validate(MuisClassView classView, String value)
 		{
@@ -125,7 +125,7 @@ public final class MuisAttribute<T>
 	};
 
 	/** An integer attribute type--values must be valid integers */
-	public static final MuisAttribute.AttributeType<Long> intAttr = new AttributeType<Long>() {
+	public static final AttributeType<Long> intAttr = new AttributeType<Long>() {
 		@Override
 		public String validate(MuisClassView classView, String value)
 		{
@@ -170,7 +170,7 @@ public final class MuisAttribute<T>
 	};
 
 	/** A floating-point attribute type--values must be valid real numbers */
-	public static final MuisAttribute.AttributeType<Double> floatAttr = new AttributeType<Double>() {
+	public static final AttributeType<Double> floatAttr = new AttributeType<Double>() {
 		@Override
 		public String validate(MuisClassView classView, String value)
 		{
@@ -214,8 +214,62 @@ public final class MuisAttribute<T>
 		}
 	};
 
+	/** Represents an amount, typically from 0 to 1. May also be given in percent. */
+	public static final AttributeType<Double> amountAttr = new AttributeType<Double>() {
+		@Override
+		public String validate(MuisClassView classView, String value)
+		{
+			boolean percent = value.endsWith("%");
+			if(percent)
+				value = value.substring(0, value.length() - 1);
+			try
+			{
+				Double.parseDouble(value);
+				return null;
+			} catch(NumberFormatException e)
+			{
+				return "must be a valid floating-point value: " + value + " is invalid";
+			}
+		}
+
+		@Override
+		public Double parse(MuisClassView classView, String value) throws MuisException
+		{
+			boolean percent = value.endsWith("%");
+			if(percent)
+				value = value.substring(0, value.length() - 1);
+			try
+			{
+				double ret = Double.valueOf(value);
+				if(percent)
+					ret /= 100;
+				return ret;
+			} catch(NumberFormatException e)
+			{
+				throw new MuisException("Value " + value + " is not an floating-point representation", e);
+			}
+		}
+
+		@Override
+		public Double cast(Object value)
+		{
+			if(value instanceof Double)
+				return (Double) value;
+			else if(value instanceof Float)
+				return Double.valueOf(((Number) value).doubleValue());
+			else
+				return null;
+		}
+
+		@Override
+		public Class<Double> getType()
+		{
+			return Double.class;
+		}
+	};
+
 	/** A color attribute type--values must be parse to colors via {@link org.muis.core.style.Colors#parseColor(String)} */
-	public static final MuisAttribute.AttributeType<Color> colorAttr = new AttributeType<Color>() {
+	public static final AttributeType<Color> colorAttr = new AttributeType<Color>() {
 		@Override
 		public String validate(MuisClassView classView, String value)
 		{
@@ -266,7 +320,7 @@ public final class MuisAttribute<T>
 	 * <li>An absolute URL. Permissions will be checked before resources at any external URLs are retrieved. TODO cite specific permission.</li>
 	 * </ul>
 	 */
-	public static final MuisAttribute.AttributeType<URL> resourceAttr = new AttributeType<java.net.URL>() {
+	public static final AttributeType<URL> resourceAttr = new AttributeType<java.net.URL>() {
 		@Override
 		public String validate(MuisClassView classView, String value)
 		{

@@ -43,7 +43,7 @@ public class LightedStyle implements StyleDomain
 		instance.register(lightColor);
 		shadowColor = StyleAttribute.createStyle(instance, "shadow", MuisAttribute.colorAttr, Color.black);
 		instance.register(shadowColor);
-		maxShadingAmount = StyleAttribute.createBoundedStyle(instance, "max-amount", MuisAttribute.floatAttr, .5, 0d, 1d);
+		maxShadingAmount = StyleAttribute.createBoundedStyle(instance, "max-amount", MuisAttribute.amountAttr, .5, 0d, 1d);
 	}
 
 	/** @return The style domain for all background styles */

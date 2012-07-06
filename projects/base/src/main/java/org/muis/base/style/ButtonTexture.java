@@ -2,6 +2,7 @@ package org.muis.base.style;
 
 import java.awt.Color;
 import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
@@ -59,6 +60,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 
 		CornerRenderImage(CornerRender cr, Color light, Color shadow, int width, int height)
 		{
+			theRender = cr;
+			theLight = light;
+			theShadow = shadow;
+			theWidth = width;
+			theHeight = height;
 		}
 
 		@Override
@@ -70,120 +76,103 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		@Override
 		public Object getProperty(String name)
 		{
-			return null;
-			// TODO Auto-generated method stub
+			return java.awt.Image.UndefinedProperty;
 		}
 
 		@Override
 		public String [] getPropertyNames()
 		{
-			return null;
-			// TODO Auto-generated method stub
+			return new String[0];
 		}
 
 		@Override
 		public java.awt.image.ColorModel getColorModel()
 		{
 			return null;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public java.awt.image.SampleModel getSampleModel()
 		{
 			return null;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public int getWidth()
 		{
-			return 0;
-			// TODO Auto-generated method stub
+			return theRender.getRadius();
 		}
 
 		@Override
 		public int getHeight()
 		{
-			return 0;
-			// TODO Auto-generated method stub
+			return theRender.getRadius();
 		}
 
 		@Override
 		public int getMinX()
 		{
 			return 0;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public int getMinY()
 		{
 			return 0;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public int getNumXTiles()
 		{
-			return 0;
-			// TODO Auto-generated method stub
+			return 1;
 		}
 
 		@Override
 		public int getNumYTiles()
 		{
-			return 0;
-			// TODO Auto-generated method stub
+			return 1;
 		}
 
 		@Override
 		public int getMinTileX()
 		{
 			return 0;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public int getMinTileY()
 		{
 			return 0;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public int getTileWidth()
 		{
-			return 0;
-			// TODO Auto-generated method stub
+			return getWidth();
 		}
 
 		@Override
 		public int getTileHeight()
 		{
-			return 0;
-			// TODO Auto-generated method stub
+			return getHeight();
 		}
 
 		@Override
 		public int getTileGridXOffset()
 		{
 			return 0;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public int getTileGridYOffset()
 		{
 			return 0;
-			// TODO Auto-generated method stub
 		}
 
 		@Override
 		public Raster getTile(int tileX, int tileY)
 		{
-			return null;
-			// TODO Auto-generated method stub
+			return getData();
 		}
 
 		@Override
@@ -255,10 +244,10 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		super.render(graphics, element, area);
 		int w = element.getWidth();
 		int h = element.getHeight();
-		int startX = area == null ? 0 : area.x;
-		int startY = area == null ? 0 : area.y;
-		int endX = area == null ? w : startX + area.width;
-		int endY = area == null ? h : startY + area.height;
+		// int startX = area == null ? 0 : area.x;
+		// int startY = area == null ? 0 : area.y;
+		// int endX = area == null ? w : startX + area.width;
+		// int endY = area == null ? h : startY + area.height;
 		org.muis.core.style.Size radius = element.getStyle().get(org.muis.core.style.BackgroundStyles.cornerRadius);
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
@@ -266,33 +255,47 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 			wRad = w / 2;
 		if(hRad * 2 > h)
 			hRad = h / 2;
-		// The radius of the corner render we get needs to be either exactly the width or height radius or at least twice it for good
-		// resolution.
+		// The radius of the corner render we get needs to be either at least the width or height radius for good resolution.
 		int maxRad = wRad;
-		if(hRad != wRad)
-		{
-			if(hRad * 2 < wRad)
-				maxRad = wRad;
-			else if(hRad < wRad)
-				maxRad = hRad * 2;
-			else if(wRad * 2 < hRad)
-				maxRad = hRad;
-			else if(wRad < hRad)
-				maxRad = wRad * 2;
-		}
+		if(hRad > maxRad)
+			maxRad = hRad;
 		float source = element.getStyle().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
-		CornerRenderKey key = new CornerRenderKey(source, maxRad);
-		CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
-		if(cr.getRadius() < maxRad)
+		Color light = element.getStyle().get(org.muis.core.style.LightedStyle.lightColor);
+		Color shadow = element.getStyle().get(org.muis.core.style.LightedStyle.shadowColor);
+		for(int i = 0; i < 4; i++)
 		{
-			// Regenerate with a big enough radius
-			element.getDocument().getCache().remove(cornerRendering, key);
-			cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+			CornerRenderKey key = new CornerRenderKey(source, maxRad);
+			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+			if(cr.getRadius() < maxRad)
+			{
+				// Regenerate with a big enough radius
+				element.getDocument().getCache().remove(cornerRendering, key);
+				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+			}
+			CornerRenderImage crImg = new CornerRenderImage(cr, light, shadow, w, h);
+			AffineTransform trans = AffineTransform.getScaleInstance(wRad * 1.0 / cr.getRadius(), hRad * 1.0 / cr.getRadius());
+			switch (i)
+			{
+			case 0:
+				break;
+			case 1:
+				trans.concatenate(AffineTransform.getQuadrantRotateInstance(i));
+				trans.concatenate(AffineTransform.getTranslateInstance(w, 0));
+				break;
+			case 2:
+				trans.concatenate(AffineTransform.getQuadrantRotateInstance(i));
+				trans.concatenate(AffineTransform.getTranslateInstance(w, h));
+				break;
+			case 3:
+				trans.concatenate(AffineTransform.getQuadrantRotateInstance(i));
+				trans.concatenate(AffineTransform.getTranslateInstance(0, h));
+				break;
+			}
+			graphics.drawRenderedImage(crImg, trans);
 		}
+		// TODO Corners drawn, now draw lines
 
-		// TODO
-
-		float sin = (float) Math.sin(source * Math.PI / 180);
+		/*float sin = (float) Math.sin(source * Math.PI / 180);
 		float cos = (float) Math.cos(source * Math.PI / 180);
 
 		boolean left = source >= 180;
@@ -371,12 +374,23 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 					graphics.drawLine(lineStartX, y, lineEndX, y);
 				}
 			}
-		}
-		/*
-		 * for(int y = startY; y < endY; y++) for(int x = startX; x < endX; x++) { float brighten = getBrighten(x, y, w, h, radius, sin,
-		 * cos); if(brighten < 0) { graphics.setColor(new Color(0, 0, 0, (int) (-brighten * 255))); graphics.drawRect(x, y, 1, 1); } else
-		 * if(brighten > 0) { graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255))); graphics.drawRect(x, y, 1, 1); } }
-		 */
+		}*/
+
+		/*for(int y = startY; y < endY; y++)
+			for(int x = startX; x < endX; x++)
+			{
+				float brighten = getBrighten(x, y, w, h, radius, sin, cos);
+				if(brighten < 0)
+				{
+					graphics.setColor(new Color(0, 0, 0, (int) (-brighten * 255)));
+					graphics.drawRect(x, y, 1, 1);
+				}
+				else if(brighten > 0)
+				{
+					graphics.setColor(new Color(255, 255, 255, (int) (brighten * 255)));
+					graphics.drawRect(x, y, 1, 1);
+				}
+			}*/
 	}
 
 	/**

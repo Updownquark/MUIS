@@ -1,6 +1,7 @@
 package org.muis.base.style;
 
 import java.awt.Color;
+import java.awt.image.BufferedImage;
 
 import org.muis.core.MuisDocument;
 
@@ -15,19 +16,45 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 
 		CornerRender(int radius)
 		{
-			radius++;
-			theLightAlphas = new int[radius][radius];
-			theShadowAlphas = new int[radius][radius];
+			theLightAlphas = new int[radius][radius + 1];
+			theShadowAlphas = new int[radius][radius + 1];
 		}
 
 		void render(float lightSource)
 		{
-			// TODO
+			lightSource += 180;
+			if(lightSource > 360)
+				lightSource -= 360;
+			lightSource *= Math.PI / 180;
+			int xL = (int) Math.round(-Math.cos(lightSource) * 255);
+			int yL = (int) Math.round(Math.sin(lightSource) * 255);
+			int rad = theLightAlphas.length;
+			for(int x = 0; x < rad; x++)
+			{
+				for(int y = 0; y < rad; y++)
+				{
+					int dot = (rad - x) * xL / (rad + 1) + (rad - y) * yL / (rad + 1);
+					if(Math.abs(dot) > 255)
+						continue;
+					if(dot > 0)
+						theLightAlphas[y][x] = dot;
+					else
+						theShadowAlphas[y][x] = -dot;
+				}
+			}
+			for(int y = 0; y < rad; y++)
+			{
+				int dot = xL + (rad - y) * yL / (rad + 1);
+				if(dot > 0)
+					theLightAlphas[y][rad] = dot;
+				else
+					theShadowAlphas[y][rad] = -dot;
+			}
 		}
 
 		int getRadius()
 		{
-			return theLightAlphas.length - 1;
+			return theLightAlphas.length;
 		}
 
 		int getLightAlpha(int x, int y)
@@ -93,6 +120,8 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		// int endX = area == null ? w : startX + area.width;
 		// int endY = area == null ? h : startY + area.height;
 		org.muis.core.style.Size radius = element.getStyle().get(org.muis.core.style.BackgroundStyles.cornerRadius);
+		if(radius.getValue() == 0)
+			return;
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
 		if(wRad * 2 > w)
@@ -106,14 +135,18 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		float source = element.getStyle().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
 		Color light = element.getStyle().get(org.muis.core.style.LightedStyle.lightColor);
 		Color shadow = element.getStyle().get(org.muis.core.style.LightedStyle.shadowColor);
-		java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(wRad, hRad, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
-		for(int i = 0; i < 4; i++)
+		int lightRGB = light.getRGB() & 0xffffff;
+		int shadowRGB = shadow.getRGB() & 0xffffff;
+		BufferedImage cornerImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
+		BufferedImage tbEdgeImg = new BufferedImage(1, hRad, BufferedImage.TYPE_4BYTE_ABGR);
+		BufferedImage lrEdgeImg = new BufferedImage(wRad, 1, BufferedImage.TYPE_4BYTE_ABGR);
+		for(int i = 0; i < 1; i++)
 		{
 			// TODO test for area's containment of this corner, if area!=null
 			float tempSource = source - 90 * i;
-			while(tempSource >= 360)
-				tempSource -= 360;
-			CornerRenderKey key = new CornerRenderKey(tempSource, maxRad);
+			while(tempSource < 0)
+				tempSource += 360;
+			CornerRenderKey key = new CornerRenderKey(tempSource, (int) (maxRad * 1.5f)); // If we need to generate, step it up
 			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
 			if(cr.getRadius() < maxRad)
 			{
@@ -133,28 +166,32 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 						crY = y;
 						break;
 					case 1: // Top right corner
-						crX = wRad - x;
+						crX = wRad - x - 1;
 						crY = y;
 						break;
 					case 2: // Bottom right corner
-						crX = wRad - x;
-						crY = hRad - y;
+						crX = wRad - x - 1;
+						crY = hRad - y - 1;
 						break;
 					case 3: // Bottom left corner
 						crX = x;
-						crY = hRad - y;
+						crY = hRad - y - 1;
 						break;
 					}
 					crX = Math.round(crX * cr.getRadius() * 1.0f / wRad);
 					crY = Math.round(crX * cr.getRadius() * 1.0f / hRad);
+					if(crX >= cr.getRadius())
+						crX = cr.getRadius() - 1;
+					if(crY >= cr.getRadius())
+						crY = cr.getRadius() - 1;
 					int alpha = cr.getLightAlpha(crX, crY);
 					if(alpha > 0)
-						img.setRGB(x, y, light.getRGB() | (alpha << 24));
+						cornerImg.setRGB(x, y, lightRGB | (alpha << 24));
 					else
 					{
 						alpha = cr.getShadowAlpha(crX, crY);
 						if(alpha > 0)
-							img.setRGB(x, y, shadow.getRGB() | (alpha << 24));
+							cornerImg.setRGB(x, y, shadowRGB | (alpha << 24));
 					}
 				}
 			int renderX = 0, renderY = 0;
@@ -165,24 +202,96 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				renderY = 0;
 				break;
 			case 1:
-				renderX = w - wRad;
+				renderX = w - wRad - 1;
 				renderY = 0;
 				break;
 			case 2:
-				renderX = w - wRad;
-				renderY = h - hRad;
+				renderX = w - wRad - 1;
+				renderY = h - hRad - 1;
 				break;
 			case 3:
 				renderX = 0;
-				renderY = h - hRad;
+				renderY = h - hRad - 1;
 				break;
 			}
-			// TODO make an image observer so we can be sure the graphics finish rendering for each corner before the next is drawn
+			// TODO Maybe make an image observer so we can be sure the graphics finish rendering for each corner before the next is drawn
 			// Might be better than making a new buffered image each time the rendering doesn't finish
-			if(!graphics.drawImage(img, renderX, renderY, wRad, hRad, 0, 0, wRad, hRad, null))
-				img = new java.awt.image.BufferedImage(wRad, hRad, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
+			if(!graphics.drawImage(cornerImg, renderX, renderY, wRad, hRad, 0, 0, wRad, hRad, null))
+				cornerImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
+
+			// TODO Corners drawn, now draw lines
+			switch (i)
+			{
+			case 0:
+				for(int y = 0; y < hRad; y++)
+				{
+					tbEdgeImg.setRGB(0, y, 0);
+					int crY = Math.round(y * cr.getRadius() * 1.0f / hRad);
+					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					if(alpha > 0)
+						tbEdgeImg.setRGB(0, y, lightRGB | (alpha << 24));
+					else
+					{
+						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
+						if(alpha > 0)
+							tbEdgeImg.setRGB(0, y, shadowRGB | (alpha << 24));
+					}
+				}
+				graphics.drawImage(tbEdgeImg, wRad, 0, w - wRad, hRad, 0, 0, 1, hRad, null);
+				break;
+			case 1:
+				for(int x = 0; x < wRad; x++)
+				{
+					lrEdgeImg.setRGB(x, 0, 0);
+					int crY = Math.round((wRad - x - 1) * cr.getRadius() * 1.0f / wRad);
+					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					if(alpha > 0)
+						lrEdgeImg.setRGB(x, 0, lightRGB | (alpha << 24));
+					else
+					{
+						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
+						if(alpha > 0)
+							lrEdgeImg.setRGB(x, 0, shadowRGB | (alpha << 24));
+					}
+				}
+				graphics.drawImage(lrEdgeImg, w - wRad, hRad, w, h - hRad, 0, 0, wRad, 1, null);
+				break;
+			case 2:
+				for(int y = 0; y < hRad; y++)
+				{
+					tbEdgeImg.setRGB(0, y, 0);
+					int crY = Math.round((hRad - y - 1) * cr.getRadius() * 1.0f / hRad);
+					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					if(alpha > 0)
+						tbEdgeImg.setRGB(0, y, lightRGB | (alpha << 24));
+					else
+					{
+						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
+						if(alpha > 0)
+							tbEdgeImg.setRGB(0, y, shadowRGB | (alpha << 24));
+					}
+				}
+				graphics.drawImage(tbEdgeImg, wRad, h - hRad, w - wRad, h, 0, 0, 1, hRad, null);
+				break;
+			case 3:
+				for(int x = 0; x < wRad; x++)
+				{
+					lrEdgeImg.setRGB(x, 0, 0);
+					int crY = Math.round(x * cr.getRadius() * 1.0f / wRad);
+					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					if(alpha > 0)
+						lrEdgeImg.setRGB(x, 0, lightRGB | (alpha << 24));
+					else
+					{
+						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
+						if(alpha > 0)
+							lrEdgeImg.setRGB(x, 0, shadowRGB | (alpha << 24));
+					}
+				}
+				graphics.drawImage(lrEdgeImg, 0, hRad, wRad, h - hRad, 0, 0, wRad, 1, null);
+				break;
+			}
 		}
-		// TODO Corners drawn, now draw lines
 
 		/*float sin = (float) Math.sin(source * Math.PI / 180);
 		float cos = (float) Math.cos(source * Math.PI / 180);

@@ -1,11 +1,6 @@
 package org.muis.base.style;
 
 import java.awt.Color;
-import java.awt.Rectangle;
-import java.awt.geom.AffineTransform;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.awt.image.WritableRaster;
 
 import org.muis.core.MuisDocument;
 
@@ -43,157 +38,6 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		int getShadowAlpha(int x, int y)
 		{
 			return theShadowAlphas[y][x];
-		}
-	}
-
-	private static class CornerRenderImage implements RenderedImage
-	{
-		private CornerRender theRender;
-
-		private Color theLight;
-
-		private Color theShadow;
-
-		private int theWidth;
-
-		private int theHeight;
-
-		CornerRenderImage(CornerRender cr, Color light, Color shadow, int width, int height)
-		{
-			theRender = cr;
-			theLight = light;
-			theShadow = shadow;
-			theWidth = width;
-			theHeight = height;
-		}
-
-		@Override
-		public java.util.Vector<RenderedImage> getSources()
-		{
-			return new java.util.Vector<>();
-		}
-
-		@Override
-		public Object getProperty(String name)
-		{
-			return java.awt.Image.UndefinedProperty;
-		}
-
-		@Override
-		public String [] getPropertyNames()
-		{
-			return new String[0];
-		}
-
-		@Override
-		public java.awt.image.ColorModel getColorModel()
-		{
-			return null;
-		}
-
-		@Override
-		public java.awt.image.SampleModel getSampleModel()
-		{
-			return null;
-		}
-
-		@Override
-		public int getWidth()
-		{
-			return theRender.getRadius();
-		}
-
-		@Override
-		public int getHeight()
-		{
-			return theRender.getRadius();
-		}
-
-		@Override
-		public int getMinX()
-		{
-			return 0;
-		}
-
-		@Override
-		public int getMinY()
-		{
-			return 0;
-		}
-
-		@Override
-		public int getNumXTiles()
-		{
-			return 1;
-		}
-
-		@Override
-		public int getNumYTiles()
-		{
-			return 1;
-		}
-
-		@Override
-		public int getMinTileX()
-		{
-			return 0;
-		}
-
-		@Override
-		public int getMinTileY()
-		{
-			return 0;
-		}
-
-		@Override
-		public int getTileWidth()
-		{
-			return getWidth();
-		}
-
-		@Override
-		public int getTileHeight()
-		{
-			return getHeight();
-		}
-
-		@Override
-		public int getTileGridXOffset()
-		{
-			return 0;
-		}
-
-		@Override
-		public int getTileGridYOffset()
-		{
-			return 0;
-		}
-
-		@Override
-		public Raster getTile(int tileX, int tileY)
-		{
-			return getData();
-		}
-
-		@Override
-		public Raster getData()
-		{
-			return null;
-			// TODO Auto-generated method stub
-		}
-
-		@Override
-		public Raster getData(Rectangle rect)
-		{
-			return null;
-			// TODO Auto-generated method stub
-		}
-
-		@Override
-		public WritableRaster copyData(WritableRaster raster)
-		{
-			return null;
-			// TODO Auto-generated method stub
 		}
 	}
 
@@ -262,9 +106,14 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		float source = element.getStyle().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
 		Color light = element.getStyle().get(org.muis.core.style.LightedStyle.lightColor);
 		Color shadow = element.getStyle().get(org.muis.core.style.LightedStyle.shadowColor);
+		java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(wRad, hRad, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
 		for(int i = 0; i < 4; i++)
 		{
-			CornerRenderKey key = new CornerRenderKey(source, maxRad);
+			// TODO test for area's containment of this corner, if area!=null
+			float tempSource = source - 90 * i;
+			while(tempSource >= 360)
+				tempSource -= 360;
+			CornerRenderKey key = new CornerRenderKey(tempSource, maxRad);
 			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
 			if(cr.getRadius() < maxRad)
 			{
@@ -272,26 +121,66 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				element.getDocument().getCache().remove(cornerRendering, key);
 				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
 			}
-			CornerRenderImage crImg = new CornerRenderImage(cr, light, shadow, w, h);
-			AffineTransform trans = AffineTransform.getScaleInstance(wRad * 1.0 / cr.getRadius(), hRad * 1.0 / cr.getRadius());
+
+			for(int x = 0; x < wRad; x++)
+				for(int y = 0; y < hRad; y++)
+				{
+					int crX = x, crY = y;
+					switch (i)
+					{
+					case 0: // Top left corner
+						crX = x;
+						crY = y;
+						break;
+					case 1: // Top right corner
+						crX = wRad - x;
+						crY = y;
+						break;
+					case 2: // Bottom right corner
+						crX = wRad - x;
+						crY = hRad - y;
+						break;
+					case 3: // Bottom left corner
+						crX = x;
+						crY = hRad - y;
+						break;
+					}
+					crX = Math.round(crX * cr.getRadius() * 1.0f / wRad);
+					crY = Math.round(crX * cr.getRadius() * 1.0f / hRad);
+					int alpha = cr.getLightAlpha(crX, crY);
+					if(alpha > 0)
+						img.setRGB(x, y, light.getRGB() | (alpha << 24));
+					else
+					{
+						alpha = cr.getShadowAlpha(crX, crY);
+						if(alpha > 0)
+							img.setRGB(x, y, shadow.getRGB() | (alpha << 24));
+					}
+				}
+			int renderX = 0, renderY = 0;
 			switch (i)
 			{
 			case 0:
+				renderX = 0;
+				renderY = 0;
 				break;
 			case 1:
-				trans.concatenate(AffineTransform.getQuadrantRotateInstance(i));
-				trans.concatenate(AffineTransform.getTranslateInstance(w, 0));
+				renderX = w - wRad;
+				renderY = 0;
 				break;
 			case 2:
-				trans.concatenate(AffineTransform.getQuadrantRotateInstance(i));
-				trans.concatenate(AffineTransform.getTranslateInstance(w, h));
+				renderX = w - wRad;
+				renderY = h - hRad;
 				break;
 			case 3:
-				trans.concatenate(AffineTransform.getQuadrantRotateInstance(i));
-				trans.concatenate(AffineTransform.getTranslateInstance(0, h));
+				renderX = 0;
+				renderY = h - hRad;
 				break;
 			}
-			graphics.drawRenderedImage(crImg, trans);
+			// TODO make an image observer so we can be sure the graphics finish rendering for each corner before the next is drawn
+			// Might be better than making a new buffered image each time the rendering doesn't finish
+			if(!graphics.drawImage(img, renderX, renderY, wRad, hRad, 0, 0, wRad, hRad, null))
+				img = new java.awt.image.BufferedImage(wRad, hRad, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
 		}
 		// TODO Corners drawn, now draw lines
 

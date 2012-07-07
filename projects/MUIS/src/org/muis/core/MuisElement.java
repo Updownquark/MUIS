@@ -760,6 +760,21 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/**
 	 * Specifies a required attribute for this element
 	 *
+	 * @param <T> The type of the attribute to require
+	 * @param attr The attribute that must be specified for this element
+	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @throws MuisException If the given value is not acceptable for the given attribute
+	 */
+	public final <T> void requireAttribute(MuisAttribute<T> attr, T initValue) throws MuisException
+	{
+		requireAttribute(attr);
+		if(getAttribute(attr) == null)
+			setAttribute(attr, initValue);
+	}
+
+	/**
+	 * Specifies a required attribute for this element
+	 *
 	 * @param attr The attribute that must be specified for this element
 	 */
 	public final void requireAttribute(MuisAttribute<?> attr)
@@ -823,6 +838,21 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		}
 		else
 			theAcceptedAttrs.put(attr.name, new AttributeHolder(attr, false));
+	}
+
+	/**
+	 * Specifies an optional attribute for this element
+	 *
+	 * @param <T> The type of the attribute to require
+	 * @param attr The attribute that may be specified for this element
+	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @throws MuisException If the given value is not acceptable for the given attribute
+	 */
+	public final <T> void acceptAttribute(MuisAttribute<T> attr, T initValue) throws MuisException
+	{
+		acceptAttribute(attr);
+		if(getAttribute(attr) == null)
+			setAttribute(attr, initValue);
 	}
 
 	/**

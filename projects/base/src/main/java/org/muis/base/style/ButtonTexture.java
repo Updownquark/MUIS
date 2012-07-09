@@ -29,26 +29,32 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 			int xL = (int) Math.round(-Math.cos(lightSource) * 255);
 			int yL = (int) Math.round(Math.sin(lightSource) * 255);
 			int rad = theLightAlphas.length;
+			int rad2 = rad * rad;
 			for(int x = 0; x < rad; x++)
 			{
+				int x2 = x * x;
 				for(int y = 0; y < rad; y++)
 				{
-					int dot = (rad - x) * xL / (rad + 1) + (rad - y) * yL / (rad + 1);
+					if(x2 + y * y > rad2)
+						continue;
+					int dot = (x + 1) * xL / (rad + 1) + (y + 1) * yL / (rad + 1);
 					if(Math.abs(dot) > 255)
 						continue;
 					if(dot > 0)
-						theLightAlphas[y][x] = dot;
+						theLightAlphas[rad - y - 1][rad - x - 1] = dot;
 					else
-						theShadowAlphas[y][x] = -dot;
+						theShadowAlphas[rad - y - 1][rad - x - 1] = -dot;
 				}
 			}
 			for(int y = 0; y < rad; y++)
 			{
-				int dot = xL + (rad - y) * yL / (rad + 1);
+				int dot = xL + (y + 1) * yL / (rad + 1);
+				if(Math.abs(dot) > 255)
+					continue;
 				if(dot > 0)
-					theLightAlphas[y][rad] = dot;
+					theLightAlphas[rad - y - 1][rad] = dot;
 				else
-					theShadowAlphas[y][rad] = -dot;
+					theShadowAlphas[rad - y - 1][rad] = -dot;
 			}
 		}
 
@@ -179,7 +185,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 						break;
 					}
 					crX = Math.round(crX * cr.getRadius() * 1.0f / wRad);
-					crY = Math.round(crX * cr.getRadius() * 1.0f / hRad);
+					crY = Math.round(crY * cr.getRadius() * 1.0f / hRad);
 					if(crX >= cr.getRadius())
 						crX = cr.getRadius() - 1;
 					if(crY >= cr.getRadius())
@@ -214,12 +220,10 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				renderY = h - hRad - 1;
 				break;
 			}
-			// TODO Maybe make an image observer so we can be sure the graphics finish rendering for each corner before the next is drawn
-			// Might be better than making a new buffered image each time the rendering doesn't finish
 			if(!graphics.drawImage(cornerImg, renderX, renderY, wRad, hRad, 0, 0, wRad, hRad, null))
 				cornerImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 
-			// TODO Corners drawn, now draw lines
+			// Corners drawn, now draw lines
 			switch (i)
 			{
 			case 0:

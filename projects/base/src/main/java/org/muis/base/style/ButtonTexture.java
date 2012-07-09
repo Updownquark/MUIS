@@ -48,7 +48,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 			}
 			for(int y = 0; y < rad; y++)
 			{
-				int dot = xL + (y + 1) * yL / (rad + 1);
+				int dot = (y + 1) * yL / (rad + 1);
 				if(Math.abs(dot) > 255)
 					continue;
 				if(dot > 0)
@@ -146,7 +146,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		BufferedImage cornerImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 		BufferedImage tbEdgeImg = new BufferedImage(1, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 		BufferedImage lrEdgeImg = new BufferedImage(wRad, 1, BufferedImage.TYPE_4BYTE_ABGR);
-		for(int i = 0; i < 1; i++)
+		for(int i = 0; i < 2; i++)
 		{
 			// TODO test for area's containment of this corner, if area!=null
 			float tempSource = source - 90 * i;
@@ -220,7 +220,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				renderY = h - hRad - 1;
 				break;
 			}
-			if(!graphics.drawImage(cornerImg, renderX, renderY, wRad, hRad, 0, 0, wRad, hRad, null))
+			if(!graphics.drawImage(cornerImg, renderX, renderY, renderX + wRad, renderY + hRad, 0, 0, wRad, hRad, null))
 				cornerImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 
 			// Corners drawn, now draw lines
@@ -241,7 +241,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 							tbEdgeImg.setRGB(0, y, shadowRGB | (alpha << 24));
 					}
 				}
-				graphics.drawImage(tbEdgeImg, wRad, 0, w - wRad, hRad, 0, 0, 1, hRad, null);
+				graphics.drawImage(tbEdgeImg, wRad, 0, w - wRad - 1, hRad, 0, 0, 1, hRad, null);
 				break;
 			case 1:
 				for(int x = 0; x < wRad; x++)

@@ -5,7 +5,7 @@
 	<description>
 		This toolkit provides basic MUIS functionality
 	</description>
-	<version>29Jun2012</version>
+	<version>09Jul2012</version>
 	<dependencies>
 		<classpath>classes</classpath>
 	</dependencies>
@@ -16,6 +16,7 @@
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>
         <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>
+        <type tag="raised-square">org.muis.base.style.RaisedSquareTexture</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>

@@ -5,8 +5,8 @@ import java.awt.image.BufferedImage;
 
 import org.muis.core.MuisDocument;
 
-/** Renders a button-looking texture over an element */
-public class ButtonTexture implements org.muis.core.style.Texture
+/** Renders a raised, round, button-looking texture over an element */
+public class RaisedRoundTexture implements org.muis.core.style.Texture
 {
 	private static class CornerRender
 	{

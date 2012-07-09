@@ -15,7 +15,7 @@
         <type tag="image">org.muis.base.widget.Image</type>
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>
-        <type tag="button-texture">org.muis.base.style.ButtonTexture</type>
+        <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>

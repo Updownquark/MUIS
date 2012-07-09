@@ -22,12 +22,12 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 
 		void render(float lightSource)
 		{
-			lightSource += 180;
-			if(lightSource > 360)
-				lightSource -= 360;
+			lightSource -= 90;
+			if(lightSource < 0)
+				lightSource += 360;
 			lightSource *= Math.PI / 180;
 			int xL = (int) Math.round(-Math.cos(lightSource) * 255);
-			int yL = (int) Math.round(Math.sin(lightSource) * 255);
+			int yL = (int) Math.round(-Math.sin(lightSource) * 255);
 			int rad = theLightAlphas.length;
 			int rad2 = rad * rad;
 			for(int x = 0; x < rad; x++)
@@ -39,7 +39,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 						continue;
 					int dot = (x + 1) * xL / (rad + 1) + (y + 1) * yL / (rad + 1);
 					if(Math.abs(dot) > 255)
-						continue;
+						dot = 255;
 					if(dot > 0)
 						theLightAlphas[rad - y - 1][rad - x - 1] = dot;
 					else
@@ -146,6 +146,15 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		BufferedImage cornerImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 		BufferedImage tbEdgeImg = new BufferedImage(1, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 		BufferedImage lrEdgeImg = new BufferedImage(wRad, 1, BufferedImage.TYPE_4BYTE_ABGR);
+		// TODO Matrix math?
+		int [][][] rot = new int[4][][];
+		rot[0] = null;
+		rot[1] = new int[][] {new int[] {0, 1}, new int[] {-1, 0}};
+		rot[2] = new int[][] {new int[] {-1, 0}, new int[] {0, -1}};
+		rot[3] = new int[][] {new int[] {0, -1}, new int[] {1, 0}};
+		int [][][] invRot = new int[4][][];
+		rot[0] = null;
+		ret[1] = new int[][] {new int[] {0, -1}, new int[] {1, 0}};
 		for(int i = 0; i < 2; i++)
 		{
 			// TODO test for area's containment of this corner, if area!=null
@@ -165,6 +174,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				for(int y = 0; y < hRad; y++)
 				{
 					int crX = x, crY = y;
+					if(rot[i] != null)
+					{
+						crX = rot[i][0][0] * crX + rot[i][0][1] * crY;
+						crY = rot[i][1][0] * crX + rot[i][1][1] * crY;
+					}
 					switch (i)
 					{
 					case 0: // Top left corner
@@ -200,6 +214,7 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 							cornerImg.setRGB(x, y, shadowRGB | (alpha << 24));
 					}
 				}
+			// TODO test edge for containment if area if area!=nul
 			int renderX = 0, renderY = 0;
 			switch (i)
 			{

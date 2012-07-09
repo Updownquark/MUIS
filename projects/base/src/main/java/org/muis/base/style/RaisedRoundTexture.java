@@ -236,7 +236,7 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 			switch (i)
 			{
 			case 0:
-				if(area != null && (area.y > hRad || area.y + area.height < 0 || area.x > w - wRad || area.x + area.height < wRad))
+				if(area != null && (area.y > hRad || area.y + area.height < 0 || area.x > w - wRad || area.x + area.width < wRad))
 					break;
 				for(int y = 0; y < hRad; y++)
 				{
@@ -251,7 +251,7 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 				graphics.drawImage(tbEdgeImg, wRad, 0, w - wRad, hRad, 0, 0, 1, hRad, null);
 				break;
 			case 1:
-				if(area != null && (area.y > h - hRad || area.y + area.height < hRad || area.x > w || area.x + area.height < w - wRad))
+				if(area != null && (area.y > h - hRad || area.y + area.height < hRad || area.x > w || area.x + area.width < w - wRad))
 					break;
 				for(int x = 0; x < wRad; x++)
 				{
@@ -266,7 +266,7 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 				graphics.drawImage(lrEdgeImg, w - wRad, hRad, w, h - hRad, 0, 0, wRad, 1, null);
 				break;
 			case 2:
-				if(area != null && (area.y > h || area.y + area.height < h - hRad || area.x > w - wRad || area.x + area.height < wRad))
+				if(area != null && (area.y > h || area.y + area.height < h - hRad || area.x > w - wRad || area.x + area.width < wRad))
 					break;
 				for(int y = 0; y < hRad; y++)
 				{
@@ -281,7 +281,7 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 				graphics.drawImage(tbEdgeImg, wRad, h - hRad, w - wRad, h, 0, 0, 1, hRad, null);
 				break;
 			case 3:
-				if(area != null && (area.y > h - hRad || area.y + area.height < hRad || area.x > wRad || area.x + area.height < 0))
+				if(area != null && (area.y > h - hRad || area.y + area.height < hRad || area.x > wRad || area.x + area.width < 0))
 					break;
 				for(int x = 0; x < wRad; x++)
 				{

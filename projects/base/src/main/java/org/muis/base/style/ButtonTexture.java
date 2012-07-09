@@ -10,14 +10,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 {
 	private static class CornerRender
 	{
-		private int [][] theLightAlphas;
-
-		private int [][] theShadowAlphas;
+		private short [][] theShadeAmt;
 
 		CornerRender(int radius)
 		{
-			theLightAlphas = new int[radius][radius + 1];
-			theShadowAlphas = new int[radius][radius + 1];
+			theShadeAmt = new short[radius][radius + 1];
 		}
 
 		void render(float lightSource)
@@ -28,9 +25,10 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 			lightSource *= Math.PI / 180;
 			int xL = (int) Math.round(-Math.cos(lightSource) * 255);
 			int yL = (int) Math.round(-Math.sin(lightSource) * 255);
-			int rad = theLightAlphas.length;
+			int rad = theShadeAmt.length;
 			int rad2 = rad * rad;
-			for(int x = 0; x < rad; x++)
+			// -1 so it renders some pixels for the edge too
+			for(int x = -1; x < rad; x++)
 			{
 				int x2 = x * x;
 				for(int y = 0; y < rad; y++)
@@ -38,39 +36,23 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 					if(x2 + y * y > rad2)
 						continue;
 					int dot = (x + 1) * xL / (rad + 1) + (y + 1) * yL / (rad + 1);
-					if(Math.abs(dot) > 255)
+					if(dot > 255)
 						dot = 255;
-					if(dot > 0)
-						theLightAlphas[rad - y - 1][rad - x - 1] = dot;
-					else
-						theShadowAlphas[rad - y - 1][rad - x - 1] = -dot;
+					else if(dot < -255)
+						dot = -255;
+					theShadeAmt[rad - y - 1][rad - x - 1] = (short) dot;
 				}
-			}
-			for(int y = 0; y < rad; y++)
-			{
-				int dot = (y + 1) * yL / (rad + 1);
-				if(Math.abs(dot) > 255)
-					continue;
-				if(dot > 0)
-					theLightAlphas[rad - y - 1][rad] = dot;
-				else
-					theShadowAlphas[rad - y - 1][rad] = -dot;
 			}
 		}
 
 		int getRadius()
 		{
-			return theLightAlphas.length;
+			return theShadeAmt.length;
 		}
 
-		int getLightAlpha(int x, int y)
+		int getShadeAmount(int x, int y)
 		{
-			return theLightAlphas[y][x];
-		}
-
-		int getShadowAlpha(int x, int y)
-		{
-			return theShadowAlphas[y][x];
+			return theShadeAmt[y][x];
 		}
 	}
 
@@ -153,9 +135,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 		rot[2] = new int[][] {new int[] {-1, 0}, new int[] {0, -1}};
 		rot[3] = new int[][] {new int[] {0, -1}, new int[] {1, 0}};
 		int [][][] invRot = new int[4][][];
-		rot[0] = null;
-		ret[1] = new int[][] {new int[] {0, -1}, new int[] {1, 0}};
-		for(int i = 0; i < 2; i++)
+		invRot[0] = null;
+		invRot[1] = rot[3];
+		invRot[2] = rot[2];
+		invRot[3] = rot[1];
+		for(int i = 0; i < 4; i++)
 		{
 			// TODO test for area's containment of this corner, if area!=null
 			float tempSource = source - 90 * i;
@@ -174,45 +158,45 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				for(int y = 0; y < hRad; y++)
 				{
 					int crX = x, crY = y;
+					crX = Math.round(crX * cr.getRadius() * 1.0f / wRad);
+					crY = Math.round(crY * cr.getRadius() * 1.0f / hRad);
 					if(rot[i] != null)
 					{
 						crX = rot[i][0][0] * crX + rot[i][0][1] * crY;
 						crY = rot[i][1][0] * crX + rot[i][1][1] * crY;
 					}
-					switch (i)
-					{
-					case 0: // Top left corner
-						crX = x;
-						crY = y;
-						break;
-					case 1: // Top right corner
-						crX = wRad - x - 1;
-						crY = y;
-						break;
-					case 2: // Bottom right corner
-						crX = wRad - x - 1;
-						crY = hRad - y - 1;
-						break;
-					case 3: // Bottom left corner
-						crX = x;
-						crY = hRad - y - 1;
-						break;
-					}
-					crX = Math.round(crX * cr.getRadius() * 1.0f / wRad);
-					crY = Math.round(crY * cr.getRadius() * 1.0f / hRad);
+					if(crX < 0)
+						crX += cr.getRadius();
+					if(crY < 0)
+						crY += cr.getRadius();
+					// switch (i)
+					// {
+					// case 0: // Top left corner
+					// crX = x;
+					// crY = y;
+					// break;
+					// case 1: // Top right corner
+					// crX = wRad - x - 1;
+					// crY = y;
+					// break;
+					// case 2: // Bottom right corner
+					// crX = wRad - x - 1;
+					// crY = hRad - y - 1;
+					// break;
+					// case 3: // Bottom left corner
+					// crX = x;
+					// crY = hRad - y - 1;
+					// break;
+					// }
 					if(crX >= cr.getRadius())
 						crX = cr.getRadius() - 1;
 					if(crY >= cr.getRadius())
 						crY = cr.getRadius() - 1;
-					int alpha = cr.getLightAlpha(crX, crY);
+					int alpha = cr.getShadeAmount(crX, crY);
 					if(alpha > 0)
 						cornerImg.setRGB(x, y, lightRGB | (alpha << 24));
-					else
-					{
-						alpha = cr.getShadowAlpha(crX, crY);
-						if(alpha > 0)
-							cornerImg.setRGB(x, y, shadowRGB | (alpha << 24));
-					}
+					else if(alpha < 0)
+						cornerImg.setRGB(x, y, shadowRGB | ((-alpha) << 24));
 				}
 			// TODO test edge for containment if area if area!=nul
 			int renderX = 0, renderY = 0;
@@ -246,15 +230,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				{
 					tbEdgeImg.setRGB(0, y, 0);
 					int crY = Math.round(y * cr.getRadius() * 1.0f / hRad);
-					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						tbEdgeImg.setRGB(0, y, lightRGB | (alpha << 24));
-					else
-					{
-						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
-						if(alpha > 0)
-							tbEdgeImg.setRGB(0, y, shadowRGB | (alpha << 24));
-					}
+					else if(alpha < 0)
+						tbEdgeImg.setRGB(0, y, shadowRGB | ((-alpha) << 24));
 				}
 				graphics.drawImage(tbEdgeImg, wRad, 0, w - wRad - 1, hRad, 0, 0, 1, hRad, null);
 				break;
@@ -263,15 +243,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				{
 					lrEdgeImg.setRGB(x, 0, 0);
 					int crY = Math.round((wRad - x - 1) * cr.getRadius() * 1.0f / wRad);
-					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						lrEdgeImg.setRGB(x, 0, lightRGB | (alpha << 24));
-					else
-					{
-						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
-						if(alpha > 0)
-							lrEdgeImg.setRGB(x, 0, shadowRGB | (alpha << 24));
-					}
+					else if(alpha < 0)
+						lrEdgeImg.setRGB(x, 0, shadowRGB | ((-alpha) << 24));
 				}
 				graphics.drawImage(lrEdgeImg, w - wRad, hRad, w, h - hRad, 0, 0, wRad, 1, null);
 				break;
@@ -280,15 +256,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				{
 					tbEdgeImg.setRGB(0, y, 0);
 					int crY = Math.round((hRad - y - 1) * cr.getRadius() * 1.0f / hRad);
-					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						tbEdgeImg.setRGB(0, y, lightRGB | (alpha << 24));
-					else
-					{
-						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
-						if(alpha > 0)
-							tbEdgeImg.setRGB(0, y, shadowRGB | (alpha << 24));
-					}
+					else if(alpha < 0)
+						tbEdgeImg.setRGB(0, y, shadowRGB | ((-alpha) << 24));
 				}
 				graphics.drawImage(tbEdgeImg, wRad, h - hRad, w - wRad, h, 0, 0, 1, hRad, null);
 				break;
@@ -297,15 +269,11 @@ public class ButtonTexture extends org.muis.core.style.BaseTexture
 				{
 					lrEdgeImg.setRGB(x, 0, 0);
 					int crY = Math.round(x * cr.getRadius() * 1.0f / wRad);
-					int alpha = cr.getLightAlpha(cr.getRadius(), crY);
+					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						lrEdgeImg.setRGB(x, 0, lightRGB | (alpha << 24));
-					else
-					{
-						alpha = cr.getShadowAlpha(cr.getRadius(), crY);
-						if(alpha > 0)
-							lrEdgeImg.setRGB(x, 0, shadowRGB | (alpha << 24));
-					}
+					else if(alpha < 0)
+						lrEdgeImg.setRGB(x, 0, shadowRGB | ((-alpha) << 24));
 				}
 				graphics.drawImage(lrEdgeImg, 0, hRad, wRad, h - hRad, 0, 0, wRad, 1, null);
 				break;

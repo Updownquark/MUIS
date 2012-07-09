@@ -1,10 +1,10 @@
-/*
- * Created Mar 8, 2009 by Andrew
- */
+/* Created Mar 8, 2009 by Andrew */
 package org.muis.core.style;
 
 import java.awt.Color;
 import java.awt.font.TextAttribute;
+
+import org.muis.core.MuisAttribute;
 
 /** Style attribute that affect the display of text rendered from {@link org.muis.core.MuisTextElement}s */
 public class FontStyle implements StyleDomain
@@ -45,13 +45,13 @@ public class FontStyle implements StyleDomain
 	public static final StyleAttribute<Color> color;
 
 	/** The transparency of the font */
-	public static final StyleAttribute<Float> transparency;
+	public static final StyleAttribute<Double> transparency;
 
 	/** The weight of the font's stroke */
-	public static final StyleAttribute<Float> weight;
+	public static final StyleAttribute<Double> weight;
 
 	/** Whether the font is italicized */
-	public static final StyleAttribute<Float> slant;
+	public static final StyleAttribute<Double> slant;
 
 	/** Whether the font is underlined */
 	public static final StyleAttribute<Underline> underline;
@@ -60,7 +60,7 @@ public class FontStyle implements StyleDomain
 	public static final StyleAttribute<Boolean> strike;
 
 	/** The font's size (in points) */
-	public static final StyleAttribute<Float> size;
+	public static final StyleAttribute<Double> size;
 
 	/** Whether kerning should be used for the font */
 	public static final StyleAttribute<Boolean> kerning;
@@ -75,7 +75,7 @@ public class FontStyle implements StyleDomain
 	public static final StyleAttribute<Boolean> wordWrap;
 
 	/** The vertical stretch factor of the font */
-	public static final StyleAttribute<Float> stretch;
+	public static final StyleAttribute<Double> stretch;
 
 	static
 	{
@@ -83,43 +83,45 @@ public class FontStyle implements StyleDomain
 		java.util.Map<String, String> families = new java.util.TreeMap<>();
 		for(String familyName : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames())
 			families.put(familyName.replaceAll(" ", "-"), familyName);
-		family = StyleAttribute.createArbitraryStyle(String.class, instance, "family", "Default", families);
+		family = StyleAttribute.createStyle(instance, "family", MuisAttribute.stringAttr, "Default", families);
 		instance.register(family);
-		color = StyleAttribute.createColorStyle(instance, "color", Color.black);
+		color = StyleAttribute.createStyle(instance, "color", MuisAttribute.colorAttr, Color.black);
 		instance.register(color);
-		transparency = StyleAttribute.createFloatStyle(instance, "transparency", 0, 1, 0);
+		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.amountAttr, 0d, 0d, 1d);
 		instance.register(transparency);
-		java.util.Map<String, Float> weights = new java.util.HashMap<>();
-		weights.put("normal", 1f);
-		weights.put("extra-light", TextAttribute.WEIGHT_EXTRA_LIGHT);
-		weights.put("light", TextAttribute.WEIGHT_LIGHT);
-		weights.put("demi-light", TextAttribute.WEIGHT_DEMILIGHT);
-		weights.put("semi-bold", TextAttribute.WEIGHT_SEMIBOLD);
-		weights.put("medium", TextAttribute.WEIGHT_MEDIUM);
-		weights.put("demi-bold", TextAttribute.WEIGHT_DEMIBOLD);
-		weights.put("bold", TextAttribute.WEIGHT_BOLD);
-		weights.put("heavy", TextAttribute.WEIGHT_HEAVY);
-		weights.put("extra-bold", TextAttribute.WEIGHT_EXTRABOLD);
-		weights.put("ultra-bold", TextAttribute.WEIGHT_ULTRABOLD);
-		weight = StyleAttribute.createFloatStyle(instance, "weight", 0.25f, 3, 1, weights);
+		java.util.Map<String, Double> weights = new java.util.HashMap<>();
+		weights.put("normal", 1d);
+		weights.put("extra-light", (double) TextAttribute.WEIGHT_EXTRA_LIGHT);
+		weights.put("light", (double) TextAttribute.WEIGHT_LIGHT);
+		weights.put("demi-light", (double) TextAttribute.WEIGHT_DEMILIGHT);
+		weights.put("semi-bold", (double) TextAttribute.WEIGHT_SEMIBOLD);
+		weights.put("medium", (double) TextAttribute.WEIGHT_MEDIUM);
+		weights.put("demi-bold", (double) TextAttribute.WEIGHT_DEMIBOLD);
+		weights.put("bold", (double) TextAttribute.WEIGHT_BOLD);
+		weights.put("heavy", (double) TextAttribute.WEIGHT_HEAVY);
+		weights.put("extra-bold", (double) TextAttribute.WEIGHT_EXTRABOLD);
+		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
+		weight = StyleAttribute.createBoundedStyle(instance, "weight", MuisAttribute.floatAttr, 1d, 0.25d, 3d, weights);
 		instance.register(weight);
-		slant = StyleAttribute.createFloatStyle(instance, "slant", -1, 1, 0, "normal", 0f, "italic", TextAttribute.POSTURE_OBLIQUE);
+		slant = StyleAttribute.createBoundedStyle(instance, "slant", MuisAttribute.amountAttr, 0d, -1d, 1d, "normal", 0d, "italic",
+			(double) TextAttribute.POSTURE_OBLIQUE);
 		instance.register(slant);
-		underline = StyleAttribute.createEnumStyle(instance, "underline", Underline.class, Underline.none);
+		underline = StyleAttribute.createStyle(instance, "underline", new MuisAttribute.MuisEnumAttribute<Underline>(Underline.class),
+			Underline.none);
 		instance.register(underline);
-		strike = StyleAttribute.createBooleanStyle(instance, "strike", false);
+		strike = StyleAttribute.createStyle(instance, "strike", MuisAttribute.boolAttr, false);
 		instance.register(strike);
-		size = StyleAttribute.createFloatStyle(instance, "size", 0.1f, 256, 12);
+		size = StyleAttribute.createBoundedStyle(instance, "size", MuisAttribute.floatAttr, 12d, 0.1d, 256d);
 		instance.register(size);
-		kerning = StyleAttribute.createBooleanStyle(instance, "kerning", true);
+		kerning = StyleAttribute.createStyle(instance, "kerning", MuisAttribute.boolAttr, true);
 		instance.register(kerning);
-		ligatures = StyleAttribute.createBooleanStyle(instance, "ligatures", true);
+		ligatures = StyleAttribute.createStyle(instance, "ligatures", MuisAttribute.boolAttr, true);
 		instance.register(ligatures);
-		antiAlias = StyleAttribute.createBooleanStyle(instance, "anti-alias", false);
+		antiAlias = StyleAttribute.createStyle(instance, "anti-alias", MuisAttribute.boolAttr, false);
 		instance.register(antiAlias);
-		wordWrap = StyleAttribute.createBooleanStyle(instance, "word-wrap", true);
+		wordWrap = StyleAttribute.createStyle(instance, "word-wrap", MuisAttribute.boolAttr, true);
 		instance.register(wordWrap);
-		stretch = StyleAttribute.createFloatStyle(instance, "stretch", 0.05f, 100, 1);
+		stretch = StyleAttribute.createBoundedStyle(instance, "stretch", MuisAttribute.amountAttr, 1d, 0.05d, 100d);
 		instance.register(stretch);
 	}
 
@@ -138,6 +140,6 @@ public class FontStyle implements StyleDomain
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator()
 	{
-		return new DomainAttributeIterator(theAttributes);
+		return prisms.util.ArrayUtils.iterator(theAttributes);
 	}
 }

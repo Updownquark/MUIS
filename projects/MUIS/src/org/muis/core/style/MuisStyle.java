@@ -92,9 +92,9 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>>
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
-		if(!attr.javaType.isInstance(value))
+		if(!attr.type.getType().isInstance(value))
 			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
-				+ " of type " + attr.javaType.getName());
+				+ " of type " + attr.type.getType().getName());
 		String val = attr.validate(value);
 		if(val != null)
 			throw new IllegalArgumentException(value + " cannot be set for attribute " + attr + ": " + val);

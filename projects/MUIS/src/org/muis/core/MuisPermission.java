@@ -1,15 +1,12 @@
 package org.muis.core;
 
 /**
- * A MuisPermission is a request or a requirement for a toolkit to use a capability. According to the
- * environment's security policy, these permissions may be granted automatically, presented to the
- * user for acceptance or rejection, or denied automatically.
+ * A MuisPermission is a request or a requirement for a toolkit to use a capability. According to the environment's security policy, these
+ * permissions may be granted automatically, presented to the user for acceptance or rejection, or denied automatically.
  */
 public class MuisPermission
 {
-	/**
-	 * The type of permission requested
-	 */
+	/** The type of permission requested */
 	public static enum Type
 	{
 		/** Gives an application access to the client's CPU */
@@ -19,8 +16,7 @@ public class MuisPermission
 		/** Gives an application access to all or part of the user's profile */
 		ProfileAccess("Profile Access", "profile", ProfileAccessSubTypes.values()),
 		/**
-		 * Gives an application access to read and/or write to all or part of the persistent storage
-		 * connected to the user's computer
+		 * Gives an application access to read and/or write to all or part of the persistent storage connected to the user's computer
 		 */
 		Storage("Persistent Storage", "storage", StorageSubTypes.values()),
 		/** Gives an application permission to create network connections */
@@ -28,8 +24,7 @@ public class MuisPermission
 		/** Gives an application access to printers available to the computer */
 		PrinterAccess("Printer Access", "printer", new SubType[0]),
 		/**
-		 * Gives an application permission to spawn its own threads to do work without waiting for
-		 * user events
+		 * Gives an application permission to spawn its own threads to do work without waiting for user events
 		 */
 		CreateThread("Create Thread", "thread", ThreadSubTypes.values()),
 		/** Gives an application permission to spawn external processes */
@@ -77,9 +72,7 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * A sub-type of permission requested
-	 */
+	/** A sub-type of permission requested */
 	public static interface SubType
 	{
 		/**
@@ -98,9 +91,7 @@ public class MuisPermission
 		Parameter [] getParameters();
 	}
 
-	/**
-	 * A parameter that may be specified for a sub-type to further define the requested permission
-	 */
+	/** A parameter that may be specified for a sub-type to further define the requested permission */
 	public static interface Parameter
 	{
 		/**
@@ -115,7 +106,7 @@ public class MuisPermission
 
 		/**
 		 * Validates the parameter value
-		 * 
+		 *
 		 * @param value The value specified
 		 * @return An error string to display, or null if the value is valid
 		 */
@@ -165,9 +156,7 @@ public class MuisPermission
 		return key + " must be either true or false";
 	}
 
-	/**
-	 * Subtypes for {@link Type#CPU}
-	 */
+	/** Subtypes for {@link Type#CPU} */
 	public static enum ProcessorSubTypes implements SubType
 	{
 		/** The percent of processor time a toolkit is requesting to use for very short bursts */
@@ -175,8 +164,7 @@ public class MuisPermission
 		/** The percent of processor time a toolkit is requesting to use for finite periods */
 		MinutePercent("minute"),
 		/**
-		 * The overall percent of processor time a toolkit is requesting to use over the lifetime of
-		 * the application
+		 * The overall percent of processor time a toolkit is requesting to use over the lifetime of the application
 		 */
 		TotalPercent("long-term");
 
@@ -187,29 +175,35 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return name();
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			return new Parameter[] {new Parameter() {
+				@Override
 				public String getName()
 				{
 					return "Percent Usage";
 				}
 
+				@Override
 				public String getKey()
 				{
 					return "percent";
 				}
 
+				@Override
 				public String validate(String value)
 				{
 					return validateIntParam(value, getKey(), 5, 100);
@@ -218,16 +212,13 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#Memory}
-	 */
+	/** Subtypes for {@link Type#Memory} */
 	public static enum MemorySubTypes implements SubType
 	{
 		/** The percent of system memory the toolkit is requesting to use for short periods */
 		MinuteAmount("minute"),
 		/**
-		 * The percent of system memory the toolkit is requesting to use over the lifetime of the
-		 * application
+		 * The percent of system memory the toolkit is requesting to use over the lifetime of the application
 		 */
 		TotalAmount("long-term");
 
@@ -238,29 +229,35 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return name();
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			return new Parameter[] {new Parameter() {
+				@Override
 				public String getName()
 				{
 					return "Percent Usage";
 				}
 
+				@Override
 				public String getKey()
 				{
 					return "percent";
 				}
 
+				@Override
 				public String validate(String value)
 				{
 					return validateIntParam(value, getKey(), 5, 100);
@@ -269,9 +266,7 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#ProfileAccess}
-	 */
+	/** Subtypes for {@link Type#ProfileAccess} */
 	public static enum ProfileAccessSubTypes implements SubType
 	{
 		/** Represents a request by the toolkit for access to the user's profile name */
@@ -296,37 +291,36 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return name();
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			return new Parameter[0];
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#Storage}
-	 */
+	/** Subtypes for {@link Type#Storage} */
 	public static enum StorageSubTypes implements SubType
 	{
 		/** Represents a request by the toolkit for access to a private storage directory */
 		Private("private"),
 		/**
-		 * Represents a request by the toolkit for access to a particular location on the user's
-		 * system
+		 * Represents a request by the toolkit for access to a particular location on the user's system
 		 */
 		Specific("specific"),
 		/**
-		 * Represents a request by the toolkit for access to the all of the user's system that the
-		 * user himself has access to
+		 * Represents a request by the toolkit for access to the all of the user's system that the user himself has access to
 		 */
 		General("all");
 
@@ -337,32 +331,38 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return name();
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			switch (this)
 			{
 			case Private:
 				return new Parameter[] {new Parameter() {
+					@Override
 					public String getName()
 					{
 						return "Amount (MB)";
 					}
 
+					@Override
 					public String getKey()
 					{
 						return "amount";
 					}
 
+					@Override
 					public String validate(String value)
 					{
 						return validateFloatParam(value, getKey(), 0, 1E9f);
@@ -371,32 +371,38 @@ public class MuisPermission
 				}};
 			case Specific:
 				return new Parameter[] {new Parameter() {
+					@Override
 					public String getName()
 					{
 						return "Location";
 					}
 
+					@Override
 					public String getKey()
 					{
 						return "location";
 					}
 
+					@Override
 					public String validate(String value)
 					{
 						// TODO validate path?
 						return null;
 					}
 				}, new Parameter() {
+					@Override
 					public String getName()
 					{
 						return "Writeable";
 					}
 
+					@Override
 					public String getKey()
 					{
 						return "write";
 					}
 
+					@Override
 					public String validate(String value)
 					{
 						return validateBoolParam(value, getKey());
@@ -404,16 +410,19 @@ public class MuisPermission
 				}};
 			case General:
 				return new Parameter[] {new Parameter() {
+					@Override
 					public String getName()
 					{
 						return "Writeable";
 					}
 
+					@Override
 					public String getKey()
 					{
 						return "write";
 					}
 
+					@Override
 					public String validate(String value)
 					{
 						return validateBoolParam(value, getKey());
@@ -424,9 +433,7 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#NetworkAccess}
-	 */
+	/** Subtypes for {@link Type#NetworkAccess} */
 	public static enum NetworkSubTypes implements SubType
 	{
 		/**
@@ -434,18 +441,15 @@ public class MuisPermission
 		 */
 		Home("home"),
 		/**
-		 * Specifies that the toolkit wants to be able to make HTTP network calls to a specific
-		 * location
+		 * Specifies that the toolkit wants to be able to make HTTP network calls to a specific location
 		 */
 		Specific("specific"),
 		/**
-		 * Specifies that the toolkit wants to be able to make HTTP network calls to any location it
-		 * wants
+		 * Specifies that the toolkit wants to be able to make HTTP network calls to any location it wants
 		 */
 		GeneralHttp("http"),
 		/**
-		 * Specifies that the toolkit wants to be able to open sockets to transfer any data in any
-		 * format from any location
+		 * Specifies that the toolkit wants to be able to open sockets to transfer any data in any format from any location
 		 */
 		GeneralSocket("all");
 
@@ -456,32 +460,38 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return name();
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			switch (this)
 			{
 			case Specific:
 				return new Parameter[] {new Parameter() {
+					@Override
 					public String getName()
 					{
 						return "Location";
 					}
 
+					@Override
 					public String getKey()
 					{
 						return "location";
 					}
 
+					@Override
 					public String validate(String value)
 					{
 						// TODO validate URL location?
@@ -497,9 +507,7 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#CreateThread}
-	 */
+	/** Subtypes for {@link Type#CreateThread} */
 	public static enum ThreadSubTypes implements SubType
 	{
 		/** Specifies the maximum number of threads the toolkit wants to create */
@@ -512,29 +520,35 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return "";
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			return new Parameter[] {new Parameter() {
+				@Override
 				public String getName()
 				{
 					return "Number";
 				}
 
+				@Override
 				public String getKey()
 				{
 					return "number";
 				}
 
+				@Override
 				public String validate(String value)
 				{
 					return validateIntParam(value, getKey(), 0, 100);
@@ -543,9 +557,7 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#CreateProcess}
-	 */
+	/** Subtypes for {@link Type#CreateProcess} */
 	public static enum ProcessSubTypes implements SubType
 	{
 		/** Specifies a process command that the toolkit wants to spawn */
@@ -560,32 +572,38 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return "";
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			switch (this)
 			{
 			case Specific:
 				return new Parameter[] {new Parameter() {
+					@Override
 					public String getName()
 					{
 						return "Command Name";
 					}
 
+					@Override
 					public String getKey()
 					{
 						return "command";
 					}
 
+					@Override
 					public String validate(String value)
 					{
 						// TODO validate command?
@@ -599,14 +617,11 @@ public class MuisPermission
 		}
 	}
 
-	/**
-	 * Subtypes for {@link Type#CreateWindow}
-	 */
+	/** Subtypes for {@link Type#CreateWindow} */
 	public static enum WindowSubTypes implements SubType
 	{
 		/**
-		 * Specifies the maximum number of simulataneous windows (in addition to the root window)
-		 * that the toolkit wants to create
+		 * Specifies the maximum number of simulataneous windows (in addition to the root window) that the toolkit wants to create
 		 */
 		Number("number");
 
@@ -617,29 +632,35 @@ public class MuisPermission
 			theKey = key;
 		}
 
+		@Override
 		public String getDisplay()
 		{
 			return "";
 		}
 
+		@Override
 		public String getKey()
 		{
 			return theKey;
 		}
 
+		@Override
 		public Parameter [] getParameters()
 		{
 			return new Parameter[] {new Parameter() {
+				@Override
 				public String getName()
 				{
 					return "Number";
 				}
 
+				@Override
 				public String getKey()
 				{
 					return "number";
 				}
 
+				@Override
 				public String validate(String value)
 				{
 					return validateIntParam(value, getKey(), 0, 100);
@@ -661,29 +682,27 @@ public class MuisPermission
 	public final boolean required;
 
 	/**
-	 * An explanation as to why the toolkit requires or requests this permission, what it will be
-	 * used for, and why the user should grant the toolkit this permission
+	 * An explanation as to why the toolkit requires or requests this permission, what it will be used for, and why the user should grant
+	 * the toolkit this permission
 	 */
 	public final String explanation;
 
 	/**
 	 * Creates a MUIS Permission request
-	 * 
+	 *
 	 * @param _type The type of the permission requested
 	 * @param _subType The sub-type of permission requested
 	 * @param paramValues The value of the parameters associated with the subtype for the permission
 	 * @param req Whether the permission is required for the toolkit to function properly
-	 * @param explain An explanation as to why the toolkit requires or requests the permission, what
-	 *            it will be used for, and why the user should grant the toolkit this permission
+	 * @param explain An explanation as to why the toolkit requires or requests the permission, what it will be used for, and why the user
+	 *            should grant the toolkit this permission
 	 */
-	public MuisPermission(Type _type, SubType _subType, String [] paramValues, boolean req,
-		String explain)
+	public MuisPermission(Type _type, SubType _subType, String [] paramValues, boolean req, String explain)
 	{
 		type = _type;
 		subType = _subType;
 		if(paramValues.length != subType.getParameters().length)
-			throw new IllegalArgumentException(
-				"Parameter values supplied must match parameter values required by sub-type");
+			throw new IllegalArgumentException("Parameter values supplied must match parameter values required by sub-type");
 		parameters = paramValues;
 		required = req;
 		explanation = explain;
@@ -691,7 +710,7 @@ public class MuisPermission
 
 	/**
 	 * Gets the value of one of this permission's parameters
-	 * 
+	 *
 	 * @param idx The index of the parameter to get
 	 * @return The value of the parameter at the given index
 	 * @see SubType#getParameters()

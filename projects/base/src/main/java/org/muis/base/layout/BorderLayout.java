@@ -5,6 +5,8 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.style.Position;
+import org.muis.core.style.Size;
 
 /**
  * Lays components out by {@link Region regions}. Containers with this layout may have any number of components in any region except center,
@@ -96,9 +98,9 @@ public class BorderLayout implements org.muis.core.MuisLayout
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Length pos;
-			Length size = child.getAttribute(LayoutConstants.width);
-			Length minSize = child.getAttribute(LayoutConstants.minWidth);
+			Position pos;
+			Size size = child.getAttribute(LayoutConstants.width);
+			Size minSize = child.getAttribute(LayoutConstants.minWidth);
 			SizePolicy sizer;
 			switch (child.getAttribute(LayoutConstants.region))
 			{

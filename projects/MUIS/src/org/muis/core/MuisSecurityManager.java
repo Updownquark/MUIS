@@ -1,7 +1,10 @@
 package org.muis.core;
 
 import java.io.FilePermission;
-import java.security.*;
+import java.security.AllPermission;
+import java.security.Permission;
+import java.security.SecurityPermission;
+import java.security.UnresolvedPermission;
 
 public class MuisSecurityManager extends SecurityManager
 {
@@ -14,10 +17,10 @@ public class MuisSecurityManager extends SecurityManager
 	public void checkPermission(Permission perm, Object context)
 	{
 		MuisToolkit toolkit = (MuisToolkit) context;
-		String name = perm.getName();
 		if(perm == null)
 			throw new SecurityException("Null permission!");
-		else if(perm instanceof AllPermission)
+		String name = perm.getName();
+		if(perm instanceof AllPermission)
 		{
 
 		}
@@ -73,7 +76,6 @@ public class MuisSecurityManager extends SecurityManager
 		{
 		}
 		else
-			throw new SecurityException("Unrecognized permission type: "
-				+ perm.getClass().getName());
+			throw new SecurityException("Unrecognized permission type: " + perm.getClass().getName());
 	}
 }

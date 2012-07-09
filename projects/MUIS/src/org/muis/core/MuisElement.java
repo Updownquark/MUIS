@@ -1,6 +1,4 @@
-/*
- * Created Feb 23, 2009 by Andrew Butler
- */
+/* Created Feb 23, 2009 by Andrew Butler */
 package org.muis.core;
 
 import java.awt.Graphics2D;
@@ -239,7 +237,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		 */
 		private String validate(String value)
 		{
-			String val = attr.type.validate(MuisElement.this, value);
+			String val = attr.type.validate(getClassView(), value);
 			if(val == null)
 				return null;
 			else
@@ -341,6 +339,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private final ElementStyle theStyle;
 
+	private final StyleListener theDefaultStyleListener;
+
 	private int theX;
 
 	private int theY;
@@ -398,15 +398,15 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			theStyle = new TextStyle((MuisTextElement) this);
 		else
 			theStyle = new ElementStyle(this);
-		org.muis.core.style.StyleListener sl = new org.muis.core.style.StyleListener(this) {
+		theDefaultStyleListener = new StyleListener(this) {
 			@Override
 			public void styleChanged(MuisStyle style)
 			{
 				repaint(null, false);
 			}
 		};
-		sl.addDomain(org.muis.core.style.BackgroundStyles.getDomainInstance());
-		sl.add();
+		theDefaultStyleListener.addDomain(BackgroundStyles.getDomainInstance());
+		theDefaultStyleListener.add();
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
@@ -586,7 +586,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					fatal(valError, null);
 				try
 				{
-					value = attr.type.parse(this, (String) value);
+					value = attr.type.parse(getClassView(), (String) value);
 					theAttrValues.put(attr, value);
 				} catch(MuisException e)
 				{
@@ -675,7 +675,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			String valError = holder.validate(value);
 			if(valError != null)
 				throw new MuisException(valError);
-			T ret = attr.type.parse(this, value);
+			T ret = attr.type.parse(getClassView(), value);
 			theAttrValues.put(attr, ret);
 			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 			return ret;
@@ -742,7 +742,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) < 0 && stored instanceof String)
 			try
 			{
-				T ret = attr.type.parse(this, (String) stored);
+				T ret = attr.type.parse(getClassView(), (String) stored);
 				theAttrValues.put(attr, ret);
 				return ret;
 			} catch(MuisException e)
@@ -755,6 +755,21 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			}
 		else
 			return (T) stored;
+	}
+
+	/**
+	 * Specifies a required attribute for this element
+	 *
+	 * @param <T> The type of the attribute to require
+	 * @param attr The attribute that must be specified for this element
+	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @throws MuisException If the given value is not acceptable for the given attribute
+	 */
+	public final <T> void requireAttribute(MuisAttribute<T> attr, T initValue) throws MuisException
+	{
+		requireAttribute(attr);
+		if(getAttribute(attr) == null)
+			setAttribute(attr, initValue);
 	}
 
 	/**
@@ -791,7 +806,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				else
 					try
 					{
-						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(this, strVal));
+						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(getClassView(), strVal));
 					} catch(MuisException e)
 					{
 						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
@@ -828,6 +843,21 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/**
 	 * Specifies an optional attribute for this element
 	 *
+	 * @param <T> The type of the attribute to require
+	 * @param attr The attribute that may be specified for this element
+	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @throws MuisException If the given value is not acceptable for the given attribute
+	 */
+	public final <T> void acceptAttribute(MuisAttribute<T> attr, T initValue) throws MuisException
+	{
+		acceptAttribute(attr);
+		if(getAttribute(attr) == null)
+			setAttribute(attr, initValue);
+	}
+
+	/**
+	 * Specifies an optional attribute for this element
+	 *
 	 * @param attr The attribute that must be specified for this element
 	 */
 	public final void acceptAttribute(MuisAttribute<?> attr)
@@ -856,7 +886,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				else
 					try
 					{
-						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(this, strVal));
+						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(getClassView(), strVal));
 					} catch(MuisException e)
 					{
 						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
@@ -1096,6 +1126,15 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public final ElementStyle getStyle()
 	{
 		return theStyle;
+	}
+
+	/**
+	 * @return The default style listener to add domains and styles to listen to. When one of the registered styles changes, this element
+	 *         repaints itself.
+	 */
+	public final StyleListener getDefaultStyleListener()
+	{
+		return theDefaultStyleListener;
 	}
 
 	/** @return The tool kit that this element belongs to */
@@ -1812,13 +1851,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area)
 	{
-		java.awt.Color bg = MuisUtils.getBackground(getStyle());
-		graphics.setColor(bg);
-		int x = area == null ? 0 : area.x;
-		int y = area == null ? 0 : area.y;
-		int w = area == null ? theW : (area.width < theW ? area.width : theW);
-		int h = area == null ? theH : (area.height < theH ? area.height : theH);
-		graphics.fillRect(x, y, w, h);
+		Texture tex = getStyle().get(BackgroundStyles.texture);
+		if(tex != null)
+			tex.render(graphics, this, area);
 	}
 
 	/**

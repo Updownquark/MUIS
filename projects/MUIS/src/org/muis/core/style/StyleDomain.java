@@ -3,39 +3,6 @@ package org.muis.core.style;
 /** A domain for style attributes */
 public interface StyleDomain extends Iterable<StyleAttribute<?>>
 {
-	/** @return The domain's name */
+	/** @return The domain's name. This information is only used for messages--it does not affect how the styles are referred to from XML. */
 	String getName();
-
-	/** An iterator type to iterate through an array of attributes */
-	public class DomainAttributeIterator implements java.util.Iterator<StyleAttribute<?>>
-	{
-		private final StyleAttribute<?> [] theAttributes;
-
-		int index;
-
-		/** @param attribs The attributes to iterate through */
-		public DomainAttributeIterator(StyleAttribute<?> [] attribs)
-		{
-			theAttributes = attribs;
-		}
-
-		@Override
-		public boolean hasNext()
-		{
-			return index < theAttributes.length;
-		}
-
-		@Override
-		public StyleAttribute<?> next()
-		{
-			return theAttributes[index++];
-		}
-
-		@Override
-		public void remove()
-		{
-			throw new UnsupportedOperationException(
-				"Remove is not supported by StyleDomain.iterator()");
-		}
-	}
 }

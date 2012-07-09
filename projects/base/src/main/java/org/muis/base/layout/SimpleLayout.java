@@ -6,6 +6,8 @@ import org.muis.core.MuisLayout;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.style.Position;
+import org.muis.core.style.Size;
 
 /**
  * A very simple layout that positions and sizes children independently using positional ({@link LayoutConstants#left},
@@ -117,19 +119,19 @@ public class SimpleLayout implements MuisLayout
 	 * @param maxInfValue The value for the {@link LayoutConstants#maxInf} attribute in the parent
 	 * @return The size policy for the container of the given children in the given dimension
 	 */
-	protected SizePolicy getSizer(MuisElement [] children, MuisAttribute<Length> minPosAtt, MuisAttribute<Length> maxPosAtt,
-		MuisAttribute<Length> sizeAtt, MuisAttribute<Length> minSizeAtt, MuisAttribute<Length> maxSizeAtt, int breadth, boolean vertical,
+	protected SizePolicy getSizer(MuisElement [] children, MuisAttribute<Position> minPosAtt, MuisAttribute<Position> maxPosAtt,
+		MuisAttribute<Size> sizeAtt, MuisAttribute<Size> minSizeAtt, MuisAttribute<Size> maxSizeAtt, int breadth, boolean vertical,
 		Boolean maxInfValue)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		boolean maxInf = Boolean.TRUE.equals(maxInfValue);
 		for(MuisElement child : children)
 		{
-			Length minPosL = child.getAttribute(minPosAtt);
-			Length maxPosL = child.getAttribute(maxPosAtt);
-			Length sizeL = child.getAttribute(sizeAtt);
-			Length minSizeL = child.getAttribute(minSizeAtt);
-			Length maxSizeL = child.getAttribute(maxSizeAtt);
+			Position minPosL = child.getAttribute(minPosAtt);
+			Position maxPosL = child.getAttribute(maxPosAtt);
+			Size sizeL = child.getAttribute(sizeAtt);
+			Size minSizeL = child.getAttribute(minSizeAtt);
+			Size maxSizeL = child.getAttribute(maxSizeAtt);
 			if(maxPosL != null && !maxPosL.getUnit().isRelative())
 			{
 				int r = maxPosL.evaluate(0);
@@ -293,14 +295,14 @@ public class SimpleLayout implements MuisLayout
 		int [] dim = new int[2];
 		for(MuisElement child : children)
 		{
-			Length left = child.getAttribute(LayoutConstants.left);
-			Length right = child.getAttribute(LayoutConstants.right);
-			Length top = child.getAttribute(LayoutConstants.top);
-			Length bottom = child.getAttribute(LayoutConstants.bottom);
-			Length w = child.getAttribute(LayoutConstants.width);
-			Length h = child.getAttribute(LayoutConstants.height);
-			Length minW = child.getAttribute(LayoutConstants.minWidth);
-			Length minH = child.getAttribute(LayoutConstants.minHeight);
+			Position left = child.getAttribute(LayoutConstants.left);
+			Position right = child.getAttribute(LayoutConstants.right);
+			Position top = child.getAttribute(LayoutConstants.top);
+			Position bottom = child.getAttribute(LayoutConstants.bottom);
+			Size w = child.getAttribute(LayoutConstants.width);
+			Size h = child.getAttribute(LayoutConstants.height);
+			Size minW = child.getAttribute(LayoutConstants.minWidth);
+			Size minH = child.getAttribute(LayoutConstants.minHeight);
 
 			layout(child, false, parent.getHeight(), left, right, w, minW, parent.getWidth(), dim);
 			bounds.x = dim[0];
@@ -325,8 +327,8 @@ public class SimpleLayout implements MuisLayout
 	 * @param length The length of the parent container along the dimension
 	 * @param dim The array to put the result (position (x or y) and size (width or height)) into
 	 */
-	protected void layout(MuisElement child, boolean vertical, int breadth, Length minPosAtt, Length maxPosAtt, Length sizeAtt,
-		Length minSizeAtt, int length, int [] dim)
+	protected void layout(MuisElement child, boolean vertical, int breadth, Position minPosAtt, Position maxPosAtt, Size sizeAtt,
+		Size minSizeAtt, int length, int [] dim)
 	{
 		if(maxPosAtt != null)
 		{

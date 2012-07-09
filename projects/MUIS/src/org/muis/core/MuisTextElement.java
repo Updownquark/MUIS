@@ -17,6 +17,7 @@ public class MuisTextElement extends MuisLeaf
 	/** Creates a MUIS text element */
 	public MuisTextElement()
 	{
+		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
 	}
 
 	/**

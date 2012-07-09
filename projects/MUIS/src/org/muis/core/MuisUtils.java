@@ -232,7 +232,7 @@ public class MuisUtils
 	 * @param transparency The transparency of the color to make
 	 * @return The resulting partially transparent color
 	 */
-	public static Color getColor(Color base, float transparency)
+	public static Color getColor(Color base, double transparency)
 	{
 		if(transparency == 0)
 			return base;
@@ -240,7 +240,7 @@ public class MuisUtils
 			return org.muis.core.style.Colors.transparent;
 		else if(transparency < 0 || transparency > 1)
 			throw new IllegalArgumentException("Illegal transparency value " + transparency + ". Must be between 0 and 1.");
-		return new Color((base.getRGB() & 0xffffff) | ((int) (transparency * 256)) << 24);
+		return new Color((base.getRGB() & 0xffffff) | ((int) ((1 - transparency) * 256)) << 24);
 	}
 
 	/**

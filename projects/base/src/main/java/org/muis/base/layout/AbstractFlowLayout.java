@@ -1,28 +1,12 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.bottom;
-import static org.muis.base.layout.LayoutConstants.direction;
-import static org.muis.base.layout.LayoutConstants.height;
-import static org.muis.base.layout.LayoutConstants.left;
-import static org.muis.base.layout.LayoutConstants.maxBottom;
-import static org.muis.base.layout.LayoutConstants.maxHeight;
-import static org.muis.base.layout.LayoutConstants.maxLeft;
-import static org.muis.base.layout.LayoutConstants.maxRight;
-import static org.muis.base.layout.LayoutConstants.maxTop;
-import static org.muis.base.layout.LayoutConstants.maxWidth;
-import static org.muis.base.layout.LayoutConstants.minBottom;
-import static org.muis.base.layout.LayoutConstants.minHeight;
-import static org.muis.base.layout.LayoutConstants.minLeft;
-import static org.muis.base.layout.LayoutConstants.minRight;
-import static org.muis.base.layout.LayoutConstants.minTop;
-import static org.muis.base.layout.LayoutConstants.minWidth;
-import static org.muis.base.layout.LayoutConstants.right;
-import static org.muis.base.layout.LayoutConstants.top;
-import static org.muis.base.layout.LayoutConstants.width;
+import static org.muis.base.layout.LayoutConstants.*;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.style.Position;
+import org.muis.core.style.Size;
 
 /**
  * A flow layout is a layout that lays contents out one after another in one direction, perhaps using multiple rows, and
@@ -185,7 +169,7 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 			return child.getHSizer(oppositeSize);
 	}
 
-	protected Length getChildConstraint(MuisElement child, boolean major, int type, int minMax)
+	protected Position getChildPositionConstraint(MuisElement child, boolean major, int type, int minMax)
 	{
 		boolean horizontal = major;
 		switch(theDirection)
@@ -216,24 +200,6 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 			else
 				return child.getAttribute(maxTop);
 		}
-		else if(type == 0)
-		{
-			if(horizontal)
-			{
-				if(minMax < 0)
-					return child.getAttribute(minWidth);
-				else if(minMax == 0)
-					return child.getAttribute(width);
-				else
-					return child.getAttribute(maxWidth);
-			}
-			else if(minMax < 0)
-				return child.getAttribute(minHeight);
-			else if(minMax == 0)
-				return child.getAttribute(height);
-			else
-				return child.getAttribute(maxHeight);
-		}
 		else if(horizontal)
 		{
 			if(minMax < 0)
@@ -249,6 +215,36 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 			return child.getAttribute(bottom);
 		else
 			return child.getAttribute(maxBottom);
+	}
+
+	protected Size getChildSizeConstraint(MuisElement child, boolean major, int type, int minMax)
+	{
+		boolean horizontal = major;
+		switch (theDirection)
+		{
+		case DOWN:
+		case RIGHT:
+			break;
+		case LEFT:
+		case UP:
+			type = -type;
+			break;
+		}
+		if(horizontal)
+		{
+			if(minMax < 0)
+				return child.getAttribute(minWidth);
+			else if(minMax == 0)
+				return child.getAttribute(width);
+			else
+				return child.getAttribute(maxWidth);
+		}
+		else if(minMax < 0)
+			return child.getAttribute(minHeight);
+		else if(minMax == 0)
+			return child.getAttribute(height);
+		else
+			return child.getAttribute(maxHeight);
 	}
 
 	public int getMajorGap()

@@ -326,7 +326,7 @@ public class MuisDomParser implements MuisParser
 			if(name == null)
 				name = "";
 			org.muis.core.style.NamedStyleGroup group = doc.getGroup(name);
-			applyStyleGroupAttribs(doc, group, groupEl, styleNamespaces, groupNamespaces);
+			applyStyleGroupAttribs(doc, group, groupEl, styleNamespaces, groupNamespaces, doc.getClassView());
 		}
 	}
 
@@ -363,7 +363,8 @@ public class MuisDomParser implements MuisParser
 	}
 
 	private <T extends MuisElement> void applyStyleGroupAttribs(MuisDocument doc, org.muis.core.style.TypedStyleGroup<T> group,
-		Element groupEl, java.util.Map<String, MuisToolkit> styleNamespaces, java.util.Map<String, MuisToolkit> groupNamespaces)
+		Element groupEl, java.util.Map<String, MuisToolkit> styleNamespaces, java.util.Map<String, MuisToolkit> groupNamespaces,
+		MuisClassView classView)
 	{
 		for(org.jdom2.Attribute attr : groupEl.getAttributes())
 		{
@@ -409,9 +410,9 @@ public class MuisDomParser implements MuisParser
 				continue;
 			}
 			if(attrName != null)
-				org.muis.core.style.StyleParsingUtils.applyStyleAttribute(group, domain, attrName, attr.getValue(), doc);
+				org.muis.core.style.StyleParsingUtils.applyStyleAttribute(group, domain, attrName, attr.getValue(), doc, classView);
 			else
-				org.muis.core.style.StyleParsingUtils.applyStyleSet(group, domain, attr.getValue(), doc);
+				org.muis.core.style.StyleParsingUtils.applyStyleSet(group, domain, attr.getValue(), doc, classView);
 		}
 		for(Element typeEl : groupEl.getChildren())
 		{
@@ -446,7 +447,7 @@ public class MuisDomParser implements MuisParser
 			}
 			org.muis.core.style.TypedStyleGroup<? extends MuisElement> subGroup = group.insertTypedGroup(typeClass.asSubclass(group
 				.getType()));
-			applyStyleGroupAttribs(doc, subGroup, typeEl, styleNamespaces, groupNamespaces);
+			applyStyleGroupAttribs(doc, subGroup, typeEl, styleNamespaces, groupNamespaces, classView);
 		}
 	}
 

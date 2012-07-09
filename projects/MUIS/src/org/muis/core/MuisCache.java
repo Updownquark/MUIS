@@ -29,10 +29,28 @@ public class MuisCache
 		int size(V value);
 	}
 
+	/**
+	 * Receives an item from the cache when it is ready
+	 *
+	 * @param <K> The type key that the cache item is to be generated for
+	 * @param <V> The type of value to be generated for the key
+	 */
 	public interface ItemReceiver<K, V>
 	{
+		/**
+		 * Called when the item becomes available in the cache
+		 *
+		 * @param key The key that the item was generated for
+		 * @param value The value that was generated
+		 */
 		public void itemGenerated(K key, V value);
 
+		/**
+		 * Called when an item fails to generate
+		 *
+		 * @param key The key for which item generation failed
+		 * @param exception The exception that was thrown representing the failure
+		 */
 		public void errorOccurred(K key, Throwable exception);
 	}
 
@@ -120,6 +138,9 @@ public class MuisCache
 	/**
 	 * Retrieves a cached item and optionally generates the item if not cached, waiting for the generation to be complete
 	 *
+	 * @param <K> The type of key for the cached item
+	 * @param <V> The type of value for the cached item
+	 * @param <E> The type of exception that may be thrown when generating the cached item
 	 * @param doc The document to get the resource within
 	 * @param type The type of item to get
 	 * @param key The key to get the cached item by
@@ -169,6 +190,9 @@ public class MuisCache
 	/**
 	 * An asynchronous get method
 	 *
+	 * @param <K> The type of key for the cached item
+	 * @param <V> The type of value for the cached item
+	 * @param <E> The type of exception that may be thrown when generating the cached item
 	 * @param doc The MUIS document to use to generate the value
 	 * @param type The type of the cached item to get
 	 * @param key The key of the cached item to get
@@ -192,7 +216,7 @@ public class MuisCache
 					startGet(doc, stored);
 				}
 			}
-		if(stored.isLoading)
+		if(stored.isLoading && receiver != null)
 			synchronized(stored.theReceivers)
 			{
 				if(stored.isLoading)
@@ -203,7 +227,8 @@ public class MuisCache
 			}
 		if(stored.theError != null)
 		{
-			receiver.errorOccurred(key, stored.theError);
+			if(receiver != null)
+				receiver.errorOccurred(key, stored.theError);
 			if(stored.theError instanceof RuntimeException)
 				throw (RuntimeException) stored.theError;
 			else if(stored.theError instanceof Error)
@@ -213,15 +238,18 @@ public class MuisCache
 		}
 		else
 		{
-			receiver.itemGenerated(key, stored.theValue);
+			if(receiver != null)
+				receiver.itemGenerated(key, stored.theValue);
 			return stored.theValue;
 		}
 	}
 
 	/**
+	 * @param <K> The type of key for the cached item
+	 * @param <V> The type of value for the cached item
 	 * @param type The type of item to remove from the cache
-	 * @param key The key of the item to remove from th cache
-	 * @return The value cached fro the given type and key that was removed
+	 * @param key The key of the item to remove from the cache
+	 * @return The value cached for the given type and key that was removed
 	 */
 	public <K, V> V remove(CacheItemType<K, V, ?> type, K key)
 	{
@@ -243,15 +271,20 @@ public class MuisCache
 					key.theError = e;
 				} finally
 				{
-					synchronized(key.theReceivers)
+					try
 					{
-						for(ItemReceiver<K, V> receiver : key.theReceivers)
-							if(key.theError != null)
-								receiver.errorOccurred(key.getKey(), key.theError);
-							else
-								receiver.itemGenerated(key.getKey(), key.theValue);
+						synchronized(key.theReceivers)
+						{
+							for(ItemReceiver<K, V> receiver : key.theReceivers)
+								if(key.theError != null)
+									receiver.errorOccurred(key.getKey(), key.theError);
+								else
+									receiver.itemGenerated(key.getKey(), key.theValue);
+						}
+					} finally
+					{
+						key.isLoading = false;
 					}
-					key.isLoading = false;
 				}
 			}
 		}, new prisms.arch.Worker.ErrorListener() {

@@ -8,6 +8,12 @@ public class ElementStyle extends MuisStyle
 {
 	private final MuisElement theElement;
 
+	private ElementStyle theParentStyle;
+
+	private ElementSelfStyle theSelfStyle;
+
+	private ElementHeirStyle theHeirStyle;
+
 	private NamedStyleGroup [] theStyleGroups;
 
 	/**
@@ -18,6 +24,8 @@ public class ElementStyle extends MuisStyle
 	public ElementStyle(MuisElement element)
 	{
 		theElement = element;
+		theSelfStyle = new ElementSelfStyle(this);
+		theHeirStyle = new ElementHeirStyle(this);
 		theStyleGroups = new NamedStyleGroup[0];
 		addListener(new org.muis.core.event.MuisEventListener<Void>() {
 			@Override
@@ -32,6 +40,32 @@ public class ElementStyle extends MuisStyle
 				theElement.fireEvent(event, false, false);
 			}
 		});
+		if(element.getParent() != null)
+		{
+			theParentStyle = element.getParent().getStyle();
+			theParentStyle.addDependent(this);
+		}
+		element.addListener(MuisElement.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
+			@Override
+			public boolean isLocal()
+			{
+				return true;
+			}
+
+			@Override
+			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el)
+			{
+				if(theParentStyle != null)
+					theParentStyle.removeDependent(ElementStyle.this);
+				if(event.getValue() != null)
+				{
+					theParentStyle = event.getValue().getStyle();
+					theParentStyle.addDependent(ElementStyle.this);
+				}
+				else
+					theParentStyle = null;
+			}
+		});
 	}
 
 	/** @return The element that this style is for */
@@ -43,7 +77,19 @@ public class ElementStyle extends MuisStyle
 	@Override
 	public MuisStyle getParent()
 	{
-		return theElement == null || theElement.getParent() == null ? null : theElement.getParent().getStyle();
+		return theElement == null || theElement.getParent() == null ? null : theElement.getParent().getStyle().getHeir();
+	}
+
+	/** @return The set of style attributes that apply only to this style's element, not to its descendants */
+	public ElementSelfStyle getSelf()
+	{
+		return theSelfStyle;
+	}
+
+	/** @return The set of style attributes that apply to all this style's element's descendants, but not to this style's element itself. */
+	public ElementHeirStyle getHeir()
+	{
+		return theHeirStyle;
 	}
 
 	@Override
@@ -113,7 +159,9 @@ public class ElementStyle extends MuisStyle
 	@Override
 	public <T> T get(StyleAttribute<T> attr)
 	{
-		T ret = getLocal(attr);
+		T ret = theSelfStyle.getLocal(attr);
+		if(ret == null)
+			ret = getLocal(attr);
 		if(ret != null)
 			return ret;
 		final NamedStyleGroup [] groups = theStyleGroups;

@@ -6,6 +6,7 @@ import java.awt.Rectangle;
 import java.net.URL;
 
 import org.muis.base.data.ImageData;
+import org.muis.core.MuisLayout;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 
@@ -165,13 +166,6 @@ public class GenericImage extends org.muis.core.LayoutContainer
 	public GenericImage()
 	{
 		theLock = new Object();
-		try
-		{
-			setAttribute(LAYOUT_ATTR, org.muis.base.layout.SimpleLayout.class);
-		} catch(org.muis.core.MuisException e)
-		{
-			error("Could not set layout attribute as default for image tag", e);
-		}
 		life().addListener(new LifeCycleListener() {
 			@Override
 			public void preTransition(String fromStage, String toStage)
@@ -246,6 +240,12 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		});
 		theHResizePolicy = ImageResizePolicy.lockIfEmpty;
 		theVResizePolicy = ImageResizePolicy.lockIfEmpty;
+	}
+
+	@Override
+	protected MuisLayout getDefaultLayout()
+	{
+		return new org.muis.base.layout.SimpleLayout();
 	}
 
 	/**

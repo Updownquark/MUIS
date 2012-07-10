@@ -7,15 +7,22 @@ import org.muis.core.layout.SizePolicy;
 public class LayoutContainer extends MuisElement implements MuisContainer
 {
 	/** The attribute that specifies the layout type for a layout container */
-	public static MuisAttribute<Class<? extends MuisLayout>> LAYOUT_ATTR = new MuisAttribute<Class<? extends MuisLayout>>("layout",
-		new MuisAttribute.MuisTypeAttribute<MuisLayout>(MuisLayout.class));
+	public static MuisAttribute<MuisLayout> LAYOUT_ATTR = new MuisAttribute<MuisLayout>("layout",
+		new MuisAttribute.MuisTypeInstanceAttribute<MuisLayout>(MuisLayout.class));
 
 	private MuisLayout theLayout;
 
 	/** Creates a layout container */
 	public LayoutContainer()
 	{
-		requireAttribute(LAYOUT_ATTR);
+		MuisLayout layout = getDefaultLayout();
+		try
+		{
+			requireAttribute(LAYOUT_ATTR, layout);
+		} catch(MuisException e)
+		{
+			error("Failed to set default layout", e, "layout", layout);
+		}
 	}
 
 	@Override
@@ -28,22 +35,8 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 			{
 				if(event.getValue() != LAYOUT_ATTR)
 					return;
-				Class<? extends MuisLayout> layoutClass = getAttribute(LAYOUT_ATTR);
-				if(layoutClass == null)
-					setLayout(null);
-				else
-				{
-					MuisLayout layout;
-					try
-					{
-						layout = layoutClass.newInstance();
-					} catch(InstantiationException | IllegalAccessException e)
-					{
-						error("Could not instantiate layout of type " + layoutClass.getName(), e);
-						return;
-					}
-					setLayout(layout);
-				}
+				MuisLayout layout = getAttribute(LAYOUT_ATTR);
+				setLayout(layout);
 			}
 
 			@Override
@@ -52,6 +45,12 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 				return true;
 			}
 		});
+	}
+
+	/** @return The layout to use by default if no layout is specified. Default is null, meaning the layout must be specified. */
+	protected MuisLayout getDefaultLayout()
+	{
+		return null;
 	}
 
 	/** @return The MuisLayout that lays out this container's children */

@@ -12,25 +12,6 @@ import org.muis.core.MuisException;
  */
 public final class StyleAttribute<T>
 {
-	/** The different types of attributes */
-	// public enum AttributeType
-	// {
-	// /** An attribute whose value can be either true or false */
-	// BOOLEAN,
-	// /** An attribute whose value must be an integer */
-	// INT,
-	// /** An attribute whose value must be a number */
-	// FLOAT,
-	// /** An attribute whose value must be one of a series of choices */
-	// ENUM,
-	// /** An attribute whose value must be a color */
-	// COLOR,
-	// /** An attribute specified as a muis type */
-	// MUIS_TYPE,
-	// /** An attribute whose value must match a predefined constant name */
-	// ARBITRARY;
-	// }
-
 	/** The style domain that the attribute belongs to */
 	public final StyleDomain domain;
 

@@ -394,10 +394,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theChildListeners = new ListenerManager<>(MuisEventListener.class);
 		theMessages = new java.util.ArrayList<>();
 		theCacheBounds = new Rectangle();
-		if(this instanceof MuisTextElement)
-			theStyle = new TextStyle((MuisTextElement) this);
-		else
-			theStyle = new ElementStyle(this);
+		theStyle = new ElementStyle(this);
 		theDefaultStyleListener = new StyleListener(this) {
 			@Override
 			public void styleChanged(MuisStyle style)
@@ -439,7 +436,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				return true;
 			}
 		});
-		acceptAttribute(StyleAttributeType.ATTRIBUTE);
+		acceptAttribute(StyleAttributeType.STYLE_ATTRIBUTE);
+		acceptAttribute(StyleAttributeType.STYLE_SELF_ATTRIBUTE);
+		acceptAttribute(StyleAttributeType.STYLE_HEIR_ATTRIBUTE);
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element)
@@ -456,7 +455,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			}
 		});
 		theLifeCycleManager.addListener(new LifeCycleListener() {
-
 			@Override
 			public void preTransition(String fromStage, String toStage)
 			{
@@ -761,11 +759,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * Specifies a required attribute for this element
 	 *
 	 * @param <T> The type of the attribute to require
+	 * @param <V> The type of the value for the attribute
 	 * @param attr The attribute that must be specified for this element
 	 * @param initValue The value to set for the attribute if a value is not set already
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T> void requireAttribute(MuisAttribute<T> attr, T initValue) throws MuisException
+	public final <T, V extends T> void requireAttribute(MuisAttribute<T> attr, V initValue) throws MuisException
 	{
 		requireAttribute(attr);
 		if(getAttribute(attr) == null)
@@ -843,12 +842,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/**
 	 * Specifies an optional attribute for this element
 	 *
-	 * @param <T> The type of the attribute to require
+	 * @param <T> The type of the attribute to accept
+	 * @param <V> The type of the value for the attribute
 	 * @param attr The attribute that may be specified for this element
 	 * @param initValue The value to set for the attribute if a value is not set already
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T> void acceptAttribute(MuisAttribute<T> attr, T initValue) throws MuisException
+	public final <T, V extends T> void acceptAttribute(MuisAttribute<T> attr, V initValue) throws MuisException
 	{
 		acceptAttribute(attr);
 		if(getAttribute(attr) == null)

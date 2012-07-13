@@ -22,7 +22,7 @@ public final class MuisAttribute<T>
 	public static interface AttributeType<T>
 	{
 		/** @return The java type that this attribute type parses strings into instances of */
-		Class<T> getType();
+		<V extends T> Class<V> getType();
 
 		/**
 		 * Validates the attribute
@@ -42,7 +42,7 @@ public final class MuisAttribute<T>
 		 * @return The parsed attribute value
 		 * @throws MuisException If the value cannot be parsed for any reason
 		 */
-		T parse(MuisClassView classView, String value) throws MuisException;
+		<V extends T> V parse(MuisClassView classView, String value) throws MuisException;
 
 		/**
 		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
@@ -52,7 +52,7 @@ public final class MuisAttribute<T>
 		 * @param value The value to cast
 		 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
 		 */
-		T cast(Object value);
+		<V extends T> V cast(Object value);
 	}
 
 	/** A string attribute type--this type validates anything */
@@ -393,7 +393,7 @@ public final class MuisAttribute<T>
 	 *
 	 * @param <T> The subtype that the value must map to
 	 */
-	public static class MuisTypeAttribute<T> implements AttributeType<Class<? extends T>>
+	public static class MuisTypeAttribute<T> implements AttributeType<Class<T>>
 	{
 		/** The subtype that the value must map to */
 		public final Class<T> type;
@@ -495,10 +495,10 @@ public final class MuisAttribute<T>
 	public static final class MuisTypeInstanceAttribute<T> implements AttributeType<T>
 	{
 		/** The subtype that the value must map to */
-		public final Class<T> type;
+		public final Class<? extends T> type;
 
 		/** @param aType The subtype that the value must map to */
-		public MuisTypeInstanceAttribute(Class<T> aType)
+		public MuisTypeInstanceAttribute(Class<? extends T> aType)
 		{
 			type = aType;
 		}
@@ -533,7 +533,7 @@ public final class MuisAttribute<T>
 		}
 
 		@Override
-		public T parse(MuisClassView classView, String value) throws MuisException
+		public <V extends T> V parse(MuisClassView classView, String value) throws MuisException
 		{
 			if(value == null)
 				return null;
@@ -569,7 +569,7 @@ public final class MuisAttribute<T>
 					+ type);
 			try
 			{
-				return (T) valueClass.newInstance();
+				return (V) valueClass.newInstance();
 			} catch(InstantiationException e)
 			{
 				throw new MuisException("Could not instantiate type " + valueClass.getName(), e);
@@ -580,11 +580,11 @@ public final class MuisAttribute<T>
 		}
 
 		@Override
-		public T cast(Object value)
+		public <V extends T> V cast(Object value)
 		{
 			if(!type.isInstance(value))
 				return null;
-			return type.cast(value);
+			return (V) type.cast(value);
 		}
 
 		@Override
@@ -594,9 +594,9 @@ public final class MuisAttribute<T>
 		}
 
 		@Override
-		public Class<T> getType()
+		public <V extends T> Class<V> getType()
 		{
-			return type;
+			return (Class<V>) type;
 		}
 	}
 

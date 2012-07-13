@@ -4,17 +4,39 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType implements org.muis.core.MuisAttribute.AttributeType<ElementStyle>
+public class StyleAttributeType implements org.muis.core.MuisAttribute.AttributeType<MuisStyle>
 {
-	/** The instance to use */
-	public static StyleAttributeType TYPE = new StyleAttributeType();
+	/** The instance to use for the element style */
+	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType(0);
+
+	/** The instance to use for the element's self style */
+	public static StyleAttributeType ELEMENT_SELF_TYPE = new StyleAttributeType(1);
+
+	/** The instance to use for the element's heir style */
+	public static StyleAttributeType ELEMENT_HEIR_TYPE = new StyleAttributeType(2);
 
 	/** The style attribute on MUIS elements */
-	public static final org.muis.core.MuisAttribute<ElementStyle> ATTRIBUTE = new org.muis.core.MuisAttribute<ElementStyle>("style", TYPE);
+	public static final org.muis.core.MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new org.muis.core.MuisAttribute<MuisStyle>("style",
+		ELEMENT_TYPE);
 
-	/** Protected so developers will use {@link #TYPE} */
-	protected StyleAttributeType()
+	/** The style attribute on MUIS elements */
+	public static final org.muis.core.MuisAttribute<MuisStyle> STYLE_SELF_ATTRIBUTE = new org.muis.core.MuisAttribute<MuisStyle>(
+		"style.self", ELEMENT_SELF_TYPE);
+
+	/** The style attribute on MUIS elements */
+	public static final org.muis.core.MuisAttribute<MuisStyle> STYLE_HEIR_ATTRIBUTE = new org.muis.core.MuisAttribute<MuisStyle>(
+		"style.heir", ELEMENT_HEIR_TYPE);
+
+	private final int theType;
+
+	/**
+	 * Protected so developers will use {@link #ELEMENT_TYPE}, {@link #ELEMENT_SELF_TYPE}, or {@link #ELEMENT_HEIR_TYPE}
+	 *
+	 * @param type 0 for the element style, 1 for the element's self style, 2 for the element's heir style
+	 */
+	protected StyleAttributeType(int type)
 	{
+		theType = type;
 	}
 
 	@Override
@@ -30,12 +52,26 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	}
 
 	@Override
-	public ElementStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException
+	public MuisStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException
 	{
 		MuisElement element = classView.getElement();
 		if(element == null)
 			throw new MuisException("Style attributes may only be parsed for elements");
-		ElementStyle ret = element.getStyle();
+		MuisStyle ret;
+		switch (theType)
+		{
+		case 0:
+			ret = element.getStyle();
+			break;
+		case 1:
+			ret = element.getStyle().getSelf();
+			break;
+		case 2:
+			ret = element.getStyle().getHeir();
+			break;
+		default:
+			throw new IllegalStateException("StyleAttributeType.type must be 0, 1, or 2; not " + theType);
+		}
 		String [] styles = value.split(";");
 		for(String style : styles)
 		{

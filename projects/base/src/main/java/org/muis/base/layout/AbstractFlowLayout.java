@@ -105,6 +105,23 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
+	public void childAdded(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
+	public void childRemoved(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
+	public void layout(MuisElement parent, MuisElement [] children)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
 	{
 		children = children.clone();

@@ -160,12 +160,12 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 			while(tempSource < 0)
 				tempSource += 360;
 			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f)); // If we need to generate, step it up
-			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key);
 			if(cr.getRadius() < maxRad)
 			{
 				// Regenerate with a big enough radius
 				element.getDocument().getCache().remove(cornerRendering, key);
-				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key);
 			}
 
 			// Draw the corner

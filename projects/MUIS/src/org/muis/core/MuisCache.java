@@ -144,15 +144,14 @@ public class MuisCache
 	 * @param doc The document to get the resource within
 	 * @param type The type of item to get
 	 * @param key The key to get the cached item by
-	 * @param generate Whether to generate the value if it is not present in the cache
 	 * @return The value cached for the given type and key
 	 * @throws E If an exception occurs generating a new cache value
 	 */
-	public <K, V, E extends Exception> V getAndWait(MuisDocument doc, CacheItemType<K, V, E> type, K key, boolean generate) throws E
+	public <K, V, E extends Exception> V getAndWait(MuisDocument doc, CacheItemType<K, V, E> type, K key) throws E
 	{
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-		if(stored == null && generate)
+		if(stored == null)
 		{
 			stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			while(stored == null)
@@ -161,11 +160,7 @@ public class MuisCache
 				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			}
 		}
-		if(stored == null)
-		{
-			assert !generate : "Should not return null from getAndWait if generate is true";
-			return null;
-		}
+		assert stored != null : "Should not return null from getAndWait if generate is true";
 
 		while(stored.isLoading)
 			try

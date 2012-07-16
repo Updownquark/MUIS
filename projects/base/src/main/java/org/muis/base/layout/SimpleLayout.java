@@ -92,6 +92,16 @@ public class SimpleLayout implements MuisLayout
 	}
 
 	@Override
+	public void childAdded(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
+	public void childRemoved(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
 	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
 	{
 		return getSizer(children, LayoutConstants.left, LayoutConstants.right, LayoutConstants.width, LayoutConstants.minWidth,

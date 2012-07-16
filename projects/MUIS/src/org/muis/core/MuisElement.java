@@ -4,9 +4,12 @@ package org.muis.core;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.MuisSecurityPermission.PermissionType;
+import org.muis.core.annotations.MuisActionType;
+import org.muis.core.annotations.NeededAttr;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
@@ -251,6 +254,375 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		}
 	}
 
+	private static class AttrConsumerMetadata implements MuisEventListener<Object>
+	{
+		final Class<?> theType;
+
+		final AttrConsumerMetadata theSuper;
+
+		final AttrConsumerMetadata [] theIntfs;
+
+		final org.muis.core.annotations.MuisAttrConsumer theConsumer;
+
+		final NeededAttr [] theAttributes;
+
+		private final Class<?> [] theAttributeSources;
+
+		final NeededAttr [] theChildAttributes;
+
+		private final Class<?> [] theChildAttributeSources;
+
+		final MuisEventListener<?> theChildListener;
+
+		AttrConsumerMetadata(Class<?> type, MuisDocument doc)
+		{
+			theType = type;
+			if(type.getSuperclass() != null && type.getSuperclass() == Object.class)
+				theSuper = doc.getCache().getAndWait(doc, attrConsumerMDType, type.getSuperclass());
+			else
+				theSuper = null;
+			ArrayList<AttrConsumerMetadata> intfs = new ArrayList<>();
+			for(Class<?> intf : type.getInterfaces())
+				addIntfs(intfs, intf, doc);
+			theIntfs = intfs.toArray(new AttrConsumerMetadata[intfs.size()]);
+
+			theConsumer = type.getAnnotation(org.muis.core.annotations.MuisAttrConsumer.class);
+			java.util.Map<String, NeededAttr> attrs = new java.util.LinkedHashMap<String, NeededAttr>();
+			java.util.Map<String, Class<?>> attrSources = new java.util.HashMap<>();
+			if(theSuper != null)
+				for(int a = 0; a < theSuper.theAttributes.length; a++)
+				{
+					NeededAttr attr = theSuper.theAttributes[a];
+					attrs.put(attr.name(), attr);
+					attrSources.put(attr.name(), theSuper.theAttributeSources[a]);
+				}
+			for(AttrConsumerMetadata intf : theIntfs)
+				for(int a = 0; a < intf.theAttributes.length; a++)
+				{
+					NeededAttr attr = intf.theAttributes[a];
+					NeededAttr pre = attrs.get(attr.name());
+					if(pre == null
+						|| checkCompatibility(pre, attrSources.get(attr.name()), attr, intf.theAttributeSources[a], theType, doc))
+					{
+						attrs.put(attr.name(), attr);
+						attrSources.put(attr.name(), intf.theAttributeSources[a]);
+					}
+				}
+			if(theConsumer != null)
+				for(NeededAttr attr : theConsumer.attrs())
+				{
+					if(!checkAttributeType(attr, type, doc))
+						continue;
+					NeededAttr pre = attrs.get(attr.name());
+					if(pre == null || checkCompatibility(pre, attrSources.get(attr.name()), attr, theType, theType, doc))
+					{
+						attrs.put(attr.name(), attr);
+						attrSources.put(attr.name(), theType);
+					}
+				}
+			theAttributes = attrs.values().toArray(new NeededAttr[attrs.size()]);
+			theAttributeSources = new Class[theAttributes.length];
+			for(int a = 0; a < theAttributes.length; a++)
+				theAttributeSources[a] = attrSources.get(theAttributes[a].name());
+
+			if(theSuper != null)
+				for(int a = 0; a < theSuper.theChildAttributes.length; a++)
+				{
+					NeededAttr attr = theSuper.theChildAttributes[a];
+					attrs.put(attr.name(), attr);
+					attrSources.put(attr.name(), theSuper.theChildAttributeSources[a]);
+				}
+			for(AttrConsumerMetadata intf : theIntfs)
+				for(int a = 0; a < intf.theChildAttributes.length; a++)
+				{
+					NeededAttr attr = intf.theAttributes[a];
+					NeededAttr pre = attrs.get(attr.name());
+					if(pre == null
+						|| checkCompatibility(pre, attrSources.get(attr.name()), attr, intf.theChildAttributeSources[a], theType, doc))
+					{
+						attrs.put(attr.name(), attr);
+						attrSources.put(attr.name(), intf.theChildAttributeSources[a]);
+					}
+				}
+			if(theConsumer != null)
+				for(NeededAttr attr : theConsumer.childAttrs())
+				{
+					if(!checkAttributeType(attr, type, doc))
+						continue;
+					NeededAttr pre = attrs.get(attr.name());
+					if(pre == null || checkCompatibility(pre, attrSources.get(attr.name()), attr, theType, theType, doc))
+					{
+						attrs.put(attr.name(), attr);
+						attrSources.put(attr.name(), theType);
+					}
+				}
+			theChildAttributes = attrs.values().toArray(new NeededAttr[attrs.size()]);
+			theChildAttributeSources = new Class[theAttributes.length];
+			for(int a = 0; a < theAttributes.length; a++)
+				theAttributeSources[a] = attrSources.get(theAttributes[a].name());
+			attrs.clear();
+			attrSources.clear();
+
+			if(theChildAttributes.length > 0)
+				theChildListener = new MuisEventListener<Object>() {
+					@Override
+					public void eventOccurred(MuisEvent<Object> event, MuisElement element)
+					{
+						if(!ATTRIBUTE_SET.equals(event.getType()))
+							return;
+						MuisElement parent = element.getParent();
+						if(parent == null)
+							return;
+						MuisAttribute<?> attribute = (MuisAttribute<?>) event.getValue();
+						for(NeededAttr attr : theChildAttributes)
+						{
+							MuisActionType action = attr.action();
+							if(action == MuisActionType.def)
+								action = theConsumer.action();
+							switch (action)
+							{
+							case none:
+							case def:
+								continue;
+							default:
+							}
+							if(!matches(attribute, attr))
+								continue;
+							switch (action)
+							{
+							case none:
+							case def:
+								break;
+							case layout:
+								parent.relayout(false);
+								break;
+							case paint:
+								parent.repaint(null, false);
+								break;
+							}
+						}
+					}
+
+					@Override
+					public boolean isLocal()
+					{
+						return true;
+					}
+				};
+			else
+				theChildListener = null;
+
+		}
+
+		static void addIntfs(ArrayList<AttrConsumerMetadata> intfs, Class<?> intf, MuisDocument doc)
+		{
+			org.muis.core.annotations.MuisAttrConsumer consumer = intf.getAnnotation(org.muis.core.annotations.MuisAttrConsumer.class);
+			if(consumer != null)
+				intfs.add(doc.getCache().getAndWait(doc, attrConsumerMDType, intf));
+			for(Class<?> subIntf : intf.getInterfaces())
+				addIntfs(intfs, subIntf, doc);
+		}
+
+		static boolean checkAttributeType(NeededAttr attr, Class<?> type, MuisDocument doc)
+		{
+			switch (attr.type())
+			{
+			case TYPE:
+			case INSTANCE:
+			case ENUM:
+				if(attr.valueType() == null)
+				{
+					doc.error("Type " + type.getName() + " requests attribute " + attr.name() + " of type " + attr.type()
+						+ " without specifying a value type", null);
+					return false;
+				}
+				if(attr.type() == org.muis.core.annotations.MuisAttrType.ENUM && !Enum.class.isAssignableFrom(attr.valueType()))
+				{
+					doc.error("Type " + type.getName() + " requests attribute " + attr.name() + " of type " + attr.type() + "<"
+						+ attr.valueType().getName() + ">, but " + attr.valueType() + " is not an enumeration", null);
+					return false;
+				}
+				break;
+			default:
+				if(attr.valueType() != null)
+				{
+					doc.warn("Type " + type.getName() + " requests attribute " + attr.name() + " of type " + attr.type()
+						+ " and specifies an unneeded value type of " + attr.valueType().getName());
+				}
+			}
+			return true;
+		}
+
+		static boolean checkCompatibility(NeededAttr pre, Class<?> preDecl, NeededAttr post, Class<?> postDecl, Class<?> type,
+			MuisDocument doc)
+		{
+			if(post.type() != pre.type())
+			{
+				String msgStart = (type == postDecl) ? "" : "Type " + type.getName() + ": ";
+				if(post.required())
+				{
+					if(pre.required())
+						doc.error(msgStart + "MuisAttributeConsumer annotation on type " + postDecl + " is incompatible with that on type "
+							+ preDecl.getName() + ": required attribute " + post.name() + " has different types", null);
+					else
+					{
+						doc.warn(msgStart + "MuisAttributeConsumer annotation on type " + postDecl + " declares required attribute "
+							+ post.name() + " of type " + typeString(post) + " which overrides optional attribute of type " + typeString(pre)
+							+ " declared by type " + preDecl.getName());
+						return true;
+					}
+				}
+				else
+				{
+					if(pre.required())
+						doc.warn(msgStart + "MuisAttributeConsumer annotation on type " + preDecl.getName()
+							+ " declares required attribute " + post.name() + " of type " + typeString(pre)
+							+ " which overrides optional attribute of type " + typeString(post) + " declared by type " + postDecl);
+					else
+						doc.warn(msgStart + "MuisAttributeConsumer annotation on type " + preDecl.getName()
+							+ " declares optional attribute " + post.name() + " of type " + typeString(pre)
+							+ " which overrides optional attribute of type " + typeString(post) + " declared by type " + postDecl);
+				}
+				return false;
+			}
+			// TODO deal with incompatible or subclassed valueType
+			return true;
+		}
+
+		static String typeString(NeededAttr attr)
+		{
+			StringBuilder ret = new StringBuilder(attr.type().name());
+			if(attr.valueType()!=null)
+				ret.append("<").append(attr.valueType().getName()).append(">");
+			return ret.toString();
+		}
+
+		static boolean matches(MuisAttribute<?> attribute, NeededAttr attr)
+		{
+			if(!attribute.name.equals(attr.name()))
+				return false;
+			switch (attr.type())
+			{
+			case STRING:
+				if(!MuisAttribute.stringAttr.equals(attribute.type))
+					return false;
+				break;
+			case BOOLEAN:
+				if(!MuisAttribute.boolAttr.equals(attribute.type))
+					return false;
+				break;
+			case INT:
+				if(!MuisAttribute.intAttr.equals(attribute.type))
+					return false;
+				break;
+			case FLOAT:
+				if(!MuisAttribute.floatAttr.equals(attribute.type))
+					return false;
+				break;
+			case AMOUNT:
+				if(!MuisAttribute.amountAttr.equals(attribute.type))
+					return false;
+				break;
+			case COLOR:
+				if(!MuisAttribute.colorAttr.equals(attribute.type))
+					return false;
+				break;
+			case RESOURCE:
+				if(!MuisAttribute.resourceAttr.equals(attribute.type))
+					return false;
+				break;
+			case TYPE:
+				if(attribute.type.getClass() != MuisAttribute.MuisTypeAttribute.class)
+					return false;
+				if(attr.valueType() != ((MuisAttribute.MuisTypeAttribute<?>) attribute.type).getType())
+					return false;
+				break;
+			case INSTANCE:
+				if(attribute.type.getClass() != MuisAttribute.MuisTypeInstanceAttribute.class)
+					return false;
+				if(attr.valueType() != ((MuisAttribute.MuisTypeInstanceAttribute<?>) attribute.type).getType())
+					return false;
+				break;
+			case ENUM:
+				if(attribute.type.getClass() != MuisAttribute.MuisEnumAttribute.class)
+					return false;
+				if(attr.valueType() != ((MuisAttribute.MuisEnumAttribute<?>) attribute.type).getType())
+					return false;
+				break;
+			case POSITION:
+				if(!PositionAttributeType.instance.equals(attribute.type))
+					return false;
+				break;
+			case SIZE:
+				if(!SizeAttributeType.instance.equals(attribute.type))
+					return false;
+				break;
+			}
+			return true;
+		}
+
+		@Override
+		public void eventOccurred(MuisEvent<Object> event, MuisElement element)
+		{
+			if(!ATTRIBUTE_SET.equals(event.getType()))
+				return;
+			MuisAttribute<?> attribute = (MuisAttribute<?>) event.getValue();
+			for(NeededAttr attr : theAttributes)
+			{
+				MuisActionType action = attr.action();
+				if(action == MuisActionType.def)
+					action = theConsumer.action();
+				switch (action)
+				{
+				case none:
+				case def:
+					continue;
+				default:
+				}
+				if(!matches(attribute, attr))
+					continue;
+				switch (action)
+				{
+				case none:
+				case def:
+					break;
+				case layout:
+					element.relayout(false);
+					break;
+				case paint:
+					element.repaint(null, false);
+					break;
+				}
+			}
+		}
+
+		@Override
+		public boolean isLocal()
+		{
+			return true;
+		}
+	}
+
+	static MuisCache.CacheItemType<Class<?>, AttrConsumerMetadata, RuntimeException> attrConsumerMDType;
+
+	static
+	{
+		attrConsumerMDType = new MuisCache.CacheItemType<Class<?>, AttrConsumerMetadata, RuntimeException>() {
+
+			@Override
+			public AttrConsumerMetadata generate(MuisDocument doc, Class<?> key) throws RuntimeException
+			{
+				return null;
+			}
+
+			@Override
+			public int size(AttrConsumerMetadata value)
+			{
+				return 20;
+			}
+		};
+	}
+
 	/** The event type representing a mouse event */
 	public static final MuisEventType<Void> MOUSE_EVENT = new MuisEventType<Void>("Mouse Event", null);
 
@@ -361,7 +733,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	@SuppressWarnings("rawtypes")
 	private ListenerManager<MuisEventListener> theChildListeners;
 
-	private java.util.ArrayList<MuisMessage> theMessages;
+	private ArrayList<MuisMessage> theMessages;
 
 	private MuisMessage.Type theWorstMessageType;
 
@@ -392,7 +764,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theRawAttributes = new ConcurrentHashMap<>();
 		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theChildListeners = new ListenerManager<>(MuisEventListener.class);
-		theMessages = new java.util.ArrayList<>();
+		theMessages = new ArrayList<>();
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
 		theDefaultStyleListener = new StyleListener(this) {
@@ -564,6 +936,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		for(Object type : theChildListeners.getAllProperties())
 			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
 				child.removeListener(listener);
+	}
+
+	protected final void consumerChanged(Class<?> from, Class<?> to)
+	{
+		// TODO
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
@@ -1549,14 +1926,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	@Override
 	public final MuisMessage [] getAllMessages()
 	{
-		java.util.ArrayList<MuisMessage> ret = new java.util.ArrayList<MuisMessage>();
+		ArrayList<MuisMessage> ret = new ArrayList<MuisMessage>();
 		ret.addAll(theMessages);
 		for(MuisElement child : theChildren)
 			addMessages(ret, child);
 		return ret.toArray(new MuisMessage[ret.size()]);
 	}
 
-	private final static void addMessages(java.util.ArrayList<MuisMessage> ret, MuisElement el)
+	private final static void addMessages(ArrayList<MuisMessage> ret, MuisElement el)
 	{
 		ret.addAll(el.theMessages);
 		for(MuisElement child : el.theChildren)

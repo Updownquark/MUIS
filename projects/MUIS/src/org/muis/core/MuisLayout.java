@@ -15,6 +15,25 @@ public interface MuisLayout
 	void initChildren(MuisElement parent, MuisElement [] children);
 
 	/**
+	 * @param parent The parent that the child is being added to
+	 * @param child The child that is being added to the parent
+	 */
+	void childAdded(MuisElement parent, MuisElement child);
+
+	/**
+	 * @param parent The parent that the child is being removed from
+	 * @param child The child that is being removed from the parent
+	 */
+	void childRemoved(MuisElement parent, MuisElement child);
+
+	/**
+	 * Called when this layout is removed from the container
+	 * 
+	 * @param parent The layout container that this layout formerly governed
+	 */
+	void remove(MuisElement parent);
+
+	/**
 	 * @param parent The parent that the children will be layed out within
 	 * @param children The children to get the width policy for
 	 * @param parentHeight The height that this layout has determined for the parent, or <=0 if this information has not been decided
@@ -37,11 +56,4 @@ public interface MuisLayout
 	 * @param children The children to adjust within the container
 	 */
 	void layout(MuisElement parent, MuisElement [] children);
-
-	/**
-	 * Called when this layout is removed from the container
-	 *
-	 * @param parent The layout container that this layout formerly governed
-	 */
-	void remove(MuisElement parent);
 }

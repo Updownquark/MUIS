@@ -92,6 +92,16 @@ public class BorderLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
+	public void childAdded(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
+	public void childRemoved(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
 	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
 	{
 

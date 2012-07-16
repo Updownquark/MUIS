@@ -75,6 +75,16 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 			allowChild(child);
 	}
 
+	@Override
+	public void childAdded(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
+	public void childRemoved(MuisElement parent, MuisElement child)
+	{
+	}
+
 	void allowChild(MuisElement child)
 	{
 		child.acceptAttribute(left);

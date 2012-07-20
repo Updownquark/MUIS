@@ -18,6 +18,9 @@ public @interface NeededAttr
 	/** @return Whether the attribute should be required or not. This is ignored for style attributes. */
 	boolean required() default false;
 
+	/** @return The parseable initial value for the attribute. This MUST be set if {@link #required()} is true. */
+	String initValue() default "";
+
 	/** @return The action to perform when one of the attributes changes. Overrides {@link MuisAttrConsumer#action()}. */
 	MuisActionType action() default MuisActionType.def;
 }

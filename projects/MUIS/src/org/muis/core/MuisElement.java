@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.MuisSecurityPermission.PermissionType;
@@ -190,10 +191,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		 * checks during this time. Before this stage, attributes may be added which are not recognized by the element. During this stage,
 		 * all unchecked attributes are checked and errors are logged for any attributes that are unrecognized or malformatted as well as
 		 * for any required attributes whose values have not been set. During and after this stage, no attributes may be set in the element
-		 * unless they have been {@link MuisElement#acceptAttribute(MuisAttribute) accepted} and the type is correct. An element's children
-		 * are started up at the tail end of this stage, so note that when an element transitions out of this stage, its contents will be in
-		 * the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all its attribute work has
-		 * completed.
+		 * unless they have been {@link MuisElement#acceptAttribute(Object, MuisAttribute) accepted} and the type is correct. An element's
+		 * children are started up at the tail end of this stage, so note that when an element transitions out of this stage, its contents
+		 * will be in the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all its attribute work
+		 * has completed.
 		 */
 		STARTUP,
 		/** The element has been fully initialized within the full document context and is ready to render and receive events */
@@ -221,12 +222,58 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	{
 		private final MuisAttribute<?> attr;
 
-		private boolean required;
+		private IdentityHashMap<Object, Object> theNeeders;
 
-		AttributeHolder(MuisAttribute<?> anAttr, boolean req)
+		private IdentityHashMap<Object, Object> theWanters;
+
+		AttributeHolder(MuisAttribute<?> anAttr)
 		{
 			attr = anAttr;
-			required = req;
+		}
+
+		synchronized void addWanter(Object wanter, boolean isNeeder)
+		{
+			IdentityHashMap<Object, Object> set = isNeeder ? theNeeders : theWanters;
+			if(set == null)
+			{
+				set = new IdentityHashMap<>();
+				if(isNeeder)
+					theNeeders = set;
+				else
+					theWanters = set;
+			}
+			set.put(wanter, wanter);
+		}
+
+		boolean isRequired()
+		{
+			IdentityHashMap<Object, Object> needers = theNeeders;
+			return needers != null && !needers.isEmpty();
+		}
+
+		boolean isWanted()
+		{
+			if(isRequired())
+				return true;
+			IdentityHashMap<Object, Object> wanters = theWanters;
+			return wanters != null && wanters.isEmpty();
+		}
+
+		synchronized void unrequire(Object wanter)
+		{
+			if(theNeeders != null)
+				theNeeders.remove(wanter);
+			if(theWanters == null)
+				theWanters = new IdentityHashMap<>();
+			theWanters.put(wanter, wanter);
+		}
+
+		synchronized void reject(Object rejecter)
+		{
+			if(theNeeders != null)
+				theNeeders.remove(rejecter);
+			if(theWanters != null)
+				theWanters.remove(rejecter);
 		}
 
 		/**
@@ -244,17 +291,17 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			if(val == null)
 				return null;
 			else
-				return (required ? "Required attribute " : "Attribute ") + attr.name + " " + val;
+				return (isRequired() ? "Required attribute " : "Attribute ") + attr.name + " " + val;
 		}
 
 		@Override
 		public String toString()
 		{
-			return attr.toString() + (required ? " (required)" : " (optional)");
+			return attr.toString() + (isRequired() ? " (required)" : " (optional)");
 		}
 	}
 
-	private static class AttrConsumerMetadata implements MuisEventListener<Object>
+	private static class AttrConsumerMetadata implements MuisEventListener<MuisAttribute<?>>
 	{
 		final Class<?> theType;
 
@@ -266,13 +313,17 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 		final NeededAttr [] theAttributes;
 
+		final MuisAttribute<?> [] theMuisAttributes;
+
 		private final Class<?> [] theAttributeSources;
 
 		final NeededAttr [] theChildAttributes;
 
+		final MuisAttribute<?> [] theChildMuisAttributes;
+
 		private final Class<?> [] theChildAttributeSources;
 
-		final MuisEventListener<?> theChildListener;
+		final MuisEventListener<MuisAttribute<?>> theChildListener;
 
 		AttrConsumerMetadata(Class<?> type, MuisDocument doc)
 		{
@@ -321,9 +372,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					}
 				}
 			theAttributes = attrs.values().toArray(new NeededAttr[attrs.size()]);
+			theMuisAttributes = new MuisAttribute[theAttributes.length];
 			theAttributeSources = new Class[theAttributes.length];
 			for(int a = 0; a < theAttributes.length; a++)
+			{
+				theMuisAttributes[a] = new MuisAttribute<Object>(theAttributes[a].name(),
+					(MuisAttribute.AttributeType<Object>) getAttrType(theAttributes[a]));
 				theAttributeSources[a] = attrSources.get(theAttributes[a].name());
+			}
 
 			if(theSuper != null)
 				for(int a = 0; a < theSuper.theChildAttributes.length; a++)
@@ -357,23 +413,28 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					}
 				}
 			theChildAttributes = attrs.values().toArray(new NeededAttr[attrs.size()]);
-			theChildAttributeSources = new Class[theAttributes.length];
-			for(int a = 0; a < theAttributes.length; a++)
-				theAttributeSources[a] = attrSources.get(theAttributes[a].name());
+			theChildMuisAttributes = new MuisAttribute[theChildAttributes.length];
+			theChildAttributeSources = new Class[theChildAttributes.length];
+			for(int a = 0; a < theChildAttributes.length; a++)
+			{
+				theChildMuisAttributes[a] = new MuisAttribute<Object>(theChildAttributes[a].name(),
+					(MuisAttribute.AttributeType<Object>) getAttrType(theChildAttributes[a]));
+				theChildAttributeSources[a] = attrSources.get(theChildAttributes[a].name());
+			}
 			attrs.clear();
 			attrSources.clear();
 
 			if(theChildAttributes.length > 0)
-				theChildListener = new MuisEventListener<Object>() {
+				theChildListener = new MuisEventListener<MuisAttribute<?>>() {
 					@Override
-					public void eventOccurred(MuisEvent<Object> event, MuisElement element)
+					public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
 					{
 						if(!ATTRIBUTE_SET.equals(event.getType()))
 							return;
 						MuisElement parent = element.getParent();
 						if(parent == null)
 							return;
-						MuisAttribute<?> attribute = (MuisAttribute<?>) event.getValue();
+						MuisAttribute<?> attribute = event.getValue();
 						for(NeededAttr attr : theChildAttributes)
 						{
 							MuisActionType action = attr.action();
@@ -412,6 +473,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			else
 				theChildListener = null;
 
+		}
+
+		boolean isEmpty()
+		{
+			return theAttributes.length == 0 && theChildAttributes.length == 0;
 		}
 
 		static void addIntfs(ArrayList<AttrConsumerMetadata> intfs, Class<?> intf, MuisDocument doc)
@@ -467,8 +533,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					else
 					{
 						doc.warn(msgStart + "MuisAttributeConsumer annotation on type " + postDecl + " declares required attribute "
-							+ post.name() + " of type " + typeString(post) + " which overrides optional attribute of type " + typeString(pre)
-							+ " declared by type " + preDecl.getName());
+							+ post.name() + " of type " + typeString(post) + " which overrides optional attribute of type "
+							+ typeString(pre) + " declared by type " + preDecl.getName());
 						return true;
 					}
 				}
@@ -492,7 +558,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		static String typeString(NeededAttr attr)
 		{
 			StringBuilder ret = new StringBuilder(attr.type().name());
-			if(attr.valueType()!=null)
+			if(attr.valueType() != null)
 				ret.append("<").append(attr.valueType().getName()).append(">");
 			return ret.toString();
 		}
@@ -561,12 +627,45 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			return true;
 		}
 
+		@SuppressWarnings("rawtypes")
+		MuisAttribute.AttributeType<?> getAttrType(NeededAttr attr)
+		{
+			switch (attr.type())
+			{
+			case STRING:
+				return MuisAttribute.stringAttr;
+			case BOOLEAN:
+				return MuisAttribute.boolAttr;
+			case INT:
+				return MuisAttribute.intAttr;
+			case FLOAT:
+				return MuisAttribute.floatAttr;
+			case AMOUNT:
+				return MuisAttribute.amountAttr;
+			case COLOR:
+				return MuisAttribute.colorAttr;
+			case RESOURCE:
+				return MuisAttribute.resourceAttr;
+			case TYPE:
+				return new MuisAttribute.MuisTypeAttribute(attr.valueType());
+			case INSTANCE:
+				return new MuisAttribute.MuisTypeInstanceAttribute(attr.valueType());
+			case ENUM:
+				return new MuisAttribute.MuisEnumAttribute(attr.valueType());
+			case SIZE:
+				return SizeAttributeType.instance;
+			case POSITION:
+				return PositionAttributeType.instance;
+			}
+			throw new IllegalStateException();
+		}
+
 		@Override
-		public void eventOccurred(MuisEvent<Object> event, MuisElement element)
+		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
 		{
 			if(!ATTRIBUTE_SET.equals(event.getType()))
 				return;
-			MuisAttribute<?> attribute = (MuisAttribute<?>) event.getValue();
+			MuisAttribute<?> attribute = event.getValue();
 			for(NeededAttr attr : theAttributes)
 			{
 				MuisActionType action = attr.action();
@@ -612,7 +711,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			@Override
 			public AttrConsumerMetadata generate(MuisDocument doc, Class<?> key) throws RuntimeException
 			{
-				return null;
+				return new AttrConsumerMetadata(key, doc);
 			}
 
 			@Override
@@ -707,6 +806,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private ConcurrentHashMap<String, String> theRawAttributes;
 
+	private IdentityHashMap<Object, AttrConsumerMetadata> theConsumers;
+
 	private MuisElement [] theChildren;
 
 	private final ElementStyle theStyle;
@@ -762,6 +863,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theAcceptedAttrs = new ConcurrentHashMap<>();
 		theAttrValues = new ConcurrentHashMap<>();
 		theRawAttributes = new ConcurrentHashMap<>();
+		theConsumers = new IdentityHashMap<>();
 		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theChildListeners = new ListenerManager<>(MuisEventListener.class);
 		theMessages = new ArrayList<>();
@@ -808,9 +910,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				return true;
 			}
 		});
-		acceptAttribute(StyleAttributeType.STYLE_ATTRIBUTE);
-		acceptAttribute(StyleAttributeType.STYLE_SELF_ATTRIBUTE);
-		acceptAttribute(StyleAttributeType.STYLE_HEIR_ATTRIBUTE);
+		Object styleWanter = new Object();
+		acceptAttribute(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
+		acceptAttribute(styleWanter, StyleAttributeType.STYLE_SELF_ATTRIBUTE);
+		acceptAttribute(styleWanter, StyleAttributeType.STYLE_HEIR_ATTRIBUTE);
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element)
@@ -889,6 +992,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theTagName = tagName;
 		theClassView = classView;
 		theChildren = new MuisElement[0];
+		consumerChanged(null, this);
 		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_CHILDREN.toString());
 	}
 
@@ -924,6 +1028,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		for(Object type : theChildListeners.getAllProperties())
 			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
 				child.addListener((MuisEventType<Object>) type, listener);
+		// TODO consumers
 	}
 
 	/**
@@ -936,11 +1041,87 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		for(Object type : theChildListeners.getAllProperties())
 			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
 				child.removeListener(listener);
+		// TODO consumers
 	}
 
-	protected final void consumerChanged(Class<?> from, Class<?> to)
+	protected final void consumerChanged(Object from, Object to)
 	{
-		// TODO
+		if(from == to)
+			return;
+		AttrConsumerMetadata md;
+		if(from != null)
+		{
+			synchronized(theConsumers)
+			{
+				md = theConsumers.remove(from);
+			}
+			if(md != null)
+				removeConsumer(from, md);
+		}
+
+		if(to != null)
+		{
+			md = theDocument.getCache().getAndWait(theDocument, attrConsumerMDType, to.getClass());
+			if(md != null && !md.isEmpty())
+			{
+				addConsumer(to, md);
+				synchronized(theConsumers)
+				{
+					theConsumers.put(to, md);
+				}
+			}
+		}
+	}
+
+	private final void addConsumer(Object wanter, AttrConsumerMetadata consumer)
+	{
+		MuisElement [] children = theChildren;
+		for(int i = 0; i < consumer.theAttributes.length; i++)
+		{
+			Object value;
+			try
+			{
+				value = consumer.theAttributes[i].initValue().length() > 0 ? null : consumer.theMuisAttributes[i].type.parse(theClassView,
+					consumer.theAttributes[i].initValue());
+				acceptAttribute(wanter, consumer.theAttributes[i].required(), (MuisAttribute<Object>) consumer.theMuisAttributes[i], value);
+			} catch(MuisException e)
+			{
+				warn("Could not accept attribute " + consumer.theAttributes[i].name() + " for consumer " + wanter.getClass().getName(),
+					"attribute", consumer.theMuisAttributes[i]);
+			}
+		}
+		for(MuisElement child : children)
+		{
+			for(int i = 0; i < consumer.theChildAttributes.length; i++)
+			{
+				Object value;
+				try
+				{
+					value = consumer.theChildAttributes[i].initValue().length() > 0 ? null : consumer.theChildMuisAttributes[i].type.parse(
+						theClassView, consumer.theChildAttributes[i].initValue());
+					child.acceptAttribute(wanter, consumer.theChildAttributes[i].required(),
+						(MuisAttribute<Object>) consumer.theChildMuisAttributes[i], value);
+				} catch(MuisException e)
+				{
+					child.warn("Could not accept child attribute " + consumer.theChildAttributes[i].name() + " for consumer "
+						+ wanter.getClass().getName(), "attribute", consumer.theMuisAttributes[i]);
+				}
+			}
+		}
+		addListener(ATTRIBUTE_SET, consumer);
+		addChildListener(ATTRIBUTE_SET, consumer.theChildListener);
+	}
+
+	private final void removeConsumer(Object wanter, AttrConsumerMetadata consumer)
+	{
+		MuisElement [] children = theChildren;
+		removeChildListener(consumer.theChildListener);
+		removeListener(consumer);
+		for(MuisElement child : children)
+			for(int i = 0; i < consumer.theChildAttributes.length; i++)
+				child.rejectAttribute(wanter, consumer.theChildMuisAttributes[i]);
+		for(int i = 0; i < consumer.theAttributes.length; i++)
+			rejectAttribute(wanter, consumer.theMuisAttributes[i]);
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
@@ -950,7 +1131,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		for(AttributeHolder holder : theAcceptedAttrs.values())
 		{
 			MuisAttribute<?> attr = holder.attr;
-			boolean required = holder.required;
+			boolean required = holder.isRequired();
 			Object value = theAttrValues.get(attr);
 			if(value == null && required)
 				fatal("Required attribute " + attr + " not set", null);
@@ -962,7 +1143,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				try
 				{
 					value = attr.type.parse(getClassView(), (String) value);
-					theAttrValues.put(attr, value);
+					setAttribute((MuisAttribute<Object>) attr, value);
 				} catch(MuisException e)
 				{
 					if(required)
@@ -971,6 +1152,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 						error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
 					theAttrValues.remove(attr);
 				}
+			}
+			else if(value != null && attr.type.cast(value) == null)
+			{
+				if(required)
+					fatal("Unrecognized value for required attribute " + attr + ": " + value, null, "value", value);
+				else
+					error("Unrecognized value for attribute " + attr + ": " + value, null, "value", value);
+				theAttrValues.remove(attr);
 			}
 			if(value != null)
 				fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
@@ -1040,22 +1229,22 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		checkSecurity(PermissionType.setAttribute, attr);
 		if(theRawAttributes != null)
 			theRawAttributes.remove(attr.name);
+		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
 		{
-			AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 			if(holder == null)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
-			if(value == null && holder.required)
+			if(value == null && holder.isRequired())
 				throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
 			String valError = holder.validate(value);
 			if(valError != null)
 				throw new MuisException(valError);
 			T ret = attr.type.parse(getClassView(), value);
-			theAttrValues.put(attr, ret);
-			fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
+			setAttribute(attr, ret);
 			return ret;
 		}
-		theAttrValues.put(attr, value);
+		else
+			theAttrValues.put(attr, value);
 		return null;
 	}
 
@@ -1075,7 +1264,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder == null)
 			throw new MuisException("Attribute " + attr + " is not accepted in this element");
-		if(value == null && holder.required)
+		if(value == null && holder.isRequired())
 			throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
 		if(value != null)
 		{
@@ -1083,7 +1272,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			if(newValue == null)
 				throw new MuisException("Value " + value + ", type " + value.getClass().getName() + " is not valid for atribute " + attr);
 		}
-		theAttrValues.put(attr, value);
+		Object old = theAttrValues.put(attr, value);
+		consumerChanged(old, value);
 		fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
 	}
 
@@ -1122,7 +1312,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				return ret;
 			} catch(MuisException e)
 			{
-				if(storedAttr != null && storedAttr.required)
+				if(storedAttr != null && storedAttr.isRequired())
 					fatal("Required attribute " + attr + " could not be parsed from " + stored, e, "attribute", attr, "value", stored);
 				else
 					error("Attribute " + attr + " could not be parsed from " + stored, e, "attribute", attr, "value", stored);
@@ -1137,83 +1327,46 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param <T> The type of the attribute to require
 	 * @param <V> The type of the value for the attribute
+	 * @param needer The object that needs the attribute
 	 * @param attr The attribute that must be specified for this element
 	 * @param initValue The value to set for the attribute if a value is not set already
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T, V extends T> void requireAttribute(MuisAttribute<T> attr, V initValue) throws MuisException
+	public final <T, V extends T> void requireAttribute(Object needer, MuisAttribute<T> attr, V initValue) throws MuisException
 	{
-		requireAttribute(attr);
-		if(getAttribute(attr) == null)
-			setAttribute(attr, initValue);
+		acceptAttribute(needer, true, attr, initValue);
 	}
 
 	/**
 	 * Specifies a required attribute for this element
 	 *
+	 * @param needer The object that needs the attribute
 	 * @param attr The attribute that must be specified for this element
 	 */
-	public final void requireAttribute(MuisAttribute<?> attr)
+	public final void requireAttribute(Object needer, MuisAttribute<?> attr)
 	{
-		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
-			throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder != null)
+		try
 		{
-			if(holder.attr.equals(attr))
-			{
-				holder.required = true;
-				return; // The attribute is already required
-			}
-			else
-				throw new IllegalStateException("An attribute named " + attr.name + " (" + holder.attr
-					+ ") is already accepted in this element");
-		}
-		else
+			acceptAttribute(needer, true, attr, null);
+		} catch(MuisException e)
 		{
-			holder = new AttributeHolder(attr, true);
-			theAcceptedAttrs.put(attr.name, holder);
-			String strVal = theRawAttributes.remove(attr.name);
-			if(strVal != null)
-			{
-				String valError = holder.validate(strVal);
-				if(valError != null)
-					error(valError, null, "attribute", attr);
-				else
-					try
-					{
-						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(getClassView(), strVal));
-					} catch(MuisException e)
-					{
-						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
-					}
-			}
+			throw new IllegalStateException("Should not throw MuisException with null initValue");
 		}
 	}
 
 	/**
 	 * Marks an accepted attribute as not required
 	 *
+	 * @param wanter The object that cares about the attribute
 	 * @param attr The attribute to accept but not require
 	 */
-	public final void unrequireAttribute(MuisAttribute<?> attr)
+	public final void unrequireAttribute(Object wanter, MuisAttribute<?> attr)
 	{
-		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
-			throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
-		{
-			if(holder.attr.equals(attr))
-			{
-				holder.required = false;
-				return; // The attribute is already accepted
-			}
-			else
-				throw new IllegalStateException("An attribute named " + attr.name + " (" + holder.attr
-					+ ") is already accepted in this element");
-		}
+			holder.unrequire(wanter);
 		else
-			theAcceptedAttrs.put(attr.name, new AttributeHolder(attr, false));
+			acceptAttribute(wanter, attr);
 	}
 
 	/**
@@ -1221,38 +1374,53 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param <T> The type of the attribute to accept
 	 * @param <V> The type of the value for the attribute
+	 * @param wanter The object that cares about the attribute
 	 * @param attr The attribute that may be specified for this element
 	 * @param initValue The value to set for the attribute if a value is not set already
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T, V extends T> void acceptAttribute(MuisAttribute<T> attr, V initValue) throws MuisException
+	public final <T, V extends T> void acceptAttribute(Object wanter, MuisAttribute<T> attr, V initValue) throws MuisException
 	{
-		acceptAttribute(attr);
-		if(getAttribute(attr) == null)
-			setAttribute(attr, initValue);
+		acceptAttribute(wanter, false, attr, initValue);
 	}
 
 	/**
 	 * Specifies an optional attribute for this element
 	 *
+	 * @param wanter The object that cares about the attribute
 	 * @param attr The attribute that must be specified for this element
 	 */
-	public final void acceptAttribute(MuisAttribute<?> attr)
+	public final void acceptAttribute(Object wanter, MuisAttribute<?> attr)
 	{
-		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
-			throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
+		try
+		{
+			acceptAttribute(wanter, false, attr, null);
+		} catch(MuisException e)
+		{
+			throw new IllegalStateException("Should not throw MuisException with null initValue");
+		}
+	}
+
+	private final <T, V extends T> void acceptAttribute(Object wanter, boolean require, MuisAttribute<T> attr, V initValue)
+		throws MuisException
+	{
+		// if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
+		// throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
+		if(require && initValue == null && theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
+			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
 		{
 			if(holder.attr.equals(attr))
-				return; // The attribute is already accepted
+				holder.addWanter(wanter, require); // The attribute is already required
 			else
 				throw new IllegalStateException("An attribute named " + attr.name + " (" + holder.attr
 					+ ") is already accepted in this element");
 		}
 		else
 		{
-			holder = new AttributeHolder(attr, false);
+			holder = new AttributeHolder(attr);
+			holder.addWanter(wanter, require);
 			theAcceptedAttrs.put(attr.name, holder);
 			String strVal = theRawAttributes.remove(attr.name);
 			if(strVal != null)
@@ -1270,25 +1438,26 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					}
 			}
 		}
+		if(initValue != null && theAttrValues.get(attr) == null)
+			setAttribute(attr, initValue);
 	}
 
 	/**
 	 * Undoes acceptance of an attribute. This method does not remove any attribute value associated with this element. It merely disables
 	 * the attribute. If the attribute is accepted on this element later, this element's value of that attribute will be preserved.
 	 *
+	 * @param wanter The object that used to care about the attribute
 	 * @param attr The attribute to not allow in this element
 	 */
-	public final void rejectAttribute(MuisAttribute<?> attr)
+	public final void rejectAttribute(Object wanter, MuisAttribute<?> attr)
 	{
-		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
-			return;
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
 		if(holder != null)
-			if(holder.attr.equals(attr))
-				// We do not remove the values--we just disable them
+		{
+			holder.reject(holder);
+			if(!holder.isWanted())
 				theAcceptedAttrs.remove(attr.name);
-			else
-				return;
+		}
 	}
 
 	/** @return The number of attributes set for this element */
@@ -1324,9 +1493,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public final boolean isRequired(MuisAttribute<?> attr)
 	{
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder == null || !holder.attr.equals(attr))
-			return false;
-		return holder.required;
+		return holder != null && !holder.attr.equals(attr) && holder.isRequired();
 	}
 
 	// End attribute methods
@@ -1751,10 +1918,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/**
 	 * Removes all listeners for the given event type whose class is exactly equal (not an extension of) the given listener type
 	 *
+	 * @param <T> The type of the property that the event type represents
 	 * @param type The type of event to stop listening for
 	 * @param listenerType The listener type to remove
 	 */
-	public final void removeListener(MuisEventType<?> type, Class<? extends MuisEventListener<?>> listenerType)
+	public final <T> void removeListener(MuisEventType<T> type, Class<? extends MuisEventListener<? super T>> listenerType)
 	{
 		for(MuisEventListener<?> listener : theListeners.getListeners(type))
 			if(listener.getClass() == listenerType)

@@ -328,7 +328,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		AttrConsumerMetadata(Class<?> type, MuisDocument doc)
 		{
 			theType = type;
-			if(type.getSuperclass() != null && type.getSuperclass() == Object.class)
+			if(type.getSuperclass() != null && type.getSuperclass() != Object.class)
 				theSuper = doc.getCache().getAndWait(doc, attrConsumerMDType, type.getSuperclass());
 			else
 				theSuper = null;
@@ -381,6 +381,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				theAttributeSources[a] = attrSources.get(theAttributes[a].name());
 			}
 
+			attrs.clear();
 			if(theSuper != null)
 				for(int a = 0; a < theSuper.theChildAttributes.length; a++)
 				{
@@ -435,11 +436,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 						if(parent == null)
 							return;
 						MuisAttribute<?> attribute = event.getValue();
-						for(NeededAttr attr : theChildAttributes)
+						for(int a = 0; a < theChildAttributes.length; a++)
 						{
-							MuisActionType action = attr.action();
+							MuisActionType action = theChildAttributes[a].action();
 							if(action == MuisActionType.def)
-								action = theConsumer.action();
+								action = theChildAttributeSources[a].getAnnotation(org.muis.core.annotations.MuisAttrConsumer.class)
+									.action();
 							switch (action)
 							{
 							case none:
@@ -447,7 +449,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 								continue;
 							default:
 							}
-							if(!matches(attribute, attr))
+							if(!matches(attribute, theChildAttributes[a]))
 								continue;
 							switch (action)
 							{
@@ -455,10 +457,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 							case def:
 								break;
 							case layout:
-								parent.relayout(false);
+								element.relayout(false);
 								break;
 							case paint:
-								parent.repaint(null, false);
+								element.repaint(null, false);
 								break;
 							}
 						}
@@ -472,7 +474,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				};
 			else
 				theChildListener = null;
-
 		}
 
 		boolean isEmpty()
@@ -510,7 +511,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				}
 				break;
 			default:
-				if(attr.valueType() != null)
+				if(attr.valueType() != Object.class)
 				{
 					doc.warn("Type " + type.getName() + " requests attribute " + attr.name() + " of type " + attr.type()
 						+ " and specifies an unneeded value type of " + attr.valueType().getName());
@@ -666,11 +667,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			if(!ATTRIBUTE_SET.equals(event.getType()))
 				return;
 			MuisAttribute<?> attribute = event.getValue();
-			for(NeededAttr attr : theAttributes)
+			for(int a = 0; a < theAttributes.length; a++)
 			{
-				MuisActionType action = attr.action();
+				MuisActionType action = theAttributes[a].action();
 				if(action == MuisActionType.def)
-					action = theConsumer.action();
+					action = theAttributeSources[a].getAnnotation(org.muis.core.annotations.MuisAttrConsumer.class).action();
 				switch (action)
 				{
 				case none:
@@ -678,7 +679,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 					continue;
 				default:
 				}
-				if(!matches(attribute, attr))
+				if(!matches(attribute, theAttributes[a]))
 					continue;
 				switch (action)
 				{
@@ -1028,7 +1029,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		for(Object type : theChildListeners.getAllProperties())
 			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
 				child.addListener((MuisEventType<Object>) type, listener);
-		// TODO consumers
+		AttrConsumerMetadata [] consumers;
+		synchronized(theConsumers)
+		{
+			consumers = theConsumers.values().toArray(new AttrConsumerMetadata[theConsumers.size()]);
+		}
+		for(AttrConsumerMetadata consumer : consumers)
+			addChildConsumer(child, consumer);
 	}
 
 	/**
@@ -1041,7 +1048,13 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		for(Object type : theChildListeners.getAllProperties())
 			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
 				child.removeListener(listener);
-		// TODO consumers
+		AttrConsumerMetadata [] consumers;
+		synchronized(theConsumers)
+		{
+			consumers = theConsumers.values().toArray(new AttrConsumerMetadata[theConsumers.size()]);
+		}
+		for(AttrConsumerMetadata consumer : consumers)
+			removeChildConsumer(child, consumer);
 	}
 
 	protected final void consumerChanged(Object from, Object to)
@@ -1056,7 +1069,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				md = theConsumers.remove(from);
 			}
 			if(md != null)
-				removeConsumer(from, md);
+				removeConsumer(md);
 		}
 
 		if(to != null)
@@ -1064,7 +1077,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			md = theDocument.getCache().getAndWait(theDocument, attrConsumerMDType, to.getClass());
 			if(md != null && !md.isEmpty())
 			{
-				addConsumer(to, md);
+				addConsumer(md);
 				synchronized(theConsumers)
 				{
 					theConsumers.put(to, md);
@@ -1073,7 +1086,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		}
 	}
 
-	private final void addConsumer(Object wanter, AttrConsumerMetadata consumer)
+	private final void addConsumer(AttrConsumerMetadata consumer)
 	{
 		MuisElement [] children = theChildren;
 		for(int i = 0; i < consumer.theAttributes.length; i++)
@@ -1081,47 +1094,56 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 			Object value;
 			try
 			{
-				value = consumer.theAttributes[i].initValue().length() > 0 ? null : consumer.theMuisAttributes[i].type.parse(theClassView,
+				value = consumer.theAttributes[i].initValue().length() == 0 ? null : consumer.theMuisAttributes[i].type.parse(theClassView,
 					consumer.theAttributes[i].initValue());
-				acceptAttribute(wanter, consumer.theAttributes[i].required(), (MuisAttribute<Object>) consumer.theMuisAttributes[i], value);
+				acceptAttribute(consumer, consumer.theAttributes[i].required(), (MuisAttribute<Object>) consumer.theMuisAttributes[i],
+					value);
 			} catch(MuisException e)
 			{
-				warn("Could not accept attribute " + consumer.theAttributes[i].name() + " for consumer " + wanter.getClass().getName(),
+				warn("Could not accept attribute " + consumer.theAttributes[i].name() + " for consumer " + consumer.theType.getName(), e,
 					"attribute", consumer.theMuisAttributes[i]);
 			}
 		}
 		for(MuisElement child : children)
-		{
-			for(int i = 0; i < consumer.theChildAttributes.length; i++)
-			{
-				Object value;
-				try
-				{
-					value = consumer.theChildAttributes[i].initValue().length() > 0 ? null : consumer.theChildMuisAttributes[i].type.parse(
-						theClassView, consumer.theChildAttributes[i].initValue());
-					child.acceptAttribute(wanter, consumer.theChildAttributes[i].required(),
-						(MuisAttribute<Object>) consumer.theChildMuisAttributes[i], value);
-				} catch(MuisException e)
-				{
-					child.warn("Could not accept child attribute " + consumer.theChildAttributes[i].name() + " for consumer "
-						+ wanter.getClass().getName(), "attribute", consumer.theMuisAttributes[i]);
-				}
-			}
-		}
+			addChildConsumer(child, consumer);
 		addListener(ATTRIBUTE_SET, consumer);
 		addChildListener(ATTRIBUTE_SET, consumer.theChildListener);
 	}
 
-	private final void removeConsumer(Object wanter, AttrConsumerMetadata consumer)
+	private final void addChildConsumer(MuisElement child, AttrConsumerMetadata consumer)
+	{
+		for(int i = 0; i < consumer.theChildAttributes.length; i++)
+		{
+			Object value;
+			try
+			{
+				value = consumer.theChildAttributes[i].initValue().length() == 0 ? null : consumer.theChildMuisAttributes[i].type.parse(
+					theClassView, consumer.theChildAttributes[i].initValue());
+				child.acceptAttribute(consumer, consumer.theChildAttributes[i].required(),
+					(MuisAttribute<Object>) consumer.theChildMuisAttributes[i], value);
+			} catch(MuisException e)
+			{
+				child.warn("Could not accept child attribute " + consumer.theChildAttributes[i].name() + " for consumer "
+					+ consumer.theType.getName(), e, "attribute", consumer.theMuisAttributes[i]);
+			}
+		}
+	}
+
+	private final void removeConsumer(AttrConsumerMetadata consumer)
 	{
 		MuisElement [] children = theChildren;
 		removeChildListener(consumer.theChildListener);
 		removeListener(consumer);
 		for(MuisElement child : children)
-			for(int i = 0; i < consumer.theChildAttributes.length; i++)
-				child.rejectAttribute(wanter, consumer.theChildMuisAttributes[i]);
+			removeChildConsumer(child, consumer);
 		for(int i = 0; i < consumer.theAttributes.length; i++)
-			rejectAttribute(wanter, consumer.theMuisAttributes[i]);
+			rejectAttribute(consumer, consumer.theMuisAttributes[i]);
+	}
+
+	private final void removeChildConsumer(MuisElement child, AttrConsumerMetadata consumer)
+	{
+		for(int i = 0; i < consumer.theChildAttributes.length; i++)
+			child.rejectAttribute(consumer, consumer.theChildMuisAttributes[i]);
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
@@ -1230,19 +1252,25 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		if(theRawAttributes != null)
 			theRawAttributes.remove(attr.name);
 		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
+		if(holder != null)
 		{
-			if(holder == null)
-				throw new MuisException("Attribute " + attr + " is not accepted in this element");
 			if(value == null && holder.isRequired())
 				throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
-			String valError = holder.validate(value);
-			if(valError != null)
-				throw new MuisException(valError);
-			T ret = attr.type.parse(getClassView(), value);
+			T ret;
+			if(value == null)
+				ret = null;
+			else
+			{
+				String valError = holder.validate(value);
+				if(valError != null)
+					throw new MuisException(valError);
+				ret = attr.type.parse(getClassView(), value);
+			}
 			setAttribute(attr, ret);
 			return ret;
 		}
+		else if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
+			throw new MuisException("Attribute " + attr + " is not accepted in this element");
 		else
 			theAttrValues.put(attr, value);
 		return null;

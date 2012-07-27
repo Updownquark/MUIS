@@ -7,10 +7,18 @@ import java.net.URL;
 
 import org.muis.base.data.ImageData;
 import org.muis.core.MuisLayout;
+import org.muis.core.annotations.MuisAttrConsumer;
+import org.muis.core.annotations.MuisAttrType;
+import org.muis.core.annotations.NeededAttr;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 
 /** Renders an image */
+@MuisAttrConsumer(attrs = {@NeededAttr(
+	name = "layout",
+	type = MuisAttrType.INSTANCE,
+	valueType = MuisLayout.class,
+	initValue = "base:simple")})
 public class GenericImage extends org.muis.core.LayoutContainer
 {
 	/** Determines how this image may be resized */
@@ -240,12 +248,6 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		});
 		theHResizePolicy = ImageResizePolicy.lockIfEmpty;
 		theVResizePolicy = ImageResizePolicy.lockIfEmpty;
-	}
-
-	@Override
-	protected MuisLayout getDefaultLayout()
-	{
-		return new org.muis.base.layout.SimpleLayout();
 	}
 
 	/**

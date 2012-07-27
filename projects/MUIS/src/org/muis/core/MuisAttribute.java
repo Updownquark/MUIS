@@ -386,6 +386,18 @@ public final class MuisAttribute<T>
 		{
 			return URL.class;
 		}
+
+		@Override
+		public boolean equals(Object o)
+		{
+			return o != null && o.getClass() == getClass();
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return getClass().hashCode();
+		}
 	};
 
 	/**
@@ -484,6 +496,18 @@ public final class MuisAttribute<T>
 		public Class<Class<? extends T>> getType()
 		{
 			return (Class<Class<? extends T>>) type.getClass();
+		}
+
+		@Override
+		public boolean equals(Object o)
+		{
+			return o != null && o.getClass() == getClass() && ((MuisTypeAttribute<?>) o).type.equals(type);
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return getClass().hashCode() * 7 + type.hashCode();
 		}
 	}
 
@@ -598,6 +622,18 @@ public final class MuisAttribute<T>
 		{
 			return (Class<V>) type;
 		}
+
+		@Override
+		public boolean equals(Object o)
+		{
+			return o != null && o.getClass() == getClass() && ((MuisTypeInstanceAttribute<?>) o).type.equals(type);
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return getClass().hashCode() * 7 + type.hashCode();
+		}
 	}
 
 	/** A MuisTypeAttribute for a generic MuisElement */
@@ -695,6 +731,18 @@ public final class MuisAttribute<T>
 		{
 			return enumType;
 		}
+
+		@Override
+		public boolean equals(Object o)
+		{
+			return o != null && o.getClass() == getClass() && ((MuisEnumAttribute<?>) o).enumType.equals(enumType);
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return getClass().hashCode() * 7 + enumType.hashCode();
+		}
 	}
 
 	/** The name of the attribute */
@@ -719,5 +767,20 @@ public final class MuisAttribute<T>
 	public String toString()
 	{
 		return name + "(" + type + ")";
+	}
+
+	@Override
+	public boolean equals(Object o)
+	{
+		if(!(o instanceof MuisAttribute<?>))
+			return false;
+		MuisAttribute<?> attr = (MuisAttribute<?>) o;
+		return attr.name.equals(name) && attr.type.equals(type);
+	}
+
+	@Override
+	public int hashCode()
+	{
+		return name.hashCode() * 7 + type.hashCode();
 	}
 }

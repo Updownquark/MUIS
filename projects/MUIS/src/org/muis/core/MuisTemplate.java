@@ -176,7 +176,7 @@ public abstract class MuisTemplate extends MuisElement
 	 */
 	private void findAttachPoints(MuisElement child)
 	{
-		child.acceptAttribute(ATTACH_POINT);
+		child.acceptAttribute(this, ATTACH_POINT);
 		String attachPointAttr = child.getAttribute(ATTACH_POINT);
 		if(attachPointAttr != null)
 		{
@@ -228,7 +228,7 @@ public abstract class MuisTemplate extends MuisElement
 					break;
 				}
 			for(MuisElement child : children)
-				child.acceptAttribute(USE_AS);
+				child.acceptAttribute(this, USE_AS);
 
 			// Check children for legal insertion
 			AttachPointDef [] uses = new AttachPointDef[0];

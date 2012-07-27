@@ -3,7 +3,10 @@ package org.muis.base.layout;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.annotations.MuisActionType;
+import org.muis.core.annotations.MuisAttrConsumer;
+import org.muis.core.annotations.MuisAttrType;
+import org.muis.core.annotations.NeededAttr;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Size;
@@ -13,73 +16,17 @@ import org.muis.core.style.Size;
  * given {@link LayoutConstants#alignment alignment} along the opposite axis. {@link LayoutConstants#width}, {@link LayoutConstants#height},
  * {@link LayoutConstants#minWidth}, and {@link LayoutConstants#minHeight} may be used to help determine the sizes of children.
  */
+@MuisAttrConsumer(
+	attrs = {@NeededAttr(name = "direction", type = MuisAttrType.ENUM, valueType = Direction.class),
+			@NeededAttr(name = "align", type = MuisAttrType.ENUM, valueType = Alignment.class)},
+	childAttrs = {@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "min-width", type = MuisAttrType.SIZE),
+			@NeededAttr(name = "height", type = MuisAttrType.SIZE), @NeededAttr(name = "min-height", type = MuisAttrType.SIZE)},
+	action = MuisActionType.layout)
 public class BoxLayout implements MuisLayout
 {
-	private static class RelayoutParentListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
-	{
-		private final MuisElement theParent;
-
-		RelayoutParentListener(MuisElement parent)
-		{
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.direction || attr == LayoutConstants.alignment)
-				theParent.relayout(false);
-		}
-
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
-	}
-
-	private static class RelayoutChildListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
-	{
-		private final MuisElement theParent;
-
-		RelayoutChildListener(MuisElement parent)
-		{
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.width || attr == LayoutConstants.height || attr == LayoutConstants.minWidth
-				|| attr == LayoutConstants.minHeight)
-				theParent.relayout(false);
-		}
-
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
-	}
-
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
-		RelayoutParentListener parentListener = new RelayoutParentListener(parent);
-		parent.acceptAttribute(LayoutConstants.direction);
-		parent.acceptAttribute(LayoutConstants.alignment);
-		parent.addListener(MuisElement.ATTRIBUTE_SET, parentListener);
-		RelayoutChildListener childListener = new RelayoutChildListener(parent);
-		for(MuisElement child : children)
-		{
-			child.acceptAttribute(LayoutConstants.width);
-			child.acceptAttribute(LayoutConstants.height);
-			child.acceptAttribute(LayoutConstants.minWidth);
-			child.acceptAttribute(LayoutConstants.minHeight);
-			child.addListener(MuisElement.ATTRIBUTE_SET, childListener);
-		}
 	}
 
 	@Override
@@ -378,16 +325,5 @@ public class BoxLayout implements MuisLayout
 	@Override
 	public void remove(MuisElement parent)
 	{
-		parent.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutParentListener.class);
-		parent.rejectAttribute(LayoutConstants.direction);
-		parent.rejectAttribute(LayoutConstants.alignment);
-		for(MuisElement child : parent.getChildren())
-		{
-			child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutChildListener.class);
-			child.rejectAttribute(LayoutConstants.width);
-			child.rejectAttribute(LayoutConstants.height);
-			child.rejectAttribute(LayoutConstants.minWidth);
-			child.rejectAttribute(LayoutConstants.minHeight);
-		}
 	}
 }

@@ -3,7 +3,10 @@ package org.muis.base.layout;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.annotations.MuisActionType;
+import org.muis.core.annotations.MuisAttrConsumer;
+import org.muis.core.annotations.MuisAttrType;
+import org.muis.core.annotations.NeededAttr;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
@@ -15,80 +18,19 @@ import org.muis.core.style.Size;
  * {@link LayoutConstants#height}) and minimum size ({@link LayoutConstants#minWidth} and {@link LayoutConstants#minHeight}) attributes or
  * sizers.
  */
+@MuisAttrConsumer(
+	attrs = {@NeededAttr(name = "max-inf", type = MuisAttrType.BOOLEAN)},
+	childAttrs = {@NeededAttr(name = "left", type = MuisAttrType.POSITION), @NeededAttr(name = "right", type = MuisAttrType.POSITION),
+			@NeededAttr(name = "top", type = MuisAttrType.POSITION), @NeededAttr(name = "bottom", type = MuisAttrType.POSITION),
+			@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "height", type = MuisAttrType.SIZE),
+			@NeededAttr(name = "min-width", type = MuisAttrType.SIZE), @NeededAttr(name = "max-width", type = MuisAttrType.SIZE),
+			@NeededAttr(name = "min-height", type = MuisAttrType.SIZE), @NeededAttr(name = "max-height", type = MuisAttrType.SIZE)},
+	action = MuisActionType.layout)
 public class SimpleLayout implements MuisLayout
 {
-	private static class RelayoutParentListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
-	{
-		RelayoutParentListener()
-		{
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.maxInf)
-			{
-				element.relayout(false);
-			}
-		}
-
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
-	}
-
-	private static class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
-	{
-		private final MuisElement theParent;
-
-		RelayoutListener(MuisElement parent)
-		{
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.left || attr == LayoutConstants.right || attr == LayoutConstants.top
-				|| attr == LayoutConstants.bottom || attr == LayoutConstants.width || attr == LayoutConstants.height
-				|| attr == LayoutConstants.minWidth || attr == LayoutConstants.minHeight || attr == LayoutConstants.maxWidth
-				|| attr == LayoutConstants.maxHeight)
-			{
-				theParent.relayout(false);
-			}
-		}
-
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
-	}
-
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
-		parent.addListener(MuisElement.ATTRIBUTE_SET, new RelayoutParentListener());
-		parent.acceptAttribute(LayoutConstants.maxInf);
-		RelayoutListener listener = new RelayoutListener(parent);
-		for(MuisElement child : children)
-		{
-			child.acceptAttribute(LayoutConstants.left);
-			child.acceptAttribute(LayoutConstants.right);
-			child.acceptAttribute(LayoutConstants.top);
-			child.acceptAttribute(LayoutConstants.bottom);
-			child.acceptAttribute(LayoutConstants.width);
-			child.acceptAttribute(LayoutConstants.height);
-			child.acceptAttribute(LayoutConstants.minWidth);
-			child.acceptAttribute(LayoutConstants.minHeight);
-			child.acceptAttribute(LayoutConstants.maxWidth);
-			child.acceptAttribute(LayoutConstants.maxHeight);
-			child.addListener(MuisElement.ATTRIBUTE_SET, listener);
-		}
 	}
 
 	@Override
@@ -405,18 +347,5 @@ public class SimpleLayout implements MuisLayout
 	@Override
 	public void remove(MuisElement parent)
 	{
-		parent.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutParentListener.class);
-		for(MuisElement child : parent.getChildren())
-		{
-			child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutListener.class);
-			child.rejectAttribute(LayoutConstants.left);
-			child.rejectAttribute(LayoutConstants.right);
-			child.rejectAttribute(LayoutConstants.top);
-			child.rejectAttribute(LayoutConstants.bottom);
-			child.rejectAttribute(LayoutConstants.width);
-			child.rejectAttribute(LayoutConstants.height);
-			child.rejectAttribute(LayoutConstants.minWidth);
-			child.rejectAttribute(LayoutConstants.minHeight);
-		}
 	}
 }

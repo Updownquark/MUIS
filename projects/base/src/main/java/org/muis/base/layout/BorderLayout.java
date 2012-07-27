@@ -2,6 +2,10 @@ package org.muis.base.layout;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
+import org.muis.core.annotations.MuisActionType;
+import org.muis.core.annotations.MuisAttrConsumer;
+import org.muis.core.annotations.MuisAttrType;
+import org.muis.core.annotations.NeededAttr;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
@@ -12,9 +16,15 @@ import org.muis.core.style.Size;
  * Lays components out by {@link Region regions}. Containers with this layout may have any number of components in any region except center,
  * which may have zero or one component in it.
  */
+@MuisAttrConsumer(
+	attrs = {},
+	childAttrs = {@NeededAttr(name = "region", type = MuisAttrType.ENUM, valueType = Region.class, required = true),
+			@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "min-width", type = MuisAttrType.SIZE),
+			@NeededAttr(name = "height", type = MuisAttrType.SIZE), @NeededAttr(name = "min-height", type = MuisAttrType.SIZE)},
+	action = MuisActionType.layout)
 public class BorderLayout implements org.muis.core.MuisLayout
 {
-	private static class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
+	private class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
 	{
 		private final MuisElement theParent;
 
@@ -32,40 +42,39 @@ public class BorderLayout implements org.muis.core.MuisLayout
 				switch (element.getAttribute(LayoutConstants.region))
 				{
 				case left:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.bottom);
-					element.acceptAttribute(LayoutConstants.right);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
+					element.acceptAttribute(BorderLayout.this, LayoutConstants.right);
 					break;
 				case top:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.right);
-					element.acceptAttribute(LayoutConstants.bottom);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
+					element.acceptAttribute(BorderLayout.this, LayoutConstants.bottom);
 					break;
 				case right:
-					element.rejectAttribute(LayoutConstants.right);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.bottom);
-					element.acceptAttribute(LayoutConstants.left);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
+					element.acceptAttribute(BorderLayout.this, LayoutConstants.left);
 					break;
 				case bottom:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.bottom);
-					element.rejectAttribute(LayoutConstants.right);
-					element.acceptAttribute(LayoutConstants.top);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
+					element.acceptAttribute(BorderLayout.this, LayoutConstants.top);
 					break;
 				case center:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.right);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.bottom);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
+					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
 					break;
 				}
 			}
-			if(attr == LayoutConstants.region || attr == LayoutConstants.left || attr == LayoutConstants.right
-				|| attr == LayoutConstants.top || attr == LayoutConstants.bottom || attr == LayoutConstants.width
-				|| attr == LayoutConstants.height || attr == LayoutConstants.minWidth || attr == LayoutConstants.minHeight)
+			if(attr == LayoutConstants.left || attr == LayoutConstants.right || attr == LayoutConstants.top
+				|| attr == LayoutConstants.bottom)
 				theParent.relayout(false);
 		}
 
@@ -82,11 +91,6 @@ public class BorderLayout implements org.muis.core.MuisLayout
 		RelayoutListener listener = new RelayoutListener(parent);
 		for(MuisElement child : children)
 		{
-			child.requireAttribute(LayoutConstants.region);
-			child.acceptAttribute(LayoutConstants.width);
-			child.acceptAttribute(LayoutConstants.height);
-			child.acceptAttribute(LayoutConstants.minWidth);
-			child.acceptAttribute(LayoutConstants.minHeight);
 			child.addListener(MuisElement.ATTRIBUTE_SET, listener);
 		}
 	}
@@ -94,11 +98,17 @@ public class BorderLayout implements org.muis.core.MuisLayout
 	@Override
 	public void childAdded(MuisElement parent, MuisElement child)
 	{
+		child.addListener(MuisElement.ATTRIBUTE_SET, new RelayoutListener(parent));
 	}
 
 	@Override
 	public void childRemoved(MuisElement parent, MuisElement child)
 	{
+		child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutListener.class);
+		child.rejectAttribute(this, LayoutConstants.left);
+		child.rejectAttribute(this, LayoutConstants.right);
+		child.rejectAttribute(this, LayoutConstants.top);
+		child.rejectAttribute(this, LayoutConstants.bottom);
 	}
 
 	@Override
@@ -191,13 +201,6 @@ public class BorderLayout implements org.muis.core.MuisLayout
 	public void remove(MuisElement parent)
 	{
 		for(MuisElement child : parent.getChildren())
-		{
-			child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutListener.class);
-			child.rejectAttribute(LayoutConstants.region);
-			child.rejectAttribute(LayoutConstants.width);
-			child.rejectAttribute(LayoutConstants.height);
-			child.rejectAttribute(LayoutConstants.minWidth);
-			child.rejectAttribute(LayoutConstants.minHeight);
-		}
+			childRemoved(parent, child);
 	}
 }

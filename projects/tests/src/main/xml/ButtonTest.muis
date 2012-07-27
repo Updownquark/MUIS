@@ -9,7 +9,7 @@
     		<base:block layout="base:simple" left="0" right="100%" top="0" height="25%">This is a MUIS Document</base:block>
 			<base:block layout="base:simple" left="0" right="100%" top="25%" height="75%" style="bg.texture=base:raised-round;bg.color=#4040ff;
 				bg.corner-radius=15%">
-				<base:label left="0" right="100%" top="0">The Content</base:label>
+				<base:block left="0" right="100%" top="0">The Content</base:block>
 			</base:block>
     	</base:block>
     </body>

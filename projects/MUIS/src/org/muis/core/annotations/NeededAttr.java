@@ -13,7 +13,7 @@ public @interface NeededAttr
 	 * The attribute's value type (for {@link MuisAttrType#TYPE TYPE}, {@link MuisAttrType#INSTANCE INSTANCE}, and {@link MuisAttrType#ENUM
 	 * ENUM} attribute types
 	 */
-	Class<?> valueType();
+	Class<?> valueType() default Object.class;
 
 	/** @return Whether the attribute should be required or not. This is ignored for style attributes. */
 	boolean required() default false;

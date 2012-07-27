@@ -43,6 +43,7 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 				return true;
 			}
 		});
+		setLayout(getAttribute(LAYOUT_ATTR));
 	}
 
 	/** @return The MuisLayout that lays out this container's children */

@@ -8,7 +8,8 @@ import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SizePolicy;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
-@MuisAttrConsumer(attrs = {@NeededAttr(name = "layout", type = MuisAttrType.INSTANCE, valueType = MuisLayout.class)},
+@MuisAttrConsumer(
+	attrs = {@NeededAttr(name = "layout", type = MuisAttrType.INSTANCE, valueType = MuisLayout.class)},
 	action = MuisActionType.layout)
 public class LayoutContainer extends MuisElement implements MuisContainer
 {
@@ -92,11 +93,16 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 	public void addChild(MuisElement child, int index)
 	{
 		super.addChild(child, index);
+		if(theLayout != null)
+			theLayout.childAdded(this, child);
 	}
 
 	@Override
 	public MuisElement removeChild(int index)
 	{
-		return super.removeChild(index);
+		MuisElement ret = super.removeChild(index);
+		if(theLayout != null)
+			theLayout.childRemoved(this, ret);
+		return ret;
 	}
 }

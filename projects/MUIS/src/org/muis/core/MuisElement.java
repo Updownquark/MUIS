@@ -753,6 +753,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	public static final MuisEventType<MuisAttribute<?>> ATTRIBUTE_SET = new MuisEventType<MuisAttribute<?>>("Attribute Set",
 		(Class<MuisAttribute<?>>) (Class<?>) MuisAttribute.class);
 
+	/**
+	 * The event type representing the successful setting of an attribute. Different from {@link #ATTRIBUTE_SET} in that the value of the
+	 * event is the value of the attribute instead of the attribute itself.
+	 */
+	public static final MuisEventType<Object> ATTRIBUTE_CHANGED = new MuisEventType<Object>("Attribute Changed", Object.class);
+
 	/** The event type representing the change of an element's stage property */
 	public static final MuisEventType<CoreStage> STAGE_CHANGED = new MuisEventType<CoreStage>("Stage Changed", CoreStage.class);
 
@@ -1303,6 +1309,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		Object old = theAttrValues.put(attr, value);
 		consumerChanged(old, value);
 		fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
+		fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.type.cast(old), value), false, false);
 	}
 
 	/**
@@ -1429,7 +1436,18 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		}
 	}
 
-	private final <T, V extends T> void acceptAttribute(Object wanter, boolean require, MuisAttribute<T> attr, V initValue)
+	/**
+	 * Sepcifies an optional or required attribute for this element
+	 *
+	 * @param <T> The type of the attribute to accept
+	 * @param <V> The type of the value for the attribute
+	 * @param wanter The object that cares about the attribute
+	 * @param require Whether the attribute should be required or optional
+	 * @param attr The attribute to accept
+	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @throws MuisException If the given value is not acceptable for the given attribute
+	 */
+	public final <T, V extends T> void acceptAttribute(Object wanter, boolean require, MuisAttribute<T> attr, V initValue)
 		throws MuisException
 	{
 		// if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)

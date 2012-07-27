@@ -11,6 +11,7 @@ import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
+import org.muis.util.CompoundListener;
 
 /**
  * A very simple layout that positions and sizes children independently using positional ({@link LayoutConstants#left},
@@ -28,9 +29,24 @@ import org.muis.core.style.Size;
 	action = MuisActionType.layout)
 public class SimpleLayout implements MuisLayout
 {
+	private final CompoundListener.MultiElementCompoundListener theListener;
+
+	/** Creates a simple layout */
+	public SimpleLayout()
+	{
+		theListener = CompoundListener.create();
+	}
+
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
+		// TODO Move the attribute code up to the constructor when MultiElementCompoundListener supports it
+		CompoundListener.CompoundElementListener elListener = theListener.listenerFor(parent);
+		elListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);
+		elListener.child().accept(LayoutConstants.left).accept(LayoutConstants.right).accept(LayoutConstants.top)
+			.accept(LayoutConstants.bottom).accept(LayoutConstants.width).accept(LayoutConstants.minWidth).accept(LayoutConstants.maxWidth)
+			.accept(LayoutConstants.height).accept(LayoutConstants.minHeight).accept(LayoutConstants.maxHeight)
+			.onChange(CompoundListener.layout);
 	}
 
 	@Override

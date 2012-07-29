@@ -6,9 +6,9 @@ import java.net.URL;
 /**
  * A MuisAttribute represents an option that may or must be specified in a MUIS element either from the document(XML) or from code. A
  * MuisAttribute must be created in java (preferably in the form of a static constant) and given to the element to tell it that the
- * attribute is {@link MuisElement#acceptAttribute(MuisAttribute) accepted} or {@link MuisElement#requireAttribute(MuisAttribute) required}.
- * This allows the element to properly parse the attribute value specified in the document so that the option is available to java code to
- * properly interpret the value.
+ * attribute is {@link MuisElement#acceptAttribute(Object, MuisAttribute) accepted} or
+ * {@link MuisElement#requireAttribute(Object, MuisAttribute) required}. This allows the element to properly parse the attribute value
+ * specified in the document so that the option is available to java code to properly interpret the value.
  *
  * @param <T> The java type of the attribute
  */
@@ -21,7 +21,10 @@ public final class MuisAttribute<T>
 	 */
 	public static interface AttributeType<T>
 	{
-		/** @return The java type that this attribute type parses strings into instances of */
+		/**
+		 * @param <V> The type of this attribute type's value
+		 * @return The java type that this attribute type parses strings into instances of
+		 */
 		<V extends T> Class<V> getType();
 
 		/**
@@ -37,6 +40,7 @@ public final class MuisAttribute<T>
 		/**
 		 * Parses an attribute value from a string representation
 		 *
+		 * @param <V> The type of value parsed by this attribute type
 		 * @param classView The class view to use in parsing, if needed
 		 * @param value The string representation to parse
 		 * @return The parsed attribute value
@@ -47,8 +51,9 @@ public final class MuisAttribute<T>
 		/**
 		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
 		 * this attribute's type. This method may choose to convert liberally by creating new instances of this type corresponding to
-		 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type.
+		 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type. // * @param
 		 *
+		 * @param <V> The type of value cast by this attribute type
 		 * @param value The value to cast
 		 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
 		 */

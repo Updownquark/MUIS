@@ -1,29 +1,31 @@
 package org.muis.base.layout;
 
+import static org.muis.base.layout.LayoutConstants.*;
+
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
-import org.muis.core.annotations.MuisActionType;
-import org.muis.core.annotations.MuisAttrConsumer;
-import org.muis.core.annotations.MuisAttrType;
-import org.muis.core.annotations.NeededAttr;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
+import org.muis.util.CompoundListener;
 
 /**
  * Lays components out by {@link Region regions}. Containers with this layout may have any number of components in any region except center,
  * which may have zero or one component in it.
  */
-@MuisAttrConsumer(
-	attrs = {},
-	childAttrs = {@NeededAttr(name = "region", type = MuisAttrType.ENUM, valueType = Region.class, required = true),
-			@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "min-width", type = MuisAttrType.SIZE),
-			@NeededAttr(name = "height", type = MuisAttrType.SIZE), @NeededAttr(name = "min-height", type = MuisAttrType.SIZE)},
-	action = MuisActionType.layout)
 public class BorderLayout implements org.muis.core.MuisLayout
 {
+	private final CompoundListener.MultiElementCompoundListener theListener;
+
+	/** Creates a border layout */
+	public BorderLayout()
+	{
+		theListener = CompoundListener.create(this);
+		theListener.child().acceptAll(region, width, minWidth, height, minHeight).onChange(CompoundListener.layout);
+	}
+
 	private class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
 	{
 		private final MuisElement theParent;

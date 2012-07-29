@@ -1,16 +1,8 @@
 package org.muis.base.widget;
 
 import org.muis.core.MuisAttribute;
-import org.muis.core.annotations.MuisAttrConsumer;
-import org.muis.core.annotations.MuisAttrType;
-import org.muis.core.annotations.NeededAttr;
 
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
-@MuisAttrConsumer(attrs = {@NeededAttr(name = "src", type = MuisAttrType.RESOURCE, required = true),
-		@NeededAttr(name = "resize", type = MuisAttrType.ENUM, valueType = GenericImage.ImageResizePolicy.class),
-		@NeededAttr(name = "h-resize", type = MuisAttrType.ENUM, valueType = GenericImage.ImageResizePolicy.class),
-		@NeededAttr(name = "v-resize", type = MuisAttrType.ENUM, valueType = GenericImage.ImageResizePolicy.class),
-		@NeededAttr(name = "prop-locked", type = MuisAttrType.BOOLEAN)})
 public class Image extends GenericImage
 {
 	/** The attribute to use to specify the image resource that an image is to render */
@@ -37,6 +29,11 @@ public class Image extends GenericImage
 	/** Creates an image element */
 	public Image()
 	{
+		requireAttribute(this, src);
+		acceptAttribute(this, resize);
+		acceptAttribute(this, hResize);
+		acceptAttribute(this, vResize);
+		acceptAttribute(this, propLocked);
 		addListener(ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisAttribute<?>> event, org.muis.core.MuisElement element)
@@ -96,12 +93,5 @@ public class Image extends GenericImage
 				return true;
 			}
 		});
-		ImageResizePolicy policy = getAttribute(resize);
-		ImageResizePolicy hPolicy = getAttribute(hResize);
-		ImageResizePolicy vPolicy = getAttribute(vResize);
-		setVerticalResizePolicy(vPolicy != null ? vPolicy : (policy != null ? policy : ImageResizePolicy.lockIfEmpty));
-		setVerticalResizePolicy(hPolicy != null ? hPolicy : (policy != null ? policy : ImageResizePolicy.lockIfEmpty));
-		Boolean pl = getAttribute(propLocked);
-		setProportionLocked(Boolean.TRUE.equals(pl));
 	}
 }

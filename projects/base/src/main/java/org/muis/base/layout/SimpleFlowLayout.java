@@ -1,22 +1,16 @@
 package org.muis.base.layout;
 
+import static org.muis.base.layout.LayoutConstants.*;
+
 import org.muis.base.layout.AbstractFlowLayout.BreakPolicy;
 import org.muis.core.MuisElement;
-import org.muis.core.annotations.MuisActionType;
-import org.muis.core.annotations.MuisAttrConsumer;
-import org.muis.core.annotations.MuisAttrType;
-import org.muis.core.annotations.NeededAttr;
 import org.muis.core.layout.SizePolicy;
+import org.muis.util.CompoundListener;
 
-@MuisAttrConsumer(
-	attrs = {@NeededAttr(name = "direction", type = MuisAttrType.ENUM, valueType = Direction.class),
-			@NeededAttr(name = "flow-break", type = MuisAttrType.ENUM, valueType = AbstractFlowLayout.BreakPolicy.class)},
-	childAttrs = {@NeededAttr(name = "left", type = MuisAttrType.POSITION), @NeededAttr(name = "right", type = MuisAttrType.POSITION),
-			@NeededAttr(name = "top", type = MuisAttrType.POSITION), @NeededAttr(name = "bottom", type = MuisAttrType.POSITION),
-			@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "height", type = MuisAttrType.SIZE)},
-	action = MuisActionType.layout)
 public class SimpleFlowLayout implements org.muis.core.MuisLayout
 {
+	private final CompoundListener.MultiElementCompoundListener theListener;
+
 	private Direction theDirection;
 
 	private BreakPolicy theBreakPolicy;
@@ -27,6 +21,9 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 	{
 		theDirection = Direction.RIGHT;
 		theBreakPolicy = BreakPolicy.NEEDED;
+		theListener = CompoundListener.create(this);
+		theListener.acceptAll(direction, AbstractFlowLayout.FLOW_BREAK).onChange(CompoundListener.layout);
+		theListener.child().acceptAll(left, right, top, bottom, width, height).onChange(CompoundListener.layout);
 	}
 
 	protected void checkLayoutAttributes(MuisElement parent)

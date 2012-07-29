@@ -1,16 +1,9 @@
 package org.muis.core;
 
-import org.muis.core.annotations.MuisActionType;
-import org.muis.core.annotations.MuisAttrConsumer;
-import org.muis.core.annotations.MuisAttrType;
-import org.muis.core.annotations.NeededAttr;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SizePolicy;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
-@MuisAttrConsumer(
-	attrs = {@NeededAttr(name = "layout", type = MuisAttrType.INSTANCE, valueType = MuisLayout.class)},
-	action = MuisActionType.layout)
 public class LayoutContainer extends MuisElement implements MuisContainer
 {
 	/** The attribute that specifies the layout type for a layout container */
@@ -22,6 +15,14 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 	/** Creates a layout container */
 	public LayoutContainer()
 	{
+		MuisLayout defLayout = getDefaultLayout();
+		try
+		{
+			requireAttribute(this, LAYOUT_ATTR, defLayout);
+		} catch(MuisException e)
+		{
+			error("Could not set default layout", e, "layout", defLayout);
+		}
 	}
 
 	@Override
@@ -45,6 +46,16 @@ public class LayoutContainer extends MuisElement implements MuisContainer
 			}
 		});
 		setLayout(getAttribute(LAYOUT_ATTR));
+	}
+
+	/**
+	 * Allows types to specify their default layout
+	 *
+	 * @return The default layout for this container. Null by default.
+	 */
+	protected MuisLayout getDefaultLayout()
+	{
+		return null;
 	}
 
 	/** @return The MuisLayout that lays out this container's children */

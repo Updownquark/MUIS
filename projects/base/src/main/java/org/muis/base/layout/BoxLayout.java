@@ -1,29 +1,32 @@
 package org.muis.base.layout;
 
+import static org.muis.base.layout.LayoutConstants.*;
+
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.annotations.MuisActionType;
-import org.muis.core.annotations.MuisAttrConsumer;
-import org.muis.core.annotations.MuisAttrType;
-import org.muis.core.annotations.NeededAttr;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Size;
+import org.muis.util.CompoundListener;
 
 /**
  * Lays out children one-by-one along a given {@link LayoutConstants#direction direction} ({@link Direction#DOWN DOWN} by default), with a
  * given {@link LayoutConstants#alignment alignment} along the opposite axis. {@link LayoutConstants#width}, {@link LayoutConstants#height},
  * {@link LayoutConstants#minWidth}, and {@link LayoutConstants#minHeight} may be used to help determine the sizes of children.
  */
-@MuisAttrConsumer(
-	attrs = {@NeededAttr(name = "direction", type = MuisAttrType.ENUM, valueType = Direction.class),
-			@NeededAttr(name = "align", type = MuisAttrType.ENUM, valueType = Alignment.class)},
-	childAttrs = {@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "min-width", type = MuisAttrType.SIZE),
-			@NeededAttr(name = "height", type = MuisAttrType.SIZE), @NeededAttr(name = "min-height", type = MuisAttrType.SIZE)},
-	action = MuisActionType.layout)
 public class BoxLayout implements MuisLayout
 {
+	private final CompoundListener.MultiElementCompoundListener theListener;
+
+	/** Creates a box layout */
+	public BoxLayout()
+	{
+		theListener = CompoundListener.create(this);
+		theListener.acceptAll(direction, alignment).onChange(CompoundListener.layout);
+		theListener.child().acceptAll(width, minWidth, height, minHeight).onChange(CompoundListener.layout);
+	}
+
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{

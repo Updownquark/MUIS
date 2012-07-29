@@ -1,12 +1,10 @@
 package org.muis.base.layout;
 
+import static org.muis.base.layout.LayoutConstants.*;
+
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.annotations.MuisActionType;
-import org.muis.core.annotations.MuisAttrConsumer;
-import org.muis.core.annotations.MuisAttrType;
-import org.muis.core.annotations.NeededAttr;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
@@ -19,14 +17,6 @@ import org.muis.util.CompoundListener;
  * {@link LayoutConstants#height}) and minimum size ({@link LayoutConstants#minWidth} and {@link LayoutConstants#minHeight}) attributes or
  * sizers.
  */
-@MuisAttrConsumer(
-	attrs = {@NeededAttr(name = "max-inf", type = MuisAttrType.BOOLEAN)},
-	childAttrs = {@NeededAttr(name = "left", type = MuisAttrType.POSITION), @NeededAttr(name = "right", type = MuisAttrType.POSITION),
-			@NeededAttr(name = "top", type = MuisAttrType.POSITION), @NeededAttr(name = "bottom", type = MuisAttrType.POSITION),
-			@NeededAttr(name = "width", type = MuisAttrType.SIZE), @NeededAttr(name = "height", type = MuisAttrType.SIZE),
-			@NeededAttr(name = "min-width", type = MuisAttrType.SIZE), @NeededAttr(name = "max-width", type = MuisAttrType.SIZE),
-			@NeededAttr(name = "min-height", type = MuisAttrType.SIZE), @NeededAttr(name = "max-height", type = MuisAttrType.SIZE)},
-	action = MuisActionType.layout)
 public class SimpleLayout implements MuisLayout
 {
 	private final CompoundListener.MultiElementCompoundListener theListener;
@@ -34,19 +24,16 @@ public class SimpleLayout implements MuisLayout
 	/** Creates a simple layout */
 	public SimpleLayout()
 	{
-		theListener = CompoundListener.create();
+		theListener = CompoundListener.create(this);
+		theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);
+		theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight)
+			.onChange(CompoundListener.layout);
 	}
 
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
-		// TODO Move the attribute code up to the constructor when MultiElementCompoundListener supports it
-		CompoundListener.CompoundElementListener elListener = theListener.listenerFor(parent);
-		elListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);
-		elListener.child().accept(LayoutConstants.left).accept(LayoutConstants.right).accept(LayoutConstants.top)
-			.accept(LayoutConstants.bottom).accept(LayoutConstants.width).accept(LayoutConstants.minWidth).accept(LayoutConstants.maxWidth)
-			.accept(LayoutConstants.height).accept(LayoutConstants.minHeight).accept(LayoutConstants.maxHeight)
-			.onChange(CompoundListener.layout);
+		theListener.listenerFor(parent);
 	}
 
 	@Override
@@ -92,7 +79,7 @@ public class SimpleLayout implements MuisLayout
 		Boolean maxInfValue)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
-		boolean maxInf = Boolean.TRUE.equals(maxInfValue);
+		boolean isMaxInf = Boolean.TRUE.equals(maxInfValue);
 		for(MuisElement child : children)
 		{
 			Position minPosL = child.getAttribute(minPosAtt);
@@ -104,55 +91,37 @@ public class SimpleLayout implements MuisLayout
 			{
 				int r = maxPosL.evaluate(0);
 				if(ret.getMin() < r)
-				{
 					ret.setMin(r);
-				}
 				if(ret.getPreferred() < r)
-				{
 					ret.setPreferred(r);
-				}
 			}
 			else if(sizeL != null && !sizeL.getUnit().isRelative())
 			{
 				int w = sizeL.evaluate(0);
 				int x;
 				if(minPosL != null && !minPosL.getUnit().isRelative())
-				{
 					x = minPosL.evaluate(0);
-				}
 				else
-				{
 					x = 0;
-				}
 
 				if(ret.getMin() < x + w)
-				{
 					ret.setMin(x + w);
-				}
 				if(ret.getPreferred() < x + w)
-				{
 					ret.setPreferred(x + w);
-				}
-				if(!maxInf)
+				if(!isMaxInf)
 				{
 					int max;
 					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
-					{
 						max = maxSizeL.evaluate(0);
-					}
 					else
 					{
 						SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
 						max = childSizer.getMax();
 					}
 					if(max + x > max)
-					{
 						max += x;
-					}
 					if(ret.getMax() > max)
-					{
 						ret.setMax(max);
-					}
 				}
 			}
 			else if(minSizeL != null && !minSizeL.getUnit().isRelative())
@@ -161,46 +130,28 @@ public class SimpleLayout implements MuisLayout
 				int minW = minSizeL.evaluate(0);
 				int prefW = childSizer.getPreferred();
 				if(prefW < minW)
-				{
 					prefW = minW;
-				}
 				int x;
 				if(minPosL != null && !minPosL.getUnit().isRelative())
-				{
 					x = minPosL.evaluate(0);
-				}
 				else
-				{
 					x = 0;
-				}
 
 				if(ret.getMin() < x + minW)
-				{
 					ret.setMin(x + minW);
-				}
 				if(ret.getPreferred() < x + prefW)
-				{
 					ret.setPreferred(x + prefW);
-				}
-				if(!maxInf)
+				if(!isMaxInf)
 				{
 					int max;
 					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
-					{
 						max = maxSizeL.evaluate(0);
-					}
 					else
-					{
 						max = childSizer.getMax();
-					}
 					if(max + x > max)
-					{
 						max += x;
-					}
 					if(ret.getMax() > max)
-					{
 						ret.setMax(max);
-					}
 				}
 			}
 			else if(minPosL != null && !minPosL.getUnit().isRelative())
@@ -208,49 +159,31 @@ public class SimpleLayout implements MuisLayout
 				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
 				int x = minPosL.evaluate(0);
 				if(ret.getMin() < x + childSizer.getMin())
-				{
 					ret.setMin(x + childSizer.getMin());
-				}
 				if(ret.getPreferred() < x + childSizer.getPreferred())
-				{
 					ret.setPreferred(x + childSizer.getPreferred());
-				}
-				if(!maxInf)
+				if(!isMaxInf)
 				{
 					int max;
 					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
-					{
 						max = maxSizeL.evaluate(0);
-					}
 					else
-					{
 						max = childSizer.getMax();
-					}
 					if(max + x > max)
-					{
 						max += x;
-					}
 					if(ret.getMax() > max)
-					{
 						ret.setMax(max);
-					}
 				}
 			}
 			else
 			{
 				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
 				if(ret.getMin() < childSizer.getMin())
-				{
 					ret.setMin(childSizer.getMin());
-				}
 				if(ret.getPreferred() < childSizer.getPreferred())
-				{
 					ret.setPreferred(childSizer.getPreferred());
-				}
-				if(!maxInf && ret.getMax() > childSizer.getMax())
-				{
+				if(!isMaxInf && ret.getMax() > childSizer.getMax())
 					ret.setMax(childSizer.getMax());
-				}
 			}
 		}
 		return ret;
@@ -263,19 +196,19 @@ public class SimpleLayout implements MuisLayout
 		int [] dim = new int[2];
 		for(MuisElement child : children)
 		{
-			Position left = child.getAttribute(LayoutConstants.left);
-			Position right = child.getAttribute(LayoutConstants.right);
-			Position top = child.getAttribute(LayoutConstants.top);
-			Position bottom = child.getAttribute(LayoutConstants.bottom);
+			Position leftPos = child.getAttribute(LayoutConstants.left);
+			Position rightPos = child.getAttribute(LayoutConstants.right);
+			Position topPos = child.getAttribute(LayoutConstants.top);
+			Position bottomPos = child.getAttribute(LayoutConstants.bottom);
 			Size w = child.getAttribute(LayoutConstants.width);
 			Size h = child.getAttribute(LayoutConstants.height);
 			Size minW = child.getAttribute(LayoutConstants.minWidth);
 			Size minH = child.getAttribute(LayoutConstants.minHeight);
 
-			layout(child, false, parent.getHeight(), left, right, w, minW, parent.getWidth(), dim);
+			layout(child, false, parent.getHeight(), leftPos, rightPos, w, minW, parent.getWidth(), dim);
 			bounds.x = dim[0];
 			bounds.width = dim[1];
-			layout(child, true, parent.getWidth(), top, bottom, h, minH, parent.getHeight(), dim);
+			layout(child, true, parent.getWidth(), topPos, bottomPos, h, minH, parent.getHeight(), dim);
 			bounds.y = dim[0];
 			bounds.height = dim[1];
 			child.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
@@ -316,9 +249,7 @@ public class SimpleLayout implements MuisLayout
 				SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
 				dim[1] = sizer.getPreferred();
 				if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-				{
 					dim[1] = minSizeAtt.evaluate(length);
-				}
 				dim[0] = max - dim[1];
 			}
 		}
@@ -326,17 +257,11 @@ public class SimpleLayout implements MuisLayout
 		{
 			dim[1] = sizeAtt.evaluate(length);
 			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-			{
 				dim[1] = minSizeAtt.evaluate(length);
-			}
 			if(minPosAtt != null)
-			{
 				dim[0] = minPosAtt.evaluate(length);
-			}
 			else
-			{
 				dim[0] = 0;
-			}
 		}
 		else if(minPosAtt != null)
 		{
@@ -344,9 +269,7 @@ public class SimpleLayout implements MuisLayout
 			dim[0] = minPosAtt.evaluate(length);
 			dim[1] = sizer.getPreferred();
 			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-			{
 				dim[1] = minSizeAtt.evaluate(length);
-			}
 		}
 		else
 		{
@@ -354,14 +277,13 @@ public class SimpleLayout implements MuisLayout
 			dim[0] = 0;
 			dim[1] = sizer.getPreferred();
 			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-			{
 				dim[1] = minSizeAtt.evaluate(length);
-			}
 		}
 	}
 
 	@Override
 	public void remove(MuisElement parent)
 	{
+		theListener.dropFor(parent);
 	}
 }

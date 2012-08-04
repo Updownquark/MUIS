@@ -1,9 +1,11 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.base.layout.LayoutConstants.region;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
+import org.muis.core.event.AttributeChangedEvent;
+import org.muis.core.event.AttributeChangedListener;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
@@ -23,7 +25,13 @@ public class BorderLayout implements org.muis.core.MuisLayout
 	public BorderLayout()
 	{
 		theListener = CompoundListener.create(this);
-		theListener.child().acceptAll(region, width, minWidth, height, minHeight).onChange(CompoundListener.layout);
+		theListener.child().accept(region).onChange(new AttributeChangedListener<Region>(region) {
+			@Override
+			public void attributeChanged(AttributeChangedEvent<Region> event) {
+				// TODO Auto-generated method stub
+
+			}
+		}).onChange(CompoundListener.layout);
 	}
 
 	private class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>

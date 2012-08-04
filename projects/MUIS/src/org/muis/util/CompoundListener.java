@@ -14,7 +14,7 @@ import org.muis.core.event.MuisEventListener;
  * A convenient utility that uses invocation chaining to allow code to accept/require attributes on an element and its children and perform
  * actions when they change in a very easy way.
  * </p>
- * 
+ *
  * <p>
  * As an example, take the SimpleListener layout in org.muis.base.layout. This layout can accept one attribute, max-inf, from the parent
  * container and several dimension parameters (left, right, height, width, etc.) from each of the children to be layed out. The layout class
@@ -22,7 +22,7 @@ import org.muis.core.event.MuisEventListener;
  * childAdded method, making sure it cleaned itself up properly in the childRemoved and remove methods. Instead, a
  * {@link MultiElementCompoundListener} is created in the constructor and initialized with the acceptable attributes once:
  * </p>
- * 
+ *
  * <p>
  * <code>
  * 		theListener = CompoundListener.create(this);<br>
@@ -30,25 +30,23 @@ import org.muis.core.event.MuisEventListener;
  * 		theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
  * </code>
  * </p>
- * 
+ *
  * Then each parent element that the layout services is added to the listener in the initChildren method:
- * 
+ *
  * <p>
  * <code>
  * 		theListener.listenerFor(parent);
  * </code>
  * </p>
- * 
+ *
  * The listener ensures that the parent and its children all accept and require the correct attributes and that the correct actions are
  * taken when the attributes change, and much work is saved by the author of the layout.
- * 
+ *
  * @param <T> The type of the listener
  */
-public abstract class CompoundListener<T>
-{
+public abstract class CompoundListener<T> {
 	/** A change listener to be called when any attribute in a chain changes on an element or an element's children */
-	public static interface ChangeListener
-	{
+	public static interface ChangeListener {
 		/**
 		 * Called when any attribute in the chain this listener was given to changes in the element or, if the chain was on the child
 		 * listener, the element's children
@@ -62,8 +60,7 @@ public abstract class CompoundListener<T>
 	/** A utility change listener to cause a layout action in the element or parent element */
 	public static final ChangeListener layout = new ChangeListener() {
 		@Override
-		public void changed(MuisElement element)
-		{
+		public void changed(MuisElement element) {
 			element.relayout(false);
 		}
 	};
@@ -133,6 +130,14 @@ public abstract class CompoundListener<T>
 	public abstract CompoundListener<?> requireAll(MuisAttribute<?>... attrs);
 
 	/**
+	 * Activates or activates the effects of this listener. Effects are active by default.
+	 * 
+	 * @param active Whether this listener's effects are active or inactive.
+	 * @return The listener for chaining
+	 */
+	public abstract CompoundListener<?> setActive(boolean active);
+
+	/**
 	 * @param run The runnable to execute when any attribute in the current chain changes
 	 * @return The listener for chaining
 	 */
@@ -154,8 +159,7 @@ public abstract class CompoundListener<T>
 	 * @param wanter The object that cares about the attributes that will be listened for on the elements
 	 * @return Creates a {@link MultiElementCompoundListener} for creating compound listeners on multiple elements
 	 */
-	public static MultiElementCompoundListener create(Object wanter)
-	{
+	public static MultiElementCompoundListener create(Object wanter) {
 		return new MultiElementCompoundListener(wanter);
 	}
 
@@ -164,49 +168,36 @@ public abstract class CompoundListener<T>
 	 * @param wanter The object that cares about the attributes that will be listened for on the element
 	 * @return The compound listener for the given element
 	 */
-	public static CompoundElementListener create(MuisElement element, Object wanter)
-	{
+	public static CompoundElementListener create(MuisElement element, Object wanter) {
 		return new CompoundElementListener(element, wanter);
 	}
 
 	/** A compound listener for an element */
-	public static class CompoundElementListener extends ChainableCompoundListener
-	{
+	public static class CompoundElementListener extends ChainableCompoundListener {
 		private final MuisElement theElement;
 
 		private final Object theWanter;
 
 		private ChildCompoundListener theChildListener;
 
-		CompoundElementListener(MuisElement element, Object wanter)
-		{
+		CompoundElementListener(MuisElement element, Object wanter) {
 			theElement = element;
 			theWanter = wanter;
 			theChildListener = new ChildCompoundListener(this);
 		}
 
 		/** @return The element that this listener is for */
-		public MuisElement getElement()
-		{
+		public MuisElement getElement() {
 			return theElement;
 		}
 
 		/** @return The object that cares about the attributes listened for by this listener */
-		public Object getWanter()
-		{
+		public Object getWanter() {
 			return theWanter;
 		}
 
 		@Override
-		void setLastFinal()
-		{
-			super.setLastFinal();
-			theChildListener.setLastFinal();
-		}
-
-		@Override
-		ChainedCompoundListener<?> createChain()
-		{
+		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
 			theElement.addListener(MuisElement.ATTRIBUTE_CHANGED, ret);
 			return ret;
@@ -216,16 +207,13 @@ public abstract class CompoundListener<T>
 		 * @return A compound listener that allows accepting/requiring attributes and listening to attribute changes on all this listener's
 		 *         element's children
 		 */
-		public CompoundListener<?> child()
-		{
-			setLastFinal();
+		public CompoundListener<?> child() {
 			return theChildListener;
 		}
 
 		/** Releases all resources and requirements associated with this compound listener */
 		@Override
-		public void drop()
-		{
+		public void drop() {
 			for(ChainedCompoundListener<?> chain : getChains())
 				theElement.removeListener(chain);
 			super.drop();
@@ -233,42 +221,36 @@ public abstract class CompoundListener<T>
 		}
 	}
 
-	private static class ChildCompoundListener extends ChainableCompoundListener implements MuisEventListener<Object>
-	{
+	private static class ChildCompoundListener extends ChainableCompoundListener implements MuisEventListener<Object> {
 		private final CompoundElementListener theElListener;
 
 		private MuisEventListener<MuisElement> theAddedListener;
 
 		private MuisEventListener<MuisElement> theRemovedListener;
 
-		ChildCompoundListener(CompoundElementListener elListener)
-		{
+		ChildCompoundListener(CompoundElementListener elListener) {
 			theElListener = elListener;
 			theAddedListener = new MuisEventListener<MuisElement>() {
 				@Override
-				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
-				{
+				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
 					for(ChainedCompoundListener<?> chain : getChains())
 						((ChildChainedCompoundListener<?>) chain).childAdded(event.getValue());
 				}
 
 				@Override
-				public boolean isLocal()
-				{
+				public boolean isLocal() {
 					return true;
 				}
 			};
 			theRemovedListener = new MuisEventListener<MuisElement>() {
 				@Override
-				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
-				{
+				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
 					for(ChainedCompoundListener<?> chain : getChains())
 						((ChildChainedCompoundListener<?>) chain).childRemoved(event.getValue());
 				}
 
 				@Override
-				public boolean isLocal()
-				{
+				public boolean isLocal() {
 					return true;
 				}
 			};
@@ -277,20 +259,17 @@ public abstract class CompoundListener<T>
 			theElListener.getElement().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
 		}
 
-		CompoundElementListener getElementListener()
-		{
+		CompoundElementListener getElementListener() {
 			return theElListener;
 		}
 
 		@Override
-		ChainedCompoundListener<?> createChain()
-		{
+		ChainedCompoundListener<?> createChain() {
 			return new ChildChainedCompoundListener<Object>(this);
 		}
 
 		@Override
-		void drop()
-		{
+		void drop() {
 			theElListener.getElement().removeListener(this);
 			theElListener.getElement().removeListener(theAddedListener);
 			theElListener.getElement().removeListener(theRemovedListener);
@@ -298,38 +277,34 @@ public abstract class CompoundListener<T>
 		}
 
 		@Override
-		public void eventOccurred(MuisEvent<Object> event, MuisElement element)
-		{
+		public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
 			for(ChainedCompoundListener<?> chain : getChains())
 				chain.eventOccurred(event, element);
 		}
 
 		@Override
-		public boolean isLocal()
-		{
+		public boolean isLocal() {
 			return true;
 		}
 	}
 
-	private static abstract class ChainableCompoundListener extends CompoundListener<Object>
-	{
+	private static abstract class ChainableCompoundListener extends CompoundListener<Object> {
 		private ArrayList<ChainedCompoundListener<?>> theChains;
 
 		private boolean isDropped;
 
-		ChainableCompoundListener()
-		{
+		ChainableCompoundListener() {
 			theChains = new ArrayList<>();
 		}
 
-		ChainedCompoundListener<?> [] getChains()
-		{
-			return theChains.toArray(new ChainedCompoundListener[theChains.size()]);
+		ChainedCompoundListener<?> [] getChains() {
+			synchronized(theChains) {
+				return theChains.toArray(new ChainedCompoundListener[theChains.size()]);
+			}
 		}
 
 		/** Releases all resources and requirements associated with this compound listener */
-		void drop()
-		{
+		void drop() {
 			if(isDropped)
 				return;
 			isDropped = true;
@@ -337,123 +312,114 @@ public abstract class CompoundListener<T>
 				chain.drop();
 		}
 
-		void setLastFinal()
-		{
-			if(!theChains.isEmpty())
-				theChains.get(theChains.size() - 1).setFinal();
-		}
-
 		abstract ChainedCompoundListener<?> createChain();
 
-		private CompoundListener<?> chain()
-		{
+		private CompoundListener<?> chain() {
 			if(isDropped)
 				throw new IllegalStateException("This listener is already dropped");
-			setLastFinal();
 			ChainedCompoundListener<?> ret = createChain();
-			theChains.add(ret);
+			synchronized(ret) {
+				theChains.add(ret);
+			}
 			return ret;
 		}
 
 		@Override
-		public <A> CompoundListener<A> accept(MuisAttribute<A> attr)
-		{
+		public <A> CompoundListener<A> accept(MuisAttribute<A> attr) {
 			return chain().accept(attr);
 		}
 
 		@Override
-		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException
-		{
+		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException {
 			return chain().accept(attr, value);
 		}
 
 		@Override
-		public <A> CompoundListener<A> require(MuisAttribute<A> attr)
-		{
+		public <A> CompoundListener<A> require(MuisAttribute<A> attr) {
 			return chain().require(attr);
 		}
 
 		@Override
-		public <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException
-		{
+		public <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException {
 			return chain().require(attr, value);
 		}
 
 		@Override
 		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, boolean required, V value)
-			throws IllegalArgumentException
-		{
+			throws IllegalArgumentException {
 			return chain().accept(attr, required, value);
 		}
 
 		@Override
-		public CompoundListener<?> acceptAll(MuisAttribute<?>... attrs)
-		{
+		public CompoundListener<?> acceptAll(MuisAttribute<?>... attrs) {
 			return chain().acceptAll(attrs);
 		}
 
 		@Override
-		public CompoundListener<?> requireAll(MuisAttribute<?>... attrs)
-		{
+		public CompoundListener<?> requireAll(MuisAttribute<?>... attrs) {
 			return chain().requireAll(attrs);
 		}
 
 		@Override
-		public CompoundListener<?> onChange(Runnable run)
-		{
-			if(theChains.isEmpty())
-				throw new IllegalStateException("No attributes to listen to");
-			return theChains.get(theChains.size() - 1).onChange(run);
+		public CompoundListener<?> setActive(boolean active) {
+			ChainedCompoundListener<?> [] chains = getChains();
+			for(ChainedCompoundListener<?> chain : chains) {
+				chain.setActive(active);
+			}
+			return this;
 		}
 
 		@Override
-		public CompoundListener<?> onChange(ChangeListener listener)
-		{
+		public CompoundListener<?> onChange(Runnable run) {
 			if(theChains.isEmpty())
 				throw new IllegalStateException("No attributes to listen to");
-			return theChains.get(theChains.size() - 1).onChange(listener);
+			synchronized(theChains) {
+				return theChains.get(theChains.size() - 1).onChange(run);
+			}
 		}
 
 		@Override
-		public CompoundListener<Object> onChange(AttributeChangedListener<Object> listener)
-		{
+		public CompoundListener<?> onChange(ChangeListener listener) {
+			if(theChains.isEmpty())
+				throw new IllegalStateException("No attributes to listen to");
+			synchronized(theChains) {
+				return theChains.get(theChains.size() - 1).onChange(listener);
+			}
+		}
+
+		@Override
+		public CompoundListener<Object> onChange(AttributeChangedListener<Object> listener) {
 			throw new IllegalStateException("No attributes to listen to");
 		}
 	}
 
-	private static class RunnableChangeListener implements ChangeListener
-	{
+	private static class RunnableChangeListener implements ChangeListener {
 		private final Runnable theRun;
 
-		RunnableChangeListener(Runnable run)
-		{
+		RunnableChangeListener(Runnable run) {
 			theRun = run;
 		}
 
 		@Override
-		public void changed(MuisElement element)
-		{
+		public void changed(MuisElement element) {
 			theRun.run();
 		}
 	}
 
-	static class AttributeHolder
-	{
+	static class AttributeHolder {
 		final MuisAttribute<?> attr;
 
 		boolean required;
 
 		Object initValue;
 
-		AttributeHolder(MuisAttribute<?> att)
-		{
+		AttributeHolder(MuisAttribute<?> att) {
 			attr = att;
 		}
 	}
 
 	private static abstract class ChainedCompoundListener<T> extends CompoundListener<T> implements
-		org.muis.core.event.MuisEventListener<Object>
-	{
+		org.muis.core.event.MuisEventListener<Object> {
 		private java.util.Map<MuisAttribute<?>, AttributeHolder> theChained;
 
 		private java.util.concurrent.CopyOnWriteArrayList<ChangeListener> theListeners;
@@ -462,41 +428,24 @@ public abstract class CompoundListener<T>
 
 		private java.util.HashMap<MuisAttribute<?>, AttributeChangedListener<?> []> theSpecificListeners;
 
-		private boolean isFinal;
-
-		private volatile long theLastAddTime;
+		private boolean isActive;
 
 		private boolean isDropped;
 
-		ChainedCompoundListener()
-		{
+		ChainedCompoundListener() {
 			theChained = new java.util.LinkedHashMap<>();
 			theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 			theSpecificListeners = new java.util.HashMap<>();
-			theLastAddTime = System.currentTimeMillis();
+			isActive = true;
 		}
 
-		void setFinal()
-		{
-			isFinal = true;
-			theLastAttr = null;
-			theLastAddTime = 0;
-		}
-
-		void drop()
-		{
+		void drop() {
 			if(isDropped)
 				return;
 			isDropped = true;
 			MuisAttribute<?> [] attrs;
-			if(isFinal)
+			synchronized(theChained) {
 				attrs = theChained.keySet().toArray(new MuisAttribute[theChained.size()]);
-			else
-			{
-				synchronized(theChained)
-				{
-					attrs = theChained.keySet().toArray(new MuisAttribute[theChained.size()]);
-				}
 			}
 			for(MuisAttribute<?> attr : attrs)
 				doReject(attr);
@@ -505,35 +454,19 @@ public abstract class CompoundListener<T>
 		abstract void doReject(MuisAttribute<?> attr);
 
 		@Override
-		public void eventOccurred(MuisEvent<Object> event, MuisElement element)
-		{
+		public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
+			if(!isActive)
+				return;
 			org.muis.core.event.AttributeChangedEvent<?> ace = (org.muis.core.event.AttributeChangedEvent<?>) event;
 			AttributeChangedListener<Object> [] listeners;
 			boolean contains;
-			if(isFinal)
-			{
+			synchronized(theChained) {
 				contains = theChained.containsKey(ace.getAttribute());
+			}
+			synchronized(theSpecificListeners) {
 				listeners = (AttributeChangedListener<Object> []) theSpecificListeners.get(ace.getAttribute());
 			}
-			else if(System.currentTimeMillis() - theLastAddTime > 3000)
-			{
-				isFinal = true;
-				contains = theChained.containsKey(ace.getAttribute());
-				listeners = (AttributeChangedListener<Object> []) theSpecificListeners.get(ace.getAttribute());
-			}
-			else
-			{
-				synchronized(theChained)
-				{
-					contains = theChained.containsKey(ace.getAttribute());
-				}
-				synchronized(theSpecificListeners)
-				{
-					listeners = (AttributeChangedListener<Object> []) theSpecificListeners.get(ace.getAttribute());
-				}
-			}
-			if(contains)
-			{
+			if(contains) {
 				for(ChangeListener run : theListeners)
 					run.changed(getElement());
 			}
@@ -543,36 +476,24 @@ public abstract class CompoundListener<T>
 		}
 
 		@Override
-		public boolean isLocal()
-		{
+		public boolean isLocal() {
 			return true;
 		}
 
-		AttributeHolder [] getAllAttrProps()
-		{
-			if(isFinal)
+		AttributeHolder [] getAllAttrProps() {
+			synchronized(theChained) {
 				return theChained.values().toArray(new AttributeHolder[theChained.size()]);
-			else
-				synchronized(theChained)
-				{
-					return theChained.values().toArray(new AttributeHolder[theChained.size()]);
-				}
+			}
 		}
 
-		ChangeListener [] getListeners()
-		{
+		ChangeListener [] getListeners() {
 			return theListeners.toArray(new ChangeListener[theListeners.size()]);
 		}
 
-		<A> AttributeChangedListener<? super A> [] getSpecificListeners(MuisAttribute<A> attr)
-		{
-			if(isFinal)
+		<A> AttributeChangedListener<? super A> [] getSpecificListeners(MuisAttribute<A> attr) {
+			synchronized(theSpecificListeners) {
 				return (AttributeChangedListener<? super A> []) theSpecificListeners.get(attr);
-			else
-				synchronized(theSpecificListeners)
-				{
-					return (AttributeChangedListener<? super A> []) theSpecificListeners.get(attr);
-				}
+			}
 		}
 
 		/** The parent element that this compound listener is for */
@@ -586,138 +507,127 @@ public abstract class CompoundListener<T>
 
 		@Override
 		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, boolean required, V value)
-			throws IllegalArgumentException
-		{
-			if(isFinal)
-				throw new IllegalStateException("Chains may only be modified when they are created");
-			try
-			{
-				doAccept(attr, required, value);
-			} catch(MuisException e)
-			{
-				throw new IllegalArgumentException(e.getMessage(), e);
-			}
+			throws IllegalArgumentException {
+			if(isActive)
+				try {
+					doAccept(attr, required, value);
+				} catch(MuisException e) {
+					throw new IllegalArgumentException(e.getMessage(), e);
+				}
 			AttributeHolder holder = new AttributeHolder(attr);
 			holder.required = required;
 			holder.initValue = value;
-			synchronized(theChained)
-			{
+			synchronized(theChained) {
 				theChained.put(attr, holder);
 			}
 			theLastAttr = attr;
-			theLastAddTime = System.currentTimeMillis();
 			return (CompoundListener<A>) this;
 		}
 
 		@Override
-		public <A> CompoundListener<A> accept(MuisAttribute<A> attr)
-		{
+		public <A> CompoundListener<A> accept(MuisAttribute<A> attr) {
 			return accept(attr, false, null);
 		}
 
 		@Override
-		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException
-		{
+		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException {
 			return accept(attr, false, value);
 		}
 
 		@Override
-		public <A> CompoundListener<A> require(MuisAttribute<A> attr)
-		{
+		public <A> CompoundListener<A> require(MuisAttribute<A> attr) {
 			return accept(attr, true, null);
 		}
 
 		@Override
-		public <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException
-		{
+		public <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException {
 			return accept(attr, true, value);
 		}
 
 		@Override
-		public CompoundListener<?> acceptAll(MuisAttribute<?>... attrs)
-		{
-			if(isFinal)
-				throw new IllegalStateException("Chains may only be modified when they are created");
-			try
-			{
+		public CompoundListener<?> acceptAll(MuisAttribute<?>... attrs) {
+			if(isActive)
 				for(MuisAttribute<?> attr : attrs)
-					doAccept(attr, false, null);
-			} catch(MuisException e)
-			{
-				throw new IllegalArgumentException(e.getMessage(), e);
-			}
-			synchronized(theChained)
-			{
-				for(MuisAttribute<?> attr : attrs)
-				{
+					try {
+						doAccept(attr, false, null);
+					} catch(MuisException e) {
+						throw new IllegalArgumentException(e.getMessage(), e);
+					}
+			synchronized(theChained) {
+				for(MuisAttribute<?> attr : attrs) {
 					AttributeHolder holder = new AttributeHolder(attr);
 					holder.required = false;
 					theChained.put(attr, holder);
 				}
 			}
 			theLastAttr = null;
-			theLastAddTime = System.currentTimeMillis();
 			return this;
 		}
 
 		@Override
-		public CompoundListener<?> requireAll(MuisAttribute<?>... attrs)
-		{
-			if(isFinal)
-				throw new IllegalStateException("Chains may only be modified when they are created");
-			try
-			{
-				for(MuisAttribute<?> attr : attrs)
-					doAccept(attr, true, null);
-			} catch(MuisException e)
-			{
-				throw new IllegalArgumentException(e.getMessage(), e);
-			}
-			synchronized(theChained)
-			{
-				for(MuisAttribute<?> attr : attrs)
-				{
+		public CompoundListener<?> requireAll(MuisAttribute<?>... attrs) {
+			if(isActive)
+				try {
+					for(MuisAttribute<?> attr : attrs)
+						doAccept(attr, true, null);
+				} catch(MuisException e) {
+					throw new IllegalArgumentException(e.getMessage(), e);
+				}
+			synchronized(theChained) {
+				for(MuisAttribute<?> attr : attrs) {
 					AttributeHolder holder = new AttributeHolder(attr);
 					holder.required = true;
 					theChained.put(attr, holder);
 				}
 			}
 			theLastAttr = null;
-			theLastAddTime = System.currentTimeMillis();
 			return this;
 		}
 
 		@Override
-		public CompoundListener<?> onChange(Runnable run)
-		{
-			if(isFinal)
-				throw new IllegalStateException("Chains may only be modified when they are created");
+		public CompoundListener<?> setActive(boolean active) {
+			if(isActive == active)
+				return this;
+			isActive = active;
+			AttributeHolder [] attrs;
+			synchronized(theChained) {
+				attrs = theChained.values().toArray(new AttributeHolder[theChained.size()]);
+			}
+			if(isActive) {
+				for(AttributeHolder attr : attrs) {
+					try {
+						doAccept((MuisAttribute<Object>) attr.attr, attr.required, attr.initValue);
+					} catch(MuisException e) {
+						throw new IllegalArgumentException(e.getMessage(), e);
+					}
+				}
+			}
+			else {
+				for(AttributeHolder attr : attrs)
+					doReject(attr.attr);
+			}
+			return this;
+		}
+
+		@Override
+		public CompoundListener<?> onChange(Runnable run) {
 			theLastAttr = null;
 			theListeners.add(new RunnableChangeListener(run));
-			theLastAddTime = System.currentTimeMillis();
 			return getParent();
 		}
 
 		@Override
-		public CompoundListener<?> onChange(ChangeListener listener)
-		{
-			if(isFinal)
-				throw new IllegalStateException("Chains may only be modified when they are created");
+		public CompoundListener<?> onChange(ChangeListener listener) {
 			theLastAttr = null;
 			theListeners.add(listener);
-			theLastAddTime = System.currentTimeMillis();
 			return getParent();
 		}
 
 		@Override
-		public CompoundListener<T> onChange(AttributeChangedListener<? super T> listener)
-		{
-			if(isFinal)
-				throw new IllegalStateException("Chains may only be modified when they are created");
+		public CompoundListener<T> onChange(AttributeChangedListener<? super T> listener) {
 			if(theLastAttr == null)
 				throw new IllegalStateException("No attribute to listen to");
-			synchronized(theSpecificListeners)
-			{
+			synchronized(theSpecificListeners) {
 				AttributeChangedListener<?> [] listeners = theSpecificListeners.get(theLastAttr);
 				if(listeners == null)
 					listeners = new AttributeChangedListener[] {listener};
@@ -725,108 +635,89 @@ public abstract class CompoundListener<T>
 					listeners = prisms.util.ArrayUtils.add(listeners, listener);
 				theSpecificListeners.put(theLastAttr, listeners);
 			}
-			theLastAddTime = System.currentTimeMillis();
 			return this;
 		}
 	}
 
-	private static class SelfChainedCompoundListener<T> extends ChainedCompoundListener<T>
-	{
+	private static class SelfChainedCompoundListener<T> extends ChainedCompoundListener<T> {
 		private CompoundElementListener theParent;
 
-		SelfChainedCompoundListener(CompoundElementListener elListener)
-		{
+		SelfChainedCompoundListener(CompoundElementListener elListener) {
 			theParent = elListener;
 		}
 
 		@Override
-		void doReject(MuisAttribute<?> attr)
-		{
+		void doReject(MuisAttribute<?> attr) {
 			theParent.getElement().rejectAttribute(theParent.getWanter(), attr);
 		}
 
 		@Override
-		MuisElement getElement()
-		{
+		MuisElement getElement() {
 			return theParent.getElement();
 		}
 
 		@Override
-		CompoundListener<?> getParent()
-		{
+		CompoundListener<?> getParent() {
 			return theParent;
 		}
 
 		@Override
-		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V value) throws MuisException
-		{
+		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V value) throws MuisException {
 			theParent.getElement().acceptAttribute(theParent.getWanter(), required, attr, value);
 		}
 	}
 
-	private static class ChildChainedCompoundListener<T> extends ChainedCompoundListener<T>
-	{
+	private static class ChildChainedCompoundListener<T> extends ChainedCompoundListener<T> {
 		private final ChildCompoundListener theChildListener;
 
 		private MuisElement [] theChildren;
 
-		ChildChainedCompoundListener(ChildCompoundListener childListener)
-		{
+		ChildChainedCompoundListener(ChildCompoundListener childListener) {
 			theChildListener = childListener;
 			theChildren = childListener.getElementListener().getElement().getChildren();
 		}
 
-		void childAdded(MuisElement child)
-		{
+		void childAdded(MuisElement child) {
 			theChildren = prisms.util.ArrayUtils.add(theChildren, child);
 			for(AttributeHolder holder : getAllAttrProps())
-				try
-				{
+				try {
 					child.acceptAttribute(theChildListener.getElementListener().getWanter(), holder.required,
 						(MuisAttribute<Object>) holder.attr, holder.initValue);
-				} catch(MuisException e)
-				{
+				} catch(MuisException e) {
 					child.error("Bad initial value!", e, "attribute", holder.attr, "value", holder.initValue);
 				}
 		}
 
-		void childRemoved(MuisElement child)
-		{
+		void childRemoved(MuisElement child) {
 			theChildren = prisms.util.ArrayUtils.remove(theChildren, child);
 			for(AttributeHolder holder : getAllAttrProps())
 				child.rejectAttribute(theChildListener.getElementListener().getWanter(), holder.attr);
 		}
 
 		@Override
-		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V initValue) throws IllegalArgumentException
-		{
+		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V initValue) throws IllegalArgumentException {
 			for(MuisElement child : theChildren)
-				try
-				{
+				try {
 					child.acceptAttribute(theChildListener.getElementListener().getWanter(), required, (MuisAttribute<Object>) attr,
 						initValue);
-				} catch(MuisException e)
-				{
+				} catch(MuisException e) {
 					throw new IllegalArgumentException(e.getMessage(), e);
 				}
 		}
 
 		@Override
-		void doReject(MuisAttribute<?> attr)
-		{
+		void doReject(MuisAttribute<?> attr) {
 			for(MuisElement child : theChildren)
 				child.rejectAttribute(theChildListener.getElementListener().getWanter(), attr);
 		}
 
 		@Override
-		MuisElement getElement()
-		{
+		MuisElement getElement() {
 			return theChildListener.getElementListener().getElement();
 		}
 
 		@Override
-		CompoundListener<?> getParent()
-		{
+		CompoundListener<?> getParent() {
 			return theChildListener;
 		}
 	}
@@ -838,8 +729,7 @@ public abstract class CompoundListener<T>
 	 * listeners may be modified as needed. It is illegal to attempt to add attribute needs or listeners to this listener after elements are
 	 * added.
 	 */
-	public static class MultiElementCompoundListener extends ChainableCompoundListener
-	{
+	public static class MultiElementCompoundListener extends ChainableCompoundListener {
 		private final Object theWanter;
 
 		private java.util.HashMap<MuisElement, CompoundElementListener> theListeners;
@@ -848,24 +738,21 @@ public abstract class CompoundListener<T>
 
 		private boolean isFinal;
 
-		MultiElementCompoundListener(Object wanter)
-		{
+		MultiElementCompoundListener(Object wanter) {
 			theWanter = wanter;
 			theListeners = new java.util.HashMap<>();
 			theChildListener = new MultiElementChildCompoundListener();
 		}
 
 		/** @return The listener to use to control attribute acceptance for all children that will use this listener */
-		public CompoundListener<?> child()
-		{
+		public CompoundListener<?> child() {
 			if(isFinal)
 				throw new IllegalStateException("MultiElementCompoundListeners may not be modified after elements are using it");
 			return theChildListener;
 		}
 
 		@Override
-		ChainedCompoundListener<?> createChain()
-		{
+		ChainedCompoundListener<?> createChain() {
 			if(isFinal)
 				throw new IllegalStateException("MultiElementCompoundListeners may not be modified after elements are using it");
 			return new HoldingChainedCompoundListener<Object>(this);
@@ -875,19 +762,14 @@ public abstract class CompoundListener<T>
 		 * @param element The element to get or create the compound listener for
 		 * @return A compound listener for the given element containing this listener's settings initially
 		 */
-		public CompoundElementListener listenerFor(MuisElement element)
-		{
-			synchronized(theListeners)
-			{
+		public CompoundElementListener listenerFor(MuisElement element) {
+			synchronized(theListeners) {
 				CompoundElementListener ret = theListeners.get(element);
-				if(ret == null)
-				{
+				if(ret == null) {
 					ret = new CompoundElementListener(element, theWanter);
 					CompoundListener<?> chainL = ret;
-					for(ChainedCompoundListener<?> chain : getChains())
-					{
-						for(AttributeHolder attr : chain.getAllAttrProps())
-						{
+					for(ChainedCompoundListener<?> chain : getChains()) {
+						for(AttributeHolder attr : chain.getAllAttrProps()) {
 							chainL = chainL.accept((MuisAttribute<Object>) attr.attr, attr.required, attr.initValue);
 							AttributeChangedListener<Object> [] listeners = chain.getSpecificListeners((MuisAttribute<Object>) attr.attr);
 							if(listeners != null)
@@ -899,10 +781,8 @@ public abstract class CompoundListener<T>
 					}
 
 					chainL = ret.child();
-					for(ChainedCompoundListener<?> chain : theChildListener.getChains())
-					{
-						for(AttributeHolder attr : chain.getAllAttrProps())
-						{
+					for(ChainedCompoundListener<?> chain : theChildListener.getChains()) {
+						for(AttributeHolder attr : chain.getAllAttrProps()) {
 							chainL = chainL.accept((MuisAttribute<Object>) attr.attr, attr.required, attr.initValue);
 							AttributeChangedListener<Object> [] listeners = chain.getSpecificListeners((MuisAttribute<Object>) attr.attr);
 							if(listeners != null)
@@ -923,10 +803,8 @@ public abstract class CompoundListener<T>
 		 *
 		 * @param element The element to stop listening to
 		 */
-		public void dropFor(MuisElement element)
-		{
-			synchronized(theListeners)
-			{
+		public void dropFor(MuisElement element) {
+			synchronized(theListeners) {
 				CompoundElementListener ret = theListeners.remove(element);
 				if(ret != null)
 					ret.drop();
@@ -934,44 +812,36 @@ public abstract class CompoundListener<T>
 		}
 	}
 
-	private static class MultiElementChildCompoundListener extends ChainableCompoundListener
-	{
+	private static class MultiElementChildCompoundListener extends ChainableCompoundListener {
 		@Override
-		org.muis.util.CompoundListener.ChainedCompoundListener<?> createChain()
-		{
+		org.muis.util.CompoundListener.ChainedCompoundListener<?> createChain() {
 			return new HoldingChainedCompoundListener<Object>(this);
 		}
 	}
 
-	private static class HoldingChainedCompoundListener<T> extends ChainedCompoundListener<T>
-	{
+	private static class HoldingChainedCompoundListener<T> extends ChainedCompoundListener<T> {
 		private final CompoundListener<?> theParent;
 
-		HoldingChainedCompoundListener(CompoundListener<?> parent)
-		{
+		HoldingChainedCompoundListener(CompoundListener<?> parent) {
 			theParent = parent;
 		}
 
 		@Override
-		void doReject(MuisAttribute<?> attr)
-		{
+		void doReject(MuisAttribute<?> attr) {
 		}
 
 		@Override
-		MuisElement getElement()
-		{
+		MuisElement getElement() {
 			return null;
 		}
 
 		@Override
-		CompoundListener<?> getParent()
-		{
+		CompoundListener<?> getParent() {
 			return theParent;
 		}
 
 		@Override
-		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V value) throws MuisException
-		{
+		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V value) throws MuisException {
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package org.muis.util;
 
+
 import java.util.ArrayList;
 
 import org.muis.core.MuisAttribute;
@@ -14,7 +15,7 @@ import org.muis.core.event.MuisEventListener;
  * A convenient utility that uses invocation chaining to allow code to accept/require attributes on an element and its children and perform
  * actions when they change in a very easy way.
  * </p>
- *
+ * 
  * <p>
  * As an example, take the SimpleListener layout in org.muis.base.layout. This layout can accept one attribute, max-inf, from the parent
  * container and several dimension parameters (left, right, height, width, etc.) from each of the children to be layed out. The layout class
@@ -22,26 +23,78 @@ import org.muis.core.event.MuisEventListener;
  * childAdded method, making sure it cleaned itself up properly in the childRemoved and remove methods. Instead, a
  * {@link MultiElementCompoundListener} is created in the constructor and initialized with the acceptable attributes once:
  * </p>
- *
+ * 
  * <p>
- * <code>
- * 		theListener = CompoundListener.create(this);<br>
- * 		theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);<br>
- * 		theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
- * </code>
+ * 
+ * <pre>
+ * 	theListener = CompoundListener.create(this);<br>
+ * 	theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);<br>
+ * 	theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight)
+ * 		.onChange(CompoundListener.layout);
+ * </pre>
+ * 
  * </p>
- *
+ * 
  * Then each parent element that the layout services is added to the listener in the initChildren method:
- *
+ * 
  * <p>
  * <code>
  * 		theListener.listenerFor(parent);
  * </code>
  * </p>
- *
+ * 
+ * <p>
  * The listener ensures that the parent and its children all accept and require the correct attributes and that the correct actions are
  * taken when the attributes change, and much work is saved by the author of the layout.
+ * </p>
+ * 
+ * <p>
+ * This functionality is sufficient for the vast majority of cases, but in some circumstances, individual children may need to accept
+ * different attributes based on some custom condition. This utility supports this functionality also. Take {@link java.awt.BorderLayout}
+ * for example. Every child of a parent whose layout is a border layout takes the region parameter to determine which region the child will
+ * be in, but each region has a different set of sizing attributes that may apply. For instance, an element in the top region should not
+ * specify a width, since the definition of its region says that the element should span the entire container's width. The layout could
+ * simply accept all possible layout attributes and just ignore invalid ones, but we can do better using the
+ * {@link IndividualElementListener} interface.
+ * </p>
+ * 
+ * <p>
+ * Here is BorderLayout's usage of CompoundListener
+ * </p>
+ * 
+ * <pre>
+ * theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.layout);
+ * theListener.eachChild(new CompoundListener.IndividualElementListener() {
+ * 	&#064;Override
+ * 	public void individual(MuisElement element, CompoundElementListener listener) {
+ * 		listener.chain(Region.left.name()).acceptAll(width, minWidth, maxWidth, right, minRight, maxRight)
+ * 			.onChange(CompoundListener.layout);
+ * 		listener.chain(Region.right.name()).acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft).onChange(CompoundListener.layout);
+ * 		listener.chain(Region.top.name()).acceptAll(height, minHeight, maxHeight, bottom, minBottom, maxBottom)
+ * 			.onChange(CompoundListener.layout);
+ * 		listener.chain(Region.bottom.name()).acceptAll(height, minHeight, maxHeight, top, minTop, maxTop).onChange(CompoundListener.layout);
+ * 		update(element, listener);
+ * 	}
  *
+ * 	&#064;Override
+ * 	public void update(MuisElement element, CompoundElementListener listener) {
+ * 		listener.chain(Region.left.name()).setActive(element.getAttribute(region) == Region.left);
+ * 		listener.chain(Region.right.name()).setActive(element.getAttribute(region) == Region.right);
+ * 		listener.chain(Region.top.name()).setActive(element.getAttribute(region) == Region.top);
+ * 		listener.chain(Region.bottom.name()).setActive(element.getAttribute(region) == Region.bottom);
+ * 	}
+ * });
+ * </pre>
+ *
+ * <p>
+ * First the border layout tells the compound listener that every child should accept the region attribute, an if it is changed, each child
+ * needs to be individually evaluated by the listener and a layout operation will be performed on the parent. Then the layout adds an
+ * individual listener to alter attributes for each child. This individual listener creates 4 named chains, one for each border region and
+ * calls the update method, which is also called by the individualChecker call above whenever the region changes. The update method makes
+ * exactly one of the chains active at a time, depending on which region is assigned to the child. This keeps the attribute state
+ * consistent.
+ * </p>
+ * 
  * @param <T> The type of the listener
  */
 public abstract class CompoundListener<T> {
@@ -64,6 +117,28 @@ public abstract class CompoundListener<T> {
 			element.relayout(false);
 		}
 	};
+
+	/**
+	 * When passed to {@link CompoundListener.CompoundElementListener#eachChild(IndividualElementListener)}, this listener allows code to
+	 * deal with each child of an element individually, potentially accepting different attribute sets for each child.
+	 */
+	public static interface IndividualElementListener {
+		/**
+		 * Called for each child of an element and when each new child is added to the element
+		 *
+		 * @param element
+		 * @param listener
+		 */
+		void individual(MuisElement element, CompoundElementListener listener);
+
+		/**
+		 * Called when a {@link CompoundListener.CompoundElementListener#individualChecker(boolean)} listener fires
+		 *
+		 * @param element The element to check and make sure its state is consistent with this listener's goal
+		 * @param listener The element listener for the element
+		 */
+		void update(MuisElement element, CompoundElementListener listener);
+	}
 
 	/**
 	 * @param <A> The type of the attribute to accept
@@ -131,7 +206,7 @@ public abstract class CompoundListener<T> {
 
 	/**
 	 * Activates or activates the effects of this listener. Effects are active by default.
-	 * 
+	 *
 	 * @param active Whether this listener's effects are active or inactive.
 	 * @return The listener for chaining
 	 */
@@ -180,10 +255,26 @@ public abstract class CompoundListener<T> {
 
 		private ChildCompoundListener theChildListener;
 
+		private final ChangeListener theAllIndividualsChecker;
+
+		private final ChangeListener theIndividualChecker;
+
 		CompoundElementListener(MuisElement element, Object wanter) {
 			theElement = element;
 			theWanter = wanter;
 			theChildListener = new ChildCompoundListener(this);
+			theAllIndividualsChecker = new ChangeListener() {
+				@Override
+				public void changed(MuisElement el) {
+					theChildListener.updateAllIndividuals();
+				}
+			};
+			theIndividualChecker = new ChangeListener() {
+				@Override
+				public void changed(MuisElement el) {
+					theChildListener.updateIndividual(el);
+				}
+			};
 		}
 
 		/** @return The element that this listener is for */
@@ -194,6 +285,27 @@ public abstract class CompoundListener<T> {
 		/** @return The object that cares about the attributes listened for by this listener */
 		public Object getWanter() {
 			return theWanter;
+		}
+
+		/**
+		 * @param all Whether the listener returned should call an
+		 *            {@link CompoundListener.IndividualElementListener#update(MuisElement, org.muis.util.CompoundListener.CompoundElementListener)
+		 *            update} on all this element's children or just the child that is passed to
+		 *            {@link CompoundListener.ChangeListener#changed(MuisElement)}. If the element passed to <code>changed</code> is the
+		 *            parent element, all children are checked and this parameter has no effect.
+		 * @return The change listener to update individual children in this listener's element
+		 */
+		public ChangeListener individualChecker(boolean all) {
+			return all ? theAllIndividualsChecker : theIndividualChecker;
+		}
+
+		/**
+		 * @param name The name of the chain to get or create, or null to create a new anonymous chain
+		 * @return The chain of the given name or a new anonymous chain. Will never be null.
+		 */
+		@Override
+		public CompoundListener<?> chain(String name) {
+			return super.chain(name);
 		}
 
 		@Override
@@ -211,11 +323,18 @@ public abstract class CompoundListener<T> {
 			return theChildListener;
 		}
 
+		/** @param individual The listener to deal with each child of an element separately */
+		public void eachChild(IndividualElementListener individual) {
+			theChildListener.addIndividualListener(individual);
+		}
+
 		/** Releases all resources and requirements associated with this compound listener */
 		@Override
 		public void drop() {
-			for(ChainedCompoundListener<?> chain : getChains())
+			for(ChainedCompoundListener<?> chain : getAnonymousChains())
 				theElement.removeListener(chain);
+			for(String name : getChainNames())
+				theElement.removeListener((ChainedCompoundListener<?>) chain(name));
 			super.drop();
 			theChildListener.drop();
 		}
@@ -228,13 +347,28 @@ public abstract class CompoundListener<T> {
 
 		private MuisEventListener<MuisElement> theRemovedListener;
 
+		private ArrayList<IndividualElementListener> theIndividualListeners;
+
+		private java.util.Map<MuisElement, CompoundElementListener> theElementListeners;
+
 		ChildCompoundListener(CompoundElementListener elListener) {
 			theElListener = elListener;
 			theAddedListener = new MuisEventListener<MuisElement>() {
 				@Override
 				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
-					for(ChainedCompoundListener<?> chain : getChains())
+					for(ChainedCompoundListener<?> chain : getAnonymousChains())
 						((ChildChainedCompoundListener<?>) chain).childAdded(event.getValue());
+					for(String name : getChainNames())
+						((ChildChainedCompoundListener<?>) chain(name)).childAdded(event.getValue());
+					synchronized(theElementListeners) {
+						CompoundElementListener childListener = theElementListeners.get(event.getValue());
+						if(childListener == null) {
+							childListener = create(event.getValue(), theElListener.getWanter());
+							theElementListeners.put(event.getValue(), childListener);
+						}
+						for(IndividualElementListener listener : theIndividualListeners)
+							listener.individual(event.getValue(), childListener);
+					}
 				}
 
 				@Override
@@ -245,8 +379,16 @@ public abstract class CompoundListener<T> {
 			theRemovedListener = new MuisEventListener<MuisElement>() {
 				@Override
 				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
-					for(ChainedCompoundListener<?> chain : getChains())
+					for(ChainedCompoundListener<?> chain : getAnonymousChains())
 						((ChildChainedCompoundListener<?>) chain).childRemoved(event.getValue());
+					for(String name : getChainNames())
+						((ChildChainedCompoundListener<?>) chain(name)).childRemoved(event.getValue());
+					synchronized(theElementListeners) {
+						CompoundElementListener childListener = theElementListeners.remove(event.getValue());
+						if(childListener != null) {
+							childListener.drop();
+						}
+					}
 				}
 
 				@Override
@@ -257,10 +399,49 @@ public abstract class CompoundListener<T> {
 			theElListener.getElement().addListener(MuisElement.CHILD_ADDED, theAddedListener);
 			theElListener.getElement().addListener(MuisElement.CHILD_REMOVED, theRemovedListener);
 			theElListener.getElement().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
+			theIndividualListeners = new ArrayList<>();
+			theElementListeners = new java.util.HashMap<>();
 		}
 
 		CompoundElementListener getElementListener() {
 			return theElListener;
+		}
+
+		void addIndividualListener(IndividualElementListener listener) {
+			if(listener != null)
+				synchronized(theIndividualListeners) {
+					theIndividualListeners.add(listener);
+					for(MuisElement child : theElListener.getElement().getChildren()) {
+						CompoundElementListener childListener = theElementListeners.get(child);
+						if(childListener == null) {
+							childListener = create(child, theElListener.getWanter());
+							theElementListeners.put(child, childListener);
+						}
+						listener.individual(child, childListener);
+					}
+				}
+		}
+
+		void updateAllIndividuals() {
+			synchronized(theIndividualListeners) {
+				for(MuisElement child : theElListener.getElement().getChildren()) {
+					CompoundElementListener childListener = theElementListeners.get(child);
+					if(childListener != null)
+						for(IndividualElementListener individualListener : theIndividualListeners)
+							individualListener.update(child, childListener);
+				}
+			}
+		}
+
+		void updateIndividual(MuisElement child) {
+			synchronized(theIndividualListeners) {
+				CompoundElementListener childListener = theElementListeners.get(child);
+				if(childListener != null)
+					for(IndividualElementListener individualListener : theIndividualListeners)
+						individualListener.update(child, childListener);
+				else if(child == theElListener.getElement())
+					updateAllIndividuals();
+			}
 		}
 
 		@Override
@@ -273,13 +454,18 @@ public abstract class CompoundListener<T> {
 			theElListener.getElement().removeListener(this);
 			theElListener.getElement().removeListener(theAddedListener);
 			theElListener.getElement().removeListener(theRemovedListener);
+			for(CompoundElementListener childListener : theElementListeners.values())
+				childListener.drop();
+			theElementListeners.clear();
 			super.drop();
 		}
 
 		@Override
 		public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
-			for(ChainedCompoundListener<?> chain : getChains())
+			for(ChainedCompoundListener<?> chain : getAnonymousChains())
 				chain.eventOccurred(event, element);
+			for(String name : getChainNames())
+				((ChildChainedCompoundListener<?>) chain(name)).eventOccurred(event, element);
 		}
 
 		@Override
@@ -289,17 +475,28 @@ public abstract class CompoundListener<T> {
 	}
 
 	private static abstract class ChainableCompoundListener extends CompoundListener<Object> {
-		private ArrayList<ChainedCompoundListener<?>> theChains;
+		private java.util.Map<String, ChainedCompoundListener<?>> theNamedChains;
+
+		private ArrayList<ChainedCompoundListener<?>> theAnonymousChains;
+
+		private ChainedCompoundListener<?> theLastChain;
 
 		private boolean isDropped;
 
 		ChainableCompoundListener() {
-			theChains = new ArrayList<>();
+			theNamedChains = new java.util.HashMap<>();
+			theAnonymousChains = new ArrayList<>();
 		}
 
-		ChainedCompoundListener<?> [] getChains() {
-			synchronized(theChains) {
-				return theChains.toArray(new ChainedCompoundListener[theChains.size()]);
+		String [] getChainNames() {
+			synchronized(theAnonymousChains) {
+				return theNamedChains.keySet().toArray(new String[theNamedChains.size()]);
+			}
+		}
+
+		ChainedCompoundListener<?> [] getAnonymousChains() {
+			synchronized(theAnonymousChains) {
+				return theAnonymousChains.toArray(new ChainedCompoundListener[theAnonymousChains.size()]);
 			}
 		}
 
@@ -308,82 +505,99 @@ public abstract class CompoundListener<T> {
 			if(isDropped)
 				return;
 			isDropped = true;
-			for(ChainedCompoundListener<?> chain : theChains)
+			for(ChainedCompoundListener<?> chain : theAnonymousChains)
 				chain.drop();
+			for(ChainedCompoundListener<?> chain : theNamedChains.values())
+				chain.drop();
+			theAnonymousChains.clear();
+			theNamedChains.clear();
 		}
 
 		abstract ChainedCompoundListener<?> createChain();
 
-		private CompoundListener<?> chain() {
+		public CompoundListener<?> chain(String name) {
 			if(isDropped)
 				throw new IllegalStateException("This listener is already dropped");
-			ChainedCompoundListener<?> ret = createChain();
-			synchronized(ret) {
-				theChains.add(ret);
+			ChainedCompoundListener<?> ret;
+			synchronized(theAnonymousChains) {
+				if(name != null) {
+					ret = theNamedChains.get(name);
+					if(ret == null) {
+						ret = createChain();
+						theNamedChains.put(name, ret);
+					}
+				}
+				else {
+					ret = createChain();
+					theAnonymousChains.add(ret);
+				}
 			}
+			theLastChain = ret;
 			return ret;
 		}
 
 		@Override
 		public <A> CompoundListener<A> accept(MuisAttribute<A> attr) {
-			return chain().accept(attr);
+			return chain(null).accept(attr);
 		}
 
 		@Override
 		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException {
-			return chain().accept(attr, value);
+			return chain(null).accept(attr, value);
 		}
 
 		@Override
 		public <A> CompoundListener<A> require(MuisAttribute<A> attr) {
-			return chain().require(attr);
+			return chain(null).require(attr);
 		}
 
 		@Override
 		public <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException {
-			return chain().require(attr, value);
+			return chain(null).require(attr, value);
 		}
 
 		@Override
 		public <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, boolean required, V value)
 			throws IllegalArgumentException {
-			return chain().accept(attr, required, value);
+			return chain(null).accept(attr, required, value);
 		}
 
 		@Override
 		public CompoundListener<?> acceptAll(MuisAttribute<?>... attrs) {
-			return chain().acceptAll(attrs);
+			return chain(null).acceptAll(attrs);
 		}
 
 		@Override
 		public CompoundListener<?> requireAll(MuisAttribute<?>... attrs) {
-			return chain().requireAll(attrs);
+			return chain(null).requireAll(attrs);
 		}
 
 		@Override
 		public CompoundListener<?> setActive(boolean active) {
-			ChainedCompoundListener<?> [] chains = getChains();
+			ChainedCompoundListener<?> [] chains = getAnonymousChains();
 			for(ChainedCompoundListener<?> chain : chains) {
 				chain.setActive(active);
 			}
+			for(String name : getChainNames())
+				chain(name).setActive(active);
 			return this;
 		}
 
 		@Override
 		public CompoundListener<?> onChange(Runnable run) {
-			if(theChains.isEmpty())
-				throw new IllegalStateException("No attributes to listen to");
-			synchronized(theChains) {
-				return theChains.get(theChains.size() - 1).onChange(run);
+			synchronized(theAnonymousChains) {
+				if(theLastChain == null)
+					throw new IllegalStateException("No attributes to listen to");
+				return theLastChain.onChange(run);
 			}
 		}
 
 		@Override
 		public CompoundListener<?> onChange(ChangeListener listener) {
-			if(theChains.isEmpty())
-				throw new IllegalStateException("No attributes to listen to");
-			synchronized(theChains) {
-				return theChains.get(theChains.size() - 1).onChange(listener);
+			synchronized(theAnonymousChains) {
+				if(theLastChain == null)
+					throw new IllegalStateException("No attributes to listen to");
+				return theLastChain.onChange(listener);
 			}
 		}
 
@@ -736,12 +950,29 @@ public abstract class CompoundListener<T> {
 
 		private MultiElementChildCompoundListener theChildListener;
 
+		private ArrayList<IndividualElementListener> theIndividualListeners;
+
+		private final ChangeListener theAllIndividualsChecker;
+
+		private final ChangeListener theIndividualChecker;
+
 		private boolean isFinal;
 
 		MultiElementCompoundListener(Object wanter) {
 			theWanter = wanter;
 			theListeners = new java.util.HashMap<>();
 			theChildListener = new MultiElementChildCompoundListener();
+			theIndividualListeners = new ArrayList<>();
+			theAllIndividualsChecker = new ChangeListener() {
+				@Override
+				public void changed(MuisElement element) {
+				}
+			};
+			theIndividualChecker = new ChangeListener() {
+				@Override
+				public void changed(MuisElement element) {
+				}
+			};
 		}
 
 		/** @return The listener to use to control attribute acceptance for all children that will use this listener */
@@ -749,6 +980,23 @@ public abstract class CompoundListener<T> {
 			if(isFinal)
 				throw new IllegalStateException("MultiElementCompoundListeners may not be modified after elements are using it");
 			return theChildListener;
+		}
+
+		/** @param individual The listener to deal with each child of an element separately */
+		public void eachChild(IndividualElementListener individual) {
+			theIndividualListeners.add(individual);
+		}
+
+		/**
+		 * @param all Whether the listener returned should call an
+		 *            {@link CompoundListener.IndividualElementListener#update(MuisElement, org.muis.util.CompoundListener.CompoundElementListener)
+		 *            update} on all the element's children or just the child that is passed to
+		 *            {@link CompoundListener.ChangeListener#changed(MuisElement)}. If the element passed to <code>changed</code> is the
+		 *            parent element, all children are checked and this parameter has no effect.
+		 * @return The change listener to update individual children in the listener's element
+		 */
+		public ChangeListener individualChecker(boolean all) {
+			return all ? theAllIndividualsChecker : theIndividualChecker;
 		}
 
 		@Override
@@ -767,35 +1015,44 @@ public abstract class CompoundListener<T> {
 				CompoundElementListener ret = theListeners.get(element);
 				if(ret == null) {
 					ret = new CompoundElementListener(element, theWanter);
-					CompoundListener<?> chainL = ret;
-					for(ChainedCompoundListener<?> chain : getChains()) {
-						for(AttributeHolder attr : chain.getAllAttrProps()) {
-							chainL = chainL.accept((MuisAttribute<Object>) attr.attr, attr.required, attr.initValue);
-							AttributeChangedListener<Object> [] listeners = chain.getSpecificListeners((MuisAttribute<Object>) attr.attr);
-							if(listeners != null)
-								for(AttributeChangedListener<Object> listener : listeners)
-									chainL.onChange(listener);
-						}
-						for(ChangeListener listener : chain.getListeners())
-							chainL.onChange(listener);
-					}
+					for(ChainedCompoundListener<?> chain : getAnonymousChains())
+						applyChain(ret, chain, ret);
+					for(String name : getChainNames())
+						applyChain(ret, (ChainedCompoundListener<?>) chain(name), ret);
 
-					chainL = ret.child();
-					for(ChainedCompoundListener<?> chain : theChildListener.getChains()) {
-						for(AttributeHolder attr : chain.getAllAttrProps()) {
-							chainL = chainL.accept((MuisAttribute<Object>) attr.attr, attr.required, attr.initValue);
-							AttributeChangedListener<Object> [] listeners = chain.getSpecificListeners((MuisAttribute<Object>) attr.attr);
-							if(listeners != null)
-								for(AttributeChangedListener<Object> listener : listeners)
-									chainL.onChange(listener);
-						}
-						for(ChangeListener listener : chain.getListeners())
-							chainL.onChange(listener);
+					for(ChainedCompoundListener<?> chain : theChildListener.getAnonymousChains())
+						applyChain(ret.child(), chain, ret);
+					for(String name : theChildListener.getChainNames()) {
+						applyChain(ret.child(), (ChainedCompoundListener<?>) chain(name), ret);
 					}
+					for(IndividualElementListener individualListener : theIndividualListeners)
+						ret.eachChild(individualListener);
 					theListeners.put(element, ret);
 				}
 				return ret;
 			}
+		}
+
+		private void applyChain(CompoundListener<?> applyTo, ChainedCompoundListener<?> chain, CompoundElementListener elListener) {
+			CompoundListener<?> chainL = applyTo;
+			for(AttributeHolder attr : chain.getAllAttrProps()) {
+				chainL = chainL.accept((MuisAttribute<Object>) attr.attr, attr.required, attr.initValue);
+				AttributeChangedListener<Object> [] listeners = chain.getSpecificListeners((MuisAttribute<Object>) attr.attr);
+				if(listeners != null)
+					for(AttributeChangedListener<Object> listener : listeners)
+						chainL.onChange(listener);
+			}
+			for(ChangeListener listener : chain.getListeners())
+				chainL.onChange(interpListener(listener, elListener));
+		}
+
+		private ChangeListener interpListener(ChangeListener listener, CompoundElementListener elListener) {
+			if(listener == theAllIndividualsChecker)
+				return elListener.individualChecker(true);
+			else if(listener == theIndividualChecker)
+				return elListener.individualChecker(false);
+			else
+				return listener;
 		}
 
 		/**

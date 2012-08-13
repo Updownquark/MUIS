@@ -19,6 +19,7 @@ public class MuisDomParser implements MuisParser
 		theToolkits = new java.util.HashMap<String, MuisToolkit>();
 	}
 
+	@SuppressWarnings("resource")
 	@Override
 	public MuisToolkit getToolkit(URL url, MuisDocument doc) throws MuisParseException, IOException
 	{

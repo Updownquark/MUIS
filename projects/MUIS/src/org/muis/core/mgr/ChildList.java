@@ -3,7 +3,6 @@ package org.muis.core.mgr;
 import java.util.*;
 
 import org.muis.core.MuisElement;
-import org.muis.core.MuisLock;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;

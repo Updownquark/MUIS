@@ -8,6 +8,7 @@ import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
 import org.muis.core.event.ScrollEvent;
+import org.muis.core.mgr.MuisLocker;
 import org.muis.core.mgr.MuisMessage;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.style.NamedStyleGroup;
@@ -81,7 +82,7 @@ public class MuisDocument {
 
 	private final Object theKeysLock;
 
-	private final MuisLock.Locker theLocker;
+	private final MuisLocker theLocker;
 
 	/**
 	 * Creates a document
@@ -103,7 +104,7 @@ public class MuisDocument {
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
-		theLocker = new MuisLock.Locker();
+		theLocker = new MuisLocker();
 	}
 
 	/**
@@ -150,7 +151,7 @@ public class MuisDocument {
 	}
 
 	/** @return The locker to keep track of element locks */
-	public MuisLock.Locker getLocker() {
+	public MuisLocker getLocker() {
 		return theLocker;
 	}
 

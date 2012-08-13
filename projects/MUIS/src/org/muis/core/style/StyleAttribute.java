@@ -5,13 +5,14 @@ import java.util.Map;
 import org.muis.core.MuisAttribute.AttributeType;
 import org.muis.core.MuisException;
 
+import prisms.util.ArrayUtils;
+
 /**
  * A style property that can affect the rendering of MUIS elements
  *
  * @param <T> The type of value the property supports
  */
-public final class StyleAttribute<T>
-{
+public final class StyleAttribute<T> {
 	/** The style domain that the attribute belongs to */
 	public final StyleDomain domain;
 
@@ -34,16 +35,14 @@ public final class StyleAttribute<T>
 	public final Map<String, T> namedValues;
 
 	private StyleAttribute(StyleDomain aDomain, String aName, AttributeType<T> aType, T defValue, Comparable<T> aMin, Comparable<T> aMax,
-		Map<String, T> aNamedValueSet)
-	{
+		Map<String, T> aNamedValueSet) {
 		domain = aDomain;
 		name = aName;
 		type = aType;
 		min = aMin;
 		max = aMax;
 		theDefault = defValue;
-		if(aNamedValueSet != null)
-		{
+		if(aNamedValueSet != null) {
 			java.util.HashMap<String, T> copy = new java.util.HashMap<>(aNamedValueSet);
 			aNamedValueSet = java.util.Collections.unmodifiableMap(copy);
 		}
@@ -58,8 +57,7 @@ public final class StyleAttribute<T>
 	 * @return A value of this attribute's type (unchecked--may not be valid)
 	 * @throws MuisException If the value cannot be parsed
 	 */
-	public T parse(String value, org.muis.core.MuisClassView classView) throws MuisException
-	{
+	public T parse(String value, org.muis.core.MuisClassView classView) throws MuisException {
 		if(namedValues != null && namedValues.containsKey(value))
 			return namedValues.get(value);
 		return type.parse(classView, value);
@@ -71,8 +69,7 @@ public final class StyleAttribute<T>
 	 * @param value The value that might be set as a value for this attribute
 	 * @return An error to display if the value is not valid. Null if the value is valid.
 	 */
-	public String validate(Object value)
-	{
+	public String validate(Object value) {
 		if(namedValues != null && namedValues.containsValue(value))
 			return null;
 		T val = type.cast(value);
@@ -96,8 +93,7 @@ public final class StyleAttribute<T>
 	 * @param namedValues Name-value pairs of values that can be specified by name
 	 * @return The new style attribute
 	 */
-	public static <T> StyleAttribute<T> createStyle(StyleDomain domain, String name, AttributeType<T> type, T def, Object... namedValues)
-	{
+	public static <T> StyleAttribute<T> createStyle(StyleDomain domain, String name, AttributeType<T> type, T def, Object... namedValues) {
 		return createStyle(domain, name, type, def, compileNamedValues(namedValues, type.getType()));
 	}
 
@@ -113,8 +109,7 @@ public final class StyleAttribute<T>
 	 * @return The new style attribute
 	 */
 	public static <T> StyleAttribute<T> createStyle(StyleDomain domain, String name, AttributeType<T> type, T def,
-		Map<String, T> namedValues)
-	{
+		Map<String, T> namedValues) {
 		checkTypes(namedValues, type.getType());
 		return new StyleAttribute<T>(domain, name, type, def, null, null, namedValues);
 	}
@@ -133,8 +128,7 @@ public final class StyleAttribute<T>
 	 * @return The new style attribute
 	 */
 	public static <T extends Comparable<T>> StyleAttribute<T> createBoundedStyle(StyleDomain domain, String name, AttributeType<T> type,
-		T def, Comparable<T> min, Comparable<T> max, Object... namedValues)
-	{
+		T def, Comparable<T> min, Comparable<T> max, Object... namedValues) {
 		return createStyle(domain, name, type, def, compileNamedValues(namedValues, type.getType()));
 	}
 
@@ -152,22 +146,19 @@ public final class StyleAttribute<T>
 	 * @return The new style attribute
 	 */
 	public static <T extends Comparable<T>> StyleAttribute<T> createBoundedStyle(StyleDomain domain, String name, AttributeType<T> type,
-		T def, Comparable<T> min, Comparable<T> max, Map<String, T> namedValues)
-	{
+		T def, Comparable<T> min, Comparable<T> max, Map<String, T> namedValues) {
 		checkTypes(namedValues, type.getType());
 		return new StyleAttribute<T>(domain, name, type, def, min, max, namedValues);
 	}
 
-	private static <T> Map<String, T> compileNamedValues(Object [] nv, Class<T> type)
-	{
+	private static <T> Map<String, T> compileNamedValues(Object [] nv, Class<T> type) {
 		if(nv == null || nv.length == 0)
 			return null;
 		if(nv.length % 2 != 0)
 			throw new IllegalArgumentException("Named values must be pairs in the form name, " + type.getSimpleName() + ", name, "
 				+ type.getSimpleName() + "...");
 		java.util.HashMap<String, T> ret = new java.util.HashMap<>();
-		for(int i = 0; i < nv.length; i += 2)
-		{
+		for(int i = 0; i < nv.length; i += 2) {
 			if(!(nv[i] instanceof String) || !type.isInstance(nv[i + 1]))
 				throw new IllegalArgumentException("Named values must be pairs in the form name, " + type.getSimpleName() + ", name, "
 					+ type.getSimpleName() + "...");
@@ -178,12 +169,33 @@ public final class StyleAttribute<T>
 		return ret;
 	}
 
-	private static <T> void checkTypes(Map<String, T> map, Class<T> type)
-	{
+	private static <T> void checkTypes(Map<String, T> map, Class<T> type) {
 		if(map == null)
 			return;
 		for(Map.Entry<?, ?> entry : map.entrySet())
 			if(!(entry.getKey() instanceof String) || !type.isInstance(entry.getValue()))
 				throw new IllegalArgumentException("name-value pairs must be typed String, " + type.getSimpleName());
+	}
+
+	@Override
+	public final boolean equals(Object obj) {
+		if(!(obj instanceof StyleAttribute))
+			return false;
+		StyleAttribute<?> attr = (StyleAttribute<?>) obj;
+		return attr.domain.equals(domain) && attr.type.equals(type) && attr.name.equals(name) && ArrayUtils.equals(attr.min, min)
+			&& ArrayUtils.equals(attr.max, max) && ArrayUtils.equals(attr.namedValues, namedValues)
+			&& ArrayUtils.equals(attr.theDefault, theDefault);
+	}
+
+	@Override
+	public final int hashCode() {
+		int ret = domain.hashCode();
+		ret = ret * 13 + type.hashCode();
+		ret = ret * 13 + name.hashCode();
+		ret = ret * 13 + ArrayUtils.hashCode(min);
+		ret = ret * 13 + ArrayUtils.hashCode(max);
+		ret = ret * 13 + ArrayUtils.hashCode(namedValues);
+		ret = ret * 13 + ArrayUtils.hashCode(theDefault);
+		return super.hashCode();
 	}
 }

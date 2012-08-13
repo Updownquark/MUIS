@@ -1,7 +1,7 @@
 package org.muis.util;
 
-
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
@@ -10,6 +10,9 @@ import org.muis.core.event.AttributeChangedListener;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleAttributeListener;
+import org.muis.core.style.StyleDomain;
 
 /**
  * <p>
@@ -17,7 +20,7 @@ import org.muis.core.style.StyleAttribute;
  * actions when they change in a very easy way.
  * </p>
  *
-
+ *
  * <p>
  * As an example, take the SimpleListener layout in org.muis.base.layout. This layout can accept one attribute, max-inf, from the parent
  * container and several dimension parameters (left, right, height, width, etc.) from each of the children to be layed out. The layout class
@@ -26,7 +29,7 @@ import org.muis.core.style.StyleAttribute;
  * {@link MultiElementCompoundListener} is created in the constructor and initialized with the acceptable attributes once:
  * </p>
  *
-
+ *
  * <p>
  *
  * <pre>
@@ -38,22 +41,22 @@ import org.muis.core.style.StyleAttribute;
  *
  * </p>
  *
-
+ *
  * Then each parent element that the layout services is added to the listener in the initChildren method:
  *
-
+ *
  * <p>
  * <code>
  * 		theListener.listenerFor(parent);
  * </code>
  * </p>
  *
-
-
+ *
+ *
  * <p>
  * The listener ensures that the parent and its children all accept and require the correct attributes and that the correct actions are
  * taken when the attributes change, and much work is saved by the author of the layout.
-
+ *
  * </p>
  *
  * <p>
@@ -103,7 +106,10 @@ import org.muis.core.style.StyleAttribute;
  * consistent.
  * </p>
  *
- * TODO style listeners
+ * <p>
+ * Style attributes may also be monitored and controlled using this class. See the {@link #watch(StyleAttribute)},
+ * {@link #watchAll(StyleAttribute...)}, {@link #watchAll(StyleDomain)} and {@link #onChange(StyleAttributeListener)} methods.
+ * </p>
  *
  * @param <T> The type of the listener
  */
@@ -224,6 +230,18 @@ public abstract class CompoundListener<T> {
 	public abstract <A> CompoundListener<A> watch(StyleAttribute<A> attr);
 
 	/**
+	 * @param domain The style domain to watch
+	 * @return The listener for chaining
+	 */
+	public abstract CompoundListener<?> watchAll(StyleDomain domain);
+
+	/**
+	 * @param attrs The style attributes to watch
+	 * @return The listener for chaining
+	 */
+	public abstract CompoundListener<?> watchAll(StyleAttribute<?>... attrs);
+
+	/**
 	 * Activates or activates the effects of this listener. Effects are active by default.
 	 *
 	 * @param active Whether this listener's effects are active or inactive.
@@ -248,6 +266,12 @@ public abstract class CompoundListener<T> {
 	 * @return The listener for chaining
 	 */
 	public abstract CompoundListener<T> onChange(AttributeChangedListener<? super T> listener);
+
+	/**
+	 * @param listener The listener to execute when the last style attribute in the current chain changes
+	 * @return The listener for chaining
+	 */
+	public abstract CompoundListener<T> onChange(StyleAttributeListener<? super T> listener);
 
 	/**
 	 * @param wanter The object that cares about the attributes that will be listened for on the elements
@@ -331,7 +355,7 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
 			theElement.addListener(MuisElement.ATTRIBUTE_CHANGED, ret);
-			theElement.addListener(org.muis.core.style.StyleAttributeEvent.TYPE, ret);
+			theElement.getStyle().addListener((MuisEventListener<Void>) (MuisEventListener<?>) ret);
 			return ret;
 		}
 
@@ -599,6 +623,16 @@ public abstract class CompoundListener<T> {
 		}
 
 		@Override
+		public CompoundListener<?> watchAll(StyleDomain domain) {
+			return chain(null).watchAll(domain);
+		}
+
+		@Override
+		public CompoundListener<?> watchAll(StyleAttribute<?>... attrs) {
+			return chain(null).watchAll(attrs);
+		}
+
+		@Override
 		public CompoundListener<?> setActive(boolean active) {
 			ChainedCompoundListener<?> [] chains = getAnonymousChains();
 			for(ChainedCompoundListener<?> chain : chains) {
@@ -630,6 +664,11 @@ public abstract class CompoundListener<T> {
 		@Override
 		public CompoundListener<Object> onChange(AttributeChangedListener<Object> listener) {
 			throw new IllegalStateException("No attributes to listen to");
+		}
+
+		@Override
+		public CompoundListener<Object> onChange(StyleAttributeListener<? super Object> listener) {
+			throw new IllegalStateException("No style attributes to listen to");
 		}
 	}
 
@@ -666,9 +705,15 @@ public abstract class CompoundListener<T> {
 
 		private MuisAttribute<?> theLastAttr;
 
-		private java.util.HashMap<MuisAttribute<?>, AttributeChangedListener<?> []> theSpecificListeners;
+		private HashMap<MuisAttribute<?>, AttributeChangedListener<?> []> theSpecificListeners;
 
 		private java.util.Set<StyleAttribute<?>> theStyleAttributes;
+
+		private java.util.Set<StyleDomain> theStyleDomains;
+
+		private HashMap<StyleAttribute<?>, StyleAttributeListener<?> []> theSpecificStyleListeners;
+
+		private StyleAttribute<?> theLastStyleAttr;
 
 		private boolean isActive;
 
@@ -677,7 +722,8 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener() {
 			theChained = new java.util.LinkedHashMap<>();
 			theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
-			theSpecificListeners = new java.util.HashMap<>();
+			theSpecificListeners = new HashMap<>();
+			theSpecificStyleListeners = new HashMap<>();
 			theStyleAttributes = new java.util.HashSet<>();
 			isActive = true;
 		}
@@ -718,17 +764,27 @@ public abstract class CompoundListener<T> {
 					for(AttributeChangedListener<Object> listener : listeners)
 						listener.attributeChanged((org.muis.core.event.AttributeChangedEvent<Object>) ace);
 			}
-			else if(event instanceof org.muis.core.style.StyleAttributeEvent) {
-				org.muis.core.style.StyleAttributeEvent<?> sae = (org.muis.core.style.StyleAttributeEvent<?>) (MuisEvent<?>) event;
+			else if(event instanceof StyleAttributeEvent) {
+				StyleAttributeEvent<?> sae = (StyleAttributeEvent<?>) (MuisEvent<?>) event;
 				boolean contains;
-				synchronized(theStyleAttributes) {
-					contains = theStyleAttributes.contains(sae.getAttribute());
+				StyleAttributeListener<Object> [] listeners;
+				synchronized(theStyleDomains) {
+					contains = theStyleDomains.contains(sae.getAttribute().domain);
+				}
+				if(!contains)
+					synchronized(theStyleAttributes) {
+						contains = theStyleAttributes.contains(sae.getAttribute());
+					}
+				synchronized(theSpecificStyleListeners) {
+					listeners = (StyleAttributeListener<Object> []) theSpecificStyleListeners.get(sae.getAttribute());
 				}
 				if(contains) {
 					for(ChangeListener run : theListeners)
 						run.changed(getElement());
 				}
-				// TODO Specific style listeners
+				if(listeners != null)
+					for(StyleAttributeListener<Object> listener : listeners)
+						listener.styleChanged(element, (StyleAttributeEvent<Object>) sae, element.getStyle().get(sae.getAttribute()));
 			}
 		}
 
@@ -778,6 +834,7 @@ public abstract class CompoundListener<T> {
 				theChained.put(attr, holder);
 			}
 			theLastAttr = attr;
+			theLastStyleAttr = null;
 			return (CompoundListener<A>) this;
 		}
 
@@ -817,6 +874,7 @@ public abstract class CompoundListener<T> {
 					theChained.put(attr, holder);
 				}
 			}
+			theLastStyleAttr = null;
 			theLastAttr = null;
 			return this;
 		}
@@ -837,6 +895,7 @@ public abstract class CompoundListener<T> {
 					theChained.put(attr, holder);
 				}
 			}
+			theLastStyleAttr = null;
 			theLastAttr = null;
 			return this;
 		}
@@ -846,7 +905,30 @@ public abstract class CompoundListener<T> {
 			synchronized(theStyleAttributes) {
 				theStyleAttributes.add(attr);
 			}
+			theLastAttr = null;
+			theLastStyleAttr = attr;
 			return (CompoundListener<A>) this;
+		}
+
+		@Override
+		public CompoundListener<?> watchAll(StyleDomain domain) {
+			synchronized(theStyleDomains) {
+				theStyleDomains.add(domain);
+			}
+			theLastAttr = null;
+			theLastStyleAttr = null;
+			return this;
+		}
+
+		@Override
+		public CompoundListener<?> watchAll(StyleAttribute<?>... attrs) {
+			synchronized(theStyleAttributes) {
+				for(StyleAttribute<?> attr : attrs)
+					theStyleAttributes.add(attr);
+			}
+			theLastAttr = null;
+			theLastStyleAttr = null;
+			return this;
 		}
 
 		@Override
@@ -877,6 +959,7 @@ public abstract class CompoundListener<T> {
 		@Override
 		public CompoundListener<?> onChange(Runnable run) {
 			theLastAttr = null;
+			theLastStyleAttr = null;
 			theListeners.add(new RunnableChangeListener(run));
 			return getParent();
 		}
@@ -884,6 +967,7 @@ public abstract class CompoundListener<T> {
 		@Override
 		public CompoundListener<?> onChange(ChangeListener listener) {
 			theLastAttr = null;
+			theLastStyleAttr = null;
 			theListeners.add(listener);
 			return getParent();
 		}
@@ -899,6 +983,21 @@ public abstract class CompoundListener<T> {
 				else
 					listeners = prisms.util.ArrayUtils.add(listeners, listener);
 				theSpecificListeners.put(theLastAttr, listeners);
+			}
+			return this;
+		}
+
+		@Override
+		public CompoundListener<T> onChange(StyleAttributeListener<? super T> listener) {
+			if(theLastStyleAttr == null)
+				throw new IllegalStateException("No style attribute to listen to");
+			synchronized(theSpecificStyleListeners) {
+				StyleAttributeListener<?> [] listeners = theSpecificStyleListeners.get(theLastStyleAttr);
+				if(listeners == null)
+					listeners = new StyleAttributeListener[] {listener};
+				else
+					listeners = prisms.util.ArrayUtils.add(listeners, listener);
+				theSpecificStyleListeners.put(theLastStyleAttr, listeners);
 			}
 			return this;
 		}

@@ -4,165 +4,24 @@ package org.muis.core;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.muis.core.MuisSecurityPermission.PermissionType;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
 import org.muis.core.event.MuisPropertyEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.mgr.*;
+import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.style.*;
 
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
-public abstract class MuisElement implements org.muis.core.layout.Sizeable, MuisMessage.MuisMessageCenter
-{
-	/** Manages the life cycle of an element */
-	public class MuisLifeCycleManager
-	{
-		private volatile String [] theStages;
-
-		private int theCurrentStage;
-
-		private volatile LifeCycleListener [] theLifeCycleListeners;
-
-		private final Object theListenerLock;
-
-		MuisLifeCycleManager(String... stages)
-		{
-			theStages = stages;
-			theLifeCycleListeners = new LifeCycleListener[0];
-			theListenerLock = new Object();
-		}
-
-		/** @return The current stage in the element's life cycle */
-		public String getStage()
-		{
-			return theStages.length == 0 ? null : theStages[theCurrentStage];
-		}
-
-		/** @return All stages in this life cycle, past, present, and future */
-		public String [] getStages()
-		{
-			return theStages.clone();
-		}
-
-		/**
-		 * @param stage The stage to check
-		 * @return <0 if the current stage is before the given stage, 0, if the current stage is the given stage, or >0 if the current stage
-		 *         is after the given stage
-		 */
-		public int isAfter(String stage)
-		{
-			int index = ArrayUtils.indexOf(theStages, stage);
-			if(index < 0)
-				throw new IllegalArgumentException("Unrecognized life cycle stage \"" + stage + "\"");
-			return theCurrentStage - index;
-		}
-
-		/** @param listener The listener to be notified when the life cycle stage changes */
-		public void addListener(LifeCycleListener listener)
-		{
-			synchronized(theListenerLock)
-			{
-				int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
-				if(idx < 0)
-					theLifeCycleListeners = ArrayUtils.add(theLifeCycleListeners, listener);
-			}
-		}
-
-		/** @param listener The listener to remove from notification */
-		public void removeListener(LifeCycleListener listener)
-		{
-			synchronized(theListenerLock)
-			{
-				int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
-				if(idx >= 0)
-					theLifeCycleListeners = ArrayUtils.remove(theLifeCycleListeners, idx);
-			}
-		}
-
-		/**
-		 * @param stage The stage to add to this life cycle
-		 * @param afterStage The stage (already registered in this life cycle manager) to add the new stage after
-		 */
-		public void addStage(String stage, String afterStage)
-		{
-			if(theCurrentStage > 0)
-				error("Life cycle stages may not be added after the " + theStages[0] + " stage", null, "stage", stage);
-			if(afterStage == null && theStages.length > 0)
-			{
-				error("afterStage must not be null--stages cannot be inserted before " + theStages[0], null, "stage", stage);
-				return;
-			}
-			if(theStages.length == 0)
-			{
-				theStages = new String[] {stage};
-				return;
-			}
-			int idx = prisms.util.ArrayUtils.indexOf(theStages, afterStage);
-			if(idx < 0)
-			{
-				error("afterStage \"" + afterStage + "\" not found. Cannot add stage.", null, "stage", stage);
-				return;
-			}
-			theStages = prisms.util.ArrayUtils.add(theStages, stage, idx + 1);
-		}
-
-		/** Advances the life cycle stage of the element to the given stage. Called from MuisElement. */
-		private void advanceLifeCycle(String toStage)
-		{
-			String [] stages = theStages;
-			LifeCycleListener [] listeners = theLifeCycleListeners;
-			int goal = ArrayUtils.indexOf(stages, toStage);
-			if(goal <= theCurrentStage)
-			{
-				error("Stage " + toStage + " has already been transitioned", null, "stage", toStage);
-				return;
-			}
-			while(theCurrentStage < stages.length - 1 && !stages[theCurrentStage].equals(toStage))
-			{
-				// Transition one stage forward
-				String oldStage = stages[theCurrentStage];
-				String newStage = stages[theCurrentStage + 1];
-				/*
-				 * Call listeners for the pre-transition in reverse order so that the first listener added gets notified just before the
-				 * transition actually occurs so nobody has a chance to override its actions
-				 */
-				for(int L = listeners.length - 1; L >= 0; L--)
-					listeners[L].preTransition(oldStage, newStage);
-				theCurrentStage++;
-				for(LifeCycleListener listener : listeners)
-					listener.postTransition(oldStage, newStage);
-			}
-		}
-	}
-
-	/** A listener to be notified when the life cycle of an element transitions to a new stage */
-	public interface LifeCycleListener
-	{
-		/**
-		 * @param fromStage The stage that is being concluded and transitioned out of
-		 * @param toStage The stage to be transitioned into
-		 */
-		void preTransition(String fromStage, String toStage);
-
-		/**
-		 * @param oldStage The stage that is concluded and transitioned out of
-		 * @param newStage The stage that has just begun
-		 */
-		void postTransition(String oldStage, String newStage);
-	}
-
+public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	/** The stages of MUIS element creation recognized by the MUIS core, except for {@link #OTHER} */
-	public static enum CoreStage
-	{
+	public static enum CoreStage {
 		/**
 		 * The element is being constructed without any knowledge of its document or other context. During this stage, internal variables
 		 * should be created and initialized with default values. Initial listeners may be added to the element at this time as well.
@@ -189,7 +48,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		 * checks during this time. Before this stage, attributes may be added which are not recognized by the element. During this stage,
 		 * all unchecked attributes are checked and errors are logged for any attributes that are unrecognized or malformatted as well as
 		 * for any required attributes whose values have not been set. During and after this stage, no attributes may be set in the element
-		 * unless they have been {@link MuisElement#acceptAttribute(Object, MuisAttribute) accepted} and the type is correct. An element's
+		 * unless they have been {@link AttributeManager#accept(Object, MuisAttribute) accepted} and the type is correct. An element's
 		 * children are started up at the tail end of this stage, so note that when an element transitions out of this stage, its contents
 		 * will be in the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all its attribute work
 		 * has completed.
@@ -205,8 +64,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		 * @return The enum value of the named stage, unless the stage is not recognized by the MUIS core, in which case {@link #OTHER} is
 		 *         returned
 		 */
-		public static CoreStage get(String name)
-		{
+		public static CoreStage get(String name) {
 			for(CoreStage stage : values())
 				if(stage != OTHER && stage.toString().equals(name))
 					return stage;
@@ -215,89 +73,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	// TODO Add code for attach events
-
-	private class AttributeHolder
-	{
-		private final MuisAttribute<?> attr;
-
-		private IdentityHashMap<Object, Object> theNeeders;
-
-		private IdentityHashMap<Object, Object> theWanters;
-
-		AttributeHolder(MuisAttribute<?> anAttr)
-		{
-			attr = anAttr;
-		}
-
-		synchronized void addWanter(Object wanter, boolean isNeeder)
-		{
-			IdentityHashMap<Object, Object> set = isNeeder ? theNeeders : theWanters;
-			if(set == null)
-			{
-				set = new IdentityHashMap<>();
-				if(isNeeder)
-					theNeeders = set;
-				else
-					theWanters = set;
-			}
-			set.put(wanter, wanter);
-		}
-
-		boolean isRequired()
-		{
-			IdentityHashMap<Object, Object> needers = theNeeders;
-			return needers != null && !needers.isEmpty();
-		}
-
-		boolean isWanted()
-		{
-			if(isRequired())
-				return true;
-			IdentityHashMap<Object, Object> wanters = theWanters;
-			return wanters != null && wanters.isEmpty();
-		}
-
-		synchronized void unrequire(Object wanter)
-		{
-			if(theNeeders != null)
-				theNeeders.remove(wanter);
-			if(theWanters == null)
-				theWanters = new IdentityHashMap<>();
-			theWanters.put(wanter, wanter);
-		}
-
-		synchronized void reject(Object rejecter)
-		{
-			if(theNeeders != null)
-				theNeeders.remove(rejecter);
-			if(theWanters != null)
-				theWanters.remove(rejecter);
-		}
-
-		/**
-		 * Validates an attribute value
-		 *
-		 * @param attr The attribute to validate
-		 * @param value The non-null attribute value to validate
-		 * @param el The element that the attribute is for
-		 * @param required Whether the attribute is required or not
-		 * @return Null if the attribute value is valid for this attribute; an error string describing why the value is not valid otherwise
-		 */
-		private String validate(String value)
-		{
-			String val = attr.type.validate(getClassView(), value);
-			if(val == null)
-				return null;
-			else
-				return (isRequired() ? "Required attribute " : "Attribute ") + attr.name + " " + val;
-		}
-
-		@Override
-		public String toString()
-		{
-			return attr.toString() + (isRequired() ? " (required)" : " (optional)");
-		}
-	}
 
 	/** The event type representing a mouse event */
 	public static final MuisEventType<Void> MOUSE_EVENT = new MuisEventType<Void>("Mouse Event", null);
@@ -371,6 +146,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private final MuisLifeCycleManager theLifeCycleManager;
 
+	private MuisLifeCycleManager.Controller theLifeCycleController;
+
+	private final MuisMessageCenter theMessageCenter;
+
 	private MuisDocument theDocument;
 
 	private MuisToolkit theToolkit;
@@ -383,13 +162,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	private String theTagName;
 
-	private ConcurrentHashMap<String, AttributeHolder> theAcceptedAttrs;
+	private AttributeManager theAttributeManager;
 
-	private ConcurrentHashMap<MuisAttribute<?>, Object> theAttrValues;
-
-	private ConcurrentHashMap<String, String> theRawAttributes;
-
-	private MuisElement [] theChildren;
+	private ChildList theChildren;
 
 	private final ElementStyle theStyle;
 
@@ -412,15 +187,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	@SuppressWarnings({"rawtypes"})
 	private ListenerManager<MuisEventListener> theListeners;
 
-	@SuppressWarnings("rawtypes")
-	private ListenerManager<MuisEventListener> theChildListeners;
-
-	private ArrayList<MuisMessage> theMessages;
-
-	private MuisMessage.Type theWorstMessageType;
-
-	private MuisMessage.Type theWorstChildMessageType;
-
 	private boolean isFocusable;
 
 	private Rectangle theCacheBounds;
@@ -430,29 +196,28 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	private long theLayoutDirtyTime;
 
 	/** Creates a MUIS element */
-	public MuisElement()
-	{
-		theLifeCycleManager = new MuisLifeCycleManager();
+	public MuisElement() {
+		theLifeCycleManager = new MuisLifeCycleManager(this, new MuisLifeCycleManager.ControlAcceptor() {
+			@Override
+			public void setController(Controller controller) {
+				theLifeCycleController = controller;
+			}
+		});
+		theMessageCenter = new MuisMessageCenter(theDocument, this);
 		String lastStage = null;
 		for(CoreStage stage : CoreStage.values())
-			if(stage != CoreStage.OTHER)
-			{
+			if(stage != CoreStage.OTHER) {
 				theLifeCycleManager.addStage(stage.toString(), lastStage);
 				lastStage = stage.toString();
 			}
-		theChildren = new MuisElement[0];
-		theAcceptedAttrs = new ConcurrentHashMap<>();
-		theAttrValues = new ConcurrentHashMap<>();
-		theRawAttributes = new ConcurrentHashMap<>();
+		theChildren = new ChildList(this);
+		theAttributeManager = new AttributeManager(this);
 		theListeners = new ListenerManager<>(MuisEventListener.class);
-		theChildListeners = new ListenerManager<>(MuisEventListener.class);
-		theMessages = new ArrayList<>();
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
 		theDefaultStyleListener = new StyleListener(this) {
 			@Override
-			public void styleChanged(MuisStyle style)
-			{
+			public void styleChanged(MuisStyle style) {
 				repaint(null, false);
 			}
 		};
@@ -460,69 +225,109 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theDefaultStyleListener.add();
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element)
-			{
+			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
 				relayout(false);
-				if(event.getType() == CHILD_REMOVED)
+				if(event.getType() == CHILD_REMOVED) {
 					// Need to repaint where the element left even if nothing changes as a result of the layout
+					unregisterChild(event.getValue());
 					repaint(new Rectangle(element.getX(), element.getY(), element.getWidth(), element.getHeight()), false);
+				} else if(event.getType() == CHILD_ADDED) {
+					registerChild(event.getValue());
+				}
 			}
 
 			@Override
-			public boolean isLocal()
-			{
+			public boolean isLocal() {
 				return true;
 			}
 		};
 		addListener(CHILD_ADDED, childListener);
 		addListener(CHILD_REMOVED, childListener);
-		addChildListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
+		theChildren.addChildListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
-			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element)
-			{
+			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
 				Rectangle paintRect = event.getValue().union(((MuisPropertyEvent<Rectangle>) event).getOldValue());
 				repaint(paintRect, false);
 			}
 
 			@Override
-			public boolean isLocal()
-			{
+			public boolean isLocal() {
 				return true;
 			}
 		});
 		Object styleWanter = new Object();
-		acceptAttribute(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
-		acceptAttribute(styleWanter, StyleAttributeType.STYLE_SELF_ATTRIBUTE);
-		acceptAttribute(styleWanter, StyleAttributeType.STYLE_HEIR_ATTRIBUTE);
+		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
+		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_SELF_ATTRIBUTE);
+		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_HEIR_ATTRIBUTE);
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
-			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element)
-			{
+			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
 				Rectangle old = ((MuisPropertyEvent<Rectangle>) event).getOldValue();
 				if(event.getValue().width != old.width || event.getValue().height != old.height)
 					relayout(false);
 			}
 
 			@Override
-			public boolean isLocal()
-			{
+			public boolean isLocal() {
 				return true;
 			}
 		});
 		theLifeCycleManager.addListener(new LifeCycleListener() {
 			@Override
-			public void preTransition(String fromStage, String toStage)
-			{
+			public void preTransition(String fromStage, String toStage) {
 			}
 
 			@Override
-			public void postTransition(String oldStage, String newStage)
-			{
+			public void postTransition(String oldStage, String newStage) {
 				if(oldStage.equals(CoreStage.INIT_SELF.toString()))
 					repaint(null, false);
 			}
 		});
-		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_SELF.toString());
+		theLifeCycleController.advance(CoreStage.PARSE_SELF.toString());
+	}
+
+	/** @return The document that this element belongs to */
+	public final MuisDocument getDocument() {
+		return theDocument;
+	}
+
+	/** @return The tool kit that this element belongs to */
+	public final MuisToolkit getToolkit() {
+		return theToolkit;
+	}
+
+	/** @return The MUIS class view that allows for instantiation of child elements */
+	public final MuisClassView getClassView() {
+		return theClassView;
+	}
+
+	/** @return The namespace that this tag was instantiated in */
+	public final String getNamespace() {
+		return theNamespace;
+	}
+
+	/** @return The name of the tag that was used to instantiate this element */
+	public final String getTagName() {
+		return theTagName;
+	}
+
+	/** @return The manager of this element's attributes */
+	public AttributeManager getAttributeManager() {
+		return theAttributeManager;
+	}
+
+	/**
+	 * Short-hand for {@link #getAttributeManager()}
+	 *
+	 * @return The manager of this element's attributes
+	 */
+	public AttributeManager atts() {
+		return getAttributeManager();
+	}
+
+	/** @return The style that modifies this element's appearance */
+	public final ElementStyle getStyle() {
+		return theStyle;
 	}
 
 	// Life cycle methods
@@ -532,8 +337,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @return The life cycle manager for this element
 	 */
-	public MuisLifeCycleManager getLifeCycleManager()
-	{
+	public MuisLifeCycleManager getLifeCycleManager() {
 		return theLifeCycleManager;
 	}
 
@@ -542,8 +346,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @return The life cycle manager for this element
 	 */
-	public MuisLifeCycleManager life()
-	{
+	public MuisLifeCycleManager life() {
 		return getLifeCycleManager();
 	}
 
@@ -558,9 +361,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param tagName The tag name used to create this element
 	 */
 	public final void init(MuisDocument doc, MuisToolkit toolkit, MuisClassView classView, MuisElement parent, String namespace,
-		String tagName)
-	{
-		theLifeCycleManager.advanceLifeCycle(CoreStage.INIT_SELF.toString());
+		String tagName) {
+		theLifeCycleController.advance(CoreStage.INIT_SELF.toString());
 		if(doc == null)
 			throw new IllegalArgumentException("Cannot create an element without a document");
 		if(theDocument != null)
@@ -571,8 +373,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
-		theChildren = new MuisElement[0];
-		theLifeCycleManager.advanceLifeCycle(CoreStage.PARSE_CHILDREN.toString());
+		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}
 
 	/**
@@ -580,21 +381,17 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param children The child elements specified in the MUIS XML
 	 */
-	public void initChildren(MuisElement [] children)
-	{
-		theLifeCycleManager.advanceLifeCycle(CoreStage.INIT_CHILDREN.toString());
-		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
-		{
-			for(MuisElement child : theChildren)
-				if(child.getParent() == this)
-					child.setParent(null);
-			theChildren = children;
+	public void initChildren(MuisElement [] children) {
+		theLifeCycleController.advance(CoreStage.INIT_CHILDREN.toString());
+		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true)) {
+			theChildren.clear();
+			theChildren.addAll(children);
 		}
 		for(MuisElement child : children)
 			registerChild(child);
 		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
 			relayout(false);
-		theLifeCycleManager.advanceLifeCycle(CoreStage.INITIALIZED.toString());
+		theLifeCycleController.advance(CoreStage.INITIALIZED.toString());
 	}
 
 	/**
@@ -602,11 +399,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param child The child that has been added to this parent
 	 */
-	protected void registerChild(MuisElement child)
-	{
-		for(Object type : theChildListeners.getAllProperties())
-			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
-				child.addListener((MuisEventType<Object>) type, listener);
+	protected void registerChild(MuisElement child) {
+		if(child.getParent() != this)
+			child.setParent(this);
 	}
 
 	/**
@@ -614,415 +409,25 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param child The child that has been removed from this parent
 	 */
-	protected void unregisterChild(MuisElement child)
-	{
-		for(Object type : theChildListeners.getAllProperties())
-			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
-				child.removeListener(listener);
+	protected void unregisterChild(MuisElement child) {
+		if(child.getParent() == this)
+			child.setParent(null);
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
-	public final void postCreate()
-	{
-		theLifeCycleManager.advanceLifeCycle(CoreStage.STARTUP.toString());
-		for(AttributeHolder holder : theAcceptedAttrs.values())
-		{
-			MuisAttribute<?> attr = holder.attr;
-			boolean required = holder.isRequired();
-			Object value = theAttrValues.get(attr);
-			if(value == null && required)
-				fatal("Required attribute " + attr + " not set", null);
-			if(value instanceof String)
-			{
-				String valError = holder.validate((String) value);
-				if(valError != null)
-					fatal(valError, null);
-				try
-				{
-					value = attr.type.parse(getClassView(), (String) value);
-					setAttribute((MuisAttribute<Object>) attr, value);
-				} catch(MuisException e)
-				{
-					if(required)
-						fatal("Required attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
-					else
-						error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
-					theAttrValues.remove(attr);
-				}
-			}
-			else if(value != null && attr.type.cast(value) == null)
-			{
-				if(required)
-					fatal("Unrecognized value for required attribute " + attr + ": " + value, null, "value", value);
-				else
-					error("Unrecognized value for attribute " + attr + ": " + value, null, "value", value);
-				theAttrValues.remove(attr);
-			}
-			if(value != null)
-				fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
-		}
-		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
-			error("Attribute " + attr.getKey() + " is not accepted in this element", null, "value", attr.getValue());
+	public final void postCreate() {
+		theLifeCycleController.advance(CoreStage.STARTUP.toString());
 		for(MuisElement child : theChildren)
 			child.postCreate();
-		theRawAttributes = null;
-		theLifeCycleManager.advanceLifeCycle(CoreStage.READY.toString());
+		theLifeCycleController.advance(CoreStage.READY.toString());
 	}
 
 	// End life cycle methods
 
-	/**
-	 * Checks whether the given permission can be executed in the current context
-	 *
-	 * @param type The type of permission
-	 * @param value The value associated with the permission
-	 * @throws SecurityException If the permission is denied
-	 */
-	public final void checkSecurity(PermissionType type, Object value) throws SecurityException
-	{
-		SecurityManager mgr = System.getSecurityManager();
-		if(mgr != null)
-			mgr.checkPermission(new MuisSecurityPermission(type, null, this, value));
-	}
-
-	// Attribute methods
-
-	/**
-	 * Sets an attribute typelessly
-	 *
-	 * @param attr The name of the attribute to set
-	 * @param value The string representation of the attribute's value
-	 * @return The parsed value for the attribute, or null if this element has not been initialized
-	 * @throws MuisException If the attribute is not accepted in this element, the value is null and the attribute is required, or this
-	 *             element has already been initialized and the value is not valid for the given attribute
-	 */
-	public final Object setAttribute(String attr, String value) throws MuisException
-	{
-		AttributeHolder holder = theAcceptedAttrs.get(attr);
-		if(holder == null)
-		{
-			if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
-				throw new MuisException("Attribute " + attr + " is not accepted in this element");
-			theRawAttributes.put(attr, value);
-			return null;
-		}
-		return setAttribute(holder.attr, value);
-	}
-
-	/**
-	 * Sets the value of an attribute for the element. If this element has not been fully initialized (by {@link #postCreate()}, the
-	 * attribute's value will be validated and parsed during {@link #postCreate()}. If this element has been initialized, the value will be
-	 * validated immediately and a {@link MuisException} will be thrown if the value is not valid.
-	 *
-	 * @param <T> The type of the attribute to set
-	 * @param attr The attribute to set
-	 * @param value The value for the attribute
-	 * @return The parsed value for the attribute, or null if this element has not been initialized
-	 * @throws MuisException If the attribute is not accepted in this element, the value is null and the attribute is required, or this
-	 *             element has already been initialized and the value is not valid for the given attribute
-	 */
-	public final <T> T setAttribute(MuisAttribute<T> attr, String value) throws MuisException
-	{
-		checkSecurity(PermissionType.setAttribute, attr);
-		if(theRawAttributes != null)
-			theRawAttributes.remove(attr.name);
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder != null)
-		{
-			if(value == null && holder.isRequired())
-				throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
-			T ret;
-			if(value == null)
-				ret = null;
-			else
-			{
-				String valError = holder.validate(value);
-				if(valError != null)
-					throw new MuisException(valError);
-				ret = attr.type.parse(getClassView(), value);
-			}
-			setAttribute(attr, ret);
-			return ret;
-		}
-		else if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) >= 0)
-			throw new MuisException("Attribute " + attr + " is not accepted in this element");
-		else
-			theAttrValues.put(attr, value);
-		return null;
-	}
-
-	/**
-	 * Sets an attribute's type-correct value
-	 *
-	 * @param <T> The type of the attribute to set
-	 * @param attr The attribute to set
-	 * @param value The value to set for the attribute in this element
-	 * @throws MuisException If the attribute is not accepted in this element or the value is not valid
-	 */
-	public final <T> void setAttribute(MuisAttribute<T> attr, T value) throws MuisException
-	{
-		checkSecurity(PermissionType.setAttribute, attr);
-		if(theRawAttributes != null)
-			theRawAttributes.remove(attr.name);
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder == null)
-			throw new MuisException("Attribute " + attr + " is not accepted in this element");
-		if(value == null && holder.isRequired())
-			throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
-		if(value != null)
-		{
-			T newValue = attr.type.cast(value);
-			if(newValue == null)
-				throw new MuisException("Value " + value + ", type " + value.getClass().getName() + " is not valid for atribute " + attr);
-		}
-		Object old = theAttrValues.put(attr, value);
-		fireEvent(new MuisEvent<MuisAttribute<?>>(ATTRIBUTE_SET, attr), false, false);
-		fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.type.cast(old), value), false, false);
-	}
-
-	/**
-	 * @param name The name of the attribute to get
-	 * @return The value of the named attribute
-	 */
-	public final Object getAttribute(String name)
-	{
-		AttributeHolder holder = theAcceptedAttrs.get(name);
-		if(holder == null)
-			return null;
-		return theAttrValues.get(holder.attr);
-	}
-
-	/**
-	 * Gets the value of an attribute in this element
-	 *
-	 * @param <T> The type of the attribute to get
-	 * @param attr The attribute to get the value of
-	 * @return The value of the attribute in this element
-	 */
-	public final <T> T getAttribute(MuisAttribute<T> attr)
-	{
-		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.name);
-		if(storedAttr != null && !storedAttr.attr.equals(attr))
-			return null; // Same name, but different attribute
-		Object stored = theAttrValues.get(attr);
-		if(stored == null)
-			return null;
-		if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) < 0 && stored instanceof String)
-			try
-			{
-				T ret = attr.type.parse(getClassView(), (String) stored);
-				theAttrValues.put(attr, ret);
-				return ret;
-			} catch(MuisException e)
-			{
-				if(storedAttr != null && storedAttr.isRequired())
-					fatal("Required attribute " + attr + " could not be parsed from " + stored, e, "attribute", attr, "value", stored);
-				else
-					error("Attribute " + attr + " could not be parsed from " + stored, e, "attribute", attr, "value", stored);
-				return null;
-			}
-		else
-			return (T) stored;
-	}
-
-	/**
-	 * Specifies a required attribute for this element
-	 *
-	 * @param <T> The type of the attribute to require
-	 * @param <V> The type of the value for the attribute
-	 * @param needer The object that needs the attribute
-	 * @param attr The attribute that must be specified for this element
-	 * @param initValue The value to set for the attribute if a value is not set already
-	 * @throws MuisException If the given value is not acceptable for the given attribute
-	 */
-	public final <T, V extends T> void requireAttribute(Object needer, MuisAttribute<T> attr, V initValue) throws MuisException
-	{
-		acceptAttribute(needer, true, attr, initValue);
-	}
-
-	/**
-	 * Specifies a required attribute for this element
-	 *
-	 * @param needer The object that needs the attribute
-	 * @param attr The attribute that must be specified for this element
-	 */
-	public final void requireAttribute(Object needer, MuisAttribute<?> attr)
-	{
-		try
-		{
-			acceptAttribute(needer, true, attr, null);
-		} catch(MuisException e)
-		{
-			throw new IllegalStateException("Should not throw MuisException with null initValue");
-		}
-	}
-
-	/**
-	 * Marks an accepted attribute as not required
-	 *
-	 * @param wanter The object that cares about the attribute
-	 * @param attr The attribute to accept but not require
-	 */
-	public final void unrequireAttribute(Object wanter, MuisAttribute<?> attr)
-	{
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder != null)
-			holder.unrequire(wanter);
-		else
-			acceptAttribute(wanter, attr);
-	}
-
-	/**
-	 * Specifies an optional attribute for this element
-	 *
-	 * @param <T> The type of the attribute to accept
-	 * @param <V> The type of the value for the attribute
-	 * @param wanter The object that cares about the attribute
-	 * @param attr The attribute that may be specified for this element
-	 * @param initValue The value to set for the attribute if a value is not set already
-	 * @throws MuisException If the given value is not acceptable for the given attribute
-	 */
-	public final <T, V extends T> void acceptAttribute(Object wanter, MuisAttribute<T> attr, V initValue) throws MuisException
-	{
-		acceptAttribute(wanter, false, attr, initValue);
-	}
-
-	/**
-	 * Specifies an optional attribute for this element
-	 *
-	 * @param wanter The object that cares about the attribute
-	 * @param attr The attribute that must be specified for this element
-	 */
-	public final void acceptAttribute(Object wanter, MuisAttribute<?> attr)
-	{
-		try
-		{
-			acceptAttribute(wanter, false, attr, null);
-		} catch(MuisException e)
-		{
-			throw new IllegalStateException("Should not throw MuisException with null initValue");
-		}
-	}
-
-	/**
-	 * Sepcifies an optional or required attribute for this element
-	 *
-	 * @param <T> The type of the attribute to accept
-	 * @param <V> The type of the value for the attribute
-	 * @param wanter The object that cares about the attribute
-	 * @param require Whether the attribute should be required or optional
-	 * @param attr The attribute to accept
-	 * @param initValue The value to set for the attribute if a value is not set already
-	 * @throws MuisException If the given value is not acceptable for the given attribute
-	 */
-	public final <T, V extends T> void acceptAttribute(Object wanter, boolean require, MuisAttribute<T> attr, V initValue)
-		throws MuisException
-	{
-		// if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
-		// throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
-		if(require && initValue == null && theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
-			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder != null)
-		{
-			if(holder.attr.equals(attr))
-				holder.addWanter(wanter, require); // The attribute is already required
-			else
-				throw new IllegalStateException("An attribute named " + attr.name + " (" + holder.attr
-					+ ") is already accepted in this element");
-		}
-		else
-		{
-			holder = new AttributeHolder(attr);
-			holder.addWanter(wanter, require);
-			theAcceptedAttrs.put(attr.name, holder);
-			String strVal = theRawAttributes.remove(attr.name);
-			if(strVal != null)
-			{
-				String valError = holder.validate(strVal);
-				if(valError != null)
-					error(valError, null, "attribute", attr);
-				else
-					try
-					{
-						setAttribute((MuisAttribute<Object>) attr, attr.type.parse(getClassView(), strVal));
-					} catch(MuisException e)
-					{
-						error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e, "attribute", attr);
-					}
-			}
-		}
-		if(initValue != null && theAttrValues.get(attr) == null)
-			setAttribute(attr, initValue);
-	}
-
-	/**
-	 * Undoes acceptance of an attribute. This method does not remove any attribute value associated with this element. It merely disables
-	 * the attribute. If the attribute is accepted on this element later, this element's value of that attribute will be preserved.
-	 *
-	 * @param wanter The object that used to care about the attribute
-	 * @param attr The attribute to not allow in this element
-	 */
-	public final void rejectAttribute(Object wanter, MuisAttribute<?> attr)
-	{
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		if(holder != null)
-		{
-			holder.reject(holder);
-			if(!holder.isWanted())
-				theAcceptedAttrs.remove(attr.name);
-		}
-	}
-
-	/** @return The number of attributes set for this element */
-	public final int getAttributeCount()
-	{
-		return theAcceptedAttrs.size();
-	}
-
-	/** @return All attributes that are accepted in this element */
-	public final MuisAttribute<?> [] getAttributes()
-	{
-		MuisAttribute<?> [] ret = new MuisAttribute[theAcceptedAttrs.size()];
-		int i = 0;
-		for(AttributeHolder holder : theAcceptedAttrs.values())
-			ret[i++] = holder.attr;
-		return ret;
-	}
-
-	/**
-	 * @param attr The attribute to check
-	 * @return Whether the given attribute can be set in this element
-	 */
-	public final boolean isAccepted(MuisAttribute<?> attr)
-	{
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		return holder != null && holder.attr.equals(attr);
-	}
-
-	/**
-	 * @param attr The attribute to check
-	 * @return Whether the given attribute is required in this element
-	 */
-	public final boolean isRequired(MuisAttribute<?> attr)
-	{
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
-		return holder != null && !holder.attr.equals(attr) && holder.isRequired();
-	}
-
-	// End attribute methods
-
 	// Hierarchy methods
 
-	/** @return The document that this element belongs to */
-	public final MuisDocument getDocument()
-	{
-		return theDocument;
-	}
-
 	/** @return This element's parent in the DOM tree */
-	public final MuisElement getParent()
-	{
+	public final MuisElement getParent() {
 		return theParent;
 	}
 
@@ -1031,90 +436,26 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param parent The new parent for this element
 	 */
-	protected final void setParent(MuisElement parent)
-	{
-		checkSecurity(PermissionType.setParent, parent);
-		if(theParent != null)
-		{
-			int parentIndex = ArrayUtils.indexOf(theParent.theChildren, this);
-			if(parentIndex >= 0)
-				theParent.removeChild(parentIndex);
+	protected final void setParent(MuisElement parent) {
+		if(theParent != null) {
+			theParent.theChildren.remove(this);
 		}
 		theParent = parent;
-		reEvalChildWorstMessage();
 		fireEvent(new MuisEvent<MuisElement>(ELEMENT_MOVED, theParent), false, false);
 	}
 
-	/** @return The number of children that this element has */
-	public final int getChildCount()
-	{
-		return theChildren.length;
+	/** @return An augmented {@link java.util.List list} of this element's children */
+	public ChildList getChildren() {
+		return theChildren;
 	}
 
 	/**
-	 * @param index The index of the child to get
-	 * @return This element's child at the given index
-	 */
-	public final MuisElement getChild(int index)
-	{
-		return theChildren[index];
-	}
-
-	/** @return This element's children */
-	public final MuisElement [] getChildren()
-	{
-		return theChildren.clone();
-	}
-
-	/**
-	 * @param child The child to get the index of
-	 * @return The index of the given child in this element's children, or -1 if the given element is not a child under this element
-	 */
-	public final int getChildIndex(MuisElement child)
-	{
-		return ArrayUtils.indexOf(theChildren, child);
-	}
-
-	/**
-	 * Adds a child to this element. Protected because this operation will not be desirable to all implementations (e.g. images). Override
-	 * as public in implementations where this functionality should be exposed publicly (containers).
+	 * Short-hand for {@link #getChildren()}
 	 *
-	 * @param child The child to add
-	 * @param index The index to add the child at, or -1 to add the child as the last element
+	 * @return An augmented {@link java.util.List list} of this element's children
 	 */
-	protected void addChild(MuisElement child, int index)
-	{
-		checkSecurity(PermissionType.addChild, child);
-		if(index < 0)
-			index = theChildren.length;
-		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
-		{
-			child.setParent(this);
-			theChildren = ArrayUtils.add(theChildren, child, index);
-		}
-		fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
-	}
-
-	/**
-	 * Removes a child from this element. Protected because this operation will not be desirable to all implementations (e.g. images).
-	 * Override as public in implementations where this functionality should be exposed publicly (containers).
-	 *
-	 * @param index The index of the child to remove, or -1 to remove the last element
-	 * @return The element that was removed
-	 */
-	protected MuisElement removeChild(int index)
-	{
-		if(index < 0)
-			index = theChildren.length - 1;
-		MuisElement ret = theChildren[index];
-		checkSecurity(PermissionType.removeChild, ret);
-		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true))
-		{
-			ret.setParent(null);
-			theChildren = ArrayUtils.remove(theChildren, index);
-		}
-		fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, ret), false, false);
-		return ret;
+	public ChildList ch() {
+		return getChildren();
 	}
 
 	/**
@@ -1123,13 +464,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param ancestor The element whose subtree to check
 	 * @return Whether this element is in the ancestor's subtree
 	 */
-	public final boolean isAncestor(MuisElement ancestor)
-	{
+	public final boolean isAncestor(MuisElement ancestor) {
 		if(ancestor == this)
 			return true;
 		MuisElement parent = theParent;
-		while(parent != null)
-		{
+		while(parent != null) {
 			if(parent == ancestor)
 				return true;
 			parent = parent.theParent;
@@ -1140,116 +479,55 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	/**
 	 * @param x The x-coordinate of a point relative to this element's upper left corner
 	 * @param y The y-coordinate of a point relative to this element's upper left corner
-	 * @return All children of this element whose bounds contain the given point
-	 */
-	public final MuisElement [] childrenAt(int x, int y)
-	{
-		MuisElement [] children = sortByZ(theChildren);
-		MuisElement [] ret = new MuisElement[0];
-		for(MuisElement child : children)
-		{
-			int relX = x - child.theX;
-			if(relX < 0 || relX >= child.theW)
-				continue;
-			int relY = y - child.theY;
-			if(relY < 0 || relY >= child.theH)
-				continue;
-			ret = ArrayUtils.add(ret, child);
-		}
-		return ret;
-	}
-
-	/**
-	 * @param x The x-coordinate of a point relative to this element's upper left corner
-	 * @param y The y-coordinate of a point relative to this element's upper left corner
 	 * @return The deepest (and largest-Z) descendant of this element whose bounds contain the given point
 	 */
-	public final MuisElement deepestChildAt(int x, int y)
-	{
+	public final MuisElement deepestChildAt(int x, int y) {
 		MuisElement current = this;
-		MuisElement [] children = current.childrenAt(x, y);
-		while(children.length > 0)
-		{
+		MuisElement [] children = current.theChildren.at(x, y);
+		while(children.length > 0) {
 			x -= current.theX;
 			y -= current.theY;
 			current = children[0];
-			children = current.childrenAt(x, y);
+			children = current.theChildren.at(x, y);
 		}
 		return current;
 	}
 
 	// End hierarchy methods
 
-	/** @return The style that modifies this element's appearance */
-	public final ElementStyle getStyle()
-	{
-		return theStyle;
-	}
-
 	/**
 	 * @return The default style listener to add domains and styles to listen to. When one of the registered styles changes, this element
 	 *         repaints itself.
 	 */
-	public final StyleListener getDefaultStyleListener()
-	{
+	public final StyleListener getDefaultStyleListener() {
 		return theDefaultStyleListener;
-	}
-
-	/** @return The tool kit that this element belongs to */
-	public final MuisToolkit getToolkit()
-	{
-		return theToolkit;
-	}
-
-	/** @return The MUIS class view that allows for instantiation of child elements */
-	public final MuisClassView getClassView()
-	{
-		return theClassView;
-	}
-
-	/** @return The namespace that this tag was instantiated in */
-	public final String getNamespace()
-	{
-		return theNamespace;
-	}
-
-	/** @return The name of the tag that was used to instantiate this element */
-	public final String getTagName()
-	{
-		return theTagName;
 	}
 
 	// Bounds methods
 
 	/** @return The x-coordinate of this element's upper left corner */
-	public final int getX()
-	{
+	public final int getX() {
 		return theX;
 	}
 
 	/** @param x The x-coordinate for this element's upper left corner */
-	public final void setX(int x)
-	{
+	public final void setX(int x) {
 		if(theX == x)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
 		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
 	}
 
 	/** @return The y-coordinate of this element's upper left corner */
-	public final int getY()
-	{
+	public final int getY() {
 		return theY;
 	}
 
 	/** @param y The y-coordinate for this element's upper left corner */
-	public final void setY(int y)
-	{
+	public final void setY(int y) {
 		if(theY == y)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theY = y;
 		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
@@ -1259,11 +537,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param x The x-coordinate for this element's upper left corner
 	 * @param y The y-coordinate for this element's upper left corner
 	 */
-	public final void setPosition(int x, int y)
-	{
+	public final void setPosition(int x, int y) {
 		if(theX == x && theY == y)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
 		theY = y;
@@ -1271,51 +547,42 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/** @return The z-index determining the order in which this element is drawn among its siblings */
-	public final int getZ()
-	{
+	public final int getZ() {
 		return theZ;
 	}
 
 	/** @param z The z-index determining the order in which this element is drawn among its siblings */
-	public final void setZ(int z)
-	{
+	public final void setZ(int z) {
 		if(theZ == z)
 			return;
-		checkSecurity(PermissionType.setZ, null);
 		theZ = z;
 		if(theParent != null)
 			theParent.repaint(new Rectangle(theX, theY, theW, theH), false);
 	}
 
 	/** @return The width of this element */
-	public final int getWidth()
-	{
+	public final int getWidth() {
 		return theW;
 	}
 
 	/** @param width The width for this element */
-	public final void setWidth(int width)
-	{
+	public final void setWidth(int width) {
 		if(theW == width)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theW = width;
 		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
 	}
 
 	/** @return The height of this element */
-	public final int getHeight()
-	{
+	public final int getHeight() {
 		return theH;
 	}
 
 	/** @param height The height for this element */
-	public final void setHeight(int height)
-	{
+	public final void setHeight(int height) {
 		if(theH == height)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theH = height;
 		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
@@ -1325,11 +592,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param width The width for this element
 	 * @param height The height for this element
 	 */
-	public final void setSize(int width, int height)
-	{
+	public final void setSize(int width, int height) {
 		if(theW == width && theH == height)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theW = width;
 		theH = height;
@@ -1342,11 +607,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param width The width for this element
 	 * @param height The height for this element
 	 */
-	public final void setBounds(int x, int y, int width, int height)
-	{
+	public final void setBounds(int x, int y, int width, int height) {
 		if(theX == x && theY == y && theW == width && theH == height)
 			return;
-		checkSecurity(PermissionType.setBounds, null);
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
 		theY = y;
@@ -1356,29 +619,25 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height)
-	{
+	public SizePolicy getWSizer(int height) {
 		if(theHSizer == null)
 			theHSizer = new SimpleSizePolicy();
 		return theHSizer;
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width)
-	{
+	public SizePolicy getHSizer(int width) {
 		if(theVSizer == null)
 			theVSizer = new SimpleSizePolicy();
 		return theVSizer;
 	}
 
 	/** @return This element's position relative to the document's root */
-	public final Point getDocumentPosition()
-	{
+	public final Point getDocumentPosition() {
 		int x = 0;
 		int y = 0;
 		MuisElement el = this;
-		while(el.theParent != null)
-		{
+		while(el.theParent != null) {
 			x += el.theX;
 			y += el.theY;
 			el = el.theParent;
@@ -1392,20 +651,17 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @return Whether positional events are consumed by this element, or whether they should be propagated to elements under this element.
 	 *         By default, this method returns true if and only if the background transparency is one.
 	 */
-	public boolean isClickThrough()
-	{
+	public boolean isClickThrough() {
 		return getStyle().get(BackgroundStyles.transparency) >= 1;
 	}
 
 	/** @return Whether this element is able to accept the focus for the document */
-	public boolean isFocusable()
-	{
+	public boolean isFocusable() {
 		return isFocusable;
 	}
 
 	/** @param focusable Whether this element should be focusable */
-	protected final void setFocusable(boolean focusable)
-	{
+	protected final void setFocusable(boolean focusable) {
 		isFocusable = focusable;
 	}
 
@@ -1418,14 +674,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param type The event type to listen for
 	 * @param listener The listener to notify when an event of the given type occurs
 	 */
-	public final <T> void addListener(MuisEventType<T> type, MuisEventListener<? super T> listener)
-	{
+	public final <T> void addListener(MuisEventType<T> type, MuisEventListener<? super T> listener) {
 		theListeners.addListener(type, listener);
 	}
 
 	/** @param listener The listener to remove from this element */
-	public final void removeListener(MuisEventListener<?> listener)
-	{
+	public final void removeListener(MuisEventListener<?> listener) {
 		theListeners.removeListener(listener);
 	}
 
@@ -1436,33 +690,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param type The type of event to stop listening for
 	 * @param listenerType The listener type to remove
 	 */
-	public final <T> void removeListener(MuisEventType<T> type, Class<? extends MuisEventListener<? super T>> listenerType)
-	{
+	public final <T> void removeListener(MuisEventType<T> type, Class<? extends MuisEventListener<? super T>> listenerType) {
 		for(MuisEventListener<?> listener : theListeners.getListeners(type))
 			if(listener.getClass() == listenerType)
 				theListeners.removeListener(listener);
-	}
-
-	/**
-	 * Adds a listener for an event type to this element's direct children
-	 *
-	 * @param <T> The type of the property that the event represents
-	 * @param type The event type to listen for
-	 * @param listener The listener to notify when an event of the given type occurs
-	 */
-	public final <T> void addChildListener(MuisEventType<T> type, MuisEventListener<? super T> listener)
-	{
-		theChildListeners.addListener(type, listener);
-		for(MuisElement child : theChildren)
-			child.addListener(type, listener);
-	}
-
-	/** @param listener The listener to remove from this element's children */
-	public final void removeChildListener(MuisEventListener<?> listener)
-	{
-		theChildListeners.removeListener(listener);
-		for(MuisElement child : theChildren)
-			child.removeListener(listener);
 	}
 
 	/**
@@ -1473,9 +704,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param fromDescendant Whether the event was fired on one of this element's descendants or on this element specifically
 	 * @param toAncestors Whether the event should be fired on this element's ancestors as well
 	 */
-	public final <T> void fireEvent(MuisEvent<T> event, boolean fromDescendant, boolean toAncestors)
-	{
-		checkSecurity(PermissionType.fireEvent, event.getType());
+	public final <T> void fireEvent(MuisEvent<T> event, boolean fromDescendant, boolean toAncestors) {
 		MuisEventListener<T> [] listeners = theListeners.getListeners(event.getType());
 		for(MuisEventListener<T> listener : listeners)
 			if(!fromDescendant || !listener.isLocal())
@@ -1489,9 +718,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param event The event to fire
 	 */
-	public final void fireUserEvent(org.muis.core.event.UserEvent event)
-	{
-		checkSecurity(PermissionType.fireEvent, event.getType());
+	public final void fireUserEvent(org.muis.core.event.UserEvent event) {
 		MuisEventListener<Void> [] listeners = theListeners.getListeners(event.getType());
 		for(MuisEventListener<Void> listener : listeners)
 			if(event.getElement() == this || !listener.isLocal())
@@ -1507,12 +734,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param x The x-coordinate of the position at which the event occurred, relative to this element's upper-left corner
 	 * @param y The y-coordinate of the position at which the event occurred, relative to this element's upper-left corner
 	 */
-	protected final void firePositionEvent(org.muis.core.event.PositionedUserEvent event, int x, int y)
-	{
-		checkSecurity(PermissionType.fireEvent, event.getType());
-		MuisElement [] children = childrenAt(x, y);
-		for(int c = children.length - 1; c >= 0; c--)
-		{
+	protected final void firePositionEvent(org.muis.core.event.PositionedUserEvent event, int x, int y) {
+		MuisElement [] children = theChildren.at(x, y);
+		for(int c = children.length - 1; c >= 0; c--) {
 			if(event.isCanceled())
 				continue;
 			MuisElement child = children[c];
@@ -1526,204 +750,47 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	// End event methods
 
-	// Messaging events
-
-	@Override
-	public final void fatal(String message, Throwable exception, Object... params)
-	{
-		message(MuisMessage.Type.FATAL, message, exception, params);
-	}
-
-	@Override
-	public final void error(String message, Throwable exception, Object... params)
-	{
-		message(MuisMessage.Type.ERROR, message, exception, params);
-	}
-
-	@Override
-	public final void warn(String message, Object... params)
-	{
-		message(MuisMessage.Type.WARNING, message, null, params);
-	}
-
-	@Override
-	public final void warn(String message, Throwable exception, Object... params)
-	{
-		message(MuisMessage.Type.WARNING, message, exception, params);
-	}
+	// Messaging methods
 
 	/**
-	 * Records a message in this element
+	 * Returns a message center that allows messaging on this element
 	 *
-	 * @param type The type of the message
-	 * @param text The text of the message
-	 * @param exception The exception which may have caused the message
-	 * @param params Any parameters relevant to the message
+	 * @return This element's message center
 	 */
-	@Override
-	public final void message(MuisMessage.Type type, String text, Throwable exception, Object... params)
-	{
-		MuisMessage message = new MuisMessage(this, type, theLifeCycleManager.getStage(), text, exception, params);
-		theMessages.add(message);
-		if(theWorstMessageType == null || theWorstMessageType.compareTo(type) > 0)
-			theWorstMessageType = type;
-		if(theParent != null)
-			theParent.childMessage(message);
-		fireEvent(new MuisEvent<MuisMessage>(MESSAGE_ADDED, message), false, true);
-	}
-
-	/** @param message The message to remove from this element */
-	public final void removeMessage(MuisMessage message)
-	{
-		if(!theMessages.remove(message))
-			return;
-		reEvalWorstMessage();
-		if(theParent != null)
-			theParent.childMessageRemoved(message);
-		fireEvent(new MuisEvent<MuisMessage>(MESSAGE_REMOVED, message), false, true);
-	}
-
-	/** @return The number of messages in this element */
-	public final int getMessageCount()
-	{
-		return theMessages.size();
+	public MuisMessageCenter getMessageCenter() {
+		return theMessageCenter;
 	}
 
 	/**
-	 * @param index The index of the element to get
-	 * @return The message at the given index
+	 * Short-hand for {@link #getMessageCenter()}
+	 *
+	 * @return This element's message center
 	 */
-	public final MuisMessage getMessage(int index)
-	{
-		return theMessages.get(index);
+	public MuisMessageCenter msg() {
+		return getMessageCenter();
 	}
 
-	/** @return All messages attached to this element */
-	public final MuisMessage [] getElementMessages()
-	{
-		return theMessages.toArray(new MuisMessage[theMessages.size()]);
+	/** @return The worst type of messages in this element and its children */
+	public MuisMessage.Type getWorstMessageType() {
+		MuisMessage.Type ret = theMessageCenter.getWorstMessageType();
+		for(MuisElement child : theChildren) {
+			MuisMessage.Type childType = child.theMessageCenter.getWorstMessageType();
+			if(ret == null || ret.compareTo(childType) < 0)
+				ret = childType;
+		}
+		return ret;
 	}
 
-	/** @return All messages attached to this element or its descendants */
-	@Override
-	public final MuisMessage [] getAllMessages()
-	{
-		ArrayList<MuisMessage> ret = new ArrayList<MuisMessage>();
-		ret.addAll(theMessages);
+	/** @return All messages in this element or any of its children */
+	public Iterable<MuisMessage> allMessages() {
+		java.util.ArrayList<MuisMessageCenter> centers = new java.util.ArrayList<>();
+		centers.add(theMessageCenter);
 		for(MuisElement child : theChildren)
-			addMessages(ret, child);
-		return ret.toArray(new MuisMessage[ret.size()]);
-	}
-
-	private final static void addMessages(ArrayList<MuisMessage> ret, MuisElement el)
-	{
-		ret.addAll(el.theMessages);
-		for(MuisElement child : el.theChildren)
-			addMessages(ret, child);
-	}
-
-	/** @return The worst type of message associated with the MUIS element subtree rooted at this element */
-	@Override
-	public final MuisMessage.Type getWorstMessageType()
-	{
-		if(theWorstMessageType == null)
-			return theWorstChildMessageType;
-		if(theWorstMessageType.compareTo(theWorstChildMessageType) > 0)
-			return theWorstMessageType;
-		return theWorstChildMessageType;
-	}
-
-	/** @return The worst type of message associated with this element */
-	public final MuisMessage.Type getWorstElementMessageType()
-	{
-		return theWorstMessageType;
-	}
-
-	/** @return The worst type of message associated with any of this element's descendants */
-	public final MuisMessage.Type getWorstChildMessageType()
-	{
-		return theWorstChildMessageType;
-	}
-
-	private final void childMessage(MuisMessage message)
-	{
-		if(theWorstChildMessageType == null || message.type.compareTo(theWorstChildMessageType) > 0)
-			theWorstChildMessageType = message.type;
-		if(theParent != null)
-			theParent.childMessage(message);
-	}
-
-	private final void childMessageRemoved(MuisMessage message)
-	{
-		if(theParent != null)
-			theParent.childMessageRemoved(message);
-	}
-
-	private final void reEvalWorstMessage()
-	{
-		MuisMessage.Type type = null;
-		for(MuisMessage message : theMessages)
-			if(type == null || message.type.compareTo(type) > 0)
-				type = message.type;
-		if(theWorstMessageType == null ? type != null : theWorstMessageType != type)
-		{
-			theWorstMessageType = type;
-			if(theParent != null && theParent.theWorstChildMessageType != null && theParent.theWorstChildMessageType == type)
-				theParent.reEvalChildWorstMessage();
-		}
-	}
-
-	private final void reEvalChildWorstMessage()
-	{
-		MuisMessage.Type type = null;
-		for(MuisElement child : theChildren)
-		{
-			MuisMessage.Type childType = child.getWorstMessageType();
-			if(type == null || childType.compareTo(type) > 0)
-				type = childType;
-		}
-		if(theWorstChildMessageType == null ? type != null : theWorstChildMessageType != type)
-		{
-			theWorstChildMessageType = type;
-			if(theParent != null && theParent.theWorstChildMessageType != null && theParent.theWorstChildMessageType == type)
-				theParent.reEvalChildWorstMessage();
-		}
+			centers.add(child.msg());
+		return ArrayUtils.iterable(centers.toArray(new MuisMessageCenter[centers.size()]));
 	}
 
 	// End messaging methods
-
-	/**
-	 * Sorts a set of elements by z-index in ascending order. This operation is useful for rendering children in correct sequence and in
-	 * determining which elements should receive events first.
-	 *
-	 * @param children The children to sort by z-index. This array is not modified.
-	 * @return The sorted array
-	 */
-	public static final MuisElement [] sortByZ(MuisElement [] children)
-	{
-		if(children.length < 2)
-			return children;
-		boolean sameZ = true;
-		int z = children[0].theZ;
-		for(int c = 1; c < children.length; c++)
-			if(children[c].theZ != z)
-			{
-				sameZ = false;
-				break;
-			}
-		if(!sameZ)
-		{
-			children = children.clone();
-			java.util.Arrays.sort(children, new java.util.Comparator<MuisElement>() {
-				@Override
-				public int compare(MuisElement el1, MuisElement el2)
-				{
-					return el1.theZ - el2.theZ;
-				}
-			});
-		}
-		return children;
-	}
 
 	/**
 	 * Generates an XML-representation of this element's content
@@ -1731,8 +798,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param indent The indention string to use for each level away from the margin
 	 * @return The XML string representing this element
 	 */
-	public final String asXML(String indent)
-	{
+	public final String asXML(String indent) {
 		StringBuilder ret = new StringBuilder();
 		appendXML(ret, indent, 0);
 		return ret.toString();
@@ -1745,45 +811,39 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param indent The indention string to use for each level away from the margin
 	 * @param level The depth of this element in the structure being printed
 	 */
-	protected final void appendXML(StringBuilder str, String indent, int level)
-	{
+	protected final void appendXML(StringBuilder str, String indent, int level) {
 		for(int L = 0; L < level; L++)
 			str.append(indent);
 		str.append('<');
-		if(theNamespace != null)
-		{
+		if(theNamespace != null) {
 			str.append(theNamespace);
 			str.append(':');
 		}
 		str.append(theTagName);
-		for(java.util.Map.Entry<MuisAttribute<?>, Object> entry : theAttrValues.entrySet())
-		{
+		for(AttributeManager.AttributeHolder holder : theAttributeManager.holders()) {
 			str.append(' ');
-			str.append(entry.getKey().name);
+			str.append(holder.getAttribute().name);
 			str.append('=');
 			str.append('"');
-			str.append(entry.getValue());
+			str.append(holder.getValue());
 			str.append('"');
 		}
-		if(theChildren.length == 0)
-		{
+		if(theChildren.isEmpty()) {
 			str.append('/');
 			str.append('>');
 			return;
 		}
 		str.append('>');
-		for(int c = 0; c < theChildren.length; c++)
-		{
+		for(MuisElement child : theChildren) {
 			str.append('\n');
-			theChildren[c].appendXML(str, indent, level + 1);
+			child.appendXML(str, indent, level + 1);
 		}
 		str.append('\n');
 		for(int L = 0; L < level; L++)
 			str.append(indent);
 		str.append('<');
 		str.append('/');
-		if(theNamespace != null)
-		{
+		if(theNamespace != null) {
 			str.append(theNamespace);
 			str.append(':');
 		}
@@ -1797,8 +857,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * Causes this element to adjust the position and size of its children in a way defined in this element type's implementation. By
 	 * default this does nothing.
 	 */
-	public void doLayout()
-	{
+	public void doLayout() {
 		theLayoutDirtyTime = 0;
 		for(MuisElement child : getChildren())
 			child.doLayout();
@@ -1810,8 +869,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *
 	 * @param now Whether to perform the layout action now or allow it to be performed asynchronously
 	 */
-	public final void relayout(boolean now)
-	{
+	public final void relayout(boolean now) {
 		if(theW <= 0 || theH <= 0)
 			return; // No point layout out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
@@ -1819,8 +877,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	/** @return The last time a layout event was scheduled for this element */
-	public final long getLayoutDirtyTime()
-	{
+	public final long getLayoutDirtyTime() {
 		return theLayoutDirtyTime;
 	}
 
@@ -1829,19 +886,16 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	// Paint methods
 
 	/** @return The graphics object to use to draw this element */
-	public Graphics2D getGraphics()
-	{
+	public Graphics2D getGraphics() {
 		int x = 0, y = 0;
 		MuisElement el = this;
-		while(el.theParent != null)
-		{
+		while(el.theParent != null) {
 			x += getX();
 			y += getY();
 			el = el.theParent;
 		}
 		java.awt.Graphics2D graphics = theDocument.getGraphics();
-		if(el != theDocument.getRoot())
-		{
+		if(el != theDocument.getRoot()) {
 			graphics = (Graphics2D) graphics.create(x, y, 0, 0);
 			return graphics;
 		}
@@ -1853,8 +907,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @return The bounds within which this element may draw and receive events, relative to the layout x,y position. This may extend
 	 *         outside the element's layout bounds (e.g. for a menu, which expands, but does not cause a relayout when it does so).
 	 */
-	public Rectangle getPaintBounds()
-	{
+	public Rectangle getPaintBounds() {
 		return new Rectangle(0, 0, theW, theH);
 	}
 
@@ -1864,8 +917,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * @param graphics The graphics context to render this element in
 	 * @param area The area to draw
 	 */
-	public final void paint(java.awt.Graphics2D graphics, Rectangle area)
-	{
+	public final void paint(java.awt.Graphics2D graphics, Rectangle area) {
 		if((area != null && (area.width == 0 || area.height == 0)) || theW == 0 || theH == 0)
 			return;
 		Rectangle paintBounds = getPaintBounds();
@@ -1873,13 +925,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 		theCacheBounds.x += theX;
 		theCacheBounds.y += theY;
 		Rectangle preClip = graphics.getClipBounds();
-		try
-		{
+		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
 			paintSelf(graphics, area);
-			paintChildren(graphics, theChildren, area);
-		} finally
-		{
+			paintChildren(graphics, area);
+		} finally {
 			graphics.setClip(preClip);
 		}
 	}
@@ -1893,8 +943,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 *            performed at one time with no duplication after the event is finished. This parameter should be true if this is called
 	 *            from an independent thread.
 	 */
-	public final void repaint(Rectangle area, boolean now)
-	{
+	public final void repaint(Rectangle area, boolean now) {
 		if(theW <= 0 || theH <= 0)
 			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
@@ -1903,13 +952,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 
 	/**
 	 * Renders this element's background or its content, but NOT its children. Children are rendered by
-	 * {@link #paintChildren(java.awt.Graphics2D, MuisElement [], Rectangle)}. By default, this merely draws the element's background color.
+	 * {@link #paintChildren(java.awt.Graphics2D, Rectangle)}. By default, this merely draws the element's background color.
 	 *
 	 * @param graphics The graphics context to draw in
 	 * @param area The area to paint
 	 */
-	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area)
-	{
+	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area) {
 		Texture tex = getStyle().get(BackgroundStyles.texture);
 		if(tex != null)
 			tex.render(graphics, this, area);
@@ -1919,23 +967,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	 * Draws this element's children
 	 *
 	 * @param graphics The graphics context to render in
-	 * @param children The children to render
 	 * @param area The area in this element's coordinates to repaint
 	 */
-	public final void paintChildren(java.awt.Graphics2D graphics, MuisElement [] children, Rectangle area)
-	{
+	public final void paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
+		MuisElement [] children = ch().sortByZ();
 		if(children.length == 0)
 			return;
 		if(area == null)
 			area = new Rectangle(theX, theY, theW, theH);
-		children = sortByZ(children);
 		int translateX = 0;
 		int translateY = 0;
-		try
-		{
+		try {
 			Rectangle childArea = new Rectangle();
-			for(MuisElement child : children)
-			{
+			for(MuisElement child : children) {
 				int childX = child.theX;
 				int childY = child.theY;
 				translateX += childX;
@@ -1957,22 +1001,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 				translateX = -childX;
 				translateY = -childY;
 			}
-		} finally
-		{
+		} finally {
 			if(translateX != 0 || translateY != 0)
 				graphics.translate(-translateX, -translateY);
 		}
 	}
 
 	/** @return The last time a paint event was scheduled for this element */
-	public final long getPaintDirtyTime()
-	{
+	public final long getPaintDirtyTime() {
 		return thePaintDirtyTime;
 	}
 
 	/** @return This element's bounds as of the last time it was painted */
-	public final Rectangle getCacheBounds()
-	{
+	public final Rectangle getCacheBounds() {
 		return theCacheBounds;
 	}
 

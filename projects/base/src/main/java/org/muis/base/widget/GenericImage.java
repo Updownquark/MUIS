@@ -9,6 +9,7 @@ import org.muis.base.data.ImageData;
 import org.muis.core.MuisLayout;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.mgr.LifeCycleListener;
 
 /** Renders an image */
 public class GenericImage extends org.muis.core.LayoutContainer
@@ -174,7 +175,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 				{
 					org.muis.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
 					if(res == null)
-						error("No configured img-load-icon", null);
+						msg().error("No configured img-load-icon");
 					if(res != null && theLoadingImage == null)
 						try
 						{
@@ -194,16 +195,16 @@ public class GenericImage extends org.muis.core.LayoutContainer
 									@Override
 									public void errorOccurred(URL key, Throwable exception)
 									{
-										error("Could not load image loading icon", exception);
+										msg().error("Could not load image loading icon", exception);
 									}
 								});
 						} catch(org.muis.core.MuisException | java.io.IOException e)
 						{
-							error("Could not retrieve image loading icon", e);
+							msg().error("Could not retrieve image loading icon", e);
 						}
 					res = getToolkit().getMappedResource("img-load-failed-icon");
 					if(res == null)
-						error("No configured img-load-failed-icon", null);
+						msg().error("No configured img-load-failed-icon");
 					if(res != null && theErrorImage == null)
 						try
 						{
@@ -223,12 +224,12 @@ public class GenericImage extends org.muis.core.LayoutContainer
 									@Override
 									public void errorOccurred(URL key, Throwable exception)
 									{
-										error("Could not load image load failed icon", exception);
+										msg().error("Could not load image load failed icon", exception);
 									}
 								});
 						} catch(org.muis.core.MuisException | java.io.IOException e)
 						{
-							error("Could not retrieve image load failed icon", e);
+							msg().error("Could not retrieve image load failed icon", e);
 						}
 				}
 			}
@@ -436,7 +437,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		case lock:
 			return new SimpleSizePolicy(w, w, w, 0);
 		case lockIfEmpty:
-			if(getChildCount() == 0)
+			if(ch().isEmpty())
 				return new SimpleSizePolicy(w, w, w, 0);
 			else
 				return super.getWSizer(height);
@@ -477,7 +478,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 		case lock:
 			return new SimpleSizePolicy(h, h, h, 0);
 		case lockIfEmpty:
-			if(getChildCount() == 0)
+			if(ch().isEmpty())
 				return new SimpleSizePolicy(h, h, h, 0);
 			else
 				return super.getHSizer(width);

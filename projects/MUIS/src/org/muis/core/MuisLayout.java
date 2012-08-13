@@ -28,7 +28,7 @@ public interface MuisLayout
 
 	/**
 	 * Called when this layout is removed from the container
-	 * 
+	 *
 	 * @param parent The layout container that this layout formerly governed
 	 */
 	void remove(MuisElement parent);
@@ -51,8 +51,8 @@ public interface MuisLayout
 
 	/**
 	 * Adjusts the position and size of the container's children according to this layout's scheme
-	 *
-	 * @param parent The container of the children to layout. The value is not guaranteed to be an implementation of {@link MuisContainer}.
+	 * 
+	 * @param parent The container of the children to layout.
 	 * @param children The children to adjust within the container
 	 */
 	void layout(MuisElement parent, MuisElement [] children);

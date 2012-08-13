@@ -76,10 +76,10 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	protected void checkLayoutAttributes(MuisElement parent)
 	{
 		isShapeSet = true;
-		theDirection = parent.getAttribute(direction);
+		theDirection = parent.atts().get(direction);
 		if(theDirection == null)
 			theDirection = Direction.RIGHT;
-		theBreakPolicy = parent.getAttribute(FLOW_BREAK);
+		theBreakPolicy = parent.atts().get(FLOW_BREAK);
 		if(theBreakPolicy == null)
 			theBreakPolicy = BreakPolicy.NEEDED;
 	}
@@ -189,34 +189,34 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 			if(horizontal)
 			{
 				if(minMax < 0)
-					return child.getAttribute(minLeft);
+					return child.atts().get(minLeft);
 				else if(minMax == 0)
-					return child.getAttribute(left);
+					return child.atts().get(left);
 				else
-					return child.getAttribute(maxLeft);
+					return child.atts().get(maxLeft);
 			}
 			else if(minMax < 0)
-				return child.getAttribute(minTop);
+				return child.atts().get(minTop);
 			else if(minMax == 0)
-				return child.getAttribute(top);
+				return child.atts().get(top);
 			else
-				return child.getAttribute(maxTop);
+				return child.atts().get(maxTop);
 		}
 		else if(horizontal)
 		{
 			if(minMax < 0)
-				return child.getAttribute(minRight);
+				return child.atts().get(minRight);
 			else if(minMax == 0)
-				return child.getAttribute(right);
+				return child.atts().get(right);
 			else
-				return child.getAttribute(maxRight);
+				return child.atts().get(maxRight);
 		}
 		else if(minMax < 0)
-			return child.getAttribute(minBottom);
+			return child.atts().get(minBottom);
 		else if(minMax == 0)
-			return child.getAttribute(bottom);
+			return child.atts().get(bottom);
 		else
-			return child.getAttribute(maxBottom);
+			return child.atts().get(maxBottom);
 	}
 
 	protected Size getChildSizeConstraint(MuisElement child, boolean major, int type, int minMax)
@@ -235,18 +235,18 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 		if(horizontal)
 		{
 			if(minMax < 0)
-				return child.getAttribute(minWidth);
+				return child.atts().get(minWidth);
 			else if(minMax == 0)
-				return child.getAttribute(width);
+				return child.atts().get(width);
 			else
-				return child.getAttribute(maxWidth);
+				return child.atts().get(maxWidth);
 		}
 		else if(minMax < 0)
-			return child.getAttribute(minHeight);
+			return child.atts().get(minHeight);
 		else if(minMax == 0)
-			return child.getAttribute(height);
+			return child.atts().get(height);
 		else
-			return child.getAttribute(maxHeight);
+			return child.atts().get(maxHeight);
 	}
 
 	public int getMajorGap()

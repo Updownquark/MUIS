@@ -50,7 +50,7 @@ public class MuisTextElement extends MuisLeaf
 		java.awt.Font font = MuisUtils.getFont(getStyle());
 		if(font == null)
 		{
-			error("Could not derive font", null);
+			msg().error("Could not derive font");
 			return new SimpleSizePolicy(0, 0, 0, 0);
 		}
 		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().get(
@@ -155,7 +155,7 @@ public class MuisTextElement extends MuisLeaf
 		java.awt.Font font = MuisUtils.getFont(getStyle());
 		if(font == null)
 		{
-			error("Could not derive font", null);
+			msg().error("Could not derive font");
 			return 0;
 		}
 		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().get(

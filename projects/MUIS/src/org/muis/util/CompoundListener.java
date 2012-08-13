@@ -169,7 +169,8 @@ public abstract class CompoundListener<T> {
 	 * @param attr The attribute to accept in the element(s) that this listener applies to
 	 * @param value The initial value for the attribute (if it is not already set)
 	 * @return The listener for chaining
-	 * @throws IllegalArgumentException If {@link MuisElement#acceptAttribute(Object, MuisAttribute, Object)} throws a {@link MuisException}
+	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws
+	 *             a {@link MuisException}
 	 */
 	public abstract <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException;
 
@@ -186,7 +187,8 @@ public abstract class CompoundListener<T> {
 	 * @param attr The attribute to require in the element(s) that this listener applies to
 	 * @param value The initial value for the attribute (if it is not already set)
 	 * @return The listener for chaining
-	 * @throws IllegalArgumentException If {@link MuisElement#acceptAttribute(Object, MuisAttribute, Object)} throws a {@link MuisException}
+	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws
+	 *             a {@link MuisException}
 	 */
 	public abstract <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException;
 
@@ -197,7 +199,8 @@ public abstract class CompoundListener<T> {
 	 * @param required Whether the attribute should be required or just accepted
 	 * @param value The initial value for the attribute (if it is not already set)
 	 * @return The listener for chaining
-	 * @throws IllegalArgumentException If {@link MuisElement#acceptAttribute(Object, MuisAttribute, Object)} throws a {@link MuisException}
+	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws
+	 *             a {@link MuisException}
 	 */
 	public abstract <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, boolean required, V value)
 		throws IllegalArgumentException;
@@ -442,8 +445,8 @@ public abstract class CompoundListener<T> {
 			};
 			theElListener.getElement().addListener(MuisElement.CHILD_ADDED, theAddedListener);
 			theElListener.getElement().addListener(MuisElement.CHILD_REMOVED, theRemovedListener);
-			theElListener.getElement().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
-			theElListener.getElement().addChildListener(org.muis.core.style.StyleAttributeEvent.TYPE, this);
+			theElListener.getElement().ch().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
+			theElListener.getElement().ch().addChildListener(org.muis.core.style.StyleAttributeEvent.TYPE, this);
 			theIndividualListeners = new ArrayList<>();
 			theElementListeners = new java.util.HashMap<>();
 		}
@@ -1012,7 +1015,7 @@ public abstract class CompoundListener<T> {
 
 		@Override
 		void doReject(MuisAttribute<?> attr) {
-			theParent.getElement().rejectAttribute(theParent.getWanter(), attr);
+			theParent.getElement().atts().reject(theParent.getWanter(), attr);
 		}
 
 		@Override
@@ -1027,7 +1030,7 @@ public abstract class CompoundListener<T> {
 
 		@Override
 		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V value) throws MuisException {
-			theParent.getElement().acceptAttribute(theParent.getWanter(), required, attr, value);
+			theParent.getElement().atts().accept(theParent.getWanter(), required, attr, value);
 		}
 	}
 
@@ -1038,31 +1041,31 @@ public abstract class CompoundListener<T> {
 
 		ChildChainedCompoundListener(ChildCompoundListener childListener) {
 			theChildListener = childListener;
-			theChildren = childListener.getElementListener().getElement().getChildren();
+			theChildren = childListener.getElementListener().getElement().getChildren().toArray();
 		}
 
 		void childAdded(MuisElement child) {
 			theChildren = prisms.util.ArrayUtils.add(theChildren, child);
 			for(AttributeHolder holder : getAllAttrProps())
 				try {
-					child.acceptAttribute(theChildListener.getElementListener().getWanter(), holder.required,
+					child.atts().accept(theChildListener.getElementListener().getWanter(), holder.required,
 						(MuisAttribute<Object>) holder.attr, holder.initValue);
 				} catch(MuisException e) {
-					child.error("Bad initial value!", e, "attribute", holder.attr, "value", holder.initValue);
+					child.msg().error("Bad initial value!", e, "attribute", holder.attr, "value", holder.initValue);
 				}
 		}
 
 		void childRemoved(MuisElement child) {
 			theChildren = prisms.util.ArrayUtils.remove(theChildren, child);
 			for(AttributeHolder holder : getAllAttrProps())
-				child.rejectAttribute(theChildListener.getElementListener().getWanter(), holder.attr);
+				child.atts().reject(theChildListener.getElementListener().getWanter(), holder.attr);
 		}
 
 		@Override
 		<A, V extends A> void doAccept(MuisAttribute<A> attr, boolean required, V initValue) throws IllegalArgumentException {
 			for(MuisElement child : theChildren)
 				try {
-					child.acceptAttribute(theChildListener.getElementListener().getWanter(), required, (MuisAttribute<Object>) attr,
+					child.atts().accept(theChildListener.getElementListener().getWanter(), required, (MuisAttribute<Object>) attr,
 						initValue);
 				} catch(MuisException e) {
 					throw new IllegalArgumentException(e.getMessage(), e);
@@ -1072,7 +1075,7 @@ public abstract class CompoundListener<T> {
 		@Override
 		void doReject(MuisAttribute<?> attr) {
 			for(MuisElement child : theChildren)
-				child.rejectAttribute(theChildListener.getElementListener().getWanter(), attr);
+				child.atts().reject(theChildListener.getElementListener().getWanter(), attr);
 		}
 
 		@Override

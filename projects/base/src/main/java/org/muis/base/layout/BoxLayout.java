@@ -45,7 +45,7 @@ public class BoxLayout implements MuisLayout
 	@Override
 	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
 	{
-		Direction dir = parent.getAttribute(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutConstants.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
 		switch (dir)
@@ -63,7 +63,7 @@ public class BoxLayout implements MuisLayout
 	@Override
 	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
 	{
-		Direction dir = parent.getAttribute(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutConstants.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
 		switch (dir)
@@ -94,8 +94,8 @@ public class BoxLayout implements MuisLayout
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Size size = child.getAttribute(sizeAttr);
-			Size minSize = child.getAttribute(minSizeAttr);
+			Size size = child.atts().get(sizeAttr);
+			Size minSize = child.atts().get(minSizeAttr);
 			if(size != null && !size.getUnit().isRelative())
 			{
 				ret.setMin(ret.getMin() + size.evaluate(0));
@@ -133,8 +133,8 @@ public class BoxLayout implements MuisLayout
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Size size = child.getAttribute(sizeAttr);
-			Size minSize = child.getAttribute(minSizeAttr);
+			Size size = child.atts().get(sizeAttr);
+			Size minSize = child.atts().get(minSizeAttr);
 			if(size != null && !size.getUnit().isRelative())
 			{
 				int sz = size.evaluate(0);
@@ -165,10 +165,10 @@ public class BoxLayout implements MuisLayout
 	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		java.awt.Rectangle bounds = new java.awt.Rectangle();
-		Direction dir = parent.getAttribute(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutConstants.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
-		Alignment align = parent.getAttribute(LayoutConstants.alignment);
+		Alignment align = parent.atts().get(LayoutConstants.alignment);
 		if(align == null)
 			align = Alignment.begin;
 		int begin = 0;
@@ -189,10 +189,10 @@ public class BoxLayout implements MuisLayout
 		}
 		for(MuisElement child : children)
 		{
-			Size w = child.getAttribute(LayoutConstants.width);
-			Size h = child.getAttribute(LayoutConstants.height);
-			Size minW = child.getAttribute(LayoutConstants.minWidth);
-			Size minH = child.getAttribute(LayoutConstants.minHeight);
+			Size w = child.atts().get(LayoutConstants.width);
+			Size h = child.atts().get(LayoutConstants.height);
+			Size minW = child.atts().get(LayoutConstants.minWidth);
+			Size minH = child.atts().get(LayoutConstants.minHeight);
 
 			int mainSize;
 			int crossSize;

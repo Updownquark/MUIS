@@ -29,10 +29,10 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 	protected void checkLayoutAttributes(MuisElement parent)
 	{
 		isShapeSet = true;
-		theDirection = parent.getAttribute(LayoutConstants.direction);
+		theDirection = parent.atts().get(LayoutConstants.direction);
 		if(theDirection == null)
 			theDirection = Direction.RIGHT;
-		theBreakPolicy = parent.getAttribute(FlowLayout.FLOW_BREAK);
+		theBreakPolicy = parent.atts().get(FlowLayout.FLOW_BREAK);
 		if(theBreakPolicy == null)
 			theBreakPolicy = BreakPolicy.NEEDED;
 	}

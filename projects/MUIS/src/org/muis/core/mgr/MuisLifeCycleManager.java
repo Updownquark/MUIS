@@ -1,0 +1,140 @@
+package org.muis.core.mgr;
+
+import org.muis.core.MuisElement;
+
+import prisms.util.ArrayUtils;
+
+/** Manages the life cycle of an element */
+public class MuisLifeCycleManager {
+	/** Allows control over a life cycle manager */
+	public interface Controller {
+		/** @param toStage The stage to advance to */
+		void advance(String toStage);
+	}
+
+	/** Accepts control of a new life cycle manager */
+	public interface ControlAcceptor {
+		/** @param controller The controller for the new life cycle manager */
+		void setController(Controller controller);
+	}
+
+	private final MuisElement theMuisElement;
+
+	private volatile String [] theStages;
+
+	private int theCurrentStage;
+
+	private volatile LifeCycleListener [] theLifeCycleListeners;
+
+	private final Object theListenerLock;
+
+	/**
+	 * Creates a new life cycle manager. This should only be called from {@link MuisElement#MuisElement()}.
+	 *
+	 * @param muisElement The element that this manager will manage the life cycle of
+	 * @param acceptor The acceptor to accept control of the new life cycle manager
+	 * @param initStages The initial stages for the life cycle
+	 */
+	public MuisLifeCycleManager(MuisElement muisElement, ControlAcceptor acceptor, String... initStages) {
+		theMuisElement = muisElement;
+		theStages = initStages;
+		theLifeCycleListeners = new LifeCycleListener[0];
+		theListenerLock = new Object();
+		acceptor.setController(new Controller() {
+			@Override
+			public void advance(String toStage) {
+				advanceLifeCycle(toStage);
+			}
+		});
+	}
+
+	/** @return The current stage in the element's life cycle */
+	public String getStage() {
+		return theStages.length == 0 ? null : theStages[theCurrentStage];
+	}
+
+	/** @return All stages in this life cycle, past, present, and future */
+	public String [] getStages() {
+		return theStages.clone();
+	}
+
+	/**
+	 * @param stage The stage to check
+	 * @return <0 if the current stage is before the given stage, 0, if the current stage is the given stage, or >0 if the current stage is
+	 *         after the given stage
+	 */
+	public int isAfter(String stage) {
+		int index = ArrayUtils.indexOf(theStages, stage);
+		if(index < 0)
+			throw new IllegalArgumentException("Unrecognized life cycle stage \"" + stage + "\"");
+		return theCurrentStage - index;
+	}
+
+	/** @param listener The listener to be notified when the life cycle stage changes */
+	public void addListener(LifeCycleListener listener) {
+		synchronized(theListenerLock) {
+			int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
+			if(idx < 0)
+				theLifeCycleListeners = ArrayUtils.add(theLifeCycleListeners, listener);
+		}
+	}
+
+	/** @param listener The listener to remove from notification */
+	public void removeListener(LifeCycleListener listener) {
+		synchronized(theListenerLock) {
+			int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
+			if(idx >= 0)
+				theLifeCycleListeners = ArrayUtils.remove(theLifeCycleListeners, idx);
+		}
+	}
+
+	/**
+	 * @param stage The stage to add to this life cycle
+	 * @param afterStage The stage (already registered in this life cycle manager) to add the new stage after
+	 */
+	public void addStage(String stage, String afterStage) {
+		if(theCurrentStage > 0)
+			theMuisElement.msg().error("Life cycle stages may not be added after the " + theStages[0] + " stage", "stage", stage);
+		if(afterStage == null && theStages.length > 0) {
+			theMuisElement.msg().error("afterStage must not be null--stages cannot be inserted before " + theStages[0], "stage", stage);
+			return;
+		}
+		if(ArrayUtils.contains(theStages, stage))
+			throw new IllegalArgumentException("Life cycle stage \"" + stage + "\" already exists in this life cycle manager");
+		if(theStages.length == 0) {
+			theStages = new String[] {stage};
+			return;
+		}
+		int idx = prisms.util.ArrayUtils.indexOf(theStages, afterStage);
+		if(idx < 0) {
+			theMuisElement.msg().error("afterStage \"" + afterStage + "\" not found. Cannot add stage.", "stage", stage);
+			return;
+		}
+		theStages = prisms.util.ArrayUtils.add(theStages, stage, idx + 1);
+	}
+
+	/** Advances the life cycle stage of the element to the given stage. Called from MuisElement. */
+	private void advanceLifeCycle(String toStage) {
+		String [] stages = theStages;
+		LifeCycleListener [] listeners = theLifeCycleListeners;
+		int goal = ArrayUtils.indexOf(stages, toStage);
+		if(goal <= theCurrentStage) {
+			theMuisElement.msg().error("Stage " + toStage + " has already been transitioned", "stage", toStage);
+			return;
+		}
+		while(theCurrentStage < stages.length - 1 && !stages[theCurrentStage].equals(toStage)) {
+			// Transition one stage forward
+			String oldStage = stages[theCurrentStage];
+			String newStage = stages[theCurrentStage + 1];
+			/*
+			 * Call listeners for the pre-transition in reverse order so that the first listener added gets notified just before the
+			 * transition actually occurs so nobody has a chance to override its actions
+			 */
+			for(int L = listeners.length - 1; L >= 0; L--)
+				listeners[L].preTransition(oldStage, newStage);
+			theCurrentStage++;
+			for(LifeCycleListener listener : listeners)
+				listener.postTransition(oldStage, newStage);
+		}
+	}
+}

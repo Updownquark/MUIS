@@ -50,14 +50,14 @@ public class SimpleLayout implements MuisLayout
 	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
 	{
 		return getSizer(children, LayoutConstants.left, LayoutConstants.right, LayoutConstants.width, LayoutConstants.minWidth,
-			LayoutConstants.maxWidth, parentHeight, false, parent.getAttribute(LayoutConstants.maxInf));
+			LayoutConstants.maxWidth, parentHeight, false, parent.atts().get(LayoutConstants.maxInf));
 	}
 
 	@Override
 	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
 	{
 		return getSizer(children, LayoutConstants.top, LayoutConstants.bottom, LayoutConstants.height, LayoutConstants.minHeight,
-			LayoutConstants.maxHeight, parentWidth, true, parent.getAttribute(LayoutConstants.maxInf));
+			LayoutConstants.maxHeight, parentWidth, true, parent.atts().get(LayoutConstants.maxInf));
 	}
 
 	/**
@@ -82,11 +82,11 @@ public class SimpleLayout implements MuisLayout
 		boolean isMaxInf = Boolean.TRUE.equals(maxInfValue);
 		for(MuisElement child : children)
 		{
-			Position minPosL = child.getAttribute(minPosAtt);
-			Position maxPosL = child.getAttribute(maxPosAtt);
-			Size sizeL = child.getAttribute(sizeAtt);
-			Size minSizeL = child.getAttribute(minSizeAtt);
-			Size maxSizeL = child.getAttribute(maxSizeAtt);
+			Position minPosL = child.atts().get(minPosAtt);
+			Position maxPosL = child.atts().get(maxPosAtt);
+			Size sizeL = child.atts().get(sizeAtt);
+			Size minSizeL = child.atts().get(minSizeAtt);
+			Size maxSizeL = child.atts().get(maxSizeAtt);
 			if(maxPosL != null && !maxPosL.getUnit().isRelative())
 			{
 				int r = maxPosL.evaluate(0);
@@ -196,14 +196,14 @@ public class SimpleLayout implements MuisLayout
 		int [] dim = new int[2];
 		for(MuisElement child : children)
 		{
-			Position leftPos = child.getAttribute(LayoutConstants.left);
-			Position rightPos = child.getAttribute(LayoutConstants.right);
-			Position topPos = child.getAttribute(LayoutConstants.top);
-			Position bottomPos = child.getAttribute(LayoutConstants.bottom);
-			Size w = child.getAttribute(LayoutConstants.width);
-			Size h = child.getAttribute(LayoutConstants.height);
-			Size minW = child.getAttribute(LayoutConstants.minWidth);
-			Size minH = child.getAttribute(LayoutConstants.minHeight);
+			Position leftPos = child.atts().get(LayoutConstants.left);
+			Position rightPos = child.atts().get(LayoutConstants.right);
+			Position topPos = child.atts().get(LayoutConstants.top);
+			Position bottomPos = child.atts().get(LayoutConstants.bottom);
+			Size w = child.atts().get(LayoutConstants.width);
+			Size h = child.atts().get(LayoutConstants.height);
+			Size minW = child.atts().get(LayoutConstants.minWidth);
+			Size minH = child.atts().get(LayoutConstants.minHeight);
 
 			layout(child, false, parent.getHeight(), leftPos, rightPos, w, minW, parent.getWidth(), dim);
 			bounds.x = dim[0];

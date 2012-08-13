@@ -2,9 +2,7 @@ package org.muis.base.layout;
 
 import static org.muis.base.layout.LayoutConstants.*;
 
-import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
-import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
@@ -39,89 +37,25 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public void update(MuisElement element, CompoundElementListener listener) {
-				listener.chain(Region.left.name()).setActive(element.getAttribute(region) == Region.left);
-				listener.chain(Region.right.name()).setActive(element.getAttribute(region) == Region.right);
-				listener.chain(Region.top.name()).setActive(element.getAttribute(region) == Region.top);
-				listener.chain(Region.bottom.name()).setActive(element.getAttribute(region) == Region.bottom);
+				listener.chain(Region.left.name()).setActive(element.atts().get(region) == Region.left);
+				listener.chain(Region.right.name()).setActive(element.atts().get(region) == Region.right);
+				listener.chain(Region.top.name()).setActive(element.atts().get(region) == Region.top);
+				listener.chain(Region.bottom.name()).setActive(element.atts().get(region) == Region.bottom);
 			}
 		});
 	}
 
-	private class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>> {
-		private final MuisElement theParent;
-
-		RelayoutListener(MuisElement parent) {
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.region) {
-				switch (element.getAttribute(LayoutConstants.region)) {
-				case left:
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
-					element.acceptAttribute(BorderLayout.this, LayoutConstants.right);
-					break;
-				case top:
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
-					element.acceptAttribute(BorderLayout.this, LayoutConstants.bottom);
-					break;
-				case right:
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
-					element.acceptAttribute(BorderLayout.this, LayoutConstants.left);
-					break;
-				case bottom:
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
-					element.acceptAttribute(BorderLayout.this, LayoutConstants.top);
-					break;
-				case center:
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.left);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.right);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.top);
-					element.rejectAttribute(BorderLayout.this, LayoutConstants.bottom);
-					break;
-				}
-			}
-			if(attr == LayoutConstants.left || attr == LayoutConstants.right || attr == LayoutConstants.top
-				|| attr == LayoutConstants.bottom)
-				theParent.relayout(false);
-		}
-
-		@Override
-		public boolean isLocal() {
-			return true;
-		}
-	}
-
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children) {
-		RelayoutListener listener = new RelayoutListener(parent);
-		for(MuisElement child : children) {
-			child.addListener(MuisElement.ATTRIBUTE_SET, listener);
-		}
+		theListener.listenerFor(parent);
 	}
 
 	@Override
 	public void childAdded(MuisElement parent, MuisElement child) {
-		child.addListener(MuisElement.ATTRIBUTE_SET, new RelayoutListener(parent));
 	}
 
 	@Override
 	public void childRemoved(MuisElement parent, MuisElement child) {
-		child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutListener.class);
-		child.rejectAttribute(this, LayoutConstants.left);
-		child.rejectAttribute(this, LayoutConstants.right);
-		child.rejectAttribute(this, LayoutConstants.top);
-		child.rejectAttribute(this, LayoutConstants.bottom);
 	}
 
 	@Override
@@ -130,12 +64,12 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children) {
 			Position pos;
-			Size size = child.getAttribute(LayoutConstants.width);
-			Size minSize = child.getAttribute(LayoutConstants.minWidth);
+			Size size = child.atts().get(LayoutConstants.width);
+			Size minSize = child.atts().get(LayoutConstants.minWidth);
 			SizePolicy sizer;
-			switch (child.getAttribute(LayoutConstants.region)) {
+			switch (child.atts().get(LayoutConstants.region)) {
 			case left:
-				pos = child.getAttribute(LayoutConstants.right);
+				pos = child.atts().get(LayoutConstants.right);
 				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
@@ -151,7 +85,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 				}
 				break;
 			case right:
-				pos = child.getAttribute(LayoutConstants.right);
+				pos = child.atts().get(LayoutConstants.right);
 				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));

@@ -78,7 +78,7 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 			int equalIdx = style.indexOf("=");
 			if(equalIdx < 0)
 			{
-				element.error("Invalid style: " + style + ".  No '='", null);
+				element.msg().error("Invalid style: " + style + ".  No '='");
 				continue;
 			}
 			String attr = style.substring(0, equalIdx).trim();
@@ -118,23 +118,24 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 				}
 				if(domainClassName == null)
 					if(element.getToolkit() != element.getDocument().getCoreToolkit())
-						element.warn("No style domain mapped to " + domainName + " in element's toolkit (" + element.getToolkit().getName()
+						element.msg().warn(
+							"No style domain mapped to " + domainName + " in element's toolkit (" + element.getToolkit().getName()
 							+ ") or default toolkit");
 					else
-						element.warn("No style domain mapped to " + domainName + " in default toolkit");
+						element.msg().warn("No style domain mapped to " + domainName + " in default toolkit");
 			}
 			else
 			{
 				toolkit = element.getClassView().getToolkit(ns);
 				if(toolkit == null)
 				{
-					element.warn("No toolkit mapped to namespace " + ns + " for style " + style);
+					element.msg().warn("No toolkit mapped to namespace " + ns + " for style " + style);
 					continue;
 				}
 				domainClassName = toolkit.getMappedClass(domainName);
 				if(domainClassName == null)
 				{
-					element.warn("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName());
+					element.msg().warn("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName());
 					continue;
 				}
 			}
@@ -145,7 +146,7 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 				domainClass = toolkit.loadClass(domainClassName, org.muis.core.style.StyleDomain.class);
 			} catch(MuisException e)
 			{
-				element.warn("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
+				element.msg().warn("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
 				continue;
 			}
 			org.muis.core.style.StyleDomain domain;
@@ -155,14 +156,14 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 					new Object[0]);
 			} catch(Exception e)
 			{
-				element.warn("Could not get domain instance", e);
+				element.msg().warn("Could not get domain instance", e);
 				continue;
 			}
 
 			if(attrName != null)
-				applyStyleAttribute(ret, domain, attrName, valueStr, element, element.getClassView());
+				applyStyleAttribute(ret, domain, attrName, valueStr, element.msg(), element.getClassView());
 			else
-				applyStyleSet(ret, domain, valueStr, element, element.getClassView());
+				applyStyleSet(ret, domain, valueStr, element.msg(), element.getClassView());
 		}
 		return ret;
 	}
@@ -178,7 +179,7 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 * @param classView The class view to use for parsing if needed
 	 */
 	protected void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.MuisMessage.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
 	{
 		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager, classView);
 	}
@@ -193,7 +194,7 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 * @param classView The class view to use for parsing if needed
 	 */
 	protected void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.MuisMessage.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
 	{
 		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
 	}

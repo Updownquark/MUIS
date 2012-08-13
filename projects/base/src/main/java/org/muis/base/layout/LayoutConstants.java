@@ -10,7 +10,7 @@ public class LayoutConstants
 {
 	public static int getPositionValue(org.muis.core.MuisElement element, MuisAttribute<Position> attr, int totalLength, int defVal)
 	{
-		Position ret = element.getAttribute(attr);
+		Position ret = element.atts().get(attr);
 		if(ret != null)
 			return ret.evaluate(totalLength);
 		else

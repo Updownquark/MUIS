@@ -159,7 +159,7 @@ public class MuisUtils
 
 	private static MuisElementCapture captureEventTargets(MuisElementCapture root, int x, int y)
 	{
-		MuisElement [] children = prisms.util.ArrayUtils.reverse(MuisElement.sortByZ(root.element.getChildren()));
+		MuisElement [] children = prisms.util.ArrayUtils.reverse(root.element.getChildren().sortByZ());
 		for(MuisElement child : children)
 		{
 			Rectangle bounds = child.getCacheBounds();

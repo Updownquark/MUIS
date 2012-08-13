@@ -16,8 +16,7 @@ import org.muis.core.style.StyleAttribute;
  * A convenient utility that uses invocation chaining to allow code to accept/require attributes on an element and its children and perform
  * actions when they change in a very easy way.
  * </p>
- *
-
+ * 
  * <p>
  * As an example, take the SimpleListener layout in org.muis.base.layout. This layout can accept one attribute, max-inf, from the parent
  * container and several dimension parameters (left, right, height, width, etc.) from each of the children to be layed out. The layout class
@@ -25,37 +24,47 @@ import org.muis.core.style.StyleAttribute;
  * childAdded method, making sure it cleaned itself up properly in the childRemoved and remove methods. Instead, a
  * {@link MultiElementCompoundListener} is created in the constructor and initialized with the acceptable attributes once:
  * </p>
- *
-
+ * 
  * <p>
+<<<<<<< HEAD
  *
+=======
+ * 
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
  * <pre>
  * 	theListener = CompoundListener.create(this);<br>
  * 	theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);<br>
  * 	theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight)
  * 		.onChange(CompoundListener.layout);
  * </pre>
+<<<<<<< HEAD
  *
+=======
+ * 
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
  * </p>
- *
-
+ * 
  * Then each parent element that the layout services is added to the listener in the initChildren method:
- *
-
+ * 
  * <p>
  * <code>
  * 		theListener.listenerFor(parent);
  * </code>
  * </p>
+<<<<<<< HEAD
  *
-
-
+=======
+ * 
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
  * <p>
  * The listener ensures that the parent and its children all accept and require the correct attributes and that the correct actions are
  * taken when the attributes change, and much work is saved by the author of the layout.
-
  * </p>
+<<<<<<< HEAD
  *
+=======
+ * 
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
  * <p>
  * This functionality is sufficient for the vast majority of cases, but in some circumstances, individual children may need to accept
  * different attributes based on some custom condition. This utility supports this functionality also. Take {@link java.awt.BorderLayout}
@@ -65,11 +74,19 @@ import org.muis.core.style.StyleAttribute;
  * simply accept all possible layout attributes and just ignore invalid ones, but we can do better using the
  * {@link IndividualElementListener} interface.
  * </p>
+<<<<<<< HEAD
  *
  * <p>
  * Here is BorderLayout's usage of CompoundListener
  * </p>
  *
+=======
+ * 
+ * <p>
+ * Here is BorderLayout's usage of CompoundListener
+ * </p>
+ * 
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
  * <pre>
  * theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.layout);
  * theListener.eachChild(new CompoundListener.IndividualElementListener() {
@@ -93,6 +110,7 @@ import org.muis.core.style.StyleAttribute;
  * 	}
  * });
  * </pre>
+<<<<<<< HEAD
  *
  * <p>
  * First the border layout tells the compound listener that every child should accept the region attribute, an if it is changed, each child
@@ -104,7 +122,18 @@ import org.muis.core.style.StyleAttribute;
  * </p>
  *
  * TODO style listeners
+=======
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
  *
+ * <p>
+ * First the border layout tells the compound listener that every child should accept the region attribute, an if it is changed, each child
+ * needs to be individually evaluated by the listener and a layout operation will be performed on the parent. Then the layout adds an
+ * individual listener to alter attributes for each child. This individual listener creates 4 named chains, one for each border region and
+ * calls the update method, which is also called by the individualChecker call above whenever the region changes. The update method makes
+ * exactly one of the chains active at a time, depending on which region is assigned to the child. This keeps the attribute state
+ * consistent.
+ * </p>
+ * 
  * @param <T> The type of the listener
  */
 public abstract class CompoundListener<T> {
@@ -419,7 +448,10 @@ public abstract class CompoundListener<T> {
 			theElListener.getElement().addListener(MuisElement.CHILD_ADDED, theAddedListener);
 			theElListener.getElement().addListener(MuisElement.CHILD_REMOVED, theRemovedListener);
 			theElListener.getElement().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
+<<<<<<< HEAD
 			theElListener.getElement().addChildListener(org.muis.core.style.StyleAttributeEvent.TYPE, this);
+=======
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
 			theIndividualListeners = new ArrayList<>();
 			theElementListeners = new java.util.HashMap<>();
 		}
@@ -527,9 +559,15 @@ public abstract class CompoundListener<T> {
 				return;
 			isDropped = true;
 			for(ChainedCompoundListener<?> chain : theAnonymousChains)
+<<<<<<< HEAD
 				chain.drop();
 			for(ChainedCompoundListener<?> chain : theNamedChains.values())
 				chain.drop();
+=======
+				chain.drop();
+			for(ChainedCompoundListener<?> chain : theNamedChains.values())
+				chain.drop();
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
 			theAnonymousChains.clear();
 			theNamedChains.clear();
 		}
@@ -591,11 +629,14 @@ public abstract class CompoundListener<T> {
 		@Override
 		public CompoundListener<?> requireAll(MuisAttribute<?>... attrs) {
 			return chain(null).requireAll(attrs);
+<<<<<<< HEAD
 		}
 
 		@Override
 		public <A> CompoundListener<A> watch(StyleAttribute<A> attr) {
 			return chain(null).watch(attr);
+=======
+>>>>>>> 1bd00a56d3a7b76e2979bc7e19b6ed5b65437b89
 		}
 
 		@Override

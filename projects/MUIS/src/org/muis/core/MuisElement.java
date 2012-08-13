@@ -1977,4 +1977,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable, Muis
 	}
 
 	// End paint methods
+
+	@Override
+	public final boolean equals(Object o) {
+		return super.equals(o);
+	}
+
+	@Override
+	public final int hashCode() {
+		return super.hashCode();
+	}
 }

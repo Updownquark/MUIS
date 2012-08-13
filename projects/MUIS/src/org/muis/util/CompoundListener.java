@@ -1,6 +1,5 @@
 package org.muis.util;
 
-
 import java.util.ArrayList;
 
 import org.muis.core.MuisAttribute;
@@ -9,13 +8,14 @@ import org.muis.core.MuisException;
 import org.muis.core.event.AttributeChangedListener;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
+import org.muis.core.style.StyleAttribute;
 
 /**
  * <p>
  * A convenient utility that uses invocation chaining to allow code to accept/require attributes on an element and its children and perform
  * actions when they change in a very easy way.
  * </p>
- * 
+ *
  * <p>
  * As an example, take the SimpleListener layout in org.muis.base.layout. This layout can accept one attribute, max-inf, from the parent
  * container and several dimension parameters (left, right, height, width, etc.) from each of the children to be layed out. The layout class
@@ -23,31 +23,31 @@ import org.muis.core.event.MuisEventListener;
  * childAdded method, making sure it cleaned itself up properly in the childRemoved and remove methods. Instead, a
  * {@link MultiElementCompoundListener} is created in the constructor and initialized with the acceptable attributes once:
  * </p>
- * 
+ *
  * <p>
- * 
+ *
  * <pre>
  * 	theListener = CompoundListener.create(this);<br>
  * 	theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);<br>
  * 	theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight)
  * 		.onChange(CompoundListener.layout);
  * </pre>
- * 
+ *
  * </p>
- * 
+ *
  * Then each parent element that the layout services is added to the listener in the initChildren method:
- * 
+ *
  * <p>
  * <code>
  * 		theListener.listenerFor(parent);
  * </code>
  * </p>
- * 
+ *
  * <p>
  * The listener ensures that the parent and its children all accept and require the correct attributes and that the correct actions are
  * taken when the attributes change, and much work is saved by the author of the layout.
  * </p>
- * 
+ *
  * <p>
  * This functionality is sufficient for the vast majority of cases, but in some circumstances, individual children may need to accept
  * different attributes based on some custom condition. This utility supports this functionality also. Take {@link java.awt.BorderLayout}
@@ -57,11 +57,11 @@ import org.muis.core.event.MuisEventListener;
  * simply accept all possible layout attributes and just ignore invalid ones, but we can do better using the
  * {@link IndividualElementListener} interface.
  * </p>
- * 
+ *
  * <p>
  * Here is BorderLayout's usage of CompoundListener
  * </p>
- * 
+ *
  * <pre>
  * theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.layout);
  * theListener.eachChild(new CompoundListener.IndividualElementListener() {
@@ -94,7 +94,9 @@ import org.muis.core.event.MuisEventListener;
  * exactly one of the chains active at a time, depending on which region is assigned to the child. This keeps the attribute state
  * consistent.
  * </p>
- * 
+ *
+ * TODO style listeners
+ *
  * @param <T> The type of the listener
  */
 public abstract class CompoundListener<T> {
@@ -205,6 +207,15 @@ public abstract class CompoundListener<T> {
 	public abstract CompoundListener<?> requireAll(MuisAttribute<?>... attrs);
 
 	/**
+	 * Watches a style attribute. When the attribute's value changes, any change listeners registered on this listener will fire.
+	 *
+	 * @param <A> The type of the attribute
+	 * @param attr The style attribute to listen for
+	 * @return The listener for chaining
+	 */
+	public abstract <A> CompoundListener<A> watch(StyleAttribute<A> attr);
+
+	/**
 	 * Activates or activates the effects of this listener. Effects are active by default.
 	 *
 	 * @param active Whether this listener's effects are active or inactive.
@@ -312,6 +323,7 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
 			theElement.addListener(MuisElement.ATTRIBUTE_CHANGED, ret);
+			theElement.addListener(org.muis.core.style.StyleAttributeEvent.TYPE, ret);
 			return ret;
 		}
 
@@ -399,6 +411,7 @@ public abstract class CompoundListener<T> {
 			theElListener.getElement().addListener(MuisElement.CHILD_ADDED, theAddedListener);
 			theElListener.getElement().addListener(MuisElement.CHILD_REMOVED, theRemovedListener);
 			theElListener.getElement().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
+			theElListener.getElement().addChildListener(org.muis.core.style.StyleAttributeEvent.TYPE, this);
 			theIndividualListeners = new ArrayList<>();
 			theElementListeners = new java.util.HashMap<>();
 		}
@@ -573,6 +586,11 @@ public abstract class CompoundListener<T> {
 		}
 
 		@Override
+		public <A> CompoundListener<A> watch(StyleAttribute<A> attr) {
+			return chain(null).watch(attr);
+		}
+
+		@Override
 		public CompoundListener<?> setActive(boolean active) {
 			ChainedCompoundListener<?> [] chains = getAnonymousChains();
 			for(ChainedCompoundListener<?> chain : chains) {
@@ -642,6 +660,8 @@ public abstract class CompoundListener<T> {
 
 		private java.util.HashMap<MuisAttribute<?>, AttributeChangedListener<?> []> theSpecificListeners;
 
+		private java.util.Set<StyleAttribute<?>> theStyleAttributes;
+
 		private boolean isActive;
 
 		private boolean isDropped;
@@ -650,6 +670,7 @@ public abstract class CompoundListener<T> {
 			theChained = new java.util.LinkedHashMap<>();
 			theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 			theSpecificListeners = new java.util.HashMap<>();
+			theStyleAttributes = new java.util.HashSet<>();
 			isActive = true;
 		}
 
@@ -671,22 +692,36 @@ public abstract class CompoundListener<T> {
 		public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
 			if(!isActive)
 				return;
-			org.muis.core.event.AttributeChangedEvent<?> ace = (org.muis.core.event.AttributeChangedEvent<?>) event;
-			AttributeChangedListener<Object> [] listeners;
-			boolean contains;
-			synchronized(theChained) {
-				contains = theChained.containsKey(ace.getAttribute());
+			if(event instanceof org.muis.core.event.AttributeChangedEvent) {
+				org.muis.core.event.AttributeChangedEvent<?> ace = (org.muis.core.event.AttributeChangedEvent<?>) event;
+				AttributeChangedListener<Object> [] listeners;
+				boolean contains;
+				synchronized(theChained) {
+					contains = theChained.containsKey(ace.getAttribute());
+				}
+				synchronized(theSpecificListeners) {
+					listeners = (AttributeChangedListener<Object> []) theSpecificListeners.get(ace.getAttribute());
+				}
+				if(contains) {
+					for(ChangeListener run : theListeners)
+						run.changed(getElement());
+				}
+				if(listeners != null)
+					for(AttributeChangedListener<Object> listener : listeners)
+						listener.attributeChanged((org.muis.core.event.AttributeChangedEvent<Object>) ace);
 			}
-			synchronized(theSpecificListeners) {
-				listeners = (AttributeChangedListener<Object> []) theSpecificListeners.get(ace.getAttribute());
+			else if(event instanceof org.muis.core.style.StyleAttributeEvent) {
+				org.muis.core.style.StyleAttributeEvent<?> sae = (org.muis.core.style.StyleAttributeEvent<?>) (MuisEvent<?>) event;
+				boolean contains;
+				synchronized(theStyleAttributes) {
+					contains = theStyleAttributes.contains(sae.getAttribute());
+				}
+				if(contains) {
+					for(ChangeListener run : theListeners)
+						run.changed(getElement());
+				}
+				// TODO Specific style listeners
 			}
-			if(contains) {
-				for(ChangeListener run : theListeners)
-					run.changed(getElement());
-			}
-			if(listeners != null)
-				for(AttributeChangedListener<Object> listener : listeners)
-					listener.attributeChanged((org.muis.core.event.AttributeChangedEvent<Object>) ace);
 		}
 
 		@Override
@@ -796,6 +831,14 @@ public abstract class CompoundListener<T> {
 			}
 			theLastAttr = null;
 			return this;
+		}
+
+		@Override
+		public <A> CompoundListener<A> watch(StyleAttribute<A> attr) {
+			synchronized(theStyleAttributes) {
+				theStyleAttributes.add(attr);
+			}
+			return (CompoundListener<A>) this;
 		}
 
 		@Override

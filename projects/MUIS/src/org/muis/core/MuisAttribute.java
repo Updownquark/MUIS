@@ -775,7 +775,7 @@ public final class MuisAttribute<T>
 	}
 
 	@Override
-	public boolean equals(Object o)
+	public final boolean equals(Object o)
 	{
 		if(!(o instanceof MuisAttribute<?>))
 			return false;
@@ -784,7 +784,7 @@ public final class MuisAttribute<T>
 	}
 
 	@Override
-	public int hashCode()
+	public final int hashCode()
 	{
 		return name.hashCode() * 7 + type.hashCode();
 	}

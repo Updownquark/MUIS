@@ -61,6 +61,6 @@ public class LightedStyle implements StyleDomain
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator()
 	{
-		return prisms.util.ArrayUtils.iterator(theAttributes);
+		return prisms.util.ArrayUtils.iterator(theAttributes, true);
 	}
 }

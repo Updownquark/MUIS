@@ -68,7 +68,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	/** @return An iterator over this capture's immediate children */
 	public Iterable<MuisElementCapture> getChildren()
 	{
-		return prisms.util.ArrayUtils.iterable(theChildren);
+		return prisms.util.ArrayUtils.iterable(theChildren, true);
 	}
 
 	/** @return An iterator of each end point (leaf node) in this hierarchy */

@@ -169,8 +169,8 @@ public abstract class CompoundListener<T> {
 	 * @param attr The attribute to accept in the element(s) that this listener applies to
 	 * @param value The initial value for the attribute (if it is not already set)
 	 * @return The listener for chaining
-	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws
-	 *             a {@link MuisException}
+	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws a
+	 *             {@link MuisException}
 	 */
 	public abstract <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, V value) throws IllegalArgumentException;
 
@@ -187,8 +187,8 @@ public abstract class CompoundListener<T> {
 	 * @param attr The attribute to require in the element(s) that this listener applies to
 	 * @param value The initial value for the attribute (if it is not already set)
 	 * @return The listener for chaining
-	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws
-	 *             a {@link MuisException}
+	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws a
+	 *             {@link MuisException}
 	 */
 	public abstract <A, V extends A> CompoundListener<A> require(MuisAttribute<A> attr, V value) throws IllegalArgumentException;
 
@@ -199,8 +199,8 @@ public abstract class CompoundListener<T> {
 	 * @param required Whether the attribute should be required or just accepted
 	 * @param value The initial value for the attribute (if it is not already set)
 	 * @return The listener for chaining
-	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws
-	 *             a {@link MuisException}
+	 * @throws IllegalArgumentException If {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute, Object)} throws a
+	 *             {@link MuisException}
 	 */
 	public abstract <A, V extends A> CompoundListener<A> accept(MuisAttribute<A> attr, boolean required, V value)
 		throws IllegalArgumentException;
@@ -358,7 +358,7 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
 			theElement.addListener(MuisElement.ATTRIBUTE_CHANGED, ret);
-			theElement.getStyle().addListener((MuisEventListener<Void>) (MuisEventListener<?>) ret);
+			theElement.getStyle().addListener(ret.getStyleListener());
 			return ret;
 		}
 
@@ -574,8 +574,7 @@ public abstract class CompoundListener<T> {
 						ret = createChain();
 						theNamedChains.put(name, ret);
 					}
-				}
-				else {
+				} else {
 					ret = createChain();
 					theAnonymousChains.add(ret);
 				}
@@ -743,6 +742,16 @@ public abstract class CompoundListener<T> {
 				doReject(attr);
 		}
 
+		org.muis.core.style.StyleListener getStyleListener() {
+			return new org.muis.core.style.StyleListener() {
+				@Override
+				public void eventOccurred(StyleAttributeEvent<?> event) {
+					ChainedCompoundListener.this.eventOccurred((MuisEvent<Object>) (MuisEvent<?>) event,
+						((org.muis.core.style.ElementStyle) event.getLocalStyle()).getElement());
+				}
+			};
+		}
+
 		abstract void doReject(MuisAttribute<?> attr);
 
 		@Override
@@ -766,8 +775,7 @@ public abstract class CompoundListener<T> {
 				if(listeners != null)
 					for(AttributeChangedListener<Object> listener : listeners)
 						listener.attributeChanged((org.muis.core.event.AttributeChangedEvent<Object>) ace);
-			}
-			else if(event instanceof StyleAttributeEvent) {
+			} else if(event instanceof StyleAttributeEvent) {
 				StyleAttributeEvent<?> sae = (StyleAttributeEvent<?>) (MuisEvent<?>) event;
 				boolean contains;
 				StyleAttributeListener<Object> [] listeners;
@@ -951,8 +959,7 @@ public abstract class CompoundListener<T> {
 						throw new IllegalArgumentException(e.getMessage(), e);
 					}
 				}
-			}
-			else {
+			} else {
 				for(AttributeHolder attr : attrs)
 					doReject(attr.attr);
 			}

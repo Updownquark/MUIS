@@ -66,15 +66,6 @@ public abstract class MuisProperty<T> {
 		void assertValid(T value) throws MuisException;
 	}
 
-	/** Allows hierarchical properties */
-	public static interface PropertyPathAccepter {
-		/**
-		 * @param path The path to check
-		 * @return Whether a property with the given path off of a root property can be instantiated
-		 */
-		boolean accept(String... path);
-	}
-
 	/**
 	 * An abstract class to help {@link MuisProperty.PropertyType}s and {@link MuisProperty.PropertyValidator}s generate better error
 	 * messages
@@ -123,19 +114,15 @@ public abstract class MuisProperty<T> {
 
 	private final PropertyValidator<T> theValidator;
 
-	private final PropertyPathAccepter thePathAccepter;
-
 	/**
 	 * @param name The name for the property
 	 * @param type The type of the property
 	 * @param validator The validator for the property
-	 * @param accepter The path accepter to accept hierarchical properties with this property as the root
 	 */
-	protected MuisProperty(String name, PropertyType<T> type, PropertyValidator<T> validator, PropertyPathAccepter accepter) {
+	protected MuisProperty(String name, PropertyType<T> type, PropertyValidator<T> validator) {
 		theName = name;
 		theType = type;
 		theValidator = validator;
-		thePathAccepter = accepter;
 		if(theType instanceof PropertyHelper)
 			((PropertyHelper<T>) theType).setProperty(this);
 		if(theValidator instanceof PropertyHelper)
@@ -149,7 +136,7 @@ public abstract class MuisProperty<T> {
 	 * @param type The type of the property
 	 */
 	protected MuisProperty(String name, PropertyType<T> type) {
-		this(name, type, null, null);
+		this(name, type, null);
 	}
 
 	/** @return This property's name */
@@ -165,11 +152,6 @@ public abstract class MuisProperty<T> {
 	/** @return The validator for this property. May be null. */
 	public PropertyValidator<T> getValidator() {
 		return theValidator;
-	}
-
-	/** @return The path accepter to accept hierarchical properties with this property as the root */
-	public PropertyPathAccepter getPathAccepter() {
-		return thePathAccepter;
 	}
 
 	/** @return A string describing this sub-type */
@@ -190,7 +172,7 @@ public abstract class MuisProperty<T> {
 
 	@Override
 	public int hashCode() {
-		return theName.hashCode() * 13 + theType.hashCode() * 7 + theValidator.hashCode();
+		return theName.hashCode() * 13 + theType.hashCode() * 7 + (theValidator == null ? 0 : theValidator.hashCode());
 	}
 
 	/** A string property type--this type validates anything */
@@ -538,7 +520,7 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public <V extends T> Class<V> getType() {
-			return (Class<V>) theTypeProperty.getType();
+			return (Class<V>) theTypeProperty.type;
 		}
 
 		@Override

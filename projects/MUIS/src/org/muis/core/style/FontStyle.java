@@ -85,7 +85,7 @@ public class FontStyle implements StyleDomain {
 		color = new StyleAttribute<Color>(instance, "color", MuisAttribute.colorAttr, Color.black);
 		instance.register(color);
 		transparency = new StyleAttribute<Double>(instance, "transparency", MuisAttribute.amountAttr, 0d,
-			new MuisProperty.ComparableValidator<>(0d, 1d), null);
+			new MuisProperty.ComparableValidator<>(0d, 1d));
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
 		weights.put("normal", 1d);
@@ -101,10 +101,10 @@ public class FontStyle implements StyleDomain {
 		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
 		weight = new StyleAttribute<Double>(instance, "weight",
 			new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, weights), 1d, new MuisProperty.ComparableValidator<>(0.25d,
-				3d), null);
+				3d));
 		instance.register(weight);
 		slant = new StyleAttribute<Double>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal",
-			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d), null);
+			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d));
 		instance.register(slant);
 		underline = new StyleAttribute<Underline>(instance, "underline", new MuisProperty.MuisEnumProperty<Underline>(Underline.class),
 			Underline.none);
@@ -112,7 +112,7 @@ public class FontStyle implements StyleDomain {
 		strike = new StyleAttribute<Boolean>(instance, "strike", MuisAttribute.boolAttr, false);
 		instance.register(strike);
 		size = new StyleAttribute<Double>(instance, "size", MuisAttribute.floatAttr, 12d,
-			new MuisProperty.ComparableValidator<>(0.1d, 256d), null);
+			new MuisProperty.ComparableValidator<>(0.1d, 256d));
 		instance.register(size);
 		kerning = new StyleAttribute<Boolean>(instance, "kerning", MuisAttribute.boolAttr, true);
 		instance.register(kerning);
@@ -123,7 +123,7 @@ public class FontStyle implements StyleDomain {
 		wordWrap = new StyleAttribute<Boolean>(instance, "word-wrap", MuisAttribute.boolAttr, true);
 		instance.register(wordWrap);
 		stretch = new StyleAttribute<Double>(instance, "stretch", MuisAttribute.amountAttr, 1d, new MuisProperty.ComparableValidator<>(
-			0.05d, 100d), null);
+			0.05d, 100d));
 		instance.register(stretch);
 	}
 

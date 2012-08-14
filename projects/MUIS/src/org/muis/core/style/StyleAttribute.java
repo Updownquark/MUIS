@@ -20,11 +20,9 @@ public final class StyleAttribute<T> extends MuisProperty<T> {
 	 * @param type The type of the attribute
 	 * @param defValue The default value for the attribute
 	 * @param validator The validator for the attribute
-	 * @param accepter The path accepter for the attribute
 	 */
-	public StyleAttribute(StyleDomain domain, String name, PropertyType<T> type, T defValue, PropertyValidator<T> validator,
-		PropertyPathAccepter accepter) {
-		super(name, type, validator, accepter);
+	public StyleAttribute(StyleDomain domain, String name, PropertyType<T> type, T defValue, PropertyValidator<T> validator) {
+		super(name, type, validator);
 		theDomain = domain;
 		theDefault = defValue;
 	}

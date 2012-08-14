@@ -1,52 +1,49 @@
 package org.muis.core.style;
 
-import org.muis.core.event.MuisEventListener;
-
-import prisms.util.ArrayUtils;
+import java.util.Iterator;
 
 /** Governs the set of properties that define how MUIS elements of different types render themselves */
 public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
-	private final java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, Object> theAttributes;
-
-	private MuisStyle [] theDependents;
-
-	private MuisEventListener<Void> [] theListeners;
-
-	/** Creates a MUIS style */
-	public MuisStyle() {
-		theAttributes = new java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, Object>();
-		theDependents = new MuisStyle[0];
-		theListeners = new MuisEventListener[0];
-	}
-
-	/** @return The parent style that this style gets attributes from when the attributes are not set in this style directly */
-	public abstract MuisStyle getParent();
 
 	/** @return The styles, in order, that this style depends on for attributes not set directly in this style */
-	public MuisStyle [] getDependencies() {
-		MuisStyle parent = getParent();
-		if(parent != null)
-			return new MuisStyle[] {parent};
-		else
-			return new MuisStyle[0];
-	}
+	public abstract MuisStyle [] getDependencies();
 
 	/**
 	 * @param attr The attribute to check
 	 * @return Whether the attribute is set directly in this style
 	 */
-	public boolean isSet(StyleAttribute<?> attr) {
-		return theAttributes.containsKey(attr);
-	}
+	public abstract boolean isSet(StyleAttribute<?> attr);
+
+	/**
+	 * @param attr The attribute to check
+	 * @return Whether the attribute is set in this style or one of its ancestors
+	 */
+	public abstract boolean isSetDeep(StyleAttribute<?> attr);
 
 	/**
 	 * @param <T> The type of attribute to get the value of
 	 * @param attr The attribute to get the value of
 	 * @return The value of the attribute set directly in this style, or null if it is not set
 	 */
-	public <T> T getLocal(StyleAttribute<T> attr) {
-		return (T) theAttributes.get(attr);
-	}
+	public abstract <T> T getLocal(StyleAttribute<T> attr);
+
+	/**
+	 * This is called after the value is checked against the attribute, so this is just a simple set operation with no error checking
+	 *
+	 * @param attr The attribute to set the value of
+	 * @param value The value to set for the attribute
+	 */
+	protected abstract <T> void setValue(StyleAttribute<T> attr, T value);
+
+	/**
+	 * Clears the value of an attribute from this style directly, such that {@link #isSet(StyleAttribute)} returns false after this.
+	 *
+	 * @param attr The attribute to clear
+	 */
+	public abstract void clear(StyleAttribute<?> attr);
+
+	/** @return An iterable for attributes set locally in this style */
+	public abstract Iterable<StyleAttribute<?>> localAttributes();
 
 	/**
 	 * Gets the value of the attribute in this style or its dependencies. This style is checked first, then dependencies are checked. If the
@@ -57,7 +54,7 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 	 * @return The value of the attribute in this style's scope
 	 */
 	public <T> T get(StyleAttribute<T> attr) {
-		T ret = (T) theAttributes.get(attr);
+		T ret = getLocal(attr);
 		if(ret != null)
 			return ret;
 		for(MuisStyle dep : getDependencies()) {
@@ -83,109 +80,41 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
-		if(!attr.getType().getType().isInstance(value))
+		T value2 = attr.getType().cast(value);
+		if(value2 == null)
 			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
-				+ " of type " + attr.getType().getType().getName());
+				+ " of type " + attr.getType());
+		value = value2;
 		if(attr.getValidator() != null)
 			try {
 				attr.getValidator().assertValid(value);
 			} catch(org.muis.core.MuisException e) {
 				throw new IllegalArgumentException(e.getMessage());
 			}
-		theAttributes.put(attr, value);
-		fireEvent(attr, value);
+		setValue(attr, value);
 	}
 
-	/**
-	 * Clears the value of an attribute from this style directly, such that {@link #isSet(StyleAttribute)} returns false after this.
-	 *
-	 * @param attr The attribute to clear
-	 */
-	public void clear(StyleAttribute<?> attr) {
-		if(attr == null)
-			return;
-		theAttributes.remove(attr);
-		fireEvent(attr, null);
-	}
-
-	private <T> void fireEvent(StyleAttribute<T> attr, T value) {
-		fireEvent(new StyleAttributeEvent<T>(this, attr, value));
-	}
-
-	/** @param event The style change event to fire */
-	protected void fireEvent(StyleAttributeEvent<?> event) {
-		for(MuisEventListener<Void> listener : theListeners)
-			listener.eventOccurred(event, null);
-		for(MuisStyle dependent : theDependents)
-			dependent.fireEvent(event);
-	}
-
-	/**
-	 * Adds a listener for style changes to this style
-	 *
-	 * @param listener The listener to add
-	 */
-	public void addListener(MuisEventListener<Void> listener) {
-		if(listener != null && !ArrayUtils.contains(theListeners, listener))
-			theListeners = ArrayUtils.add(theListeners, listener);
-	}
-
-	/**
-	 * Removes a listener for style changes from this style
-	 *
-	 * @param listener The listener to remove
-	 */
-	public void removeListener(MuisEventListener<Void> listener) {
-		theListeners = ArrayUtils.remove(theListeners, listener);
-	}
-
-	void addDependent(MuisStyle dependent) {
-		if(dependent != null && !ArrayUtils.contains(theDependents, dependent))
-			theDependents = ArrayUtils.add(theDependents, dependent);
-	}
-
-	void removeDependent(MuisStyle dependent) {
-		theDependents = ArrayUtils.remove(theDependents, dependent);
-	}
-
-	/**
-	 * Returns an iterator of attributes set in this style or any of its dependencies
-	 *
-	 * @see java.lang.Iterable#iterator()
-	 */
 	@Override
-	public java.util.Iterator<StyleAttribute<?>> iterator() {
+	public Iterator<StyleAttribute<?>> iterator() {
 		return new AttributeIterator(this, getDependencies());
-	}
-
-	/**
-	 * @return An iterable for attributes set locally in this style
-	 */
-	public Iterable<StyleAttribute<?>> localAttributes() {
-		return new Iterable<StyleAttribute<?>>() {
-			@Override
-			public java.util.Iterator<StyleAttribute<?>> iterator() {
-				return new AttributeIterator(MuisStyle.this, new MuisStyle[0]);
-			}
-		};
 	}
 
 	/** An iterator for style attributes in a style and its dependencies */
 	protected static class AttributeIterator implements java.util.Iterator<StyleAttribute<?>> {
-		private final StyleAttribute<?> [] theLocalAttribs;
+		private Iterator<StyleAttribute<?>> theLocalAttribs;
 
-		private final java.util.Iterator<StyleAttribute<?>> [] theDependencies;
-
-		private int index;
+		private final Iterator<StyleAttribute<?>> [] theDependencies;
 
 		private int childIndex;
+
+		private boolean calledNext;
 
 		/**
 		 * @param style The style for local attributes
 		 * @param dependencies The set of the style's dependencies
 		 */
-		protected AttributeIterator(MuisStyle style, MuisStyle [] dependencies) {
-			theLocalAttribs = style.theAttributes.keySet().toArray(new StyleAttribute[0]);
+		public AttributeIterator(MuisStyle style, MuisStyle... dependencies) {
+			theLocalAttribs = style.localAttributes().iterator();
 			theDependencies = new java.util.Iterator[dependencies.length];
 			for(int d = 0; d < dependencies.length; d++)
 				theDependencies[d] = dependencies[d].iterator();
@@ -194,8 +123,13 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 
 		@Override
 		public boolean hasNext() {
-			if(index < theLocalAttribs.length)
-				return true;
+			calledNext = false;
+			if(theLocalAttribs != null) {
+				if(theLocalAttribs.hasNext())
+					return true;
+				else
+					theLocalAttribs = null;
+			}
 			if(childIndex < 0)
 				childIndex = 0;
 			while(childIndex < theDependencies.length && !theDependencies[childIndex].hasNext())
@@ -205,21 +139,12 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 
 		@Override
 		public StyleAttribute<?> next() {
-			StyleAttribute<?> ret;
-			if(index < theLocalAttribs.length) {
-				ret = theLocalAttribs[index];
-				index++;
-			} else {
-				if(childIndex < 0)
-					childIndex = 0;
-				while(childIndex < theDependencies.length && !theDependencies[childIndex].hasNext())
-					childIndex++;
-				if(childIndex < theDependencies.length)
-					ret = theDependencies[childIndex].next();
-				else
-					throw new java.util.NoSuchElementException();
-			}
-			return ret;
+			if((calledNext && !hasNext()) || childIndex >= theDependencies.length)
+				throw new java.util.NoSuchElementException();
+			calledNext = true;
+			if(theLocalAttribs != null)
+				return theLocalAttribs.next();
+			return theDependencies[childIndex].next();
 		}
 
 		@Override

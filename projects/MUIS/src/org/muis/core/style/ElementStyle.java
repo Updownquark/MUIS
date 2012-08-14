@@ -1,10 +1,9 @@
 package org.muis.core.style;
 
 import org.muis.core.MuisElement;
-import org.muis.core.event.MuisEvent;
 
 /** A style controlling the appearance of a specific element */
-public class ElementStyle extends MuisStyle {
+public class ElementStyle extends AbstractMuisStyle {
 	private final MuisElement theElement;
 
 	private ElementStyle theParentStyle;
@@ -24,21 +23,17 @@ public class ElementStyle extends MuisStyle {
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
+		addDependency(theSelfStyle);
 		theStyleGroups = new NamedStyleGroup[0];
-		addListener(new org.muis.core.event.MuisEventListener<Void>() {
+		addListener(new StyleListener() {
 			@Override
-			public boolean isLocal() {
-				return false;
-			}
-
-			@Override
-			public void eventOccurred(MuisEvent<Void> event, MuisElement evtElement) {
+			public void eventOccurred(StyleAttributeEvent<?> event) {
 				theElement.fireEvent(event, false, false);
 			}
 		});
 		if(element.getParent() != null) {
 			theParentStyle = element.getParent().getStyle();
-			theParentStyle.addDependent(this);
+			addDependency(theParentStyle.getHeir(), theSelfStyle);
 		}
 		element.addListener(MuisElement.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
 			@Override
@@ -48,13 +43,13 @@ public class ElementStyle extends MuisStyle {
 
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el) {
-				if(theParentStyle != null)
-					theParentStyle.removeDependent(ElementStyle.this);
+				if(theParentStyle != null) {
+					removeDependency(theParentStyle.getHeir());
+				}
 				if(event.getValue() != null) {
 					theParentStyle = event.getValue().getStyle();
-					theParentStyle.addDependent(ElementStyle.this);
-				}
-				else
+					addDependency(theParentStyle.getHeir(), theSelfStyle);
+				} else
 					theParentStyle = null;
 			}
 		});
@@ -63,11 +58,6 @@ public class ElementStyle extends MuisStyle {
 	/** @return The element that this style is for */
 	public MuisElement getElement() {
 		return theElement;
-	}
-
-	@Override
-	public MuisStyle getParent() {
-		return theElement == null || theElement.getParent() == null ? null : theElement.getParent().getStyle().getHeir();
 	}
 
 	/** @return The set of style attributes that apply only to this style's element, not to its descendants */
@@ -80,11 +70,6 @@ public class ElementStyle extends MuisStyle {
 		return theHeirStyle;
 	}
 
-	@Override
-	public MuisStyle [] getDependencies() {
-		return prisms.util.ArrayUtils.concat(MuisStyle.class, super.getDependencies(), theStyleGroups);
-	}
-
 	/** @return The number of named style groups in this element style */
 	public int getGroupCount() {
 		return theStyleGroups.length;
@@ -93,7 +78,7 @@ public class ElementStyle extends MuisStyle {
 	/** @param group The named style group to add to this element style */
 	public void addGroup(NamedStyleGroup group) {
 		group.addMember(theElement);
-		group.addDependent(this);
+		addDependency(group, theStyleGroups[theStyleGroups.length - 1]);
 		if(!prisms.util.ArrayUtils.contains(theStyleGroups, group))
 			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, group);
 		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1), false, false);
@@ -101,7 +86,7 @@ public class ElementStyle extends MuisStyle {
 
 	/** @param group The named style group to remove from this element style */
 	public void removeGroup(NamedStyleGroup group) {
-		group.removeDependent(this);
+		removeDependency(group);
 		group.removeMember(theElement);
 		int index = prisms.util.ArrayUtils.indexOf(theStyleGroups, group);
 		if(index < 0)
@@ -118,7 +103,10 @@ public class ElementStyle extends MuisStyle {
 		return new Iterable<StyleAttribute<?>>() {
 			@Override
 			public java.util.Iterator<StyleAttribute<?>> iterator() {
-				return new AttributeIterator(ElementStyle.this, theStyleGroups);
+				MuisStyle [] depends=new MuisStyle[theStyleGroups.length+1];
+				depends[0]=theSelfStyle;
+				System.arraycopy(depends, 1, theStyleGroups, 0, theStyleGroups.length);
+				return new AttributeIterator(ElementStyle.this, depends);
 			}
 		};
 	}
@@ -134,12 +122,6 @@ public class ElementStyle extends MuisStyle {
 				return new NamedStyleIterator(theStyleGroups, forward);
 			}
 		};
-	}
-
-	@Override
-	protected void fireEvent(StyleAttributeEvent<?> event) {
-		super.fireEvent(event);
-		theElement.fireEvent(event, false, false);
 	}
 
 	@Override
@@ -236,8 +218,7 @@ public class ElementStyle extends MuisStyle {
 			if(index < 0) {
 				index = 0;
 				throw new IndexOutOfBoundsException("No element to remove--at beginning of list");
-			}
-			else if(index >= theGroups.length)
+			} else if(index >= theGroups.length)
 				throw new IndexOutOfBoundsException("No element to remove--at end of list");
 			removeGroup(theGroups[index]);
 			theGroups = prisms.util.ArrayUtils.remove(theGroups, index);

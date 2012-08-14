@@ -21,7 +21,7 @@ public abstract class StyleAttributeListener<T> implements MuisEventListener<Voi
 	public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
 		if(event instanceof StyleAttributeEvent && theAttr.equals(((StyleAttributeEvent<?>) event).getAttribute())) {
 			StyleAttributeEvent<T> styleEvent = (StyleAttributeEvent<T>) event;
-			styleChanged(element, styleEvent, styleEvent.getStyle().get(theAttr));
+			styleChanged(element, styleEvent, styleEvent.getRootStyle().get(theAttr));
 		}
 	}
 

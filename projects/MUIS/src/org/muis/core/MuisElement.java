@@ -168,7 +168,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	private final ElementStyle theStyle;
 
-	private final StyleListener theDefaultStyleListener;
+	private final CompoundStyleListener theDefaultStyleListener;
 
 	private int theX;
 
@@ -215,7 +215,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
-		theDefaultStyleListener = new StyleListener(this) {
+		theDefaultStyleListener = new CompoundStyleListener(this) {
 			@Override
 			public void styleChanged(MuisStyle style) {
 				repaint(null, false);
@@ -257,8 +257,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		});
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
-		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_SELF_ATTRIBUTE);
-		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_HEIR_ATTRIBUTE);
+		// TODO add style listener
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
@@ -499,7 +498,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * @return The default style listener to add domains and styles to listen to. When one of the registered styles changes, this element
 	 *         repaints itself.
 	 */
-	public final StyleListener getDefaultStyleListener() {
+	public final CompoundStyleListener getDefaultStyleListener() {
 		return theDefaultStyleListener;
 	}
 

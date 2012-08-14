@@ -12,7 +12,7 @@ public class StyleParsingUtils {
 	 * @param messager The message center to issue warnings to if there is an error with the style
 	 * @param classView The class view to use for parsing if needed
 	 */
-	public static void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
+	public static void applyStyleAttribute(MuisStyle style, StyleDomain domain, String attrName, String valueStr,
 		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
@@ -53,7 +53,7 @@ public class StyleParsingUtils {
 	 * @param messager The message center to issue warnings to if there are errors with the styles
 	 * @param classView The class view to use for parsing if needed
 	 */
-	public static void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
+	public static void applyStyleSet(MuisStyle style, StyleDomain domain, String valueStr,
 		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk--value
 																								// must be JSON
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}') {

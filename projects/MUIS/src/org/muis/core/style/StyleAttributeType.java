@@ -7,32 +7,14 @@ import org.muis.core.MuisException;
 /** The attribute type to parse styles */
 public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPropertyType<MuisStyle> {
 	/** The instance to use for the element style */
-	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType(0);
-
-	/** The instance to use for the element's self style */
-	public static StyleAttributeType ELEMENT_SELF_TYPE = new StyleAttributeType(1);
-
-	/** The instance to use for the element's heir style */
-	public static StyleAttributeType ELEMENT_HEIR_TYPE = new StyleAttributeType(2);
+	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
 	/** The style attribute on MUIS elements */
-	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<MuisStyle>("style", ELEMENT_TYPE);
+	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<MuisStyle>("style", ELEMENT_TYPE, null,
+		new StylePathAccepter());
 
-	/** The style attribute on MUIS elements */
-	public static final MuisAttribute<MuisStyle> STYLE_SELF_ATTRIBUTE = new MuisAttribute<MuisStyle>("style.self", ELEMENT_SELF_TYPE);
-
-	/** The style attribute on MUIS elements */
-	public static final MuisAttribute<MuisStyle> STYLE_HEIR_ATTRIBUTE = new MuisAttribute<MuisStyle>("style.heir", ELEMENT_HEIR_TYPE);
-
-	private final int theType;
-
-	/**
-	 * Protected so developers will use {@link #ELEMENT_TYPE}, {@link #ELEMENT_SELF_TYPE}, or {@link #ELEMENT_HEIR_TYPE}
-	 *
-	 * @param type 0 for the element style, 1 for the element's self style, 2 for the element's heir style
-	 */
-	protected StyleAttributeType(int type) {
-		theType = type;
+	/** Creates a style attribute type */
+	protected StyleAttributeType() {
 	}
 
 	@Override
@@ -43,22 +25,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	@Override
 	public MuisStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException {
 		MuisElement element = classView.getElement();
-		if(element == null)
-			throw new MuisException("Style attributes may only be parsed for elements");
-		MuisStyle ret;
-		switch (theType) {
-		case 0:
-			ret = element.getStyle();
-			break;
-		case 1:
-			ret = element.getStyle().getSelf();
-			break;
-		case 2:
-			ret = element.getStyle().getHeir();
-			break;
-		default:
-			throw new IllegalStateException("StyleAttributeType.type must be 0, 1, or 2; not " + theType);
-		}
+		SealableStyle ret = new SealableStyle();
 		String [] styles = value.split(";");
 		for(String style : styles) {
 			int equalIdx = style.indexOf("=");
@@ -135,6 +102,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 			else
 				applyStyleSet(ret, domain, valueStr, element.msg(), element.getClassView());
 		}
+		ret.seal();
 		return ret;
 	}
 
@@ -148,7 +116,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	 * @param messager The message center to issue warnings to if there is an error with the style
 	 * @param classView The class view to use for parsing if needed
 	 */
-	protected void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
+	protected void applyStyleAttribute(MuisStyle style, StyleDomain domain, String attrName, String valueStr,
 		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager, classView);
 	}
@@ -162,8 +130,8 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	 * @param messager The message center to issue warnings to if there are errors with the styles
 	 * @param classView The class view to use for parsing if needed
 	 */
-	protected void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
+	protected void applyStyleSet(MuisStyle style, StyleDomain domain, String valueStr, org.muis.core.mgr.MuisMessageCenter messager,
+		org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
 	}
 

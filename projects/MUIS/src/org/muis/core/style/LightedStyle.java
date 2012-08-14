@@ -35,14 +35,14 @@ public class LightedStyle implements StyleDomain {
 		instance = new LightedStyle();
 		lightSource = new StyleAttribute<Double>(instance, "source", new MuisProperty.NamedValuePropertyType<>(MuisProperty.floatAttr,
 			"top", 0d, "top-right", 45d, "right", 90d, "bottom-right", 135d, "bottom", 180d, "bottom-left", 225d, "left", 270d, "top-left",
-			315d), 315d, new MuisProperty.ComparableValidator<>(0d, 360d), null);
+			315d), 315d, new MuisProperty.ComparableValidator<>(0d, 360d));
 		instance.register(lightSource);
 		lightColor = new StyleAttribute<Color>(instance, "color", MuisAttribute.colorAttr, Color.white);
 		instance.register(lightColor);
 		shadowColor = new StyleAttribute<Color>(instance, "shadow", MuisAttribute.colorAttr, Color.black);
 		instance.register(shadowColor);
 		maxShadingAmount = new StyleAttribute<Double>(instance, "max-amount", MuisAttribute.amountAttr, .5,
-			new MuisProperty.ComparableValidator<>(0d, 1d), null);
+			new MuisProperty.ComparableValidator<>(0d, 1d));
 	}
 
 	/** @return The style domain for all background styles */

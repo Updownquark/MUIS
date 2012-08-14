@@ -76,23 +76,6 @@ public class AttributeManager {
 				theWanters.remove(rejecter);
 		}
 
-		/**
-		 * Validates an attribute value
-		 *
-		 * @param attr The attribute to validate
-		 * @param value The non-null attribute value to validate
-		 * @param el The element that the attribute is for
-		 * @param required Whether the attribute is required or not
-		 * @return Null if the attribute value is valid for this attribute; an error string describing why the value is not valid otherwise
-		 */
-		private String validate(String value) {
-			String val = attr.type.validate(theElement.getClassView(), value);
-			if(val == null)
-				return null;
-			else
-				return (isRequired() ? "Required attribute " : "Attribute ") + attr.name + " " + val;
-		}
-
 		@Override
 		public String toString() {
 			return attr.toString() + (isRequired() ? " (required)" : " (optional)");
@@ -159,26 +142,22 @@ public class AttributeManager {
 	 */
 	public final <T> T set(MuisAttribute<T> attr, String value) throws MuisException {
 		if(theRawAttributes != null)
-			theRawAttributes.remove(attr.name);
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+			theRawAttributes.remove(attr.getName());
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder == null) {
 			if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
 			holder = new AttributeHolder(attr);
-			theAcceptedAttrs.put(attr.name, holder);
+			theAcceptedAttrs.put(attr.getName(), holder);
 			holder.theValue = value;
-		}
-		else {
+		} else {
 			if(value == null && holder.isRequired())
 				throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
 			T ret;
 			if(value == null)
 				ret = null;
 			else {
-				String valError = holder.validate(value);
-				if(valError != null)
-					throw new MuisException(valError);
-				ret = attr.type.parse(theElement.getClassView(), value);
+				ret = attr.getType().parse(theElement.getClassView(), value);
 			}
 			set(attr, ret);
 			return ret;
@@ -196,21 +175,23 @@ public class AttributeManager {
 	 */
 	public final <T> void set(MuisAttribute<T> attr, T value) throws MuisException {
 		if(theRawAttributes != null)
-			theRawAttributes.remove(attr.name);
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+			theRawAttributes.remove(attr.getName());
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder == null)
 			throw new MuisException("Attribute " + attr + " is not accepted in this element");
 		if(value == null && holder.isRequired())
 			throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
 		if(value != null) {
-			T newValue = attr.type.cast(value);
+			T newValue = attr.getType().cast(value);
 			if(newValue == null)
 				throw new MuisException("Value " + value + ", type " + value.getClass().getName() + " is not valid for atribute " + attr);
+			if(attr.getValidator() != null)
+				attr.getValidator().assertValid(value);
 		}
 		Object old = holder.theValue;
 		holder.theValue = value;
 		theElement.fireEvent(new MuisEvent<MuisAttribute<?>>(MuisElement.ATTRIBUTE_SET, attr), false, false);
-		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.type.cast(old), value), false, false);
+		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.getType().cast(old), value), false, false);
 	}
 
 	/**
@@ -232,7 +213,7 @@ public class AttributeManager {
 	 * @return The value of the attribute in this element
 	 */
 	public final <T> T get(MuisAttribute<T> attr) {
-		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.name);
+		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.getName());
 		if(storedAttr != null && !storedAttr.attr.equals(attr))
 			return null; // Same name, but different attribute
 		Object stored = storedAttr.theValue;
@@ -240,16 +221,16 @@ public class AttributeManager {
 			return null;
 		if(theElement.life().isAfter(CoreStage.STARTUP.toString()) < 0 && stored instanceof String)
 			try {
-				T ret = attr.type.parse(theElement.getClassView(), (String) stored);
-				storedAttr.theValue = ret;
+				T ret = attr.getType().parse(theElement.getClassView(), (String) stored);
+				set(attr, ret);
 				return ret;
 			} catch(MuisException e) {
 				if(storedAttr != null && storedAttr.isRequired())
-					theElement.msg().fatal("Required attribute " + attr + " could not be parsed from " + stored, e, "attribute", attr,
-						"value", stored);
+					theElement.msg().fatal("Required attribute " + attr + " could not be parsed and validated from " + stored, e,
+						"attribute", attr, "value", stored);
 				else
-					theElement.msg().error("Attribute " + attr + " could not be parsed from " + stored, e, "attribute", attr, "value",
-						stored);
+					theElement.msg().error("Attribute " + attr + " could not be parsed and validated from " + stored, e, "attribute", attr,
+						"value", stored);
 				return null;
 			}
 		else
@@ -291,7 +272,7 @@ public class AttributeManager {
 	 * @param attr The attribute to accept but not require
 	 */
 	public final void unrequire(Object wanter, MuisAttribute<?> attr) {
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null)
 			holder.unrequire(wanter);
 		else
@@ -337,36 +318,30 @@ public class AttributeManager {
 	 * @param initValue The value to set for the attribute if a value is not set already
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T, V extends T> void accept(Object wanter, boolean require, MuisAttribute<T> attr, V initValue)
-		throws MuisException {
+	public final <T, V extends T> void accept(Object wanter, boolean require, MuisAttribute<T> attr, V initValue) throws MuisException {
 		// if(theLifeCycleManager.isAfter(CoreStage.STARTUP.toString()) > 0)
 		// throw new IllegalStateException("Attributes cannot be specified after an element is initialized");
 		if(require && initValue == null && theElement.life().isAfter(CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {
 			if(holder.attr.equals(attr))
 				holder.addWanter(wanter, require); // The attribute is already required
 			else
-				throw new IllegalStateException("An attribute named " + attr.name + " (" + holder.attr
+				throw new IllegalStateException("An attribute named " + attr.getName() + " (" + holder.attr
 					+ ") is already accepted in this element");
-		}
-		else {
+		} else {
 			holder = new AttributeHolder(attr);
 			holder.addWanter(wanter, require);
-			theAcceptedAttrs.put(attr.name, holder);
-			String strVal = theRawAttributes.remove(attr.name);
+			theAcceptedAttrs.put(attr.getName(), holder);
+			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
-				String valError = holder.validate(strVal);
-				if(valError != null)
-					theElement.msg().error(valError, "attribute", attr);
-				else
-					try {
-						set((MuisAttribute<Object>) attr, attr.type.parse(theElement.getClassView(), strVal));
-					} catch(MuisException e) {
-						theElement.msg().error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.name, e,
-							"attribute", attr);
-					}
+				try {
+					set((MuisAttribute<Object>) attr, attr.getType().parse(theElement.getClassView(), strVal));
+				} catch(MuisException e) {
+					theElement.msg().error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.getName(), e,
+						"attribute", attr);
+				}
 			}
 		}
 		if(initValue != null && holder.theValue == null)
@@ -381,11 +356,11 @@ public class AttributeManager {
 	 * @param attr The attribute to not allow in this element
 	 */
 	public final void reject(Object wanter, MuisAttribute<?> attr) {
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {
 			holder.reject(holder);
 			if(!holder.isWanted())
-				theAcceptedAttrs.remove(attr.name);
+				theAcceptedAttrs.remove(attr.getName());
 		}
 	}
 
@@ -399,7 +374,7 @@ public class AttributeManager {
 	 * @return Whether the given attribute can be set in this element
 	 */
 	public final boolean isAccepted(MuisAttribute<?> attr) {
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		return holder != null && holder.attr.equals(attr);
 	}
 
@@ -408,7 +383,7 @@ public class AttributeManager {
 	 * @return Whether the given attribute is required in this element
 	 */
 	public final boolean isRequired(MuisAttribute<?> attr) {
-		AttributeHolder holder = theAcceptedAttrs.get(attr.name);
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		return holder != null && !holder.attr.equals(attr) && holder.isRequired();
 	}
 
@@ -418,7 +393,7 @@ public class AttributeManager {
 			@Override
 			public Iterator<MuisAttribute<?>> iterator() {
 				return new Iterator<MuisAttribute<?>>() {
-					private final Iterator<AttributeHolder> theWrapped = theAcceptedAttrs.values().iterator();
+					private final Iterator<AttributeHolder> theWrapped = holders().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -447,14 +422,35 @@ public class AttributeManager {
 				return new Iterator<AttributeHolder>() {
 					private final Iterator<AttributeHolder> theWrapped = theAcceptedAttrs.values().iterator();
 
+					private AttributeHolder theNext;
+
+					private boolean calledNext;
+
 					@Override
 					public boolean hasNext() {
-						return theWrapped.hasNext();
+						if(!calledNext)
+							return theNext != null;
+						calledNext = false;
+						theNext = null;
+						while(theNext != null) {
+							if(!theWrapped.hasNext())
+								return false;
+							theNext = theWrapped.next();
+							if(!theNext.isWanted())
+								theNext = null;
+						}
+						return theNext != null;
 					}
 
 					@Override
 					public AttributeHolder next() {
-						return theWrapped.next();
+						if(calledNext && !hasNext())
+							return theWrapped.next();
+						calledNext = true;
+						if(theNext == null)
+							return theWrapped.next();
+						else
+							return theNext;
 					}
 
 					@Override
@@ -474,11 +470,8 @@ public class AttributeManager {
 			if(value == null && required)
 				theElement.msg().fatal("Required attribute " + attr + " not set");
 			if(value instanceof String) {
-				String valError = holder.validate((String) value);
-				if(valError != null)
-					theElement.msg().fatal(valError);
 				try {
-					value = attr.type.parse(theElement.getClassView(), (String) value);
+					value = attr.getType().parse(theElement.getClassView(), (String) value);
 					set((MuisAttribute<Object>) attr, value);
 				} catch(MuisException e) {
 					if(required)
@@ -487,8 +480,7 @@ public class AttributeManager {
 						theElement.msg().error("Attribute " + attr + " could not be parsed", e, "attribute", attr, "value", value);
 					holder.theValue = null;
 				}
-			}
-			else if(value != null && attr.type.cast(value) == null) {
+			} else if(value != null && attr.getType().cast(value) == null) {
 				if(required)
 					theElement.msg().fatal("Unrecognized value for required attribute " + attr + ": " + value, "value", value);
 				else

@@ -28,7 +28,7 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 
 	/** The attribute in the layout container that specifies the break policy for laying out items */
 	public static final MuisAttribute<BreakPolicy> FLOW_BREAK = new MuisAttribute<BreakPolicy>("flow-break",
-		new MuisAttribute.MuisEnumAttribute<BreakPolicy>(BreakPolicy.class));
+		new org.muis.core.MuisProperty.MuisEnumProperty<BreakPolicy>(BreakPolicy.class));
 
 	private final CompoundListener.MultiElementCompoundListener theListener;
 

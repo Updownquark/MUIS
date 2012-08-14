@@ -7,7 +7,7 @@ import org.muis.core.layout.SizePolicy;
 public class LayoutContainer extends MuisElement {
 	/** The attribute that specifies the layout type for a layout container */
 	public static MuisAttribute<MuisLayout> LAYOUT_ATTR = new MuisAttribute<MuisLayout>("layout",
-		new MuisAttribute.MuisTypeInstanceAttribute<MuisLayout>(MuisLayout.class));
+		new MuisProperty.MuisTypeInstanceProperty<MuisLayout>(MuisLayout.class));
 
 	private MuisLayout theLayout;
 

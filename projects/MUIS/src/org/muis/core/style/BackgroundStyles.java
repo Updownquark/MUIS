@@ -1,23 +1,20 @@
 package org.muis.core.style;
 
-import org.muis.core.MuisAttribute;
+import org.muis.core.MuisProperty;
 
 /**
  * Contains style attributes pertaining to the background of a widget. These styles are supported by {@link org.muis.core.MuisElement} and
  * all of its subclasses unless the {@link org.muis.core.MuisElement#paintSelf(java.awt.Graphics2D, java.awt.Rectangle)} method is
  * overridden in a way that ignores them.
  */
-public class BackgroundStyles implements StyleDomain
-{
+public class BackgroundStyles implements StyleDomain {
 	private StyleAttribute<?> [] theAttributes;
 
-	private BackgroundStyles()
-	{
+	private BackgroundStyles() {
 		theAttributes = new StyleAttribute[0];
 	}
 
-	private void register(StyleAttribute<?> attr)
-	{
+	private void register(StyleAttribute<?> attr) {
 		theAttributes = prisms.util.ArrayUtils.add(theAttributes, attr);
 	}
 
@@ -35,36 +32,33 @@ public class BackgroundStyles implements StyleDomain
 	/** The radius of widget corners */
 	public static final StyleAttribute<Size> cornerRadius;
 
-	static
-	{
+	static {
 		instance = new BackgroundStyles();
-		texture = StyleAttribute.createStyle(instance, "texture", new org.muis.core.MuisAttribute.MuisTypeInstanceAttribute<Texture>(
-			Texture.class), new BaseTexture());
+		texture = new StyleAttribute<Texture>(instance, "texture", new MuisProperty.MuisTypeInstanceProperty<Texture>(Texture.class),
+			new BaseTexture());
 		instance.register(texture);
-		color = StyleAttribute.createStyle(instance, "color", MuisAttribute.colorAttr, new java.awt.Color(255, 255, 255));
+		color = new StyleAttribute<java.awt.Color>(instance, "color", MuisProperty.colorAttr, new java.awt.Color(255, 255, 255));
 		instance.register(color);
-		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.amountAttr, 0d, 0d, 1d);
+		transparency = new StyleAttribute<Double>(instance, "transparency", MuisProperty.amountAttr, 0d,
+			new MuisProperty.ComparableValidator<Double>(0d, 1d), null);
 		instance.register(transparency);
-		cornerRadius = StyleAttribute.createBoundedStyle(instance, "corner-radius", SizeAttributeType.instance, new Size(), new Size(),
-			null);
+		cornerRadius = new StyleAttribute<Size>(instance, "corner-radius", SizePropertyType.instance, new Size(),
+			new MuisProperty.ComparableValidator<Size>(new Size(), null), null);
 		instance.register(cornerRadius);
 	}
 
 	/** @return The style domain for all background styles */
-	public static BackgroundStyles getDomainInstance()
-	{
+	public static BackgroundStyles getDomainInstance() {
 		return instance;
 	}
 
 	@Override
-	public String getName()
-	{
+	public String getName() {
 		return "bg";
 	}
 
 	@Override
-	public java.util.Iterator<StyleAttribute<?>> iterator()
-	{
+	public java.util.Iterator<StyleAttribute<?>> iterator() {
 		return prisms.util.ArrayUtils.iterator(theAttributes, true);
 	}
 }

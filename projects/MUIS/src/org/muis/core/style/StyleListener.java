@@ -117,7 +117,7 @@ public class StyleListener implements org.muis.core.event.MuisEventListener<Obje
 	{
 		java.util.HashSet<StyleAttribute<?>> groupAttrs = new java.util.HashSet<StyleAttribute<?>>();
 		for(StyleAttribute<?> attr : event.getValue().getGroupForType(theElement.getClass()))
-			if(ArrayUtils.contains(theDomains, attr.domain) || ArrayUtils.contains(theAttributes, attr))
+			if(ArrayUtils.contains(theDomains, attr.getDomain()) || ArrayUtils.contains(theAttributes, attr))
 				groupAttrs.add(attr);
 		if(groupAttrs.isEmpty())
 			return; // The group doesn't contain any attributes we care about
@@ -163,7 +163,7 @@ public class StyleListener implements org.muis.core.event.MuisEventListener<Obje
 	 */
 	public void eventOccurred(StyleAttributeEvent<?> event)
 	{
-		if(!ArrayUtils.contains(theDomains, event.getAttribute().domain) && !ArrayUtils.contains(theAttributes, event.getAttribute()))
+		if(!ArrayUtils.contains(theDomains, event.getAttribute().getDomain()) && !ArrayUtils.contains(theAttributes, event.getAttribute()))
 			return;
 		if(event.getStyle() instanceof TypedStyleGroup<?>)
 		{

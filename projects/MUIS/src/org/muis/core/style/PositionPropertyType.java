@@ -2,36 +2,10 @@ package org.muis.core.style;
 
 
 /** An attribute type that validates and parses instances of {@link Position} from an attribute value */
-public class PositionAttributeType implements org.muis.core.MuisAttribute.AttributeType<Position>
+public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Position>
 {
 	/** An instance of this class--prevents having to create multiple instances for no reason */
-	public static final PositionAttributeType instance = new PositionAttributeType();
-
-	@Override
-	public String validate(org.muis.core.MuisClassView classView, String value)
-	{
-		String number = value;
-		number = number.replaceAll("\\s", "");
-		if(number.length() == 0)
-			return "No position specified";
-		int c = 0;
-		if(number.charAt(c) == '-')
-			c++;
-		for(; c < number.length(); c++)
-			if(number.charAt(c) < '0' || number.charAt(c) > '9')
-				break;
-		if(c == 0)
-			return "No position specified";
-		if(c == 1 && value.charAt(0) == '-')
-			return "No position specified";
-		if(c == value.length())
-			return null; // Default unit
-		String unitString = value.substring(c);
-		for(LengthUnit u : LengthUnit.values())
-			if(u.attrValue.equals(unitString))
-				return null;
-		return unitString + " is not a valid position unit";
-	}
+	public static final PositionPropertyType instance = new PositionPropertyType();
 
 	@Override
 	public Position parse(org.muis.core.MuisClassView classView, String value)
@@ -46,9 +20,9 @@ public class PositionAttributeType implements org.muis.core.MuisAttribute.Attrib
 			if(number.charAt(c) < '0' || number.charAt(c) > '9')
 				break;
 		if(c == 0)
-			throw new IllegalArgumentException("No position specified");
+			throw new IllegalArgumentException(propName() + ": No position specified");
 		if(c == 1 && neg)
-			throw new IllegalArgumentException("No position specified");
+			throw new IllegalArgumentException(propName() + ": No position specified");
 		number = number.substring(neg ? 1 : 0, c);
 		int lengthVal = Integer.parseInt(number);
 		if(c == value.length())
@@ -57,7 +31,7 @@ public class PositionAttributeType implements org.muis.core.MuisAttribute.Attrib
 		for(LengthUnit u : LengthUnit.values())
 			if(u.attrValue.equals(unitString))
 				return new Position(lengthVal, u);
-		throw new IllegalArgumentException(value + " is not a valid position unit");
+		throw new IllegalArgumentException(propName() + ": " + value + " is not a valid position unit");
 	}
 
 	@Override

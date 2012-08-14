@@ -772,7 +772,7 @@ public abstract class CompoundListener<T> {
 				boolean contains;
 				StyleAttributeListener<Object> [] listeners;
 				synchronized(theStyleDomains) {
-					contains = theStyleDomains.contains(sae.getAttribute().domain);
+					contains = theStyleDomains.contains(sae.getAttribute().getDomain());
 				}
 				if(!contains)
 					synchronized(theStyleAttributes) {

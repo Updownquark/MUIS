@@ -5,13 +5,12 @@ import java.awt.Color;
 import java.awt.font.TextAttribute;
 
 import org.muis.core.MuisAttribute;
+import org.muis.core.MuisProperty;
 
 /** Style attribute that affect the display of text rendered from {@link org.muis.core.MuisTextElement}s */
-public class FontStyle implements StyleDomain
-{
+public class FontStyle implements StyleDomain {
 	/** Styles of underlining available */
-	public enum Underline
-	{
+	public enum Underline {
 		/** No underline */
 		none,
 		/** A single-pixel solid underline */
@@ -26,13 +25,11 @@ public class FontStyle implements StyleDomain
 
 	private StyleAttribute<?> [] theAttributes;
 
-	private FontStyle()
-	{
+	private FontStyle() {
 		theAttributes = new StyleAttribute[0];
 	}
 
-	private void register(StyleAttribute<?> attr)
-	{
+	private void register(StyleAttribute<?> attr) {
 		theAttributes = prisms.util.ArrayUtils.add(theAttributes, attr);
 	}
 
@@ -77,17 +74,18 @@ public class FontStyle implements StyleDomain
 	/** The vertical stretch factor of the font */
 	public static final StyleAttribute<Double> stretch;
 
-	static
-	{
+	static {
 		instance = new FontStyle();
 		java.util.Map<String, String> families = new java.util.TreeMap<>();
 		for(String familyName : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames())
 			families.put(familyName.replaceAll(" ", "-"), familyName);
-		family = StyleAttribute.createStyle(instance, "family", MuisAttribute.stringAttr, "Default", families);
+		family = new StyleAttribute<String>(instance, "family", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.stringAttr,
+			families), "Default");
 		instance.register(family);
-		color = StyleAttribute.createStyle(instance, "color", MuisAttribute.colorAttr, Color.black);
+		color = new StyleAttribute<Color>(instance, "color", MuisAttribute.colorAttr, Color.black);
 		instance.register(color);
-		transparency = StyleAttribute.createBoundedStyle(instance, "transparency", MuisAttribute.amountAttr, 0d, 0d, 1d);
+		transparency = new StyleAttribute<Double>(instance, "transparency", MuisAttribute.amountAttr, 0d,
+			new MuisProperty.ComparableValidator<>(0d, 1d), null);
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
 		weights.put("normal", 1d);
@@ -101,45 +99,46 @@ public class FontStyle implements StyleDomain
 		weights.put("heavy", (double) TextAttribute.WEIGHT_HEAVY);
 		weights.put("extra-bold", (double) TextAttribute.WEIGHT_EXTRABOLD);
 		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
-		weight = StyleAttribute.createBoundedStyle(instance, "weight", MuisAttribute.floatAttr, 1d, 0.25d, 3d, weights);
+		weight = new StyleAttribute<Double>(instance, "weight",
+			new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, weights), 1d, new MuisProperty.ComparableValidator<>(0.25d,
+				3d), null);
 		instance.register(weight);
-		slant = StyleAttribute.createBoundedStyle(instance, "slant", MuisAttribute.amountAttr, 0d, -1d, 1d, "normal", 0d, "italic",
-			(double) TextAttribute.POSTURE_OBLIQUE);
+		slant = new StyleAttribute<Double>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal",
+			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d), null);
 		instance.register(slant);
-		underline = StyleAttribute.createStyle(instance, "underline", new MuisAttribute.MuisEnumAttribute<Underline>(Underline.class),
+		underline = new StyleAttribute<Underline>(instance, "underline", new MuisProperty.MuisEnumProperty<Underline>(Underline.class),
 			Underline.none);
 		instance.register(underline);
-		strike = StyleAttribute.createStyle(instance, "strike", MuisAttribute.boolAttr, false);
+		strike = new StyleAttribute<Boolean>(instance, "strike", MuisAttribute.boolAttr, false);
 		instance.register(strike);
-		size = StyleAttribute.createBoundedStyle(instance, "size", MuisAttribute.floatAttr, 12d, 0.1d, 256d);
+		size = new StyleAttribute<Double>(instance, "size", MuisAttribute.floatAttr, 12d,
+			new MuisProperty.ComparableValidator<>(0.1d, 256d), null);
 		instance.register(size);
-		kerning = StyleAttribute.createStyle(instance, "kerning", MuisAttribute.boolAttr, true);
+		kerning = new StyleAttribute<Boolean>(instance, "kerning", MuisAttribute.boolAttr, true);
 		instance.register(kerning);
-		ligatures = StyleAttribute.createStyle(instance, "ligatures", MuisAttribute.boolAttr, true);
+		ligatures = new StyleAttribute<Boolean>(instance, "ligatures", MuisAttribute.boolAttr, true);
 		instance.register(ligatures);
-		antiAlias = StyleAttribute.createStyle(instance, "anti-alias", MuisAttribute.boolAttr, false);
+		antiAlias = new StyleAttribute<Boolean>(instance, "anti-alias", MuisAttribute.boolAttr, false);
 		instance.register(antiAlias);
-		wordWrap = StyleAttribute.createStyle(instance, "word-wrap", MuisAttribute.boolAttr, true);
+		wordWrap = new StyleAttribute<Boolean>(instance, "word-wrap", MuisAttribute.boolAttr, true);
 		instance.register(wordWrap);
-		stretch = StyleAttribute.createBoundedStyle(instance, "stretch", MuisAttribute.amountAttr, 1d, 0.05d, 100d);
+		stretch = new StyleAttribute<Double>(instance, "stretch", MuisAttribute.amountAttr, 1d, new MuisProperty.ComparableValidator<>(
+			0.05d, 100d), null);
 		instance.register(stretch);
 	}
 
 	/** @return The style domain for all font styles */
-	public static FontStyle getDomainInstance()
-	{
+	public static FontStyle getDomainInstance() {
 		return instance;
 	}
 
 	@Override
-	public String getName()
-	{
+	public String getName() {
 		return "font";
 	}
 
 	@Override
-	public java.util.Iterator<StyleAttribute<?>> iterator()
-	{
+	public java.util.Iterator<StyleAttribute<?>> iterator() {
 		return prisms.util.ArrayUtils.iterator(theAttributes, true);
 	}
 }

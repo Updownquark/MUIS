@@ -5,10 +5,10 @@ import prisms.util.ArrayUtils;
 /** Allows complex widgets to be created more easily by addressing a template MUIS file that is reproduced in each instance of the widget */
 public abstract class MuisTemplate extends MuisElement {
 	/** The attribute in a child of a template definition which marks the child as able to be replaced in a template instance */
-	public static final MuisAttribute<String> ATTACH_POINT = new MuisAttribute<String>("attachPoint", MuisAttribute.stringAttr);
+	public static final MuisAttribute<String> ATTACH_POINT = new MuisAttribute<String>("attachPoint", MuisProperty.stringAttr);
 
 	/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
-	public static final MuisAttribute<String> USE_AS = new MuisAttribute<String>("useAs", MuisAttribute.stringAttr);
+	public static final MuisAttribute<String> USE_AS = new MuisAttribute<String>("useAs", MuisProperty.stringAttr);
 
 	/** The definition of an attach point under this template widget */
 	protected static class AttachPointDef {

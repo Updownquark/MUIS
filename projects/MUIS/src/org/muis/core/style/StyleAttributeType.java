@@ -1,11 +1,11 @@
 package org.muis.core.style;
 
+import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType implements org.muis.core.MuisAttribute.AttributeType<MuisStyle>
-{
+public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPropertyType<MuisStyle> {
 	/** The instance to use for the element style */
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType(0);
 
@@ -16,16 +16,13 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	public static StyleAttributeType ELEMENT_HEIR_TYPE = new StyleAttributeType(2);
 
 	/** The style attribute on MUIS elements */
-	public static final org.muis.core.MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new org.muis.core.MuisAttribute<MuisStyle>("style",
-		ELEMENT_TYPE);
+	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<MuisStyle>("style", ELEMENT_TYPE);
 
 	/** The style attribute on MUIS elements */
-	public static final org.muis.core.MuisAttribute<MuisStyle> STYLE_SELF_ATTRIBUTE = new org.muis.core.MuisAttribute<MuisStyle>(
-		"style.self", ELEMENT_SELF_TYPE);
+	public static final MuisAttribute<MuisStyle> STYLE_SELF_ATTRIBUTE = new MuisAttribute<MuisStyle>("style.self", ELEMENT_SELF_TYPE);
 
 	/** The style attribute on MUIS elements */
-	public static final org.muis.core.MuisAttribute<MuisStyle> STYLE_HEIR_ATTRIBUTE = new org.muis.core.MuisAttribute<MuisStyle>(
-		"style.heir", ELEMENT_HEIR_TYPE);
+	public static final MuisAttribute<MuisStyle> STYLE_HEIR_ATTRIBUTE = new MuisAttribute<MuisStyle>("style.heir", ELEMENT_HEIR_TYPE);
 
 	private final int theType;
 
@@ -34,32 +31,22 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 *
 	 * @param type 0 for the element style, 1 for the element's self style, 2 for the element's heir style
 	 */
-	protected StyleAttributeType(int type)
-	{
+	protected StyleAttributeType(int type) {
 		theType = type;
 	}
 
 	@Override
-	public Class<ElementStyle> getType()
-	{
+	public Class<ElementStyle> getType() {
 		return ElementStyle.class;
 	}
 
 	@Override
-	public String validate(org.muis.core.MuisClassView classView, String value)
-	{
-		return null; // Style error are only warnings
-	}
-
-	@Override
-	public MuisStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException
-	{
+	public MuisStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException {
 		MuisElement element = classView.getElement();
 		if(element == null)
 			throw new MuisException("Style attributes may only be parsed for elements");
 		MuisStyle ret;
-		switch (theType)
-		{
+		switch (theType) {
 		case 0:
 			ret = element.getStyle();
 			break;
@@ -73,11 +60,9 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 			throw new IllegalStateException("StyleAttributeType.type must be 0, 1, or 2; not " + theType);
 		}
 		String [] styles = value.split(";");
-		for(String style : styles)
-		{
+		for(String style : styles) {
 			int equalIdx = style.indexOf("=");
-			if(equalIdx < 0)
-			{
+			if(equalIdx < 0) {
 				element.msg().error("Invalid style: " + style + ".  No '='");
 				continue;
 			}
@@ -85,34 +70,27 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 			String valueStr = style.substring(equalIdx + 1).trim();
 			String ns, domainName, attrName;
 			int nsIdx = attr.indexOf(':');
-			if(nsIdx >= 0)
-			{
+			if(nsIdx >= 0) {
 				ns = attr.substring(0, nsIdx).trim();
 				domainName = attr.substring(nsIdx + 1).trim();
-			}
-			else
-			{
+			} else {
 				ns = null;
 				domainName = attr;
 			}
 
 			int dotIdx = domainName.indexOf('.');
-			if(dotIdx >= 0)
-			{
+			if(dotIdx >= 0) {
 				attrName = domainName.substring(dotIdx + 1).trim();
 				domainName = domainName.substring(0, dotIdx).trim();
-			}
-			else
+			} else
 				attrName = null;
 
 			org.muis.core.MuisToolkit toolkit;
 			String domainClassName;
-			if(ns == null)
-			{
+			if(ns == null) {
 				toolkit = element.getToolkit();
 				domainClassName = toolkit.getMappedClass(domainName);
-				if(domainClassName == null && toolkit != element.getDocument().getCoreToolkit())
-				{
+				if(domainClassName == null && toolkit != element.getDocument().getCoreToolkit()) {
 					toolkit = element.getDocument().getCoreToolkit();
 					domainClassName = toolkit.getMappedClass(domainName);
 				}
@@ -120,42 +98,34 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 					if(element.getToolkit() != element.getDocument().getCoreToolkit())
 						element.msg().warn(
 							"No style domain mapped to " + domainName + " in element's toolkit (" + element.getToolkit().getName()
-							+ ") or default toolkit");
+								+ ") or default toolkit");
 					else
 						element.msg().warn("No style domain mapped to " + domainName + " in default toolkit");
-			}
-			else
-			{
+			} else {
 				toolkit = element.getClassView().getToolkit(ns);
-				if(toolkit == null)
-				{
+				if(toolkit == null) {
 					element.msg().warn("No toolkit mapped to namespace " + ns + " for style " + style);
 					continue;
 				}
 				domainClassName = toolkit.getMappedClass(domainName);
-				if(domainClassName == null)
-				{
+				if(domainClassName == null) {
 					element.msg().warn("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName());
 					continue;
 				}
 			}
 
 			Class<? extends org.muis.core.style.StyleDomain> domainClass;
-			try
-			{
+			try {
 				domainClass = toolkit.loadClass(domainClassName, org.muis.core.style.StyleDomain.class);
-			} catch(MuisException e)
-			{
+			} catch(MuisException e) {
 				element.msg().warn("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
 				continue;
 			}
 			org.muis.core.style.StyleDomain domain;
-			try
-			{
+			try {
 				domain = (org.muis.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null,
 					new Object[0]);
-			} catch(Exception e)
-			{
+			} catch(Exception e) {
 				element.msg().warn("Could not get domain instance", e);
 				continue;
 			}
@@ -179,8 +149,7 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 * @param classView The class view to use for parsing if needed
 	 */
 	protected void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
-	{
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager, classView);
 	}
 
@@ -194,14 +163,12 @@ public class StyleAttributeType implements org.muis.core.MuisAttribute.Attribute
 	 * @param classView The class view to use for parsing if needed
 	 */
 	protected void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
-	{
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
 	}
 
 	@Override
-	public ElementStyle cast(Object value)
-	{
+	public ElementStyle cast(Object value) {
 		return value instanceof ElementStyle ? (ElementStyle) value : null;
 	}
 }

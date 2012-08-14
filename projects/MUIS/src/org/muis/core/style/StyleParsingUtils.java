@@ -1,8 +1,7 @@
 package org.muis.core.style;
 
 /** A few utiliy methods for parsing style information from attribute values */
-public class StyleParsingUtils
-{
+public class StyleParsingUtils {
 	/**
 	 * Applies a single style attribute to a style
 	 *
@@ -14,45 +13,40 @@ public class StyleParsingUtils
 	 * @param classView The class view to use for parsing if needed
 	 */
 	public static void applyStyleAttribute(org.muis.core.style.MuisStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
-	{
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
-			if(attrib.name.equals(attrName))
-			{
+			if(attrib.getName().equals(attrName)) {
 				styleAttr = attrib;
 				break;
 			}
 
-		if(styleAttr == null)
-		{
+		if(styleAttr == null) {
 			messager.warn("No such attribute " + attrName + " in domain " + domain.getName());
 			return;
 		}
 
 		Object value;
-		try
-		{
-			value = styleAttr.parse(valueStr, classView);
-		} catch(org.muis.core.MuisException e)
-		{
+		try {
+			value = styleAttr.getType().parse(classView, valueStr);
+		} catch(org.muis.core.MuisException e) {
 			messager
 				.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(), e);
 			return;
 		}
-		String error = styleAttr.validate(value);
-		if(error != null)
-		{
-			messager.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName()
-				+ ": " + error);
-			return;
-		}
+		if(styleAttr.getValidator() != null)
+			try {
+				((StyleAttribute<Object>) styleAttr).getValidator().assertValid(value);
+			} catch(org.muis.core.MuisException e) {
+				messager.warn(e.getMessage());
+				return;
+			}
 		style.set((StyleAttribute<Object>) styleAttr, value);
 	}
 
 	/**
 	 * Applies a bulk style setting to a style
-	 * 
+	 *
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
@@ -60,19 +54,16 @@ public class StyleParsingUtils
 	 * @param classView The class view to use for parsing if needed
 	 */
 	public static void applyStyleSet(org.muis.core.style.MuisStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView)
-	{ // Setting domain attributes in bulk--value must be JSON
-		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}')
-		{
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk--value
+																								// must be JSON
+		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}') {
 			messager.warn("When only a domain is specified, styles must be in the form {property:value, property:value}");
 			return;
 		}
 		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(",");
-		for(String propEntry : propEntries)
-		{
+		for(String propEntry : propEntries) {
 			int idx = propEntry.indexOf(':');
-			if(idx < 0)
-			{
+			if(idx < 0) {
 				messager.warn("Bulk style setting " + propEntry.trim() + " is missing a colon");
 				continue;
 			}

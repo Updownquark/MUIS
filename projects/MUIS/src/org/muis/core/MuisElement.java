@@ -822,7 +822,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		str.append(theTagName);
 		for(AttributeManager.AttributeHolder holder : theAttributeManager.holders()) {
 			str.append(' ');
-			str.append(holder.getAttribute().name);
+			str.append(holder.getAttribute().getName());
 			str.append('=');
 			str.append('"');
 			str.append(holder.getValue());

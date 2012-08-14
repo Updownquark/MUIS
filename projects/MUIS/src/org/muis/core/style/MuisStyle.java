@@ -65,7 +65,7 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 			if(ret != null)
 				return ret;
 		}
-		return attr.theDefault;
+		return attr.getDefault();
 	}
 
 	/**
@@ -83,12 +83,15 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
-		if(!attr.type.getType().isInstance(value))
+		if(!attr.getType().getType().isInstance(value))
 			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
-				+ " of type " + attr.type.getType().getName());
-		String val = attr.validate(value);
-		if(val != null)
-			throw new IllegalArgumentException(value + " cannot be set for attribute " + attr + ": " + val);
+				+ " of type " + attr.getType().getType().getName());
+		if(attr.getValidator() != null)
+			try {
+				attr.getValidator().assertValid(value);
+			} catch(org.muis.core.MuisException e) {
+				throw new IllegalArgumentException(e.getMessage());
+			}
 		theAttributes.put(attr, value);
 		fireEvent(attr, value);
 	}
@@ -206,8 +209,7 @@ public abstract class MuisStyle implements Iterable<StyleAttribute<?>> {
 			if(index < theLocalAttribs.length) {
 				ret = theLocalAttribs[index];
 				index++;
-			}
-			else {
+			} else {
 				if(childIndex < 0)
 					childIndex = 0;
 				while(childIndex < theDependencies.length && !theDependencies[childIndex].hasNext())

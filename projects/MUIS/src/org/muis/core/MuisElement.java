@@ -257,7 +257,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		});
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
-		// TODO add style listener
+		addListener(ATTRIBUTE_CHANGED, (MuisEventListener<Object>) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
@@ -651,7 +651,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 *         By default, this method returns true if and only if the background transparency is one.
 	 */
 	public boolean isClickThrough() {
-		return getStyle().get(BackgroundStyles.transparency) >= 1;
+		return getStyle().getSelf().get(BackgroundStyles.transparency) >= 1;
 	}
 
 	/** @return Whether this element is able to accept the focus for the document */
@@ -957,7 +957,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * @param area The area to paint
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area) {
-		Texture tex = getStyle().get(BackgroundStyles.texture);
+		Texture tex = getStyle().getSelf().get(BackgroundStyles.texture);
 		if(tex != null)
 			tex.render(graphics, this, area);
 	}

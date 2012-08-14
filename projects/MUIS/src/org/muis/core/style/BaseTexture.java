@@ -12,8 +12,10 @@ public class BaseTexture implements Texture
 		int y = area == null ? 0 : area.y;
 		int renderW = area == null ? element.getWidth() : (area.width < w ? area.width : w);
 		int renderH = area == null ? element.getHeight() : (area.height < h ? area.height : h);
-		graphics.setColor(org.muis.core.MuisUtils.getBackground(element.getStyle()));
-		Size cornerRad = element.getStyle().get(BackgroundStyles.cornerRadius);
+		element.msg().info(
+			"Element " + element.getTagName() + ", bg=" + org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf()));
+		graphics.setColor(org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf()));
+		Size cornerRad = element.getStyle().getSelf().get(BackgroundStyles.cornerRadius);
 		int wRad = cornerRad.evaluate(w);
 		int hRad = cornerRad.evaluate(h);
 		int wRad2 = wRad * 2;

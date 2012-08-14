@@ -26,6 +26,8 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		if(!(event instanceof AttributeChangedEvent))
 			return;
 		AttributeChangedEvent<MuisStyle> ace = (AttributeChangedEvent<MuisStyle>) (MuisEvent<?>) event;
+		if(ace.getAttribute().getType() != StyleAttributeType.ELEMENT_TYPE)
+			return;
 		MuisAttribute<MuisStyle> attr = ace.getAttribute();
 		MuisStyle target;
 		if(!(attr instanceof org.muis.core.MuisPathedAttribute)) {
@@ -42,12 +44,14 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 			}
 		}
 		java.util.HashSet<StyleAttribute<?>> styleAtts = new java.util.HashSet<>();
-		for(StyleAttribute<?> styleAtt : ace.getOldValue())
-			styleAtts.add(styleAtt);
-		for(StyleAttribute<?> styleAtt : ace.getValue()) {
-			styleAtts.remove(styleAtt);
-			target.set((StyleAttribute<Object>) styleAtt, ace.getValue().get(styleAtt));
-		}
+		if(ace.getOldValue() != null)
+			for(StyleAttribute<?> styleAtt : ace.getOldValue())
+				styleAtts.add(styleAtt);
+		if(ace.getValue() != null)
+			for(StyleAttribute<?> styleAtt : ace.getValue()) {
+				styleAtts.remove(styleAtt);
+				target.set((StyleAttribute<Object>) styleAtt, ace.getValue().get(styleAtt));
+			}
 		for(StyleAttribute<?> styleAtt : styleAtts)
 			target.clear(styleAtt);
 	}

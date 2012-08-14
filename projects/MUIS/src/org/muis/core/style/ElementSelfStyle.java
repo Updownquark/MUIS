@@ -7,6 +7,7 @@ public class ElementSelfStyle extends AbstractMuisStyle {
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
 		theElStyle = elStyle;
+		addDependency(elStyle);
 	}
 
 	/** @return The element style that depends on this self-style */

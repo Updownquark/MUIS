@@ -136,7 +136,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	}
 
 	@Override
-	public ElementStyle cast(Object value) {
-		return value instanceof ElementStyle ? (ElementStyle) value : null;
+	public MuisStyle cast(Object value) {
+		return value instanceof SealableStyle ? (SealableStyle) value : null;
 	}
 }

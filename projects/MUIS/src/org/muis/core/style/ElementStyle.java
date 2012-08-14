@@ -23,7 +23,6 @@ public class ElementStyle extends AbstractMuisStyle {
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
-		addDependency(theSelfStyle);
 		theStyleGroups = new NamedStyleGroup[0];
 		addListener(new StyleListener() {
 			@Override
@@ -33,7 +32,7 @@ public class ElementStyle extends AbstractMuisStyle {
 		});
 		if(element.getParent() != null) {
 			theParentStyle = element.getParent().getStyle();
-			addDependency(theParentStyle.getHeir(), theSelfStyle);
+			addDependency(theParentStyle.getHeir(), null);
 		}
 		element.addListener(MuisElement.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
 			@Override
@@ -48,7 +47,7 @@ public class ElementStyle extends AbstractMuisStyle {
 				}
 				if(event.getValue() != null) {
 					theParentStyle = event.getValue().getStyle();
-					addDependency(theParentStyle.getHeir(), theSelfStyle);
+					addDependency(theParentStyle.getHeir(), null);
 				} else
 					theParentStyle = null;
 			}
@@ -78,7 +77,14 @@ public class ElementStyle extends AbstractMuisStyle {
 	/** @param group The named style group to add to this element style */
 	public void addGroup(NamedStyleGroup group) {
 		group.addMember(theElement);
-		addDependency(group, theStyleGroups[theStyleGroups.length - 1]);
+		AbstractMuisStyle after;
+		if(theStyleGroups.length > 0)
+			after = theStyleGroups[theStyleGroups.length - 1];
+		else if(theParentStyle != null)
+			after = theParentStyle.getHeir();
+		else
+			after = null;
+		addDependency(group, after);
 		if(!prisms.util.ArrayUtils.contains(theStyleGroups, group))
 			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, group);
 		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1), false, false);
@@ -103,8 +109,8 @@ public class ElementStyle extends AbstractMuisStyle {
 		return new Iterable<StyleAttribute<?>>() {
 			@Override
 			public java.util.Iterator<StyleAttribute<?>> iterator() {
-				MuisStyle [] depends=new MuisStyle[theStyleGroups.length+1];
-				depends[0]=theSelfStyle;
+				MuisStyle [] depends = new MuisStyle[theStyleGroups.length + 1];
+				depends[0] = theSelfStyle;
 				System.arraycopy(depends, 1, theStyleGroups, 0, theStyleGroups.length);
 				return new AttributeIterator(ElementStyle.this, depends);
 			}

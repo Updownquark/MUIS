@@ -358,7 +358,7 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
 			theElement.addListener(MuisElement.ATTRIBUTE_CHANGED, ret);
-			theElement.getStyle().addListener(ret.getStyleListener());
+			theElement.getStyle().getSelf().addListener(ret.getStyleListener());
 			return ret;
 		}
 
@@ -795,7 +795,8 @@ public abstract class CompoundListener<T> {
 				}
 				if(listeners != null)
 					for(StyleAttributeListener<Object> listener : listeners)
-						listener.styleChanged(element, (StyleAttributeEvent<Object>) sae, element.getStyle().get(sae.getAttribute()));
+						listener.styleChanged(element, (StyleAttributeEvent<Object>) sae,
+							element.getStyle().getSelf().get(sae.getAttribute()));
 			}
 		}
 

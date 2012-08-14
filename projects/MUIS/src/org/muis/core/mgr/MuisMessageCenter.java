@@ -18,7 +18,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 
 	/**
 	 * Creates a message center
-	 * 
+	 *
 	 * @param doc The document that this message center is for
 	 * @param element The element that this message center is for (may be null if this message center is document-level)
 	 */
@@ -122,6 +122,16 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 */
 	public void warn(String text, Throwable exception, Object... params) {
 		message(MuisMessage.Type.WARNING, text, exception, params);
+	}
+
+	/**
+	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * 
+	 * @param text A description of the warning
+	 * @param params Any parameters that may be relevant to the warning
+	 */
+	public void info(String text, Object... params) {
+		message(MuisMessage.Type.INFO, text, null, params);
 	}
 
 	/** @return The worst type of message associated with this message center */

@@ -3,7 +3,7 @@ package org.muis.core.style;
 import org.muis.core.MuisElement;
 
 /** A style controlling the appearance of a specific element */
-public class ElementStyle extends AbstractMuisStyle {
+public class ElementStyle extends AbstractStatefulStyle implements MutableStatefulStyle {
 	private final MuisElement theElement;
 
 	private ElementStyle theParentStyle;
@@ -68,6 +68,26 @@ public class ElementStyle extends AbstractMuisStyle {
 		return theHeirStyle;
 	}
 
+	@Override
+	public <T> void set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
+		super.set(attr, value);
+	}
+
+	@Override
+	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws IllegalArgumentException {
+		super.set(attr, exp, value);
+	}
+
+	@Override
+	public void clear(StyleAttribute<?> attr) {
+		super.clear(attr);
+	}
+
+	@Override
+	public void clear(StyleAttribute<?> attr, StateExpression exp) {
+		super.clear(attr, exp);
+	}
+
 	/** @return The number of named style groups in this element style */
 	public int getGroupCount() {
 		return theStyleGroups.length;
@@ -76,7 +96,7 @@ public class ElementStyle extends AbstractMuisStyle {
 	/** @param group The named style group to add to this element style */
 	public void addGroup(NamedStyleGroup group) {
 		group.addMember(theElement);
-		AbstractMuisStyle after;
+		AbstractStatefulStyle after;
 		if(theStyleGroups.length > 0)
 			after = theStyleGroups[theStyleGroups.length - 1];
 		else if(theParentStyle != null)

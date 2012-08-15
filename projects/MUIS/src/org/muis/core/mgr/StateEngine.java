@@ -1,11 +1,12 @@
 package org.muis.core.mgr;
 
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.event.MuisEvent;
 
 /** Keeps track of states for an entity and fires events when they change */
-public class StateEngine {
+public class StateEngine implements StateSet {
 	private static final String INACTIVE = "inactive";
 
 	/** Allows control over one state in an engine */
@@ -57,16 +58,99 @@ public class StateEngine {
 		theListeners = new prisms.arch.event.ListenerManager<>(StateListener.class);
 	}
 
-	/**
-	 * @param state The state to check
-	 * @return Whether the given state is currently active in this engine
-	 */
+	@Override
 	public boolean is(String state) {
 		return isActive(theStates.get(state));
 	}
 
 	private static boolean isActive(String stateValue) {
 		return stateValue != null && stateValue != INACTIVE;
+	}
+
+	/**
+	 * @param state The state to check
+	 * @return Whether the given state is controller in this state engine
+	 */
+	public boolean recognizes(String state) {
+		for(StateController control : theStateControllers)
+			if(control.getState().equals(state))
+				return true;
+		return false;
+	}
+
+	@Override
+	public Iterator<String> iterator() {
+		return new Iterator<String>() {
+			private Iterator<java.util.Map.Entry<String, String>> theWrapped = theStates.entrySet().iterator();
+
+			private java.util.Map.Entry<String, String> theLastEntry;
+
+			private boolean calledHasNext;
+
+			@Override
+			public boolean hasNext() {
+				calledHasNext = true;
+				while(theLastEntry == null && theWrapped.hasNext()) {
+					theLastEntry = theWrapped.next();
+					if(!isActive(theLastEntry.getValue()))
+						theLastEntry = null;
+				}
+				return theLastEntry != null;
+			}
+
+			@Override
+			public String next() {
+				if(!calledHasNext && !hasNext())
+					throw new java.util.NoSuchElementException();
+				String ret = theLastEntry.getKey();
+				theLastEntry = null;
+				return ret;
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+
+	@Override
+	public String [] toArray() {
+		java.util.ArrayList<String> ret = new java.util.ArrayList<>();
+		for(java.util.Map.Entry<String, String> entry : theStates.entrySet()) {
+			if(isActive(entry.getValue()))
+				ret.add(entry.getKey());
+		}
+		return ret.toArray(new String[ret.size()]);
+	}
+
+	/** @return All states that are controlled in this engine, whether they are active or not */
+	public Iterable<String> getAllStates() {
+		return new Iterable<String>() {
+			@Override
+			public Iterator<String> iterator() {
+				return new Iterator<String>() {
+					private final StateController [] theControllerSnapshot = theStateControllers;
+
+					private int theIndex;
+
+					@Override
+					public boolean hasNext() {
+						return theIndex < theControllerSnapshot.length;
+					}
+
+					@Override
+					public String next() {
+						return theControllerSnapshot[theIndex++].getState();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
 	}
 
 	/**

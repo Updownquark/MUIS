@@ -15,10 +15,17 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 
 	@Override
 	public boolean accept(MuisElement element, String... path) {
-		// TODO come back and add stateful styles
-		if(path.length != 1)
-			return false;
-		return path[0].equals(SELF_STYLE) || path[0].equals(HEIR_STYLE);
+		int idx = 0;
+		if(idx < path.length && (path[idx].equals(SELF_STYLE) || path[idx].equals(HEIR_STYLE)))
+			idx++;
+		for(; idx < path.length; idx++) {
+			String [] states = path[idx].split("_");
+			for(String state : states) {
+				if(!element.state().recognizes(state))
+					return false;
+			}
+		}
+		return true;
 	}
 
 	@Override
@@ -29,18 +36,34 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		if(ace.getAttribute().getType() != StyleAttributeType.ELEMENT_TYPE)
 			return;
 		MuisAttribute<MuisStyle> attr = ace.getAttribute();
-		MuisStyle target;
+		MutableStatefulStyle target;
+		StateExpression expr = null;
 		if(!(attr instanceof org.muis.core.MuisPathedAttribute)) {
 			target = element.getStyle();
 		} else {
 			org.muis.core.MuisPathedAttribute<MuisStyle> pathed = (org.muis.core.MuisPathedAttribute<MuisStyle>) attr;
+			int idx = 0;
 			if(pathed.getPath()[0].equals(SELF_STYLE)) {
 				target = element.getStyle().getSelf();
+				idx++;
 			} else if(pathed.getPath()[0].equals(HEIR_STYLE)) {
 				target = element.getStyle().getHeir();
-			} else {
-				// TODO come back and add stateful styles
-				throw new IllegalStateException("Pathed style attribute " + attr + " not recognized");
+				idx++;
+			} else
+				target = element.getStyle();
+			if(idx < pathed.getPath().length) {
+				java.util.ArrayList<StateExpression.Or> ors = new java.util.ArrayList<>();
+				for(; idx < pathed.getPath().length; idx++) {
+					String [] states = pathed.getPath()[idx].split("_");
+					StateExpression.Simple[] simples = new StateExpression.Simple[states.length];
+					for(int s = 0; s < states.length; s++)
+						simples[s] = new StateExpression.Simple(states[s]);
+					ors.add(new StateExpression.Or(simples));
+				}
+				if(ors.size() == 1)
+					expr = ors.get(0);
+				else if(!ors.isEmpty())
+					expr = new StateExpression.And(ors.toArray(new StateExpression[ors.size()]));
 			}
 		}
 		java.util.HashSet<StyleAttribute<?>> styleAtts = new java.util.HashSet<>();
@@ -50,10 +73,10 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		if(ace.getValue() != null)
 			for(StyleAttribute<?> styleAtt : ace.getValue()) {
 				styleAtts.remove(styleAtt);
-				target.set((StyleAttribute<Object>) styleAtt, ace.getValue().get(styleAtt));
+				target.set((StyleAttribute<Object>) styleAtt, expr, ace.getValue().get(styleAtt));
 			}
 		for(StyleAttribute<?> styleAtt : styleAtts)
-			target.clear(styleAtt);
+			target.clear(styleAtt, expr);
 	}
 
 	@Override

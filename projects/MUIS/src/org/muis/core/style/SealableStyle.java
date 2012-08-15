@@ -1,7 +1,9 @@
 package org.muis.core.style;
 
+import java.util.Iterator;
+
 /** A style that can be sealed to be immutable */
-public class SealableStyle extends MuisStyle implements prisms.util.Sealable {
+public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	private java.util.HashMap<StyleAttribute<?>, Object> theValues;
 
 	private boolean isSealed;
@@ -32,7 +34,7 @@ public class SealableStyle extends MuisStyle implements prisms.util.Sealable {
 	}
 
 	@Override
-	protected <T> void setValue(StyleAttribute<T> attr, T value) {
+	public <T> void set(StyleAttribute<T> attr, T value) {
 		if(isSealed)
 			throw new SealedException(this);
 		if(value == null) {
@@ -75,6 +77,16 @@ public class SealableStyle extends MuisStyle implements prisms.util.Sealable {
 	@Override
 	public void seal() {
 		isSealed = true;
+	}
+
+	@Override
+	public <T> T get(StyleAttribute<T> attr) {
+		return getLocal(attr);
+	}
+
+	@Override
+	public Iterator<StyleAttribute<?>> iterator() {
+		return prisms.util.ArrayUtils.immutableIterator(theValues.keySet().iterator());
 	}
 
 	@Override

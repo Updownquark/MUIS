@@ -117,7 +117,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	 * @param messager The message center to issue warnings to if there is an error with the style
 	 * @param classView The class view to use for parsing if needed
 	 */
-	protected void applyStyleAttribute(MuisStyle style, StyleDomain domain, String attrName, String valueStr,
+	protected void applyStyleAttribute(MutableStyle style, StyleDomain domain, String attrName, String valueStr,
 		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager, classView);
 	}
@@ -131,7 +131,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	 * @param messager The message center to issue warnings to if there are errors with the styles
 	 * @param classView The class view to use for parsing if needed
 	 */
-	protected void applyStyleSet(MuisStyle style, StyleDomain domain, String valueStr, org.muis.core.mgr.MuisMessageCenter messager,
+	protected void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr, org.muis.core.mgr.MuisMessageCenter messager,
 		org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
 	}

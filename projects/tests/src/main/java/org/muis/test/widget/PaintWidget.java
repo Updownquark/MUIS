@@ -4,6 +4,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 
+import org.muis.core.MuisConstants.Events;
 import org.muis.core.MuisElement;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
@@ -19,7 +20,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 	/** Creates a PaintWidget */
 	public PaintWidget() {
 		setFocusable(true);
-		addListener(BOUNDS_CHANGED, new org.muis.core.event.MuisEventListener<Rectangle>() {
+		addListener(Events.BOUNDS_CHANGED, new org.muis.core.event.MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
 				resized();
@@ -30,7 +31,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 				return true;
 			}
 		});
-		addListener(MOUSE_EVENT, new org.muis.core.event.MouseListener(true) {
+		addListener(Events.MOUSE, new org.muis.core.event.MouseListener(true) {
 			private boolean isMouseDown;
 
 			@Override
@@ -76,7 +77,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 				}
 			}
 		});
-		addListener(KEYBOARD_EVENT, new org.muis.core.event.KeyBoardListener(true) {
+		addListener(Events.KEYBOARD, new org.muis.core.event.KeyBoardListener(true) {
 			@Override
 			public void keyPressed(KeyBoardEvent kEvt, MuisElement element) {
 				if(kEvt.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {

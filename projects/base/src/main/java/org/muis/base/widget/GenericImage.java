@@ -171,7 +171,7 @@ public class GenericImage extends org.muis.core.LayoutContainer
 			@Override
 			public void preTransition(String fromStage, String toStage)
 			{
-				if(fromStage.equals(CoreStage.INIT_SELF.toString()))
+				if(fromStage.equals(org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString()))
 				{
 					org.muis.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
 					if(res == null)

@@ -81,7 +81,7 @@ public class MuisBrowser extends javax.swing.JPanel {
 		if(getParent() instanceof java.awt.Frame)
 			((java.awt.Frame) getParent()).setTitle(muisDoc.getHead().getTitle());
 		repaint();
-		muisDoc.getRoot().addListener(MuisElement.MESSAGE_ADDED, theMessageListener);
+		muisDoc.getRoot().addListener(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, theMessageListener);
 		for(MuisMessage msg : muisDoc.allMessages())
 			printMessage(msg);
 	}

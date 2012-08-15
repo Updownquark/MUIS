@@ -33,7 +33,7 @@ public class Image extends GenericImage {
 		atts().accept(this, hResize);
 		atts().accept(this, vResize);
 		atts().accept(this, propLocked);
-		addListener(ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
+		addListener(org.muis.core.MuisConstants.Events.ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisAttribute<?>> event, org.muis.core.MuisElement element) {
 				if(event.getValue() == src)

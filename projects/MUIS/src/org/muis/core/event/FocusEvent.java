@@ -14,7 +14,7 @@ public class FocusEvent extends UserEvent
 	 */
 	public FocusEvent(org.muis.core.MuisDocument doc, org.muis.core.MuisElement element, boolean focus)
 	{
-		super(org.muis.core.MuisElement.FOCUS_EVENT, doc, element);
+		super(org.muis.core.MuisConstants.Events.FOCUS, doc, element);
 		isFocus = focus;
 	}
 

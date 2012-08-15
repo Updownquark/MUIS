@@ -18,7 +18,7 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T>
 	 */
 	public AttributeChangedEvent(MuisAttribute<T> attr, T oldValue, T newValue)
 	{
-		super((MuisEventType<T>) org.muis.core.MuisElement.ATTRIBUTE_CHANGED, oldValue, newValue);
+		super((MuisEventType<T>) org.muis.core.MuisConstants.Events.ATTRIBUTE_CHANGED, oldValue, newValue);
 		theAttr = attr;
 	}
 

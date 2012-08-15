@@ -4,17 +4,12 @@ import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
 /**
- * Represents a physical keyboard action by the user. This event represents a user's pressing or
- * releasing a key on the keyboard. This event does NOT always represent an event that can be
- * directly used to enter text. Use {@link CharInputEvent} for that purpose.
+ * Represents a physical keyboard action by the user. This event represents a user's pressing or releasing a key on the keyboard. This event
+ * does NOT always represent an event that can be directly used to enter text. Use {@link CharInputEvent} for that purpose.
  */
-public class KeyBoardEvent extends UserEvent
-{
-	/**
-	 * Keyboard keys that may be represented by key events
-	 */
-	public static enum KeyCode
-	{
+public class KeyBoardEvent extends UserEvent {
+	/** Keyboard keys that may be represented by key events */
+	public static enum KeyCode {
 		/** The letter a on the keyboard */
 		A,
 		/** The letter b on the keyboard */
@@ -177,25 +172,13 @@ public class KeyBoardEvent extends UserEvent
 		EQUAL,
 		/** The backspace key */
 		BACKSPACE,
-		/**
-		 * The left arrow key in the main keyboard. Pressing 4 with num lock off generates a key
-		 * code of {@link #PAD_4}
-		 */
+		/** The left arrow key in the main keyboard. Pressing 4 with num lock off generates a key code of {@link #PAD_4} */
 		LEFT_ARROW,
-		/**
-		 * The right arrow key in the main keyboard. Pressing 6 with num lock off generates a key
-		 * code of {@link #PAD_6}
-		 */
+		/** The right arrow key in the main keyboard. Pressing 6 with num lock off generates a key code of {@link #PAD_6} */
 		RIGHT_ARROW,
-		/**
-		 * The left arrow key in the main keyboard. Pressing 8 with num lock off generates a key
-		 * code of {@link #PAD_8}
-		 */
+		/** The left arrow key in the main keyboard. Pressing 8 with num lock off generates a key code of {@link #PAD_8} */
 		UP_ARROW,
-		/**
-		 * The down arrow key in the main keyboard. Pressing 2 with num lock off generates a key
-		 * code of {@link #PAD_2}
-		 */
+		/** The down arrow key in the main keyboard. Pressing 2 with num lock off generates a key code of {@link #PAD_2} */
 		DOWN_ARROW,
 		/** The back-quote (`) or tilde(~) key */
 		BACK_QUOTE,
@@ -261,25 +244,13 @@ public class KeyBoardEvent extends UserEvent
 		INSERT,
 		/** The delete key */
 		DELETE,
-		/**
-		 * The home key in the main keyboard (pressing 7 on the key pad with num lock off generates
-		 * a key code of {@link #PAD_7}
-		 */
+		/** The home key in the main keyboard (pressing 7 on the key pad with num lock off generates a key code of {@link #PAD_7} */
 		HOME,
-		/**
-		 * The end key in the main keyboard (pressing 1 on the key pad with num lock off generates a
-		 * key code of {@link #PAD_1}
-		 */
+		/** The end key in the main keyboard (pressing 1 on the key pad with num lock off generates a key code of {@link #PAD_1} */
 		END,
-		/**
-		 * The page up key in the main keyboard (pressing 9 on the key pad with num lock off
-		 * generates a key code of {@link #PAD_9}
-		 */
+		/** The page up key in the main keyboard (pressing 9 on the key pad with num lock off generates a key code of {@link #PAD_9} */
 		PAGE_UP,
-		/**
-		 * The pagedown key in the main keyboard (pressing 3 on the key pad with num lock off
-		 * generates a key code of {@link #PAD_3}
-		 */
+		/** The pagedown key in the main keyboard (pressing 3 on the key pad with num lock off generates a key code of {@link #PAD_3} */
 		PAGE_DOWN,
 		/** The meta key */
 		META,
@@ -293,43 +264,34 @@ public class KeyBoardEvent extends UserEvent
 
 	/**
 	 * Creates a KeyEvent
-	 * 
+	 *
 	 * @param doc The document that this event was generated for
 	 * @param element The focused element that received this key event first
 	 * @param keyCode The key that caused this event
 	 * @param pressed Whether the key was pressed or released
 	 */
-	public KeyBoardEvent(MuisDocument doc, MuisElement element, KeyCode keyCode, boolean pressed)
-	{
-		super(MuisElement.KEYBOARD_EVENT, doc, element);
+	public KeyBoardEvent(MuisDocument doc, MuisElement element, KeyCode keyCode, boolean pressed) {
+		super(org.muis.core.MuisConstants.Events.KEYBOARD, doc, element);
 		theKeyCode = keyCode;
 		wasPressed = pressed;
 	}
 
-	/**
-	 * @return The key that caused this event
-	 */
-	public KeyCode getKeyCode()
-	{
+	/** @return The key that caused this event */
+	public KeyCode getKeyCode() {
 		return theKeyCode;
 	}
 
-	/**
-	 * @return Whether this event was due to the user pressing a key or releasing it
-	 */
-	public boolean wasPressed()
-	{
+	/** @return Whether this event was due to the user pressing a key or releasing it */
+	public boolean wasPressed() {
 		return wasPressed;
 	}
 
 	/**
 	 * @param keyCode The keyboard key that was typed
 	 * @param doc The document to get which other keys (e.g. shift) might be pressed
-	 * @return The character that the key code represents, or (char) -1 if this event does not
-	 *         represent a character
+	 * @return The character that the key code represents, or (char) -1 if this event does not represent a character
 	 */
-	public static char getKeyChar(KeyCode keyCode, MuisDocument doc)
-	{
+	public static char getKeyChar(KeyCode keyCode, MuisDocument doc) {
 		// TODO
 		return 'a';
 	}

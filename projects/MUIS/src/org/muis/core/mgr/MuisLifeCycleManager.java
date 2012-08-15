@@ -33,9 +33,13 @@ public class MuisLifeCycleManager {
 	 *
 	 * @param muisElement The element that this manager will manage the life cycle of
 	 * @param acceptor The acceptor to accept control of the new life cycle manager
-	 * @param initStages The initial stages for the life cycle
+	 * @param initStages The initial stages for the life cycle. At last one stage must be provided. The last value here will always be the
+	 *            last stage in this life cycle. No stage may be added after it.
 	 */
 	public MuisLifeCycleManager(MuisElement muisElement, ControlAcceptor acceptor, String... initStages) {
+		if(initStages.length == 0)
+			throw new IllegalArgumentException("At least one initial stage (the final stage) must be provided"
+				+ " to the life cycle manager constructor");
 		theMuisElement = muisElement;
 		theStages = initStages;
 		theLifeCycleListeners = new LifeCycleListener[0];
@@ -95,19 +99,25 @@ public class MuisLifeCycleManager {
 	public void addStage(String stage, String afterStage) {
 		if(theCurrentStage > 0)
 			theMuisElement.msg().error("Life cycle stages may not be added after the " + theStages[0] + " stage", "stage", stage);
-		if(afterStage == null && theStages.length > 0) {
+		if(afterStage == null && theStages.length > 1) {
 			theMuisElement.msg().error("afterStage must not be null--stages cannot be inserted before " + theStages[0], "stage", stage);
 			return;
 		}
 		if(ArrayUtils.contains(theStages, stage))
 			throw new IllegalArgumentException("Life cycle stage \"" + stage + "\" already exists in this life cycle manager");
-		if(theStages.length == 0) {
-			theStages = new String[] {stage};
+		if(theStages.length == 1) {
+			theStages = new String[] {stage, theStages[0]};
 			return;
 		}
 		int idx = prisms.util.ArrayUtils.indexOf(theStages, afterStage);
 		if(idx < 0) {
 			theMuisElement.msg().error("afterStage \"" + afterStage + "\" not found. Cannot add stage.", "stage", stage);
+			return;
+		}
+		if(idx == theStages.length - 1) {
+			theMuisElement.msg().error(
+				"afterStage \"" + afterStage + "\" is the last stage in this life cycle" + "--no stage can be added after it.", "stage",
+				stage);
 			return;
 		}
 		theStages = prisms.util.ArrayUtils.add(theStages, stage, idx + 1);
@@ -135,6 +145,10 @@ public class MuisLifeCycleManager {
 			theCurrentStage++;
 			for(LifeCycleListener listener : listeners)
 				listener.postTransition(oldStage, newStage);
+		}
+		if(theCurrentStage == theStages.length - 1) {
+			// Can dispose of resources, since this instance is now effectively immutable
+			theLifeCycleListeners = null;
 		}
 	}
 }

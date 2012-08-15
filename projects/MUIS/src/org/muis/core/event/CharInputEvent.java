@@ -13,14 +13,14 @@ public class CharInputEvent extends UserEvent
 
 	/**
 	 * Creates a CharInputEvent
-	 * 
+	 *
 	 * @param doc The MuisDocument that the event occurred in
 	 * @param element The MuisElement that the event was directed to (the focus)
 	 * @param character The character that was input
 	 */
 	public CharInputEvent(MuisDocument doc, MuisElement element, char character)
 	{
-		super(MuisElement.CHARACTER_INPUT, doc, element);
+		super(org.muis.core.MuisConstants.Events.CHARACTER_INPUT, doc, element);
 		theChar = character;
 	}
 

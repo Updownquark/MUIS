@@ -1,10 +1,14 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.muis.core;
 
+import static org.muis.core.MuisConstants.Events.*;
+
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 
+import org.muis.core.MuisConstants.CoreStage;
+import org.muis.core.MuisConstants.States;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
@@ -20,122 +24,7 @@ import prisms.util.ArrayUtils;
 
 /** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
 public abstract class MuisElement implements org.muis.core.layout.Sizeable {
-	/** The stages of MUIS element creation recognized by the MUIS core, except for {@link #OTHER} */
-	public static enum CoreStage {
-		/**
-		 * The element is being constructed without any knowledge of its document or other context. During this stage, internal variables
-		 * should be created and initialized with default values. Initial listeners may be added to the element at this time as well.
-		 */
-		CREATION,
-		/** The element is being populated with the attributes from its XML. This is a transition time where no work is done by the core. */
-		PARSE_SELF,
-		/**
-		 * The {@link MuisElement#init(MuisDocument, MuisToolkit, MuisClassView, MuisElement, String, String)} method is initializing this
-		 * element's context.
-		 */
-		INIT_SELF,
-		/** The children of this element as configured in XML are being parsed. This is a transition time where no work is done by the core. */
-		PARSE_CHILDREN,
-		/** The {@link MuisElement#initChildren(MuisElement[])} method is populating this element with its contents */
-		INIT_CHILDREN,
-		/**
-		 * This element is fully initialized, but the rest of the document may be loading. This is a transition time where no work is done
-		 * by the core.
-		 */
-		INITIALIZED,
-		/**
-		 * The {@link MuisElement#postCreate()} method is performing context-sensitive initialization work. The core performs attribute
-		 * checks during this time. Before this stage, attributes may be added which are not recognized by the element. During this stage,
-		 * all unchecked attributes are checked and errors are logged for any attributes that are unrecognized or malformatted as well as
-		 * for any required attributes whose values have not been set. During and after this stage, no attributes may be set in the element
-		 * unless they have been {@link AttributeManager#accept(Object, MuisAttribute) accepted} and the type is correct. An element's
-		 * children are started up at the tail end of this stage, so note that when an element transitions out of this stage, its contents
-		 * will be in the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all its attribute work
-		 * has completed.
-		 */
-		STARTUP,
-		/** The element has been fully initialized within the full document context and is ready to render and receive events */
-		READY,
-		/** Represents any stage that the core does not know about */
-		OTHER;
-
-		/**
-		 * @param name The name of the stage to get the enum value for
-		 * @return The enum value of the named stage, unless the stage is not recognized by the MUIS core, in which case {@link #OTHER} is
-		 *         returned
-		 */
-		public static CoreStage get(String name) {
-			for(CoreStage stage : values())
-				if(stage != OTHER && stage.toString().equals(name))
-					return stage;
-			return OTHER;
-		}
-	}
-
 	// TODO Add code for attach events
-
-	/** The event type representing a mouse event */
-	public static final MuisEventType<Void> MOUSE_EVENT = new MuisEventType<Void>("Mouse Event", null);
-
-	/** The event type representing a scrolling action */
-	public static final MuisEventType<Void> SCROLL_EVENT = new MuisEventType<Void>("Scroll Event", null);
-
-	/** The event type representing a physical keyboard event */
-	public static final MuisEventType<Void> KEYBOARD_EVENT = new MuisEventType<Void>("Keyboard Event", null);
-
-	/**
-	 * The event type representing the input of a character. This is distinct from a keyboard event in several situations. For example:
-	 * <ul>
-	 * <li>The user presses and holds a character key, resulting in a character input, a pause, and then many sequential character inputs
-	 * until the user releases the key.</li>
-	 * <li>The user copies text and pastes it into a text box. This may result in one or two keyboard events or even mouse events
-	 * (menu->Paste) followed by a character event with the pasted text.</li>
-	 * </ul>
-	 */
-	public static final MuisEventType<Void> CHARACTER_INPUT = new MuisEventType<Void>("Character Input", null);
-
-	/** The event type representing focus change on an element */
-	public static final MuisEventType<Void> FOCUS_EVENT = new MuisEventType<Void>("Focus Event", null);
-
-	/** The event type representing the relocation of this element within its parent */
-	public static final MuisEventType<Rectangle> BOUNDS_CHANGED = new MuisEventType<Rectangle>("Bounds Changed", null);
-
-	/** The event type representing the successful setting of an attribute */
-	public static final MuisEventType<MuisAttribute<?>> ATTRIBUTE_SET = new MuisEventType<MuisAttribute<?>>("Attribute Set",
-		(Class<MuisAttribute<?>>) (Class<?>) MuisAttribute.class);
-
-	/**
-	 * The event type representing the successful setting of an attribute. Different from {@link #ATTRIBUTE_SET} in that the value of the
-	 * event is the value of the attribute instead of the attribute itself.
-	 */
-	public static final MuisEventType<Object> ATTRIBUTE_CHANGED = new MuisEventType<Object>("Attribute Changed", Object.class);
-
-	/** The event type representing the change of an element's stage property */
-	public static final MuisEventType<CoreStage> STAGE_CHANGED = new MuisEventType<CoreStage>("Stage Changed", CoreStage.class);
-
-	/**
-	 * The event type representing the event when an element is moved from one parent element to another. The event property is the new
-	 * parent element. This method is NOT called from {@link #init(MuisDocument, MuisToolkit, MuisClassView, MuisElement, String, String)}
-	 */
-	public static final MuisEventType<MuisElement> ELEMENT_MOVED = new MuisEventType<MuisElement>("Element Moved", MuisElement.class);
-
-	/**
-	 * The event type representing the event when a child is added to an element. The event property is the child that was added. This
-	 * method is NOT called from {@link #initChildren(MuisElement[])}.
-	 */
-	public static final MuisEventType<MuisElement> CHILD_ADDED = new MuisEventType<MuisElement>("Child Added", MuisElement.class);
-
-	/**
-	 * The event type representing the event when a child is removed from an element. The event property is the child that was removed. This
-	 * method is NOT called from {@link #initChildren(MuisElement[])}.
-	 */
-	public static final MuisEventType<MuisElement> CHILD_REMOVED = new MuisEventType<MuisElement>("Child Removed", MuisElement.class);
-
-	/** The event type representing the addition of a message to an element. */
-	public static final MuisEventType<MuisMessage> MESSAGE_ADDED = new MuisEventType<MuisMessage>("Message Added", MuisMessage.class);
-
-	/** The event type representing the removal of a message from an element. */
-	public static final MuisEventType<MuisMessage> MESSAGE_REMOVED = new MuisEventType<MuisMessage>("Message Removed", MuisMessage.class);
 
 	/**
 	 * Used to lock this elements' child sets
@@ -147,6 +36,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	private final MuisLifeCycleManager theLifeCycleManager;
 
 	private MuisLifeCycleManager.Controller theLifeCycleController;
+
+	private final StateEngine theStateEngine;
 
 	private final MuisMessageCenter theMessageCenter;
 
@@ -162,9 +53,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	private String theTagName;
 
-	private AttributeManager theAttributeManager;
+	private final AttributeManager theAttributeManager;
 
-	private ChildList theChildren;
+	private final ChildList theChildren;
 
 	private final ElementStyle theStyle;
 
@@ -185,7 +76,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	private SizePolicy theVSizer;
 
 	@SuppressWarnings({"rawtypes"})
-	private ListenerManager<MuisEventListener> theListeners;
+	private final ListenerManager<MuisEventListener> theListeners;
 
 	private boolean isFocusable;
 
@@ -195,24 +86,28 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	private long theLayoutDirtyTime;
 
+	private final CoreStateControllers theStateControllers;
+
 	/** Creates a MUIS element */
 	public MuisElement() {
+		theListeners = new ListenerManager<>(MuisEventListener.class);
+		theMessageCenter = new MuisMessageCenter(theDocument, this);
 		theLifeCycleManager = new MuisLifeCycleManager(this, new MuisLifeCycleManager.ControlAcceptor() {
 			@Override
 			public void setController(Controller controller) {
 				theLifeCycleController = controller;
 			}
-		});
-		theMessageCenter = new MuisMessageCenter(theDocument, this);
+		}, CoreStage.READY.toString());
+		theStateEngine = new StateEngine();
+		theStateControllers = new CoreStateControllers();
 		String lastStage = null;
 		for(CoreStage stage : CoreStage.values())
-			if(stage != CoreStage.OTHER) {
+			if(stage != CoreStage.OTHER && stage != CoreStage.READY) {
 				theLifeCycleManager.addStage(stage.toString(), lastStage);
 				lastStage = stage.toString();
 			}
 		theChildren = new ChildList(this);
 		theAttributeManager = new AttributeManager(this);
-		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
 		theDefaultStyleListener = new CompoundStyleListener(this) {
@@ -282,7 +177,99 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 					repaint(null, false);
 			}
 		});
+		addStateListeners();
 		theLifeCycleController.advance(CoreStage.PARSE_SELF.toString());
+	}
+
+	private void addStateListeners() {
+		theStateControllers.clicked = theStateEngine.addState(States.CLICKED);
+		theStateControllers.rightClicked = theStateEngine.addState(States.RIGHT_CLICKED);
+		theStateControllers.middleClicked = theStateEngine.addState(States.MIDDLE_CLICKED);
+		theStateControllers.hovered = theStateEngine.addState(States.HOVERED);
+		theStateControllers.focused = theStateEngine.addState(States.FOCUSED);
+		addListener(MOUSE, new MuisEventListener<Void>() {
+			@Override
+			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
+				org.muis.core.event.MouseEvent mouse = (org.muis.core.event.MouseEvent) event;
+				switch (mouse.getMouseEventType()) {
+				case pressed:
+					switch (mouse.getButtonType()) {
+					case LEFT:
+						theStateControllers.clicked.setActive(true, mouse);
+						break;
+					case RIGHT:
+						theStateControllers.rightClicked.setActive(true, mouse);
+						break;
+					case MIDDLE:
+						theStateControllers.middleClicked.setActive(true, mouse);
+						break;
+					default:
+						break;
+					}
+					break;
+				case released:
+					switch (mouse.getButtonType()) {
+					case LEFT:
+						theStateControllers.clicked.setActive(false, mouse);
+						break;
+					case RIGHT:
+						theStateControllers.rightClicked.setActive(false, mouse);
+						break;
+					case MIDDLE:
+						theStateControllers.middleClicked.setActive(false, mouse);
+						break;
+					default:
+						break;
+					}
+					break;
+				case clicked:
+					break;
+				case moved:
+					break;
+				case entered:
+					theStateControllers.hovered.setActive(true, mouse);
+					for(org.muis.core.event.MouseEvent.ButtonType button : theDocument.getPressedButtons()) {
+						switch (button) {
+						case LEFT:
+							theStateControllers.clicked.setActive(true, mouse);
+							break;
+						case RIGHT:
+							theStateControllers.rightClicked.setActive(true, mouse);
+							break;
+						case MIDDLE:
+							theStateControllers.middleClicked.setActive(true, mouse);
+							break;
+						default:
+							break;
+						}
+					}
+					break;
+				case exited:
+					theStateControllers.clicked.setActive(false, mouse);
+					theStateControllers.rightClicked.setActive(false, mouse);
+					theStateControllers.middleClicked.setActive(false, mouse);
+					theStateControllers.hovered.setActive(false, mouse);
+					break;
+				}
+			}
+
+			@Override
+			public boolean isLocal() {
+				return true;
+			}
+		});
+		addListener(FOCUS, new MuisEventListener<Void>() {
+			@Override
+			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
+				org.muis.core.event.FocusEvent focus = (org.muis.core.event.FocusEvent) event;
+				theStateControllers.focused.setActive(focus.isFocus(), focus);
+			}
+
+			@Override
+			public boolean isLocal() {
+				return true;
+			}
+		});
 	}
 
 	/** @return The document that this element belongs to */
@@ -308,6 +295,20 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	/** @return The name of the tag that was used to instantiate this element */
 	public final String getTagName() {
 		return theTagName;
+	}
+
+	/** @return The state engine that controls this element's states */
+	public StateEngine getStateEngine() {
+		return theStateEngine;
+	}
+
+	/**
+	 * Short-hand for {@link #getStateEngine()}
+	 *
+	 * @return The state engine that controls this element's states
+	 */
+	public StateEngine state() {
+		return getStateEngine();
 	}
 
 	/** @return The manager of this element's attributes */
@@ -422,6 +423,48 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	}
 
 	// End life cycle methods
+
+	// Messaging methods
+
+	/**
+	 * Returns a message center that allows messaging on this element
+	 *
+	 * @return This element's message center
+	 */
+	public MuisMessageCenter getMessageCenter() {
+		return theMessageCenter;
+	}
+
+	/**
+	 * Short-hand for {@link #getMessageCenter()}
+	 *
+	 * @return This element's message center
+	 */
+	public MuisMessageCenter msg() {
+		return getMessageCenter();
+	}
+
+	/** @return The worst type of messages in this element and its children */
+	public MuisMessage.Type getWorstMessageType() {
+		MuisMessage.Type ret = theMessageCenter.getWorstMessageType();
+		for(MuisElement child : theChildren) {
+			MuisMessage.Type childType = child.theMessageCenter.getWorstMessageType();
+			if(ret == null || ret.compareTo(childType) < 0)
+				ret = childType;
+		}
+		return ret;
+	}
+
+	/** @return All messages in this element or any of its children */
+	public Iterable<MuisMessage> allMessages() {
+		java.util.ArrayList<Iterable<MuisMessage>> centers = new java.util.ArrayList<>();
+		centers.add(theMessageCenter);
+		for(MuisElement child : theChildren)
+			centers.add(child.allMessages());
+		return ArrayUtils.iterable(centers.toArray(new Iterable[centers.size()]));
+	}
+
+	// End messaging methods
 
 	// Hierarchy methods
 
@@ -749,48 +792,6 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	// End event methods
 
-	// Messaging methods
-
-	/**
-	 * Returns a message center that allows messaging on this element
-	 *
-	 * @return This element's message center
-	 */
-	public MuisMessageCenter getMessageCenter() {
-		return theMessageCenter;
-	}
-
-	/**
-	 * Short-hand for {@link #getMessageCenter()}
-	 *
-	 * @return This element's message center
-	 */
-	public MuisMessageCenter msg() {
-		return getMessageCenter();
-	}
-
-	/** @return The worst type of messages in this element and its children */
-	public MuisMessage.Type getWorstMessageType() {
-		MuisMessage.Type ret = theMessageCenter.getWorstMessageType();
-		for(MuisElement child : theChildren) {
-			MuisMessage.Type childType = child.theMessageCenter.getWorstMessageType();
-			if(ret == null || ret.compareTo(childType) < 0)
-				ret = childType;
-		}
-		return ret;
-	}
-
-	/** @return All messages in this element or any of its children */
-	public Iterable<MuisMessage> allMessages() {
-		java.util.ArrayList<MuisMessageCenter> centers = new java.util.ArrayList<>();
-		centers.add(theMessageCenter);
-		for(MuisElement child : theChildren)
-			centers.add(child.msg());
-		return ArrayUtils.iterable(centers.toArray(new MuisMessageCenter[centers.size()]));
-	}
-
-	// End messaging methods
-
 	/**
 	 * Generates an XML-representation of this element's content
 	 *
@@ -1022,5 +1023,17 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	@Override
 	public final int hashCode() {
 		return super.hashCode();
+	}
+
+	private static class CoreStateControllers {
+		StateEngine.StateController clicked;
+
+		StateEngine.StateController rightClicked;
+
+		StateEngine.StateController middleClicked;
+
+		StateEngine.StateController hovered;
+
+		StateEngine.StateController focused;
 	}
 }

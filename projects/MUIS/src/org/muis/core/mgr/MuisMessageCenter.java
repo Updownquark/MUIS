@@ -8,7 +8,7 @@ import org.muis.core.mgr.MuisMessage.Type;
 
 /** Defines a center that can store MUIS messages */
 public class MuisMessageCenter implements Iterable<MuisMessage> {
-	private java.util.concurrent.LinkedBlockingQueue<MuisMessage> theMessages;
+	private java.util.concurrent.ConcurrentLinkedQueue<MuisMessage> theMessages;
 
 	private MuisMessage.Type theWorstMessageType;
 
@@ -23,7 +23,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 * @param element The element that this message center is for (may be null if this message center is document-level)
 	 */
 	public MuisMessageCenter(MuisDocument doc, MuisElement element) {
-		theMessages = new java.util.concurrent.LinkedBlockingQueue<>();
+		theMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theDocument = doc;
 		theElement = element;
 	}
@@ -56,7 +56,8 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		if(theWorstMessageType == null || type.compareTo(theWorstMessageType) > 0)
 			theWorstMessageType = type;
 		if(theElement != null)
-			theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisMessage>(MuisElement.MESSAGE_ADDED, message), false, true);
+			theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisMessage>(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, message),
+				false, true);
 	}
 
 	/**
@@ -126,7 +127,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 
 	/**
 	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
-	 * 
+	 *
 	 * @param text A description of the warning
 	 * @param params Any parameters that may be relevant to the warning
 	 */
@@ -181,9 +182,24 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 				if(theLastMessage.type == theWorstMessageType)
 					reEvalWorstMessage();
 				if(theElement != null)
-					theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisMessage>(MuisElement.MESSAGE_REMOVED, theLastMessage),
-						false, true);
+					theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisMessage>(org.muis.core.MuisConstants.Events.MESSAGE_REMOVED,
+						theLastMessage), false, true);
 			}
 		};
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		ret.append('{');
+		for(MuisMessage message : theMessages) {
+			if(ret.length() > 1)
+				ret.append(',').append('\n');
+			ret.append(message);
+		}
+		if(ret.length() > 1)
+			ret.append('\n');
+		ret.append('}');
+		return ret.toString();
 	}
 }

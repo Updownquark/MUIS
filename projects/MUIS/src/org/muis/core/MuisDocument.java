@@ -254,7 +254,7 @@ public class MuisDocument {
 
 	/** @return All messages in this document or its root's hierarchy */
 	public Iterable<MuisMessage> allMessages() {
-		return ArrayUtils.iterable(theMessageCenter, theRoot.msg());
+		return ArrayUtils.iterable(theMessageCenter, theRoot.allMessages());
 	}
 
 	/** @return The policy that this document uses to dispatch scroll events */

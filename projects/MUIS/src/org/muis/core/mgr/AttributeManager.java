@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
-import org.muis.core.MuisElement.CoreStage;
 import org.muis.core.event.MuisEvent;
 
 /** Manages attribute information for an element */
@@ -124,7 +123,7 @@ public class AttributeManager {
 
 			@Override
 			public void postTransition(String oldStage, String newStage) {
-				if(newStage.equals(CoreStage.STARTUP)) {
+				if(newStage.equals(MuisConstants.CoreStage.STARTUP)) {
 					setReady();
 					theElement.life().removeListener(this);
 				}
@@ -151,7 +150,7 @@ public class AttributeManager {
 			baseName = baseName.substring(0, dotIdx);
 		holder = theAcceptedAttrs.get(baseName);
 		if(holder == null) {
-			if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
+			if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
 			theRawAttributes.put(attr, value);
 			return null;
@@ -203,7 +202,7 @@ public class AttributeManager {
 						throw new MuisException("A different attribute named " + pathed.getBase().getName()
 							+ " is already accepted or set in this element");
 				} else {
-					if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
+					if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 						throw new MuisException("Attribute " + attr + " is not accepted in this element");
 					holder = new AttributeHolder(pathed.getBase());
 					theAcceptedAttrs.put(pathed.getBase().getName(), holder);
@@ -212,7 +211,7 @@ public class AttributeManager {
 				theAcceptedAttrs.put(pathed.getName(), pathedHolder);
 				holder = pathedHolder;
 			} else {
-				if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
+				if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 					throw new MuisException("Attribute " + attr + " is not accepted in this element");
 				holder = new AttributeHolder(attr);
 				theAcceptedAttrs.put(attr.getName(), holder);
@@ -233,7 +232,7 @@ public class AttributeManager {
 		}
 		Object old = holder.theValue;
 		holder.theValue = value;
-		theElement.fireEvent(new MuisEvent<MuisAttribute<?>>(MuisElement.ATTRIBUTE_SET, attr), false, false);
+		theElement.fireEvent(new MuisEvent<MuisAttribute<?>>(MuisConstants.Events.ATTRIBUTE_SET, attr), false, false);
 		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.getType().cast(old), value), false, false);
 	}
 
@@ -346,7 +345,7 @@ public class AttributeManager {
 	public final <T, V extends T> void accept(Object wanter, boolean require, MuisAttribute<T> attr, V initValue) throws MuisException {
 		if(attr instanceof MuisPathedAttribute)
 			throw new IllegalArgumentException("Pathed attributes cannot be accepted or required");
-		if(require && initValue == null && theElement.life().isAfter(CoreStage.STARTUP.toString()) > 0)
+		if(require && initValue == null && theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {

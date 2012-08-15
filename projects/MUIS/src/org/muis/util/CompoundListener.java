@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.muis.core.MuisAttribute;
+import org.muis.core.MuisConstants.Events;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.event.AttributeChangedListener;
@@ -357,7 +358,7 @@ public abstract class CompoundListener<T> {
 		@Override
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
-			theElement.addListener(MuisElement.ATTRIBUTE_CHANGED, ret);
+			theElement.addListener(Events.ATTRIBUTE_CHANGED, ret);
 			theElement.getStyle().getSelf().addListener(ret.getStyleListener());
 			return ret;
 		}
@@ -443,9 +444,9 @@ public abstract class CompoundListener<T> {
 					return true;
 				}
 			};
-			theElListener.getElement().addListener(MuisElement.CHILD_ADDED, theAddedListener);
-			theElListener.getElement().addListener(MuisElement.CHILD_REMOVED, theRemovedListener);
-			theElListener.getElement().ch().addChildListener(MuisElement.ATTRIBUTE_CHANGED, this);
+			theElListener.getElement().addListener(Events.CHILD_ADDED, theAddedListener);
+			theElListener.getElement().addListener(Events.CHILD_REMOVED, theRemovedListener);
+			theElListener.getElement().ch().addChildListener(Events.ATTRIBUTE_CHANGED, this);
 			theElListener.getElement().ch().addChildListener(org.muis.core.style.StyleAttributeEvent.TYPE, this);
 			theIndividualListeners = new ArrayList<>();
 			theElementListeners = new java.util.HashMap<>();

@@ -1,5 +1,8 @@
 package org.muis.core.mgr;
 
+import static org.muis.core.MuisConstants.Events.CHILD_ADDED;
+import static org.muis.core.MuisConstants.Events.CHILD_REMOVED;
+
 import java.util.*;
 
 import org.muis.core.MuisElement;
@@ -209,8 +212,8 @@ public class ChildList implements List<MuisElement> {
 			theChildren = children;
 		}
 		childRemoved(oldChild);
-		theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_REMOVED, oldChild), false, false);
-		theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_ADDED, child), false, false);
+		theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, oldChild), false, false);
+		theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 		childAdded(child);
 		return oldChild;
 	}
@@ -225,7 +228,7 @@ public class ChildList implements List<MuisElement> {
 				return false;
 			children = ArrayUtils.add(children, child);
 		}
-		theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_ADDED, child), false, false);
+		theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 		childAdded(child);
 		return true;
 	}
@@ -239,7 +242,7 @@ public class ChildList implements List<MuisElement> {
 				index = theChildren.length;
 			theChildren = ArrayUtils.add(theChildren, child, index);
 		}
-		theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_ADDED, child), false, false);
+		theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 		childAdded(child);
 	}
 
@@ -253,7 +256,7 @@ public class ChildList implements List<MuisElement> {
 			theChildren = children;
 		}
 		childRemoved(oldChild);
-		theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_REMOVED, oldChild), false, false);
+		theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, oldChild), false, false);
 		return oldChild;
 	}
 
@@ -272,7 +275,7 @@ public class ChildList implements List<MuisElement> {
 			theChildren = children;
 		}
 		childRemoved(oldChild);
-		theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_REMOVED, oldChild), false, false);
+		theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, oldChild), false, false);
 		return true;
 	}
 
@@ -287,7 +290,7 @@ public class ChildList implements List<MuisElement> {
 		}
 		for(MuisElement child : children) {
 			childRemoved(child);
-			theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_REMOVED, child), false, false);
+			theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, child), false, false);
 		}
 	}
 
@@ -310,7 +313,7 @@ public class ChildList implements List<MuisElement> {
 		}
 
 		for(MuisElement child : toAdd) {
-			theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_ADDED, child), false, false);
+			theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 			childAdded(child);
 		}
 		return !toAdd.isEmpty();
@@ -346,7 +349,7 @@ public class ChildList implements List<MuisElement> {
 		}
 
 		for(MuisElement child : toAdd) {
-			theParent.fireEvent(new MuisEvent<MuisElement>(MuisElement.CHILD_ADDED, child), false, false);
+			theParent.fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
 			childAdded(child);
 		}
 		return !toAdd.isEmpty();

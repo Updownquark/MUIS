@@ -24,7 +24,7 @@ public class LayoutContainer extends MuisElement {
 	@Override
 	public void initChildren(MuisElement [] children) {
 		super.initChildren(children);
-		addListener(ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
+		addListener(MuisConstants.Events.ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
 				if(event.getValue() != LAYOUT_ATTR)

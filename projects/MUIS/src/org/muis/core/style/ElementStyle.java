@@ -34,7 +34,7 @@ public class ElementStyle extends AbstractMuisStyle {
 			theParentStyle = element.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
 		}
-		element.addListener(MuisElement.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
+		element.addListener(org.muis.core.MuisConstants.Events.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
 			@Override
 			public boolean isLocal() {
 				return true;

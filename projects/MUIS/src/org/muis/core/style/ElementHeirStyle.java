@@ -11,7 +11,7 @@ public class ElementHeirStyle extends AbstractStatefulStyle implements MutableSt
 	}
 
 	/** @return The element style that this heir style depends on */
-	public ElementStyle getParent() {
+	public ElementStyle getElementStyle() {
 		return theElStyle;
 	}
 

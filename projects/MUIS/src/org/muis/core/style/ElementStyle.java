@@ -1,6 +1,7 @@
 package org.muis.core.style;
 
 import org.muis.core.MuisElement;
+import org.muis.core.event.MuisEvent;
 
 /** A style controlling the appearance of a specific element */
 public class ElementStyle extends AbstractStatefulStyle implements MutableStatefulStyle {
@@ -49,6 +50,25 @@ public class ElementStyle extends AbstractStatefulStyle implements MutableStatef
 					addDependency(theParentStyle.getHeir(), null);
 				} else
 					theParentStyle = null;
+			}
+		});
+		String [] currentState = element.state().toArray();
+		setState(currentState);
+		theSelfStyle.setState(currentState);
+		theHeirStyle.setState(currentState);
+		element.state().addListener(null, new org.muis.core.mgr.StateEngine.StateListener() {
+			@Override
+			public void entered(String state, MuisEvent<?> cause) {
+				addState(state);
+				theSelfStyle.addState(state);
+				theHeirStyle.addState(state);
+			}
+
+			@Override
+			public void exited(String state, MuisEvent<?> cause) {
+				removeState(state);
+				theSelfStyle.removeState(state);
+				theHeirStyle.removeState(state);
 			}
 		});
 	}

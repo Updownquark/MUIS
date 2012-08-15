@@ -1,6 +1,7 @@
 package org.muis.core.style;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import prisms.util.ArrayUtils;
@@ -89,6 +90,10 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 
 	private AbstractStatefulStyle [] theDependencies;
 
+	private String [] theCurrentState;
+
+	private boolean hasInternalState;
+
 	private final StyleListener theDependencyListener;
 
 	/**
@@ -117,6 +122,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		};
 		for(AbstractStatefulStyle dep : theDependencies)
 			dep.addListener(theDependencyListener);
+		theCurrentState = new String[0];
 	}
 
 	@Override
@@ -216,9 +222,73 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 			styleChanged(attr, get(attr), null);
 	}
 
-	/** @return The current state applicable to this style */
-	protected String [] getCurrentState() {
-		return new String[0];
+	protected void addState(String state) {
+		String [] newState = ArrayUtils.add(theCurrentState, state);
+		if(newState == theCurrentState)
+			return;
+		setState(newState);
+	}
+
+	protected void removeState(String state) {
+		String [] newState = ArrayUtils.remove(theCurrentState, state);
+		if(newState == theCurrentState)
+			return;
+		setState(newState);
+	}
+
+	protected void setState(String... newState) {
+		hasInternalState = true;
+		String [] oldState = theCurrentState;
+		MuisStyle [] deps = theDependencies;
+		theCurrentState = newState;
+		MuisStyle forNewState = getStyleFor(newState);
+		Map<StyleAttribute<?>, Object> newValues = new java.util.HashMap<>();
+		for(Map.Entry<StyleAttribute<?>, StyleValueHolder<?>> entry : theAttributes.entrySet()) {
+			for(StyleExpressionValue<?> sev : entry.getValue().sort()) {
+				StateExpression expr = sev.getExpression();
+				if(expr == null)
+					continue;
+				boolean oldMatch = expr.matches(oldState);
+				boolean newMatch = expr.matches(newState);
+				if(oldMatch == newMatch)
+					continue;
+				if(newMatch)
+					newValues.put(entry.getKey(), sev.getValue());
+				else
+					newValues.put(entry.getKey(), forNewState.get(entry.getKey()));
+				break;
+			}
+		}
+		Map<StyleAttribute<?>, MuisStyle> roots = new java.util.HashMap<>();
+		for(MuisStyle dep : deps) {
+			if(!(dep instanceof AbstractStatefulStyle) || ((AbstractStatefulStyle) dep).hasInternalState)
+				continue;
+			for(Map.Entry<StyleAttribute<?>, StyleValueHolder<?>> entry : ((AbstractStatefulStyle) dep).theAttributes.entrySet()) {
+				for(StyleExpressionValue<?> sev : entry.getValue().sort()) {
+					if(newValues.containsKey(entry.getKey()) || forNewState.isSet(entry.getKey()))
+						continue;
+					StateExpression expr = sev.getExpression();
+					if(expr == null)
+						continue;
+					boolean oldMatch = expr.matches(oldState);
+					boolean newMatch = expr.matches(newState);
+					if(oldMatch == newMatch)
+						continue;
+					roots.put(entry.getKey(), dep);
+					if(newMatch)
+						newValues.put(entry.getKey(), sev.getValue());
+					else
+						newValues.put(entry.getKey(), forNewState.get(entry.getKey()));
+					break;
+				}
+			}
+		}
+		for(Map.Entry<StyleAttribute<?>, Object> value : newValues.entrySet()) {
+			MuisStyle root = roots.get(value.getKey());
+			if(root == null)
+				root = this;
+			styleChanged(value.getKey(), value.getValue(), root);
+		}
 	}
 
 	@Override
@@ -226,7 +296,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		StyleValueHolder<?> holder = theAttributes.get(attr);
 		if(holder == null)
 			return false;
-		String [] state = getCurrentState();
+		String [] state = theCurrentState;
 		for(StyleExpressionValue<?> value : holder.theValues)
 			if(value.getExpression() == null || value.getExpression().matches(state))
 				return true;
@@ -248,7 +318,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		StyleValueHolder<T> holder = (StyleValueHolder<T>) theAttributes.get(attr);
 		if(holder == null)
 			return null;
-		String [] state = getCurrentState();
+		String [] state = theCurrentState;
 		for(StyleExpressionValue<T> value : holder.sort())
 			if(value.getExpression() == null || value.getExpression().matches(state))
 				return value.getValue();
@@ -410,7 +480,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 			theAttributes.put(attr, holder);
 		} else
 			holder.set(sev);
-		String [] state = getCurrentState();
+		String [] state = theCurrentState;
 		boolean fireEvent = false;
 		if(sev.getExpression() == null || sev.getExpression().matches(state)) {
 			for(StyleExpressionValue<T> v : holder.sort()) {
@@ -441,13 +511,23 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	 */
 	protected void clear(StyleAttribute<?> attr, StateExpression exp) {
 		StyleValueHolder<?> holder = theAttributes.get(attr);
-		if(holder != null && holder.remove(exp, getCurrentState()))
+		if(holder != null && holder.remove(exp, theCurrentState))
 			styleChanged(attr, get(attr), null);
 	}
 
 	@Override
-	public Iterable<StyleAttribute<?>> allAttrs() {
+	public Iterable<StyleAttribute<?>> allLocal() {
 		return ArrayUtils.immutableIterable(theAttributes.keySet());
+	}
+
+	@Override
+	public Iterable<StyleAttribute<?>> allAttrs() {
+		MuisStyle [] deps = theDependencies;
+		Iterable<StyleAttribute<?>> [] iters = new Iterable[deps.length + 1];
+		iters[0] = allLocal();
+		for(int i = 0; i < deps.length; i++)
+			iters[i + 1] = deps[i] instanceof StatefulStyle ? ((StatefulStyle) deps[i]).allAttrs() : deps[i];
+		return ArrayUtils.iterable(iters);
 	}
 
 	@Override
@@ -455,7 +535,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		return new Iterable<StyleAttribute<?>>() {
 			@Override
 			public Iterator<StyleAttribute<?>> iterator() {
-				final String [] state = getCurrentState();
+				final String [] state = theCurrentState;
 				return ArrayUtils.conditionalIterator(theAttributes.entrySet().iterator(),
 					new ArrayUtils.Accepter<java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<?>>, StyleAttribute<?>>() {
 						@Override

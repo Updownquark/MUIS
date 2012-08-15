@@ -52,13 +52,17 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 			} else
 				target = element.getStyle();
 			if(idx < pathed.getPath().length) {
-				java.util.ArrayList<StateExpression.Or> ors = new java.util.ArrayList<>();
+				java.util.ArrayList<StateExpression> ors = new java.util.ArrayList<>();
 				for(; idx < pathed.getPath().length; idx++) {
 					String [] states = pathed.getPath()[idx].split("_");
-					StateExpression.Simple[] simples = new StateExpression.Simple[states.length];
-					for(int s = 0; s < states.length; s++)
-						simples[s] = new StateExpression.Simple(states[s]);
-					ors.add(new StateExpression.Or(simples));
+					if(states.length == 0)
+						ors.add(new StateExpression.Simple(states[0]));
+					else {
+						StateExpression.Simple[] simples = new StateExpression.Simple[states.length];
+						for(int s = 0; s < states.length; s++)
+							simples[s] = new StateExpression.Simple(states[s]);
+						ors.add(new StateExpression.Or(simples));
+					}
 				}
 				if(ors.size() == 1)
 					expr = ors.get(0);

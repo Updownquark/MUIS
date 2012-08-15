@@ -11,7 +11,10 @@ public interface StatefulStyle extends MuisStyle {
 	 */
 	MuisStyle getStyleFor(String... state);
 
-	/** @return All style attributes that are set for any condition in this style */
+	/** @return All style attributes that are set for any condition in this style specifically */
+	Iterable<StyleAttribute<?>> allLocal();
+
+	/** @return All style attributes that are set for any condition in this style or any of its dependents */
 	Iterable<StyleAttribute<?>> allAttrs();
 
 	/**

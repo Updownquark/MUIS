@@ -2,7 +2,8 @@ package org.muis.core.style;
 
 
 /** An attribute type that validates and parses instances of {@link Size} from an attribute value */
-public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Size>
+public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Size> implements
+	org.muis.core.MuisProperty.PrintablePropertyType<Size>
 {
 	/** An instance of this class--prevents having to create multiple instances for no reason */
 	public static final SizePropertyType instance = new SizePropertyType();
@@ -50,5 +51,16 @@ public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropert
 	public Class<Size> getType()
 	{
 		return Size.class;
+	}
+
+	@Override
+	public String toString(Size value) {
+		StringBuilder ret = new StringBuilder();
+		if(value.getUnit() != LengthUnit.percent || Math.floor(value.getValue()) == value.getValue())
+			ret.append(Math.round(value.getValue()));
+		else
+			ret.append(value.getValue());
+		ret.append(value.getUnit().attrValue);
+		return ret.toString();
 	}
 }

@@ -433,9 +433,12 @@ public class Colors
 
 	private static final java.util.Map<String, Color> theNamedColors;
 
+	private static final java.util.IdentityHashMap<Color, String> theColorNames;
+
 	static
 	{
-		theNamedColors = new java.util.HashMap<String, Color>();
+		theNamedColors = new java.util.HashMap<>();
+		theColorNames = new java.util.IdentityHashMap<>();
 		java.lang.reflect.Field[] colorFields = Colors.class.getDeclaredFields();
 		for(java.lang.reflect.Field field : colorFields)
 		{
@@ -446,7 +449,9 @@ public class Colors
 				continue;
 			try
 			{
-				theNamedColors.put(field.getName().toLowerCase(), (Color) field.get(null));
+				Color value = (Color) field.get(null);
+				theNamedColors.put(field.getName().toLowerCase(), value);
+				theColorNames.put(value, field.getName());
 			} catch(IllegalAccessException e)
 			{
 				e.printStackTrace();
@@ -574,5 +579,21 @@ public class Colors
 		ret *= 16;
 		ret += hexDigits.indexOf(str.charAt(start + 1));
 		return ret;
+	}
+
+	/**
+	 * @param c The color to name
+	 * @return The name of the given color
+	 */
+	public static String toString(Color c) {
+		String ret = theColorNames.get(c);
+		if(ret != null)
+			return ret;
+		StringBuilder sb = new StringBuilder();
+		sb.append('#');
+		sb.append(hexDigits.charAt(c.getRed() >>> 4)).append(hexDigits.charAt(c.getRed() & 0xf));
+		sb.append(hexDigits.charAt(c.getGreen() >>> 4)).append(hexDigits.charAt(c.getGreen() & 0xf));
+		sb.append(hexDigits.charAt(c.getBlue() >>> 4)).append(hexDigits.charAt(c.getBlue() & 0xf));
+		return sb.toString();
 	}
 }

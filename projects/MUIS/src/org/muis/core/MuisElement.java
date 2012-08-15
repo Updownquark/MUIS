@@ -368,10 +368,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			throw new IllegalStateException("An element cannot be initialized twice", null);
 		theDocument = doc;
 		theToolkit = toolkit;
-		theParent = parent;
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
+		setParent(parent);
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}
 
@@ -795,11 +795,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * Generates an XML-representation of this element's content
 	 *
 	 * @param indent The indention string to use for each level away from the margin
+	 * @param deep Whether to print this element's children
 	 * @return The XML string representing this element
 	 */
-	public final String asXML(String indent) {
+	public final String asXML(String indent, boolean deep) {
 		StringBuilder ret = new StringBuilder();
-		appendXML(ret, indent, 0);
+		appendXML(ret, indent, 0, deep);
 		return ret.toString();
 	}
 
@@ -809,45 +810,40 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * @param str The string builder to append to
 	 * @param indent The indention string to use for each level away from the margin
 	 * @param level The depth of this element in the structure being printed
+	 * @param deep Whether to print this element's children
 	 */
-	protected final void appendXML(StringBuilder str, String indent, int level) {
+	protected final void appendXML(StringBuilder str, String indent, int level, boolean deep) {
 		for(int L = 0; L < level; L++)
 			str.append(indent);
 		str.append('<');
-		if(theNamespace != null) {
-			str.append(theNamespace);
-			str.append(':');
-		}
+		if(theNamespace != null)
+			str.append(theNamespace).append(':');
 		str.append(theTagName);
-		for(AttributeManager.AttributeHolder holder : theAttributeManager.holders()) {
-			str.append(' ');
-			str.append(holder.getAttribute().getName());
-			str.append('=');
-			str.append('"');
-			str.append(holder.getValue());
-			str.append('"');
-		}
-		if(theChildren.isEmpty()) {
-			str.append('/');
-			str.append('>');
+		if(theAttributeManager.holders().iterator().hasNext())
+			str.append(' ').append(theAttributeManager.toString());
+		if(!deep || theChildren.isEmpty()) {
+			str.append(' ').append('/').append('>');
 			return;
 		}
 		str.append('>');
-		for(MuisElement child : theChildren) {
+		if(deep) {
+			for(MuisElement child : theChildren) {
+				str.append('\n');
+				child.appendXML(str, indent, level + 1, deep);
+			}
 			str.append('\n');
-			child.appendXML(str, indent, level + 1);
 		}
-		str.append('\n');
 		for(int L = 0; L < level; L++)
 			str.append(indent);
-		str.append('<');
-		str.append('/');
-		if(theNamespace != null) {
-			str.append(theNamespace);
-			str.append(':');
-		}
-		str.append(theTagName);
-		str.append('>');
+		str.append('<').append('/');
+		if(theNamespace != null)
+			str.append(theNamespace).append(':');
+		str.append(theTagName).append('>');
+	}
+
+	@Override
+	public String toString() {
+		return asXML("", false);
 	}
 
 	// Layout methods

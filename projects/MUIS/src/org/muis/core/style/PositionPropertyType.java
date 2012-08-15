@@ -2,7 +2,8 @@ package org.muis.core.style;
 
 
 /** An attribute type that validates and parses instances of {@link Position} from an attribute value */
-public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Position>
+public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Position> implements
+	org.muis.core.MuisProperty.PrintablePropertyType<Position>
 {
 	/** An instance of this class--prevents having to create multiple instances for no reason */
 	public static final PositionPropertyType instance = new PositionPropertyType();
@@ -50,5 +51,16 @@ public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPro
 	public Class<Position> getType()
 	{
 		return Position.class;
+	}
+
+	@Override
+	public String toString(Position value) {
+		StringBuilder ret = new StringBuilder();
+		if(value.getUnit() != LengthUnit.percent || Math.floor(value.getValue()) == value.getValue())
+			ret.append(Math.round(value.getValue()));
+		else
+			ret.append(value.getValue());
+		ret.append(value.getUnit().attrValue);
+		return ret.toString();
 	}
 }

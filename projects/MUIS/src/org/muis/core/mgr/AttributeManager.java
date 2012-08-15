@@ -72,7 +72,7 @@ public class AttributeManager {
 			if(isRequired())
 				return true;
 			IdentityHashMap<Object, Object> wanters = theWanters;
-			return wanters != null && wanters.isEmpty();
+			return wanters != null && !wanters.isEmpty();
 		}
 
 		boolean wasWanted() {
@@ -158,7 +158,7 @@ public class AttributeManager {
 		}
 		if(holder.theAttr.getPathAccepter() == null)
 			throw new MuisException("Attribute " + attr + " is not hierarchical");
-		String [] path = attr.substring(dotIdx + 1).split(".");
+		String [] path = attr.substring(dotIdx + 1).split("\\.");
 		if(!holder.theAttr.getPathAccepter().accept(theElement, path))
 			throw new MuisException("Attribute " + attr + " does not accept path \"" + attr.substring(dotIdx + 1) + "\"");
 		return set(new MuisPathedAttribute<>(holder.theAttr, theElement, path), value);
@@ -177,45 +177,7 @@ public class AttributeManager {
 	 *             element has already been initialized and the value is not valid for the given attribute
 	 */
 	public final <T> T set(MuisAttribute<T> attr, String value) throws MuisException {
-		set(attr, attr.getType().parse(theElement.getClassView(), value));
-		if(theRawAttributes != null)
-			theRawAttributes.remove(attr.getName());
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
-		if(holder == null) {
-			if(attr instanceof MuisPathedAttribute) {
-				MuisPathedAttribute<T> pathed = (MuisPathedAttribute<T>) attr;
-				holder = theAcceptedAttrs.get(pathed.getBase().getName());
-				if(holder != null) {
-					if(!holder.theAttr.equals(pathed.getBase()))
-						throw new MuisException("A different attribute named " + pathed.getBase().getName()
-							+ " is already accepted or set in this element");
-				} else {
-					if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
-						throw new MuisException("Attribute " + attr + " is not accepted in this element");
-					holder = new AttributeHolder(pathed.getBase());
-					theAcceptedAttrs.put(pathed.getBase().getName(), holder);
-				}
-				AttributeHolder pathedHolder = new AttributeHolder(pathed, holder);
-				theAcceptedAttrs.put(pathed.getName(), pathedHolder);
-			} else {
-				if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
-					throw new MuisException("Attribute " + attr + " is not accepted in this element");
-				holder = new AttributeHolder(attr);
-				theAcceptedAttrs.put(attr.getName(), holder);
-				holder.theValue = value;
-				return null;
-			}
-		}
-		if(!holder.theAttr.equals(attr))
-			throw new MuisException("A different attribute named " + attr.getName() + " is already accepted in this element");
-		if(value == null && holder.isRequired())
-			throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
-		T ret;
-		if(value == null)
-			ret = null;
-		else {
-			ret = attr.getType().parse(theElement.getClassView(), value);
-		}
+		T ret = attr.getType().parse(theElement.getClassView(), value);
 		set(attr, ret);
 		return ret;
 	}
@@ -248,6 +210,7 @@ public class AttributeManager {
 				}
 				AttributeHolder pathedHolder = new AttributeHolder(pathed, holder);
 				theAcceptedAttrs.put(pathed.getName(), pathedHolder);
+				holder = pathedHolder;
 			} else {
 				if(theElement.life().isAfter(CoreStage.STARTUP.toString()) >= 0)
 					throw new MuisException("Attribute " + attr + " is not accepted in this element");
@@ -492,7 +455,7 @@ public class AttributeManager {
 
 					private AttributeHolder theNext;
 
-					private boolean calledNext;
+					private boolean calledNext = true;
 
 					@Override
 					public boolean hasNext() {
@@ -500,7 +463,7 @@ public class AttributeManager {
 							return theNext != null;
 						calledNext = false;
 						theNext = null;
-						while(theNext != null) {
+						while(theNext == null) {
 							if(!theWrapped.hasNext())
 								return false;
 							theNext = theWrapped.next();
@@ -543,5 +506,35 @@ public class AttributeManager {
 		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
 			theElement.msg().error("No attribute named " + attr.getKey() + " is not accepted in this element", "value", attr.getValue());
 		theRawAttributes = null;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		org.jdom2.output.EscapeStrategy strategy = new org.jdom2.output.EscapeStrategy() {
+			@Override
+			public boolean shouldEscape(char ch) {
+				if(org.jdom2.Verifier.isHighSurrogate(ch)) {
+					return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
+				}
+				return false;
+			}
+		};
+		for(AttributeHolder holder : holders()) {
+			if(!holder.isWanted() || holder.getValue() == null)
+				continue;
+			if(ret.length() > 0)
+				ret.append(' ');
+			ret.append(holder.getAttribute().getName()).append('=');
+			String value;
+			if(holder.getAttribute().getType() instanceof MuisProperty.PrintablePropertyType)
+				value = "\""
+					+ org.jdom2.output.Format.escapeAttribute(strategy, ((MuisProperty.PrintablePropertyType<Object>) holder.getAttribute()
+						.getType()).toString(holder.getValue())) + "\"";
+			else
+				value = String.valueOf(holder.getValue());
+			ret.append(value);
+		}
+		return ret.toString();
 	}
 }

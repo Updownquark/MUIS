@@ -286,4 +286,27 @@ public class MuisTextElement extends MuisLeaf {
 		super.paintSelf(graphics, area);
 		render(getWidth(), graphics, null);
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder ret=new  StringBuilder();
+		if(getTagName()!=null)
+			ret.append('<').append(getTagName()).append('>');
+		else
+			ret.append("<!TEXT>");
+		ret.append(org.jdom2.output.Format.escapeText(new org.jdom2.output.EscapeStrategy() {
+			@Override
+			public boolean shouldEscape(char ch) {
+				if(org.jdom2.Verifier.isHighSurrogate(ch)) {
+					return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
+				}
+				return false;
+			}
+		}, "\n", theText));
+		if(getTagName()!=null)
+			ret.append('<').append('/').append(getTagName()).append('>');
+		else
+			ret.append("</TEXT\u00a1>");
+		return ret.toString();
+	}
 }

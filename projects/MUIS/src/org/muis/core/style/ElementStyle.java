@@ -42,9 +42,8 @@ public class ElementStyle extends AbstractMuisStyle {
 
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el) {
-				if(theParentStyle != null) {
+				if(theParentStyle != null)
 					removeDependency(theParentStyle.getHeir());
-				}
 				if(event.getValue() != null) {
 					theParentStyle = event.getValue().getStyle();
 					addDependency(theParentStyle.getHeir(), null);
@@ -128,22 +127,6 @@ public class ElementStyle extends AbstractMuisStyle {
 				return new NamedStyleIterator(theStyleGroups, forward);
 			}
 		};
-	}
-
-	@Override
-	public <T> T get(StyleAttribute<T> attr) {
-		T ret = theSelfStyle.getLocal(attr);
-		if(ret == null)
-			ret = getLocal(attr);
-		if(ret != null)
-			return ret;
-		final NamedStyleGroup [] groups = theStyleGroups;
-		for(int g = groups.length - 1; g >= 0; g--) {
-			ret = groups[g].getGroupForType(theElement.getClass()).get(attr);
-			if(ret != null)
-				return ret;
-		}
-		return super.get(attr);
 	}
 
 	private class NamedStyleIterator implements java.util.ListIterator<NamedStyleGroup> {

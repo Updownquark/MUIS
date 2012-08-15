@@ -5,7 +5,8 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPropertyType<MuisStyle> {
+public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPropertyType<MuisStyle> implements
+	org.muis.core.MuisProperty.PrintablePropertyType<MuisStyle> {
 	/** The instance to use for the element style */
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
@@ -138,5 +139,23 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	@Override
 	public MuisStyle cast(Object value) {
 		return value instanceof SealableStyle ? (SealableStyle) value : null;
+	}
+
+	@Override
+	public String toString(MuisStyle value) {
+		StringBuilder ret = new StringBuilder();
+		for(StyleAttribute<?> attr : value.localAttributes()) {
+			if(ret.length() > 0)
+				ret.append(';');
+			ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append(':');
+			String valueStr;
+			if(attr.getType() instanceof org.muis.core.MuisProperty.PrintablePropertyType)
+				valueStr = ((org.muis.core.MuisProperty.PrintablePropertyType<Object>) attr.getType()).toString(value.get(attr));
+			else
+				valueStr = String.valueOf(value.get(attr));
+			valueStr = valueStr.replaceAll("\"", "'");
+			ret.append(valueStr);
+		}
+		return ret.toString();
 	}
 }

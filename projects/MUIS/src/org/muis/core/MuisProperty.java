@@ -47,6 +47,19 @@ public abstract class MuisProperty<T> {
 	}
 
 	/**
+	 * An extension of PropertyType that knows how to convert values of the type back to strings for printing
+	 *
+	 * @param <T> The type of the value that this property type produces
+	 */
+	public static interface PrintablePropertyType<T> extends PropertyType<T> {
+		/**
+		 * @param value The value to print
+		 * @return The user-friendly printed value
+		 */
+		public String toString(T value);
+	}
+
+	/**
 	 * A property validator places constraints on the value of a property
 	 *
 	 * @param <T> The type of value that this validator can validate
@@ -175,8 +188,11 @@ public abstract class MuisProperty<T> {
 		return theName.hashCode() * 13 + theType.hashCode() * 7 + (theValidator == null ? 0 : theValidator.hashCode());
 	}
 
+	private static abstract class AbstractPrintablePropertyType<T> extends AbstractPropertyType<T> implements PrintablePropertyType<T> {
+	}
+
 	/** A string property type--this type validates anything */
-	public static final AbstractPropertyType<String> stringAttr = new AbstractPropertyType<String>() {
+	public static final AbstractPropertyType<String> stringAttr = new AbstractPrintablePropertyType<String>() {
 		@Override
 		public String parse(MuisClassView classView, String value) {
 			return value;
@@ -193,6 +209,11 @@ public abstract class MuisProperty<T> {
 		@Override
 		public Class<String> getType() {
 			return String.class;
+		}
+
+		@Override
+		public String toString(String value) {
+			return value;
 		}
 	};
 
@@ -312,7 +333,7 @@ public abstract class MuisProperty<T> {
 	};
 
 	/** A color property type--values must be parse to colors via {@link org.muis.core.style.Colors#parseColor(String)} */
-	public static final AbstractPropertyType<Color> colorAttr = new AbstractPropertyType<Color>() {
+	public static final AbstractPropertyType<Color> colorAttr = new AbstractPrintablePropertyType<Color>() {
 		@Override
 		public Color parse(MuisClassView classView, String value) throws MuisException {
 			try {
@@ -333,6 +354,11 @@ public abstract class MuisProperty<T> {
 		@Override
 		public Class<Color> getType() {
 			return Color.class;
+		}
+
+		@Override
+		public String toString(Color value) {
+			return org.muis.core.style.Colors.toString(value);
 		}
 	};
 

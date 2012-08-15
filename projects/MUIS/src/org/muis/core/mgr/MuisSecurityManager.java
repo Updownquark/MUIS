@@ -1,10 +1,12 @@
-package org.muis.core;
+package org.muis.core.mgr;
 
 import java.io.FilePermission;
 import java.security.AllPermission;
 import java.security.Permission;
 import java.security.SecurityPermission;
 import java.security.UnresolvedPermission;
+
+import org.muis.core.MuisToolkit;
 
 public class MuisSecurityManager extends SecurityManager
 {

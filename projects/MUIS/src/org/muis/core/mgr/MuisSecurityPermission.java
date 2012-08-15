@@ -1,6 +1,9 @@
-package org.muis.core;
+package org.muis.core.mgr;
 
 import java.security.Permission;
+
+import org.muis.core.MuisDocument;
+import org.muis.core.MuisElement;
 
 public class MuisSecurityPermission extends java.security.Permission
 {

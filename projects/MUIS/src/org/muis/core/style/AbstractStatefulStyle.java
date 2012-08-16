@@ -4,6 +4,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.muis.core.mgr.MuisState;
+
 import prisms.util.ArrayUtils;
 
 /** A more full partial implementation of MuisStyle */
@@ -19,7 +21,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 				return exp2 == null ? 0 : 1;
 			if(exp2 == null)
 				return -1;
-			return exp2.getComplexity() - exp1.getComplexity();
+			return exp2.getPriority() - exp1.getPriority();
 		}
 	};
 
@@ -37,7 +39,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 			theValues = ArrayUtils.add(theValues, value);
 		}
 
-		boolean remove(StateExpression exp, String [] state) {
+		boolean remove(StateExpression exp, MuisState [] state) {
 			StyleExpressionValue<T> [] values = theValues;
 			boolean fireEvent = true;
 			for(int i = 0; i < values.length; i++) {
@@ -90,7 +92,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 
 	private AbstractStatefulStyle [] theDependencies;
 
-	private String [] theCurrentState;
+	private MuisState [] theCurrentState;
 
 	private boolean hasInternalState;
 
@@ -122,7 +124,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		};
 		for(AbstractStatefulStyle dep : theDependencies)
 			dep.addListener(theDependencyListener);
-		theCurrentState = new String[0];
+		theCurrentState = new MuisState[0];
 	}
 
 	@Override
@@ -228,8 +230,8 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	 *
 	 * @param state The state to add
 	 */
-	protected void addState(String state) {
-		String [] newState = ArrayUtils.add(theCurrentState, state);
+	protected void addState(MuisState state) {
+		MuisState [] newState = ArrayUtils.add(theCurrentState, state);
 		if(newState == theCurrentState)
 			return;
 		setState(newState);
@@ -241,8 +243,8 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	 *
 	 * @param state The state to remove
 	 */
-	protected void removeState(String state) {
-		String [] newState = ArrayUtils.remove(theCurrentState, state);
+	protected void removeState(MuisState state) {
+		MuisState [] newState = ArrayUtils.remove(theCurrentState, state);
 		if(newState == theCurrentState)
 			return;
 		setState(newState);
@@ -254,9 +256,9 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	 *
 	 * @param newState The new state set for this style
 	 */
-	protected void setState(String... newState) {
+	protected void setState(MuisState... newState) {
 		hasInternalState = true;
-		String [] oldState = theCurrentState;
+		MuisState [] oldState = theCurrentState;
 		MuisStyle [] deps = theDependencies;
 		theCurrentState = newState;
 		MuisStyle forNewState = getStyleFor(newState);
@@ -314,7 +316,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		StyleValueHolder<?> holder = theAttributes.get(attr);
 		if(holder == null)
 			return false;
-		String [] state = theCurrentState;
+		MuisState [] state = theCurrentState;
 		for(StyleExpressionValue<?> value : holder.theValues)
 			if(value.getExpression() == null || value.getExpression().matches(state))
 				return true;
@@ -336,7 +338,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		StyleValueHolder<T> holder = (StyleValueHolder<T>) theAttributes.get(attr);
 		if(holder == null)
 			return null;
-		String [] state = theCurrentState;
+		MuisState [] state = theCurrentState;
 		for(StyleExpressionValue<T> value : holder.sort())
 			if(value.getExpression() == null || value.getExpression().matches(state))
 				return value.getValue();
@@ -357,7 +359,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	}
 
 	@Override
-	public MuisStyle getStyleFor(final String... state) {
+	public MuisStyle getStyleFor(final MuisState... state) {
 		return new MuisStyle() {
 			@Override
 			public Iterator<StyleAttribute<?>> iterator() {
@@ -498,7 +500,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 			theAttributes.put(attr, holder);
 		} else
 			holder.set(sev);
-		String [] state = theCurrentState;
+		MuisState [] state = theCurrentState;
 		boolean fireEvent = false;
 		if(sev.getExpression() == null || sev.getExpression().matches(state)) {
 			for(StyleExpressionValue<T> v : holder.sort()) {
@@ -553,7 +555,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		return new Iterable<StyleAttribute<?>>() {
 			@Override
 			public Iterator<StyleAttribute<?>> iterator() {
-				final String [] state = theCurrentState;
+				final MuisState [] state = theCurrentState;
 				return ArrayUtils.conditionalIterator(theAttributes.entrySet().iterator(),
 					new ArrayUtils.Accepter<java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<?>>, StyleAttribute<?>>() {
 						@Override

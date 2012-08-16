@@ -5,6 +5,7 @@ import java.awt.Rectangle;
 import org.muis.core.event.MuisEventType;
 import org.muis.core.mgr.AttributeManager;
 import org.muis.core.mgr.MuisMessage;
+import org.muis.core.mgr.MuisState;
 
 /** Contains constants (inside their own categorical classes) used by the MUIS core */
 public final class MuisConstants {
@@ -132,18 +133,18 @@ public final class MuisConstants {
 	/** Contains several string representing {@link org.muis.core.mgr.StateEngine states} that are used by the MUIS core */
 	public static final class States {
 		/** True whenever the left mouse button is pressed on top of an element */
-		public static final String CLICK = "click";
+		public static final MuisState CLICK = new MuisState("click", 1000);
 
 		/** True whenever the right mouse button is pressed on top of an element */
-		public static final String RIGHT_CLICK = "right-click";
+		public static final MuisState RIGHT_CLICK = new MuisState("right-click", 1000);
 
 		/** True whenever the middle mouse button is pressed on top of an element */
-		public static final String MIDDLE_CLICK = "middle-click";
+		public static final MuisState MIDDLE_CLICK = new MuisState("middle-click", 1000);
 
 		/** True whenever the cursor is over an element */
-		public static final String HOVER = "hover";
+		public static final MuisState HOVER = new MuisState("hover", 10);
 
 		/** True when an element has the focus */
-		public static final String FOCUS = "focus";
+		public static final MuisState FOCUS = new MuisState("focus", 1);
 	}
 }

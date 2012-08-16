@@ -1,5 +1,7 @@
 package org.muis.core.style;
 
+import org.muis.core.mgr.MuisState;
+
 /** An expression that can be evaluated on the {@link org.muis.core.mgr.StateEngine state} of an element */
 public abstract class StateExpression {
 	/** A state expression that depends on any number of other expressions */
@@ -17,10 +19,10 @@ public abstract class StateExpression {
 		}
 
 		@Override
-		public int getComplexity() {
+		public int getPriority() {
 			int ret = 1;
 			for(StateExpression exp : this)
-				ret += exp.getComplexity();
+				ret += exp.getPriority();
 			return ret;
 		}
 	}
@@ -33,7 +35,7 @@ public abstract class StateExpression {
 		}
 
 		@Override
-		public boolean matches(String... states) {
+		public boolean matches(MuisState... states) {
 			for(StateExpression exp : this)
 				if(!exp.matches(states))
 					return false;
@@ -49,7 +51,7 @@ public abstract class StateExpression {
 		}
 
 		@Override
-		public boolean matches(String... states) {
+		public boolean matches(MuisState... states) {
 			for(StateExpression exp : this)
 				if(exp.matches(states))
 					return true;
@@ -72,33 +74,33 @@ public abstract class StateExpression {
 		}
 
 		@Override
-		public boolean matches(String... states) {
+		public boolean matches(MuisState... states) {
 			return !theWrapped.matches(states);
 		}
 
 		@Override
-		public int getComplexity() {
-			return theWrapped.getComplexity() + 1;
+		public int getPriority() {
+			return theWrapped.getPriority() + 1;
 		}
 	}
 
 	/** A state expression that checks whether a single state is active or not */
 	public static class Simple extends StateExpression {
-		private final String theState;
+		private final MuisState theState;
 
 		/** @param state The state to evaluate on */
-		public Simple(String state) {
+		public Simple(MuisState state) {
 			theState = state;
 		}
 
 		@Override
-		public boolean matches(String... states) {
+		public boolean matches(MuisState... states) {
 			return prisms.util.ArrayUtils.contains(states, theState);
 		}
 
 		@Override
-		public int getComplexity() {
-			return 1;
+		public int getPriority() {
+			return theState.getPriority();
 		}
 	}
 
@@ -106,10 +108,10 @@ public abstract class StateExpression {
 	 * @param states The state of the engine to evaluate against
 	 * @return Whether this expression returns true for the given state set
 	 */
-	public abstract boolean matches(String... states);
+	public abstract boolean matches(MuisState... states);
 
-	/** @return The complexity of this expression */
-	public abstract int getComplexity();
+	/** @return The overall priority of this expression */
+	public abstract int getPriority();
 
 	/** @return An expression that is the logical opposite of this expression */
 	public Not not() {

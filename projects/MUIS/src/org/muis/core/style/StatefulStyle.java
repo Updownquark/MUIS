@@ -9,7 +9,7 @@ public interface StatefulStyle extends MuisStyle {
 	 * @param state The state to get the settings for
 	 * @return A style that represents this style's setting when the state is as given
 	 */
-	MuisStyle getStyleFor(String... state);
+	MuisStyle getStyleFor(org.muis.core.mgr.MuisState... state);
 
 	/** @return All style attributes that are set for any condition in this style specifically */
 	Iterable<StyleAttribute<?>> allLocal();

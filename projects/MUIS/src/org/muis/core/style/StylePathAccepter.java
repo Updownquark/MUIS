@@ -21,6 +21,8 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		for(; idx < path.length; idx++) {
 			String [] states = path[idx].split("_");
 			for(String state : states) {
+				if(state.startsWith("-"))
+					state = state.substring(1);
 				if(element.state().getState(state) == null)
 					return false;
 			}
@@ -55,12 +57,24 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 				java.util.ArrayList<StateExpression> ors = new java.util.ArrayList<>();
 				for(; idx < pathed.getPath().length; idx++) {
 					String [] states = pathed.getPath()[idx].split("_");
-					if(states.length == 0)
-						ors.add(new StateExpression.Simple(element.state().getState(states[0])));
-					else {
-						StateExpression.Simple[] simples = new StateExpression.Simple[states.length];
-						for(int s = 0; s < states.length; s++)
+					boolean [] nots = new boolean[states.length];
+					for(int i = 0; i < states.length; i++)
+						if(states[i].startsWith("-")) {
+							nots[i] = true;
+							states[i] = states[i].substring(1);
+						}
+					if(states.length == 0) {
+						StateExpression simple = new StateExpression.Simple(element.state().getState(states[0]));
+						if(nots[0])
+							simple = simple.not();
+						ors.add(simple);
+					} else {
+						StateExpression [] simples = new StateExpression[states.length];
+						for(int s = 0; s < states.length; s++) {
 							simples[s] = new StateExpression.Simple(element.state().getState(states[s]));
+							if(nots[s])
+								simples[s] = simples[s].not();
+						}
 						ors.add(new StateExpression.Or(simples));
 					}
 				}

@@ -2,9 +2,11 @@ package org.muis.core.style;
 
 /** An expression that can be evaluated on the {@link org.muis.core.mgr.StateEngine state} of an element */
 public abstract class StateExpression {
+	/** A state expression that depends on any number of other expressions */
 	public static abstract class StateCollectionExpression extends StateExpression implements Iterable<StateExpression> {
 		private final StateExpression [] theWrapped;
 
+		/** @param wrapped The state expressions that this expression uses to evaluate */
 		protected StateCollectionExpression(StateExpression... wrapped) {
 			theWrapped = wrapped;
 		}
@@ -23,7 +25,9 @@ public abstract class StateExpression {
 		}
 	}
 
+	/** An expression that is true if and only if every one of a set of expressions are true */
 	public static class And extends StateCollectionExpression {
+		/** @param wrapped The state expressions that this expression will use to evaluate */
 		public And(StateExpression... wrapped) {
 			super(wrapped);
 		}
@@ -37,7 +41,9 @@ public abstract class StateExpression {
 		}
 	}
 
+	/** An expression that is true if at least one of a set of expressions is true */
 	public static class Or extends StateCollectionExpression {
+		/** @param wrapped The state expressions that this expression will use to evaluate */
 		public Or(StateExpression... wrapped) {
 			super(wrapped);
 		}
@@ -51,13 +57,16 @@ public abstract class StateExpression {
 		}
 	}
 
+	/** A state expression that is the negation of another expression */
 	public static class Not extends StateExpression {
 		private final StateExpression theWrapped;
 
+		/** @param exp The expression to negate */
 		public Not(StateExpression exp) {
 			theWrapped = exp;
 		}
 
+		/** @return The state expression that this expression is a negation of */
 		public StateExpression getWrapped() {
 			return theWrapped;
 		}
@@ -73,9 +82,11 @@ public abstract class StateExpression {
 		}
 	}
 
+	/** A state expression that checks whether a single state is active or not */
 	public static class Simple extends StateExpression {
 		private final String theState;
 
+		/** @param state The state to evaluate on */
 		public Simple(String state) {
 			theState = state;
 		}

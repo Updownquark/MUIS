@@ -222,6 +222,12 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 			styleChanged(attr, get(attr), null);
 	}
 
+	/**
+	 * Adds a state to this style's internal state set, firing appropriate events for style attributes that become active or inactive
+	 * consequently
+	 *
+	 * @param state The state to add
+	 */
 	protected void addState(String state) {
 		String [] newState = ArrayUtils.add(theCurrentState, state);
 		if(newState == theCurrentState)
@@ -229,6 +235,12 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		setState(newState);
 	}
 
+	/**
+	 * Removes a state from this style's internal state set, firing appropriate events for style attributes that become active or inactive
+	 * consequently
+	 *
+	 * @param state The state to remove
+	 */
 	protected void removeState(String state) {
 		String [] newState = ArrayUtils.remove(theCurrentState, state);
 		if(newState == theCurrentState)
@@ -236,6 +248,12 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 		setState(newState);
 	}
 
+	/**
+	 * Sets this style's internal state set and marks it has having an internal state. This method fires appropriate events for style
+	 * attributes that become active or inactive as a result of the state set changing
+	 *
+	 * @param newState The new state set for this style
+	 */
 	protected void setState(String... newState) {
 		hasInternalState = true;
 		String [] oldState = theCurrentState;

@@ -182,11 +182,11 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	}
 
 	private void addStateListeners() {
-		theStateControllers.clicked = theStateEngine.addState(States.CLICKED);
-		theStateControllers.rightClicked = theStateEngine.addState(States.RIGHT_CLICKED);
-		theStateControllers.middleClicked = theStateEngine.addState(States.MIDDLE_CLICKED);
-		theStateControllers.hovered = theStateEngine.addState(States.HOVERED);
-		theStateControllers.focused = theStateEngine.addState(States.FOCUSED);
+		theStateControllers.clicked = theStateEngine.addState(States.CLICK);
+		theStateControllers.rightClicked = theStateEngine.addState(States.RIGHT_CLICK);
+		theStateControllers.middleClicked = theStateEngine.addState(States.MIDDLE_CLICK);
+		theStateControllers.hovered = theStateEngine.addState(States.HOVER);
+		theStateControllers.focused = theStateEngine.addState(States.FOCUS);
 		addListener(MOUSE, new MuisEventListener<Void>() {
 			@Override
 			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {

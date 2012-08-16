@@ -132,18 +132,18 @@ public final class MuisConstants {
 	/** Contains several string representing {@link org.muis.core.mgr.StateEngine states} that are used by the MUIS core */
 	public static final class States {
 		/** True whenever the left mouse button is pressed on top of an element */
-		public static final String CLICKED = "clicked";
+		public static final String CLICK = "click";
 
 		/** True whenever the right mouse button is pressed on top of an element */
-		public static final String RIGHT_CLICKED = "right-clicked";
+		public static final String RIGHT_CLICK = "right-click";
 
-		/** True whenever the moddle mouse button is pressed on top of an element */
-		public static final String MIDDLE_CLICKED = "middle-clicked";
+		/** True whenever the middle mouse button is pressed on top of an element */
+		public static final String MIDDLE_CLICK = "middle-click";
 
 		/** True whenever the cursor is over an element */
-		public static final String HOVERED = "hovered";
+		public static final String HOVER = "hover";
 
 		/** True when an element has the focus */
-		public static final String FOCUSED = "focused";
+		public static final String FOCUS = "focus";
 	}
 }

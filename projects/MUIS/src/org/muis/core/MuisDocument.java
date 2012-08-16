@@ -612,7 +612,7 @@ public class MuisDocument {
 			evt = new KeyBoardEvent(this, theRoot, code, pressed);
 
 		if(theFocus != null)
-			theFocus.fireUserEvent(evt);
+			theFocus.fireEvent(evt, false, true);
 		synchronized(theKeysLock) {
 			if(pressed) {
 				if(!ArrayUtils.contains(thePressedKeys, code))

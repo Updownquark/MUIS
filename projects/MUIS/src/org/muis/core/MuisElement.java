@@ -740,54 +740,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	/**
 	 * Fires an event on this element
-	 *
+	 * 
 	 * @param <T> The type of the event's property
 	 * @param event The event to fire
 	 * @param fromDescendant Whether the event was fired on one of this element's descendants or on this element specifically
-	 * @param toAncestors Whether the event should be fired on this element's ancestors as well
+	 * @param propagateUp Whether the event should be fired on this element's ancestors as well
 	 */
-	public final <T> void fireEvent(MuisEvent<T> event, boolean fromDescendant, boolean toAncestors) {
+	public final <T> void fireEvent(MuisEvent<T> event, boolean fromDescendant, boolean propagateUp) {
 		MuisEventListener<T> [] listeners = theListeners.getListeners(event.getType());
 		for(MuisEventListener<T> listener : listeners)
 			if(!fromDescendant || !listener.isLocal())
 				listener.eventOccurred(event, this);
-		if(toAncestors && theParent != null)
+		if(propagateUp && theParent != null)
 			theParent.fireEvent(event, true, true);
-	}
-
-	/**
-	 * Fires a user-generated event on this element, propagating up toward the document root unless canceled
-	 *
-	 * @param event The event to fire
-	 */
-	public final void fireUserEvent(org.muis.core.event.UserEvent event) {
-		MuisEventListener<Void> [] listeners = theListeners.getListeners(event.getType());
-		for(MuisEventListener<Void> listener : listeners)
-			if(event.getElement() == this || !listener.isLocal())
-				listener.eventOccurred(event, this);
-		if(!event.isCanceled() && theParent != null)
-			theParent.fireEvent(event, true, true);
-	}
-
-	/**
-	 * Fires appropriate listeners on this element's subtree for a positioned event which occurred within this element's bounds
-	 *
-	 * @param event The event that occurred
-	 * @param x The x-coordinate of the position at which the event occurred, relative to this element's upper-left corner
-	 * @param y The y-coordinate of the position at which the event occurred, relative to this element's upper-left corner
-	 */
-	protected final void firePositionEvent(org.muis.core.event.PositionedUserEvent event, int x, int y) {
-		MuisElement [] children = theChildren.at(x, y);
-		for(int c = children.length - 1; c >= 0; c--) {
-			if(event.isCanceled())
-				continue;
-			MuisElement child = children[c];
-			int relX = x - child.theX;
-			int relY = y - child.theY;
-			child.firePositionEvent(event, relX, relY);
-		}
-		if(!event.isCanceled())
-			fireEvent(event, event.getElement() == this, false);
 	}
 
 	// End event methods

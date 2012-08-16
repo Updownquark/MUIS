@@ -423,7 +423,8 @@ public class MuisDocument {
 			break;
 		case clicked:
 		case exited:
-			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
+			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, new MouseEvent(this, oldCapture.getTarget().element, type, oldX,
+				oldY, buttonType, clickCount, oldCapture), false));
 			break;
 		case entered:
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
@@ -439,12 +440,11 @@ public class MuisDocument {
 		LinkedHashSet<MuisElementCapture> newSet = new LinkedHashSet<>();
 		LinkedHashSet<MuisElementCapture> common = new LinkedHashSet<>();
 		for(MuisElementCapture mec : oldCapture)
-			if(newSet.contains(mec))
+			oldSet.add(mec);
+		for(MuisElementCapture mec : newCapture)
+			if(oldSet.remove(mec))
 				common.add(mec);
 			else
-				oldSet.add(mec);
-		for(MuisElementCapture mec : newCapture)
-			if(!common.contains(mec))
 				newSet.add(mec);
 		// Remove child elements
 		java.util.Iterator<MuisElementCapture> iter = oldSet.iterator();

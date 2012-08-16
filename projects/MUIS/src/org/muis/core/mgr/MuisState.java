@@ -11,6 +11,9 @@ public class MuisState {
 	 * @param priority The priority of the state
 	 */
 	public MuisState(String name, int priority) {
+		checkStateName(name);
+		if(priority < 0)
+			throw new IllegalArgumentException("State priority must be >=0");
 		theName = name;
 		thePriority = priority;
 	}
@@ -53,5 +56,24 @@ public class MuisState {
 		} else if(!theName.equals(other.theName))
 			return false;
 		return true;
+	}
+
+	/**
+	 * Checks a state name for validity. This is called from the constructor to avoid creating invalid state instances.
+	 *
+	 * @param name The name of the state to check
+	 * @throws IllegalArgumentException If the state name is invalid for any reason
+	 */
+	public static void checkStateName(String name) throws IllegalArgumentException {
+		if(name.length() == 0)
+			throw new IllegalArgumentException("State name may not be empty");
+		if(name.startsWith("-"))
+			throw new IllegalArgumentException("State name may not start with '-': " + name);
+		if(name.contains("."))
+			throw new IllegalArgumentException("State name may not contain '.': " + name);
+		if(name.contains("_"))
+			throw new IllegalArgumentException("State name may not contain '_': " + name);
+		if(!name.matches("[a-zA-Z0-9-]*"))
+			throw new IllegalArgumentException("State names may only contain number, letters and dashes: " + name);
 	}
 }

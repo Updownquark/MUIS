@@ -53,9 +53,8 @@ public class StyleParsingUtils {
 	 * @param messager The message center to issue warnings to if there are errors with the styles
 	 * @param classView The class view to use for parsing if needed
 	 */
-	public static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk--value
-																								// must be JSON
+	public static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr, org.muis.core.mgr.MuisMessageCenter messager,
+		org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}') {
 			messager.warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
 			return;

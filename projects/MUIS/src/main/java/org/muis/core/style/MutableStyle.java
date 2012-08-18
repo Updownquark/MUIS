@@ -6,6 +6,7 @@ package org.muis.core.style;
  */
 public interface MutableStyle extends MuisStyle {
 	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to set the value of
 	 * @param value The value to set for the attribute
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute

@@ -452,6 +452,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	}
 
 	/**
+	 * @param <T> The type of the attribute
 	 * @see MutableStyle#set(StyleAttribute, Object) Implemented to make extensions of this class easily support MutableStyle
 	 * @param attr The attribute to set the value of
 	 * @param value The value to set for the attribute
@@ -464,6 +465,7 @@ public abstract class AbstractStatefulStyle implements StatefulStyle {
 	/**
 	 * @see MutableStatefulStyle#set(StyleAttribute, StateExpression, Object) Implemented to make extensions of this class easily support
 	 *      MutableStatefulStyle
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to set the value of
 	 * @param exp The state expression for the value to be active for
 	 * @param value The value to set for the attribute

@@ -18,6 +18,7 @@ public interface StatefulStyle extends MuisStyle {
 	Iterable<StyleAttribute<?>> allAttrs();
 
 	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to get the expressions for
 	 * @return The expression/value combinations that are set in this style for the given attribute
 	 */

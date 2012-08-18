@@ -1,6 +1,6 @@
 package org.muis.core.style;
 
-/** A few utiliy methods for parsing style information from attribute values */
+/** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {
 	/**
 	 * Applies a single style attribute to a style
@@ -57,14 +57,14 @@ public class StyleParsingUtils {
 		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk--value
 																								// must be JSON
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}') {
-			messager.warn("When only a domain is specified, styles must be in the form {property:value, property:value}");
+			messager.warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
 			return;
 		}
-		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(",");
+		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(";");
 		for(String propEntry : propEntries) {
-			int idx = propEntry.indexOf(':');
+			int idx = propEntry.indexOf('=');
 			if(idx < 0) {
-				messager.warn("Bulk style setting " + propEntry.trim() + " is missing a colon");
+				messager.warn("Bulk style setting " + propEntry.trim() + " is missing an equals sign");
 				continue;
 			}
 			String attrName = propEntry.substring(0, idx).trim();

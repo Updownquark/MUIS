@@ -3,6 +3,7 @@ package org.muis.core.style;
 /** An extension of StatefulStyle that allows setting of attribute values */
 public interface MutableStatefulStyle extends StatefulStyle, MutableStyle {
 	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to set the value of
 	 * @param expr The state expression for the value to be active for
 	 * @param value The value to set for the attribute

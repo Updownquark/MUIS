@@ -1,7 +1,7 @@
 package org.muis.core.mgr;
 
 /** Represents a binary state of an element in MUIS */
-public class MuisState {
+public class MuisState implements Comparable<MuisState> {
 	private final String theName;
 
 	private final int thePriority;
@@ -26,6 +26,14 @@ public class MuisState {
 	/** @return This state's priority */
 	public int getPriority() {
 		return thePriority;
+	}
+
+	@Override
+	public int compareTo(MuisState o) {
+		int ret = thePriority - o.thePriority;
+		if(ret != 0)
+			return ret;
+		return theName.compareTo(o.theName);
 	}
 
 	@Override

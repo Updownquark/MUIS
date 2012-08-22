@@ -15,3 +15,12 @@ button
 button.clicked{
 	bg.color=purple;
 }
+(group){
+	bg.color=green
+}
+(group)[button, block]{
+	bg.color.clicked=orange
+}
+body(group){
+	bg.color=gray
+}

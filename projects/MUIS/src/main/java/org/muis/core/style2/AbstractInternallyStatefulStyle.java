@@ -4,10 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.StateExpression;
-import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionValue;
-import org.muis.core.style.StyleListener;
+import org.muis.core.style.*;
 
 import prisms.util.ArrayUtils;
 
@@ -19,6 +16,19 @@ public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle imple
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
 		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		addListener(new StyleExpressionListener() {
+			@Override
+			public void eventOccurred(StyleExpressionEvent<?> evt) {
+				if(evt.getExpression() == null || evt.getExpression().matches(theCurrentState)) {
+					MuisStyle root;
+					if(evt.getRootStyle() instanceof MuisStyle)
+						root = (MuisStyle) evt.getRootStyle();
+					else
+						root = new StatefulStyleSample(evt.getRootStyle(), theCurrentState);
+					styleChanged(evt.getAttribute(), get(evt.getAttribute()), root);
+				}
+			}
+		});
 	}
 
 	/**
@@ -176,20 +186,19 @@ public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle imple
 
 	@Override
 	public void addListener(StyleListener listener) {
-		// TODO Auto-generated method stub
-
+		if(listener != null)
+			theStyleListeners.add(listener);
 	}
 
 	@Override
 	public void removeListener(StyleListener listener) {
-		// TODO Auto-generated method stub
-
+		theStyleListeners.remove(listener);
 	}
 
 	@Override
 	public Iterator<StyleAttribute<?>> iterator() {
 		final MuisState [] stateCapture = theCurrentState;
-		final java.util.HashSet<StyleAttribute<?>> used=new java.util.HashSet<>();
+		final java.util.HashSet<StyleAttribute<?>> used = new java.util.HashSet<>();
 		return ArrayUtils.conditionalIterator(allAttrs().iterator(), new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
 			@Override
 			public StyleAttribute<?> accept(StyleAttribute<?> value) {
@@ -204,5 +213,9 @@ public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle imple
 	}
 
 	void styleChanged(StyleAttribute<?> attr, Object value, MuisStyle root) {
+		StyleAttributeEvent<?> evt = new StyleAttributeEvent<Object>(root, this, (StyleAttribute<Object>) attr, value);
+		for(StyleListener listener : theStyleListeners) {
+			listener.eventOccurred(evt);
+		}
 	}
 }

@@ -121,29 +121,57 @@ public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle imple
 				if(((InternallyStatefulStyle) dep).isSetDeep(attr))
 					return true;
 			} else {
-
+				if(new StatefulStyleSample(dep, theCurrentState).isSetDeep(attr))
+					return true;
 			}
 		}
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public <T> T getLocal(StyleAttribute<T> attr) {
-		// TODO Auto-generated method stub
+		for(StyleExpressionValue<T> value : getExpressions(attr))
+			if(value.getExpression() == null || value.getExpression().matches(theCurrentState))
+				return value.getValue();
 		return null;
 	}
 
 	@Override
 	public Iterable<StyleAttribute<?>> localAttributes() {
-		// TODO Auto-generated method stub
-		return null;
+		return new Iterable<StyleAttribute<?>>() {
+			@Override
+			public Iterator<StyleAttribute<?>> iterator() {
+				final MuisState [] stateCapture = theCurrentState;
+				return ArrayUtils.conditionalIterator(allLocal().iterator(),
+					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
+						@Override
+						public StyleAttribute<?> accept(StyleAttribute<?> value) {
+							for(StyleExpressionValue<?> sev : getLocalExpressions(value))
+								if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
+									return value;
+							return null;
+						}
+					}, false);
+			}
+		};
 	}
 
 	@Override
 	public <T> T get(StyleAttribute<T> attr) {
-		// TODO Auto-generated method stub
-		return null;
+		T ret = getLocal(attr);
+		if(ret != null)
+			return ret;
+		for(StatefulStyle dep : getStatefulDependencies()) {
+			if(dep instanceof InternallyStatefulStyle) {
+				if(((InternallyStatefulStyle) dep).isSetDeep(attr))
+					return ((InternallyStatefulStyle) dep).get(attr);
+			} else {
+				StatefulStyleSample sample = new StatefulStyleSample(dep, theCurrentState);
+				if(sample.isSetDeep(attr))
+					return sample.get(attr);
+			}
+		}
+		return attr.getDefault();
 	}
 
 	@Override
@@ -160,8 +188,19 @@ public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle imple
 
 	@Override
 	public Iterator<StyleAttribute<?>> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+		final MuisState [] stateCapture = theCurrentState;
+		final java.util.HashSet<StyleAttribute<?>> used=new java.util.HashSet<>();
+		return ArrayUtils.conditionalIterator(allAttrs().iterator(), new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
+			@Override
+			public StyleAttribute<?> accept(StyleAttribute<?> value) {
+				if(!used.add(value))
+					return null;
+				for(StyleExpressionValue<?> sev : getExpressions(value))
+					if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
+						return value;
+				return null;
+			}
+		}, false);
 	}
 
 	void styleChanged(StyleAttribute<?> attr, Object value, MuisStyle root) {

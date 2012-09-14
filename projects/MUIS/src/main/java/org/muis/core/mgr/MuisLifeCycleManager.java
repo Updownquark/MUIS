@@ -93,6 +93,48 @@ public class MuisLifeCycleManager {
 	}
 
 	/**
+	 * Runs a task at or after the given stage. If this life cycle is already past the given stage, the task will be run inline before
+	 * returning. Otherwise, the task will be saved and run after the transition to the given stage is complete.
+	 *
+	 * @param task The task to run
+	 * @param stage The stage to run the task for
+	 * @param transition When to run the task relative to the given stage:
+	 *            <ul>
+	 *            <li><b>&lt;0</b> just before the transition takes place</li>
+	 *            <li><b>0</b> after the transition is complete</li>
+	 *            <li><b>1</b> just before transitioning away from the stage</li>
+	 *            <li><b>&gt;1</b> after transitioning away from the stage</li>
+	 *            </ul>
+	 */
+	public void runWhen(final Runnable task, final String stage, final int transition) {
+		if(isAfter(stage) >= 0)
+			task.run();
+		else
+			addListener(new LifeCycleListener() {
+				@Override
+				public void preTransition(String fromStage, String toStage) {
+					if(transition < 0 && toStage.equals(stage))
+						run();
+					else if(transition == 1 && fromStage.equals(stage))
+						run();
+				}
+
+				@Override
+				public void postTransition(String oldStage, String newStage) {
+					if(transition == 0 && newStage.equals(stage))
+						run();
+					else if(transition > 1 && oldStage.equals(stage))
+						run();
+				}
+
+				void run() {
+					task.run();
+					removeListener(this);
+				}
+			});
+	}
+
+	/**
 	 * @param stage The stage to add to this life cycle
 	 * @param afterStage The stage (already registered in this life cycle manager) to add the new stage after
 	 */

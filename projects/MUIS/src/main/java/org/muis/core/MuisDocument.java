@@ -11,6 +11,7 @@ import org.muis.core.event.ScrollEvent;
 import org.muis.core.mgr.MuisLocker;
 import org.muis.core.mgr.MuisMessage;
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.style.DocumentStyleSheet;
 import org.muis.core.style.NamedStyleGroup;
 
 import prisms.util.ArrayUtils;
@@ -60,6 +61,8 @@ public class MuisDocument {
 
 	private MuisMessageCenter theMessageCenter;
 
+	private DocumentStyleSheet theDocumentStyle;
+
 	private NamedStyleGroup [] theDocumentGroups;
 
 	private GraphicsGetter theGraphics;
@@ -96,6 +99,7 @@ public class MuisDocument {
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theCache = new MuisCache();
 		theMessageCenter = new MuisMessageCenter(this, null);
+		theDocumentStyle = new DocumentStyleSheet();
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
 		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;
@@ -148,6 +152,11 @@ public class MuisDocument {
 	/** @return The head section of this document */
 	public MuisHeadSection getHead() {
 		return theHead;
+	}
+
+	/** @return The style sheet for this document */
+	public DocumentStyleSheet getStyle() {
+		return theDocumentStyle;
 	}
 
 	/** @return The locker to keep track of element locks */
@@ -545,13 +554,11 @@ public class MuisDocument {
 						// Do searchFocus from this deep element
 						parent = deepest;
 						break;
-					}
-					else if(children[c].isFocusable()) {
+					} else if(children[c].isFocusable()) {
 						setFocus(children[c]);
 						return true;
 					}
-				}
-				else if(children[c] == lastChild)
+				} else if(children[c] == lastChild)
 					foundLastChild = true;
 			if(parent.isFocusable()) {
 				setFocus(parent);
@@ -617,8 +624,7 @@ public class MuisDocument {
 			if(pressed) {
 				if(!ArrayUtils.contains(thePressedKeys, code))
 					thePressedKeys = ArrayUtils.add(thePressedKeys, code);
-			}
-			else if(ArrayUtils.contains(thePressedKeys, code))
+			} else if(ArrayUtils.contains(thePressedKeys, code))
 				thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
 		}
 		MuisElementCapture capture = null;
@@ -632,8 +638,7 @@ public class MuisDocument {
 					scrollElement = capture.getTarget().element;
 					x = theMouseX;
 					y = theMouseY;
-				}
-				else
+				} else
 					scrollElement = null;
 				break;
 			case FOCUS:

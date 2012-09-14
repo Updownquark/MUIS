@@ -166,17 +166,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				return true;
 			}
 		});
-		theLifeCycleManager.addListener(new LifeCycleListener() {
+		theLifeCycleManager.runWhen(new Runnable() {
 			@Override
-			public void preTransition(String fromStage, String toStage) {
+			public void run() {
+				repaint(null, false);
 			}
-
-			@Override
-			public void postTransition(String oldStage, String newStage) {
-				if(oldStage.equals(CoreStage.INIT_SELF.toString()))
-					repaint(null, false);
-			}
-		});
+		}, CoreStage.INIT_SELF.toString(), 2);
 		addStateListeners();
 		theLifeCycleController.advance(CoreStage.PARSE_SELF.toString());
 	}
@@ -740,7 +735,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	/**
 	 * Fires an event on this element
-	 * 
+	 *
 	 * @param <T> The type of the event's property
 	 * @param event The event to fire
 	 * @param fromDescendant Whether the event was fired on one of this element's descendants or on this element specifically

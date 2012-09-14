@@ -1,5 +1,6 @@
 package org.muis.core.style;
 
+import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
 import prisms.util.ArrayUtils;
@@ -7,10 +8,12 @@ import prisms.util.ArrayUtils;
 /**
  * A TypedStyleGroup is a group in MUIS that holds members of a given type. This allows styles to be applied not only to named groups (
  * {@link NamedStyleGroup}) but also to specific sub-types within the named group.
- *
+ * 
  * @param <E> The sub-type of MuisElement that this group holds
  */
 public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyle {
+	private MuisDocument theDocument;
+
 	private TypedStyleGroup<? super E> theParent;
 
 	private TypedStyleGroup<? extends E> [] theChildren;
@@ -21,17 +24,36 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 
 	/**
 	 * Creates a typed style group
-	 *
+	 * 
+	 * @param doc The document that this style group exists in
 	 * @param parent The parent style group that this group is a sub-type of
 	 * @param type The type of elements that this group is to hold
 	 */
-	public TypedStyleGroup(TypedStyleGroup<? super E> parent, Class<E> type) {
+	public TypedStyleGroup(MuisDocument doc, TypedStyleGroup<? super E> parent, Class<E> type) {
+		theDocument = doc;
 		theParent = parent;
 		theType = type;
 		theChildren = new TypedStyleGroup[0];
 		theMembers = (E []) java.lang.reflect.Array.newInstance(type, 0);
+		/* 3 potential dependencies:
+		 * 1) style sheet entries for this group's name and type (if this group is an NamedStyleGroup or is descended from one)
+		 * 2) style sheet entries for this group's type, group-unspecific (if this group is not a NamedStyleGroup and is not descended from one)
+		 * 3) the parent type group, if it's not null
+		 */
+		TypedStyleGroup<?> root = theParent;
+		while(root != null && !(root instanceof NamedStyleGroup))
+			root = root.theParent;
+		if(root != null)
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), ((NamedStyleGroup) root).getName(), type));
+		else
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), null, type));
 		if(parent != null)
 			addDependency(parent, null);
+	}
+
+	/** @return The document that this group exists in */
+	public MuisDocument getDocument() {
+		return theDocument;
 	}
 
 	/** @return The parent style group that this group is a sub-type of */
@@ -60,24 +82,29 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	/**
 	 * Finds the group within this group's structure whose type is exactly <code>S</code>. If the group does not exist, this group is
 	 * restructured to contain such a group.
-	 *
+	 * 
 	 * @param <S> The compile-time sub-type of MuisElement to get the group for
 	 * @param type The runtime sub-type of MuisElement to get the group for
-	 * @return The group within this style group whose type is <code>S</code>.
+	 * @return The group descended from this style group whose type is <code>S</code>.
 	 */
 	public synchronized <S extends E> TypedStyleGroup<S> insertTypedGroup(Class<S> type) {
 		if(type == theType)
 			return (TypedStyleGroup<S>) this;
-		if(!type.isAssignableFrom(getType()))
+		if(type.isAssignableFrom(getType()))
 			throw new IllegalArgumentException("Type " + type.getName() + " is not a sub-type of this group (" + this + ")'s type ("
 				+ getType().getName() + ")");
+		if(type.getSuperclass() != theType) {
+			TypedStyleGroup<? super S> intermediate = (TypedStyleGroup<? super S>) insertTypedGroup((Class<? extends E>) type
+				.getSuperclass());
+			return intermediate.insertTypedGroup(type);
+		}
 		/* I can NOT get this to work with generics, so I'm doing it unchecked */
 		@SuppressWarnings("rawtypes")
 		TypedStyleGroup [] children = theChildren;
 		for(int c = 0; c < children.length; c++)
 			if(children[c].getType().isAssignableFrom(type))
 				return children[c].insertTypedGroup(type.asSubclass(theChildren[c].getType()));
-		TypedStyleGroup<S> ret = new TypedStyleGroup<S>(this, type);
+		TypedStyleGroup<S> ret = new TypedStyleGroup<S>(theDocument, this, type);
 		for(int c = 0; c < children.length; c++)
 			if(type.isAssignableFrom(children[c].getType())) {
 				ret.theChildren = ArrayUtils.add(ret.theChildren, children[c]);
@@ -95,7 +122,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	/**
 	 * Returns the most specific style group within this group whose type is the same as or a superclass of <code>s</code>. This may be
 	 * <code>this</code>. This method does not modify this group's structure or content.
-	 *
+	 * 
 	 * @param <S> The compile-time sub-type of MuisElement to get the group for
 	 * @param type The runtime sub-type of MuisElement to get the group for
 	 * @return The most specific style group within this group whose type is the same as or a superclass of <code>s</code>. This may be
@@ -155,7 +182,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 * Creates an iterator to iterate through every member in this group, but not its sub-typed groups. The iterator returned by this method
 	 * is an immutable capture of the content of this group at the moment. Any changes made to this group after the iterator is created are
 	 * not reflected in the iterator's content, and the iterator itself is immutable, so it cannot affect the content of this group.
-	 *
+	 * 
 	 * @return An iterable that can return an iterator to iterate through this group's members without descending into this group's
 	 *         sub-members
 	 */
@@ -168,10 +195,10 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 * iterator returned by this method is an immutable capture of the content of this group and its sub-typed groups at the moment. Any
 	 * changes made to this group or its subgroups after the iterator is created are not reflected in the iterator's content, and the
 	 * iterator itself is immutable, so it cannot affect the content of this group.
-	 *
+	 * 
 	 * The argument class may be an extension of {@link MuisElement} or an arbitrary interface. If a class is given whose type is not
 	 * compatible with MuisElement, the iterator will of course be empty.
-	 *
+	 * 
 	 * @param <T> The compile-time type of the members to return
 	 * @param type The runtime type of the members to return
 	 * @return An iterable that can return an iterator to iterate through every member of this group and its subgroups that is also an

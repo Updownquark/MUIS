@@ -116,19 +116,12 @@ public class AttributeManager {
 		theAcceptedAttrs = new ConcurrentHashMap<>();
 		theRawAttributes = new ConcurrentHashMap<>();
 		theElement = element;
-		theElement.life().addListener(new LifeCycleListener() {
+		theElement.life().runWhen(new Runnable() {
 			@Override
-			public void preTransition(String fromStage, String toStage) {
+			public void run() {
+				setReady();
 			}
-
-			@Override
-			public void postTransition(String oldStage, String newStage) {
-				if(newStage.equals(MuisConstants.CoreStage.STARTUP)) {
-					setReady();
-					theElement.life().removeListener(this);
-				}
-			}
-		});
+		}, MuisConstants.CoreStage.STARTUP.toString(), 0);
 	}
 
 	/**

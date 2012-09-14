@@ -26,6 +26,13 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
 		theStyleGroups = new NamedStyleGroup[0];
+		// Add a dependency for typed, non-grouped style sheet attributes
+		element.life().runWhen(new Runnable() {
+			@Override
+			public void run() {
+				addDependency(new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass()));
+			}
+		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		addListener(new StyleListener() {
 			@Override
 			public void eventOccurred(StyleAttributeEvent<?> event) {

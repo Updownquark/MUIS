@@ -5,16 +5,21 @@ import java.io.Reader;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.jdom2.CDATA;
 import org.jdom2.Element;
+import org.jdom2.Text;
 import org.muis.core.*;
 
 /** Parses MUIS components using the JDOM library */
 public class MuisDomParser implements MuisParser {
 	java.util.HashMap<String, MuisToolkit> theToolkits;
 
+	private StyleSheetParser theStyleSheetParser;
+
 	/** Creates a MUIS parser */
 	public MuisDomParser() {
 		theToolkits = new java.util.HashMap<String, MuisToolkit>();
+		theStyleSheetParser = new DefaultStyleSheetParser();
 	}
 
 	@SuppressWarnings("resource")
@@ -209,6 +214,64 @@ public class MuisDomParser implements MuisParser {
 			String title = head[0].getChildTextTrim("title");
 			if(title != null)
 				doc.getHead().setTitle(title);
+		}
+		for(Element styleSheetEl : head[0].getChildren("style-sheet")) {
+			String ssLocStr = styleSheetEl.getAttributeValue("ref");
+			org.muis.core.style.StyleSheet styleSheet = null;
+			boolean error = false;
+			for(org.jdom2.Content content : styleSheetEl.getContent()) {
+				if(content instanceof org.jdom2.Comment)
+					continue;
+				else if(content instanceof CDATA) {
+					if(styleSheet != null) {
+						doc.msg().error(
+							"Each " + styleSheetEl.getName() + " element may have either a ref attribute or a single CDATA entity",
+							"element", styleSheetEl);
+						error = true;
+						break;
+					}
+					styleSheet = theStyleSheetParser.parseStyleSheet(null, new java.io.StringReader(((CDATA) content).getTextNormalize()),
+						this);
+				} else if(content instanceof Text) {
+					if(((Text) content).getTextTrim().length() > 0) {
+						doc.msg().error(styleSheetEl.getName() + " elements may not have text outside of a CDATA entity", "element",
+							styleSheetEl);
+						error = true;
+						break;
+					}
+				} else {
+					doc.msg().error(styleSheetEl.getName() + " elements may not have any entities other than a single CDATA entity",
+						"element", styleSheetEl);
+					error = true;
+					break;
+				}
+			}
+			if(error)
+				continue;
+			if(ssLocStr != null) {
+				if(styleSheet != null) {
+					doc.msg().error(
+						"Each " + styleSheetEl.getName()
+							+ " element may have either a ref attribute or a single CDATA entity, but not both", "element", styleSheetEl);
+					continue;
+				}
+				URL ssLoc;
+				try {
+					ssLoc = MuisUtils.resolveURL(location, ssLocStr);
+				} catch(MuisException e) {
+					doc.msg().error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
+					continue;
+				}
+				try (Reader ssReader = new java.io.InputStreamReader(ssLoc.openStream())) {
+					styleSheet = theStyleSheetParser.parseStyleSheet(ssLoc, ssReader, this);
+				}
+			}
+			if(styleSheet == null) {
+				doc.msg().error("Each " + styleSheetEl.getName() + " element must have either a ref attribute or a single CDATA entity",
+					"element", styleSheetEl);
+				continue;
+			}
+			doc.getStyle().addStyleSheet(styleSheet);
 		}
 		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
 		if(body.length > 1)
@@ -438,18 +501,18 @@ public class MuisDomParser implements MuisParser {
 				ret = prisms.util.ArrayUtils.add(ret, newChild);
 				MuisElement [] subContent = parseContent(child, newChild);
 				newChild.initChildren(subContent);
-			} else if(content instanceof org.jdom2.Text || content instanceof org.jdom2.CDATA) {
+			} else if(content instanceof Text || content instanceof CDATA) {
 				String text;
-				if(content instanceof org.jdom2.Text)
-					text = ((org.jdom2.Text) content).getTextNormalize();
+				if(content instanceof Text)
+					text = ((Text) content).getTextNormalize();
 				else
-					text = ((org.jdom2.CDATA) content).getTextTrim().replaceAll("\r", "");
+					text = ((CDATA) content).getTextTrim().replaceAll("\r", "");
 				if(text.length() == 0)
 					continue;
 				MuisTextElement newChild = new MuisTextElement(text);
 				ret = prisms.util.ArrayUtils.add(ret, newChild);
 				newChild.init(parent.getDocument(), parent.getDocument().getCoreToolkit(), parent.getDocument().getClassView(), parent,
-					null, content instanceof org.jdom2.CDATA ? "CDATA" : null);
+					null, content instanceof CDATA ? "CDATA" : null);
 				newChild.initChildren(new MuisElement[0]);
 			}
 		return ret;

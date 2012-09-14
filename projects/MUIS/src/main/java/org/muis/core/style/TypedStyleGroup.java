@@ -10,7 +10,7 @@ import prisms.util.ArrayUtils;
  *
  * @param <E> The sub-type of MuisElement that this group holds
  */
-public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyle implements MutableStatefulStyle {
+public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyle {
 	private TypedStyleGroup<? super E> theParent;
 
 	private TypedStyleGroup<? extends E> [] theChildren;
@@ -109,30 +109,6 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 			if(child.getType().isAssignableFrom(type))
 				return child.getGroupForType(type.asSubclass(child.getType()));
 		return this;
-	}
-
-	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
-		super.set(attr, value);
-	}
-
-	@Override
-	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws IllegalArgumentException {
-		super.set(attr, exp, value);
-	}
-
-	@Override
-	public void clear(StyleAttribute<?> attr) {
-		super.clear(attr);
-	}
-
-	@Override
-	public void clear(StyleAttribute<?> attr, StateExpression exp) {
-		super.clear(attr, exp);
-		/*
-		 * TODO If this style group is empty, remove it from its parent. Don't forget to connect up the children
-		 * Note--don't remember what I meant by this.
-		 */
 	}
 
 	/** @return The number of members in this group (not including its sub-typed groups) */

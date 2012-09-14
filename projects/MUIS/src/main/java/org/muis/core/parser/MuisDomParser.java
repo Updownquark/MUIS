@@ -216,62 +216,9 @@ public class MuisDomParser implements MuisParser {
 				doc.getHead().setTitle(title);
 		}
 		for(Element styleSheetEl : head[0].getChildren("style-sheet")) {
-			String ssLocStr = styleSheetEl.getAttributeValue("ref");
-			org.muis.core.style.StyleSheet styleSheet = null;
-			boolean error = false;
-			for(org.jdom2.Content content : styleSheetEl.getContent()) {
-				if(content instanceof org.jdom2.Comment)
-					continue;
-				else if(content instanceof CDATA) {
-					if(styleSheet != null) {
-						doc.msg().error(
-							"Each " + styleSheetEl.getName() + " element may have either a ref attribute or a single CDATA entity",
-							"element", styleSheetEl);
-						error = true;
-						break;
-					}
-					styleSheet = theStyleSheetParser.parseStyleSheet(null, new java.io.StringReader(((CDATA) content).getTextNormalize()),
-						this);
-				} else if(content instanceof Text) {
-					if(((Text) content).getTextTrim().length() > 0) {
-						doc.msg().error(styleSheetEl.getName() + " elements may not have text outside of a CDATA entity", "element",
-							styleSheetEl);
-						error = true;
-						break;
-					}
-				} else {
-					doc.msg().error(styleSheetEl.getName() + " elements may not have any entities other than a single CDATA entity",
-						"element", styleSheetEl);
-					error = true;
-					break;
-				}
-			}
-			if(error)
-				continue;
-			if(ssLocStr != null) {
-				if(styleSheet != null) {
-					doc.msg().error(
-						"Each " + styleSheetEl.getName()
-							+ " element may have either a ref attribute or a single CDATA entity, but not both", "element", styleSheetEl);
-					continue;
-				}
-				URL ssLoc;
-				try {
-					ssLoc = MuisUtils.resolveURL(location, ssLocStr);
-				} catch(MuisException e) {
-					doc.msg().error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
-					continue;
-				}
-				try (Reader ssReader = new java.io.InputStreamReader(ssLoc.openStream())) {
-					styleSheet = theStyleSheetParser.parseStyleSheet(ssLoc, ssReader, this);
-				}
-			}
-			if(styleSheet == null) {
-				doc.msg().error("Each " + styleSheetEl.getName() + " element must have either a ref attribute or a single CDATA entity",
-					"element", styleSheetEl);
-				continue;
-			}
-			doc.getStyle().addStyleSheet(styleSheet);
+			org.muis.core.style.StyleSheet styleSheet = parseStyleSheet(styleSheetEl, doc);
+			if(styleSheet != null)
+				doc.getStyle().addStyleSheet(styleSheet);
 		}
 		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
 		if(body.length > 1)
@@ -319,6 +266,84 @@ public class MuisDomParser implements MuisParser {
 			}
 		}
 		ret.seal();
+	}
+
+	/**
+	 * Parses a style sheet from a style-sheet element
+	 *
+	 * @param styleSheetEl The element specifying the style sheet to parse
+	 * @param doc The document to parse the style sheet for
+	 * @return The parsed style sheet, or null if an error occurred (the error must be documented in the document before returning null)
+	 */
+	protected org.muis.core.style.StyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
+		java.util.Map<String, MuisToolkit> namespaces = new java.util.HashMap<>();
+		for(org.jdom2.Namespace ns : styleSheetEl.getNamespacesInScope()) {
+			try {
+				namespaces.put(ns.getPrefix(), getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc));
+			} catch(MuisException | IOException e) {
+				doc.msg().error(
+					"Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
+						+ "\" could not be resolved or parsed for style-sheet", e, "element", styleSheetEl);
+				continue;
+			}
+		}
+		String ssLocStr = styleSheetEl.getAttributeValue("ref");
+		org.muis.core.style.StyleSheet styleSheet = null;
+		for(org.jdom2.Content content : styleSheetEl.getContent()) {
+			if(content instanceof org.jdom2.Comment)
+				continue;
+			else if(content instanceof CDATA) {
+				if(styleSheet != null) {
+					doc.msg().error("Each " + styleSheetEl.getName() + " element may have either a ref attribute or a single CDATA entity",
+						"element", styleSheetEl);
+					return null;
+				}
+				try {
+					styleSheet = theStyleSheetParser.parseStyleSheet(new java.io.StringReader(((CDATA) content).getTextNormalize()),
+						namespaces);
+				} catch(IOException | MuisParseException e) {
+					doc.msg().error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
+					return null;
+				}
+			} else if(content instanceof Text) {
+				if(((Text) content).getTextTrim().length() > 0) {
+					doc.msg().error(styleSheetEl.getName() + " elements may not have text outside of a CDATA entity", "element",
+						styleSheetEl);
+					return null;
+				}
+			} else {
+				doc.msg().error(styleSheetEl.getName() + " elements may not have any entities other than a single CDATA entity", "element",
+					styleSheetEl);
+				return null;
+			}
+		}
+		if(ssLocStr != null) {
+			if(styleSheet != null) {
+				doc.msg().error(
+					"Each " + styleSheetEl.getName() + " element may have either a ref attribute or a single CDATA entity, but not both",
+					"element", styleSheetEl);
+				return null;
+			}
+			URL ssLoc;
+			try {
+				ssLoc = MuisUtils.resolveURL(doc.getLocation(), ssLocStr);
+			} catch(MuisException e) {
+				doc.msg().error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
+				return null;
+			}
+			try (Reader ssReader = new java.io.InputStreamReader(ssLoc.openStream())) {
+				styleSheet = theStyleSheetParser.parseStyleSheet(ssReader, namespaces);
+			} catch(IOException | MuisParseException e) {
+				doc.msg().error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
+				return null;
+			}
+		}
+		if(styleSheet == null) {
+			doc.msg().error("Each " + styleSheetEl.getName() + " element must have either a ref attribute or a single CDATA entity",
+				"element", styleSheetEl);
+			return null;
+		}
+		return styleSheet;
 	}
 
 	/**

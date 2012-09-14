@@ -19,7 +19,9 @@ button.clicked{
 	bg.color=green
 }
 (group)[button, block]{
-	bg.color.clicked=orange
+	.clicked{
+		bg.color=orange
+	}
 }
 body(group){
 	bg.color=gray

@@ -84,16 +84,16 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 					expr = new StateExpression.And(ors.toArray(new StateExpression[ors.size()]));
 			}
 		}
-		java.util.HashSet<StyleAttribute<?>> styleAtts = new java.util.HashSet<>();
+		java.util.HashSet<StyleAttribute<?>> clearStyleAtts = new java.util.HashSet<>();
 		if(ace.getOldValue() != null)
 			for(StyleAttribute<?> styleAtt : ace.getOldValue())
-				styleAtts.add(styleAtt);
+				clearStyleAtts.add(styleAtt);
 		if(ace.getValue() != null)
 			for(StyleAttribute<?> styleAtt : ace.getValue()) {
-				styleAtts.remove(styleAtt);
+				clearStyleAtts.remove(styleAtt);
 				target.set((StyleAttribute<Object>) styleAtt, expr, ace.getValue().get(styleAtt));
 			}
-		for(StyleAttribute<?> styleAtt : styleAtts)
+		for(StyleAttribute<?> styleAtt : clearStyleAtts)
 			target.clear(styleAtt, expr);
 	}
 

@@ -101,4 +101,14 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		ret.theValues.putAll(theValues);
 		return ret;
 	}
+
+	@Override
+	public void addListener(StyleListener listener) {
+		// Assume the style is sealed and immutable
+	}
+
+	@Override
+	public void removeListener(StyleListener listener) {
+		// Assume the style is sealed and immutable
+	}
 }

@@ -1,9 +1,7 @@
 package org.muis.core.style;
 
-/**
- * An extension of MuisStyle that allows setting of attribute values. If this style is stateful, the modification methods apply to the base
- * state--they will be effective if no stateful settings override them.
- */
+
+/** An extension of MuisStyle that allows setting of attribute values */
 public interface MutableStyle extends MuisStyle {
 	/**
 	 * @param <T> The type of the attribute

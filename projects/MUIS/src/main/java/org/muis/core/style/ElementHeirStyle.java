@@ -1,7 +1,7 @@
 package org.muis.core.style;
 
 /** Represents a set of style attributes that apply to all an element's descendants but not to the element itself */
-public class ElementHeirStyle extends AbstractStatefulStyle implements MutableStatefulStyle {
+public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
 	private final ElementStyle theElStyle;
 
 	/** @param elStyle The element style that this heir style is for */

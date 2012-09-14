@@ -252,7 +252,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 			childIters = new java.util.ListIterator[theChildren.length];
 			for(int c = 0; c < theChildren.length; c++)
 				if(theGroup.getType().equals(theType))
-					childIters[c] = (java.util.ListIterator<? extends T>) theChildren[c].iterator();
+					childIters[c] = (java.util.ListIterator<? extends T>) theChildren[c].members().iterator();
 				else if(type.isInterface() || theType.isAssignableFrom(theChildren[c].getType()))
 					childIters[c] = (java.util.ListIterator<T>) theChildren[c].members(type).iterator();
 		}

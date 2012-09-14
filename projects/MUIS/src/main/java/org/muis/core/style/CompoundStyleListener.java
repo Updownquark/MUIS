@@ -116,7 +116,8 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 	public void eventOccurred(GroupMemberEvent event)
 	{
 		java.util.HashSet<StyleAttribute<?>> groupAttrs = new java.util.HashSet<StyleAttribute<?>>();
-		for(StyleAttribute<?> attr : event.getValue().getGroupForType(theElement.getClass()))
+		org.muis.core.mgr.MuisState[] state = theElement.getStateEngine().toArray();
+		for(StyleAttribute<?> attr : new StatefulStyleSample(event.getValue().getGroupForType(theElement.getClass()), state))
 			if(ArrayUtils.contains(theDomains, attr.getDomain()) || ArrayUtils.contains(theAttributes, attr))
 				groupAttrs.add(attr);
 		if(groupAttrs.isEmpty())
@@ -129,7 +130,7 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 			{
 				if(g == event.getValue())
 					break;
-				for(StyleAttribute<?> attr : g.getGroupForType(theElement.getClass()))
+				for(StyleAttribute<?> attr : new StatefulStyleSample(g.getGroupForType(theElement.getClass()), state))
 					groupAttrs.remove(attr);
 			}
 		else
@@ -140,14 +141,14 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 			{
 				if(iter.nextIndex() <= event.getRemoveIndex())
 					break;
-				for(StyleAttribute<?> attr : iter.next().getGroupForType(theElement.getClass()))
+				for(StyleAttribute<?> attr : new StatefulStyleSample(iter.next().getGroupForType(theElement.getClass()), state))
 					groupAttrs.remove(attr);
 			}
 		}
 		if(groupAttrs.isEmpty())
 			return; // Any interesting attributes are eclipsed by closer styles
 
-		styleChanged(event.getValue());
+		styleChanged(new StatefulStyleSample(event.getValue(), state));
 		if(isDetailed)
 			for(StyleAttribute<?> attr : groupAttrs)
 			{
@@ -182,7 +183,7 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 			{
 				if(g == nsg)
 					break;
-				if(g.isSet(event.getAttribute()))
+				if(new StatefulStyleSample(g, theElement.getStateEngine().toArray()).isSet(event.getAttribute()))
 					return;
 			}
 		}

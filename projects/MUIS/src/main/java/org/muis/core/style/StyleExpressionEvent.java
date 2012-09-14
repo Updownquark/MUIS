@@ -1,7 +1,5 @@
-package org.muis.core.style2;
+package org.muis.core.style;
 
-import org.muis.core.style.StateExpression;
-import org.muis.core.style.StyleAttribute;
 
 /**
  * Represents the change to a single style attribute in a style

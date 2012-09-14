@@ -109,7 +109,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 
 	/**
 	 * Applies a single style attribute to a style
-	 *
+	 * 
 	 * @param style The style to apply the attribute to
 	 * @param domain The domain of the style
 	 * @param attrName The name of the attribute
@@ -124,7 +124,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 
 	/**
 	 * Applies a bulk style setting to a style
-	 *
+	 * 
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value

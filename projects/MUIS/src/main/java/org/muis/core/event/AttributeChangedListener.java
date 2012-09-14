@@ -8,7 +8,7 @@ import org.muis.core.MuisElement;
  *
  * @param <T> The type of the attribute
  */
-public abstract class AttributeChangedListener<T> implements MuisEventListener<T>
+public abstract class AttributeChangedListener<T> implements MuisEventListener<Object>
 {
 	private final MuisAttribute<T> theAttr;
 
@@ -19,7 +19,7 @@ public abstract class AttributeChangedListener<T> implements MuisEventListener<T
 	}
 
 	@Override
-	public void eventOccurred(MuisEvent<T> event, MuisElement element)
+	public void eventOccurred(MuisEvent<Object> event, MuisElement element)
 	{
 		if(!(event instanceof AttributeChangedEvent))
 			return;
@@ -37,7 +37,7 @@ public abstract class AttributeChangedListener<T> implements MuisEventListener<T
 
 	/**
 	 * Called when the value for this listener's attribute changes
-	 * 
+	 *
 	 * @param event The {@link AttributeChangedEvent} containing the value of the attribute
 	 */
 	public abstract void attributeChanged(AttributeChangedEvent<T> event);

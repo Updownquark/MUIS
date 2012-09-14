@@ -25,7 +25,7 @@ public interface MuisStyle extends Iterable<StyleAttribute<?>> {
 	<T> T getLocal(StyleAttribute<T> attr);
 
 	/** @return An iterable for attributes set locally in this style */
-	public abstract Iterable<StyleAttribute<?>> localAttributes();
+	Iterable<StyleAttribute<?>> localAttributes();
 
 	/**
 	 * Gets the value of the attribute in this style or its dependencies. This style is checked first, then dependencies are checked. If the
@@ -35,5 +35,11 @@ public interface MuisStyle extends Iterable<StyleAttribute<?>> {
 	 * @param attr The attribute to get the value of
 	 * @return The value of the attribute in this style's scope
 	 */
-	public abstract <T> T get(StyleAttribute<T> attr);
+	<T> T get(StyleAttribute<T> attr);
+
+	/** @param listener The listener to be notified when attribute data in this style changes */
+	void addListener(StyleListener listener);
+
+	/** @param listener The listener to remove from notification */
+	void removeListener(StyleListener listener);
 }

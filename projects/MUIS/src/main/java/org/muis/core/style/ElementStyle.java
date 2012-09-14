@@ -5,7 +5,7 @@ import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
 
 /** A style controlling the appearance of a specific element */
-public class ElementStyle extends AbstractStatefulStyle implements MutableStatefulStyle {
+public class ElementStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
 	private final MuisElement theElement;
 
 	private ElementStyle theParentStyle;

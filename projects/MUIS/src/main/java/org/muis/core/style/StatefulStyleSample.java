@@ -1,14 +1,12 @@
-package org.muis.core.style2;
+package org.muis.core.style;
 
 import java.util.Iterator;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionValue;
-import org.muis.core.style.StyleListener;
 
 import prisms.util.ArrayUtils;
 
+/** A {@link MuisStyle} implementation that gets all its information from a {@link StatefulStyle} for a particular state */
 public class StatefulStyleSample implements MuisStyle {
 	private final StatefulStyle theStatefulStyle;
 
@@ -16,15 +14,21 @@ public class StatefulStyleSample implements MuisStyle {
 
 	private java.util.HashMap<StyleListener, StyleExpressionListener> theListenerMap;
 
+	/**
+	 * @param statefulStyle The stateful style to get the attribute information from
+	 * @param state The state to get the attribute information for
+	 */
 	public StatefulStyleSample(StatefulStyle statefulStyle, MuisState [] state) {
 		theStatefulStyle = statefulStyle;
 		theState = state;
 	}
 
+	/** @return The stateful style that this style uses to get its attribute information from */
 	public StatefulStyle getStatefulStyle() {
 		return theStatefulStyle;
 	}
 
+	/** @return The state that this style gets its attribute information from its stateful style for */
 	public MuisState [] getState() {
 		return theState;
 	}

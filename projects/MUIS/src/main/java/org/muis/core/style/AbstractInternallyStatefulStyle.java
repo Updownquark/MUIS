@@ -1,18 +1,19 @@
-package org.muis.core.style2;
+package org.muis.core.style;
 
 import java.util.Iterator;
 import java.util.Map;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.*;
 
 import prisms.util.ArrayUtils;
 
-public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
+/** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
+public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
 	private MuisState [] theCurrentState;
 
 	private final java.util.concurrent.ConcurrentLinkedQueue<StyleListener> theStyleListeners;
 
+	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
 		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
@@ -112,6 +113,20 @@ public class AbstractInternallyStatefulStyle extends AbstractStatefulStyle imple
 				break;
 			}
 		}
+	}
+
+	@Override
+	public MuisStyle [] getDependencies() {
+		StatefulStyle [] depends = getStatefulDependencies();
+		MuisState [] state = theCurrentState;
+		MuisStyle [] ret = new MuisStyle[depends.length];
+		for(int i = 0; i < ret.length; i++) {
+			if(depends[i] instanceof InternallyStatefulStyle)
+				ret[i] = (InternallyStatefulStyle) depends[i];
+			else
+				ret[i] = new StatefulStyleSample(depends[i], state);
+		}
+		return ret;
 	}
 
 	@Override

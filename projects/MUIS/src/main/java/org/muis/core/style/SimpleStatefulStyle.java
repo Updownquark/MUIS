@@ -104,60 +104,15 @@ public abstract class SimpleStatefulStyle implements StatefulStyle, Cloneable {
 		theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 	}
 
-	/**
-	 * @param style The style to check
-	 * @param attr The style attribute to check
-	 * @param expr The state expression to check
-	 * @return Whether the given style contains (locally) a style expression that is true when the given state expression is true for the
-	 *         given attribute
-	 */
-	protected static boolean isSet(StatefulStyle style, StyleAttribute<?> attr, StateExpression expr) {
-		for(StyleExpressionValue<?> sev : style.getExpressions(attr))
-			if(sev.getExpression() == null || (expr != null && sev.getExpression().getWhenTrue(expr) > 0))
-				return true;
-		return false;
-	}
-
-	/**
-	 * @param style The style to check
-	 * @param attr The style attribute to check
-	 * @param expr The state expression to check
-	 * @return Whether the given style contains (anywhere in the dependency tree) a style expression that is true when the given state
-	 *         expression is true for the given attribute
-	 */
-	protected static boolean isSetDeep(StatefulStyle style, StyleAttribute<?> attr, StateExpression expr) {
-		if(isSet(style, attr, expr))
-			return true;
-		for(StatefulStyle depend : style.getStatefulDependencies())
-			if(isSet(depend, attr, expr))
-				return true;
-		return false;
-	}
-
-	@Override
-	public StatefulStyle [] getStatefulDependencies() {
-		return new StatefulStyle[0];
-	}
-
 	@Override
 	public Iterable<StyleAttribute<?>> allLocal() {
 		return ArrayUtils.immutableIterable(theAttributes.keySet());
 	}
 
 	@Override
-	public Iterable<StyleAttribute<?>> allAttrs() {
-		return allLocal();
-	}
-
-	@Override
 	public <T> StyleExpressionValue<T> [] getLocalExpressions(StyleAttribute<T> attr) {
 		StyleValueHolder<T> holder = (StyleValueHolder<T>) theAttributes.get(attr);
 		return holder == null ? new StyleExpressionValue[0] : holder.sort();
-	}
-
-	@Override
-	public <T> StyleExpressionValue<T> [] getExpressions(StyleAttribute<T> attr) {
-		return getLocalExpressions(attr);
 	}
 
 	@Override

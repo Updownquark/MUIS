@@ -1,9 +1,8 @@
 package org.muis.core.style;
 
-
 /**
- * Represents the change to a single style attribute in a style
- *
+ * Represents the change to a single potentially expression-dependent style attribute in a stateful style
+ * 
  * @param <T> The type of attribute that was changed
  */
 public class StyleExpressionEvent<T> {

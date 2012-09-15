@@ -1,8 +1,7 @@
 package org.muis.core;
 
 /** Facilitates instantiating MUIS classes via their namespace/tagname mappings */
-public class MuisClassView
-{
+public class MuisClassView {
 	private final MuisDocument theDocument;
 
 	private final MuisElement theElement;
@@ -15,8 +14,7 @@ public class MuisClassView
 	 * @param doc The document to create the class view for
 	 * @param el The element to create the class view for
 	 */
-	public MuisClassView(MuisDocument doc, MuisElement el)
-	{
+	public MuisClassView(MuisDocument doc, MuisElement el) {
 		if(doc == null)
 			throw new NullPointerException("doc is null");
 		if(el != null && el.getDocument() != null && el.getDocument() != doc)
@@ -31,8 +29,7 @@ public class MuisClassView
 	 *
 	 * @param el The element to create the class map for
 	 */
-	public MuisClassView(MuisElement el)
-	{
+	public MuisClassView(MuisElement el) {
 		this(el.getDocument(), el);
 	}
 
@@ -41,32 +38,27 @@ public class MuisClassView
 	 *
 	 * @param doc The document to create the class map for
 	 */
-	public MuisClassView(MuisDocument doc)
-	{
+	public MuisClassView(MuisDocument doc) {
 		this(doc, null);
 	}
 
 	/** @return The document that owns the class map */
-	public MuisDocument getDocument()
-	{
+	public MuisDocument getDocument() {
 		return theDocument;
 	}
 
 	/** @return This class map's element */
-	public MuisElement getElement()
-	{
+	public MuisElement getElement() {
 		return theElement;
 	}
 
 	/** @return Whether this class view has been sealed or not */
-	public final boolean isSealed()
-	{
+	public final boolean isSealed() {
 		return isSealed;
 	}
 
 	/** Seals this class view such that it cannot be modified */
-	public final void seal()
-	{
+	public final void seal() {
 		isSealed = true;
 	}
 
@@ -77,8 +69,7 @@ public class MuisClassView
 	 * @param toolkit The toolkit to map the namespace to
 	 * @throws MuisException If this class view is sealed
 	 */
-	public void addNamespace(String namespace, MuisToolkit toolkit) throws MuisException
-	{
+	public void addNamespace(String namespace, MuisToolkit toolkit) throws MuisException {
 		if(isSealed)
 			throw new MuisException("Cannot modify a sealed class view");
 		theNamespaces.put(namespace, toolkit);
@@ -90,22 +81,20 @@ public class MuisClassView
 	 * @param namespace The namespace to get the toolkit for
 	 * @return The toolkit mapped to the given namespace under this view, or null if the namespace is not mapped in this view
 	 */
-	public MuisToolkit getToolkit(String namespace)
-	{
+	public MuisToolkit getToolkit(String namespace) {
 		MuisToolkit ret = theNamespaces.get(namespace);
 		if(ret == null)
-			if(theElement != null)
-			{
+			if(theElement != null) {
 				if(theElement.getParent() != null)
 					ret = theElement.getParent().getClassView().getToolkit(namespace);
 				else
 					ret = theDocument.getClassView().getToolkit(namespace);
-			}
-			else if(namespace == null)
+			} else if(namespace == null) {
 				if(theElement != null)
 					ret = theElement.getDocument().getCoreToolkit();
 				else
 					ret = theDocument.getCoreToolkit();
+			}
 		return ret;
 	}
 
@@ -115,8 +104,7 @@ public class MuisClassView
 	 * @param qName The qualified name to get the toolkit for
 	 * @return The toolkit that can load the type with the given qualified name
 	 */
-	public MuisToolkit getToolkitForQName(String qName)
-	{
+	public MuisToolkit getToolkitForQName(String qName) {
 		int idx = qName.indexOf(":");
 		if(idx < 0)
 			return getToolkit(null);
@@ -125,8 +113,7 @@ public class MuisClassView
 	}
 
 	/** @return All namespaces that have been mapped to toolkits in this class view */
-	public String [] getMappedNamespaces()
-	{
+	public String [] getMappedNamespaces() {
 		return theNamespaces.keySet().toArray(new String[theNamespaces.size()]);
 	}
 
@@ -136,8 +123,7 @@ public class MuisClassView
 	 * @param qName The qualified tag name of the class to get
 	 * @return The fully-qualified class name mapped to the qualified tag name, or null if no such class has been mapped in this domain.
 	 */
-	public String getMappedClass(String qName)
-	{
+	public String getMappedClass(String qName) {
 		int idx = qName.indexOf(':');
 		if(idx < 0)
 			return getMappedClass(null, qName);
@@ -152,8 +138,7 @@ public class MuisClassView
 	 * @param tag The tag name
 	 * @return The fully-qualified class name mapped to the tag name, or null if no such class has been mapped in this domain
 	 */
-	public String getMappedClass(String namespace, String tag)
-	{
+	public String getMappedClass(String namespace, String tag) {
 		MuisToolkit toolkit = getToolkit(namespace);
 		if(toolkit == null)
 			return null;
@@ -171,17 +156,13 @@ public class MuisClassView
 	 * @throws MuisException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
 	 *             interface
 	 */
-	public <T> Class<? extends T> loadMappedClass(String qName, Class<T> superClass) throws MuisException
-	{
+	public <T> Class<? extends T> loadMappedClass(String qName, Class<T> superClass) throws MuisException {
 		int idx = qName.indexOf(':');
 		String ns, tag;
-		if(idx < 0)
-		{
+		if(idx < 0) {
 			ns = null;
 			tag = qName;
-		}
-		else
-		{
+		} else {
 			ns = qName.substring(0, idx);
 			tag = qName.substring(idx + 1);
 		}
@@ -200,8 +181,7 @@ public class MuisClassView
 	 * @throws MuisException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
 	 *             interface
 	 */
-	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass) throws MuisException
-	{
+	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass) throws MuisException {
 		MuisToolkit toolkit = getToolkit(namespace);
 		if(toolkit == null)
 			throw new MuisException("No toolkit mapped to namespace " + namespace);

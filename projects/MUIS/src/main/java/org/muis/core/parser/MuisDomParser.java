@@ -22,7 +22,6 @@ public class MuisDomParser implements MuisParser {
 		theStyleSheetParser = new DefaultStyleSheetParser();
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public MuisToolkit getToolkit(URL url, MuisDocument doc) throws MuisParseException, IOException {
 		MuisToolkit ret = theToolkits.get(url.toString());
@@ -248,15 +247,15 @@ public class MuisDomParser implements MuisParser {
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(new URL(ns.getURI()), muis);
-			} catch(MalformedURLException e) {
+				toolkit = getToolkit(MuisUtils.resolveURL(muis.getLocation(), ns.getURI()), muis);
+			} catch(MuisParseException e) {
+				muis.msg().error("Could not parse toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
+				continue;
+			} catch(MuisException e) {
 				muis.msg().error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
 				continue;
 			} catch(IOException e) {
 				muis.msg().error("Could not read toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
-				continue;
-			} catch(MuisParseException e) {
-				muis.msg().error("Could not parse toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
 				continue;
 			}
 			try {
@@ -276,17 +275,25 @@ public class MuisDomParser implements MuisParser {
 	 * @return The parsed style sheet, or null if an error occurred (the error must be documented in the document before returning null)
 	 */
 	protected org.muis.core.style.StyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
-		java.util.Map<String, MuisToolkit> namespaces = new java.util.HashMap<>();
-		for(org.jdom2.Namespace ns : styleSheetEl.getNamespacesInScope()) {
-			try {
-				namespaces.put(ns.getPrefix(), getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc));
-			} catch(MuisException | IOException e) {
-				doc.msg().error(
-					"Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
-						+ "\" could not be resolved or parsed for style-sheet", e, "element", styleSheetEl);
-				continue;
+		MuisClassView classView = new MuisClassView(doc);
+		Element temp = styleSheetEl;
+		while(temp != null) {
+			for(org.jdom2.Namespace ns : temp.getNamespacesIntroduced()) {
+				if(classView.getToolkit(ns.getPrefix()) != null || ns.getURI().length() == 0)
+					continue;
+				try {
+					classView.addNamespace(ns.getPrefix(), getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc));
+				} catch(MuisException | IOException e) {
+					doc.msg().error(
+						"Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
+							+ "\" could not be resolved or parsed for style-sheet", e, "element", styleSheetEl);
+					continue;
+				}
 			}
+			temp = temp.getParentElement();
 		}
+		org.muis.core.mgr.MuisMessageCenter messager = doc.msg();
+		// TODO wrap the document messager in a messager that prepends the location of the style sheet file to each message
 		String ssLocStr = styleSheetEl.getAttributeValue("ref");
 		org.muis.core.style.StyleSheet styleSheet = null;
 		for(org.jdom2.Content content : styleSheetEl.getContent()) {
@@ -299,8 +306,8 @@ public class MuisDomParser implements MuisParser {
 					return null;
 				}
 				try {
-					styleSheet = theStyleSheetParser.parseStyleSheet(new java.io.StringReader(((CDATA) content).getTextNormalize()),
-						namespaces);
+					styleSheet = theStyleSheetParser.parseStyleSheet(null, new java.io.StringReader(((CDATA) content).getTextTrim()),
+						classView, messager);
 				} catch(IOException | MuisParseException e) {
 					doc.msg().error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
 					return null;
@@ -332,7 +339,7 @@ public class MuisDomParser implements MuisParser {
 				return null;
 			}
 			try (Reader ssReader = new java.io.InputStreamReader(ssLoc.openStream())) {
-				styleSheet = theStyleSheetParser.parseStyleSheet(ssReader, namespaces);
+				styleSheet = theStyleSheetParser.parseStyleSheet(ssLoc, ssReader, classView, messager);
 			} catch(IOException | MuisParseException e) {
 				doc.msg().error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
 				return null;

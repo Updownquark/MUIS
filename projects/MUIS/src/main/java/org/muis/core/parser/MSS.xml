@@ -99,14 +99,34 @@
 		</select>
 	</entity>
 
-	<op name="type" order="999" impl="TODO">
+	<op name="line-comment" order="0" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedComment">
+		<literal>//</literal>
+		<charset pattern=".*" storeAs="content" />
+		<literal>&#x000a;</literal>
+	</op>
+	<op name="animation" order="999" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedAnimation">
+		<literal>&gt;&gt;</literal>
+		<op type="identifier" storeAs="name" />
+		<literal>=</literal>
+		<op storeAs="initValue" />
+		<option min="1">
+			<literal>-&gt;</literal>
+			<op storeAs="value" />
+			<literal>@</literal>
+			<op storeAs="time" />
+		</option>
+		<option>
+			<literal>|</literal>
+		</option>
+	</op>
+	<op name="type" order="999" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedType">
 		<option>
 			<op type="identifier" storeAs="namespace" />
 			<literal>:</literal>
 		</option>
 		<op type="identifier" storeAs="name" />
 	</op>
-	<operator name="section" order="0" impl="TODO">
+	<operator name="section" order="0" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedSection">
 		<option min="0">
 			<select>
 				<option>
@@ -139,7 +159,7 @@
 		</option>
 		<literal>}</literal>
 	</operator>
-	<operator name="type-set" order="1" impl="TODO">
+	<operator name="type-set" order="1" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedTypeSet">
 		<literal>[</literal>
 		<op type="type" storeAs="type" />
 		<option min="0">
@@ -148,7 +168,7 @@
 		</option>
 		<literal>]</literal>
 	</operator>
-	<operator name="group-set" order="1" impl="TODO">
+	<operator name="group-set" order="1" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedGroupSet">
 		<literal>(</literal>
 		<op type="identifier" storeAs="group" />
 		<option min="0">
@@ -157,7 +177,7 @@
 		</option>
 		<literal>)</literal>
 	</operator>
-	<operator name="state" order="1" impl="TODO">
+	<operator name="state" order="1" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedState">
 		<literal>.</literal>
 		<op type="identifier" storeAs="name" />
 		<option min="0">
@@ -165,14 +185,14 @@
 			<op type="identifier" storeAs="name" />
 		</option>
 	</operator>
-	<operator name="assignment" order="1" impl="TODO">
+	<operator name="assignment" order="1" impl="org.muis.core.parser.DefaultStyleSheetParser$ParsedAssignment">
 		<option>
 			<op type="type" storeAs="domain" />
 			<literal>.</literal>
 		</option>
 		<op type="identifier" storeAs="name" />
 		<literal>=</literal>
-		<!-- TODO the actual value -->
+		<op storeAs="value" />
 	</operator>
 	
 	<entity name="primitive" order="998" impl="prisms.lang.types.ParsedKeyword">

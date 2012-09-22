@@ -1,6 +1,8 @@
 
 //A sample style sheet for MUIS.  Just trying stuff out here.
 
+>>t=0->1@10
+
 [base:block]
 {
 	bg.texture=base:raised-round

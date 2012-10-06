@@ -1,4 +1,4 @@
-package org.muis.core.style;
+package org.muis.core.style.stateful;
 
 import java.util.ArrayList;
 import java.util.SortedSet;

@@ -1,4 +1,5 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
+
 
 /** A listener to be notified when a style expression is added, removed, or changed in a {@link SimpleStyleSheet} */
 public interface StyleGroupTypeExpressionListener {

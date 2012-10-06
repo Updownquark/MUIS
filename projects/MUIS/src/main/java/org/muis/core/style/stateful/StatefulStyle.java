@@ -1,4 +1,6 @@
-package org.muis.core.style;
+package org.muis.core.style.stateful;
+
+import org.muis.core.style.StyleAttribute;
 
 
 /**

@@ -1,4 +1,8 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
+
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.attach.NamedStyleGroup;
+import org.muis.core.style.attach.TypedStyleGroup;
 
 /**
  * Represents a style sheet in MUIS that can be populated with style attribute values that are potentially specific to a

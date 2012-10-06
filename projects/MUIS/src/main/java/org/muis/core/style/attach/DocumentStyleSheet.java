@@ -1,4 +1,7 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
+
+import org.muis.core.style.sheet.AbstractStyleSheet;
+import org.muis.core.style.sheet.StyleSheet;
 
 /**
  * The {@link StyleSheet} at {@link org.muis.core.MuisDocument document}-level that incorporates the attributes of all style sheets set in

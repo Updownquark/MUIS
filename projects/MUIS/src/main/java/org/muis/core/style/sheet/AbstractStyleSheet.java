@@ -1,6 +1,8 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
 
 import org.muis.core.MuisElement;
+import org.muis.core.style.*;
+import org.muis.core.style.stateful.StateExpression;
 
 import prisms.util.ArrayUtils;
 

@@ -1,8 +1,14 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
+import org.muis.core.style.*;
+import org.muis.core.style.sheet.FilteredStyleSheet;
+import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
+import org.muis.core.style.stateful.AbstractStatefulStyle;
+import org.muis.core.style.stateful.MutableStatefulStyle;
+import org.muis.core.style.stateful.StateExpression;
 
 /** A style controlling the appearance of a specific element */
 public class ElementStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {

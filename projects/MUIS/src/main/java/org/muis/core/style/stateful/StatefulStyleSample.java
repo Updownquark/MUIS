@@ -1,8 +1,9 @@
-package org.muis.core.style;
+package org.muis.core.style.stateful;
 
 import java.util.Iterator;
 
 import org.muis.core.mgr.MuisState;
+import org.muis.core.style.*;
 
 import prisms.util.ArrayUtils;
 

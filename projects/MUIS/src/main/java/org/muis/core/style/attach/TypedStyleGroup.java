@@ -1,7 +1,9 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.style.sheet.FilteredStyleSheet;
+import org.muis.core.style.stateful.AbstractStatefulStyle;
 
 import prisms.util.ArrayUtils;
 

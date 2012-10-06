@@ -215,7 +215,7 @@ public class MuisDomParser implements MuisParser {
 				doc.getHead().setTitle(title);
 		}
 		for(Element styleSheetEl : head[0].getChildren("style-sheet")) {
-			org.muis.core.style.StyleSheet styleSheet = parseStyleSheet(styleSheetEl, doc);
+			org.muis.core.style.sheet.StyleSheet styleSheet = parseStyleSheet(styleSheetEl, doc);
 			if(styleSheet != null)
 				doc.getStyle().addStyleSheet(styleSheet);
 		}
@@ -274,7 +274,7 @@ public class MuisDomParser implements MuisParser {
 	 * @param doc The document to parse the style sheet for
 	 * @return The parsed style sheet, or null if an error occurred (the error must be documented in the document before returning null)
 	 */
-	protected org.muis.core.style.StyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
+	protected org.muis.core.style.sheet.StyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
 		MuisClassView classView = new MuisClassView(doc);
 		Element temp = styleSheetEl;
 		while(temp != null) {
@@ -295,7 +295,7 @@ public class MuisDomParser implements MuisParser {
 		org.muis.core.mgr.MuisMessageCenter messager = doc.msg();
 		// TODO wrap the document messager in a messager that prepends the location of the style sheet file to each message
 		String ssLocStr = styleSheetEl.getAttributeValue("ref");
-		org.muis.core.style.StyleSheet styleSheet = null;
+		org.muis.core.style.sheet.StyleSheet styleSheet = null;
 		for(org.jdom2.Content content : styleSheetEl.getContent()) {
 			if(content instanceof org.jdom2.Comment)
 				continue;
@@ -458,7 +458,7 @@ public class MuisDomParser implements MuisParser {
 	protected void applyElementGroups(MuisElement element, String groupValue) {
 		String [] groupNames = groupValue.split("\\w*");
 		for(String name : groupNames) {
-			org.muis.core.style.NamedStyleGroup group = element.getDocument().getGroup(name);
+			org.muis.core.style.attach.NamedStyleGroup group = element.getDocument().getGroup(name);
 			if(group == null) {
 				element.msg().warn("No such group named \"" + name + "\"");
 				continue;

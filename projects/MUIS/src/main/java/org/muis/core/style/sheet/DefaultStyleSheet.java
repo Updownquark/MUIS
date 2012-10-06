@@ -1,6 +1,8 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
 
 import org.muis.core.MuisElement;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.stateful.StateExpression;
 
 /** A default dependency-less, mutable implementation of {@link StyleSheet} */
 public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleSheet {

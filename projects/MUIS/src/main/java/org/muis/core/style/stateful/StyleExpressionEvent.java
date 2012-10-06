@@ -1,4 +1,6 @@
-package org.muis.core.style;
+package org.muis.core.style.stateful;
+
+import org.muis.core.style.StyleAttribute;
 
 /**
  * Represents the change to a single potentially expression-dependent style attribute in a stateful style

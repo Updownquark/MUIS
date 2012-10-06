@@ -11,8 +11,8 @@ import org.muis.core.event.ScrollEvent;
 import org.muis.core.mgr.MuisLocker;
 import org.muis.core.mgr.MuisMessage;
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.style.DocumentStyleSheet;
-import org.muis.core.style.NamedStyleGroup;
+import org.muis.core.style.attach.DocumentStyleSheet;
+import org.muis.core.style.attach.NamedStyleGroup;
 
 import prisms.util.ArrayUtils;
 

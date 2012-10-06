@@ -18,6 +18,9 @@ import org.muis.core.layout.SizePolicy;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.style.*;
+import org.muis.core.style.attach.CompoundStyleListener;
+import org.muis.core.style.attach.ElementStyle;
+import org.muis.core.style.attach.StyleAttributeType;
 
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;

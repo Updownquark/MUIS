@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import org.jdom2.Element;
 import org.muis.core.MuisClassView;
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.style.StyleSheet;
+import org.muis.core.style.sheet.StyleSheet;
 
 import prisms.arch.PrismsConfig;
 import prisms.lang.*;

@@ -1,6 +1,8 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
 
 import org.muis.core.MuisElement;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.stateful.StateExpression;
 
 /** A {@link StyleSheet} that can be modified directly */
 public interface MutableStyleSheet extends StyleSheet {

@@ -1,4 +1,8 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
+
+import org.muis.core.style.attach.NamedStyleGroup;
+import org.muis.core.style.attach.TypedStyleGroup;
+import org.muis.core.style.stateful.StateExpression;
 
 /**
  * Represents an attribute value that is specific to a {@link NamedStyleGroup group}, an element {@link TypedStyleGroup type}, or a

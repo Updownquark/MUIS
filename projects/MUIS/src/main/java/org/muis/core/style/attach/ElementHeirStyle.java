@@ -1,4 +1,10 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
+
+import org.muis.core.mgr.MuisState;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
+import org.muis.core.style.stateful.MutableStatefulStyle;
+import org.muis.core.style.stateful.StateExpression;
 
 /** Represents a set of style attributes that apply to all an element's descendants but not to the element itself */
 public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
@@ -13,6 +19,24 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 	/** @return The element style that this heir style depends on */
 	public ElementStyle getElementStyle() {
 		return theElStyle;
+	}
+
+	/* Overridden to enable access by ElementStyle */
+	@Override
+	protected void setState(MuisState... newState) {
+		super.setState(newState);
+	}
+
+	/* Overridden to enable access by ElementStyle */
+	@Override
+	protected void addState(MuisState state) {
+		super.addState(state);
+	}
+
+	/* Overridden to enable access by ElementStyle */
+	@Override
+	protected void removeState(MuisState state) {
+		super.removeState(state);
 	}
 
 	@Override

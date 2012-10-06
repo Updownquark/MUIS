@@ -1,4 +1,4 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
 
 import org.muis.core.MuisDocument;
 

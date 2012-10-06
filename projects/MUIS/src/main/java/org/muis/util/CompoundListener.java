@@ -749,12 +749,12 @@ public abstract class CompoundListener<T> {
 				@Override
 				public void eventOccurred(StyleAttributeEvent<?> event) {
 					MuisElement element;
-					if(event.getLocalStyle() instanceof org.muis.core.style.ElementStyle)
-						element = ((org.muis.core.style.ElementStyle) event.getLocalStyle()).getElement();
-					else if(event.getLocalStyle() instanceof org.muis.core.style.ElementSelfStyle)
-						element = ((org.muis.core.style.ElementSelfStyle) event.getLocalStyle()).getElementStyle().getElement();
-					else if(event.getLocalStyle() instanceof org.muis.core.style.ElementHeirStyle)
-						element = ((org.muis.core.style.ElementHeirStyle) event.getLocalStyle()).getElementStyle().getElement();
+					if(event.getLocalStyle() instanceof org.muis.core.style.attach.ElementStyle)
+						element = ((org.muis.core.style.attach.ElementStyle) event.getLocalStyle()).getElement();
+					else if(event.getLocalStyle() instanceof org.muis.core.style.attach.ElementSelfStyle)
+						element = ((org.muis.core.style.attach.ElementSelfStyle) event.getLocalStyle()).getElementStyle().getElement();
+					else if(event.getLocalStyle() instanceof org.muis.core.style.attach.ElementHeirStyle)
+						element = ((org.muis.core.style.attach.ElementHeirStyle) event.getLocalStyle()).getElementStyle().getElement();
 					else
 						element = null;
 					if(element != null)

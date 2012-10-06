@@ -1,8 +1,9 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
+import org.muis.core.style.*;
 
 /** The attribute type to parse styles */
 public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPropertyType<MuisStyle> implements

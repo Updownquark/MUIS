@@ -1,4 +1,5 @@
-package org.muis.core.style;
+package org.muis.core.style.stateful;
+
 
 /**
  * Represents a state expression-value combination

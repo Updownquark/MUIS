@@ -1,7 +1,12 @@
-package org.muis.core.style;
+package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleDomain;
+import org.muis.core.style.stateful.StatefulStyleSample;
 
 import prisms.util.ArrayUtils;
 

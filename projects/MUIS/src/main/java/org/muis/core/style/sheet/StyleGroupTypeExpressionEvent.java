@@ -1,4 +1,7 @@
-package org.muis.core.style;
+package org.muis.core.style.sheet;
+
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.stateful.StateExpression;
 
 /**
  * Represents the change to a single potentially group-, type-, or expression-dependent style attribute in a style sheet

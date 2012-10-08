@@ -18,9 +18,9 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
 		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
-		addListener(new StyleExpressionListener() {
+		addListener(new StyleExpressionListener<StatefulStyle, StateExpression>() {
 			@Override
-			public void eventOccurred(StyleExpressionEvent<?> evt) {
+			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
 				if(evt.getExpression() == null || evt.getExpression().matches(theCurrentState)) {
 					MuisStyle root;
 					if(evt.getRootStyle() instanceof MuisStyle)
@@ -66,12 +66,12 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	 */
 	protected void setState(MuisState... newState) {
 		MuisState [] oldState = theCurrentState;
-		StatefulStyle [] deps = getStatefulDependencies();
+		StatefulStyle [] deps = getConditionalDependencies();
 		theCurrentState = newState;
 		MuisStyle forNewState = new StatefulStyleSample(this, newState);
 		Map<StyleAttribute<?>, Object> newValues = new java.util.HashMap<>();
 		for(StyleAttribute<?> attr : allLocal()) {
-			for(StyleExpressionValue<?> sev : getLocalExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr)) {
 				StateExpression expr = sev.getExpression();
 				if(expr == null)
 					continue;
@@ -97,7 +97,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		if(dep instanceof InternallyStatefulStyle)
 			return;
 		for(StyleAttribute<?> attr : dep.allLocal()) {
-			for(StyleExpressionValue<?> sev : getLocalExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr)) {
 				if(newValues.containsKey(attr) || forNewState.isSet(attr))
 					continue;
 				StateExpression expr = sev.getExpression();
@@ -118,7 +118,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public MuisStyle [] getDependencies() {
-		StatefulStyle [] depends = getStatefulDependencies();
+		StatefulStyle [] depends = getConditionalDependencies();
 		MuisState [] state = theCurrentState;
 		MuisStyle [] ret = new MuisStyle[depends.length];
 		for(int i = 0; i < ret.length; i++) {
@@ -132,7 +132,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
-		for(StyleExpressionValue<?> sev : getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(attr))
 			if(sev.getExpression() == null || sev.getExpression().matches(theCurrentState))
 				return true;
 		return false;
@@ -142,7 +142,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	public boolean isSetDeep(StyleAttribute<?> attr) {
 		if(isSet(attr))
 			return true;
-		for(StatefulStyle dep : getStatefulDependencies()) {
+		for(StatefulStyle dep : getConditionalDependencies()) {
 			if(dep instanceof InternallyStatefulStyle) {
 				if(((InternallyStatefulStyle) dep).isSetDeep(attr))
 					return true;
@@ -156,7 +156,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public <T> T getLocal(StyleAttribute<T> attr) {
-		for(StyleExpressionValue<T> value : getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, T> value : getExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theCurrentState))
 				return value.getValue();
 		return null;
@@ -172,7 +172,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
 						@Override
 						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleExpressionValue<?> sev : getLocalExpressions(value))
+							for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(value))
 								if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
 									return value;
 							return null;
@@ -187,7 +187,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		T ret = getLocal(attr);
 		if(ret != null)
 			return ret;
-		for(StatefulStyle dep : getStatefulDependencies()) {
+		for(StatefulStyle dep : getConditionalDependencies()) {
 			if(dep instanceof InternallyStatefulStyle) {
 				if(((InternallyStatefulStyle) dep).isSetDeep(attr))
 					return ((InternallyStatefulStyle) dep).get(attr);
@@ -220,7 +220,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			public StyleAttribute<?> accept(StyleAttribute<?> value) {
 				if(!used.add(value))
 					return null;
-				for(StyleExpressionValue<?> sev : getExpressions(value))
+				for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(value))
 					if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
 						return value;
 				return null;

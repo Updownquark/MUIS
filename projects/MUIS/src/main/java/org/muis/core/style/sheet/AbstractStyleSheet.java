@@ -1,8 +1,9 @@
 package org.muis.core.style.sheet;
 
-import org.muis.core.MuisElement;
-import org.muis.core.style.*;
-import org.muis.core.style.stateful.StateExpression;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleExpressionEvent;
+import org.muis.core.style.StyleExpressionListener;
+import org.muis.core.style.StyleExpressionValue;
 
 import prisms.util.ArrayUtils;
 
@@ -11,14 +12,13 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	/**
 	 * @param style The style to check
 	 * @param attr The style attribute to check
-	 * @param expr The state expression to check
+	 * @param expr The expression to check
 	 * @return Whether the given style contains (locally) a style expression that is true when the given state expression is true for the
 	 *         given attribute
 	 */
-	static boolean isSet(StyleSheet style, StyleAttribute<?> attr, String groupName, Class<? extends MuisElement> type, StateExpression expr) {
-		for(StyleGroupTypeExpressionValue<?, ?> sev : style.getLocalExpressions(attr))
-			if(ArrayUtils.equals(groupName, sev.getGroupName()) && sev.getType().isAssignableFrom(type)
-				&& (sev.getExpression() == null || (expr != null && sev.getExpression().getWhenTrue(expr) > 0)))
+	static boolean isSet(StyleSheet style, StyleAttribute<?> attr, StateGroupTypeExpression<?> expr) {
+		for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : style.getLocalExpressions(attr))
+			if(sev.getExpression().getWhenTrue(expr) > 0)
 				return true;
 		return false;
 	}
@@ -26,33 +26,32 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	/**
 	 * @param style The style to check
 	 * @param attr The style attribute to check
-	 * @param expr The state expression to check
+	 * @param expr The expression to check
 	 * @return Whether the given style contains (anywhere in the dependency tree) a style expression that is true when the given state
 	 *         expression is true for the given attribute
 	 */
-	static boolean isSetDeep(StyleSheet style, StyleAttribute<?> attr, String groupName, Class<? extends MuisElement> type,
-		StateExpression expr) {
-		if(isSet(style, attr, groupName, type, expr))
+	static boolean isSetDeep(StyleSheet style, StyleAttribute<?> attr, StateGroupTypeExpression<?> expr) {
+		if(isSet(style, attr, expr))
 			return true;
-		for(StyleSheet depend : style.getStyleSheetDependencies())
-			if(isSetDeep(depend, attr, groupName, type, expr))
+		for(StyleSheet depend : style.getConditionalDependencies())
+			if(isSetDeep(depend, attr, expr))
 				return true;
 		return false;
 	}
 
 	private StyleSheet [] theDependencies;
 
-	private final StyleGroupTypeExpressionListener theDependencyListener;
+	private final StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>> theDependencyListener;
 
 	/** Creates the style sheet */
 	public AbstractStyleSheet() {
 		theDependencies = new StyleSheet[0];
-		theDependencyListener = new StyleGroupTypeExpressionListener() {
+		theDependencyListener = new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
 			@Override
-			public void eventOccurred(StyleGroupTypeExpressionEvent<?, ?> event) {
-				if(isSet(AbstractStyleSheet.this, event.getAttribute(), event.getGroupName(), event.getType(), event.getExpression()))
+			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> event) {
+				if(isSet(AbstractStyleSheet.this, event.getAttribute(), event.getExpression()))
 					return;
-				for(StyleGroupTypeExpressionValue<?, ?> expr : getExpressions(event.getAttribute()))
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute()))
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
@@ -60,15 +59,15 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 				if(idx < 0)
 					return;
 				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], event.getAttribute(), event.getGroupName(), event.getType(), event.getExpression()))
+					if(isSetDeep(theDependencies[i], event.getAttribute(), event.getExpression()))
 						return;
-				styleChanged(event.getAttribute(), event.getGroupName(), event.getType(), event.getExpression(), event.getRootStyle());
+				styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 			}
 		};
 	}
 
 	@Override
-	public StyleSheet [] getStyleSheetDependencies() {
+	public StyleSheet [] getConditionalDependencies() {
 		return theDependencies;
 	}
 
@@ -87,13 +86,13 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		theDependencies = ArrayUtils.add(theDependencies, depend, idx);
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleGroupTypeExpressionValue<?, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
+				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
 						continue;
-				styleChanged(attr, sev.getGroupName(), sev.getType(), sev.getExpression(), null);
+				styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -107,13 +106,13 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		theDependencies = ArrayUtils.add(theDependencies, depend);
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleGroupTypeExpressionValue<?, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
+				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
 						continue;
-				styleChanged(attr, sev.getGroupName(), sev.getType(), sev.getExpression(), null);
+				styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -126,13 +125,13 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		depend.removeListener(theDependencyListener);
 		theDependencies = ArrayUtils.remove(theDependencies, idx);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleGroupTypeExpressionValue<?, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
+				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
 						continue;
-				styleChanged(attr, sev.getGroupName(), sev.getType(), sev.getExpression(), null);
+				styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -147,31 +146,30 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 			throw new IllegalArgumentException(toReplace + " is not a dependency of " + this);
 		toReplace.removeListener(theDependencyListener);
 		theDependencies[idx] = depend;
-		java.util.HashSet<prisms.util.MultiKey> attrs = new java.util.HashSet<>();
+		java.util.HashSet<prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>> attrs = new java.util.HashSet<>();
 		for(StyleAttribute<?> attr : toReplace.allAttrs()) {
-			for(StyleGroupTypeExpressionValue<?, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
+				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
 						continue;
-				attrs.add(new prisms.util.MultiKey(attr, sev.getGroupName(), sev.getType(), sev.getExpression()));
+				attrs.add(new prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>(attr, sev.getExpression()));
 			}
 		}
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleGroupTypeExpressionValue<?, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
+				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getGroupName(), sev.getType(), sev.getExpression()))
+					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
 						continue;
-				styleChanged(attr, sev.getGroupName(), sev.getType(), sev.getExpression(), null);
+				styleChanged(attr, sev.getExpression(), null);
 			}
 		}
-		for(prisms.util.MultiKey attr : attrs)
-			styleChanged((StyleAttribute<?>) attr.getKey(0), (String) attr.getKey(1), (Class<? extends MuisElement>) attr.getKey(2),
-				(StateExpression) attr.getKey(3), null);
+		for(prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>> attr : attrs)
+			styleChanged(attr.getKey1(), attr.getKey2(), null);
 	}
 
 	@Override
@@ -185,10 +183,10 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	}
 
 	@Override
-	public <T> StyleGroupTypeExpressionValue<?, T> [] getExpressions(StyleAttribute<T> attr) {
-		StyleGroupTypeExpressionValue<?, T> [] ret = getLocalExpressions(attr);
+	public <T> StyleExpressionValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
+		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] ret = getLocalExpressions(attr);
 		for(StyleSheet dep : theDependencies) {
-			StyleGroupTypeExpressionValue<?, T> [] depRet = dep.getExpressions(attr);
+			StyleExpressionValue<StateGroupTypeExpression<?>, T> [] depRet = dep.getExpressions(attr);
 			if(depRet.length > 0)
 				ret = ArrayUtils.addAll(ret, depRet);
 		}

@@ -1,8 +1,12 @@
 package org.muis.core.style.sheet;
 
 import org.muis.core.MuisElement;
-import org.muis.core.style.*;
-import org.muis.core.style.stateful.*;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleExpressionEvent;
+import org.muis.core.style.StyleExpressionListener;
+import org.muis.core.style.StyleExpressionValue;
+import org.muis.core.style.stateful.StateExpression;
+import org.muis.core.style.stateful.StatefulStyle;
 
 import prisms.util.ArrayUtils;
 
@@ -18,7 +22,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	private final Class<E> theType;
 
-	private final java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener> theListeners;
+	private final java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener<StatefulStyle, StateExpression>> theListeners;
 
 	/**
 	 * @param styleSheet The style sheet to get the style information from
@@ -31,11 +35,11 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 		if(type == null)
 			type = (Class<E>) MuisElement.class;
 		theType = type;
-		styleSheet.addListener(new StyleGroupTypeExpressionListener() {
+		styleSheet.addListener(new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
 			@Override
-			public void eventOccurred(StyleGroupTypeExpressionEvent<?, ?> evt) {
-				if(matchesFilter(evt.getGroupName(), evt.getType()))
-					styleChanged(evt.getAttribute(), evt.getExpression());
+			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> evt) {
+				if(matchesFilter(evt.getExpression()))
+					styleChanged(evt.getAttribute(), evt.getExpression().getState());
 			}
 		});
 		theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
@@ -57,17 +61,16 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	/**
-	 * @param groupName The name of the group to check
-	 * @param type The element type to check
-	 * @return Whether a {@link StyleGroupTypeExpressionValue} with the given group name and type matches this filter such that its
-	 *         attribute value will be exposed from this style's {@link StatefulStyle} methods
+	 * @param expr The expression to check
+	 * @return Whether a {@link StateGroupTypeExpression} with the given group name and type matches this filter such that its attribute
+	 *         value will be exposed from this style's {@link StatefulStyle} methods
 	 */
-	public boolean matchesFilter(String groupName, Class<? extends MuisElement> type) {
-		return ArrayUtils.equals(groupName, theGroupName) && type == theType;
+	public boolean matchesFilter(StateGroupTypeExpression<?> expr) {
+		return ArrayUtils.equals(expr.getGroupName(), theGroupName) && expr.getType() == theType;
 	}
 
 	@Override
-	public StatefulStyle [] getStatefulDependencies() {
+	public StatefulStyle [] getConditionalDependencies() {
 		return new StatefulStyle[0];
 	}
 
@@ -80,8 +83,8 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
 						@Override
 						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleGroupTypeExpressionValue<?, ?> exp : theStyleSheet.getExpressions(value))
-								if(matchesFilter(exp.getGroupName(), exp.getType()))
+							for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> exp : theStyleSheet.getExpressions(value))
+								if(matchesFilter(exp.getExpression()))
 									return value;
 							return null;
 						}
@@ -96,34 +99,35 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	@Override
-	public <T> StyleExpressionValue<T> [] getLocalExpressions(StyleAttribute<T> attr) {
-		StyleGroupTypeExpressionValue<?, T> [] exprs = theStyleSheet.getExpressions(attr);
-		java.util.ArrayList<StyleExpressionValue<T>> ret = new java.util.ArrayList<>();
-		for(StyleGroupTypeExpressionValue<?, T> exp : exprs)
-			if(matchesFilter(exp.getGroupName(), exp.getType()))
-				ret.add(new StyleExpressionValue<T>(exp.getExpression(), exp.getValue()));
+	public <T> StyleExpressionValue<StateExpression, T> [] getLocalExpressions(StyleAttribute<T> attr) {
+		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] exprs = theStyleSheet.getExpressions(attr);
+		java.util.ArrayList<StyleExpressionValue<StateExpression, T>> ret = new java.util.ArrayList<>();
+		for(StyleExpressionValue<StateGroupTypeExpression<?>, T> exp : exprs)
+			if(matchesFilter(exp.getExpression()))
+				ret.add(new StyleExpressionValue<StateExpression, T>(exp.getExpression().getState(), exp.getValue()));
 		return ret.toArray(new StyleExpressionValue[ret.size()]);
 	}
 
 	@Override
-	public <T> StyleExpressionValue<T> [] getExpressions(StyleAttribute<T> attr) {
+	public <T> StyleExpressionValue<StateExpression, T> [] getExpressions(StyleAttribute<T> attr) {
 		return getLocalExpressions(attr);
 	}
 
 	@Override
-	public void addListener(StyleExpressionListener listener) {
+	public void addListener(StyleExpressionListener<StatefulStyle, StateExpression> listener) {
 		if(listener != null)
 			theListeners.add(listener);
 	}
 
 	@Override
-	public void removeListener(StyleExpressionListener listener) {
+	public void removeListener(StyleExpressionListener<StatefulStyle, StateExpression> listener) {
 		theListeners.remove(listener);
 	}
 
 	void styleChanged(StyleAttribute<?> attr, StateExpression exp) {
-		StyleExpressionEvent<?> evt = new StyleExpressionEvent<>(this, this, attr, exp);
-		for(StyleExpressionListener listener : theListeners)
+		StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt = new StyleExpressionEvent<StatefulStyle, StateExpression, Object>(
+			this, this, (StyleAttribute<Object>) attr, exp);
+		for(StyleExpressionListener<StatefulStyle, StateExpression> listener : theListeners)
 			listener.eventOccurred(evt);
 	}
 }

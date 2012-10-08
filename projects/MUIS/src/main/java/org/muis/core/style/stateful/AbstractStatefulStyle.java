@@ -1,6 +1,9 @@
 package org.muis.core.style.stateful;
 
-import org.muis.core.style.*;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleExpressionEvent;
+import org.muis.core.style.StyleExpressionListener;
+import org.muis.core.style.StyleExpressionValue;
 
 import prisms.util.ArrayUtils;
 
@@ -14,7 +17,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 *         given attribute
 	 */
 	static boolean isSet(StatefulStyle style, StyleAttribute<?> attr, StateExpression expr) {
-		for(StyleExpressionValue<?> sev : style.getLocalExpressions(attr))
+		for(StyleExpressionValue<StateExpression, ?> sev : style.getLocalExpressions(attr))
 			if(sev.getExpression() == null || (expr != null && sev.getExpression().getWhenTrue(expr) > 0))
 				return true;
 		return false;
@@ -30,7 +33,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	static boolean isSetDeep(StatefulStyle style, StyleAttribute<?> attr, StateExpression expr) {
 		if(isSet(style, attr, expr))
 			return true;
-		for(StatefulStyle depend : style.getStatefulDependencies())
+		for(StatefulStyle depend : style.getConditionalDependencies())
 			if(isSetDeep(depend, attr, expr))
 				return true;
 		return false;
@@ -38,7 +41,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 
 	private StatefulStyle [] theDependencies;
 
-	private final StyleExpressionListener theDependencyListener;
+	private final StyleExpressionListener<StatefulStyle, StateExpression> theDependencyListener;
 
 	/**
 	 * Creates an abstract stateful style
@@ -47,12 +50,12 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 */
 	public AbstractStatefulStyle(StatefulStyle... dependencies) {
 		theDependencies = dependencies;
-		theDependencyListener = new StyleExpressionListener() {
+		theDependencyListener = new StyleExpressionListener<StatefulStyle, StateExpression>() {
 			@Override
-			public void eventOccurred(StyleExpressionEvent<?> event) {
+			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> event) {
 				if(isSet(AbstractStatefulStyle.this, event.getAttribute(), event.getExpression()))
 					return;
-				for(StyleExpressionValue<?> expr : getExpressions(event.getAttribute()))
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute()))
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
@@ -70,7 +73,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	}
 
 	@Override
-	public final StatefulStyle [] getStatefulDependencies() {
+	public final StatefulStyle [] getConditionalDependencies() {
 		return theDependencies;
 	}
 
@@ -89,7 +92,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		theDependencies = ArrayUtils.add(theDependencies, depend, idx);
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<?> sev : depend.getExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < idx; i++)
@@ -109,7 +112,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		theDependencies = ArrayUtils.add(theDependencies, depend);
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<?> sev : depend.getExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
@@ -128,7 +131,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		depend.removeListener(theDependencyListener);
 		theDependencies = ArrayUtils.remove(theDependencies, idx);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<?> sev : depend.getExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
@@ -151,7 +154,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		theDependencies[idx] = depend;
 		java.util.HashSet<prisms.util.DualKey<StyleAttribute<Object>, StateExpression>> attrs = new java.util.HashSet<>();
 		for(StyleAttribute<?> attr : toReplace.allAttrs()) {
-			for(StyleExpressionValue<?> sev : depend.getExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
@@ -162,7 +165,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		}
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<?> sev : depend.getExpressions(attr)) {
+			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				if(isSet(this, attr, sev.getExpression()))
 					continue;
 				for(int i = 0; i < theDependencies.length - 1; i++)
@@ -176,10 +179,10 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	}
 
 	@Override
-	public <T> StyleExpressionValue<T> [] getExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<T> [] ret = getLocalExpressions(attr);
+	public <T> StyleExpressionValue<StateExpression, T> [] getExpressions(StyleAttribute<T> attr) {
+		StyleExpressionValue<StateExpression, T> [] ret = getLocalExpressions(attr);
 		for(StatefulStyle dep : theDependencies) {
-			StyleExpressionValue<T> [] depRet = dep.getExpressions(attr);
+			StyleExpressionValue<StateExpression, T> [] depRet = dep.getExpressions(attr);
 			if(depRet.length > 0)
 				ret = ArrayUtils.addAll(ret, depRet);
 		}

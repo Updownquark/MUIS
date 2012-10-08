@@ -13,7 +13,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	private final MuisState [] theState;
 
-	private java.util.HashMap<StyleListener, StyleExpressionListener> theListenerMap;
+	private java.util.HashMap<StyleListener, StyleExpressionListener<StatefulStyle, StateExpression>> theListenerMap;
 
 	/**
 	 * @param statefulStyle The stateful style to get the attribute information from
@@ -41,7 +41,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public MuisStyle [] getDependencies() {
-		StatefulStyle [] deps = theStatefulStyle.getStatefulDependencies();
+		StatefulStyle [] deps = theStatefulStyle.getConditionalDependencies();
 		MuisStyle [] ret = new MuisStyle[deps.length];
 		for(int i = 0; i < ret.length; i++)
 			ret[i] = new StatefulStyleSample(deps[i], theState);
@@ -50,7 +50,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
-		for(StyleExpressionValue<?> value : theStatefulStyle.getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, ?> value : theStatefulStyle.getExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theState))
 				return true;
 		return false;
@@ -68,7 +68,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public <T> T getLocal(StyleAttribute<T> attr) {
-		for(StyleExpressionValue<T> value : theStatefulStyle.getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, T> value : theStatefulStyle.getExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theState))
 				return value.getValue();
 		return null;
@@ -83,7 +83,7 @@ public class StatefulStyleSample implements MuisStyle {
 					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
 						@Override
 						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleExpressionValue<?> sev : theStatefulStyle.getExpressions(value))
+							for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(value))
 								if(sev.getExpression() == null || sev.getExpression().matches(theState))
 									return value;
 							return null;
@@ -108,9 +108,9 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public void addListener(final StyleListener listener) {
-		StyleExpressionListener expListener = new StyleExpressionListener() {
+		StyleExpressionListener<StatefulStyle, StateExpression> expListener = new StyleExpressionListener<StatefulStyle, StateExpression>() {
 			@Override
-			public void eventOccurred(StyleExpressionEvent<?> evt) {
+			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
 				if(evt.getExpression() == null || evt.getExpression().matches(theState)) {
 					StyleAttribute<Object> attr = (StyleAttribute<Object>) evt.getAttribute();
 					listener.eventOccurred(new org.muis.core.style.StyleAttributeEvent<Object>(StatefulStyleSample.this,

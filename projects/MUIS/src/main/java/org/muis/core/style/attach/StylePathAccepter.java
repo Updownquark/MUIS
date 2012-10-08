@@ -8,9 +8,6 @@ import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
-import org.muis.core.style.stateful.StateExpression.And;
-import org.muis.core.style.stateful.StateExpression.Or;
-import org.muis.core.style.stateful.StateExpression.Simple;
 
 /** Accepts paths for the style attribute */
 public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, org.muis.core.event.MuisEventListener<Object> {

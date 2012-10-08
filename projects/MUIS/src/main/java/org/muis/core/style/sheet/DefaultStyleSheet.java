@@ -1,13 +1,11 @@
 package org.muis.core.style.sheet;
 
-import org.muis.core.MuisElement;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.stateful.StateExpression;
 
 /** A default dependency-less, mutable implementation of {@link StyleSheet} */
 public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleSheet {
 	@Override
-	public StyleSheet [] getStyleSheetDependencies() {
+	public StyleSheet [] getConditionalDependencies() {
 		return new StyleSheet[0];
 	}
 
@@ -17,18 +15,18 @@ public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleS
 	}
 
 	@Override
-	public <T> StyleGroupTypeExpressionValue<?, T> [] getExpressions(StyleAttribute<T> attr) {
+	public <T> org.muis.core.style.StyleExpressionValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
 		return getLocalExpressions(attr);
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, String groupName, Class<? extends MuisElement> type, StateExpression exp, T value)
+	public <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value)
 		throws IllegalArgumentException {
-		super.set(attr, groupName, type, exp, value);
+		super.set(attr, exp, value);
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr, String groupName, Class<? extends MuisElement> type, StateExpression exp) {
-		super.clear(attr, groupName, type, exp);
+	public void clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
+		super.clear(attr, exp);
 	}
 }

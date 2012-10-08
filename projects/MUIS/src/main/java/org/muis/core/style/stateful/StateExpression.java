@@ -7,7 +7,7 @@ import java.util.TreeSet;
 import org.muis.core.mgr.MuisState;
 
 /** An expression that can be evaluated on the {@link org.muis.core.mgr.StateEngine state} of an element */
-public abstract class StateExpression implements Comparable<StateExpression> {
+public abstract class StateExpression implements org.muis.core.style.StyleExpression<StateExpression>, Comparable<StateExpression> {
 	/** A state expression that depends on any number of other expressions */
 	public static abstract class StateCollectionExpression extends StateExpression implements Iterable<StateExpression> {
 		private final StateExpression [] theWrapped;
@@ -421,23 +421,6 @@ public abstract class StateExpression implements Comparable<StateExpression> {
 	 *         {@link #matches(MuisState...)} for every possible set of states
 	 */
 	public abstract StateExpression getUnique();
-
-	/**
-	 * @param expr The expression to compare to
-	 * @return -1 if this expression is always false when {@code expr} is false, 1 if this expression is always true when {@code expr} is
-	 *         false, or 0 if this expression's evaluation may be true or false if {@code expr} is false
-	 */
-	public abstract int getWhenFalse(StateExpression expr);
-
-	/**
-	 * @param expr The expression to compare to
-	 * @return -1 if this expression is always false when {@code expr} is true, 1 if this expression is always true when {@code expr} is
-	 *         true, or 0 if this expression's evaluation may be true or false if {@code expr} is true
-	 */
-	public abstract int getWhenTrue(StateExpression expr);
-
-	/** @return The overall priority of this expression */
-	public abstract int getPriority();
 
 	/** @return An expression that is the logical opposite of this expression */
 	public Not not() {

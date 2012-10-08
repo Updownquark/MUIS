@@ -1,30 +1,31 @@
-package org.muis.core.style.stateful;
+package org.muis.core.style;
 
-import org.muis.core.style.StyleAttribute;
 
 /**
  * Represents the change to a single potentially expression-dependent style attribute in a stateful style
- * 
+ *
+ * @param <E> The type of expression for which the attribute's value was changed
  * @param <T> The type of attribute that was changed
+ * @param <S> The type of style that the attribute was changed in
  */
-public class StyleExpressionEvent<T> {
-	private StatefulStyle theRootStyle;
+public class StyleExpressionEvent<S extends ConditionalStyle<S, E>, E extends StyleExpression<E>, T> {
+	private S theRootStyle;
 
-	private StatefulStyle theLocalStyle;
+	private S theLocalStyle;
 
 	private final StyleAttribute<T> theAttribute;
 
-	private final StateExpression theExpr;
+	private final E theExpr;
 
 	/**
 	 * Creates a style attribute event
-	 *
+	 * 
 	 * @param root The style that the change was in
 	 * @param local The style that is firing the event
 	 * @param attr The attribute whose value was changed
-	 * @param expr The state expression under which the attribute value changed
+	 * @param expr The expression under which the attribute value changed
 	 */
-	public StyleExpressionEvent(StatefulStyle root, StatefulStyle local, StyleAttribute<T> attr, StateExpression expr) {
+	public StyleExpressionEvent(S root, S local, StyleAttribute<T> attr, E expr) {
 		theRootStyle = root;
 		theLocalStyle = local;
 		theAttribute = attr;
@@ -32,12 +33,12 @@ public class StyleExpressionEvent<T> {
 	}
 
 	/** @return The style that the attribute was changed in */
-	public StatefulStyle getRootStyle() {
+	public S getRootStyle() {
 		return theRootStyle;
 	}
 
 	/** @return The style that is firing the event */
-	public StatefulStyle getLocalStyle() {
+	public S getLocalStyle() {
 		return theLocalStyle;
 	}
 
@@ -46,8 +47,8 @@ public class StyleExpressionEvent<T> {
 		return theAttribute;
 	}
 
-	/** @return The state under which the attribute value changed in the style */
-	public StateExpression getExpression() {
+	/** @return The expression under which the attribute value changed in the style */
+	public E getExpression() {
 		return theExpr;
 	}
 }

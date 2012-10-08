@@ -14,12 +14,12 @@ import org.muis.core.*;
 public class MuisDomParser implements MuisParser {
 	java.util.HashMap<String, MuisToolkit> theToolkits;
 
-	private StyleSheetParser theStyleSheetParser;
+	private XmlStylesheetParser theStyleSheetParser;
 
 	/** Creates a MUIS parser */
 	public MuisDomParser() {
 		theToolkits = new java.util.HashMap<String, MuisToolkit>();
-		theStyleSheetParser = new DefaultStyleSheetParser();
+		theStyleSheetParser = new XmlStylesheetParser();
 	}
 
 	@Override
@@ -215,9 +215,13 @@ public class MuisDomParser implements MuisParser {
 				doc.getHead().setTitle(title);
 		}
 		for(Element styleSheetEl : head[0].getChildren("style-sheet")) {
-			org.muis.core.style.sheet.StyleSheet styleSheet = parseStyleSheet(styleSheetEl, doc);
-			if(styleSheet != null)
+			org.muis.core.style.sheet.ParsedStyleSheet styleSheet = parseStyleSheet(styleSheetEl, doc);
+			if(styleSheet != null) {
 				doc.getStyle().addStyleSheet(styleSheet);
+				// TODO It would be better to not call this until the entire document is parsed and ready to render--maybe add this to the
+				// EventQueue somehow
+				styleSheet.startAnimation();
+			}
 		}
 		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
 		if(body.length > 1)
@@ -274,7 +278,38 @@ public class MuisDomParser implements MuisParser {
 	 * @param doc The document to parse the style sheet for
 	 * @return The parsed style sheet, or null if an error occurred (the error must be documented in the document before returning null)
 	 */
-	protected org.muis.core.style.sheet.StyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
+	protected org.muis.core.style.sheet.ParsedStyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
+		String ssLocStr = styleSheetEl.getAttributeValue("ref");
+		if(ssLocStr != null) {
+			for(org.jdom2.Content content : styleSheetEl.getContent()) {
+				if(content instanceof org.jdom2.Comment)
+					continue;
+				else if(content instanceof Text) {
+					if(((Text) content).getTextTrim().length() > 0) {
+						doc.msg().error(styleSheetEl.getName() + " elements that refer to a style sheet resource may not have text",
+							"element", styleSheetEl);
+						return null;
+					}
+				} else {
+					doc.msg().error(styleSheetEl.getName() + " elements that refer to a style sheet resoruce may not have any entitiesy",
+						"element", styleSheetEl);
+					return null;
+				}
+			}
+			URL ssLoc;
+			try {
+				ssLoc = MuisUtils.resolveURL(doc.getLocation(), ssLocStr);
+			} catch(MuisException e) {
+				doc.msg().error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
+				return null;
+			}
+			try {
+				return theStyleSheetParser.parse(ssLoc, doc);
+			} catch(IOException | MuisParseException e) {
+				doc.msg().error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
+				return null;
+			}
+		}
 		MuisClassView classView = new MuisClassView(doc);
 		Element temp = styleSheetEl;
 		while(temp != null) {
@@ -292,65 +327,7 @@ public class MuisDomParser implements MuisParser {
 			}
 			temp = temp.getParentElement();
 		}
-		org.muis.core.mgr.MuisMessageCenter messager = doc.msg();
-		// TODO wrap the document messager in a messager that prepends the location of the style sheet file to each message
-		String ssLocStr = styleSheetEl.getAttributeValue("ref");
-		org.muis.core.style.sheet.StyleSheet styleSheet = null;
-		for(org.jdom2.Content content : styleSheetEl.getContent()) {
-			if(content instanceof org.jdom2.Comment)
-				continue;
-			else if(content instanceof CDATA) {
-				if(styleSheet != null) {
-					doc.msg().error("Each " + styleSheetEl.getName() + " element may have either a ref attribute or a single CDATA entity",
-						"element", styleSheetEl);
-					return null;
-				}
-				try {
-					styleSheet = theStyleSheetParser.parseStyleSheet(null, new java.io.StringReader(((CDATA) content).getTextTrim()),
-						classView, messager);
-				} catch(IOException | MuisParseException e) {
-					doc.msg().error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
-					return null;
-				}
-			} else if(content instanceof Text) {
-				if(((Text) content).getTextTrim().length() > 0) {
-					doc.msg().error(styleSheetEl.getName() + " elements may not have text outside of a CDATA entity", "element",
-						styleSheetEl);
-					return null;
-				}
-			} else {
-				doc.msg().error(styleSheetEl.getName() + " elements may not have any entities other than a single CDATA entity", "element",
-					styleSheetEl);
-				return null;
-			}
-		}
-		if(ssLocStr != null) {
-			if(styleSheet != null) {
-				doc.msg().error(
-					"Each " + styleSheetEl.getName() + " element may have either a ref attribute or a single CDATA entity, but not both",
-					"element", styleSheetEl);
-				return null;
-			}
-			URL ssLoc;
-			try {
-				ssLoc = MuisUtils.resolveURL(doc.getLocation(), ssLocStr);
-			} catch(MuisException e) {
-				doc.msg().error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
-				return null;
-			}
-			try (Reader ssReader = new java.io.InputStreamReader(ssLoc.openStream())) {
-				styleSheet = theStyleSheetParser.parseStyleSheet(ssLoc, ssReader, classView, messager);
-			} catch(IOException | MuisParseException e) {
-				doc.msg().error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
-				return null;
-			}
-		}
-		if(styleSheet == null) {
-			doc.msg().error("Each " + styleSheetEl.getName() + " element must have either a ref attribute or a single CDATA entity",
-				"element", styleSheetEl);
-			return null;
-		}
-		return styleSheet;
+		return theStyleSheetParser.parse(styleSheetEl, doc, classView);
 	}
 
 	/**

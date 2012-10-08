@@ -3,7 +3,10 @@ package org.muis.core.style.attach;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.*;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleListener;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
@@ -103,12 +106,12 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
+	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws IllegalArgumentException {
+	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
 	}
 

@@ -20,8 +20,8 @@ public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleS
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value)
-		throws IllegalArgumentException {
+	public <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
+		IllegalArgumentException {
 		super.set(attr, exp, value);
 	}
 

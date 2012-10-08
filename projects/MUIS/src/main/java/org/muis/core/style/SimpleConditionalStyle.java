@@ -2,9 +2,6 @@ package org.muis.core.style;
 
 import java.util.Iterator;
 
-import org.muis.core.style.stateful.MutableStatefulStyle;
-import org.muis.core.style.stateful.StateExpression;
-
 import prisms.util.ArrayUtils;
 
 /**
@@ -51,43 +48,60 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 
 	/**
 	 * @param <T> The type of the attribute
-	 * @see MutableStyle#set(StyleAttribute, Object) Implemented to make extensions of this class easily support MutableStyle
+	 * @see MutableConditionalStyle#set(StyleAttribute, StyleExpression, Object) Implemented to make extensions of this class easily support
+	 *      {@link MutableConditionalStyle}
 	 * @param attr The attribute to set the value of
 	 * @param value The value to set for the attribute
+	 * @throws ClassCastException If the given value is not recognized by the attribute
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	protected <T> void set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
+	protected <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		set(attr, null, value);
 	}
 
 	/**
-	 * @see MutableStatefulStyle#set(StyleAttribute, StateExpression, Object) Implemented to make extensions of this class easily support
-	 *      MutableStatefulStyle
+	 * @see MutableConditionalStyle#set(StyleAttribute, StyleExpression, Object) Implemented to make extensions of this class easily support
+	 *      {@link MutableConditionalStyle}
 	 * @param <T> The type of the attribute
 	 * @param attr The attribute to set the value of
 	 * @param exp The state expression for the value to be active for
 	 * @param value The value to set for the attribute
+	 * @throws ClassCastException If the given value is not recognized by the attribute
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	protected <T> void set(StyleAttribute<T> attr, E exp, T value) throws IllegalArgumentException {
+	protected <T> void set(StyleAttribute<T> attr, E exp, T value) throws ClassCastException, IllegalArgumentException {
 		if(value == null) {
 			clear(attr, exp);
 			return;
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
+		value = castAndValidate(attr, value);
+		setValue(attr, exp, value);
+	}
+
+	/**
+	 * Ensures that the given value can be set for a particular attribute
+	 *
+	 * @param <T> The type of the attribute
+	 * @param attr The attribute to set a value for
+	 * @param value The value to be set for the attribute
+	 * @return The value to store for the attribute
+	 * @throws ClassCastException If the given value is not recognized by the attribute
+	 * @throws IllegalArgumentException If the given value is not valid for the attribute
+	 */
+	protected <T> T castAndValidate(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		T value2 = attr.getType().cast(value);
 		if(value2 == null)
 			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
 				+ " of type " + attr.getType());
-		value = value2;
 		if(attr.getValidator() != null)
 			try {
 				attr.getValidator().assertValid(value);
 			} catch(org.muis.core.MuisException e) {
 				throw new IllegalArgumentException(e.getMessage());
 			}
-		setValue(attr, exp, value);
+		return value2;
 	}
 
 	private <T> void setValue(StyleAttribute<T> attr, E exp, T value) {
@@ -104,7 +118,8 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	}
 
 	/**
-	 * @see MutableStyle#clear(StyleAttribute) Implemented to make extensions of this class easily support MutableStyle
+	 * @see MutableConditionalStyle#clear(StyleAttribute, StyleExpression) Implemented to make extensions of this class easily support
+	 *      MutableConditionalStyle
 	 * @param attr The attribute to clear the value of
 	 */
 	protected void clear(StyleAttribute<?> attr) {
@@ -112,8 +127,8 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	}
 
 	/**
-	 * @see MutableStatefulStyle#clear(StyleAttribute, StateExpression) Implemented to make extensions of this class easily support
-	 *      MutableStatefulStyle
+	 * @see MutableConditionalStyle#clear(StyleAttribute, StyleExpression) Implemented to make extensions of this class easily support
+	 *      MutableConditionalStyle
 	 * @param attr The attribute to clear the value of
 	 * @param exp The state expression to clear the value for
 	 */

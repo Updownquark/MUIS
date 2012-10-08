@@ -40,12 +40,12 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
+	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws IllegalArgumentException {
+	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
 	}
 

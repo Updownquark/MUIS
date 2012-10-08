@@ -144,8 +144,13 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	/** @param env The evaluation environment for this style sheet to get constants, function definitions, and other information from */
 	public AnimatedStyleSheet(prisms.lang.EvaluationEnvironment env) {
-		theEnv = env.scope(true);
+		theEnv = env;
 		theVariables = new java.util.LinkedHashSet<>();
+	}
+
+	/** @return The evaluation environment that this style sheet uses */
+	protected prisms.lang.EvaluationEnvironment getEvaluationEnvironment() {
+		return theEnv;
 	}
 
 	/** @param var The animation variable to add to this style sheet */

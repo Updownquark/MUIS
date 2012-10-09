@@ -12,6 +12,7 @@
 	<types>
         <type tag="block">org.muis.base.widget.Block</type>
         <type tag="image">org.muis.base.widget.Image</type>
+        <type tag="button">org.muis.base.widget.Button</type>
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>
         <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>

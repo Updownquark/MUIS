@@ -54,50 +54,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 			} else
 				attrName = null;
 
-			org.muis.core.MuisToolkit toolkit;
-			String domainClassName;
-			if(ns == null) {
-				toolkit = element.getToolkit();
-				domainClassName = toolkit.getMappedClass(domainName);
-				if(domainClassName == null && toolkit != element.getDocument().getCoreToolkit()) {
-					toolkit = element.getDocument().getCoreToolkit();
-					domainClassName = toolkit.getMappedClass(domainName);
-				}
-				if(domainClassName == null)
-					if(element.getToolkit() != element.getDocument().getCoreToolkit())
-						element.msg().warn(
-							"No style domain mapped to " + domainName + " in element's toolkit (" + element.getToolkit().getName()
-								+ ") or default toolkit");
-					else
-						element.msg().warn("No style domain mapped to " + domainName + " in default toolkit");
-			} else {
-				toolkit = element.getClassView().getToolkit(ns);
-				if(toolkit == null) {
-					element.msg().warn("No toolkit mapped to namespace " + ns + " for style " + style);
-					continue;
-				}
-				domainClassName = toolkit.getMappedClass(domainName);
-				if(domainClassName == null) {
-					element.msg().warn("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName());
-					continue;
-				}
-			}
-
-			Class<? extends org.muis.core.style.StyleDomain> domainClass;
-			try {
-				domainClass = toolkit.loadClass(domainClassName, org.muis.core.style.StyleDomain.class);
-			} catch(MuisException e) {
-				element.msg().warn("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
-				continue;
-			}
-			org.muis.core.style.StyleDomain domain;
-			try {
-				domain = (org.muis.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null,
-					new Object[0]);
-			} catch(Exception e) {
-				element.msg().warn("Could not get domain instance", e);
-				continue;
-			}
+			StyleDomain domain = StyleParsingUtils.getStyleDomain(ns, domainName, classView);
 
 			if(attrName != null)
 				applyStyleAttribute(ret, domain, attrName, valueStr, element.msg(), element.getClassView());
@@ -110,7 +67,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 
 	/**
 	 * Applies a single style attribute to a style
-	 * 
+	 *
 	 * @param style The style to apply the attribute to
 	 * @param domain The domain of the style
 	 * @param attrName The name of the attribute
@@ -125,7 +82,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 
 	/**
 	 * Applies a bulk style setting to a style
-	 * 
+	 *
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value

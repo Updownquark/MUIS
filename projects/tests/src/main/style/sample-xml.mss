@@ -6,17 +6,17 @@
 	</animate>
 
 	bg={
-		color=green,
+		color=green;
 	}
 	<category type="base:button">
-		bg.color=purple
-		bg.texture=raised-round
-		bg.corner-radius=10%
+		bg.color=purple;
+		bg.texture="base:raised-round";
+		bg.corner-radius="10%";
 		<category state="hover">
-			bg.color=yellow
+			bg.color=yellow;
 		</category>
 		<category state="click">
-			bg.color=purple
+			bg.color=purple;
 		</category>
 	</category>
 </style-sheet>

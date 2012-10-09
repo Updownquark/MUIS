@@ -1,10 +1,8 @@
 package org.muis.motion;
 
 /** Manages animations in MUIS */
-public class AnimationManager
-{
-	private static class AnimationHolder
-	{
+public class AnimationManager {
+	private static class AnimationHolder {
 		final Animation animation;
 
 		final long startTime;
@@ -15,8 +13,7 @@ public class AnimationManager
 
 		int actualTimesRun;
 
-		AnimationHolder(Animation anim)
-		{
+		AnimationHolder(Animation anim) {
 			animation = anim;
 			frequency = anim.getMaxFrequency();
 			startTime = System.currentTimeMillis();
@@ -26,8 +23,7 @@ public class AnimationManager
 	private static AnimationManager theInstance = new AnimationManager();
 
 	/** @return The instance of AnimationManager to use for running animations */
-	public static AnimationManager get()
-	{
+	public static AnimationManager get() {
 		return theInstance;
 	}
 
@@ -41,37 +37,32 @@ public class AnimationManager
 
 	volatile boolean isInterrupted;
 
-	private AnimationManager()
-	{
+	private AnimationManager() {
 		theAnimations = new AnimationHolder[0];
 		theLock = new Object();
 	}
 
 	/** @param animation The animation to run */
-	public void start(Animation animation)
-	{
+	public void start(Animation animation) {
 		AnimationHolder holder = new AnimationHolder(animation);
-		synchronized(theLock)
-		{
+		synchronized(theLock) {
 			theAnimations = prisms.util.ArrayUtils.add(theAnimations, holder);
 		}
 		start();
 		isInterrupted = true;
-		theThread.interrupt();
+		if(theThread != null)
+			theThread.interrupt();
 	}
 
 	/** Starts the animation thread */
-	private void start()
-	{
+	private void start() {
 		if(theThread != null)
 			return;
 		new AnimationThread().start();
 	}
 
-	private void remove(AnimationHolder animation)
-	{
-		synchronized(theLock)
-		{
+	private void remove(AnimationHolder animation) {
+		synchronized(theLock) {
 			theAnimations = prisms.util.ArrayUtils.remove(theAnimations, animation);
 		}
 	}
@@ -80,27 +71,22 @@ public class AnimationManager
 	 * Can't think why this should be called, but if it's needed we can change the modifier to public or provide some mechanism to access it
 	 */
 	@SuppressWarnings("unused")
-	private void shutdown()
-	{
+	private void shutdown() {
 		isShuttingDown = true;
 	}
 
 	/** @return Whether this event queue is currently running */
-	public boolean isRunning()
-	{
+	public boolean isRunning() {
 		return theThread != null;
 	}
 
 	/** @return Whether this event queue is shutting down. Not currently used. */
-	public boolean isShuttingDown()
-	{
+	public boolean isShuttingDown() {
 		return isShuttingDown;
 	}
 
-	private class AnimationThread extends Thread
-	{
-		AnimationThread()
-		{
+	private class AnimationThread extends Thread {
+		AnimationThread() {
 			super("MUIS Motion");
 		}
 
@@ -112,26 +98,21 @@ public class AnimationManager
 		 */
 		@SuppressWarnings("synthetic-access")
 		@Override
-		public void run()
-		{
-			synchronized(theLock)
-			{
+		public void run() {
+			synchronized(theLock) {
 				if(theThread != null)
 					return;
 				theThread = this;
 			}
 			while(!isShuttingDown())
-				try
-				{
+				try {
 					isInterrupted = false;
 					AnimationHolder [] animations = theAnimations;
 					boolean acted = false;
 					long now = System.currentTimeMillis();
 					long next = now + 1000;
-					for(AnimationHolder anim : animations)
-					{
-						if(anim.actualTimesRun != 0 && (now - anim.startTime) / anim.timesRun < anim.frequency)
-						{
+					for(AnimationHolder anim : animations) {
+						if(anim.actualTimesRun != 0 && (now - anim.startTime) / anim.timesRun < anim.frequency) {
 							long animNext = anim.startTime + (anim.timesRun + 1) * anim.frequency;
 							if(animNext < next)
 								next = animNext;
@@ -140,12 +121,10 @@ public class AnimationManager
 						int times = anim.frequency == 0 ? 0 : (int) ((now - anim.startTime) / anim.frequency);
 						anim.timesRun = times + 1;
 						anim.actualTimesRun++;
-						try
-						{
+						try {
 							if(anim.animation.update(now - anim.startTime))
 								remove(anim);
-						} catch(RuntimeException | Error e)
-						{
+						} catch(RuntimeException | Error e) {
 							System.err.println("Error running animation " + anim.animation);
 							e.printStackTrace();
 							remove(anim);
@@ -156,8 +135,7 @@ public class AnimationManager
 					}
 					if(!acted && !isInterrupted && next > now)
 						Thread.sleep(next - now);
-				} catch(InterruptedException e)
-				{
+				} catch(InterruptedException e) {
 				}
 			theThread = null;
 			isShuttingDown = false;

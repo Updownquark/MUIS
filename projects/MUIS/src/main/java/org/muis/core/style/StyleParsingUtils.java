@@ -1,7 +1,54 @@
 package org.muis.core.style;
 
+import org.muis.core.MuisException;
+
 /** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {
+	/**
+	 * Gets a style domain
+	 * 
+	 * @param ns The namespace specifying the toolkit that the domain is from. May be null.
+	 * @param domainName The mapped name of the domain class within its toolkit
+	 * @param classView The class view to retrieve the domain class from
+	 * @return The style domain mapped by the given name in the given toolkit
+	 * @throws MuisException If the style domain cannot be retrieved with the given information
+	 */
+	public static StyleDomain getStyleDomain(String ns, String domainName, org.muis.core.MuisClassView classView) throws MuisException {
+		org.muis.core.MuisToolkit toolkit = null;
+		String domainClassName;
+		if(ns == null) {
+			domainClassName = classView.getMappedClass(ns, domainName);
+			if(domainClassName == null)
+				throw new MuisException("No style domain mapped to " + domainName + " in class view");
+		} else {
+			toolkit = classView.getToolkit(ns);
+			if(toolkit == null) {
+				throw new MuisException("No toolkit mapped to namespace " + ns);
+			}
+			domainClassName = toolkit.getMappedClass(domainName);
+			if(domainClassName == null) {
+				throw new MuisException("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName() + "(ns=" + ns + ")");
+			}
+		}
+
+		Class<? extends org.muis.core.style.StyleDomain> domainClass;
+		try {
+			if(toolkit != null)
+				domainClass = toolkit.loadClass(domainClassName, org.muis.core.style.StyleDomain.class);
+			else
+				domainClass = classView.loadMappedClass(ns, domainName, StyleDomain.class);
+		} catch(MuisException e) {
+			throw new MuisException("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
+		}
+		org.muis.core.style.StyleDomain domain;
+		try {
+			domain = (org.muis.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null, new Object[0]);
+		} catch(Exception e) {
+			throw new MuisException("Could not get domain instance", e);
+		}
+		return domain;
+	}
+
 	/**
 	 * Applies a single style attribute to a style
 	 *

@@ -39,20 +39,24 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		element.life().runWhen(new Runnable() {
 			@Override
 			public void run() {
-				addDependency(new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass()));
+				addDependencies();
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
+	}
+
+	private void addDependencies() {
+		addDependency(new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass()));
 		addListener(new StyleListener() {
 			@Override
 			public void eventOccurred(StyleAttributeEvent<?> event) {
 				theElement.fireEvent(event, false, false);
 			}
 		});
-		if(element.getParent() != null) {
-			theParentStyle = element.getParent().getStyle();
+		if(theElement.getParent() != null) {
+			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
 		}
-		element.addListener(org.muis.core.MuisConstants.Events.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
+		theElement.addListener(org.muis.core.MuisConstants.Events.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
 			@Override
 			public boolean isLocal() {
 				return true;
@@ -69,11 +73,11 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 					theParentStyle = null;
 			}
 		});
-		MuisState [] currentState = element.state().toArray();
+		MuisState [] currentState = theElement.state().toArray();
 		setState(currentState);
 		theSelfStyle.setState(currentState);
 		theHeirStyle.setState(currentState);
-		element.state().addListener(null, new org.muis.core.mgr.StateEngine.StateListener() {
+		theElement.state().addListener(null, new org.muis.core.mgr.StateEngine.StateListener() {
 			@Override
 			public void entered(MuisState state, MuisEvent<?> cause) {
 				addState(state);

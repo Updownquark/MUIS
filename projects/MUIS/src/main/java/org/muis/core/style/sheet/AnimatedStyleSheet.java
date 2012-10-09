@@ -305,8 +305,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		StyleExpressionValue<StateGroupTypeExpression<?>, ParsedItem> [] exprs = getLocalAnimatedValues(attr);
 		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionValue[exprs.length];
 		for(int i = 0; i < exprs.length; i++) {
-			ret[i] = new StyleExpressionValue<StateGroupTypeExpression<?>, T>(exprs[i].getExpression(), castAndValidate(attr,
-				evaluate(attr, exprs[i].getValue())));
+			ret[i] = new StyleExpressionValue<StateGroupTypeExpression<?>, T>(exprs[i].getExpression(), evaluate(attr, exprs[i].getValue()));
 		}
 		return ret;
 	}

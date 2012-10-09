@@ -327,7 +327,12 @@ public class MuisDomParser implements MuisParser {
 			}
 			temp = temp.getParentElement();
 		}
-		return theStyleSheetParser.parse(styleSheetEl, doc, classView);
+		try {
+			return theStyleSheetParser.parse(styleSheetEl, doc, classView);
+		} catch(MuisParseException e) {
+			doc.msg().error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
+			return null;
+		}
 	}
 
 	/**

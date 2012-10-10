@@ -11,6 +11,16 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 
 	private java.net.URL theLocation;
 
+	/** @see MutableAnimatedStyleSheet#MutableAnimatedStyleSheet() */
+	public ParsedStyleSheet() {
+		super();
+	}
+
+	/** @see MutableAnimatedStyleSheet#MutableAnimatedStyleSheet(EvaluationEnvironment) */
+	public ParsedStyleSheet(EvaluationEnvironment env) {
+		super(env);
+	}
+
 	@Override
 	public boolean isSealed() {
 		return isSealed;

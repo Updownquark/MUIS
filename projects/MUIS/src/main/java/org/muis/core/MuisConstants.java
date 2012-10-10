@@ -132,19 +132,49 @@ public final class MuisConstants {
 
 	/** Contains several string representing {@link org.muis.core.mgr.StateEngine states} that are used by the MUIS core */
 	public static final class States {
+		/** The name of the state that is true whenever the left mouse button is pressed on top of an element */
+		public static final String CLICK_NAME = "click";
+
+		/** The name of the state that is true whenever the right mouse button is pressed on top of an element */
+		public static final String RIGHT_CLICK_NAME = "right-click";
+
+		/** The name of the state that is true whenever the middle mouse button is pressed on top of an element */
+		public static final String MIDDLE_CLICK_NAME = "middle-click";
+
+		/** The name of the state that is true whenever the cursor is over an element */
+		public static final String HOVER_NAME = "hover";
+
+		/** The name of the state that is true when an element has the focus */
+		public static final String FOCUS_NAME = "focus";
+
+		/** The priority of the click state */
+		public static final int CLICK_PRIORITY = 100;
+
+		/** The priority of the right-click state */
+		public static final int RIGHT_CLICK_PRIORITY = 100;
+
+		/** The priority of the middle-click state */
+		public static final int MIDDLE_CLICK_PRIORITY = 100;
+
+		/** The priority of the hover state */
+		public static final int HOVER_PRIORITY = 10;
+
+		/** The priority of the focus state */
+		public static final int FOCUS_PRIORITY = 2;
+
 		/** True whenever the left mouse button is pressed on top of an element */
-		public static final MuisState CLICK = new MuisState("click", 100);
+		public static final MuisState CLICK = new MuisState(CLICK_NAME, CLICK_PRIORITY);
 
 		/** True whenever the right mouse button is pressed on top of an element */
-		public static final MuisState RIGHT_CLICK = new MuisState("right-click", 100);
+		public static final MuisState RIGHT_CLICK = new MuisState(RIGHT_CLICK_NAME, RIGHT_CLICK_PRIORITY);
 
 		/** True whenever the middle mouse button is pressed on top of an element */
-		public static final MuisState MIDDLE_CLICK = new MuisState("middle-click", 100);
+		public static final MuisState MIDDLE_CLICK = new MuisState(MIDDLE_CLICK_NAME, MIDDLE_CLICK_PRIORITY);
 
 		/** True whenever the cursor is over an element */
-		public static final MuisState HOVER = new MuisState("hover", 10);
+		public static final MuisState HOVER = new MuisState(HOVER_NAME, HOVER_PRIORITY);
 
 		/** True when an element has the focus */
-		public static final MuisState FOCUS = new MuisState("focus", 2);
+		public static final MuisState FOCUS = new MuisState(FOCUS_NAME, FOCUS_PRIORITY);
 	}
 }

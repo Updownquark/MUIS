@@ -17,7 +17,9 @@ import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
-import org.muis.core.style.*;
+import org.muis.core.style.BackgroundStyles;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.Texture;
 import org.muis.core.style.attach.CompoundStyleListener;
 import org.muis.core.style.attach.ElementStyle;
 import org.muis.core.style.attach.StyleAttributeType;
@@ -26,6 +28,11 @@ import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
+@StateSupport({@State(name = States.CLICK_NAME, priority = States.CLICK_PRIORITY),
+		@State(name = States.RIGHT_CLICK_NAME, priority = States.RIGHT_CLICK_PRIORITY),
+		@State(name = States.MIDDLE_CLICK_NAME, priority = States.MIDDLE_CLICK_PRIORITY),
+		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
+		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY)})
 public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	// TODO Add code for attach events
 
@@ -120,6 +127,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			}
 		};
 		theDefaultStyleListener.addDomain(BackgroundStyles.getDomainInstance());
+		theDefaultStyleListener.addDomain(org.muis.core.style.LightedStyle.getDomainInstance());
 		theDefaultStyleListener.add();
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
@@ -175,16 +183,33 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				repaint(null, false);
 			}
 		}, CoreStage.INIT_SELF.toString(), 2);
+		addAnnotatedStates();
 		addStateListeners();
 		theLifeCycleController.advance(CoreStage.PARSE_SELF.toString());
 	}
 
+	private void addAnnotatedStates() {
+		Class<?> type = getClass();
+		while(MuisElement.class.isAssignableFrom(type)) {
+			StateSupport states = type.getAnnotation(StateSupport.class);
+			if(states != null)
+				for(State state : states.value()) {
+					try {
+						theStateEngine.addState(new MuisState(state.name(), state.priority()));
+					} catch(IllegalArgumentException e) {
+						msg().warn(e.getMessage(), "state", state);
+					}
+				}
+			type = type.getSuperclass();
+		}
+	}
+
 	private void addStateListeners() {
-		theStateControllers.clicked = theStateEngine.addState(States.CLICK);
-		theStateControllers.rightClicked = theStateEngine.addState(States.RIGHT_CLICK);
-		theStateControllers.middleClicked = theStateEngine.addState(States.MIDDLE_CLICK);
-		theStateControllers.hovered = theStateEngine.addState(States.HOVER);
-		theStateControllers.focused = theStateEngine.addState(States.FOCUS);
+		theStateControllers.clicked = theStateEngine.control(States.CLICK);
+		theStateControllers.rightClicked = theStateEngine.control(States.RIGHT_CLICK);
+		theStateControllers.middleClicked = theStateEngine.control(States.MIDDLE_CLICK);
+		theStateControllers.hovered = theStateEngine.control(States.HOVER);
+		theStateControllers.focused = theStateEngine.control(States.FOCUS);
 		addListener(MOUSE, new MuisEventListener<Void>() {
 			@Override
 			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {

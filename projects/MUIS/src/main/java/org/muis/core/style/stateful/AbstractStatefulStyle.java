@@ -55,10 +55,13 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> event) {
 				if(isSet(AbstractStatefulStyle.this, event.getAttribute(), event.getExpression()))
 					return;
-				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute()))
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute())) {
+					if(expr.getExpression() == event.getExpression())
+						continue;
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
+				}
 				int idx = ArrayUtils.indexOf(theDependencies, event.getRootStyle());
 				if(idx < 0)
 					return;

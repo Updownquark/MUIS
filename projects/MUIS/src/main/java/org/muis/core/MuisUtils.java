@@ -291,4 +291,25 @@ public class MuisUtils
 		attribs.put(TextAttribute.POSTURE, style.get(FontStyle.slant));
 		return java.awt.Font.getFont(attribs);
 	}
+
+	/**
+	 * @param type The type of element
+	 * @return All states supported by the given element type (as annotated by {@link StateSupport})
+	 */
+	public static org.muis.core.mgr.MuisState[] getStatesFor(Class<? extends MuisElement> type) {
+		ArrayList<org.muis.core.mgr.MuisState> ret = new ArrayList<>();
+		Class<?> type2 = type;
+		while(MuisElement.class.isAssignableFrom(type2)) {
+			StateSupport states = type2.getAnnotation(StateSupport.class);
+			if(states != null)
+				for(State state : states.value()) {
+					try {
+						ret.add(new org.muis.core.mgr.MuisState(state.name(), state.priority()));
+					} catch(IllegalArgumentException e) {
+					}
+				}
+			type2 = type2.getSuperclass();
+		}
+		return ret.toArray(new org.muis.core.mgr.MuisState[ret.size()]);
+	}
 }

@@ -9,9 +9,10 @@
 		color=green;
 	}
 	<category type="base:button">
-		bg.color=purple;
+		bg.color=blue;
 		bg.texture="base:raised-round";
 		bg.corner-radius="10%";
+		light.source=360*t;
 		<category state="hover">
 			bg.color=yellow;
 		</category>

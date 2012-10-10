@@ -170,12 +170,26 @@ public class StateEngine implements StateSet {
 
 	/**
 	 * @param state The state to add to this engine
-	 * @return A controller which allows the caller to set whether the state is active
-	 * @throws IllegalArgumentException If the given state is already controlled by another controller in this engine
+	 * @throws IllegalArgumentException If the given state is already recognized in this engine
 	 */
-	public StateController addState(MuisState state) throws IllegalArgumentException {
+	public void addState(MuisState state) throws IllegalArgumentException {
 		if(state == null)
 			throw new NullPointerException("state cannot be null");
+		if(theStates.containsKey(state))
+			throw new IllegalArgumentException("The state \"" + state + "\" is already added to this engine");
+		theStates.put(state, INACTIVE);
+	}
+
+	/**
+	 * @param state The state to request control of
+	 * @return A controller which allows the caller to set whether the state is active
+	 * @throws IllegalArgumentException If the given state is not recognized or is already controlled by another controller in this engine
+	 */
+	public StateController control(MuisState state) throws IllegalArgumentException {
+		if(state == null)
+			throw new NullPointerException("state cannot be null");
+		if(!theStates.containsKey(state))
+			throw new IllegalArgumentException("The state \"" + state + "\" is not recognized in this engine");
 		StateControllerImpl ret;
 		synchronized(theStateControllerLock) {
 			for(StateControllerImpl ctrlr : theStateControllers)

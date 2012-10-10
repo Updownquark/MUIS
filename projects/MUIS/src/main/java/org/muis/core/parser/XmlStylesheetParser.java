@@ -9,6 +9,7 @@ import org.muis.core.MuisClassView;
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
+import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleDomain;
 import org.muis.core.style.sheet.AnimatedStyleSheet;
@@ -21,6 +22,7 @@ import prisms.lang.*;
 
 /** Parses instances of {@link ParsedStyleSheet} from XML documents */
 public class XmlStylesheetParser {
+	/** Represents a single style attribute assignment parsed from a style sheet */
 	public static class ParsedStyleAssign extends ParsedItem {
 		private String theNamespace;
 
@@ -39,18 +41,22 @@ public class XmlStylesheetParser {
 			theValue = parser.parseStructures(this, getStored("value"))[0];
 		}
 
+		/** @return The namespace of the domain of the attribute to be assigned, or null if unspecified */
 		public String getNamespace() {
 			return theNamespace;
 		}
 
+		/** @return The name of the domain of the attribute to be assigned */
 		public String getDomain() {
 			return theDomain;
 		}
 
+		/** @return The name of the attribute to be assigned */
 		public String getAttribute() {
 			return theAttrName;
 		}
 
+		/** @return The value for the assigned attribute */
 		public ParsedItem getValue() {
 			return theValue;
 		}
@@ -73,6 +79,7 @@ public class XmlStylesheetParser {
 		}
 	}
 
+	/** Represents a domain style-set attribute assignment parsed from a style sheet */
 	public static class ParsedStyleDomainAssign extends ParsedItem {
 		private String theNamespace;
 
@@ -103,18 +110,22 @@ public class XmlStylesheetParser {
 			theValues = parser.parseStructures(this, values.toArray(new ParseMatch[values.size()]));
 		}
 
+		/** @return The namespace of the domain to be assigned, or null if unspecified */
 		public String getNamespace() {
 			return theNamespace;
 		}
 
+		/** @return The name of the domain to be assigned */
 		public String getDomain() {
 			return theDomain;
 		}
 
+		/** @return The names of all attributes to be assigned */
 		public String [] getAttributes() {
 			return theAttrNames;
 		}
 
+		/** @return The value for each assigned attribute */
 		public ParsedItem [] getValues() {
 			return theValues;
 		}
@@ -208,6 +219,14 @@ public class XmlStylesheetParser {
 			top().theState = state;
 		}
 
+		Class<? extends MuisElement> [] getTopTypes() {
+			for(int i = theStack.size() - 1; i >= 0; i--) {
+				if(!theStack.get(i).theTypes.isEmpty())
+					return theStack.get(i).theTypes.toArray(new Class[theStack.get(i).theTypes.size()]);
+			}
+			return new Class[0];
+		}
+
 		@Override
 		public java.util.Iterator<StateGroupTypeExpression<?>> iterator() {
 			if(top().isEmpty()) {
@@ -228,7 +247,7 @@ public class XmlStylesheetParser {
 				};
 			}
 			return new java.util.Iterator<StateGroupTypeExpression<?>>() {
-				private List<Class<? extends MuisElement>> theIterableTypes;
+				private Class<? extends MuisElement> [] theIterableTypes;
 
 				private List<String> theIterableGroups;
 
@@ -241,11 +260,9 @@ public class XmlStylesheetParser {
 				private boolean hasCalledNext;
 
 				{
-					theIterableTypes = new ArrayList<>();
+					theIterableTypes = getTopTypes();
 					theIterableGroups = new ArrayList<>();
 					for(int i = theStack.size() - 1; i >= 0; i--) {
-						if(theIterableTypes.isEmpty())
-							theIterableTypes.addAll(theStack.get(i).theTypes);
 						if(theIterableGroups.isEmpty())
 							theIterableGroups.addAll(theStack.get(i).theGroups);
 					}
@@ -268,20 +285,20 @@ public class XmlStylesheetParser {
 				public StateGroupTypeExpression<?> next() {
 					StateGroupTypeExpression<?> ret;
 					if(theGroupIdx < theIterableGroups.size()) {
-						if(theTypeIdx < theIterableTypes.size()) {
+						if(theTypeIdx < theIterableTypes.length) {
 							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx),
-								theIterableTypes.get(theTypeIdx++));
+								theIterableTypes[theTypeIdx++]);
 						} else {
 							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx), null);
 						}
-						if(theTypeIdx >= theIterableTypes.size()) {
+						if(theTypeIdx >= theIterableTypes.length) {
 							theGroupIdx++;
 							theTypeIdx = 0;
 						}
 					} else if(theIterableGroups.isEmpty()) {
-						if(theTypeIdx < theIterableTypes.size()) {
-							ret = new StateGroupTypeExpression<>(theOverallState, null, theIterableTypes.get(theTypeIdx++));
-						} else if(theIterableTypes.isEmpty()) {
+						if(theTypeIdx < theIterableTypes.length) {
+							ret = new StateGroupTypeExpression<>(theOverallState, null, theIterableTypes[theTypeIdx++]);
+						} else if(theIterableTypes.length == 0) {
 							ret = new StateGroupTypeExpression<>(theOverallState, null, null);
 						} else
 							throw new java.util.NoSuchElementException();
@@ -303,6 +320,7 @@ public class XmlStylesheetParser {
 
 	private prisms.lang.EvaluationEnvironment theEnv;
 
+	/** Creates a parser to parse style sheets from XML */
 	public XmlStylesheetParser() {
 		theExpressionParser = new PrismsParser();
 		try {
@@ -311,6 +329,7 @@ public class XmlStylesheetParser {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}
 		theEnv = new DefaultEvaluationEnvironment();
+		// TODO add constants and functions like rgb(r, g, b) here
 	}
 
 	private static PrismsConfig getStyleSheetDefConfig() throws IOException, MuisParseException {
@@ -335,7 +354,7 @@ public class XmlStylesheetParser {
 	private static Element getStyleSheetDefXml() throws IOException, MuisParseException {
 		try {
 			return new org.jdom2.input.SAXBuilder().build(
-				new java.io.InputStreamReader(DefaultStyleSheetParser.class.getResourceAsStream("MSS Expression Grammar.xml")))
+				new java.io.InputStreamReader(XmlStylesheetParser.class.getResourceAsStream("MSS Expression Grammar.xml")))
 				.getRootElement();
 		} catch(org.jdom2.JDOMException e) {
 			throw new MuisParseException("Could not parse MSS Expession Grammar.xml", e);
@@ -370,9 +389,10 @@ public class XmlStylesheetParser {
 	 * @param doc The document that the style sheet is to be parsed for
 	 * @param classView The class view required to access toolkits required by the style sheet
 	 * @return The style sheet represented by the XML
+	 * @throws MuisParseException If the style sheet encounters a fatal error while interpreting the style sheet
 	 */
 	public ParsedStyleSheet parse(Element element, MuisDocument doc, MuisClassView classView) throws MuisParseException {
-		ParsedStyleSheet ret = new ParsedStyleSheet();
+		ParsedStyleSheet ret = new ParsedStyleSheet(theEnv.scope(true));
 
 		// Parse animation
 		animLoop: for(Element animEl : element.getChildren("animate")) {
@@ -428,7 +448,7 @@ public class XmlStylesheetParser {
 				}
 				segments[i] = new AnimatedStyleSheet.AnimationSegment(endValue, duration);
 			}
-			ret.addVariable(new AnimatedStyleSheet.AnimatedVariable(varName, initValue, segments, "false".equals(animEl
+			ret.addVariable(new AnimatedStyleSheet.AnimatedVariable(varName, initValue, segments, !"false".equals(animEl
 				.getAttributeValue("repeat"))));
 		}
 
@@ -444,7 +464,7 @@ public class XmlStylesheetParser {
 		return ret;
 	}
 
-	protected void parseStyleAssignments(ParsedStyleSheet ret, Element element, StateGroupTypeExpression<?> expr, MuisDocument doc,
+	void parseStyleAssignments(ParsedStyleSheet ret, Element element, StateGroupTypeExpression<?> expr, MuisDocument doc,
 		MuisClassView classView) {
 		for(org.jdom2.Content content : element.getContent()) {
 			if(content instanceof org.jdom2.Text) {
@@ -480,7 +500,7 @@ public class XmlStylesheetParser {
 		}
 	}
 
-	protected void parseCategory(ParsedStyleSheet ret, Element category, ExpressionContextStack stack, MuisDocument doc,
+	void parseCategory(ParsedStyleSheet ret, Element category, ExpressionContextStack stack, MuisDocument doc,
 		MuisClassView classView) throws MuisParseException {
 		stack.push();
 		String groupAttr = category.getAttributeValue("group");
@@ -499,7 +519,7 @@ public class XmlStylesheetParser {
 		String stateAttr = category.getAttributeValue("state");
 		if(stateAttr != null) {
 			try {
-				stack.setState(parseState(stateAttr));
+				stack.setState(parseState(stateAttr, stack));
 			} catch(MuisParseException e) {
 				throw new MuisParseException("Could not parse state expression " + stateAttr, e);
 			}
@@ -516,19 +536,19 @@ public class XmlStylesheetParser {
 		stack.pop();
 	}
 
-	private StateExpression parseState(String state) throws MuisParseException {
+	private StateExpression parseState(String state, ExpressionContextStack stack) throws MuisParseException {
 		StringBuilder sb = new StringBuilder(state);
-		StateExpression ret = parseNextState(sb);
+		StateExpression ret = parseNextState(sb, stack);
 		while(sb.length() > 0) {
 			char ch = sb.charAt(0);
 			sb.deleteCharAt(0);
 			if(Character.isWhitespace(ch))
 				continue;
 			else if(ch == '&')
-				ret = ret.and(parseNextState(sb));
+				ret = ret.and(parseNextState(sb, stack));
 			else if(ch == '|')
-				ret = ret.or(parseNextState(sb));
-			ret = parseNextState(sb);
+				ret = ret.or(parseNextState(sb, stack));
+			ret = parseNextState(sb, stack);
 
 		}
 		if(sb.length() > 0)
@@ -536,7 +556,7 @@ public class XmlStylesheetParser {
 		return ret;
 	}
 
-	private StateExpression parseNextState(StringBuilder state) throws MuisParseException {
+	private StateExpression parseNextState(StringBuilder state, ExpressionContextStack stack) throws MuisParseException {
 		StringBuilder currentState = new StringBuilder();
 		while(true) {
 			char ch = state.length() > 0 ? state.charAt(0) : '\'';
@@ -544,25 +564,24 @@ public class XmlStylesheetParser {
 				if(currentState.length() > 0)
 					throw new MuisParseException("Unexpected: '" + ch + "'");
 				state.deleteCharAt(0);
-				return parseNextState(state).not();
+				return parseNextState(state, stack).not();
 			} else if(ch == '(') {
 				if(currentState.length() > 0)
 					throw new MuisParseException("Unexpected: '" + ch + "'");
 				state.deleteCharAt(0);
-				return parseParenthetic(state);
+				return parseParenthetic(state, stack);
 			} else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '-') {
 				state.deleteCharAt(0);
 				currentState.append(ch);
 			} else if(currentState.length() > 0) {
-				int todo;// TODO Find priority!
-				return new StateExpression.Simple(new org.muis.core.mgr.MuisState(currentState.toString(), 1));
+				return new StateExpression.Simple(findState(currentState.toString(), stack));
 			} else {
 				throw new MuisParseException("Unexpected: '" + ch + "'");
 			}
 		}
 	}
 
-	private StateExpression parseParenthetic(StringBuilder state) throws MuisParseException {
+	private StateExpression parseParenthetic(StringBuilder state, ExpressionContextStack ctx) throws MuisParseException {
 		int stack = 1;
 		int i;
 		for(i = 0; i < state.length() && stack > 0; i++) {
@@ -575,7 +594,27 @@ public class XmlStylesheetParser {
 			throw new MuisParseException("Unclosed '('");
 		String sub = state.substring(0, i);
 		state.deleteCharAt(i + 1);
-		return parseState(sub);
+		return parseState(sub, ctx);
+	}
+
+	private MuisState findState(String name, ExpressionContextStack stack) throws MuisParseException {
+		Class<? extends MuisElement> [] types = stack.getTopTypes();
+		if(types.length == 0)
+			types = new Class[] {MuisElement.class};
+		MuisState ret = null;
+		for(int i = 0; i < types.length; i++) {
+			boolean found = false;
+			MuisState [] states = org.muis.core.MuisUtils.getStatesFor(types[i]);
+			for(int j = 0; j < states.length; j++)
+				if(states[j].getName().equals(name)) {
+					found = true;
+					if(ret == null)
+						ret = states[j];
+				}
+			if(!found)
+				throw new MuisParseException("Element type " + types[i].getName() + " does not support state \"" + name + "\"");
+		}
+		return ret;
 	}
 
 	void apply(ParsedStyleSheet style, StateGroupTypeExpression<?> expr, ParsedStyleAssign assign, MuisDocument doc, MuisClassView classView)
@@ -629,7 +668,7 @@ public class XmlStylesheetParser {
 			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text));
 		} else {
 			for(ParsedItem depend : value.getDependents()) {
-				ParsedItem replace = replaceIdentifiersAndStrings(value, style, attr, classView);
+				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, classView);
 				if(replace != depend)
 					value.replace(depend, replace);
 			}

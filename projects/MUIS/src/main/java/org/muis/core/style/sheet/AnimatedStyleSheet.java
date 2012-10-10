@@ -91,9 +91,10 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			double start = theStartValue;
 			for(AnimationSegment segment : theAnimation) {
 				if(time <= segment.getDuration()) {
-					double p = (segment.getDuration() - time) * 1.0 / segment.getDuration();
+					double p = time * 1.0 / segment.getDuration();
 					return start + p * (segment.getEndValue() - start);
 				}
+				time -= segment.getDuration();
 				start = segment.getEndValue();
 			}
 			throw new IllegalStateException("Logic error--should not get here");
@@ -139,8 +140,6 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	private volatile long theStartTime;
 
 	private volatile boolean isPaused;
-
-	private long theLastAnimationUpdate;
 
 	/** @param env The evaluation environment for this style sheet to get constants, function definitions, and other information from */
 	public AnimatedStyleSheet(prisms.lang.EvaluationEnvironment env) {
@@ -221,9 +220,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 * @param time The animation time to update with
 	 */
 	protected void setAnimationTime(long time) {
-		theLastAnimationUpdate = time;
 		for(AnimatedVariable var : theVariables) {
-			var.theCurrentValue = var.getValueFor(time - theStartTime);
+			var.theCurrentValue = var.getValueFor(time);
 			try {
 				theEnv.setVariable(var.getName(), var.getCurrentValue(), null, 0);
 			} catch(EvaluationException | NullPointerException e) {
@@ -237,11 +235,6 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 					styleChanged(attr, sev.getExpression(), this);
 			}
 		}
-	}
-
-	/** @return How long animation has been proceeding for this style sheet */
-	public long getAnimationDuration() {
-		return theLastAnimationUpdate - theStartTime;
 	}
 
 	/**

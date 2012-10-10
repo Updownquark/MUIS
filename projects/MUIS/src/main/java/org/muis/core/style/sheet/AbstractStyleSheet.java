@@ -51,10 +51,13 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> event) {
 				if(isSet(AbstractStyleSheet.this, event.getAttribute(), event.getExpression()))
 					return;
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute()))
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute())) {
+					if(expr.getExpression() == event.getExpression())
+						continue;
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
+				}
 				int idx = ArrayUtils.indexOf(theDependencies, event.getRootStyle());
 				if(idx < 0)
 					return;

@@ -100,7 +100,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	@Override
 	public <T> StyleExpressionValue<StateExpression, T> [] getLocalExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] exprs = theStyleSheet.getLocalExpressions(attr);
+		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] exprs = theStyleSheet.getExpressions(attr);
 		java.util.ArrayList<StyleExpressionValue<StateExpression, T>> ret = new java.util.ArrayList<>();
 		for(StyleExpressionValue<StateGroupTypeExpression<?>, T> exp : exprs)
 			if(matchesFilter(exp.getExpression()))

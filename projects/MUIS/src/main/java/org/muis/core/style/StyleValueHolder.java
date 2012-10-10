@@ -32,7 +32,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 
 	/**
 	 * Removes the value for the given expression from this holder
-	 * 
+	 *
 	 * @param exp The expression to remove the value for
 	 * @return Whether this operation might have caused an attribute value to be different for some condition
 	 */
@@ -66,7 +66,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 				return exp2.getPriority() - exp1.getPriority();
 			}
 		});
-		if(values == theValues) {
+		if(values != theValues) {
 			theValues = values;
 			isSorted = true;
 		}

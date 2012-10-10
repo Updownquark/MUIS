@@ -555,7 +555,7 @@ public class XmlStylesheetParser {
 				currentState.append(ch);
 			} else if(currentState.length() > 0) {
 				int todo;// TODO Find priority!
-				return new StateExpression.Simple(new org.muis.core.mgr.MuisState(currentState.toString(), 0));
+				return new StateExpression.Simple(new org.muis.core.mgr.MuisState(currentState.toString(), 1));
 			} else {
 				throw new MuisParseException("Unexpected: '" + ch + "'");
 			}

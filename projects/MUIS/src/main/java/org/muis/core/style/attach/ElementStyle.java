@@ -23,6 +23,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 	private ElementHeirStyle theHeirStyle;
 
+	private FilteredStyleSheet<?> theStyleSheet;
+
 	private NamedStyleGroup [] theStyleGroups;
 
 	/**
@@ -35,7 +37,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
 		theStyleGroups = new NamedStyleGroup[0];
-		// Add a dependency for typed, non-grouped style sheet attributes
 		element.life().runWhen(new Runnable() {
 			@Override
 			public void run() {
@@ -45,7 +46,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	private void addDependencies() {
-		addDependency(new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass()));
+		// Add a dependency for typed, non-grouped style sheet attributes
 		addListener(new StyleListener() {
 			@Override
 			public void eventOccurred(StyleAttributeEvent<?> event) {
@@ -73,6 +74,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 					theParentStyle = null;
 			}
 		});
+		theStyleSheet = new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass());
+		addDependency(theStyleSheet, null);
 		MuisState [] currentState = theElement.state().toArray();
 		setState(currentState);
 		theSelfStyle.setState(currentState);

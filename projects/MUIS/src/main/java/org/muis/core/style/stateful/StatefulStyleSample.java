@@ -50,7 +50,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
-		for(StyleExpressionValue<StateExpression, ?> value : theStatefulStyle.getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, ?> value : theStatefulStyle.getLocalExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theState))
 				return true;
 		return false;
@@ -68,7 +68,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public <T> T getLocal(StyleAttribute<T> attr) {
-		for(StyleExpressionValue<StateExpression, T> value : theStatefulStyle.getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, T> value : theStatefulStyle.getLocalExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theState))
 				return value.getValue();
 		return null;

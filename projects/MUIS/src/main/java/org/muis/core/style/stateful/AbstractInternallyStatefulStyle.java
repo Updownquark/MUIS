@@ -96,8 +96,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		Map<StyleAttribute<?>, Object> newValues) {
 		if(dep instanceof InternallyStatefulStyle)
 			return;
-		for(StyleAttribute<?> attr : dep.allLocal()) {
-			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr)) {
+		for(StyleAttribute<?> attr : dep.allAttrs()) {
+			for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(attr)) {
 				if(newValues.containsKey(attr) || forNewState.isSet(attr))
 					continue;
 				StateExpression expr = sev.getExpression();
@@ -156,7 +156,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public <T> T getLocal(StyleAttribute<T> attr) {
-		for(StyleExpressionValue<StateExpression, T> value : getExpressions(attr))
+		for(StyleExpressionValue<StateExpression, T> value : getLocalExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theCurrentState))
 				return value.getValue();
 		return null;

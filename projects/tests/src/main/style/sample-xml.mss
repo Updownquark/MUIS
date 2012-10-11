@@ -10,14 +10,14 @@
 	}
 	<category type="base:button">
 		bg.color=blue;
-		bg.texture="base:raised-round";
+		bg.texture="base:raised-square";
 		bg.corner-radius="10%";
-		light.source=360*t;
+		<!--light.source=360*t;-->
 		<category state="hover">
 			bg.color=yellow;
 		</category>
 		<category state="click">
-			bg.color=purple;
+			bg.color=rgb(t*255, 255-t*255, 0);
 		</category>
 	</category>
 </style-sheet>

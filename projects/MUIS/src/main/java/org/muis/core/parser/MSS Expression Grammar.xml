@@ -236,6 +236,12 @@
 			</option>
 		</select>
 	</operator>
+	<operator name="final declaration" order="1"
+		impl="prisms.lang.types.ParsedDeclaration">
+		<literal storeAs="final">final</literal>
+		<whitespace />
+		<op type="declaration" storeAs="decl" />
+	</operator>
 
 	<!-- Literal initialized, unbounded operators -->
 
@@ -252,6 +258,46 @@
 			</option>
 		</option>
 		<literal>)</literal>
+	</operator>
+	<operator name="declaration" priority="0" order="6"
+		impl="prisms.lang.types.ParsedDeclaration">
+		<pre-op type="identifier|primitive|member" storeAs="type" />
+		<option>
+			<literal>&lt;</literal>
+			<op type="wildcard type" storeAs="paramType" />
+			<option min="0">
+				<literal>,</literal>
+				<op type="wildcard type" storeAs="paramType" />
+			</option>
+			<literal>&gt;</literal>
+		</option>
+		<option min="0">
+			<literal storeAs="array">[</literal>
+			<literal>]</literal>
+		</option>
+		<option>
+			<literal storeAs="vararg">...</literal>
+		</option>
+		<op type="identifier" storeAs="name" />
+	</operator>
+	<operator name="function declaration" priority="0" order="5"
+		impl="prisms.lang.types.ParsedFunctionDeclaration">
+		<pre-op type="identifier|primitive|member" storeAs="returnType" />
+		<option min="0">
+			<literal storeAs="array">[</literal>
+			<literal>]</literal>
+		</option>
+		<op type="identifier" storeAs="name" />
+		<literal>(</literal>
+		<option>
+			<op type="declaration|final declaration" storeAs="parameter" />
+			<option min="0">
+				<literal>,</literal>
+				<op type="declaration|final declaration" storeAs="parameter" />
+			</option>
+		</option>
+		<literal>)</literal>
+		<op type="block" storeAs="body" />
 	</operator>
 
 	<entity name="keyword" order="999" impl="prisms.lang.types.ParsedKeyword">

@@ -329,6 +329,14 @@ public class XmlStylesheetParser {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}
 		theEnv = new DefaultEvaluationEnvironment();
+		String command = "java.awt.Color rgb(int r, int g, int b){return new java.awt.Color(r, g, b);}";
+		try {
+			theExpressionParser.parseStructures(new prisms.lang.ParseStructRoot(command), theExpressionParser.parseMatches(command))[0]
+				.evaluate(theEnv, false, true);
+		} catch(ParseException | EvaluationException e) {
+			System.err.println("Could not execute XML stylesheet parser setup expression: " + command);
+			e.printStackTrace();
+		}
 		// TODO add constants and functions like rgb(r, g, b) here
 	}
 

@@ -326,15 +326,42 @@ public class XmlStylesheetParser {
 		theExpressionParser = new PrismsParser();
 		try {
 			theExpressionParser.configure(getStyleSheetDefConfig());
-		} catch(java.io.IOException | MuisParseException e) {
+		} catch(IOException | MuisParseException e) {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}
 		theEnv = new DefaultEvaluationEnvironment();
+
+		PrismsParser setupParser = new PrismsParser();
+		try {
+			setupParser.configure(getSetupConfig());
+		} catch(IOException | MuisParseException e) {
+			throw new IllegalStateException("Could not configure style sheet setup parser", e);
+		}
+		String command = null;
+		try {
+			command = "java.awt.Color rgb(double r, double g, double b){"
+				+ "return org.muis.core.parser.XmlStylesheetParser.rgb(r, g, b);}";
+			setupParser.parseStructures(new ParseStructRoot(command), setupParser.parseMatches(command))[0].evaluate(theEnv, false, true);
+
+			command = "final double pi=Math.PI";
+			setupParser.parseStructures(new ParseStructRoot(command), setupParser.parseMatches(command))[0].evaluate(theEnv, false, true);
+		} catch(EvaluationException | ParseException e) {
+			System.err.println("Could not set up environment for style sheet parsing: " + command);
+			e.printStackTrace();
+		}
 		// TODO add constants and functions like rgb(r, g, b) here
+	}
+
+	public static java.awt.Color rgb(double r, double g, double b) {
+		return new java.awt.Color((int) Math.round(r), (int) Math.round(g), (int) Math.round(b));
 	}
 
 	private static PrismsConfig getStyleSheetDefConfig() throws IOException, MuisParseException {
 		return getConfig(getStyleSheetDefXml());
+	}
+
+	private static PrismsConfig getSetupConfig() throws IOException, MuisParseException {
+		return getConfig(getSetupConfigXml());
 	}
 
 	private static PrismsConfig getConfig(Element element) {
@@ -362,9 +389,18 @@ public class XmlStylesheetParser {
 		}
 	}
 
+	private static Element getSetupConfigXml() throws IOException, MuisParseException {
+		try {
+			return new org.jdom2.input.SAXBuilder().build(
+				new java.io.InputStreamReader(PrismsParser.class.getResourceAsStream("Grammar.xml"))).getRootElement();
+		} catch(org.jdom2.JDOMException e) {
+			throw new MuisParseException("Could not parse MSS Expession Grammar.xml", e);
+		}
+	}
+
 	/**
 	 * Parses a style sheet from an XML document
-	 * 
+	 *
 	 * @param location The location to get the document from
 	 * @param env The environment to parse in
 	 * @param msg The message center to report parsing errors to

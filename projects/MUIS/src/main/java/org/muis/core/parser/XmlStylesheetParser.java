@@ -6,9 +6,10 @@ import java.util.List;
 
 import org.jdom2.Element;
 import org.muis.core.MuisClassView;
-import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
+import org.muis.core.MuisUtils;
+import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleDomain;
@@ -363,14 +364,16 @@ public class XmlStylesheetParser {
 
 	/**
 	 * Parses a style sheet from an XML document
-	 *
+	 * 
 	 * @param location The location to get the document from
-	 * @param doc The MUIS document which refers (directly or indirectly) to the style sheet
+	 * @param env The environment to parse in
+	 * @param msg The message center to report parsing errors to
 	 * @return The style sheet parsed from the XML resource
 	 * @throws java.io.IOException If an error occurs reading the resource
 	 * @throws MuisParseException If an error occurs parsing the XML or interpreting it as a style sheet
 	 */
-	public ParsedStyleSheet parse(java.net.URL location, MuisDocument doc) throws java.io.IOException, MuisParseException {
+	public ParsedStyleSheet parse(java.net.URL location, org.muis.core.MuisEnvironment env, MuisMessageCenter msg) throws java.io.IOException,
+		MuisParseException {
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(location.openStream())).getRootElement();
@@ -379,36 +382,48 @@ public class XmlStylesheetParser {
 		}
 		if(!rootEl.getName().equals("style-sheet"))
 			throw new MuisParseException("style-sheet element expected for root of " + location);
-		ParsedStyleSheet ret = parse(rootEl, doc, doc.getClassView());
+		MuisClassView classView=new MuisClassView(env, null);
+		for(org.jdom2.Namespace ns : rootEl.getNamespacesIntroduced()) {
+			if(classView.getToolkit(ns.getPrefix()) != null || ns.getURI().length() == 0)
+				continue;
+			try {
+				classView.addNamespace(ns.getPrefix(), env.getToolkit(MuisUtils.resolveURL(location, ns.getURI())));
+			} catch(MuisException | IOException e) {
+				msg.error("Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
+					+ "\" could not be resolved or parsed for style-sheet", e, "element", rootEl);
+				continue;
+			}
+		}
+		ParsedStyleSheet ret = parse(rootEl, classView, msg);
 		ret.setLocation(location);
 		return ret;
 	}
 
 	/**
 	 * @param element The XML element to parse as a style sheet
-	 * @param doc The document that the style sheet is to be parsed for
 	 * @param classView The class view required to access toolkits required by the style sheet
+	 * @param msg The message center to report parsing errors to
 	 * @return The style sheet represented by the XML
 	 * @throws MuisParseException If the style sheet encounters a fatal error while interpreting the style sheet
 	 */
-	public ParsedStyleSheet parse(Element element, MuisDocument doc, MuisClassView classView) throws MuisParseException {
+	public ParsedStyleSheet parse(Element element, MuisClassView classView, MuisMessageCenter msg) throws MuisParseException {
 		ParsedStyleSheet ret = new ParsedStyleSheet(theEnv.scope(true));
 
 		// Parse animation
 		animLoop: for(Element animEl : element.getChildren("animate")) {
 			String varName = animEl.getAttributeValue("variable");
 			if(varName == null) {
-				doc.msg().error("No \"variable\" attribute found on animate element of style sheet", "element", animEl);
+				msg.error("No \"variable\" attribute found on animate element of style sheet", "element", animEl);
 				continue animLoop;
 			}
 			double initValue;
 			try {
 				initValue = Double.parseDouble(animEl.getAttributeValue("init"));
 			} catch(NullPointerException e) {
-				doc.msg().error("No \"init\" attribute found on animate element of style sheet", "element", animEl);
+				msg.error("No \"init\" attribute found on animate element of style sheet", "element", animEl);
 				continue animLoop;
 			} catch(NumberFormatException e) {
-				doc.msg().error("\"init\" attribute \"" + animEl.getAttributeValue("init") + "\" on animate element is not a valid number",
+				msg.error("\"init\" attribute \"" + animEl.getAttributeValue("init") + "\" on animate element is not a valid number",
 					"element", animEl);
 				continue animLoop;
 			}
@@ -419,31 +434,27 @@ public class XmlStylesheetParser {
 				try {
 					endValue = Double.parseDouble(advances.get(i).getAttributeValue("to"));
 				} catch(NullPointerException e) {
-					doc.msg().error("No \"to\" attribute found on advance element in animation of style sheet", "element", animEl);
+					msg.error("No \"to\" attribute found on advance element in animation of style sheet", "element", animEl);
 					continue animLoop;
 				} catch(NumberFormatException e) {
-					doc.msg().error(
-						"\"to\" attribute \"" + advances.get(i).getAttributeValue("to") + "\" on advance element is not a valid number",
-						"element", animEl);
+					msg.error("\"to\" attribute \"" + advances.get(i).getAttributeValue("to")
+						+ "\" on advance element is not a valid number", "element", animEl);
 					continue animLoop;
 				}
 				long duration;
 				try {
 					duration = Math.round(Double.parseDouble(advances.get(i).getAttributeValue("duration")) * 1000);
 				} catch(NullPointerException e) {
-					doc.msg()
-						.error("No \"duration\" attribute found on advance element inside animation of style sheet", "element", animEl);
+					msg.error("No \"duration\" attribute found on advance element inside animation of style sheet", "element", animEl);
 					continue animLoop;
 				} catch(NumberFormatException e) {
-					doc.msg().error(
-						"\"duration\" attribute \"" + advances.get(i).getAttributeValue("duration")
-							+ "\" on advance element is not a valid number", "element", animEl);
+					msg.error("\"duration\" attribute \"" + advances.get(i).getAttributeValue("duration")
+						+ "\" on advance element is not a valid number", "element", animEl);
 					continue animLoop;
 				}
 				if(duration < 0) {
-					doc.msg().error(
-						"\"duration\" attribute \"" + advances.get(i).getAttributeValue("duration")
-							+ "\" on advance element may not be negative", "element", animEl);
+					msg.error("\"duration\" attribute \"" + advances.get(i).getAttributeValue("duration")
+						+ "\" on advance element may not be negative", "element", animEl);
 					continue animLoop;
 				}
 				segments[i] = new AnimatedStyleSheet.AnimationSegment(endValue, duration);
@@ -452,20 +463,20 @@ public class XmlStylesheetParser {
 				.getAttributeValue("repeat"))));
 		}
 
-		parseStyleAssignments(ret, element, null, doc, classView);
+		parseStyleAssignments(ret, element, null, classView, msg);
 		ExpressionContextStack stack = new ExpressionContextStack();
 		for(Element category : element.getChildren("category")) {
 			try {
-				parseCategory(ret, category, stack, doc, classView);
+				parseCategory(ret, category, stack, classView, msg);
 			} catch(MuisParseException e) {
-				doc.msg().error("Could not parse style sheet category", e, "element", category);
+				msg.error("Could not parse style sheet category", e, "element", category);
 			}
 		}
 		return ret;
 	}
 
-	void parseStyleAssignments(ParsedStyleSheet ret, Element element, StateGroupTypeExpression<?> expr, MuisDocument doc,
-		MuisClassView classView) {
+	void parseStyleAssignments(ParsedStyleSheet ret, Element element, StateGroupTypeExpression<?> expr, MuisClassView classView,
+		MuisMessageCenter msg) {
 		for(org.jdom2.Content content : element.getContent()) {
 			if(content instanceof org.jdom2.Text) {
 				String value = ((org.jdom2.Text) content).getText();
@@ -475,24 +486,24 @@ public class XmlStylesheetParser {
 				try {
 					items = theExpressionParser.parseStructures(new ParseStructRoot(value), theExpressionParser.parseMatches(value));
 				} catch(ParseException e) {
-					doc.msg().error("Could not parse style expressions: " + value.trim(), e);
+					msg.error("Could not parse style expressions: " + value.trim(), e);
 					continue;
 				}
 				for(ParsedItem item : items) {
 					if(item instanceof ParsedStyleAssign) {
 						try {
-							apply(ret, expr, (ParsedStyleAssign) item, doc, classView);
+							apply(ret, expr, (ParsedStyleAssign) item, classView, msg);
 						} catch(MuisException e) {
-							doc.msg().error("Could not apply given style expression", e, "assignment", item);
+							msg.error("Could not apply given style expression", e, "assignment", item);
 						}
 					} else if(item instanceof ParsedStyleDomainAssign) {
 						try {
-							apply(ret, expr, (ParsedStyleDomainAssign) item, doc, classView);
+							apply(ret, expr, (ParsedStyleDomainAssign) item, classView, msg);
 						} catch(MuisException e) {
-							doc.msg().error("Could not apply given style expression", e, "assignment", item);
+							msg.error("Could not apply given style expression", e, "assignment", item);
 						}
 					} else {
-						doc.msg().error("Style assignment expected, not " + item.getClass().getSimpleName());
+						msg.error("Style assignment expected, not " + item.getClass().getSimpleName());
 						continue;
 					}
 				}
@@ -500,8 +511,8 @@ public class XmlStylesheetParser {
 		}
 	}
 
-	void parseCategory(ParsedStyleSheet ret, Element category, ExpressionContextStack stack, MuisDocument doc,
-		MuisClassView classView) throws MuisParseException {
+	void parseCategory(ParsedStyleSheet ret, Element category, ExpressionContextStack stack, MuisClassView classView, MuisMessageCenter msg)
+		throws MuisParseException {
 		stack.push();
 		String groupAttr = category.getAttributeValue("group");
 		if(groupAttr != null)
@@ -525,12 +536,12 @@ public class XmlStylesheetParser {
 			}
 		}
 		for(StateGroupTypeExpression<?> expr : stack)
-			parseStyleAssignments(ret, category, expr, doc, classView);
+			parseStyleAssignments(ret, category, expr, classView, msg);
 		for(Element subCategory : category.getChildren("category")) {
 			try {
-				parseCategory(ret, subCategory, stack, doc, classView);
+				parseCategory(ret, subCategory, stack, classView, msg);
 			} catch(MuisParseException e) {
-				doc.msg().error("Could not parse style sheet category", e, "element", subCategory);
+				msg.error("Could not parse style sheet category", e, "element", subCategory);
 			}
 		}
 		stack.pop();
@@ -617,47 +628,44 @@ public class XmlStylesheetParser {
 		return ret;
 	}
 
-	void apply(ParsedStyleSheet style, StateGroupTypeExpression<?> expr, ParsedStyleAssign assign, MuisDocument doc, MuisClassView classView)
-		throws MuisException {
+	void apply(ParsedStyleSheet style, StateGroupTypeExpression<?> expr, ParsedStyleAssign assign, MuisClassView classView,
+		MuisMessageCenter msg) throws MuisException {
 		StyleDomain domain = org.muis.core.style.StyleParsingUtils.getStyleDomain(assign.getNamespace(), assign.getDomain(), classView);
 		for(StyleAttribute<?> attr : domain) {
 			if(attr.getName().equals(assign.getAttribute())) {
 				// TODO Check validity of the value for the attribute. Maybe this should be done in the style sheet, though
-				style.setAnimatedValue(attr, expr, replaceIdentifiersAndStrings(assign.getValue(), style, attr, classView, doc.msg()));
+				style.setAnimatedValue(attr, expr, replaceIdentifiersAndStrings(assign.getValue(), style, attr, classView, msg));
 				return;
 			}
 		}
-		doc.msg().error(
-			"No attribute " + assign.getAttribute() + " in domain " + (assign.getNamespace() == null ? "" : assign.getNamespace() + ":")
-				+ assign.getDomain());
+		msg.error("No attribute " + assign.getAttribute() + " in domain "
+			+ (assign.getNamespace() == null ? "" : assign.getNamespace() + ":") + assign.getDomain());
 	}
 
-	void apply(ParsedStyleSheet style, StateGroupTypeExpression<?> expr, ParsedStyleDomainAssign assign, MuisDocument doc,
-		MuisClassView classView) throws MuisException {
+	void apply(ParsedStyleSheet style, StateGroupTypeExpression<?> expr, ParsedStyleDomainAssign assign, MuisClassView classView,
+		MuisMessageCenter msg) throws MuisException {
 		StyleDomain domain = org.muis.core.style.StyleParsingUtils.getStyleDomain(assign.getNamespace(), assign.getDomain(), classView);
 		for(int i = 0; i < assign.getAttributes().length; i++) {
 			for(StyleAttribute<?> attr : domain) {
 				if(attr.getName().equals(assign.getAttributes()[i])) {
 					// TODO Check validity of the value for the attribute. Maybe this should be done in the style sheet, though
 					try {
-						style.setAnimatedValue(attr, expr,
-							replaceIdentifiersAndStrings(assign.getValues()[i], style, attr, classView, doc.msg()));
+						style
+							.setAnimatedValue(attr, expr, replaceIdentifiersAndStrings(assign.getValues()[i], style, attr, classView, msg));
 					} catch(MuisException e) {
-						doc.msg().error("Could not interpret value " + assign.getValues()[i] + " for attribute " + attr, e, "attribute",
-							attr, "value", assign.getValues()[i]);
+						msg.error("Could not interpret value " + assign.getValues()[i] + " for attribute " + attr, e, "attribute", attr,
+							"value", assign.getValues()[i]);
 					}
 					return;
 				}
 			}
-			doc.msg().error(
-				"No attribute " + assign.getAttributes()[i] + " in domain "
-					+ (assign.getNamespace() == null ? "" : assign.getNamespace() + ":") + assign.getDomain());
+			msg.error("No attribute " + assign.getAttributes()[i] + " in domain "
+				+ (assign.getNamespace() == null ? "" : assign.getNamespace() + ":") + assign.getDomain());
 		}
 	}
 
 	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisClassView classView,
-		org.muis.core.mgr.MuisMessageCenter msg)
-		throws MuisException {
+		MuisMessageCenter msg) throws MuisException {
 		if(value instanceof prisms.lang.types.ParsedIdentifier) {
 			String text = ((prisms.lang.types.ParsedIdentifier) value).getName();
 			for(AnimatedStyleSheet.AnimatedVariable var : style) {

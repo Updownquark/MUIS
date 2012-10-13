@@ -100,8 +100,8 @@ public class MuisDocument {
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theCache = new MuisCache();
-		theMessageCenter = new MuisMessageCenter(this, null);
-		theDocumentStyle = new DocumentStyleSheet();
+		theMessageCenter = new MuisMessageCenter(env, this, null);
+		theDocumentStyle = new DocumentStyleSheet(this);
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
 		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;

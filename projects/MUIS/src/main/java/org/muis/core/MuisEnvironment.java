@@ -1,21 +1,36 @@
 package org.muis.core;
 
+import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.parser.MuisParser;
+import org.muis.core.style.sheet.StyleSheet;
 
 /** The environment that MUIS documents operate in */
 public class MuisEnvironment {
 	/** The location of the core toolkit */
-	public static final String CORE_TOOLKIT = "/MuisRegistry.xml";
+	public static final java.net.URL CORE_TOOLKIT = MuisEnvironment.class.getResource("/MuisRegistry.xml");
+
+	private static class EnvironmentStyle extends org.muis.core.style.sheet.AbstractStyleSheet {
+		@Override
+		protected void addDependency(StyleSheet depend) {
+			super.addDependency(depend);
+		}
+	}
 
 	private MuisParser theParser;
 
+	private MuisMessageCenter theMessageCenter;
+
 	private java.util.Map<String, MuisToolkit> theToolkits;
+
+	private EnvironmentStyle theStyle;
 
 	private final Object theToolkitLock;
 
 	/** Creates a MUIS environment */
 	public MuisEnvironment() {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
+		theMessageCenter = new MuisMessageCenter(this, null, null);
+		theStyle = new EnvironmentStyle();
 		theToolkitLock = new Object();
 	}
 
@@ -29,6 +44,29 @@ public class MuisEnvironment {
 		if(theParser != null)
 			throw new IllegalStateException("The environment parser may not be re-set");
 		theParser = parser;
+	}
+
+	/** @return The message center for this environment */
+	public MuisMessageCenter getMessageCenter() {
+		return theMessageCenter;
+	}
+
+	/**
+	 * @return The message center for this environment
+	 * @see #getMessageCenter()
+	 */
+	public MuisMessageCenter msg() {
+		return getMessageCenter();
+	}
+
+	/** @return The sum of all toolkit styles in this environment */
+	public StyleSheet getStyle() {
+		return theStyle;
+	}
+
+	/** @return All toolkits in this environment */
+	public Iterable<MuisToolkit> getToolkits() {
+		return prisms.util.ArrayUtils.immutableIterable(theToolkits.values());
 	}
 
 	/**
@@ -45,18 +83,22 @@ public class MuisEnvironment {
 			ret = theToolkits.get(location.toString());
 			if(ret != null)
 				return ret;
-			ret = theParser.getToolkit(location);
+			ret = new MuisToolkit(this, location);
+			theParser.fillToolkit(ret);
+			theStyle.addDependency(ret.getStyle());
 			theToolkits.put(location.toString(), ret);
+			theParser.fillToolkitStyles(ret);
+			ret.seal();
 		}
 		return ret;
 	}
 
 	/** @return The toolkit containing the core MUIS classes */
 	public MuisToolkit getCoreToolkit() {
-		try {
-			return getToolkit(MuisEnvironment.class.getResource(CORE_TOOLKIT));
-		} catch(NullPointerException e) {
+		if(CORE_TOOLKIT == null)
 			throw new IllegalStateException("No such resource " + CORE_TOOLKIT + " for core toolkit");
+		try {
+			return getToolkit(CORE_TOOLKIT);
 		} catch(java.io.IOException e) {
 			throw new IllegalStateException("Could not obtain core toolkit " + CORE_TOOLKIT, e);
 		} catch(org.muis.core.parser.MuisParseException e) {

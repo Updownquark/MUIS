@@ -101,7 +101,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	/** Creates a MUIS element */
 	public MuisElement() {
 		theListeners = new ListenerManager<>(MuisEventListener.class);
-		theMessageCenter = new MuisMessageCenter(theDocument, this);
+		theMessageCenter = new MuisMessageCenter(null, null, this);
 		theLifeCycleManager = new MuisLifeCycleManager(this, new MuisLifeCycleManager.ControlAcceptor() {
 			@Override
 			public void setController(Controller controller) {

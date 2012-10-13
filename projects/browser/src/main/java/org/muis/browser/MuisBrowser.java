@@ -61,10 +61,11 @@ public class MuisBrowser extends javax.swing.JPanel {
 		} catch(java.net.MalformedURLException e) {
 			throw new IllegalArgumentException(address + " is not a valid URL", e);
 		}
-		org.muis.core.parser.MuisParser muisParser = new org.muis.core.parser.MuisDomParser();
+		org.muis.core.MuisEnvironment env = new org.muis.core.MuisEnvironment();
+		env.setParser(new org.muis.core.parser.MuisDomParser(env));
 		org.muis.core.MuisDocument muisDoc;
 		try {
-			muisDoc = muisParser.parseDocument(url, new java.io.InputStreamReader(url.openStream()),
+			muisDoc = env.getParser().parseDocument(url, new java.io.InputStreamReader(url.openStream()),
 				new org.muis.core.MuisDocument.GraphicsGetter() {
 					@Override
 					public java.awt.Graphics2D getGraphics() {

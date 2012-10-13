@@ -12,21 +12,23 @@ import org.muis.core.*;
 
 /** Parses MUIS components using the JDOM library */
 public class MuisDomParser implements MuisParser {
-	java.util.HashMap<String, MuisToolkit> theToolkits;
+	private MuisEnvironment theEnvironment;
 
 	private XmlStylesheetParser theStyleSheetParser;
 
-	/** Creates a MUIS parser */
-	public MuisDomParser() {
-		theToolkits = new java.util.HashMap<String, MuisToolkit>();
+	/** @param env The environment for the parser to operate in */
+	public MuisDomParser(MuisEnvironment env) {
+		theEnvironment = env;
 		theStyleSheetParser = new XmlStylesheetParser();
 	}
 
 	@Override
-	public MuisToolkit getToolkit(URL url, MuisDocument doc) throws MuisParseException, IOException {
-		MuisToolkit ret = theToolkits.get(url.toString());
-		if(ret != null)
-			return ret;
+	public MuisEnvironment getEnvironment() {
+		return theEnvironment;
+	}
+
+	@Override
+	public MuisToolkit getToolkit(URL url) throws MuisParseException, IOException {
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(url.openStream())).getRootElement();
@@ -42,10 +44,7 @@ public class MuisDomParser implements MuisParser {
 		String version = rootEl.getChildTextTrim("version");
 		if(version == null)
 			throw new MuisParseException("No version element for toolkit at " + url);
-		if(doc == null || doc.getCoreToolkit() == null)
-			ret = new MuisToolkit(url, name, descrip, version);
-		else
-			ret = new MuisToolkit(url, name, descrip, version);
+		MuisToolkit ret = new MuisToolkit(url, name, descrip, version);
 		for(Element el : rootEl.getChildren()) {
 			String elName = el.getName();
 			if(elName.equals("name") || elName.equals("description") || elName.equals("version"))
@@ -55,10 +54,10 @@ public class MuisDomParser implements MuisParser {
 					if(dEl.getName().equals("depends")) {
 						MuisToolkit dependency;
 						try {
-							dependency = getToolkit(MuisUtils.resolveURL(url, dEl.getTextTrim()), doc);
+							dependency = theEnvironment.getToolkit(MuisUtils.resolveURL(url, dEl.getTextTrim()));
 						} catch(MuisException e) {
-							doc.msg().error(e.getMessage(), e);
-							continue;
+							throw new MuisParseException("Could not resolve or parse dependency " + dEl.getTextTrim() + " of toolkit "
+								+ url);
 						}
 						try {
 							ret.addDependency(dependency);
@@ -70,9 +69,9 @@ public class MuisDomParser implements MuisParser {
 						try {
 							classPath = MuisUtils.resolveURL(url, dEl.getTextTrim());
 						} catch(MuisException e) {
-							doc.msg().error("Could not resolve classpath " + dEl.getTextTrim() + " for toolkit \"" + name + "\" at " + url,
+							throw new MuisParseException("Could not resolve classpath " + dEl.getTextTrim() + " for toolkit \"" + name
+								+ "\" at " + url,
 								e);
-							continue;
 						}
 						try {
 							ret.addURL(classPath);
@@ -81,8 +80,6 @@ public class MuisDomParser implements MuisParser {
 						}
 					} else
 						throw new MuisParseException("Illegal element under " + elName);
-					if(doc == null || doc.getCoreToolkit() == null)
-						throw new MuisParseException("Default toolkit cannot have dependencies");
 				}
 			else if(elName.equals("types"))
 				for(Element tEl : el.getChildren()) {
@@ -187,22 +184,16 @@ public class MuisDomParser implements MuisParser {
 	@Override
 	public MuisDocument parseDocument(URL location, Reader reader, org.muis.core.MuisDocument.GraphicsGetter graphics)
 		throws MuisParseException, IOException {
-		MuisToolkit dt;
-		try {
-			dt = getToolkit(MuisDocument.class.getResource("/MuisRegistry.xml"), null);
-		} catch(MuisParseException e) {
-			throw new MuisParseException("Could not parse default toolkit", e);
-		}
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
 		} catch(org.jdom2.JDOMException e) {
 			throw new MuisParseException("Could not parse document XML", e);
 		}
-		MuisDocument doc = new MuisDocument(location, graphics);
+		MuisDocument doc = new MuisDocument(theEnvironment, location, graphics);
 		if(rootEl.getTextTrim().length() > 0)
 			doc.msg().warn("Text found under root element: " + rootEl.getTextTrim());
-		doc.initDocument(this, dt);
+		doc.initDocument(this);
 		initClassView(doc, rootEl);
 		Element [] head = rootEl.getChildren("head").toArray(new Element[0]);
 		if(head.length > 1)
@@ -233,7 +224,7 @@ public class MuisDomParser implements MuisParser {
 				continue;
 			doc.msg().error("Extra element " + el.getName() + " in document XML");
 		}
-		doc.getRoot().init(doc, doc.getCoreToolkit(), getClassView(doc, doc.getRoot(), body[0]), null, null, body[0].getName());
+		doc.getRoot().init(doc, theEnvironment.getCoreToolkit(), getClassView(doc, doc.getRoot(), body[0]), null, null, body[0].getName());
 		applyAttributes(doc.getRoot(), body[0]);
 		MuisElement [] content = parseContent(body[0], doc.getRoot());
 		doc.getRoot().initChildren(content);
@@ -251,7 +242,7 @@ public class MuisDomParser implements MuisParser {
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(MuisUtils.resolveURL(muis.getLocation(), ns.getURI()), muis);
+				toolkit = theEnvironment.getToolkit(MuisUtils.resolveURL(muis.getLocation(), ns.getURI()));
 			} catch(MuisParseException e) {
 				muis.msg().error("Could not parse toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
 				continue;
@@ -310,14 +301,14 @@ public class MuisDomParser implements MuisParser {
 				return null;
 			}
 		}
-		MuisClassView classView = new MuisClassView(doc);
+		MuisClassView classView = new MuisClassView(theEnvironment, null);
 		Element temp = styleSheetEl;
 		while(temp != null) {
 			for(org.jdom2.Namespace ns : temp.getNamespacesIntroduced()) {
 				if(classView.getToolkit(ns.getPrefix()) != null || ns.getURI().length() == 0)
 					continue;
 				try {
-					classView.addNamespace(ns.getPrefix(), getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc));
+					classView.addNamespace(ns.getPrefix(), theEnvironment.getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI())));
 				} catch(MuisException | IOException e) {
 					doc.msg().error(
 						"Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
@@ -346,7 +337,7 @@ public class MuisDomParser implements MuisParser {
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(new URL(ns.getURI()), doc);
+				toolkit = theEnvironment.getToolkit(new URL(ns.getURI()));
 			} catch(MalformedURLException e) {
 				doc.msg().error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
 				continue;
@@ -383,11 +374,11 @@ public class MuisDomParser implements MuisParser {
 	 * @return The class view for the element
 	 */
 	protected MuisClassView getClassView(MuisDocument doc, MuisElement muis, Element xml) {
-		MuisClassView ret = new MuisClassView(doc, muis);
+		MuisClassView ret = new MuisClassView(theEnvironment, muis);
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc);
+				toolkit = theEnvironment.getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()));
 			} catch(MalformedURLException e) {
 				muis.msg().error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
 				continue;
@@ -525,7 +516,7 @@ public class MuisDomParser implements MuisParser {
 					continue;
 				MuisTextElement newChild = new MuisTextElement(text);
 				ret = prisms.util.ArrayUtils.add(ret, newChild);
-				newChild.init(parent.getDocument(), parent.getDocument().getCoreToolkit(), parent.getDocument().getClassView(), parent,
+				newChild.init(parent.getDocument(), theEnvironment.getCoreToolkit(), parent.getDocument().getClassView(), parent,
 					null, content instanceof CDATA ? "CDATA" : null);
 				newChild.initChildren(new MuisElement[0]);
 			}
@@ -546,7 +537,7 @@ public class MuisDomParser implements MuisParser {
 			ns = null;
 		MuisToolkit toolkit = parent.getClassView().getToolkit(ns);
 		if(toolkit == null && ns == null)
-			toolkit = parent.getDocument().getCoreToolkit();
+			toolkit = theEnvironment.getCoreToolkit();
 		String nsStr = ns == null ? "default namespace" : "namespace " + ns;
 		if(toolkit == null)
 			throw new MuisParseException("No MUIS toolkit mapped to " + nsStr);

@@ -623,7 +623,7 @@ public class XmlStylesheetParser {
 		for(StyleAttribute<?> attr : domain) {
 			if(attr.getName().equals(assign.getAttribute())) {
 				// TODO Check validity of the value for the attribute. Maybe this should be done in the style sheet, though
-				style.setAnimatedValue(attr, expr, replaceIdentifiersAndStrings(assign.getValue(), style, attr, classView));
+				style.setAnimatedValue(attr, expr, replaceIdentifiersAndStrings(assign.getValue(), style, attr, classView, doc.msg()));
 				return;
 			}
 		}
@@ -640,7 +640,8 @@ public class XmlStylesheetParser {
 				if(attr.getName().equals(assign.getAttributes()[i])) {
 					// TODO Check validity of the value for the attribute. Maybe this should be done in the style sheet, though
 					try {
-						style.setAnimatedValue(attr, expr, replaceIdentifiersAndStrings(assign.getValues()[i], style, attr, classView));
+						style.setAnimatedValue(attr, expr,
+							replaceIdentifiersAndStrings(assign.getValues()[i], style, attr, classView, doc.msg()));
 					} catch(MuisException e) {
 						doc.msg().error("Could not interpret value " + assign.getValues()[i] + " for attribute " + attr, e, "attribute",
 							attr, "value", assign.getValues()[i]);
@@ -654,7 +655,8 @@ public class XmlStylesheetParser {
 		}
 	}
 
-	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisClassView classView)
+	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisClassView classView,
+		org.muis.core.mgr.MuisMessageCenter msg)
 		throws MuisException {
 		if(value instanceof prisms.lang.types.ParsedIdentifier) {
 			String text = ((prisms.lang.types.ParsedIdentifier) value).getName();
@@ -662,13 +664,13 @@ public class XmlStylesheetParser {
 				if(var.getName().equals(text))
 					return value;
 			}
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text));
+			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text, msg));
 		} else if(value instanceof prisms.lang.types.ParsedString) {
 			String text = ((prisms.lang.types.ParsedString) value).getValue();
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text));
+			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text, msg));
 		} else {
 			for(ParsedItem depend : value.getDependents()) {
-				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, classView);
+				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, classView, msg);
 				if(replace != depend)
 					value.replace(depend, replace);
 			}

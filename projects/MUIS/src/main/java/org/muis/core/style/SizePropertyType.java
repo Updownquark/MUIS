@@ -9,7 +9,7 @@ public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropert
 	public static final SizePropertyType instance = new SizePropertyType();
 
 	@Override
-	public Size parse(org.muis.core.MuisClassView classView, String value)
+	public Size parse(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
 	{
 		String number = value;
 		number = number.replaceAll("\\s", "");

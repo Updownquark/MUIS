@@ -23,6 +23,8 @@ import org.muis.core.style.Texture;
 import org.muis.core.style.attach.CompoundStyleListener;
 import org.muis.core.style.attach.ElementStyle;
 import org.muis.core.style.attach.StyleAttributeType;
+import org.muis.core.tags.State;
+import org.muis.core.tags.StateSupport;
 
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;

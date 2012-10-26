@@ -9,6 +9,8 @@ import java.util.ArrayList;
 
 import org.muis.core.style.BackgroundStyles;
 import org.muis.core.style.FontStyle;
+import org.muis.core.tags.State;
+import org.muis.core.tags.StateSupport;
 
 /** A set of utilities to use with core MUIS elements */
 public class MuisUtils

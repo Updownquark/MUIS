@@ -1,4 +1,4 @@
-package org.muis.core;
+package org.muis.core.tags;
 
 /** Tags a MuisElement as supporting a particular state (as an element in {@link StateSupport}) */
 public @interface State {

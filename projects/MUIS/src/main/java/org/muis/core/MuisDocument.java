@@ -43,13 +43,13 @@ public class MuisDocument {
 		java.awt.Graphics2D getGraphics();
 	}
 
+	private final MuisEnvironment theEnvironment;
+
 	private final java.net.URL theLocation;
 
 	private java.awt.Toolkit theAwtToolkit;
 
 	private org.muis.core.parser.MuisParser theParser;
-
-	private MuisToolkit theCoreToolkit;
 
 	private MuisClassView theClassView;
 
@@ -90,16 +90,18 @@ public class MuisDocument {
 	/**
 	 * Creates a document
 	 *
+	 * @param env The environment for the document
 	 * @param location The location of the file that this document was generated from
 	 * @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand
 	 */
-	public MuisDocument(java.net.URL location, GraphicsGetter graphics) {
+	public MuisDocument(MuisEnvironment env, java.net.URL location, GraphicsGetter graphics) {
+		theEnvironment = env;
 		theLocation = location;
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theCache = new MuisCache();
-		theMessageCenter = new MuisMessageCenter(this, null);
-		theDocumentStyle = new DocumentStyleSheet();
+		theMessageCenter = new MuisMessageCenter(env, this, null);
+		theDocumentStyle = new DocumentStyleSheet(this);
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
 		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;
@@ -111,17 +113,18 @@ public class MuisDocument {
 		theLocker = new MuisLocker();
 	}
 
-	/**
-	 * @param parser The parser that created this document
-	 * @param coreToolkit The toolkit to load core MUIS classes with
-	 */
-	public void initDocument(org.muis.core.parser.MuisParser parser, MuisToolkit coreToolkit) {
+	/** @param parser The parser that created this document */
+	public void initDocument(org.muis.core.parser.MuisParser parser) {
 		if(theParser != null)
 			throw new IllegalArgumentException("Cannot initialize a document twice");
 		theParser = parser;
-		theClassView = new MuisClassView(this);
+		theClassView = new MuisClassView(theEnvironment, null);
 		theHead = new MuisHeadSection();
-		theCoreToolkit = coreToolkit;
+	}
+
+	/** @return The environment that this document was created in */
+	public MuisEnvironment getEnvironment() {
+		return theEnvironment;
 	}
 
 	/** @return The location of the file that this document was generated from */
@@ -132,11 +135,6 @@ public class MuisDocument {
 	/** @return The parser that created this document */
 	public org.muis.core.parser.MuisParser getParser() {
 		return theParser;
-	}
-
-	/** @return The toolkit to load core MUIS classes from */
-	public MuisToolkit getCoreToolkit() {
-		return theCoreToolkit;
 	}
 
 	/** @return The class map that applies to the whole document */

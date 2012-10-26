@@ -1,5 +1,6 @@
 package org.muis.core.style.sheet;
 
+import org.muis.core.MuisElement;
 import org.muis.core.style.stateful.StateExpression;
 
 import prisms.util.ArrayUtils;
@@ -24,6 +25,8 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	 * @param type The element type of this condition, or null if this expression is to be type-independent.
 	 */
 	public StateGroupTypeExpression(StateExpression state, String group, Class<E> type) {
+		if(type == null)
+			type = (Class<E>) MuisElement.class;
 		theState = state;
 		theGroupName = group;
 		theType = type;
@@ -53,7 +56,7 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 
 	/**
 	 * Prioritizes expressions by type, state, and group, in that order
-	 * 
+	 *
 	 * @see org.muis.core.style.StyleExpression#getPriority()
 	 */
 	@Override

@@ -2,7 +2,7 @@ package org.muis.core;
 
 /** Facilitates instantiating MUIS classes via their namespace/tagname mappings */
 public class MuisClassView {
-	private final MuisDocument theDocument;
+	private final MuisEnvironment theEnvironment;
 
 	private final MuisElement theElement;
 
@@ -11,15 +11,13 @@ public class MuisClassView {
 	private boolean isSealed;
 
 	/**
-	 * @param doc The document to create the class view for
+	 * @param env The environment to create the class view in
 	 * @param el The element to create the class view for
 	 */
-	public MuisClassView(MuisDocument doc, MuisElement el) {
-		if(doc == null)
-			throw new NullPointerException("doc is null");
-		if(el != null && el.getDocument() != null && el.getDocument() != doc)
-			throw new IllegalArgumentException("Element is not in given document");
-		theDocument = doc;
+	public MuisClassView(MuisEnvironment env, MuisElement el) {
+		if(env == null)
+			throw new NullPointerException("environment is null");
+		theEnvironment=env;
 		theElement = el;
 		theNamespaces = new java.util.HashMap<String, MuisToolkit>();
 	}
@@ -27,27 +25,18 @@ public class MuisClassView {
 	/**
 	 * Creates a class map for an element
 	 *
-	 * @param el The element to create the class map for
+	 * @param el The element to create the class view for
 	 */
 	public MuisClassView(MuisElement el) {
-		this(el.getDocument(), el);
+		this(el.getDocument().getEnvironment(), el);
 	}
 
-	/**
-	 * Creates a class map for a document
-	 *
-	 * @param doc The document to create the class map for
-	 */
-	public MuisClassView(MuisDocument doc) {
-		this(doc, null);
+	/** @return The environment that this class view is in */
+	public MuisEnvironment getEnvironment() {
+		return theEnvironment;
 	}
 
-	/** @return The document that owns the class map */
-	public MuisDocument getDocument() {
-		return theDocument;
-	}
-
-	/** @return This class map's element */
+	/** @return This class view's element. Null for a document class view. */
 	public MuisElement getElement() {
 		return theElement;
 	}
@@ -88,13 +77,9 @@ public class MuisClassView {
 				if(theElement.getParent() != null)
 					ret = theElement.getParent().getClassView().getToolkit(namespace);
 				else
-					ret = theDocument.getClassView().getToolkit(namespace);
-			} else if(namespace == null) {
-				if(theElement != null)
-					ret = theElement.getDocument().getCoreToolkit();
-				else
-					ret = theDocument.getCoreToolkit();
-			}
+					ret = theElement.getDocument().getClassView().getToolkit(namespace);
+			} else if(namespace == null)
+				ret = theEnvironment.getCoreToolkit();
 		return ret;
 	}
 
@@ -132,7 +117,7 @@ public class MuisClassView {
 	}
 
 	/**
-	 * Gets the fully-qualified class name mapped to a tag name in this class map's domain
+	 * Gets the fully-qualified class name mapped to a tag name in this class view's domain
 	 *
 	 * @param namespace The namespace of the tag
 	 * @param tag The tag name

@@ -61,10 +61,11 @@ public class MuisBrowser extends javax.swing.JPanel {
 		} catch(java.net.MalformedURLException e) {
 			throw new IllegalArgumentException(address + " is not a valid URL", e);
 		}
-		org.muis.core.parser.MuisParser muisParser = new org.muis.core.parser.MuisDomParser();
+		org.muis.core.MuisEnvironment env = new org.muis.core.MuisEnvironment();
+		env.setParser(new org.muis.core.parser.MuisDomParser(env));
 		org.muis.core.MuisDocument muisDoc;
 		try {
-			muisDoc = muisParser.parseDocument(url, new java.io.InputStreamReader(url.openStream()),
+			muisDoc = env.getParser().parseDocument(url, new java.io.InputStreamReader(url.openStream()),
 				new org.muis.core.MuisDocument.GraphicsGetter() {
 					@Override
 					public java.awt.Graphics2D getGraphics() {
@@ -82,6 +83,8 @@ public class MuisBrowser extends javax.swing.JPanel {
 			((java.awt.Frame) getParent()).setTitle(muisDoc.getHead().getTitle());
 		repaint();
 		muisDoc.getRoot().addListener(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, theMessageListener);
+		for(MuisMessage msg : env.msg())
+			printMessage(msg);
 		for(MuisMessage msg : muisDoc.allMessages())
 			printMessage(msg);
 	}

@@ -53,7 +53,7 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 					return;
 				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute())) {
 					if(expr.getExpression() == event.getExpression())
-						continue;
+						break;
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
@@ -193,6 +193,7 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 			if(depRet.length > 0)
 				ret = ArrayUtils.addAll(ret, depRet);
 		}
+		java.util.Arrays.sort(ret, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
 		return ret;
 	}
 }

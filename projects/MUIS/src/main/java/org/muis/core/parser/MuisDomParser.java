@@ -9,43 +9,45 @@ import org.jdom2.CDATA;
 import org.jdom2.Element;
 import org.jdom2.Text;
 import org.muis.core.*;
+import org.muis.core.style.sheet.ParsedStyleSheet;
 
 /** Parses MUIS components using the JDOM library */
 public class MuisDomParser implements MuisParser {
-	java.util.HashMap<String, MuisToolkit> theToolkits;
+	private MuisEnvironment theEnvironment;
 
-	private XmlStylesheetParser theStyleSheetParser;
+	private StyleSheetParser theStyleSheetParser;
 
-	/** Creates a MUIS parser */
-	public MuisDomParser() {
-		theToolkits = new java.util.HashMap<String, MuisToolkit>();
-		theStyleSheetParser = new XmlStylesheetParser();
+	/** @param env The environment for the parser to operate in */
+	public MuisDomParser(MuisEnvironment env) {
+		theEnvironment = env;
+		theStyleSheetParser = new StyleSheetParser();
 	}
 
 	@Override
-	public MuisToolkit getToolkit(URL url, MuisDocument doc) throws MuisParseException, IOException {
-		MuisToolkit ret = theToolkits.get(url.toString());
-		if(ret != null)
-			return ret;
+	public MuisEnvironment getEnvironment() {
+		return theEnvironment;
+	}
+
+	@Override
+	public void fillToolkit(MuisToolkit toolkit) throws MuisParseException, IOException {
 		Element rootEl;
 		try {
-			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(url.openStream())).getRootElement();
+			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(toolkit.getURI().openStream())).getRootElement();
 		} catch(org.jdom2.JDOMException e) {
-			throw new MuisParseException("Could not parse toolkit XML for " + url, e);
+			throw new MuisParseException("Could not parse toolkit XML for " + toolkit.getURI(), e);
 		}
 		String name = rootEl.getChildTextTrim("name");
 		if(name == null)
-			throw new MuisParseException("No name element for toolkit at " + url);
+			throw new MuisParseException("No name element for toolkit at " + toolkit.getURI());
+		toolkit.setName(name);
 		String descrip = rootEl.getChildTextTrim("description");
 		if(descrip == null)
-			throw new MuisParseException("No description element for toolkit at " + url);
+			throw new MuisParseException("No description element for toolkit at " + toolkit.getURI());
+		toolkit.setDescription(descrip);
 		String version = rootEl.getChildTextTrim("version");
 		if(version == null)
-			throw new MuisParseException("No version element for toolkit at " + url);
-		if(doc == null || doc.getCoreToolkit() == null)
-			ret = new MuisToolkit(url, name, descrip, version);
-		else
-			ret = new MuisToolkit(url, name, descrip, version);
+			throw new MuisParseException("No version element for toolkit at " + toolkit.getURI());
+		toolkit.setVersion(version);
 		for(Element el : rootEl.getChildren()) {
 			String elName = el.getName();
 			if(elName.equals("name") || elName.equals("description") || elName.equals("version"))
@@ -55,34 +57,27 @@ public class MuisDomParser implements MuisParser {
 					if(dEl.getName().equals("depends")) {
 						MuisToolkit dependency;
 						try {
-							dependency = getToolkit(MuisUtils.resolveURL(url, dEl.getTextTrim()), doc);
+							dependency = theEnvironment.getToolkit(MuisUtils.resolveURL(toolkit.getURI(), dEl.getTextTrim()));
 						} catch(MuisException e) {
-							doc.msg().error(e.getMessage(), e);
-							continue;
+							throw new MuisParseException("Could not resolve or parse dependency " + dEl.getTextTrim() + " of toolkit "
+								+ toolkit.getURI());
 						}
-						try {
-							ret.addDependency(dependency);
-						} catch(MuisException e) {
-							throw new MuisParseException("Toolkit is already sealed?", e);
-						}
+						toolkit.addDependency(dependency);
 					} else if(dEl.getName().equals("classpath")) {
 						URL classPath;
 						try {
-							classPath = MuisUtils.resolveURL(url, dEl.getTextTrim());
+							classPath = MuisUtils.resolveURL(toolkit.getURI(), dEl.getTextTrim());
 						} catch(MuisException e) {
-							doc.msg().error("Could not resolve classpath " + dEl.getTextTrim() + " for toolkit \"" + name + "\" at " + url,
-								e);
-							continue;
+							throw new MuisParseException("Could not resolve classpath " + dEl.getTextTrim() + " for toolkit \"" + name
+								+ "\" at " + toolkit.getURI(), e);
 						}
 						try {
-							ret.addURL(classPath);
+							toolkit.addURL(classPath);
 						} catch(IllegalStateException e) {
 							throw new MuisParseException("Toolkit is already sealed?", e);
 						}
 					} else
 						throw new MuisParseException("Illegal element under " + elName);
-					if(doc == null || doc.getCoreToolkit() == null)
-						throw new MuisParseException("Default toolkit cannot have dependencies");
 				}
 			else if(elName.equals("types"))
 				for(Element tEl : el.getChildren()) {
@@ -99,11 +94,7 @@ public class MuisDomParser implements MuisParser {
 						throw new MuisParseException("Class name expected for element " + tEl.getName());
 					if(!checkClassName(className))
 						throw new MuisParseException("\"" + className + "\" is not a valid class name");
-					try {
-						ret.map(tagName, className);
-					} catch(MuisException e) {
-						throw new MuisParseException("Toolkit is already sealed?", e);
-					}
+					toolkit.map(tagName, className);
 				}
 			else if(elName.equals("resources"))
 				for(Element tEl : el.getChildren()) {
@@ -119,13 +110,11 @@ public class MuisDomParser implements MuisParser {
 					if(resourceLocation == null || resourceLocation.length() == 0)
 						throw new MuisParseException("Resource location expected for element " + tEl.getName());
 					// TODO check validity of resource location
-					try {
-						ret.mapResource(tagName, resourceLocation);
-					} catch(MuisException e) {
-						throw new MuisParseException("Toolkit is already sealed?", e);
-					}
+					toolkit.mapResource(tagName, resourceLocation);
 				}
-			else if(elName.equals("security"))
+			else if(elName.equals("style-sheet")) {
+				continue;
+			} else if(elName.equals("security"))
 				for(Element pEl : el.getChildren()) {
 					if(!pEl.getName().equals("permission"))
 						throw new MuisParseException("Illegal element under " + elName);
@@ -165,7 +154,7 @@ public class MuisDomParser implements MuisParser {
 								throw new MuisParseException("Invalid parameter " + subType.getParameters()[p].getName() + ": " + val);
 						}
 					try {
-						ret.addPermission(new MuisPermission(type, subType, params, req, explanation));
+						toolkit.addPermission(new MuisPermission(type, subType, params, req, explanation));
 					} catch(MuisException e) {
 						throw new MuisParseException("Unexpected MUIS Exception: toolkit is sealed?", e);
 					}
@@ -173,7 +162,22 @@ public class MuisDomParser implements MuisParser {
 			else
 				throw new MuisParseException("Illegal element \"" + elName + "\" under \"" + rootEl.getName() + "\"");
 		}
-		return ret;
+	}
+
+	@Override
+	public void fillToolkitStyles(MuisToolkit toolkit) throws IOException, MuisParseException {
+		Element rootEl;
+		try {
+			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(toolkit.getURI().openStream())).getRootElement();
+		} catch(org.jdom2.JDOMException e) {
+			throw new MuisParseException("Could not parse toolkit XML for " + toolkit.getURI(), e);
+		}
+		for(Element el : rootEl.getChildren("style-sheet")) {
+			ParsedStyleSheet styleSheet = parseStyleSheet(el, toolkit.getURI(), null, theEnvironment.msg());
+			if(styleSheet != null) {
+				toolkit.getStyle().addDependency(styleSheet);
+			}
+		}
 	}
 
 	private boolean checkTagName(String tagName) {
@@ -187,22 +191,16 @@ public class MuisDomParser implements MuisParser {
 	@Override
 	public MuisDocument parseDocument(URL location, Reader reader, org.muis.core.MuisDocument.GraphicsGetter graphics)
 		throws MuisParseException, IOException {
-		MuisToolkit dt;
-		try {
-			dt = getToolkit(MuisDocument.class.getResource("/MuisRegistry.xml"), null);
-		} catch(MuisParseException e) {
-			throw new MuisParseException("Could not parse default toolkit", e);
-		}
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
 		} catch(org.jdom2.JDOMException e) {
 			throw new MuisParseException("Could not parse document XML", e);
 		}
-		MuisDocument doc = new MuisDocument(location, graphics);
+		MuisDocument doc = new MuisDocument(theEnvironment, location, graphics);
 		if(rootEl.getTextTrim().length() > 0)
 			doc.msg().warn("Text found under root element: " + rootEl.getTextTrim());
-		doc.initDocument(this, dt);
+		doc.initDocument(this);
 		initClassView(doc, rootEl);
 		Element [] head = rootEl.getChildren("head").toArray(new Element[0]);
 		if(head.length > 1)
@@ -215,12 +213,10 @@ public class MuisDomParser implements MuisParser {
 				doc.getHead().setTitle(title);
 		}
 		for(Element styleSheetEl : head[0].getChildren("style-sheet")) {
-			org.muis.core.style.sheet.ParsedStyleSheet styleSheet = parseStyleSheet(styleSheetEl, doc);
+			ParsedStyleSheet styleSheet = parseStyleSheet(styleSheetEl, location, doc.getClassView(), doc.msg());
 			if(styleSheet != null) {
 				doc.getStyle().addStyleSheet(styleSheet);
-				// TODO It would be better to not call this until the entire document is parsed and ready to render--maybe add this to the
-				// EventQueue somehow
-				styleSheet.startAnimation();
+				styleSheet.seal();
 			}
 		}
 		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
@@ -233,7 +229,7 @@ public class MuisDomParser implements MuisParser {
 				continue;
 			doc.msg().error("Extra element " + el.getName() + " in document XML");
 		}
-		doc.getRoot().init(doc, doc.getCoreToolkit(), getClassView(doc, doc.getRoot(), body[0]), null, null, body[0].getName());
+		doc.getRoot().init(doc, theEnvironment.getCoreToolkit(), getClassView(doc, doc.getRoot(), body[0]), null, null, body[0].getName());
 		applyAttributes(doc.getRoot(), body[0]);
 		MuisElement [] content = parseContent(body[0], doc.getRoot());
 		doc.getRoot().initChildren(content);
@@ -251,7 +247,7 @@ public class MuisDomParser implements MuisParser {
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(MuisUtils.resolveURL(muis.getLocation(), ns.getURI()), muis);
+				toolkit = theEnvironment.getToolkit(MuisUtils.resolveURL(muis.getLocation(), ns.getURI()));
 			} catch(MuisParseException e) {
 				muis.msg().error("Could not parse toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
 				continue;
@@ -275,10 +271,13 @@ public class MuisDomParser implements MuisParser {
 	 * Parses a style sheet from a style-sheet element
 	 *
 	 * @param styleSheetEl The element specifying the style sheet to parse
-	 * @param doc The document to parse the style sheet for
+	 * @param reference The location of the file that the style sheet is referenced from
+	 * @param classView The classView to
+	 * @param msg The message center to report errors
 	 * @return The parsed style sheet, or null if an error occurred (the error must be documented in the document before returning null)
 	 */
-	protected org.muis.core.style.sheet.ParsedStyleSheet parseStyleSheet(Element styleSheetEl, MuisDocument doc) {
+	protected ParsedStyleSheet parseStyleSheet(Element styleSheetEl, URL reference, MuisClassView classView,
+		org.muis.core.mgr.MuisMessageCenter msg) {
 		String ssLocStr = styleSheetEl.getAttributeValue("ref");
 		if(ssLocStr != null) {
 			for(org.jdom2.Content content : styleSheetEl.getContent()) {
@@ -286,53 +285,61 @@ public class MuisDomParser implements MuisParser {
 					continue;
 				else if(content instanceof Text) {
 					if(((Text) content).getTextTrim().length() > 0) {
-						doc.msg().error(styleSheetEl.getName() + " elements that refer to a style sheet resource may not have text",
-							"element", styleSheetEl);
+						msg.error(styleSheetEl.getName() + " elements that refer to a style sheet resource may not have text", "element",
+							styleSheetEl);
 						return null;
 					}
 				} else {
-					doc.msg().error(styleSheetEl.getName() + " elements that refer to a style sheet resoruce may not have any entitiesy",
+					msg.error(styleSheetEl.getName() + " elements that refer to a style sheet resoruce may not have any entitiesy",
 						"element", styleSheetEl);
 					return null;
 				}
 			}
 			URL ssLoc;
 			try {
-				ssLoc = MuisUtils.resolveURL(doc.getLocation(), ssLocStr);
+				ssLoc = MuisUtils.resolveURL(reference, ssLocStr);
 			} catch(MuisException e) {
-				doc.msg().error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
+				msg.error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
 				return null;
 			}
 			try {
-				return theStyleSheetParser.parse(ssLoc, doc);
+				ParsedStyleSheet ret = theStyleSheetParser.parse(ssLoc, theEnvironment, msg);
+				ret.setLocation(ssLoc);
+				// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to the
+				// EventQueue somehow
+				ret.startAnimation();
+				return ret;
 			} catch(IOException | MuisParseException e) {
-				doc.msg().error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
+				msg.error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
 				return null;
 			}
 		}
-		MuisClassView classView = new MuisClassView(doc);
 		Element temp = styleSheetEl;
 		while(temp != null) {
 			for(org.jdom2.Namespace ns : temp.getNamespacesIntroduced()) {
 				if(classView.getToolkit(ns.getPrefix()) != null || ns.getURI().length() == 0)
 					continue;
 				try {
-					classView.addNamespace(ns.getPrefix(), getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc));
+					classView.addNamespace(ns.getPrefix(), theEnvironment.getToolkit(MuisUtils.resolveURL(reference, ns.getURI())));
 				} catch(MuisException | IOException e) {
-					doc.msg().error(
-						"Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
-							+ "\" could not be resolved or parsed for style-sheet", e, "element", styleSheetEl);
+					msg.error("Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
+						+ "\" could not be resolved or parsed for style-sheet", e, "element", styleSheetEl);
 					continue;
 				}
 			}
 			temp = temp.getParentElement();
 		}
-		try {
-			return theStyleSheetParser.parse(styleSheetEl, doc, classView);
+		msg.error("No ref specified on style sheet element");
+		return null;
+		/*try {
+			ParsedStyleSheet ret = theStyleSheetParser.parse(styleSheetEl, classView, msg);
+			ret.startAnimation();
+			ret.seal();
+			return ret;
 		} catch(MuisParseException e) {
-			doc.msg().error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
+			msg.error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
 			return null;
-		}
+		}*/
 	}
 
 	/**
@@ -346,7 +353,7 @@ public class MuisDomParser implements MuisParser {
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(new URL(ns.getURI()), doc);
+				toolkit = theEnvironment.getToolkit(new URL(ns.getURI()));
 			} catch(MalformedURLException e) {
 				doc.msg().error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
 				continue;
@@ -383,11 +390,11 @@ public class MuisDomParser implements MuisParser {
 	 * @return The class view for the element
 	 */
 	protected MuisClassView getClassView(MuisDocument doc, MuisElement muis, Element xml) {
-		MuisClassView ret = new MuisClassView(doc, muis);
+		MuisClassView ret = new MuisClassView(theEnvironment, muis);
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {
-				toolkit = getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()), doc);
+				toolkit = theEnvironment.getToolkit(MuisUtils.resolveURL(doc.getLocation(), ns.getURI()));
 			} catch(MalformedURLException e) {
 				muis.msg().error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
 				continue;
@@ -525,8 +532,8 @@ public class MuisDomParser implements MuisParser {
 					continue;
 				MuisTextElement newChild = new MuisTextElement(text);
 				ret = prisms.util.ArrayUtils.add(ret, newChild);
-				newChild.init(parent.getDocument(), parent.getDocument().getCoreToolkit(), parent.getDocument().getClassView(), parent,
-					null, content instanceof CDATA ? "CDATA" : null);
+				newChild.init(parent.getDocument(), theEnvironment.getCoreToolkit(), parent.getDocument().getClassView(), parent, null,
+					content instanceof CDATA ? "CDATA" : null);
 				newChild.initChildren(new MuisElement[0]);
 			}
 		return ret;
@@ -546,7 +553,7 @@ public class MuisDomParser implements MuisParser {
 			ns = null;
 		MuisToolkit toolkit = parent.getClassView().getToolkit(ns);
 		if(toolkit == null && ns == null)
-			toolkit = parent.getDocument().getCoreToolkit();
+			toolkit = theEnvironment.getCoreToolkit();
 		String nsStr = ns == null ? "default namespace" : "namespace " + ns;
 		if(toolkit == null)
 			throw new MuisParseException("No MUIS toolkit mapped to " + nsStr);

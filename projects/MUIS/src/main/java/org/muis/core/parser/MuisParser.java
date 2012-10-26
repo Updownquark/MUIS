@@ -2,24 +2,32 @@ package org.muis.core.parser;
 
 import java.io.IOException;
 
-import org.muis.core.MuisDocument;
+import org.muis.core.*;
 import org.muis.core.MuisDocument.GraphicsGetter;
-import org.muis.core.MuisElement;
-import org.muis.core.MuisToolkit;
 
 /** Parses MUIS components from XML */
 public interface MuisParser
 {
+	/** @return The environment that this parser operates in */
+	MuisEnvironment getEnvironment();
+
 	/**
-	 * Gets the toolkit at the given URL
+	 * Fills in the given toolkit's information by parsing its location
 	 *
-	 * @param url The URL to the MUIS toolkit
-	 * @param doc The document to parse the toolkit for
-	 * @return The parsed toolkit
-	 * @throws IOException If an error occurs reading the XML document
-	 * @throws MuisParseException If an error occurs parsing the toolkit
+	 * @param toolkit The toolkit to parse
+	 * @throws IOException If an error occurs reading the toolkit information
+	 * @throws MuisParseException If an error occurs parsing the toolkit information
 	 */
-	MuisToolkit getToolkit(java.net.URL url, MuisDocument doc) throws IOException, MuisParseException;
+	void fillToolkit(MuisToolkit toolkit) throws IOException, MuisParseException;
+
+	/**
+	 * Fills in the given toolkit's style information by parsing its location
+	 * 
+	 * @param toolkit The toolkit to parse
+	 * @throws IOException If an error occurs reading the toolkit or style information
+	 * @throws MuisParseException If an error occurs parsing the style information
+	 */
+	void fillToolkitStyles(MuisToolkit toolkit) throws IOException, MuisParseException;
 
 	/**
 	 * Parses a document from XML

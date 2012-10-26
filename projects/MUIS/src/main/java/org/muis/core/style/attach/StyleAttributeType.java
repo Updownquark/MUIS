@@ -1,7 +1,6 @@
 package org.muis.core.style.attach;
 
 import org.muis.core.MuisAttribute;
-import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.style.*;
 
@@ -25,14 +24,14 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	}
 
 	@Override
-	public MuisStyle parse(org.muis.core.MuisClassView classView, String value) throws MuisException {
-		MuisElement element = classView.getElement();
+	public MuisStyle parse(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
+		throws MuisException {
 		SealableStyle ret = new SealableStyle();
 		String [] styles = value.split(";");
 		for(String style : styles) {
 			int equalIdx = style.indexOf("=");
 			if(equalIdx < 0) {
-				element.msg().error("Invalid style: " + style + ".  No '='");
+				msg.error("Invalid style: " + style + ".  No '='");
 				continue;
 			}
 			String attr = style.substring(0, equalIdx).trim();
@@ -57,9 +56,9 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 			StyleDomain domain = StyleParsingUtils.getStyleDomain(ns, domainName, classView);
 
 			if(attrName != null)
-				applyStyleAttribute(ret, domain, attrName, valueStr, element.msg(), element.getClassView());
+				applyStyleAttribute(ret, domain, attrName, valueStr, msg, classView);
 			else
-				applyStyleSet(ret, domain, valueStr, element.msg(), element.getClassView());
+				applyStyleSet(ret, domain, valueStr, msg, classView);
 		}
 		ret.seal();
 		return ret;

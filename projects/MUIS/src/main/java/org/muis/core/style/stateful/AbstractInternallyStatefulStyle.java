@@ -21,14 +21,20 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		addListener(new StyleExpressionListener<StatefulStyle, StateExpression>() {
 			@Override
 			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
-				if(evt.getExpression() == null || evt.getExpression().matches(theCurrentState)) {
-					MuisStyle root;
-					if(evt.getRootStyle() instanceof MuisStyle)
-						root = (MuisStyle) evt.getRootStyle();
-					else
-						root = new StatefulStyleSample(evt.getRootStyle(), theCurrentState);
-					styleChanged(evt.getAttribute(), get(evt.getAttribute()), root);
+				if(evt.getExpression() != null && !evt.getExpression().matches(theCurrentState))
+					return;
+				for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(evt.getAttribute())) {
+					if(sev.getExpression() == evt.getExpression())
+						break;
+					if(sev.getExpression() == null || sev.getExpression().matches(theCurrentState))
+						return;
 				}
+				MuisStyle root;
+				if(evt.getRootStyle() instanceof MuisStyle)
+					root = (MuisStyle) evt.getRootStyle();
+				else
+					root = new StatefulStyleSample(evt.getRootStyle(), theCurrentState);
+				styleChanged(evt.getAttribute(), get(evt.getAttribute()), root);
 			}
 		});
 	}
@@ -187,15 +193,9 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		T ret = getLocal(attr);
 		if(ret != null)
 			return ret;
-		for(StatefulStyle dep : getConditionalDependencies()) {
-			if(dep instanceof InternallyStatefulStyle) {
-				if(((InternallyStatefulStyle) dep).isSetDeep(attr))
-					return ((InternallyStatefulStyle) dep).get(attr);
-			} else {
-				StatefulStyleSample sample = new StatefulStyleSample(dep, theCurrentState);
-				if(sample.isSetDeep(attr))
-					return sample.get(attr);
-			}
+		for(StyleExpressionValue<StateExpression, T> sev : getExpressions(attr)) {
+			if(sev.getExpression() == null || sev.getExpression().matches(theCurrentState))
+				return sev.getValue();
 		}
 		return attr.getDefault();
 	}

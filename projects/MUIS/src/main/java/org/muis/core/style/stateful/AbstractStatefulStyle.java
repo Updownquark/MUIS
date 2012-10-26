@@ -189,6 +189,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 			if(depRet.length > 0)
 				ret = ArrayUtils.addAll(ret, depRet);
 		}
+		java.util.Arrays.sort(ret, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
 		return ret;
 	}
 

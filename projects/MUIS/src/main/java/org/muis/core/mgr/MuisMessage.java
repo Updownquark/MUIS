@@ -3,6 +3,7 @@ package org.muis.core.mgr;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisEnvironment;
 
 /** Represents an error, warning, or information message attached to a MUIS element */
 public class MuisMessage {
@@ -17,6 +18,9 @@ public class MuisMessage {
 		/** Represents a fatal error which effectively disables an element or document */
 		FATAL;
 	}
+
+	/** The MUIS environment that the message is for */
+	public final MuisEnvironment environment;
 
 	/** The MUIS document that the message is for */
 	public final MuisDocument document;
@@ -38,16 +42,18 @@ public class MuisMessage {
 
 	private java.util.Map<String, Object> theParams;
 
-	private MuisMessage(MuisDocument doc, MuisElement anElement, Type aType, String aStage, String aText, Throwable anException,
+	private MuisMessage(MuisEnvironment env, MuisDocument doc, MuisElement anElement, Type aType, String aStage, String aText,
+		Throwable anException,
 		Object... params) {
-		if(doc == null && anElement == null)
-			throw new NullPointerException("A MUIS message cannot be created without a document or an element");
+		if(env == null)
+			throw new NullPointerException("A MUIS message cannot be created without an environment");
 		if(aType == null)
 			throw new NullPointerException("A MUIS message cannot be created without a type");
 		if(aStage == null)
 			throw new NullPointerException("A MUIS message cannot be created without a creation stage");
 		if(aText == null)
 			throw new NullPointerException("A MUIS message cannnot be created without a description");
+		environment = env;
 		document = doc;
 		element = anElement;
 		type = aType;
@@ -69,12 +75,16 @@ public class MuisMessage {
 		}
 	}
 
+	MuisMessage(MuisEnvironment env, Type aType, String aStage, String aText, Throwable anException, Object... params) {
+		this(env, null, null, aType, aStage, aText, anException, params);
+	}
+
 	MuisMessage(MuisDocument doc, Type aType, String aStage, String aText, Throwable anException, Object... params) {
-		this(doc, null, aType, aStage, aText, anException, params);
+		this(doc.getEnvironment(), doc, null, aType, aStage, aText, anException, params);
 	}
 
 	MuisMessage(MuisElement anElement, Type aType, String aStage, String aText, Throwable anException, Object... params) {
-		this(anElement.getDocument(), anElement, aType, aStage, aText, anException, params);
+		this(anElement.getDocument().getEnvironment(), anElement.getDocument(), anElement, aType, aStage, aText, anException, params);
 	}
 
 	/**

@@ -1,30 +1,20 @@
 
-//A sample style sheet for MUIS.  Just trying stuff out here.
+base:=../../../../base/MuisRegistry.xml
 
->>t=0->1@10
+>>t=0->1(.004)@10->0(.004)@10
 
-[base:block]
+[base:button]
 {
-	bg.texture=base:raised-round
-//	bg={
+	bg={
+		texture="base:raised-square"
+//		corner-radius="10%"
 //		color=blue
-//		corner-radius=5
-//	}
-	.hovered{
-		color=yellow
+		color=rgb(round(t*255), 0, round(255-t*255));
 	}
-}
-[base:block].clicked{
-	bg.color=purple
-}
-(group){
-	bg.color=green
-}
-(group)[base:button, base:block]{
-	.clicked{
-		bg.color=orange
+	.hover{
+//		bg.color=rgb(round(t*255), round(255-t*255), 0);
 	}
-}
-[body](group){
-	bg.color=gray
+	.click{
+//		light.source=360*t;
+	}
 }

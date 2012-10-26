@@ -41,9 +41,15 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			isRepeating = repeat;
 			long duration = 0;
 			double endValue = theStartValue;
-			for(AnimationSegment segment : animation) {
+			double start = theStartValue;
+			for(int s = 0; s < animation.length; s++) {
+				AnimationSegment segment = animation[s];
 				duration += segment.getDuration();
 				endValue = segment.getEndValue();
+				if(segment.getStepSize() > Math.abs(endValue - start))
+					throw new IllegalArgumentException("Step size (" + segment.getStepSize() + ") of segment " + s
+						+ " of animated variable " + theName + " is greater than its value change (" + Math.abs(endValue - start) + ")");
+				start = endValue;
 			}
 			theDuration = duration;
 			theEndValue = endValue;
@@ -92,7 +98,13 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			for(AnimationSegment segment : theAnimation) {
 				if(time <= segment.getDuration()) {
 					double p = time * 1.0 / segment.getDuration();
-					return start + p * (segment.getEndValue() - start);
+					double valueDiff = segment.getEndValue() - start;
+					double valueP = p * valueDiff;
+					if(segment.getStepSize() > 0) {
+						// make sure that valueP is at an even increment of the step size
+						valueP = Math.round(valueP / segment.getStepSize()) * segment.getStepSize();
+					}
+					return start + valueP;
 				}
 				time -= segment.getDuration();
 				start = segment.getEndValue();
@@ -110,21 +122,32 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	public static final class AnimationSegment {
 		private final double theEndValue;
 
+		private final double theStepSize;
+
 		private final long theDuration;
 
 		/**
 		 * @param endValue The value toward which the variable will progress
+		 * @param valueStepSize The value step size by which the variable's value will be incremented
 		 * @param duration The amount of time that will elapse between the beginning of this animation segment and the reaching of the end
 		 *            value
 		 */
-		public AnimationSegment(double endValue, long duration) {
+		public AnimationSegment(double endValue, double valueStepSize, long duration) {
+			if(valueStepSize < 0)
+				throw new IllegalArgumentException("Negative value size for animation segment");
 			theEndValue = endValue;
+			theStepSize = valueStepSize;
 			theDuration = duration;
 		}
 
 		/** @return The value toward which the variable will progress */
 		public double getEndValue() {
 			return theEndValue;
+		}
+
+		/** @return The value step size by which the variable's value will be incremented */
+		public double getStepSize() {
+			return theStepSize;
 		}
 
 		/** @return The amount of time that will elapse between the beginning of this animation segment and the reaching of the end value */
@@ -186,6 +209,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		isPaused = false;
 		if(theStartTime > 0)
 			return; // Already animating
+		if(theVariables.isEmpty())
+			return; // Nothing to animate
 		theStartTime = System.currentTimeMillis();
 		org.muis.motion.AnimationManager.get().start(new org.muis.motion.Animation() {
 			@Override
@@ -220,8 +245,13 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 * @param time The animation time to update with
 	 */
 	protected void setAnimationTime(long time) {
+		java.util.HashSet<String> changedVars = new java.util.HashSet<>();
 		for(AnimatedVariable var : theVariables) {
-			var.theCurrentValue = var.getValueFor(time);
+			double newVal = var.getValueFor(time);
+			if(newVal == var.theCurrentValue)
+				continue;
+			changedVars.add(var.getName());
+			var.theCurrentValue = newVal;
 			try {
 				theEnv.setVariable(var.getName(), var.getCurrentValue(), null, 0);
 			} catch(EvaluationException | NullPointerException e) {
@@ -231,7 +261,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		// Iterate through local attributes and fire events for variable-dependent values
 		for(StyleAttribute<?> attr : allLocal()) {
 			for(StyleExpressionValue<StateGroupTypeExpression<?>, ParsedItem> sev : getLocalAnimatedValues(attr)) {
-				if(hasVariable(sev.getValue()))
+				if(hasVariable(sev.getValue(), changedVars))
 					styleChanged(attr, sev.getExpression(), this);
 			}
 		}
@@ -260,13 +290,14 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	/**
 	 * @param value The expression to check
+	 * @param vars A set of variable names to check for. May be null to check for any variable.
 	 * @return Whether the given expression is dependent on the value of an external variable
 	 */
-	public static boolean hasVariable(ParsedItem value) {
+	public static boolean hasVariable(ParsedItem value, java.util.Set<String> vars) {
 		if(value instanceof prisms.lang.types.ParsedIdentifier)
-			return true;
+			return vars == null || vars.contains(((prisms.lang.types.ParsedIdentifier) value).getName());
 		for(ParsedItem depend : value.getDependents())
-			if(hasVariable(depend))
+			if(hasVariable(depend, vars))
 				return true;
 		return false;
 	}

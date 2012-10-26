@@ -495,14 +495,14 @@ public class Colors
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
 				throw new MuisException("RGB colors must be in the form of #XXXXXX where X is 0-9 or a-f");
-			return new Color(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
+			return rgb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
 		}
 		else if(str.startsWith("$"))
 		{
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
 				throw new MuisException("HSB colors must be in the form of #XXXXXX where X is 0-9 or a-f");
-			return Color.getHSBColor(hexInt(str, 0) / 255.0f, hexInt(str, 2) / 255.0f, hexInt(str, 4) / 255.0f);
+			return hsb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
 		}
 		else if(str.startsWith("rgb("))
 		{
@@ -531,7 +531,7 @@ public class Colors
 			if(r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255)
 				throw new MuisException("Colors that start with 'rgb('"
 					+ " must have three integers between 0 and 255 separated by commas: " + orig);
-			return new Color(r, g, b);
+			return rgb(r, g, b);
 		}
 		else if(str.startsWith("hsb("))
 		{
@@ -560,7 +560,7 @@ public class Colors
 			if(h < 0 || h > 255 || s < 0 || s > 255 || b < 0 || b > 255)
 				throw new MuisException("Colors that start with 'hsb('"
 					+ " must have three integers between 0 and 255 separated by commas: " + orig);
-			return Color.getHSBColor(h, s, b);
+			return hsb(h, s, b);
 		}
 		else
 		{
@@ -569,6 +569,26 @@ public class Colors
 				throw new MuisException("No color named " + str);
 			return ret;
 		}
+	}
+
+	/**
+	 * @param r The red component of the color, from 0-255
+	 * @param g The green component of the color, from 0-255
+	 * @param b The blue component of the color, from 0-255
+	 * @return The color with the given components
+	 */
+	public static Color rgb(int r, int g, int b) {
+		return new Color(r, g, b);
+	}
+
+	/**
+	 * @param h The hue for the color, from 0-255
+	 * @param s The saturation for the color, from 0-255
+	 * @param b The brightness for the color, from 0-255
+	 * @return The color with the given HSB values
+	 */
+	public static Color hsb(int h, int s, int b) {
+		return Color.getHSBColor(h / 255f, s / 255f, b / 255f);
 	}
 
 	private static final String hexDigits = "0123456789abcdef";

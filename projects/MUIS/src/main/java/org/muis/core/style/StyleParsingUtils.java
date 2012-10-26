@@ -6,7 +6,7 @@ import org.muis.core.MuisException;
 public class StyleParsingUtils {
 	/**
 	 * Gets a style domain
-	 * 
+	 *
 	 * @param ns The namespace specifying the toolkit that the domain is from. May be null.
 	 * @param domainName The mapped name of the domain class within its toolkit
 	 * @param classView The class view to retrieve the domain class from
@@ -75,7 +75,7 @@ public class StyleParsingUtils {
 
 		Object value;
 		try {
-			value = styleAttr.getType().parse(classView, valueStr);
+			value = styleAttr.getType().parse(classView, valueStr, messager);
 		} catch(org.muis.core.MuisException e) {
 			messager
 				.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(), e);

@@ -10,6 +10,25 @@ import prisms.util.ArrayUtils;
  */
 public class StyleValueHolder<E extends StyleExpression<E>, V>
 	implements Cloneable {
+	/** Compares style expressions such that higher priority ones come out first */
+	public static final java.util.Comparator<StyleExpressionValue<? extends StyleExpression<?>, ?>> STYLE_EXPRESSION_COMPARE;
+
+	static {
+		STYLE_EXPRESSION_COMPARE = new java.util.Comparator<StyleExpressionValue<? extends StyleExpression<?>, ?>>() {
+			@Override
+			public int compare(StyleExpressionValue<? extends StyleExpression<?>, ?> o1,
+				StyleExpressionValue<? extends StyleExpression<?>, ?> o2) {
+				StyleExpression<?> exp1 = o1.getExpression();
+				StyleExpression<?> exp2 = o2.getExpression();
+				if(exp1 == null)
+					return exp2 == null ? 0 : 1;
+				if(exp2 == null)
+					return -1;
+				return exp2.getPriority() - exp1.getPriority();
+			}
+		};
+	}
+
 	private StyleExpressionValue<E, V> [] theValues;
 
 	private boolean isSorted;
@@ -54,18 +73,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 		if(isSorted)
 			return theValues;
 		StyleExpressionValue<E, V> [] values = theValues;
-		java.util.Arrays.sort(values, new java.util.Comparator<StyleExpressionValue<E, V>>() {
-			@Override
-			public int compare(StyleExpressionValue<E, V> o1, StyleExpressionValue<E, V> o2) {
-				E exp1 = o1.getExpression();
-				E exp2 = o2.getExpression();
-				if(exp1 == null)
-					return exp2 == null ? 0 : 1;
-				if(exp2 == null)
-					return -1;
-				return exp2.getPriority() - exp1.getPriority();
-			}
-		});
+		java.util.Arrays.sort(values, STYLE_EXPRESSION_COMPARE);
 		if(values != theValues) {
 			theValues = values;
 			isSorted = true;

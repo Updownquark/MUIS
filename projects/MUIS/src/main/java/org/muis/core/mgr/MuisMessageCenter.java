@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisEnvironment;
 import org.muis.core.mgr.MuisMessage.Type;
 
 /** Defines a center that can store MUIS messages */
@@ -12,6 +13,8 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 
 	private MuisMessage.Type theWorstMessageType;
 
+	private MuisEnvironment theEnvironment;
+
 	private MuisDocument theDocument;
 
 	private MuisElement theElement;
@@ -19,21 +22,36 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	/**
 	 * Creates a message center
 	 *
-	 * @param doc The document that this message center is for
-	 * @param element The element that this message center is for (may be null if this message center is document-level)
+	 * @param env The environment that this message center is for
+	 * @param doc The document that this message center is for (may be null for the message center is environment-level)
+	 * @param element The element that this message center is for (may be null if this message center is document- or environment-level)
 	 */
-	public MuisMessageCenter(MuisDocument doc, MuisElement element) {
+	public MuisMessageCenter(MuisEnvironment env, MuisDocument doc, MuisElement element) {
 		theMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theEnvironment = env;
 		theDocument = doc;
 		theElement = element;
 	}
 
-	/** @return This message center's document */
+	/** @return This message center's environment */
+	public org.muis.core.MuisEnvironment getEnvironment() {
+		if(theElement != null)
+			return theElement.getDocument().getEnvironment();
+		else if(theDocument != null)
+			return theDocument.getEnvironment();
+		else
+			return theEnvironment;
+	}
+
+	/** @return This message center's document (will be null if this message center is environment-level) */
 	public MuisDocument getDocument() {
+		if(theElement != null)
+			return theElement.getDocument();
+		else
 		return theDocument;
 	}
 
-	/** @return This message center's element (will be null if this message center is document-level) */
+	/** @return This message center's element (will be null if this message center is document- or environment-level) */
 	public MuisElement getElement() {
 		return theElement;
 	}
@@ -50,8 +68,10 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		MuisMessage message;
 		if(theElement != null)
 			message = new MuisMessage(theElement, type, theElement.life().getStage(), text, exception, params);
-		else
+		else if(theDocument != null)
 			message = new MuisMessage(theDocument, type, theDocument.getRoot().life().getStage(), text, exception, params);
+		else
+			message = new MuisMessage(theEnvironment, type, org.muis.core.MuisConstants.CoreStage.READY.name(), text, exception, params);
 		theMessages.add(message);
 		if(theWorstMessageType == null || type.compareTo(theWorstMessageType) > 0)
 			theWorstMessageType = type;

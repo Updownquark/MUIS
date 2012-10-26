@@ -9,7 +9,7 @@ public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPro
 	public static final PositionPropertyType instance = new PositionPropertyType();
 
 	@Override
-	public Position parse(org.muis.core.MuisClassView classView, String value)
+	public Position parse(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
 	{
 		String number = value;
 		number = number.replaceAll("\\s", "");

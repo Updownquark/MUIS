@@ -14,7 +14,7 @@ import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /** A list that manages child elements for a parent element */
-public class ChildList implements List<MuisElement> {
+public class ChildList implements MutableElementList<MuisElement> {
 	@SuppressWarnings("rawtypes")
 	private final ListenerManager<MuisEventListener> theChildListeners;
 
@@ -29,7 +29,7 @@ public class ChildList implements List<MuisElement> {
 		theChildren = new MuisElement[0];
 	}
 
-	/** @return The parent whose children this list manages */
+	@Override
 	public MuisElement getParent() {
 		return theParent;
 	}
@@ -46,20 +46,14 @@ public class ChildList implements List<MuisElement> {
 				child.removeListener(listener);
 	}
 
-	/**
-	 * Adds a listener for an event type to this element's direct children
-	 *
-	 * @param <T> The type of the property that the event represents
-	 * @param type The event type to listen for
-	 * @param listener The listener to notify when an event of the given type occurs
-	 */
+	@Override
 	public final <T> void addChildListener(MuisEventType<T> type, MuisEventListener<? super T> listener) {
 		theChildListeners.addListener(type, listener);
 		for(MuisElement child : theChildren)
 			child.addListener(type, listener);
 	}
 
-	/** @param listener The listener to remove from this element's children */
+	@Override
 	public final void removeChildListener(MuisEventListener<?> listener) {
 		theChildListeners.removeListener(listener);
 		for(MuisElement child : theChildren)
@@ -112,7 +106,7 @@ public class ChildList implements List<MuisElement> {
 		return theChildren[index];
 	}
 
-	/** @return The last child in this list */
+	@Override
 	public MuisElement getLast() {
 		MuisElement [] children = theChildren;
 		return children[children.length - 1];
@@ -148,11 +142,7 @@ public class ChildList implements List<MuisElement> {
 		return ret;
 	}
 
-	/**
-	 * @param x The x-coordinate of a point relative to this element's upper left corner
-	 * @param y The y-coordinate of a point relative to this element's upper left corner
-	 * @return All children of this element whose bounds contain the given point
-	 */
+	@Override
 	public final MuisElement [] at(int x, int y) {
 		MuisElement [] children = sortByZ();
 		MuisElement [] ret = new MuisElement[0];
@@ -168,11 +158,7 @@ public class ChildList implements List<MuisElement> {
 		return ret;
 	}
 
-	/**
-	 * This operation is useful for rendering children in correct sequence and in determining which elements should receive events first.
-	 *
-	 * @return The children in this list, sorted by z-index
-	 */
+	@Override
 	public MuisElement [] sortByZ() {
 		MuisElement [] children = toArray();
 		if(children.length < 2)
@@ -319,10 +305,7 @@ public class ChildList implements List<MuisElement> {
 		return !toAdd.isEmpty();
 	}
 
-	/**
-	 * @param children The children to add to this list
-	 * @return Whether the list was modified
-	 */
+	@Override
 	public boolean addAll(MuisElement [] children) {
 		return addAll(Arrays.asList(children));
 	}
@@ -355,11 +338,7 @@ public class ChildList implements List<MuisElement> {
 		return !toAdd.isEmpty();
 	}
 
-	/**
-	 * @param index The index to insert the new children at
-	 * @param children The children to add to this list
-	 * @return Whether the list was modified
-	 */
+	@Override
 	public boolean addAll(int index, MuisElement [] children) {
 		return addAll(index, Arrays.asList(children));
 	}

@@ -6,6 +6,7 @@ import static org.muis.core.MuisConstants.Events.*;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.List;
 
 import org.muis.core.MuisConstants.CoreStage;
 import org.muis.core.MuisConstants.States;
@@ -46,59 +47,42 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
 
 	private final MuisLifeCycleManager theLifeCycleManager;
-
 	private MuisLifeCycleManager.Controller theLifeCycleController;
-
 	private final StateEngine theStateEngine;
-
 	private final MuisMessageCenter theMessageCenter;
 
 	private MuisDocument theDocument;
-
 	private MuisToolkit theToolkit;
-
 	private MuisElement theParent;
-
 	private MuisClassView theClassView;
 
 	private String theNamespace;
-
 	private String theTagName;
 
 	private final AttributeManager theAttributeManager;
-
 	private final ChildList theChildren;
 
+	private final ImmutableChildList theExposedChildren;
 	private final ElementStyle theStyle;
-
 	private final CompoundStyleListener theDefaultStyleListener;
-
-	private int theX;
-
-	private int theY;
-
-	private int theZ;
-
-	private int theW;
-
-	private int theH;
-
-	private SizePolicy theHSizer;
-
-	private SizePolicy theVSizer;
 
 	@SuppressWarnings({"rawtypes"})
 	private final ListenerManager<MuisEventListener> theListeners;
 
-	private boolean isFocusable;
-
-	private Rectangle theCacheBounds;
-
-	private long thePaintDirtyTime;
-
-	private long theLayoutDirtyTime;
-
 	private final CoreStateControllers theStateControllers;
+
+	private int theX;
+	private int theY;
+	private int theZ;
+	private int theW;
+	private int theH;
+	private SizePolicy theHSizer;
+	private SizePolicy theVSizer;
+
+	private boolean isFocusable;
+	private Rectangle theCacheBounds;
+	private long thePaintDirtyTime;
+	private long theLayoutDirtyTime;
 
 	/** Creates a MUIS element */
 	public MuisElement() {
@@ -119,6 +103,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				lastStage = stage.toString();
 			}
 		theChildren = new ChildList(this);
+		theExposedChildren = new ImmutableChildList(theChildren);
 		theAttributeManager = new AttributeManager(this);
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
@@ -511,18 +496,23 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		fireEvent(new MuisEvent<MuisElement>(ELEMENT_MOVED, theParent), false, false);
 	}
 
-	/** @return An augmented {@link java.util.List list} of this element's children */
-	public ChildList getChildren() {
-		return theChildren;
+	/** @return An unmodifiable list of this element's children */
+	public ImmutableChildList getChildren() {
+		return theExposedChildren;
 	}
 
 	/**
 	 * Short-hand for {@link #getChildren()}
 	 *
-	 * @return An augmented {@link java.util.List list} of this element's children
+	 * @return An unmodifiable list of this element's children
 	 */
-	public ChildList ch() {
+	public ImmutableChildList ch() {
 		return getChildren();
+	}
+
+	/** @return An augmented, modifiable {@link List} of this element's children */
+	protected ChildList getChildManager() {
+		return theChildren;
 	}
 
 	/**

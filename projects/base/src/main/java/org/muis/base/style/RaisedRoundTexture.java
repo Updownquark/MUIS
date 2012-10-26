@@ -119,10 +119,10 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 	{
 		int w = element.getWidth();
 		int h = element.getHeight();
-		org.muis.core.style.Size radius = element.getStyle().get(org.muis.core.style.BackgroundStyles.cornerRadius);
+		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
-		Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle());
+		Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf());
 		graphics.setColor(bg);
 		if(area == null || (area.y <= h - hRad && area.y + area.height >= hRad))
 			graphics.fillRect(0, hRad, w, h - hRad * 2);
@@ -138,10 +138,10 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 		int maxRad = wRad;
 		if(hRad > maxRad)
 			maxRad = hRad;
-		float source = element.getStyle().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
-		float maxShading = element.getStyle().get(org.muis.core.style.LightedStyle.maxShadingAmount).floatValue();
-		Color light = element.getStyle().get(org.muis.core.style.LightedStyle.lightColor);
-		Color shadow = element.getStyle().get(org.muis.core.style.LightedStyle.shadowColor);
+		float source = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
+		float maxShading = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.maxShadingAmount).floatValue();
+		Color light = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightColor);
+		Color shadow = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.shadowColor);
 		int bgRGB = bg.getRGB();
 		int lightRGB = light.getRGB() & 0xffffff;
 		int shadowRGB = shadow.getRGB() & 0xffffff;
@@ -160,12 +160,12 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 			while(tempSource < 0)
 				tempSource += 360;
 			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f)); // If we need to generate, step it up
-			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key);
 			if(cr.getRadius() < maxRad)
 			{
 				// Regenerate with a big enough radius
 				element.getDocument().getCache().remove(cornerRendering, key);
-				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key, true);
+				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key);
 			}
 
 			// Draw the corner

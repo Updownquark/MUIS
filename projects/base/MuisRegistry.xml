@@ -5,14 +5,15 @@
 	<description>
 		This toolkit provides basic MUIS functionality
 	</description>
-	<version>09Jul2012</version>
+	<version>10Jul2012</version>
 	<dependencies>
 		<classpath>classes</classpath>
 	</dependencies>
+	<style-sheet ref="src/main/styles/base-styles.mss" />
 	<types>
         <type tag="block">org.muis.base.widget.Block</type>
-        <type tag="label">org.muis.base.widget.Label</type>
         <type tag="image">org.muis.base.widget.Image</type>
+        <type tag="button">org.muis.base.widget.Button</type>
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>
         <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>

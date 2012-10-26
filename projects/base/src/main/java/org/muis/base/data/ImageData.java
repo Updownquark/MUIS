@@ -158,7 +158,7 @@ public class ImageData implements Iterable<Image>
 	@Override
 	public Iterator<Image> iterator()
 	{
-		return prisms.util.ArrayUtils.iterator(theImages);
+		return prisms.util.ArrayUtils.iterator(theImages, true);
 	}
 
 	/**

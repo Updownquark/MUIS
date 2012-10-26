@@ -1,155 +1,111 @@
 package org.muis.base.layout;
 
-import org.muis.core.MuisAttribute;
+import static org.muis.base.layout.LayoutConstants.*;
+
 import org.muis.core.MuisElement;
-import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
+import org.muis.util.CompoundListener;
+import org.muis.util.CompoundListener.CompoundElementListener;
 
 /**
  * Lays components out by {@link Region regions}. Containers with this layout may have any number of components in any region except center,
  * which may have zero or one component in it.
  */
-public class BorderLayout implements org.muis.core.MuisLayout
-{
-	private static class RelayoutListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
-	{
-		private final MuisElement theParent;
+public class BorderLayout implements org.muis.core.MuisLayout {
+	private final CompoundListener.MultiElementCompoundListener theListener;
 
-		RelayoutListener(MuisElement parent)
-		{
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.region)
-			{
-				switch (element.getAttribute(LayoutConstants.region))
-				{
-				case left:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.bottom);
-					element.acceptAttribute(LayoutConstants.right);
-					break;
-				case top:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.right);
-					element.acceptAttribute(LayoutConstants.bottom);
-					break;
-				case right:
-					element.rejectAttribute(LayoutConstants.right);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.bottom);
-					element.acceptAttribute(LayoutConstants.left);
-					break;
-				case bottom:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.bottom);
-					element.rejectAttribute(LayoutConstants.right);
-					element.acceptAttribute(LayoutConstants.top);
-					break;
-				case center:
-					element.rejectAttribute(LayoutConstants.left);
-					element.rejectAttribute(LayoutConstants.right);
-					element.rejectAttribute(LayoutConstants.top);
-					element.rejectAttribute(LayoutConstants.bottom);
-					break;
-				}
+	/** Creates a border layout */
+	public BorderLayout() {
+		theListener = CompoundListener.create(this);
+		theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.layout);
+		theListener.eachChild(new CompoundListener.IndividualElementListener() {
+			@Override
+			public void individual(MuisElement element, CompoundElementListener listener) {
+				listener.chain(Region.left.name()).acceptAll(width, minWidth, maxWidth, right, minRight, maxRight)
+					.onChange(CompoundListener.layout);
+				listener.chain(Region.right.name()).acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft)
+					.onChange(CompoundListener.layout);
+				listener.chain(Region.top.name()).acceptAll(height, minHeight, maxHeight, bottom, minBottom, maxBottom)
+					.onChange(CompoundListener.layout);
+				listener.chain(Region.bottom.name()).acceptAll(height, minHeight, maxHeight, top, minTop, maxTop)
+					.onChange(CompoundListener.layout);
+				update(element, listener);
 			}
-			if(attr == LayoutConstants.region || attr == LayoutConstants.left || attr == LayoutConstants.right
-				|| attr == LayoutConstants.top || attr == LayoutConstants.bottom || attr == LayoutConstants.width
-				|| attr == LayoutConstants.height || attr == LayoutConstants.minWidth || attr == LayoutConstants.minHeight)
-				theParent.relayout(false);
-		}
 
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
+			@Override
+			public void update(MuisElement element, CompoundElementListener listener) {
+				listener.chain(Region.left.name()).setActive(element.atts().get(region) == Region.left);
+				listener.chain(Region.right.name()).setActive(element.atts().get(region) == Region.right);
+				listener.chain(Region.top.name()).setActive(element.atts().get(region) == Region.top);
+				listener.chain(Region.bottom.name()).setActive(element.atts().get(region) == Region.bottom);
+			}
+		});
 	}
 
 	@Override
-	public void initChildren(MuisElement parent, MuisElement [] children)
-	{
-		RelayoutListener listener = new RelayoutListener(parent);
-		for(MuisElement child : children)
-		{
-			child.requireAttribute(LayoutConstants.region);
-			child.acceptAttribute(LayoutConstants.width);
-			child.acceptAttribute(LayoutConstants.height);
-			child.acceptAttribute(LayoutConstants.minWidth);
-			child.acceptAttribute(LayoutConstants.minHeight);
-			child.addListener(MuisElement.ATTRIBUTE_SET, listener);
-		}
+	public void initChildren(MuisElement parent, MuisElement [] children) {
+		theListener.listenerFor(parent);
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
-	{
+	public void childAdded(MuisElement parent, MuisElement child) {
+	}
+
+	@Override
+	public void childRemoved(MuisElement parent, MuisElement child) {
+	}
+
+	@Override
+	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight) {
 
 		SimpleSizePolicy ret = new SimpleSizePolicy();
-		for(MuisElement child : children)
-		{
+		for(MuisElement child : children) {
 			Position pos;
-			Size size = child.getAttribute(LayoutConstants.width);
-			Size minSize = child.getAttribute(LayoutConstants.minWidth);
+			Size size = child.atts().get(LayoutConstants.width);
+			Size minSize = child.atts().get(LayoutConstants.minWidth);
 			SizePolicy sizer;
-			switch (child.getAttribute(LayoutConstants.region))
-			{
+			switch (child.atts().get(LayoutConstants.region)) {
 			case left:
-				pos = child.getAttribute(LayoutConstants.right);
-				if(pos != null && !pos.getUnit().isRelative())
-				{
+				pos = child.atts().get(LayoutConstants.right);
+				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
 				}
-				else if(size != null && !size.getUnit().isRelative())
-				{
+				else if(size != null && !size.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + size.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + size.evaluate(0));
 				}
-				else
-				{
+				else {
 					sizer = child.getWSizer(parentHeight);
 					ret.setMin(ret.getMin() + sizer.getMin());
 					ret.setPreferred(ret.getPreferred() + sizer.getPreferred());
 				}
 				break;
 			case right:
-				pos = child.getAttribute(LayoutConstants.right);
-				if(pos != null && !pos.getUnit().isRelative())
-				{
+				pos = child.atts().get(LayoutConstants.right);
+				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
 				}
-				else if(size != null && !size.getUnit().isRelative())
-				{
+				else if(size != null && !size.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + size.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + size.evaluate(0));
 				}
-				else
-				{
+				else {
 					sizer = child.getWSizer(parentHeight);
 					ret.setMin(ret.getMin() + sizer.getMin());
 					ret.setPreferred(ret.getPreferred() + sizer.getPreferred());
 				}
 				break;
 			case top:
-				if(size != null && !size.getUnit().isRelative())
-				{
+				if(size != null && !size.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + size.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + size.evaluate(0));
 				}
-				else
-				{
+				else {
 					sizer = child.getWSizer(parentHeight);
 					ret.setMin(ret.getMin() + sizer.getMin());
 					ret.setPreferred(ret.getPreferred() + sizer.getPreferred());
@@ -164,30 +120,20 @@ public class BorderLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
-	{
+	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children)
-	{
+	public void layout(MuisElement parent, MuisElement [] children) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void remove(MuisElement parent)
-	{
+	public void remove(MuisElement parent) {
 		for(MuisElement child : parent.getChildren())
-		{
-			child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutListener.class);
-			child.rejectAttribute(LayoutConstants.region);
-			child.rejectAttribute(LayoutConstants.width);
-			child.rejectAttribute(LayoutConstants.height);
-			child.rejectAttribute(LayoutConstants.minWidth);
-			child.rejectAttribute(LayoutConstants.minHeight);
-		}
+			childRemoved(parent, child);
 	}
 }

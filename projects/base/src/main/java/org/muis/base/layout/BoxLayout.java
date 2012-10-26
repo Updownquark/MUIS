@@ -1,11 +1,14 @@
 package org.muis.base.layout;
 
+import static org.muis.base.layout.LayoutConstants.*;
+
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.event.MuisEvent;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
+import org.muis.core.style.Size;
+import org.muis.util.CompoundListener;
 
 /**
  * Lays out children one-by-one along a given {@link LayoutConstants#direction direction} ({@link Direction#DOWN DOWN} by default), with a
@@ -14,77 +17,35 @@ import org.muis.core.layout.SizePolicy;
  */
 public class BoxLayout implements MuisLayout
 {
-	private static class RelayoutParentListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
+	private final CompoundListener.MultiElementCompoundListener theListener;
+
+	/** Creates a box layout */
+	public BoxLayout()
 	{
-		private final MuisElement theParent;
-
-		RelayoutParentListener(MuisElement parent)
-		{
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.direction || attr == LayoutConstants.alignment)
-				theParent.relayout(false);
-		}
-
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
-	}
-
-	private static class RelayoutChildListener implements org.muis.core.event.MuisEventListener<MuisAttribute<?>>
-	{
-		private final MuisElement theParent;
-
-		RelayoutChildListener(MuisElement parent)
-		{
-			theParent = parent;
-		}
-
-		@Override
-		public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element)
-		{
-			MuisAttribute<?> attr = event.getValue();
-			if(attr == LayoutConstants.width || attr == LayoutConstants.height || attr == LayoutConstants.minWidth
-				|| attr == LayoutConstants.minHeight)
-				theParent.relayout(false);
-		}
-
-		@Override
-		public boolean isLocal()
-		{
-			return true;
-		}
+		theListener = CompoundListener.create(this);
+		theListener.acceptAll(direction, alignment).onChange(CompoundListener.layout);
+		theListener.child().acceptAll(width, minWidth, height, minHeight).onChange(CompoundListener.layout);
 	}
 
 	@Override
 	public void initChildren(MuisElement parent, MuisElement [] children)
 	{
-		RelayoutParentListener parentListener = new RelayoutParentListener(parent);
-		parent.acceptAttribute(LayoutConstants.direction);
-		parent.acceptAttribute(LayoutConstants.alignment);
-		parent.addListener(MuisElement.ATTRIBUTE_SET, parentListener);
-		RelayoutChildListener childListener = new RelayoutChildListener(parent);
-		for(MuisElement child : children)
-		{
-			child.acceptAttribute(LayoutConstants.width);
-			child.acceptAttribute(LayoutConstants.height);
-			child.acceptAttribute(LayoutConstants.minWidth);
-			child.acceptAttribute(LayoutConstants.minHeight);
-			child.addListener(MuisElement.ATTRIBUTE_SET, childListener);
-		}
+	}
+
+	@Override
+	public void childAdded(MuisElement parent, MuisElement child)
+	{
+	}
+
+	@Override
+	public void childRemoved(MuisElement parent, MuisElement child)
+	{
 	}
 
 	@Override
 	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
 	{
-		Direction dir = parent.getAttribute(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutConstants.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
 		switch (dir)
@@ -102,7 +63,7 @@ public class BoxLayout implements MuisLayout
 	@Override
 	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
 	{
-		Direction dir = parent.getAttribute(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutConstants.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
 		switch (dir)
@@ -119,7 +80,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size policy in the main direction of the container
-	 * 
+	 *
 	 * @param children The children to get the sizer for
 	 * @param vertical Whether the main direction is vertical
 	 * @param crossSize The size of the opposite (non-main) dimension of the space to lay out the children in
@@ -127,14 +88,14 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, int crossSize, MuisAttribute<Length> sizeAttr,
-		MuisAttribute<Length> minSizeAttr)
+	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, int crossSize, MuisAttribute<Size> sizeAttr,
+		MuisAttribute<Size> minSizeAttr)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Length size = child.getAttribute(sizeAttr);
-			Length minSize = child.getAttribute(minSizeAttr);
+			Size size = child.atts().get(sizeAttr);
+			Size minSize = child.atts().get(minSizeAttr);
 			if(size != null && !size.getUnit().isRelative())
 			{
 				ret.setMin(ret.getMin() + size.evaluate(0));
@@ -158,7 +119,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size policy in the non-main direction of the container
-	 * 
+	 *
 	 * @param children The children to get the sizer for
 	 * @param vertical Whether the non-main direction is vertical
 	 * @param mainSize The size of the opposite (main) dimension of the space to lay out the children in
@@ -166,14 +127,14 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, int mainSize, MuisAttribute<Length> sizeAttr,
-		MuisAttribute<Length> minSizeAttr)
+	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, int mainSize, MuisAttribute<Size> sizeAttr,
+		MuisAttribute<Size> minSizeAttr)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children)
 		{
-			Length size = child.getAttribute(sizeAttr);
-			Length minSize = child.getAttribute(minSizeAttr);
+			Size size = child.atts().get(sizeAttr);
+			Size minSize = child.atts().get(minSizeAttr);
 			if(size != null && !size.getUnit().isRelative())
 			{
 				int sz = size.evaluate(0);
@@ -204,10 +165,10 @@ public class BoxLayout implements MuisLayout
 	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		java.awt.Rectangle bounds = new java.awt.Rectangle();
-		Direction dir = parent.getAttribute(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutConstants.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
-		Alignment align = parent.getAttribute(LayoutConstants.alignment);
+		Alignment align = parent.atts().get(LayoutConstants.alignment);
 		if(align == null)
 			align = Alignment.begin;
 		int begin = 0;
@@ -228,10 +189,10 @@ public class BoxLayout implements MuisLayout
 		}
 		for(MuisElement child : children)
 		{
-			Length w = child.getAttribute(LayoutConstants.width);
-			Length h = child.getAttribute(LayoutConstants.height);
-			Length minW = child.getAttribute(LayoutConstants.minWidth);
-			Length minH = child.getAttribute(LayoutConstants.minHeight);
+			Size w = child.atts().get(LayoutConstants.width);
+			Size h = child.atts().get(LayoutConstants.height);
+			Size minW = child.atts().get(LayoutConstants.minWidth);
+			Size minH = child.atts().get(LayoutConstants.minHeight);
 
 			int mainSize;
 			int crossSize;
@@ -256,6 +217,7 @@ public class BoxLayout implements MuisLayout
 					crossSize = parent.getWidth();
 				else
 					crossSize = getCrossSize(child, false, parent.getHeight(), parent.getWidth(), w, minW);
+				bounds.width = crossSize;
 				switch (align)
 				{
 				case begin:
@@ -291,6 +253,7 @@ public class BoxLayout implements MuisLayout
 					crossSize = parent.getHeight();
 				else
 					crossSize = getCrossSize(child, true, parent.getWidth(), parent.getHeight(), h, minH);
+				bounds.height = crossSize;
 				switch (align)
 				{
 				case begin:
@@ -314,7 +277,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size for a child in the main direction of the container
-	 * 
+	 *
 	 * @param child The child to size
 	 * @param vertical Whether the main direction is vertical
 	 * @param mainSize The size of the parent in the main dimension
@@ -323,7 +286,7 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The value of the attribute to control the minimum size of the child (minWidth or minHeight)
 	 * @return The main-dimension size of the child
 	 */
-	protected int getMainSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Length sizeAttr, Length minSizeAttr)
+	protected int getMainSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Size sizeAttr, Size minSizeAttr)
 	{
 		int ret;
 		if(sizeAttr != null)
@@ -348,7 +311,7 @@ public class BoxLayout implements MuisLayout
 
 	/**
 	 * Gets the size for a child in the non-main direction of the container
-	 * 
+	 *
 	 * @param child The child to size
 	 * @param vertical Whether the cross direction is vertical
 	 * @param mainSize The size of the parent in the main dimension
@@ -357,7 +320,7 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The value of the attribute to control the minimum size of the child (minWidth or minHeight)
 	 * @return The non-main-dimension size of the child
 	 */
-	protected int getCrossSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Length sizeAttr, Length minSizeAttr)
+	protected int getCrossSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Size sizeAttr, Size minSizeAttr)
 	{
 		return getMainSize(child, vertical, crossSize, mainSize, sizeAttr, minSizeAttr);
 	}
@@ -365,16 +328,5 @@ public class BoxLayout implements MuisLayout
 	@Override
 	public void remove(MuisElement parent)
 	{
-		parent.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutParentListener.class);
-		parent.rejectAttribute(LayoutConstants.direction);
-		parent.rejectAttribute(LayoutConstants.alignment);
-		for(MuisElement child : parent.getChildren())
-		{
-			child.removeListener(MuisElement.ATTRIBUTE_SET, RelayoutChildListener.class);
-			child.rejectAttribute(LayoutConstants.width);
-			child.rejectAttribute(LayoutConstants.height);
-			child.rejectAttribute(LayoutConstants.minWidth);
-			child.rejectAttribute(LayoutConstants.minHeight);
-		}
 	}
 }

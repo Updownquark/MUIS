@@ -1,59 +1,65 @@
 package org.muis.base.layout;
 
 import org.muis.core.MuisAttribute;
+import org.muis.core.MuisProperty;
+import org.muis.core.style.Position;
+import org.muis.core.style.PositionPropertyType;
+import org.muis.core.style.Size;
+import org.muis.core.style.SizePropertyType;
 
-public class LayoutConstants
-{
-	public static int getLayoutValue(org.muis.core.MuisElement element, MuisAttribute<Length> attr, int totalLength, int defVal)
-	{
-		Length ret = element.getAttribute(attr);
+public class LayoutConstants {
+	public static int getPositionValue(org.muis.core.MuisElement element, MuisAttribute<Position> attr, int totalLength, int defVal) {
+		Position ret = element.atts().get(attr);
 		if(ret != null)
 			return ret.evaluate(totalLength);
 		else
 			return defVal;
 	}
 
-	public static final MuisAttribute<Direction> direction = new MuisAttribute<Direction>("direction",
-		new MuisAttribute.MuisEnumAttribute<>(Direction.class));
+	public static final MuisAttribute<Direction> direction = new MuisAttribute<Direction>("direction", new MuisProperty.MuisEnumProperty<>(
+		Direction.class));
 
-	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<Alignment>("align", new MuisAttribute.MuisEnumAttribute<>(
+	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<Alignment>("align", new MuisProperty.MuisEnumProperty<>(
 		Alignment.class));
 
-	public static final MuisAttribute<Length> left = new MuisAttribute<Length>("left", LengthAttributeType.instance);
+	public static final MuisAttribute<Region> region = new MuisAttribute<Region>("region",
+		new MuisProperty.MuisEnumProperty<>(Region.class));
 
-	public static final MuisAttribute<Length> minLeft = new MuisAttribute<Length>("min-left", LengthAttributeType.instance);
+	public static final MuisAttribute<Boolean> maxInf = new MuisAttribute<Boolean>("max-inf", MuisProperty.boolAttr);
 
-	public static final MuisAttribute<Length> maxLeft = new MuisAttribute<Length>("max-left", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> left = new MuisAttribute<Position>("left", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> right = new MuisAttribute<Length>("right", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> minLeft = new MuisAttribute<Position>("min-left", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> minRight = new MuisAttribute<Length>("min-right", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> maxLeft = new MuisAttribute<Position>("max-left", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> maxRight = new MuisAttribute<Length>("max-right", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> right = new MuisAttribute<Position>("right", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> top = new MuisAttribute<Length>("top", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> minRight = new MuisAttribute<Position>("min-right", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> minTop = new MuisAttribute<Length>("min-top", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> maxRight = new MuisAttribute<Position>("max-right", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> maxTop = new MuisAttribute<Length>("max-top", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> top = new MuisAttribute<Position>("top", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> bottom = new MuisAttribute<Length>("bottom", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> minTop = new MuisAttribute<Position>("min-top", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> minBottom = new MuisAttribute<Length>("min-bottom", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> maxTop = new MuisAttribute<Position>("max-top", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> maxBottom = new MuisAttribute<Length>("max-bottom", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> bottom = new MuisAttribute<Position>("bottom", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> width = new MuisAttribute<Length>("width", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> minBottom = new MuisAttribute<Position>("min-bottom", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> minWidth = new MuisAttribute<Length>("min-width", LengthAttributeType.instance);
+	public static final MuisAttribute<Position> maxBottom = new MuisAttribute<Position>("max-bottom", PositionPropertyType.instance);
 
-	public static final MuisAttribute<Length> maxWidth = new MuisAttribute<Length>("max-width", LengthAttributeType.instance);
+	public static final MuisAttribute<Size> width = new MuisAttribute<Size>("width", SizePropertyType.instance);
 
-	public static final MuisAttribute<Length> height = new MuisAttribute<Length>("height", LengthAttributeType.instance);
+	public static final MuisAttribute<Size> minWidth = new MuisAttribute<Size>("min-width", SizePropertyType.instance);
 
-	public static final MuisAttribute<Length> minHeight = new MuisAttribute<Length>("min-height", LengthAttributeType.instance);
+	public static final MuisAttribute<Size> maxWidth = new MuisAttribute<Size>("max-width", SizePropertyType.instance);
 
-	public static final MuisAttribute<Length> maxHeight = new MuisAttribute<Length>("max-height", LengthAttributeType.instance);
+	public static final MuisAttribute<Size> height = new MuisAttribute<Size>("height", SizePropertyType.instance);
 
-	public static final MuisAttribute<Boolean> included = new MuisAttribute<Boolean>("included", MuisAttribute.boolAttr);
+	public static final MuisAttribute<Size> minHeight = new MuisAttribute<Size>("min-height", SizePropertyType.instance);
+
+	public static final MuisAttribute<Size> maxHeight = new MuisAttribute<Size>("max-height", SizePropertyType.instance);
 }

@@ -25,9 +25,7 @@ public class MuisContentPane extends java.awt.Component
 			{
 				super.componentResized(e);
 				if(getContent() != null)
-				{
 					getContent().setSize(getWidth(), getHeight());
-				}
 			}
 		});
 		addMouseListener(new java.awt.event.MouseListener() {
@@ -112,7 +110,7 @@ public class MuisContentPane extends java.awt.Component
 
 	/**
 	 * Sets this pane's content
-	 * 
+	 *
 	 * @param doc The document to render
 	 */
 	public void setContent(org.muis.core.MuisDocument doc)
@@ -127,6 +125,33 @@ public class MuisContentPane extends java.awt.Component
 		if(theContent != null)
 			theContent.paint((java.awt.Graphics2D) g);
 	}
+
+	/*@Override
+	public Dimension getPreferredSize()
+	{
+		if(theContent == null)
+			return super.getPreferredSize();
+		MuisElement root = theContent.getRoot();
+		return new Dimension(root.getWSizer(getHeight()).getPreferred(), root.getHSizer(getWidth()).getPreferred());
+	}
+
+	@Override
+	public Dimension getMinimumSize()
+	{
+		if(theContent == null)
+			return super.getPreferredSize();
+		MuisElement root = theContent.getRoot();
+		return new Dimension(root.getWSizer(getHeight()).getMin(), root.getHSizer(getWidth()).getMin());
+	}
+
+	@Override
+	public Dimension getMaximumSize()
+	{
+		if(theContent == null)
+			return super.getPreferredSize();
+		MuisElement root = theContent.getRoot();
+		return new Dimension(root.getWSizer(getHeight()).getMax(), root.getHSizer(getWidth()).getMax());
+	}*/
 
 	void moused(org.muis.core.event.MouseEvent.MouseEventType type, MouseEvent evt)
 	{

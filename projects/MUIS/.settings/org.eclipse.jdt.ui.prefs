@@ -1,7 +1,6 @@
-#Tue Jun 12 16:05:12 MDT 2012
 eclipse.preferences.version=1
 editor_save_participant_org.eclipse.jdt.ui.postsavelistener.cleanup=true
-formatter_profile=_Andrew Butler
+formatter_profile=_MUIS Profile
 formatter_settings_version=12
 org.eclipse.jdt.ui.ignorelowercasenames=false
 org.eclipse.jdt.ui.importorder=java;javax;org;com;
@@ -52,7 +51,7 @@ sp_cleanup.remove_unused_private_methods=true
 sp_cleanup.remove_unused_private_types=true
 sp_cleanup.sort_members=false
 sp_cleanup.sort_members_all=false
-sp_cleanup.use_blocks=true
+sp_cleanup.use_blocks=false
 sp_cleanup.use_blocks_only_for_return_and_throw=false
 sp_cleanup.use_parentheses_in_expressions=false
 sp_cleanup.use_this_for_non_static_field_access=false

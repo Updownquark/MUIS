@@ -1,0 +1,6 @@
+
+[body]{
+	bg={
+		color=green
+	}
+}

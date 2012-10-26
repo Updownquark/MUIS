@@ -13,5 +13,9 @@
 	<types>
 		<type tag="paint">org.muis.test.widget.PaintWidget</type>
 	</types>
+	<resources>
+		<resource tag="hello-world">src/main/resources/helloWorld.jpg</resource>
+		<resource tag="big-animation">src/main/resources/BigAnimation.gif</resource>
+	</resources>
 	<security />
 </registry>

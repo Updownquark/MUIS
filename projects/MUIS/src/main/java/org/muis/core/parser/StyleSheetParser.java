@@ -797,7 +797,7 @@ public class StyleSheetParser {
 	private static Element getStyleSheetDefXml() throws IOException, MuisParseException {
 		try {
 			return new org.jdom2.input.SAXBuilder().build(
-				new java.io.InputStreamReader(XmlStylesheetParser.class.getResourceAsStream("MSS.xml"))).getRootElement();
+				new java.io.InputStreamReader(StyleSheetParser.class.getResourceAsStream("MSS.xml"))).getRootElement();
 		} catch(org.jdom2.JDOMException e) {
 			throw new MuisParseException("Could not parse MSS.xml", e);
 		}

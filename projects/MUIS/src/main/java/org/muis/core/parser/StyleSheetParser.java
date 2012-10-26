@@ -1057,7 +1057,8 @@ public class StyleSheetParser {
 						assign.getValue());
 					return;
 				}
-				// TODO Check validity of the value for the attribute. Maybe this should be done in the style sheet, though
+				if(!checkValidity(style, attr, value, classView, msg, location))
+					break;
 				if(stack.size() > 0)
 					for(StateGroupTypeExpression<?> expr : stack)
 						style.setAnimatedValue(attr, expr, value);
@@ -1093,7 +1094,8 @@ public class StyleSheetParser {
 							"value", assign.getValue());
 						break;
 					}
-					// TODO Check validity of the value for the attribute. Maybe this should be done in the style sheet, though
+					if(!checkValidity(style, attr, value, classView, msg, location))
+						break;
 					if(stack.size() > 0)
 						for(StateGroupTypeExpression<?> expr : stack)
 							style.setAnimatedValue(attr, expr, value);
@@ -1107,6 +1109,28 @@ public class StyleSheetParser {
 					+ (domainAssign.getDomain().getNamespace() == null ? "" : domainAssign.getDomain().getNamespace() + ":")
 					+ domainAssign.getDomain().getName());
 		}
+	}
+
+	private boolean checkValidity(ParsedStyleSheet style, StyleAttribute<?> attr, ParsedItem value, MuisClassView classView,
+		MuisMessageCenter msg, URL location) {
+		EvaluationEnvironment env = theEnv.scope(true);
+		EvaluationResult typeRes;
+		try {
+			for(AnimatedStyleSheet.AnimatedVariable var : style) {
+				env.declareVariable(var.getName(), new Type(Double.TYPE), false, value, 0);
+			}
+			typeRes = value.evaluate(env, false, false);
+		} catch(EvaluationException e) {
+			msg.error("Could not evaluate value " + value + " for attribute " + attr, e, "attribute", attr, "value", value);
+			return false;
+		}
+		Type attrType = new Type(attr.getType().getType());
+		if(!typeRes.getType().isAssignable(attrType)) {
+			msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
+				+ ", type " + attrType);
+			return false;
+		}
+		return true;
 	}
 
 	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisClassView classView,

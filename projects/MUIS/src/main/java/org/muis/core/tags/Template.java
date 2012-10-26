@@ -7,4 +7,7 @@ public @interface Template {
 
 	/** All attach points for this widget */
 	AttachPoint [] attachPoints();
+
+	/** Overrides for super class attach points */
+	AttachPointOverride [] attachPointOverrides() default {};
 }

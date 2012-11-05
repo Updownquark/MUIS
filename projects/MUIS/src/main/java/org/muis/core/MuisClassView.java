@@ -4,7 +4,7 @@ package org.muis.core;
 public class MuisClassView {
 	private final MuisEnvironment theEnvironment;
 
-	private final MuisElement theElement;
+	private final MuisClassView theParent;
 
 	private java.util.HashMap<String, MuisToolkit> theNamespaces;
 
@@ -12,23 +12,14 @@ public class MuisClassView {
 
 	/**
 	 * @param env The environment to create the class view in
-	 * @param el The element to create the class view for
+	 * @param parent The parent for this class view
 	 */
-	public MuisClassView(MuisEnvironment env, MuisElement el) {
+	public MuisClassView(MuisEnvironment env, MuisClassView parent) {
 		if(env == null)
 			throw new NullPointerException("environment is null");
 		theEnvironment=env;
-		theElement = el;
+		theParent = parent;
 		theNamespaces = new java.util.HashMap<String, MuisToolkit>();
-	}
-
-	/**
-	 * Creates a class map for an element
-	 *
-	 * @param el The element to create the class view for
-	 */
-	public MuisClassView(MuisElement el) {
-		this(el.getDocument().getEnvironment(), el);
 	}
 
 	/** @return The environment that this class view is in */
@@ -36,9 +27,9 @@ public class MuisClassView {
 		return theEnvironment;
 	}
 
-	/** @return This class view's element. Null for a document class view. */
-	public MuisElement getElement() {
-		return theElement;
+	/** @return This class view's parent */
+	public MuisClassView getParent() {
+		return theParent;
 	}
 
 	/** @return Whether this class view has been sealed or not */
@@ -72,14 +63,12 @@ public class MuisClassView {
 	 */
 	public MuisToolkit getToolkit(String namespace) {
 		MuisToolkit ret = theNamespaces.get(namespace);
-		if(ret == null)
-			if(theElement != null) {
-				if(theElement.getParent() != null)
-					ret = theElement.getParent().getClassView().getToolkit(namespace);
-				else
-					ret = theElement.getDocument().getClassView().getToolkit(namespace);
-			} else if(namespace == null)
+		if(ret == null) {
+			if(theParent != null)
+				ret = theParent.getToolkit(namespace);
+			else if(namespace == null)
 				ret = theEnvironment.getCoreToolkit();
+		}
 		return ret;
 	}
 

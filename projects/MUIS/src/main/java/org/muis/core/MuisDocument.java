@@ -47,11 +47,11 @@ public class MuisDocument {
 
 	private final java.net.URL theLocation;
 
-	private java.awt.Toolkit theAwtToolkit;
-
-	private org.muis.core.parser.MuisParser theParser;
+	private final org.muis.core.parser.MuisParser theParser;
 
 	private MuisClassView theClassView;
+
+	private java.awt.Toolkit theAwtToolkit;
 
 	private MuisCache theCache;
 
@@ -91,11 +91,12 @@ public class MuisDocument {
 	 * Creates a document
 	 *
 	 * @param env The environment for the document
+	 * @param parser The parser that created this document
 	 * @param location The location of the file that this document was generated from
-	 * @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand
 	 */
-	public MuisDocument(MuisEnvironment env, java.net.URL location, GraphicsGetter graphics) {
+	public MuisDocument(MuisEnvironment env, org.muis.core.parser.MuisParser parser, java.net.URL location) {
 		theEnvironment = env;
+		theParser = parser;
 		theLocation = location;
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
@@ -103,7 +104,6 @@ public class MuisDocument {
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
-		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new MouseEvent.ButtonType[0];
 		thePressedKeys = new KeyBoardEvent.KeyCode[0];
@@ -113,23 +113,21 @@ public class MuisDocument {
 		theLocker = new MuisLocker();
 	}
 
-	/** @param parser The parser that created this document */
-	public void initDocument(org.muis.core.parser.MuisParser parser) {
-		if(theParser != null)
-			throw new IllegalArgumentException("Cannot initialize a document twice");
-		theParser = parser;
-		theClassView = new MuisClassView(theEnvironment, null);
-		theHead = new MuisHeadSection();
+	/** @param classView The class view for the document */
+	public void setClassView(MuisClassView classView) {
+		if(theClassView != null)
+			throw new IllegalStateException("A document's class view may only be set once");
+		theClassView = classView;
+	}
+
+	/** @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand */
+	public void setGraphics(GraphicsGetter graphics) {
+		theGraphics = graphics;
 	}
 
 	/** @return The environment that this document was created in */
 	public MuisEnvironment getEnvironment() {
 		return theEnvironment;
-	}
-
-	/** @return The location of the file that this document was generated from */
-	public java.net.URL getLocation() {
-		return theLocation;
 	}
 
 	/** @return The parser that created this document */
@@ -140,6 +138,11 @@ public class MuisDocument {
 	/** @return The class map that applies to the whole document */
 	public MuisClassView getClassView() {
 		return theClassView;
+	}
+
+	/** @return The location of the file that this document was generated from */
+	public java.net.URL getLocation() {
+		return theLocation;
 	}
 
 	/** @return The resource cache for this document */

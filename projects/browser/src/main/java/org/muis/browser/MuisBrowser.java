@@ -1,6 +1,7 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.muis.browser;
 
+import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage;
@@ -63,20 +64,25 @@ public class MuisBrowser extends javax.swing.JPanel {
 		}
 		org.muis.core.MuisEnvironment env = new org.muis.core.MuisEnvironment();
 		env.setParser(new org.muis.core.parser.MuisDomParser(env));
-		org.muis.core.MuisDocument muisDoc;
+		env.setContentCreator(new org.muis.core.parser.MuisContentCreator());
+		MuisDocument muisDoc;
 		try {
-			muisDoc = env.getParser().parseDocument(url, new java.io.InputStreamReader(url.openStream()),
-				new org.muis.core.MuisDocument.GraphicsGetter() {
-					@Override
-					public java.awt.Graphics2D getGraphics() {
-						return (java.awt.Graphics2D) getContentPane().getGraphics();
-					}
-				});
+			org.muis.core.parser.MuisDocumentStructure docStruct = env.getParser().parseDocument(url,
+				new java.io.InputStreamReader(url.openStream()));
+			muisDoc = docStruct.getDocument();
+			muisDoc.setGraphics(new org.muis.core.MuisDocument.GraphicsGetter() {
+				@Override
+				public java.awt.Graphics2D getGraphics() {
+					return (java.awt.Graphics2D) getContentPane().getGraphics();
+				}
+			});
+			env.getContentCreator().fillDocument(muisDoc, docStruct.getContent());
 		} catch(java.io.IOException e) {
 			throw new IllegalArgumentException("Could not access address " + address, e);
 		} catch(org.muis.core.parser.MuisParseException e) {
 			throw new IllegalArgumentException("Could not parse XML document at " + address, e);
 		}
+
 		muisDoc.postCreate();
 		theContentPane.setContent(muisDoc);
 		if(getParent() instanceof java.awt.Frame)

@@ -1,6 +1,7 @@
 package org.muis.core;
 
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.parser.MuisContentCreator;
 import org.muis.core.parser.MuisParser;
 import org.muis.core.style.sheet.StyleSheet;
 
@@ -17,6 +18,8 @@ public class MuisEnvironment {
 	}
 
 	private MuisParser theParser;
+
+	private MuisContentCreator theContentCreator;
 
 	private MuisMessageCenter theMessageCenter;
 
@@ -44,6 +47,18 @@ public class MuisEnvironment {
 		if(theParser != null)
 			throw new IllegalStateException("The environment parser may not be re-set");
 		theParser = parser;
+	}
+
+	/** @return The content creator for the environment */
+	public MuisContentCreator getContentCreator() {
+		return theContentCreator;
+	}
+
+	/** @param creator The content creator for this environment */
+	public void setContentCreator(MuisContentCreator creator) {
+		if(theContentCreator != null)
+			throw new IllegalStateException("The environment content creator may not be re-set");
+		theContentCreator = creator;
 	}
 
 	/** @return The message center for this environment */

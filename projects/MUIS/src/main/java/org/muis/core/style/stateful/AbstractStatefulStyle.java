@@ -57,17 +57,17 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 					return;
 				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute())) {
 					if(expr.getExpression() == event.getExpression())
-						continue;
+						break;
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
 				}
-				int idx = ArrayUtils.indexOf(theDependencies, event.getRootStyle());
+				/*int idx = ArrayUtils.indexOf(theDependencies, event.getRootStyle());
 				if(idx < 0)
 					return;
 				for(int i = 0; i < idx; i++)
 					if(isSetDeep(theDependencies[i], event.getAttribute(), event.getExpression()))
-						return;
+						return;*/
 				styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 			}
 		};
@@ -98,9 +98,18 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				if(isSet(this, attr, sev.getExpression()))
 					continue;
-				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
+				boolean foundBefore = false;
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
+					if(expr == sev)
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundBefore = true;
+						break;
+					}
+				}
+				if(foundBefore)
+					continue;
 				styleChanged(attr, sev.getExpression(), null);
 			}
 		}

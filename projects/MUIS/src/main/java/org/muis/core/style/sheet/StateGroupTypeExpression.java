@@ -61,7 +61,14 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	 */
 	@Override
 	public int getPriority() {
-		int ret = theType != null ? 1000 : 0;
+		int ret = 0;
+		if(theType != null) {
+			Class<?> type = theType;
+			while(!(type == MuisElement.class)) {
+				ret += 100;
+				type = type.getSuperclass();
+			}
+		}
 		if(theState != null)
 			ret += theState.getPriority();
 		if(theGroupName != null)

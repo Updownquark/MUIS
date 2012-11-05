@@ -6,14 +6,12 @@ import static org.muis.core.MuisConstants.Events.*;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.muis.core.MuisConstants.CoreStage;
 import org.muis.core.MuisConstants.States;
-import org.muis.core.event.MuisEvent;
-import org.muis.core.event.MuisEventListener;
-import org.muis.core.event.MuisEventType;
-import org.muis.core.event.MuisPropertyEvent;
+import org.muis.core.event.*;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.mgr.*;
@@ -21,9 +19,7 @@ import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.style.BackgroundStyles;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.Texture;
-import org.muis.core.style.attach.CompoundStyleListener;
-import org.muis.core.style.attach.ElementStyle;
-import org.muis.core.style.attach.StyleAttributeType;
+import org.muis.core.style.attach.*;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 
@@ -149,8 +145,83 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			}
 		});
 		Object styleWanter = new Object();
-		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
-		addListener(ATTRIBUTE_CHANGED, (MuisEventListener<Object>) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+		theAttributeManager.accept(styleWanter, org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE);
+		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute);
+		addListener(ATTRIBUTE_CHANGED,
+			(MuisEventListener<Object>) org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+		final boolean [] groupCallbackLock = new boolean[1];
+		addListener(ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<String []>(
+			org.muis.core.style.attach.GroupPropertyType.attribute) {
+			@Override
+			public void attributeChanged(AttributeChangedEvent<String []> event) {
+				if(groupCallbackLock[0])
+					return;
+				groupCallbackLock[0] = true;
+				try {
+					ArrayList<NamedStyleGroup> groups = new ArrayList<>();
+					for(NamedStyleGroup group : getDocument().groups())
+						groups.add(group);
+					ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), event.getValue(),
+						new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
+							@Override
+							public boolean identity(NamedStyleGroup o1, String o2) {
+								return o1.getName().equals(o2);
+							}
+
+							@Override
+							public NamedStyleGroup added(String o, int mIdx, int retIdx) {
+								getStyle().addGroup(getDocument().getGroup(o));
+								return null;
+							}
+
+							@Override
+							public NamedStyleGroup removed(NamedStyleGroup o, int oIdx, int incMod, int retIdx) {
+								if(o.isMember(MuisElement.this))
+									getStyle().removeGroup(o);
+								return null;
+							}
+
+							@Override
+							public NamedStyleGroup set(NamedStyleGroup o1, int idx1, int incMod, String o2, int idx2, int retIdx) {
+								if(!o1.isMember(MuisElement.this))
+									getStyle().addGroup(o1);
+								return null;
+							}
+						});
+				} finally {
+					groupCallbackLock[0] = false;
+				}
+			}
+		});
+		addListener(GroupMemberEvent.TYPE, new MuisEventListener<NamedStyleGroup>() {
+			@Override
+			public void eventOccurred(MuisEvent<NamedStyleGroup> event, MuisElement element) {
+				if(groupCallbackLock[0])
+					return;
+				groupCallbackLock[0] = true;
+				try {
+					GroupMemberEvent gme = (GroupMemberEvent) event;
+					ArrayList<String> groupList = new ArrayList<>();
+					for(NamedStyleGroup group : getStyle().groups(true))
+						groupList.add(group.getName());
+					String [] groups = groupList.toArray(new String[groupList.size()]);
+					if(!ArrayUtils.equals(groups, atts().get(GroupPropertyType.attribute)))
+						try {
+							atts().set(GroupPropertyType.attribute, groups);
+						} catch(MuisException e) {
+							msg().warn("Error reconciling " + GroupPropertyType.attribute + " attribute with group membership change", e,
+								"group", gme.getValue());
+						}
+				} finally {
+					groupCallbackLock[0] = false;
+				}
+			}
+
+			@Override
+			public boolean isLocal() {
+				return true;
+			}
+		});
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
@@ -467,7 +538,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	/** @return All messages in this element or any of its children */
 	public Iterable<MuisMessage> allMessages() {
-		java.util.ArrayList<Iterable<MuisMessage>> centers = new java.util.ArrayList<>();
+		ArrayList<Iterable<MuisMessage>> centers = new ArrayList<>();
 		centers.add(theMessageCenter);
 		for(MuisElement child : theChildren)
 			centers.add(child.allMessages());

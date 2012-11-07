@@ -65,13 +65,19 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el) {
-				if(theParentStyle != null)
-					removeDependency(theParentStyle.getHeir());
-				if(event.getValue() != null) {
+				ElementStyle oldParentStyle = theParentStyle;
+				if(oldParentStyle != null) {
+					if(event.getValue() != null) {
+						theParentStyle = event.getValue().getStyle();
+						replaceDependency(oldParentStyle, theParentStyle);
+					} else {
+						theParentStyle = null;
+						removeDependency(oldParentStyle);
+					}
+				} else if(event.getValue() != null) {
 					theParentStyle = event.getValue().getStyle();
-					addDependency(theParentStyle.getHeir(), null);
-				} else
-					theParentStyle = null;
+					addDependency(theParentStyle.getHeir(), theStyleSheet);
+				}
 			}
 		});
 		theStyleSheet = new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass());

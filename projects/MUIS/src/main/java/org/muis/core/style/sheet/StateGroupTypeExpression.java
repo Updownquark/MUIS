@@ -90,4 +90,28 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	public Class<E> getType() {
 		return theType;
 	}
+
+	@Override
+	public String toString() {
+		if(theState == null && theGroupName == null && theType == null)
+			return "(null)";
+		if(theState != null && theGroupName == null && theType == null)
+			return theState.toString();
+		StringBuilder ret = new StringBuilder();
+		ret.append('(');
+		if(theType != null)
+			ret.append("type " + theType.getSimpleName());
+		if(theGroupName != null) {
+			if(ret.length() > 1)
+				ret.append(", ");
+			ret.append("group " + theGroupName);
+		}
+		if(theState != null) {
+			if(ret.length() > 1)
+				ret.append(", ");
+			ret.append("state " + theState);
+		}
+		ret.append(')');
+		return ret.toString();
+	}
 }

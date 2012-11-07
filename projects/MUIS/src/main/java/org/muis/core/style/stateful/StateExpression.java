@@ -207,6 +207,19 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 				return 1;
 			return super.compareTo(expr);
 		}
+
+		@Override
+		public String toString() {
+			StringBuilder ret = new StringBuilder();
+			ret.append('(');
+			for(int i = 0; i < getChildCount(); i++) {
+				if(i > 0)
+					ret.append(" & ");
+				ret.append(getChild(i));
+			}
+			ret.append(')');
+			return ret.toString();
+		}
 	}
 
 	/** An expression that is true if at least one of a set of expressions is true */
@@ -282,6 +295,19 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 				return -1;
 			return super.compareTo(expr);
 		}
+
+		@Override
+		public String toString() {
+			StringBuilder ret = new StringBuilder();
+			ret.append('(');
+			for(int i = 0; i < getChildCount(); i++) {
+				if(i > 0)
+					ret.append(" | ");
+				ret.append(getChild(i));
+			}
+			ret.append(')');
+			return ret.toString();
+		}
 	}
 
 	/** A state expression that is the negation of another expression */
@@ -347,6 +373,11 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		public int hashCode() {
 			return -theWrapped.hashCode();
 		}
+
+		@Override
+		public String toString() {
+			return "!" + theWrapped;
+		}
 	}
 
 	/** A state expression that checks whether a single state is active or not */
@@ -404,6 +435,11 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		@Override
 		public int hashCode() {
 			return theState.hashCode();
+		}
+
+		@Override
+		public String toString() {
+			return theState.getName();
 		}
 	}
 

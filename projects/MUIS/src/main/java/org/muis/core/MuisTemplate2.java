@@ -4,6 +4,7 @@ import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
 import org.muis.core.tags.AttachPoint;
+import org.muis.core.tags.Template;
 
 public abstract class MuisTemplate2 extends MuisElement {
 	/** The attribute in a child of a template definition which marks the child as able to be replaced in a template instance */
@@ -70,9 +71,9 @@ public abstract class MuisTemplate2 extends MuisElement {
 	private TemplateStructure theTemplateStructure;
 
 	public MuisTemplate2() {
-		life().runWhen(new Runnable(){
+		life().runWhen(new Runnable() {
 			@Override
-			public void run(){
+			public void run() {
 				try {
 					theTemplateStructure = getDocument().getCache().getAndWait(getDocument(), TEMPLATE_STRUCTURE_CACHE_TYPE,
 						MuisTemplate2.this.getClass());
@@ -96,22 +97,70 @@ public abstract class MuisTemplate2 extends MuisElement {
 	private void initTemplate(TemplateStructure structure, org.muis.core.parser.MuisContentCreator creator) {
 		if(structure.getSuperStructure() != null) {
 			initTemplate(structure.getSuperStructure(), creator);
-			for(org.muis.core.parser.MuisContent content : structure.getWidgetStructure().getChildren()) {
-				addContent(creator.getChild(this, content));
+			for(MuisContent content : structure.getWidgetStructure().getChildren()) {
+				addContent(getDocument().getEnvironment().getContentCreator().getChild(this, content));
 			}
 		} else {
 			// Root template structure handled differently--super.initChildren needs to be called once
+			java.util.ArrayList<MuisElement> children = new java.util.ArrayList<>();
+			for(MuisContent content : structure.getWidgetStructure().getChildren()) {
+				MuisElement child = creator.getChild(this, content);
+				if(child != null)
+					children.add(child);
+			}
+			super.initChildren(children.toArray(new MuisElement[children.size()]));
 		}
 		int todo; // TODO
 	}
 
 	@Override
 	public void initChildren(MuisElement [] children) {
+		for(MuisElement child : children)
+			addContent(child);
 		// TODO Auto-generated method stub
 	}
 
-	public static TemplateStructure genTemplateStructure(MuisCache cache, Class<? extends MuisTemplate2> templateType) throws MuisException {
-		int todo;// TODO
+	public static TemplateStructure genTemplateStructure(MuisDocument doc, Class<? extends MuisTemplate2> templateType)
+		throws MuisException {
+		if(!MuisTemplate2.class.isAssignableFrom(templateType))
+			throw new MuisException("Only extensions of " + MuisTemplate2.class.getName() + " may have template structures: "
+				+ templateType.getName());
+		if(templateType == MuisTemplate2.class)
+			return null;
+		Class<? extends MuisTemplate2> superType = (Class<? extends MuisTemplate2>) templateType.getSuperclass();
+		TemplateStructure superStructure = null;
+		while(superType != MuisTemplate2.class) {
+			if(superType.getAnnotation(Template.class) != null){
+				superStructure = doc.getCache().getAndWait(doc, TEMPLATE_STRUCTURE_CACHE_TYPE, superType);
+				break;
+			}
+			superType=(Class<? extends MuisTemplate2>) superType.getSuperclass();
+		}
+		Template template = templateType.getAnnotation(Template.class);
+		if(template == null){
+			if(superStructure!=null)
+				return superStructure;
+			throw new MuisException("Concrete implementations of " + MuisTemplate2.class.getName() + " like " + templateType.getName()
+				+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
+		}
+
+		java.net.URL location;
+		try{
+			location=MuisUtils.resolveURL(templateType.getResource(templateType.getSimpleName()+".class"), template.location());
+		} catch(MuisException e){
+			throw new MuisException("Could not resolve template path "+template.location()+" for templated widget "+templateType.getName(), e);
+		}
+		WidgetStructure widgetStructure;
+		try{
+			widgetStructure = doc.getEnvironment().getParser()
+				.parseContent(location, new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream())), todo);
+		} catch(java.io.IOException e){
+			throw new MuisException("Could not read template resoruce "+template.location()+" for templated widget "+templateType.getName(), e);
+		} catch(MuisParseException e){
+			throw new MuisException("Could not parse template resoruce "+template.location()+" for templated widget "+templateType.getName(), e);
+		}
+		TemplateStructure ret = new TemplateStructure(templateType, superStructure, widgetStructure);
+		int todo;// TODO attach points
 	}
 
 	private static class TemplateContentCreator extends org.muis.core.parser.MuisContentCreator {

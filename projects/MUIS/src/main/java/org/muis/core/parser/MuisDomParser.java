@@ -229,12 +229,13 @@ public class MuisDomParser implements MuisParser {
 			doc.msg().error("Extra element " + el.getName() + " in document XML");
 		}
 		WidgetStructure content = parseContent(new WidgetStructure(null, theEnvironment, doc.getClassView(), rootEl.getNamespacePrefix(),
-			rootEl.getName()), body[0], doc.msg(), location);
+			rootEl.getName()), null, body[0], doc.msg(), location);
 		return new MuisDocumentStructure(doc, content);
 	}
 
 	@Override
-	public WidgetStructure parseContent(URL location, Reader reader, MuisMessageCenter msg) throws IOException, MuisParseException {
+	public WidgetStructure parseContent(URL location, Reader reader, MuisClassView rootClassView, MuisMessageCenter msg)
+		throws IOException, MuisParseException {
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
@@ -242,7 +243,7 @@ public class MuisDomParser implements MuisParser {
 			throw new MuisParseException("Could not parse document XML", e);
 		}
 
-		return parseContent(null, rootEl, msg, location);
+		return parseContent(null, rootClassView, rootEl, msg, location);
 	}
 
 	/**
@@ -360,15 +361,17 @@ public class MuisDomParser implements MuisParser {
 	/**
 	 * @param parent The structure parent
 	 * @param xml The XML to parse widget structures from
+	 * @param rootClassView The class view for the root of the structure--may be null
 	 * @param msg The message center to report errors to
 	 * @param location The location of the XML file
 	 * @return The MUIS-formatted structure of the given element
 	 */
-	protected WidgetStructure parseContent(WidgetStructure parent, Element xml, MuisMessageCenter msg, URL location) {
+	protected WidgetStructure parseContent(WidgetStructure parent, MuisClassView rootClassView, Element xml, MuisMessageCenter msg,
+		URL location) {
 		String ns = xml.getNamespacePrefix();
 		if(ns.length() == 0)
 			ns = null;
-		MuisClassView classView = getClassView(parent == null ? null : parent.getClassView(), xml, msg, location);
+		MuisClassView classView = getClassView(parent == null ? rootClassView : parent.getClassView(), xml, msg, location);
 		WidgetStructure ret = new WidgetStructure(parent, theEnvironment, classView, ns, xml.getName());
 
 		for(org.jdom2.Attribute att : xml.getAttributes())
@@ -376,7 +379,7 @@ public class MuisDomParser implements MuisParser {
 
 		for(org.jdom2.Content content : xml.getContent())
 			if(content instanceof Element) {
-				ret.addChild(parseContent(ret, (Element) content, msg, location));
+				ret.addChild(parseContent(ret, null, (Element) content, msg, location));
 			} else if(content instanceof Text || content instanceof CDATA) {
 				String text;
 				if(content instanceof Text)

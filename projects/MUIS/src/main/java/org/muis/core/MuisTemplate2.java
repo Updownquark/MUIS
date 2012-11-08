@@ -58,7 +58,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		TEMPLATE_STRUCTURE_CACHE_TYPE = new MuisCache.CacheItemType<Class<? extends MuisTemplate2>, MuisTemplate2.TemplateStructure, MuisException>() {
 			@Override
 			public TemplateStructure generate(MuisDocument doc, Class<? extends MuisTemplate2> key) throws MuisException {
-				return genTemplateStructure(doc.getCache(), key);
+				return genTemplateStructure(doc, key);
 			}
 
 			@Override
@@ -70,7 +70,10 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 	private TemplateStructure theTemplateStructure;
 
+	private java.util.Map<WidgetStructure, MuisElement> theTemplateMappings;
+
 	public MuisTemplate2() {
+		theTemplateMappings = new java.util.HashMap<>();
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
@@ -113,6 +116,13 @@ public abstract class MuisTemplate2 extends MuisElement {
 		int todo; // TODO
 	}
 
+	// These might be useful at some point, but the original crucial purpose I'd devised doesn't exist anymore
+	protected MuisContainer<?> getContainer(String attach) throws IllegalArgumentException {
+	}
+
+	protected MuisElement getElement(String attach) throws IllegalArgumentException {
+	}
+
 	@Override
 	public void initChildren(MuisElement [] children) {
 		for(MuisElement child : children)
@@ -130,34 +140,41 @@ public abstract class MuisTemplate2 extends MuisElement {
 		Class<? extends MuisTemplate2> superType = (Class<? extends MuisTemplate2>) templateType.getSuperclass();
 		TemplateStructure superStructure = null;
 		while(superType != MuisTemplate2.class) {
-			if(superType.getAnnotation(Template.class) != null){
+			if(superType.getAnnotation(Template.class) != null) {
 				superStructure = doc.getCache().getAndWait(doc, TEMPLATE_STRUCTURE_CACHE_TYPE, superType);
 				break;
 			}
-			superType=(Class<? extends MuisTemplate2>) superType.getSuperclass();
+			superType = (Class<? extends MuisTemplate2>) superType.getSuperclass();
 		}
 		Template template = templateType.getAnnotation(Template.class);
-		if(template == null){
-			if(superStructure!=null)
+		if(template == null) {
+			if(superStructure != null)
 				return superStructure;
 			throw new MuisException("Concrete implementations of " + MuisTemplate2.class.getName() + " like " + templateType.getName()
 				+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
 		}
 
 		java.net.URL location;
-		try{
-			location=MuisUtils.resolveURL(templateType.getResource(templateType.getSimpleName()+".class"), template.location());
-		} catch(MuisException e){
-			throw new MuisException("Could not resolve template path "+template.location()+" for templated widget "+templateType.getName(), e);
+		try {
+			location = MuisUtils.resolveURL(templateType.getResource(templateType.getSimpleName() + ".class"), template.location());
+		} catch(MuisException e) {
+			throw new MuisException("Could not resolve template path " + template.location() + " for templated widget "
+				+ templateType.getName(), e);
 		}
 		WidgetStructure widgetStructure;
-		try{
+		try {
+			MuisClassView classView = new MuisClassView(doc.getEnvironment(), null);
+			classView.addNamespace("this", (MuisToolkit) templateType.getClassLoader());
+			org.muis.core.mgr.MutatingMessageCenter msg = new org.muis.core.mgr.MutatingMessageCenter(doc.msg(), "Template "
+				+ templateType.getName() + ": ", "template", templateType);
 			widgetStructure = doc.getEnvironment().getParser()
-				.parseContent(location, new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream())), todo);
-		} catch(java.io.IOException e){
-			throw new MuisException("Could not read template resoruce "+template.location()+" for templated widget "+templateType.getName(), e);
-		} catch(MuisParseException e){
-			throw new MuisException("Could not parse template resoruce "+template.location()+" for templated widget "+templateType.getName(), e);
+				.parseContent(location, new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream())), classView, msg);
+		} catch(java.io.IOException e) {
+			throw new MuisException("Could not read template resource " + template.location() + " for templated widget "
+				+ templateType.getName(), e);
+		} catch(MuisParseException e) {
+			throw new MuisException("Could not parse template resource " + template.location() + " for templated widget "
+				+ templateType.getName(), e);
 		}
 		TemplateStructure ret = new TemplateStructure(templateType, superStructure, widgetStructure);
 		int todo;// TODO attach points

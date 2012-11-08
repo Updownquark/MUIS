@@ -6,8 +6,7 @@ import org.muis.core.MuisEnvironment;
 import org.muis.core.MuisToolkit;
 
 /** Parses MUIS structures from XML */
-public interface MuisParser
-{
+public interface MuisParser {
 	/** @return The environment that this parser operates in */
 	MuisEnvironment getEnvironment();
 
@@ -39,19 +38,19 @@ public interface MuisParser
 	 * @throws IOException If an error occurs reading the XML document
 	 * @throws MuisParseException If an unrecoverable error occurs parsing the document into MUIS format
 	 */
-	MuisDocumentStructure parseDocument(java.net.URL location, java.io.Reader reader) throws IOException,
-		MuisParseException;
+	MuisDocumentStructure parseDocument(java.net.URL location, java.io.Reader reader) throws IOException, MuisParseException;
 
 	/**
 	 * Parses widget structure from XML
 	 *
 	 * @param location The location of the XML file to read
 	 * @param reader The reader to the XML structure
+	 * @param rootClassView The class view for the root of the widget structure
 	 * @param msg The message center to report parsing errors to
 	 * @return The widget structure of the XML data in the file
 	 * @throws IOException If an error occurs reading the file
 	 * @throws MuisParseException If an unrecoverable error occurs parsing the XML into MUIS format
 	 */
-	WidgetStructure parseContent(java.net.URL location, java.io.Reader reader, org.muis.core.mgr.MuisMessageCenter msg) throws IOException,
-		MuisParseException;
+	WidgetStructure parseContent(java.net.URL location, java.io.Reader reader, org.muis.core.MuisClassView rootClassView,
+		org.muis.core.mgr.MuisMessageCenter msg) throws IOException, MuisParseException;
 }

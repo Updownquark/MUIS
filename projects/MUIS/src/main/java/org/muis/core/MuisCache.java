@@ -15,12 +15,12 @@ public class MuisCache
 	public interface CacheItemType<K, V, E extends Exception>
 	{
 		/**
-		 * @param doc The MUIS document to generate the resource for
+		 * @param env The MUIS environment to generate the resource for
 		 * @param key The key to generate the cached value for
 		 * @return The value to cache and return for the given key
 		 * @throws E If an error occurs generating the value
 		 */
-		V generate(MuisDocument doc, K key) throws E;
+		V generate(MuisEnvironment env, K key) throws E;
 
 		/**
 		 * @param value The value to determine the size of
@@ -137,17 +137,17 @@ public class MuisCache
 
 	/**
 	 * Retrieves a cached item and optionally generates the item if not cached, waiting for the generation to be complete
-	 *
+	 * 
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item
-	 * @param doc The document to get the resource within
+	 * @param env The environment to get the resource within
 	 * @param type The type of item to get
 	 * @param key The key to get the cached item by
 	 * @return The value cached for the given type and key
 	 * @throws E If an exception occurs generating a new cache value
 	 */
-	public <K, V, E extends Exception> V getAndWait(MuisDocument doc, CacheItemType<K, V, E> type, K key) throws E
+	public <K, V, E extends Exception> V getAndWait(MuisEnvironment env, CacheItemType<K, V, E> type, K key) throws E
 	{
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
@@ -156,7 +156,7 @@ public class MuisCache
 			stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			while(stored == null)
 			{ // This is in a while loop because it's remotely possible that the entry could be purged before get returns
-				get(doc, type, key, null);
+				get(env, type, key, null);
 				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			}
 		}
@@ -184,11 +184,11 @@ public class MuisCache
 
 	/**
 	 * An asynchronous get method
-	 *
+	 * 
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item
-	 * @param doc The MUIS document to use to generate the value
+	 * @param env The MUIS environment to use to generate the value
 	 * @param type The type of the cached item to get
 	 * @param key The key of the cached item to get
 	 * @param receiver A receiver to be notified when the cached item is available. May be null.
@@ -196,7 +196,7 @@ public class MuisCache
 	 * @throws E The error that occurred while generating the cache value, if the cache has already attempted to generate the item and
 	 *             failed
 	 */
-	public <K, V, E extends Exception> V get(MuisDocument doc, CacheItemType<K, V, E> type, K key, ItemReceiver<K, V> receiver) throws E
+	public <K, V, E extends Exception> V get(MuisEnvironment env, CacheItemType<K, V, E> type, K key, ItemReceiver<K, V> receiver) throws E
 	{
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
@@ -208,7 +208,7 @@ public class MuisCache
 				{
 					stored = cacheKey;
 					theInternalCache.put(cacheKey, stored);
-					startGet(doc, stored);
+					startGet(env, stored);
 				}
 			}
 		if(stored.isLoading && receiver != null)
@@ -252,7 +252,7 @@ public class MuisCache
 		return (V) theInternalCache.remove(cacheKey);
 	}
 
-	private <K, V, E extends Exception> void startGet(final MuisDocument doc, final CacheKey<K, V, E> key)
+	private <K, V, E extends Exception> void startGet(final MuisEnvironment env, final CacheKey<K, V, E> key)
 	{
 		theWorker.run(new Runnable() {
 			@Override
@@ -260,7 +260,7 @@ public class MuisCache
 			{
 				try
 				{
-					key.theValue = key.getType().generate(doc, key.getKey());
+					key.theValue = key.getType().generate(env, key.getKey());
 				} catch(Throwable e)
 				{
 					key.theError = e;

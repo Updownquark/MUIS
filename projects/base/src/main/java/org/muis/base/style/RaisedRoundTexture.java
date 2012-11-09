@@ -3,8 +3,6 @@ package org.muis.base.style;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
-import org.muis.core.MuisDocument;
-
 /** Renders a raised, round, button-looking texture over an element */
 public class RaisedRoundTexture implements org.muis.core.style.Texture
 {
@@ -100,7 +98,7 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 
 	private static org.muis.core.MuisCache.CacheItemType<CornerRenderKey, CornerRender, RuntimeException> cornerRendering = new org.muis.core.MuisCache.CacheItemType<CornerRenderKey, CornerRender, RuntimeException>() {
 		@Override
-		public CornerRender generate(MuisDocument doc, CornerRenderKey key) throws RuntimeException
+		public CornerRender generate(org.muis.core.MuisEnvironment env, CornerRenderKey key) throws RuntimeException
 		{
 			CornerRender ret = new CornerRender(key.radius);
 			ret.render(key.source, key.maxShading);
@@ -160,12 +158,13 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 			while(tempSource < 0)
 				tempSource += 360;
 			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f)); // If we need to generate, step it up
-			CornerRender cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key);
+			org.muis.core.MuisEnvironment env = element.getDocument().getEnvironment();
+			CornerRender cr = env.getCache().getAndWait(env, cornerRendering, key);
 			if(cr.getRadius() < maxRad)
 			{
 				// Regenerate with a big enough radius
-				element.getDocument().getCache().remove(cornerRendering, key);
-				cr = element.getDocument().getCache().getAndWait(element.getDocument(), cornerRendering, key);
+				env.getCache().remove(cornerRendering, key);
+				cr = env.getCache().getAndWait(env, cornerRendering, key);
 			}
 
 			// Draw the corner

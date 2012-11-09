@@ -25,6 +25,8 @@ public class MuisEnvironment {
 
 	private java.util.Map<String, MuisToolkit> theToolkits;
 
+	private MuisCache theCache;
+
 	private EnvironmentStyle theStyle;
 
 	private final Object theToolkitLock;
@@ -33,6 +35,7 @@ public class MuisEnvironment {
 	public MuisEnvironment() {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new MuisMessageCenter(this, null, null);
+		theCache = new MuisCache();
 		theStyle = new EnvironmentStyle();
 		theToolkitLock = new Object();
 	}
@@ -72,6 +75,11 @@ public class MuisEnvironment {
 	 */
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
+	}
+
+	/** @return The resource cache for this environment */
+	public MuisCache getCache() {
+		return theCache;
 	}
 
 	/** @return The sum of all toolkit styles in this environment */

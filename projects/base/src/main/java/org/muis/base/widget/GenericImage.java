@@ -93,7 +93,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 	static {
 		cacheType = new org.muis.core.MuisCache.CacheItemType<URL, ImageData, java.io.IOException>() {
 			@Override
-			public ImageData generate(org.muis.core.MuisDocument doc, URL key) throws java.io.IOException {
+			public ImageData generate(org.muis.core.MuisEnvironment env, URL key) throws java.io.IOException {
 				javax.imageio.stream.ImageInputStream imInput = javax.imageio.ImageIO.createImageInputStream(key.openStream());
 				if(imInput == null)
 					throw new java.io.IOException("File format not recognized: " + key.getPath());
@@ -151,13 +151,13 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
+				org.muis.core.MuisEnvironment env = getDocument().getEnvironment();
 				org.muis.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
 				if(res == null)
 					msg().error("No configured img-load-icon");
 				if(res != null && theLoadingImage == null)
 					try {
-						getDocument().getCache().get(getDocument(), cacheType,
-							org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						env.getCache().get(env, cacheType, org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
 							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 								@Override
 								public void itemGenerated(URL key, ImageData value) {
@@ -180,8 +180,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 					msg().error("No configured img-load-failed-icon");
 				if(res != null && theErrorImage == null)
 					try {
-						getDocument().getCache().get(getDocument(), cacheType,
-							org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						env.getCache().get(env, cacheType, org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
 							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 								@Override
 								public void itemGenerated(URL key, ImageData value) {
@@ -221,8 +220,8 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		theLoadError = null;
 		theImage = null;
 		try {
-			theImage = getDocument().getCache().get(getDocument(), cacheType, location,
-				new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
+			theImage = getDocument().getEnvironment().getCache()
+				.get(getDocument().getEnvironment(), cacheType, location, new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 					@Override
 					public void itemGenerated(URL key, ImageData value) {
 						if(!key.equals(theLocation))

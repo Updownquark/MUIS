@@ -53,8 +53,6 @@ public class MuisDocument {
 
 	private java.awt.Toolkit theAwtToolkit;
 
-	private MuisCache theCache;
-
 	private MuisHeadSection theHead;
 
 	private BodyElement theRoot;
@@ -100,7 +98,6 @@ public class MuisDocument {
 		theLocation = location;
 		theHead = new MuisHeadSection();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
-		theCache = new MuisCache();
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
@@ -143,11 +140,6 @@ public class MuisDocument {
 	/** @return The location of the file that this document was generated from */
 	public java.net.URL getLocation() {
 		return theLocation;
-	}
-
-	/** @return The resource cache for this document */
-	public MuisCache getCache() {
-		return theCache;
 	}
 
 	/** @return The head section of this document */

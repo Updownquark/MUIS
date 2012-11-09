@@ -41,4 +41,7 @@ public interface ElementList<E extends MuisElement> extends List<E> {
 
 	/** @param listener The listener to remove from this element's children */
 	void removeChildListener(org.muis.core.event.MuisEventListener<?> listener);
+
+	@Override
+	public E [] toArray();
 }

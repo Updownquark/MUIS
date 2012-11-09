@@ -58,7 +58,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	private final AttributeManager theAttributeManager;
 	private final ChildList theChildren;
 
-	private final ImmutableChildList theExposedChildren;
+	private final ImmutableChildList<MuisElement> theExposedChildren;
 	private final ElementStyle theStyle;
 	private final CompoundStyleListener theDefaultStyleListener;
 
@@ -99,7 +99,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				lastStage = stage.toString();
 			}
 		theChildren = new ChildList(this);
-		theExposedChildren = new ImmutableChildList(theChildren);
+		theExposedChildren = new ImmutableChildList<MuisElement>(theChildren);
 		theAttributeManager = new AttributeManager(this);
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
@@ -461,8 +461,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * Initializes an element's descendants
 	 *
 	 * @param children The child elements specified in the MUIS XML
+	 * @return The child list that the children are populated into
 	 */
-	public void initChildren(MuisElement [] children) {
+	public MutableElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		theLifeCycleController.advance(CoreStage.INIT_CHILDREN.toString());
 		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true)) {
 			theChildren.clear();
@@ -473,6 +474,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
 			relayout(false);
 		theLifeCycleController.advance(CoreStage.INITIALIZED.toString());
+		return theChildren;
 	}
 
 	/**
@@ -568,7 +570,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	}
 
 	/** @return An unmodifiable list of this element's children */
-	public ImmutableChildList getChildren() {
+	public ImmutableChildList<? extends MuisElement> getChildren() {
 		return theExposedChildren;
 	}
 
@@ -577,7 +579,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 *
 	 * @return An unmodifiable list of this element's children
 	 */
-	public ImmutableChildList ch() {
+	public ImmutableChildList<? extends MuisElement> ch() {
 		return getChildren();
 	}
 

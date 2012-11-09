@@ -9,12 +9,16 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
 
-/** An augmented, immutable list of an element's children */
-public class ImmutableChildList implements ElementList<MuisElement> {
-	private final ChildList theContents;
+/**
+ * An augmented, immutable list of elements
+ * 
+ * @param <E> The type of element in the list
+ */
+public class ImmutableChildList<E extends MuisElement> implements ElementList<E> {
+	private final MutableElementList<E> theContents;
 
-	/** @param contents The ChildList that governs an element's children */
-	public ImmutableChildList(ChildList contents) {
+	/** @param contents The list to wrap */
+	public ImmutableChildList(MutableElementList<E> contents) {
 		theContents = contents;
 	}
 
@@ -64,9 +68,9 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 	}
 
 	@Override
-	public Iterator<MuisElement> iterator() {
-		return new Iterator<MuisElement>() {
-			private Iterator<MuisElement> theWrapped = theContents.iterator();
+	public Iterator<E> iterator() {
+		return new Iterator<E>() {
+			private Iterator<E> theWrapped = theContents.iterator();
 
 			@Override
 			public boolean hasNext() {
@@ -74,7 +78,7 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 			}
 
 			@Override
-			public MuisElement next() {
+			public E next() {
 				return theWrapped.next();
 			}
 
@@ -86,7 +90,7 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 	}
 
 	@Override
-	public MuisElement [] toArray() {
+	public E [] toArray() {
 		return theContents.toArray();
 	}
 
@@ -113,13 +117,13 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends MuisElement> c) {
+	public boolean addAll(Collection<? extends E> c) {
 		throwUnsupported();
 		return false;
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends MuisElement> c) {
+	public boolean addAll(int index, Collection<? extends E> c) {
 		throwUnsupported();
 		return false;
 	}
@@ -142,7 +146,7 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 	}
 
 	@Override
-	public MuisElement get(int index) {
+	public E get(int index) {
 		return theContents.get(index);
 	}
 
@@ -158,7 +162,7 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 	}
 
 	@Override
-	public MuisElement remove(int index) {
+	public E remove(int index) {
 		throwUnsupported();
 		return null;
 	}
@@ -174,17 +178,17 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 	}
 
 	@Override
-	public ListIterator<MuisElement> listIterator() {
-		return new ImmutableChildListIterator(theContents.listIterator());
+	public ListIterator<E> listIterator() {
+		return new ImmutableChildListIterator<E>(theContents.listIterator());
 	}
 
 	@Override
-	public ListIterator<MuisElement> listIterator(int index) {
-		return new ImmutableChildListIterator(theContents.listIterator(index));
+	public ListIterator<E> listIterator(int index) {
+		return new ImmutableChildListIterator<E>(theContents.listIterator(index));
 	}
 
 	@Override
-	public List<MuisElement> subList(int fromIndex, int toIndex) {
+	public List<E> subList(int fromIndex, int toIndex) {
 		return java.util.Collections.unmodifiableList(theContents.subList(fromIndex, toIndex));
 	}
 
@@ -193,10 +197,10 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 			+ "'s set of children may not be modified through the getChildren() or ch() list");
 	}
 
-	private static class ImmutableChildListIterator implements ListIterator<MuisElement> {
-		private final ListIterator<MuisElement> theWrapped;
+	private static class ImmutableChildListIterator<E extends MuisElement> implements ListIterator<E> {
+		private final ListIterator<E> theWrapped;
 
-		ImmutableChildListIterator(ListIterator<MuisElement> wrap) {
+		ImmutableChildListIterator(ListIterator<E> wrap) {
 			theWrapped = wrap;
 		}
 
@@ -206,7 +210,7 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 		}
 
 		@Override
-		public MuisElement next() {
+		public E next() {
 			return theWrapped.next();
 		}
 
@@ -216,7 +220,7 @@ public class ImmutableChildList implements ElementList<MuisElement> {
 		}
 
 		@Override
-		public MuisElement previous() {
+		public E previous() {
 			return theWrapped.previous();
 		}
 

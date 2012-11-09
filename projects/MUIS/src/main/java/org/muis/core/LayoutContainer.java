@@ -22,8 +22,8 @@ public class LayoutContainer extends MuisElement {
 	}
 
 	@Override
-	public void initChildren(MuisElement [] children) {
-		super.initChildren(children);
+	public org.muis.core.mgr.MutableElementList<? extends MuisElement> initChildren(MuisElement [] children) {
+		org.muis.core.mgr.MutableElementList<? extends MuisElement> ret = super.initChildren(children);
 		addListener(MuisConstants.Events.ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
@@ -39,6 +39,7 @@ public class LayoutContainer extends MuisElement {
 			}
 		});
 		setLayout(atts().get(LAYOUT_ATTR));
+		return ret;
 	}
 
 	/**

@@ -5,6 +5,7 @@ import java.util.*;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
+import org.muis.core.mgr.ElementList;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
@@ -18,44 +19,6 @@ import org.muis.core.tags.Template;
 public abstract class MuisTemplate2 extends MuisElement {
 	/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
 	public static final MuisAttribute<String> ROLE = new MuisAttribute<String>("role", MuisProperty.stringAttr);
-
-	/** The prefix for template-related attributes in the template file */
-	public static final String TEMPLATE_PREFIX = "template";
-
-	/** The attribute specifying that an element is an attach point definition. The value of the attribute is the name of the attach point. */
-	public static final String ATTACH_POINT = TEMPLATE_PREFIX + "attach-point";
-
-	/**
-	 * The attribute specifying whether an attach point may be specified externally (from the XML invoking the templated widget) or not.
-	 * Internal-only attach points may simply be used as binding points, preventing a templated widget implementation from having to search
-	 * and find a widget. Default is true.
-	 */
-	public static final String EXTERNAL = TEMPLATE_PREFIX + "external";
-
-	/**
-	 * The attribute specifying whether an attach point MUST be specified externally (from the XML invoking the templated widget). Default
-	 * is false.
-	 */
-	public static final String REQUIRED = TEMPLATE_PREFIX + "required";
-
-	/** The attribute specifying whether multiple widgets may be specified for the attach point. Default is false. */
-	public static final String MULTIPLE = TEMPLATE_PREFIX + "multiple";
-
-	/**
-	 * The attribute specifying an attach point as the default attach point for the widget. Content in a templated widget's invocation from
-	 * XML that does not specify a {@link #ROLE} will be added at the default attach point. At most one default attach point may be
-	 * specified for a widget.
-	 */
-	public static final String DEFAULT = TEMPLATE_PREFIX + "default";
-
-	/**
-	 * The attribute specifying that the element defining the attach point also defines a widget that will be placed at the attach point
-	 * unless overridden externally. Attach points that specify {@link #MULTIPLE} may not be implementations. Default is false except for
-	 * {@link #EXTERNAL internal-only} attach points, which <b>MUST</b> be implementations.
-	 */
-	public static final String IMPLEMENTATION = TEMPLATE_PREFIX + "implementation";
-
-	public static final String MUTABLE = TEMPLATE_PREFIX + "mutable";
 
 	/** An attach point under a template widget */
 	public static class AttachPoint {
@@ -123,6 +86,64 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 	/** Represents the structure of a templated widget */
 	public static class TemplateStructure implements Iterable<AttachPoint> {
+		/** The prefix for template-related attributes in the template file */
+		public static final String TEMPLATE_PREFIX = "template";
+
+		/**
+		 * The attribute specifying that an element is an attach point definition. The value of the attribute is the name of the attach
+		 * point.
+		 */
+		public static final String ATTACH_POINT = TEMPLATE_PREFIX + "attach-point";
+
+		/**
+		 * The attribute specifying whether an attach point may be specified externally (from the XML invoking the templated widget) or not.
+		 * Internal-only attach points may simply be used as binding points, preventing a templated widget implementation from having to
+		 * search and find a widget. Default is true.
+		 */
+		public static final String EXTERNAL = TEMPLATE_PREFIX + "external";
+
+		/**
+		 * The attribute specifying whether an attach point MUST be specified externally (from the XML invoking the templated widget).
+		 * Default is false.
+		 */
+		public static final String REQUIRED = TEMPLATE_PREFIX + "required";
+
+		/** The attribute specifying whether multiple widgets may be specified for the attach point. Default is false. */
+		public static final String MULTIPLE = TEMPLATE_PREFIX + "multiple";
+
+		/**
+		 * The attribute specifying an attach point as the default attach point for the widget. Content in a templated widget's invocation
+		 * from XML that does not specify a {@link #ROLE} will be added at the default attach point. At most one default attach point may be
+		 * specified for a widget.
+		 */
+		public static final String DEFAULT = TEMPLATE_PREFIX + "default";
+
+		/**
+		 * The attribute specifying that the element defining the attach point also defines a widget that will be placed at the attach point
+		 * unless overridden externally. Attach points that specify {@link #MULTIPLE} may not be implementations. Default is false except
+		 * for {@link #EXTERNAL internal-only} attach points, which <b>MUST</b> be implementations.
+		 */
+		public static final String IMPLEMENTATION = TEMPLATE_PREFIX + "implementation";
+
+		public static final String MUTABLE = TEMPLATE_PREFIX + "mutable";
+
+		/** The cache key to use to retrieve instances of {@link TemplateStructure} */
+		public static MuisCache.CacheItemType<Class<? extends MuisTemplate2>, TemplateStructure, MuisException> TEMPLATE_STRUCTURE_CACHE_TYPE;
+
+		static {
+			TEMPLATE_STRUCTURE_CACHE_TYPE = new MuisCache.CacheItemType<Class<? extends MuisTemplate2>, MuisTemplate2.TemplateStructure, MuisException>() {
+				@Override
+				public TemplateStructure generate(MuisEnvironment env, Class<? extends MuisTemplate2> key) throws MuisException {
+					return genTemplateStructure(env, key);
+				}
+
+				@Override
+				public int size(TemplateStructure value) {
+					return 0; // TODO
+				}
+			};
+		}
+
 		private final Class<? extends MuisTemplate2> theDefiner;
 
 		private final TemplateStructure theSuperStructure;
@@ -196,32 +217,187 @@ public abstract class MuisTemplate2 extends MuisElement {
 		public java.util.Iterator<AttachPoint> iterator() {
 			return Collections.unmodifiableList(new ArrayList<AttachPoint>(theAttachPoints.values())).listIterator();
 		}
+
+		/**
+		 * Generates a template structure for a template type
+		 *
+		 * @param env The MUIS environment to generate the structure within
+		 * @param templateType The template type to generate the structure for
+		 * @return The template structure for the given templated type
+		 * @throws MuisException If an error occurs generating the structure
+		 */
+		public static TemplateStructure genTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate2> templateType)
+			throws MuisException {
+			if(!MuisTemplate2.class.isAssignableFrom(templateType))
+				throw new MuisException("Only extensions of " + MuisTemplate2.class.getName() + " may have template structures: "
+					+ templateType.getName());
+			if(templateType == MuisTemplate2.class)
+				return null;
+			Class<? extends MuisTemplate2> superType = (Class<? extends MuisTemplate2>) templateType.getSuperclass();
+			TemplateStructure superStructure = null;
+			while(superType != MuisTemplate2.class) {
+				if(superType.getAnnotation(Template.class) != null) {
+					superStructure = env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, superType);
+					break;
+				}
+				superType = (Class<? extends MuisTemplate2>) superType.getSuperclass();
+			}
+			Template template = templateType.getAnnotation(Template.class);
+			if(template == null) {
+				if(superStructure != null)
+					return superStructure;
+				throw new MuisException("Concrete implementations of " + MuisTemplate2.class.getName() + " like " + templateType.getName()
+					+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
+			}
+
+			java.net.URL location;
+			try {
+				location = MuisUtils.resolveURL(templateType.getResource(templateType.getSimpleName() + ".class"), template.location());
+			} catch(MuisException e) {
+				throw new MuisException("Could not resolve template path " + template.location() + " for templated widget "
+					+ templateType.getName(), e);
+			}
+			WidgetStructure widgetStructure;
+			try {
+				MuisClassView classView = new MuisClassView(env, null);
+				classView.addNamespace("this", (MuisToolkit) templateType.getClassLoader());
+				org.muis.core.mgr.MutatingMessageCenter msg = new org.muis.core.mgr.MutatingMessageCenter(env.msg(), "Template "
+					+ templateType.getName() + ": ", "template", templateType);
+				widgetStructure = env.getParser().parseContent(location,
+					new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream())), classView, msg);
+			} catch(java.io.IOException e) {
+				throw new MuisException("Could not read template resource " + template.location() + " for templated widget "
+					+ templateType.getName(), e);
+			} catch(MuisParseException e) {
+				throw new MuisException("Could not parse template resource " + template.location() + " for templated widget "
+					+ templateType.getName(), e);
+			}
+			Map<AttachPoint, WidgetStructure> attaches = new HashMap<>();
+			try {
+				pullAttachPoints(widgetStructure, attaches);
+			} catch(MuisException e) {
+				throw new MuisException("Error in template resource " + template.location() + " for templated widget "
+					+ templateType.getName() + ": " + e.getMessage(), e);
+			}
+			List<String> defaults = new ArrayList<>();
+			for(AttachPoint ap : attaches.keySet())
+				if(ap.isDefault)
+					defaults.add(ap.name);
+			if(defaults.size() > 1)
+				throw new MuisException("More than one default attach point " + defaults + " present in template resource "
+					+ template.location() + " for templated widget " + templateType.getName());
+			return new TemplateStructure(templateType, superStructure, widgetStructure, attaches);
+		}
+
+		private static void pullAttachPoints(WidgetStructure structure, Map<AttachPoint, WidgetStructure> attaches) throws MuisException {
+			for(MuisContent content : structure.getChildren()) {
+				if(!(content instanceof WidgetStructure))
+					continue;
+				WidgetStructure child = (WidgetStructure) content;
+				String name = child.getAttributes().get(ATTACH_POINT);
+				if(name == null) {
+					pullAttachPoints(child, attaches);
+					continue;
+				}
+				if(attaches.containsKey(name))
+					throw new MuisException("Duplicate attach points named \"" + name + "\"");
+				Class<? extends MuisElement> type;
+				if(child.getNamespace() == null && child.getTagName().equals("element"))
+					type = MuisElement.class;
+				else
+					try {
+						type = child.getClassView().loadMappedClass(child.getNamespace(), child.getTagName(), MuisElement.class);
+					} catch(MuisException e) {
+						throw new MuisException("Could not load element type \""
+							+ (child.getNamespace() == null ? "" : (child.getNamespace() + ":")) + child.getTagName()
+							+ "\" for attach point \"" + name + "\": " + e.getMessage(), e);
+					}
+				boolean external = getBoolean(child, EXTERNAL, true, name); // Externally-specifiable by default
+				boolean implementation = getBoolean(child, IMPLEMENTATION, !external, name);
+				boolean required = getBoolean(child, REQUIRED, true, name);
+				boolean multiple = getBoolean(child, MULTIPLE, false, name);
+				boolean def = getBoolean(child, DEFAULT, false, name);
+				boolean mutable = getBoolean(child, MUTABLE, true, name);
+				if(!external && (required || multiple || def || !implementation)) {
+					throw new MuisException("Non-externally-specifiable attach points (" + name
+						+ ") may not be required, default, or allow multiples");
+				}
+				if(!implementation && !external)
+					throw new MuisException("Non-externally-specifiable attach points (" + name + ") must be implementations");
+				if(!external && multiple)
+					throw new MuisException("Externally-specifiable attach points (" + name + ") may not allow multiples");
+				if(implementation && multiple)
+					throw new MuisException("Attach points (" + name + ") that allow multiples cannot be implementations");
+				for(String attName : child.getAttributes().keySet()) {
+					if(!attName.startsWith(TEMPLATE_PREFIX))
+						continue;
+					if(attName.equals(EXTERNAL) || attName.equals(IMPLEMENTATION) || attName.equals(REQUIRED) || attName.equals(MULTIPLE)
+						|| attName.equals(DEFAULT))
+						continue;
+					throw new MuisException("Template attribute " + TEMPLATE_PREFIX + attName + " not recognized");
+				}
+
+				attaches.put(new AttachPoint(name, type, external, required, multiple, def, implementation, mutable), child);
+				if(external) {
+					Map<AttachPoint, WidgetStructure> check = new HashMap<>();
+					pullAttachPoints(child, check);
+					if(!check.isEmpty())
+						throw new MuisException("Externally-specifiable attach points (" + name + ") may not contain attach points: "
+							+ check.keySet());
+				} else {
+					pullAttachPoints(child, attaches);
+				}
+			}
+		}
+
+		private static boolean getBoolean(WidgetStructure child, String attName, boolean def, String attachPoint) throws MuisException {
+			if(!child.getAttributes().containsKey(attName))
+				return def;
+			else if("true".equals(child.getAttributes().get(attName)))
+				return true;
+			else if("false".equals(child.getAttributes().get(attName)))
+				return false;
+			else
+				throw new MuisException("Attach point \"" + attachPoint + "\" specifies illegal " + attName + " value \""
+					+ child.getAttributes().get(attName) + "\"--may be true or false");
+		}
 	}
 
-	/** The cache key to use to retrieve instances of {@link TemplateStructure} */
-	public static MuisCache.CacheItemType<Class<? extends MuisTemplate2>, TemplateStructure, MuisException> TEMPLATE_STRUCTURE_CACHE_TYPE;
+	protected static class AttachPointInstance {
+		public final AttachPoint attachPoint;
 
-	static {
-		TEMPLATE_STRUCTURE_CACHE_TYPE = new MuisCache.CacheItemType<Class<? extends MuisTemplate2>, MuisTemplate2.TemplateStructure, MuisException>() {
-			@Override
-			public TemplateStructure generate(MuisEnvironment env, Class<? extends MuisTemplate2> key) throws MuisException {
-				return genTemplateStructure(env, key);
-			}
+		public final MuisElement parent;
 
-			@Override
-			public int size(TemplateStructure value) {
-				return 0; // TODO
-			}
-		};
+		public final ElementList<?> parentChildren;
+
+		private MuisContainer<?> theContainer;
+
+		public MuisElement getValue() {
+			for(MuisElement el : parentChildren)
+				if(el.atts().get(ROLE)
+			return theValue;
+		}
+
+		public MuisContainer<?> getContainer() {
+			return theContainer;
+		}
+
+		AttachPointInstance(AttachPoint ap, MuisElement p, ElementList<?> pc) {
+			attachPoint = ap;
+			parent = p;
+			parentChildren = pc;
+		}
 	}
 
 	private TemplateStructure theTemplateStructure;
 
+	/**
+	 * The {@link org.muis.core.mgr.AttributeManager#accept(Object, MuisAttribute) wanter} for the {@link #ROLE role} attribute on this
+	 * element's content
+	 */
 	private Object theRoleWanter;
 
-	private Map<AttachPoint, MuisContainer<?>> theAttachPointContainers;
-
-	private Map<AttachPoint, MuisElement> theAttachPointElements; // This is not good enough--doesn't support set
+	private Map<AttachPoint, AttachPointInstance> theAttachPoints;
 
 	// These fields are valid during initialization only (prior to initChildren())--they will be null after that
 
@@ -232,8 +408,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 	/** Creates a templated widget */
 	public MuisTemplate2() {
 		theRoleWanter = new Object();
-		theAttachPointContainers = new HashMap<>();
-		theAttachPointElements = new HashMap<>();
+		theAttachPoints = new LinkedHashMap<>();
 		theStructureMappings = new HashMap<>();
 		theAttachmentMappings = new HashMap<>();
 		life().runWhen(new Runnable() {
@@ -241,7 +416,8 @@ public abstract class MuisTemplate2 extends MuisElement {
 			public void run() {
 				try {
 					MuisEnvironment env = getDocument().getEnvironment();
-					theTemplateStructure = env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, MuisTemplate2.this.getClass());
+					theTemplateStructure = env.getCache().getAndWait(env, TemplateStructure.TEMPLATE_STRUCTURE_CACHE_TYPE,
+						MuisTemplate2.this.getClass());
 				} catch(MuisException e) {
 					msg().fatal("Could not generate template structure", e);
 				}
@@ -280,9 +456,9 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 	private MuisElement getChild(TemplateStructure template, MuisElement parent, MuisContent child,
 		org.muis.core.parser.MuisContentCreator creator) throws MuisParseException {
-		if(child instanceof WidgetStructure && ((WidgetStructure) child).getAttributes().containsKey(ATTACH_POINT)) {
+		if(child instanceof WidgetStructure && ((WidgetStructure) child).getAttributes().containsKey(TemplateStructure.ATTACH_POINT)) {
 			WidgetStructure apStruct = (WidgetStructure) child;
-			AttachPoint ap = template.getAttachPoint(apStruct.getAttributes().get(ATTACH_POINT));
+			AttachPoint ap = template.getAttachPoint(apStruct.getAttributes().get(TemplateStructure.ATTACH_POINT));
 			List<MuisElement> attaches = new ArrayList<>();
 			theAttachmentMappings.put(apStruct, attaches);
 			if(ap.implementation) {
@@ -297,7 +473,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 				implStruct.seal();
 				MuisElement ret = creator.getChild(parent, implStruct);
 				try {
-					ret.atts().set(IMPLEMENTATION, "true");
+					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true");
 				} catch(MuisException e) {
 					throw new IllegalStateException("Should not have thrown exception here", e);
 				}
@@ -353,7 +529,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 					+ ap.type.getName() + ", not " + child.getClass().getName(), "child", child);
 			return;
 		}
-		if(ap.implementation && attaches.size() == 1 && attaches.get(0).atts().get(IMPLEMENTATION) != null)
+		if(ap.implementation && attaches.size() == 1 && attaches.get(0).atts().get(TemplateStructure.IMPLEMENTATION) != null)
 			attaches.clear(); // Override the provided implementation
 		if(!ap.multiple && !attaches.isEmpty()) {
 			msg().error("Multiple children fulfilling role \"" + role + "\" in templated widget " + template.getDefiner().getName(),
@@ -362,7 +538,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		}
 		WidgetStructure widgetStruct = template.getWidgetStructure(ap);
 		for(Map.Entry<String, String> attr : widgetStruct.getAttributes().entrySet()) {
-			if(attr.getKey().startsWith(TEMPLATE_PREFIX))
+			if(attr.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
 				continue;
 			try {
 				child.atts().set(attr.getKey(), attr.getValue());
@@ -375,30 +551,56 @@ public abstract class MuisTemplate2 extends MuisElement {
 	}
 
 	protected MuisContainer<?> getContainer(AttachPoint attach) throws IllegalArgumentException {
+		AttachPointInstance instance = theAttachPoints.get(attach);
+		if(instance == null)
+			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
+		if(!attach.multiple)
+			throw new IllegalArgumentException("Cannot call getContainer(" + AttachPoint.class.getSimpleName()
+				+ ") for an attach point that does not support multiple elements");
+
+		return instance.getContainer();
 	}
 
-	protected MuisElement getElement(AttachPoint attach) throws IllegalArgumentException {
+	/**
+	 * @param attach The attach point to get the element at
+	 * @return The element attached at the given attach point. May be null.
+	 */
+	protected MuisElement getElement(AttachPoint attach) {
+		AttachPointInstance instance = theAttachPoints.get(attach);
+		if(instance == null)
+			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
+		if(attach.multiple)
+			throw new IllegalArgumentException("Cannot call getElement(" + AttachPoint.class.getSimpleName()
+				+ ") for an attach point that supports multiple elements");
+
+		return instance.getValue();
 	}
 
 	protected void setElement(AttachPoint attach, MuisElement element) throws IllegalArgumentException {
 	}
 
+	protected int getIndexForAttach(AttachPoint attach) {
+		// Maybe needed for getting the position for a new element in an empty attach point
+	}
+
 	@Override
-	public org.muis.core.mgr.MutableElementList<? extends MuisElement> initChildren(MuisElement [] children) {
+	public ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		if(theStructureMappings == null)
 			throw new IllegalArgumentException("initChildren() may only be called once on an element");
+
 		for(MuisElement child : children)
 			addContent(child, theTemplateStructure);
 
 		// Verify we've got all required attach points satisfied, etc.
 		if(!verifyTemplateStructure(theTemplateStructure))
-			return new AttachPointSetChildList();
+			return super.ch();
 
-		MuisElement [] realChildren = getChildren(theTemplateStructure.getWidgetStructure());
-		super.initChildren(realChildren);
+		MuisElement [] realChildren = initChildren(this, theTemplateStructure.getWidgetStructure());
+
 		// Don't need these anymore
 		theStructureMappings = null;
 		theAttachmentMappings = null;
+
 		return new AttachPointSetChildList();
 	}
 
@@ -419,163 +621,31 @@ public abstract class MuisTemplate2 extends MuisElement {
 		return true;
 	}
 
-	private MuisElement [] getChildren(WidgetStructure structure) {
+	private MuisElement [] initChildren(MuisElement parent, WidgetStructure structure) {
 		List<MuisElement> ret = new ArrayList<>();
 		for(MuisContent childStruct : structure.getChildren()) {
-			if(childStruct instanceof WidgetStructure && ((WidgetStructure) childStruct).getAttributes().containsKey(ATTACH_POINT)) {
+			String attach=((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT);
+			if(childStruct instanceof WidgetStructure && attach!=null) {
 				for(MuisElement child : theAttachmentMappings.get(childStruct)) {
 					ret.add(child);
-					MuisElement [] subChildren = getChildren((WidgetStructure) childStruct);
-					child.initChildren(subChildren);
+					initChildren(child, (WidgetStructure) childStruct);
 				}
 			} else {
 				MuisElement child = theStructureMappings.get(childStruct);
 				ret.add(child);
-				MuisElement [] subChildren = getChildren((WidgetStructure) childStruct);
-				child.initChildren(subChildren);
+				initChildren(child, (WidgetStructure) childStruct);
 			}
 		}
-		return ret.toArray(new MuisElement[ret.size()]);
-	}
-
-	/**
-	 * Generates a template structure for a template type
-	 *
-	 * @param env The MUIS environment to generate the structure within
-	 * @param templateType The template type to generate the structure for
-	 * @return The template structure for the given templated type
-	 * @throws MuisException If an error occurs generating the structure
-	 */
-	public static TemplateStructure genTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate2> templateType)
-		throws MuisException {
-		if(!MuisTemplate2.class.isAssignableFrom(templateType))
-			throw new MuisException("Only extensions of " + MuisTemplate2.class.getName() + " may have template structures: "
-				+ templateType.getName());
-		if(templateType == MuisTemplate2.class)
-			return null;
-		Class<? extends MuisTemplate2> superType = (Class<? extends MuisTemplate2>) templateType.getSuperclass();
-		TemplateStructure superStructure = null;
-		while(superType != MuisTemplate2.class) {
-			if(superType.getAnnotation(Template.class) != null) {
-				superStructure = env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, superType);
-				break;
-			}
-			superType = (Class<? extends MuisTemplate2>) superType.getSuperclass();
-		}
-		Template template = templateType.getAnnotation(Template.class);
-		if(template == null) {
-			if(superStructure != null)
-				return superStructure;
-			throw new MuisException("Concrete implementations of " + MuisTemplate2.class.getName() + " like " + templateType.getName()
-				+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
-		}
-
-		java.net.URL location;
-		try {
-			location = MuisUtils.resolveURL(templateType.getResource(templateType.getSimpleName() + ".class"), template.location());
-		} catch(MuisException e) {
-			throw new MuisException("Could not resolve template path " + template.location() + " for templated widget "
-				+ templateType.getName(), e);
-		}
-		WidgetStructure widgetStructure;
-		try {
-			MuisClassView classView = new MuisClassView(env, null);
-			classView.addNamespace("this", (MuisToolkit) templateType.getClassLoader());
-			org.muis.core.mgr.MutatingMessageCenter msg = new org.muis.core.mgr.MutatingMessageCenter(env.msg(), "Template "
-				+ templateType.getName() + ": ", "template", templateType);
-			widgetStructure = env.getParser().parseContent(location,
-				new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream())), classView, msg);
-		} catch(java.io.IOException e) {
-			throw new MuisException("Could not read template resource " + template.location() + " for templated widget "
-				+ templateType.getName(), e);
-		} catch(MuisParseException e) {
-			throw new MuisException("Could not parse template resource " + template.location() + " for templated widget "
-				+ templateType.getName(), e);
-		}
-		Map<AttachPoint, WidgetStructure> attaches = new HashMap<>();
-		try {
-			pullAttachPoints(widgetStructure, attaches);
-		} catch(MuisException e) {
-			throw new MuisException("Error in template resource " + template.location() + " for templated widget " + templateType.getName()
-				+ ": " + e.getMessage(), e);
-		}
-		List<String> defaults = new ArrayList<>();
-		for(AttachPoint ap : attaches.keySet())
-			if(ap.isDefault)
-				defaults.add(ap.name);
-		if(defaults.size() > 1)
-			throw new MuisException("More than one default attach point " + defaults + " present in template resource "
-				+ template.location() + " for templated widget " + templateType.getName());
-		return new TemplateStructure(templateType, superStructure, widgetStructure, attaches);
-	}
-
-	private static void pullAttachPoints(WidgetStructure structure, Map<AttachPoint, WidgetStructure> attaches) throws MuisException {
-		for(MuisContent content : structure.getChildren()) {
-			if(!(content instanceof WidgetStructure))
-				continue;
-			WidgetStructure child = (WidgetStructure) content;
-			String name = child.getAttributes().get(ATTACH_POINT);
-			if(name == null) {
-				pullAttachPoints(child, attaches);
-				continue;
-			}
-			if(attaches.containsKey(name))
-				throw new MuisException("Duplicate attach points named \"" + name + "\"");
-			Class<? extends MuisElement> type;
-			if(child.getNamespace() == null && child.getTagName().equals("element"))
-				type = MuisElement.class;
-			else
-				try {
-					type = child.getClassView().loadMappedClass(child.getNamespace(), child.getTagName(), MuisElement.class);
-				} catch(MuisException e) {
-					throw new MuisException("Could not load element type \""
-						+ (child.getNamespace() == null ? "" : (child.getNamespace() + ":")) + child.getTagName()
-						+ "\" for attach point \"" + name + "\": " + e.getMessage(), e);
-				}
-			boolean external = getBoolean(child, EXTERNAL, true, name); // Externally-specifiable by default
-			boolean implementation = getBoolean(child, IMPLEMENTATION, !external, name);
-			boolean required = getBoolean(child, REQUIRED, true, name);
-			boolean multiple = getBoolean(child, MULTIPLE, false, name);
-			boolean def = getBoolean(child, DEFAULT, false, name);
-			boolean mutable = getBoolean(child, MUTABLE, true, name);
-			if(!external && (required || multiple || def || !implementation)) {
-				throw new MuisException("Non-externally-specifiable attach points (" + name
-					+ ") may not be required, default, or allow multiples");
-			}
-			if(!implementation && !external)
-				throw new MuisException("Non-externally-specifiable attach points (" + name + ") must be implementations");
-			if(implementation && multiple)
-				throw new MuisException("Attach points (" + name + ") that allow multiples cannot be implementations");
-			for(String attName : child.getAttributes().keySet()) {
-				if(!attName.startsWith(TEMPLATE_PREFIX))
-					continue;
-				if(attName.equals(EXTERNAL) || attName.equals(IMPLEMENTATION) || attName.equals(REQUIRED) || attName.equals(MULTIPLE)
-					|| attName.equals(DEFAULT))
-					continue;
-				throw new MuisException("Template attribute " + TEMPLATE_PREFIX + attName + " not recognized");
-			}
-
-			attaches.put(new AttachPoint(name, type, external, required, multiple, def, implementation, mutable), child);
-			Map<AttachPoint, WidgetStructure> check = new HashMap<>();
-			pullAttachPoints(child, check);
-			if(!check.isEmpty())
-				throw new MuisException("Attach points (" + name + ") may not contain attach points: " + check.keySet());
-		}
-	}
-
-	private static boolean getBoolean(WidgetStructure child, String attName, boolean def, String attachPoint) throws MuisException {
-		if(!child.getAttributes().containsKey(attName))
-			return def;
-		else if("true".equals(child.getAttributes().get(attName)))
-			return true;
-		else if("false".equals(child.getAttributes().get(attName)))
-			return false;
+		MuisElement [] children= ret.toArray(new MuisElement[ret.size()]);
+		ElementList<?> childList;
+		if(parent==this)
+			childList=super.initChildren(children);
 		else
-			throw new MuisException("Attach point \"" + attachPoint + "\" specifies illegal " + attName + " value \""
-				+ child.getAttributes().get(attName) + "\"--may be true or false");
+			childList=parent.initChildren(children);
+		AttachPointInstance api=new AttachPointInstance(theTemplateStructure.getAttachPoint(attach), parent, childList)
 	}
 
-	private class AttachPointSetChildList implements org.muis.core.mgr.MutableElementList<MuisElement> {
+	private class AttachPointSetChildList implements ElementList<MuisElement> {
 		AttachPointSetChildList() {
 		}
 

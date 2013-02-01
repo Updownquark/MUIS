@@ -44,4 +44,17 @@ public interface ElementList<E extends MuisElement> extends List<E> {
 
 	@Override
 	public E [] toArray();
+
+	/**
+	 * @param children The children to add to this list
+	 * @return Whether the list was modified
+	 */
+	boolean addAll(MuisElement [] children);
+
+	/**
+	 * @param index The index to insert the new children at
+	 * @param children The children to add to this list
+	 * @return Whether the list was modified
+	 */
+	boolean addAll(int index, MuisElement [] children);
 }

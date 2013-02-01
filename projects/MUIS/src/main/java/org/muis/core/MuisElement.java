@@ -463,7 +463,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * @param children The child elements specified in the MUIS XML
 	 * @return The child list that the children are populated into
 	 */
-	public MutableElementList<? extends MuisElement> initChildren(MuisElement [] children) {
+	public ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		theLifeCycleController.advance(CoreStage.INIT_CHILDREN.toString());
 		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true)) {
 			theChildren.clear();

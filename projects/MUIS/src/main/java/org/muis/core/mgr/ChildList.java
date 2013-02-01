@@ -14,7 +14,7 @@ import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /** A list that manages child elements for a parent element */
-public class ChildList implements MutableElementList<MuisElement> {
+public class ChildList implements ElementList<MuisElement> {
 	@SuppressWarnings("rawtypes")
 	private final ListenerManager<MuisEventListener> theChildListeners;
 

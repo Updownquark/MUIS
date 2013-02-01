@@ -11,14 +11,14 @@ import org.muis.core.event.MuisEventType;
 
 /**
  * An augmented, immutable list of elements
- * 
+ *
  * @param <E> The type of element in the list
  */
 public class ImmutableChildList<E extends MuisElement> implements ElementList<E> {
-	private final MutableElementList<E> theContents;
+	private final ElementList<E> theContents;
 
 	/** @param contents The list to wrap */
-	public ImmutableChildList(MutableElementList<E> contents) {
+	public ImmutableChildList(ElementList<E> contents) {
 		theContents = contents;
 	}
 
@@ -50,6 +50,18 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 	@Override
 	public final void removeChildListener(MuisEventListener<?> listener) {
 		theContents.removeChildListener(listener);
+	}
+
+	@Override
+	public boolean addAll(MuisElement [] children) {
+		throwUnsupported();
+		return false;
+	}
+
+	@Override
+	public boolean addAll(int index, MuisElement [] children) {
+		throwUnsupported();
+		return false;
 	}
 
 	@Override

@@ -13,8 +13,11 @@ public interface ElementList<E extends MuisElement> extends List<E> {
 	/** @return The parent whose children this list manages */
 	MuisElement getParent();
 
-	/** @return The last child in this list */
-	MuisElement getLast();
+	/**
+	 * @return The last child in this list
+	 * @throws java.util.NoSuchElementException If this list is empty
+	 */
+	MuisElement getLast() throws java.util.NoSuchElementException;
 
 	/**
 	 * @param x The x-coordinate of a point relative to this element's upper left corner

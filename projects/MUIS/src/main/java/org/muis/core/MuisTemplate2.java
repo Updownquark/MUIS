@@ -3,9 +3,9 @@ package org.muis.core;
 import java.util.*;
 
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEventListener;
-import org.muis.core.event.MuisEventType;
+import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
+import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
@@ -17,11 +17,11 @@ import org.muis.core.tags.Template;
  * the XML invoking the widget.
  */
 public abstract class MuisTemplate2 extends MuisElement {
-	/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
-	public static final MuisAttribute<String> ROLE = new MuisAttribute<String>("role", MuisProperty.stringAttr);
-
 	/** An attach point under a template widget */
 	public static class AttachPoint {
+		/** The template structure that this attach point belongs to */
+		public final TemplateStructure template;
+
 		/** The name of the attach point */
 		public final String name;
 
@@ -31,35 +31,35 @@ public abstract class MuisTemplate2 extends MuisElement {
 		/**
 		 * Whether the attach point may be specified externally
 		 *
-		 * @see MuisTemplate2#EXTERNAL
+		 * @see TemplateStructure#EXTERNAL
 		 */
 		public final boolean external;
 
 		/**
 		 * Whether the attach point is required to be specified externally
 		 *
-		 * @see MuisTemplate2#REQUIRED
+		 * @see TemplateStructure#REQUIRED
 		 */
 		public final boolean required;
 
 		/**
 		 * Whether the attach point may be specified more than once
 		 *
-		 * @see MuisTemplate2#MULTIPLE
+		 * @see TemplateStructure#MULTIPLE
 		 */
 		public final boolean multiple;
 
 		/**
-		 * Whether the attach point is the default attach point for its widget
+		 * Whether the attach point is the default attach point for its template structure
 		 *
-		 * @see MuisTemplate2#DEFAULT
+		 * @see TemplateStructure#DEFAULT
 		 */
 		public final boolean isDefault;
 
 		/**
 		 * Whether the attach point specifies an implementation
 		 *
-		 * @see MuisTemplate2#IMPLEMENTATION
+		 * @see TemplateStructure#IMPLEMENTATION
 		 */
 		public final boolean implementation;
 
@@ -67,12 +67,13 @@ public abstract class MuisTemplate2 extends MuisElement {
 		 * Whether the element or set of elements at the attach point can be changed generically. This only affects the mutability of the
 		 * attach point as accessed from the list returned from {@link MuisTemplate2#initChildren(MuisElement[])}.
 		 *
-		 * @see MuisTemplate2#MUTABLE
+		 * @see TemplateStructure#MUTABLE
 		 */
 		public final boolean mutable;
 
-		AttachPoint(String aName, Class<? extends MuisElement> aType, boolean ext, boolean req, boolean mult, boolean def, boolean impl,
-			boolean isMutable) {
+		AttachPoint(TemplateStructure temp, String aName, Class<? extends MuisElement> aType, boolean ext, boolean req, boolean mult,
+			boolean def, boolean impl, boolean isMutable) {
+			template = temp;
 			name = aName;
 			type = aType;
 			external = ext;
@@ -81,6 +82,11 @@ public abstract class MuisTemplate2 extends MuisElement {
 			isDefault = def;
 			implementation = impl;
 			mutable = isMutable;
+		}
+
+		@Override
+		public String toString() {
+			return name;
 		}
 	}
 
@@ -113,7 +119,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 		/**
 		 * The attribute specifying an attach point as the default attach point for the widget. Content in a templated widget's invocation
-		 * from XML that does not specify a {@link #ROLE} will be added at the default attach point. At most one default attach point may be
+		 * from XML that does not specify a {@link #role} will be added at the default attach point. At most one default attach point may be
 		 * specified for a widget.
 		 */
 		public static final String DEFAULT = TEMPLATE_PREFIX + "default";
@@ -125,6 +131,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		 */
 		public static final String IMPLEMENTATION = TEMPLATE_PREFIX + "implementation";
 
+		/** The attribute specifying that the element or elements occupying the attach point may be modified dynamically. Default is true. */
 		public static final String MUTABLE = TEMPLATE_PREFIX + "mutable";
 
 		/** The cache key to use to retrieve instances of {@link TemplateStructure} */
@@ -144,13 +151,36 @@ public abstract class MuisTemplate2 extends MuisElement {
 			};
 		}
 
+		/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
+		public final MuisAttribute<AttachPoint> role = new MuisAttribute<AttachPoint>("role", new MuisProperty.PropertyType<AttachPoint>() {
+			@Override
+			public <V extends AttachPoint> Class<V> getType() {
+				return (Class<V>) AttachPoint.class;
+			}
+
+			@Override
+			public <V extends AttachPoint> V parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+				AttachPoint ret = theAttachPoints.get(value);
+				if(ret == null)
+					throw new MuisException("No such attach point \"" + value + "\" in template " + theDefiner.getName());
+				return (V) ret;
+			}
+
+			@Override
+			public <V extends AttachPoint> V cast(Object value) {
+				if(value instanceof AttachPoint)
+					return (V) value;
+				return null;
+			}
+		});
+
 		private final Class<? extends MuisTemplate2> theDefiner;
 
 		private final TemplateStructure theSuperStructure;
 
 		private final WidgetStructure theWidgetStructure;
 
-		private final AttachPoint theDefaultAttachPoint;
+		private AttachPoint theDefaultAttachPoint;
 
 		private Map<String, AttachPoint> theAttachPoints;
 
@@ -160,14 +190,16 @@ public abstract class MuisTemplate2 extends MuisElement {
 		 * @param definer The templated class that defines the template structure
 		 * @param superStructure The parent template structure
 		 * @param widgetStructure The widget structure specified in the template MUIS file
-		 * @param attaches The map of attach points to the widget structure where the attach points point to
 		 */
-		public TemplateStructure(Class<? extends MuisTemplate2> definer, TemplateStructure superStructure, WidgetStructure widgetStructure,
-			Map<AttachPoint, WidgetStructure> attaches) {
+		public TemplateStructure(Class<? extends MuisTemplate2> definer, TemplateStructure superStructure, WidgetStructure widgetStructure) {
 			theDefiner = definer;
 			theSuperStructure = superStructure;
 			theWidgetStructure = widgetStructure;
-			Map<String, AttachPoint> attachPoints = new java.util.LinkedHashMap<>();
+		}
+
+		/** @param attaches The map of attach points to the widget structure where the attach points point to */
+		void addAttaches(Map<AttachPoint, WidgetStructure> attaches) {
+			Map<String, AttachPoint> attachPoints = new java.util.LinkedHashMap<>(attaches.size());
 			AttachPoint defAP = null;
 			for(AttachPoint ap : attaches.keySet()) {
 				attachPoints.put(ap.name, ap);
@@ -203,6 +235,17 @@ public abstract class MuisTemplate2 extends MuisElement {
 			if(name == null)
 				return theDefaultAttachPoint;
 			return theAttachPoints.get(name);
+		}
+
+		/**
+		 * @param child The child to get the role for
+		 * @return The attach point whose role the child is in, or null if the child is not in a role in this template structure
+		 */
+		public AttachPoint getRole(MuisElement child) {
+			AttachPoint ret = child.atts().get(role);
+			if(ret == null)
+				ret = theDefaultAttachPoint;
+			return ret;
 		}
 
 		/**
@@ -272,9 +315,10 @@ public abstract class MuisTemplate2 extends MuisElement {
 				throw new MuisException("Could not parse template resource " + template.location() + " for templated widget "
 					+ templateType.getName(), e);
 			}
+			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure, widgetStructure);
 			Map<AttachPoint, WidgetStructure> attaches = new HashMap<>();
 			try {
-				pullAttachPoints(widgetStructure, attaches);
+				pullAttachPoints(templateStruct, widgetStructure, attaches);
 			} catch(MuisException e) {
 				throw new MuisException("Error in template resource " + template.location() + " for templated widget "
 					+ templateType.getName() + ": " + e.getMessage(), e);
@@ -286,17 +330,19 @@ public abstract class MuisTemplate2 extends MuisElement {
 			if(defaults.size() > 1)
 				throw new MuisException("More than one default attach point " + defaults + " present in template resource "
 					+ template.location() + " for templated widget " + templateType.getName());
-			return new TemplateStructure(templateType, superStructure, widgetStructure, attaches);
+			templateStruct.addAttaches(attaches);
+			return templateStruct;
 		}
 
-		private static void pullAttachPoints(WidgetStructure structure, Map<AttachPoint, WidgetStructure> attaches) throws MuisException {
+		private static void pullAttachPoints(TemplateStructure template, WidgetStructure structure,
+			Map<AttachPoint, WidgetStructure> attaches) throws MuisException {
 			for(MuisContent content : structure.getChildren()) {
 				if(!(content instanceof WidgetStructure))
 					continue;
 				WidgetStructure child = (WidgetStructure) content;
 				String name = child.getAttributes().get(ATTACH_POINT);
 				if(name == null) {
-					pullAttachPoints(child, attaches);
+					pullAttachPoints(template, child, attaches);
 					continue;
 				}
 				if(attaches.containsKey(name))
@@ -322,10 +368,10 @@ public abstract class MuisTemplate2 extends MuisElement {
 					throw new MuisException("Non-externally-specifiable attach points (" + name
 						+ ") may not be required, default, or allow multiples");
 				}
-				if(!implementation && !external)
+				if(!external && !implementation)
 					throw new MuisException("Non-externally-specifiable attach points (" + name + ") must be implementations");
 				if(!external && multiple)
-					throw new MuisException("Externally-specifiable attach points (" + name + ") may not allow multiples");
+					throw new MuisException("Non-externally-specifiable attach points (" + name + ") may not allow multiples");
 				if(implementation && multiple)
 					throw new MuisException("Attach points (" + name + ") that allow multiples cannot be implementations");
 				for(String attName : child.getAttributes().keySet()) {
@@ -337,15 +383,15 @@ public abstract class MuisTemplate2 extends MuisElement {
 					throw new MuisException("Template attribute " + TEMPLATE_PREFIX + attName + " not recognized");
 				}
 
-				attaches.put(new AttachPoint(name, type, external, required, multiple, def, implementation, mutable), child);
+				attaches.put(new AttachPoint(template, name, type, external, required, multiple, def, implementation, mutable), child);
 				if(external) {
 					Map<AttachPoint, WidgetStructure> check = new HashMap<>();
-					pullAttachPoints(child, check);
+					pullAttachPoints(template, child, check);
 					if(!check.isEmpty())
 						throw new MuisException("Externally-specifiable attach points (" + name + ") may not contain attach points: "
 							+ check.keySet());
 				} else {
-					pullAttachPoints(child, attaches);
+					pullAttachPoints(template, child, attaches);
 				}
 			}
 		}
@@ -363,29 +409,76 @@ public abstract class MuisTemplate2 extends MuisElement {
 		}
 	}
 
+	/** Represents an attach point within a particular widget instance */
 	protected static class AttachPointInstance {
+		/** The attach point this instance is for */
 		public final AttachPoint attachPoint;
 
-		public final MuisElement parent;
+		private final ElementList<?> theParentChildren;
 
-		public final ElementList<?> parentChildren;
+		private final MuisContainer<?> theContainer;
 
-		private MuisContainer<?> theContainer;
-
-		public MuisElement getValue() {
-			for(MuisElement el : parentChildren)
-				if(el.atts().get(ROLE)
-			return theValue;
-		}
-
-		public MuisContainer<?> getContainer() {
-			return theContainer;
-		}
-
-		AttachPointInstance(AttachPoint ap, MuisElement p, ElementList<?> pc) {
+		AttachPointInstance(AttachPoint ap, MuisTemplate2 template, ElementList<?> pc) {
 			attachPoint = ap;
-			parent = p;
-			parentChildren = pc;
+			theParentChildren = pc;
+			if(attachPoint.multiple)
+				theContainer = new AttachPointInstanceContainer(attachPoint, template, theParentChildren);
+			else
+				theContainer = null;
+		}
+
+		/** @return The element occupying the attach point */
+		public MuisElement getValue() {
+			if(attachPoint.multiple)
+				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
+			for(MuisElement el : theParentChildren)
+				if(attachPoint.template.getRole(el) == attachPoint)
+					return el;
+			return null;
+		}
+
+		/**
+		 * @param el The element to set as the occupant of the attach point
+		 * @return The element that was occupying the attach point before this call
+		 * @throws IllegalArgumentException If the given widget cannot occupy the attach point
+		 */
+		public MuisElement setValue(MuisElement el) throws IllegalArgumentException {
+			if(attachPoint.multiple)
+				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
+			assertFits(attachPoint, el);
+			if(el==null){
+				Iterator<? extends MuisElement> iter=theParentChildren.iterator();
+				while(iter.hasNext()){
+					MuisElement ret=iter.next();
+					if(attachPoint.template.getRole(ret)==attachPoint){
+						iter.remove();
+						return ret;
+					}
+				}
+				return null;
+			}
+
+			// Scan the parent children for either the element occupying the attach point (and replace it) or
+			// for the first element whose widget template occurs after the attach point declaration (and insert the element before it).
+			// If neither occurs, just add the element at the end
+			ListIterator<? extends MuisElement> iter=theParentChildren.listIterator();
+			while(iter.hasNext()){
+				MuisElement ret=iter.next();
+				if(attachPoint.template.getRole(ret)==attachPoint){
+					((ListIterator<MuisElement>)iter).set(el);
+					return ret;
+				} // else TODO
+				todo;
+			}
+			((ListIterator<MuisElement>)iter).add(el);
+			return null;
+		}
+
+		/** @return A container for the elements occupying the multiple-enabled attach point */
+		public MuisContainer<?> getContainer() {
+			if(!attachPoint.multiple)
+				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
+			return theContainer;
 		}
 	}
 
@@ -486,21 +579,22 @@ public abstract class MuisTemplate2 extends MuisElement {
 		}
 	}
 
-	private void addContent(final MuisElement child, TemplateStructure template) {
-		child.atts().accept(theRoleWanter, ROLE);
-		final String role = child.atts().get(ROLE);
-		child.addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<String>(ROLE) {
+	private void addContent(final MuisElement child, final TemplateStructure template) {
+		child.atts().accept(theRoleWanter, template.role);
+		final AttachPoint role = child.atts().get(template.role);
+		child.addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<AttachPoint>(
+			template.role) {
 			private boolean theCallbackLock;
 
 			@Override
-			public void attributeChanged(AttributeChangedEvent<String> event) {
+			public void attributeChanged(AttributeChangedEvent<AttachPoint> event) {
 				if(theCallbackLock)
 					return;
-				child.msg().error("The " + ROLE.getName() + " attribute may not be changed");
+				child.msg().error("The " + template.role.getName() + " attribute may not be changed");
 				theCallbackLock = true;
 				try {
 					try {
-						child.atts().set(ROLE, role);
+						child.atts().set(template.role, role);
 					} catch(MuisException e) {
 						child.msg().error("Should not get an exception here", e);
 					}
@@ -509,31 +603,30 @@ public abstract class MuisTemplate2 extends MuisElement {
 				}
 			}
 		});
-		AttachPoint ap = template.getAttachPoint(role);
+		AttachPoint ap = role;
+		if(ap == null)
+			ap = template.getAttachPoint(null);
 		if(ap == null) {
-			if(role == null)
-				msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", child);
-			else
-				msg().error("Role \"" + role + "\" is not defined for templated widget " + template.getDefiner().getName(), "child", child);
+			msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", child);
 			return;
 		}
 		List<MuisElement> attaches = theAttachmentMappings.get(ap);
 		if(!ap.external) {
-			msg().error("Role \"" + role + "\" is not specifiable externally for templated widget " + template.getDefiner().getName(),
+			msg().error("Role \"" + ap + "\" is not specifiable externally for templated widget " + template.getDefiner().getName(),
 				"child", child);
 			return;
 		}
 		if(!ap.type.isInstance(child)) {
 			msg().error(
-				"Children fulfilling role \"" + role + "\" in templated widget " + template.getDefiner().getName() + " must be of type "
+				"Children fulfilling role \"" + ap + "\" in templated widget " + template.getDefiner().getName() + " must be of type "
 					+ ap.type.getName() + ", not " + child.getClass().getName(), "child", child);
 			return;
 		}
 		if(ap.implementation && attaches.size() == 1 && attaches.get(0).atts().get(TemplateStructure.IMPLEMENTATION) != null)
 			attaches.clear(); // Override the provided implementation
 		if(!ap.multiple && !attaches.isEmpty()) {
-			msg().error("Multiple children fulfilling role \"" + role + "\" in templated widget " + template.getDefiner().getName(),
-				"child", child);
+			msg().error("Multiple children fulfilling role \"" + ap + "\" in templated widget " + template.getDefiner().getName(), "child",
+				child);
 			return;
 		}
 		WidgetStructure widgetStruct = template.getWidgetStructure(ap);
@@ -550,14 +643,15 @@ public abstract class MuisTemplate2 extends MuisElement {
 		theAttachmentMappings.get(widgetStruct).add(child);
 	}
 
+	/**
+	 * @param attach The attach point to get the container for
+	 * @return The container of all elements occupying the attach point in this widget instance
+	 * @throws IllegalArgumentException If the attach point is not recognized in this templated widget or does not support multiple elements
+	 */
 	protected MuisContainer<?> getContainer(AttachPoint attach) throws IllegalArgumentException {
 		AttachPointInstance instance = theAttachPoints.get(attach);
 		if(instance == null)
 			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
-		if(!attach.multiple)
-			throw new IllegalArgumentException("Cannot call getContainer(" + AttachPoint.class.getSimpleName()
-				+ ") for an attach point that does not support multiple elements");
-
 		return instance.getContainer();
 	}
 
@@ -569,18 +663,20 @@ public abstract class MuisTemplate2 extends MuisElement {
 		AttachPointInstance instance = theAttachPoints.get(attach);
 		if(instance == null)
 			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
-		if(attach.multiple)
-			throw new IllegalArgumentException("Cannot call getElement(" + AttachPoint.class.getSimpleName()
-				+ ") for an attach point that supports multiple elements");
-
 		return instance.getValue();
 	}
 
-	protected void setElement(AttachPoint attach, MuisElement element) throws IllegalArgumentException {
-	}
-
-	protected int getIndexForAttach(AttachPoint attach) {
-		// Maybe needed for getting the position for a new element in an empty attach point
+	/**
+	 * @param attach The attach point to set the element at
+	 * @param element The element to set for the given attach point. May be null if the attach point is not required.
+	 * @return The element that occupied the attach point before this call
+	 * @throws IllegalArgumentException If the given element may not be set as occupying the given attach point
+	 */
+	protected MuisElement setElement(AttachPoint attach, MuisElement element) throws IllegalArgumentException {
+		AttachPointInstance instance = theAttachPoints.get(attach);
+		if(instance == null)
+			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
+		return instance.setValue(element);
 	}
 
 	@Override
@@ -595,7 +691,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		if(!verifyTemplateStructure(theTemplateStructure))
 			return super.ch();
 
-		MuisElement [] realChildren = initChildren(this, theTemplateStructure.getWidgetStructure());
+		initChildren(this, theTemplateStructure.getWidgetStructure());
 
 		// Don't need these anymore
 		theStructureMappings = null;
@@ -621,11 +717,13 @@ public abstract class MuisTemplate2 extends MuisElement {
 		return true;
 	}
 
-	private MuisElement [] initChildren(MuisElement parent, WidgetStructure structure) {
+	private void initChildren(MuisElement parent, WidgetStructure structure) {
 		List<MuisElement> ret = new ArrayList<>();
+		List<AttachPoint> attaches=new ArrayList<>();
 		for(MuisContent childStruct : structure.getChildren()) {
-			String attach=((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT);
-			if(childStruct instanceof WidgetStructure && attach!=null) {
+			if(childStruct instanceof WidgetStructure && ((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT)!=null) {
+				String attach=((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT);
+				attaches.add(theTemplateStructure.getAttachPoint(attach));
 				for(MuisElement child : theAttachmentMappings.get(childStruct)) {
 					ret.add(child);
 					initChildren(child, (WidgetStructure) childStruct);
@@ -642,73 +740,25 @@ public abstract class MuisTemplate2 extends MuisElement {
 			childList=super.initChildren(children);
 		else
 			childList=parent.initChildren(children);
-		AttachPointInstance api=new AttachPointInstance(theTemplateStructure.getAttachPoint(attach), parent, childList)
+
+		for(AttachPoint attach : attaches)
+			theAttachPoints.put(attach, new AttachPointInstance(attach, this, childList));
 	}
 
-	private class AttachPointSetChildList implements ElementList<MuisElement> {
+	static void assertFits(AttachPoint attach, MuisElement e) {
+		if(e == null) {
+			if(attach.required)
+				throw new IllegalArgumentException("Attach point " + attach + " is required--may not be set to null");
+			return;
+		}
+		if(!attach.type.isInstance(e))
+			throw new IllegalArgumentException(e.getClass().getName() + " may not be assigned to attach point " + attach + " (type "
+				+ attach.type.getName() + ")");
+	}
+
+	private class AttachPointSetChildList extends AbstractElementList<MuisElement> {
 		AttachPointSetChildList() {
-		}
-
-		@Override
-		public MuisElement getParent() {
-			return MuisTemplate2.this;
-		}
-
-		@Override
-		public MuisElement getLast() {
-			MuisElement ret = null;
-			for(MuisElement item : this)
-				ret = item;
-			return ret;
-		}
-
-		@Override
-		public MuisElement [] at(int x, int y) {
-			MuisElement [] children = sortByZ();
-			MuisElement [] ret = new MuisElement[0];
-			for(MuisElement child : children) {
-				int relX = x - child.getX();
-				if(relX < 0 || relX >= child.getWidth())
-					continue;
-				int relY = y - child.getY();
-				if(relY < 0 || relY >= child.getHeight())
-					continue;
-				ret = prisms.util.ArrayUtils.add(ret, child);
-			}
-			return ret;
-		}
-
-		@Override
-		public MuisElement [] sortByZ() {
-			MuisElement [] children = toArray();
-			if(children.length < 2)
-				return children;
-			boolean sameZ = true;
-			int z = children[0].getZ();
-			for(int c = 1; c < children.length; c++)
-				if(children[c].getZ() != z) {
-					sameZ = false;
-					break;
-				}
-			if(!sameZ) {
-				java.util.Arrays.sort(children, new java.util.Comparator<MuisElement>() {
-					@Override
-					public int compare(MuisElement el1, MuisElement el2) {
-						return el1.getZ() - el2.getZ();
-					}
-				});
-			}
-			return children;
-		}
-
-		@Override
-		public <T> void addChildListener(MuisEventType<T> type, MuisEventListener<? super T> listener) {
-			// TODO Auto-generated method stub
-		}
-
-		@Override
-		public void removeChildListener(MuisEventListener<?> listener) {
-			// TODO Auto-generated method stub
+			super(MuisTemplate2.this);
 		}
 
 		@Override
@@ -718,19 +768,6 @@ public abstract class MuisTemplate2 extends MuisElement {
 			MuisElement item : this)
 				ret++;
 			return ret;
-		}
-
-		@Override
-		public boolean isEmpty() {
-			return !iterator().hasNext();
-		}
-
-		@Override
-		public boolean contains(Object o) {
-			for(MuisElement item : this)
-				if(item.equals(o))
-					return true;
-			return false;
 		}
 
 		@Override
@@ -747,40 +784,29 @@ public abstract class MuisTemplate2 extends MuisElement {
 		}
 
 		@Override
-		public <T> T [] toArray(T [] a) {
-			ArrayList<MuisElement> ret = new ArrayList<>();
-			for(MuisElement item : this)
-				ret.add(item);
-			return ret.toArray(a);
-		}
-
-		@Override
 		public boolean add(MuisElement e) {
-			String role = e.atts().get(ROLE);
-			AttachPoint ap = theTemplateStructure.getAttachPoint(role);
-			if(ap == null) {
-				if(role != null)
-					throw new UnsupportedOperationException("Templated widget " + MuisTemplate2.class.getName()
-						+ " does not support role \"" + role + "\"");
-				else
-					throw new UnsupportedOperationException("Templated widget " + MuisTemplate2.class.getName()
-						+ " does not have a default attach point, and therefore does not support addition"
-						+ " of children without a role assignment");
+			AttachPoint role = e.atts().get(theTemplateStructure.role);
+			if(role == null)
+				role = theTemplateStructure.getAttachPoint(null);
+			if(role == null) {
+				throw new UnsupportedOperationException("Templated widget " + MuisTemplate2.class.getName()
+					+ " does not have a default attach point, and therefore does not support addition"
+					+ " of children without a role assignment");
 			}
-			if(!ap.external)
-				throw new UnsupportedOperationException("The " + ap.name + " attach point is not externally-exposed");
-			if(!ap.mutable)
-				throw new UnsupportedOperationException("The " + ap.name + " attach point is not mutable");
-			if(!ap.type.isInstance(e))
-				throw new UnsupportedOperationException("The " + ap.name + " attach point's elements must be of type " + ap.type.getName()
-					+ ", not " + e.getClass().getName());
-			if(ap.multiple)
-				return ((MuisContainer<MuisElement>) getContainer(ap)).getContent().add(e);
+			if(!role.external)
+				throw new UnsupportedOperationException("The " + role.name + " attach point is not externally-exposed");
+			if(!role.mutable)
+				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
+			if(!role.type.isInstance(e))
+				throw new UnsupportedOperationException("The " + role.name + " attach point's elements must be of type "
+					+ role.type.getName() + ", not " + e.getClass().getName());
+			if(role.multiple)
+				return ((MuisContainer<MuisElement>) getContainer(role)).getContent().add(e);
 			else {
-				if(getElement(ap) != null)
-					throw new UnsupportedOperationException("The " + ap.name
+				if(getElement(role) != null)
+					throw new UnsupportedOperationException("The " + role.name
 						+ " attach point only supports a single element and is already occupied");
-				setElement(ap, e);
+				setElement(role, e);
 				return true;
 			}
 		}
@@ -790,40 +816,31 @@ public abstract class MuisTemplate2 extends MuisElement {
 			if(!(o instanceof MuisElement))
 				return false;
 			MuisElement e = (MuisElement) o;
-			String role = e.atts().get(ROLE);
-			AttachPoint ap = theTemplateStructure.getAttachPoint(role);
-			if(ap == null)
+			AttachPoint role = e.atts().get(theTemplateStructure.role);
+			if(role == null)
+				role = theTemplateStructure.getAttachPoint(null);
+			if(role == null)
 				return false;
-			if(!ap.type.isInstance(e))
+			if(!role.type.isInstance(e))
 				return false;
-			if(!ap.external)
-				throw new UnsupportedOperationException("The " + ap.name + " attach point is not externally-exposed");
-			if(!ap.mutable)
-				throw new UnsupportedOperationException("The " + ap.name + " attach point is not mutable");
-			if(ap.multiple) {
-				org.muis.core.mgr.ElementList<? extends MuisElement> content = getContainer(ap).getContent();
-				if(ap.required && content.size() == 1 && content.get(0).equals(e))
-					throw new UnsupportedOperationException("The " + ap.name
+			if(!role.external)
+				throw new UnsupportedOperationException("The " + role.name + " attach point is not externally-exposed");
+			if(!role.mutable)
+				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
+			if(role.multiple) {
+				org.muis.core.mgr.ElementList<? extends MuisElement> content = getContainer(role).getContent();
+				if(role.required && content.size() == 1 && content.get(0).equals(e))
+					throw new UnsupportedOperationException("The " + role.name
 						+ " attach point is required and only has one element left in it");
 				return content.remove(e);
 			} else {
-				if(!e.equals(getElement(ap)))
+				if(!e.equals(getElement(role)))
 					return false;
-				if(ap.required)
-					throw new UnsupportedOperationException("The " + ap.name + " attach point is required");
-				setElement(ap, null);
+				if(role.required)
+					throw new UnsupportedOperationException("The " + role.name + " attach point is required");
+				setElement(role, null);
 				return true;
 			}
-		}
-
-		@Override
-		public boolean containsAll(Collection<?> c) {
-			HashSet<MuisElement> found = new HashSet<>();
-			for(MuisElement item : this) {
-				if(c.contains(item))
-					found.add(item);
-			}
-			return found.size() == c.size();
 		}
 
 		@Override
@@ -947,30 +964,6 @@ public abstract class MuisTemplate2 extends MuisElement {
 		}
 
 		@Override
-		public int indexOf(Object o) {
-			int index = 0;
-			for(MuisElement item : this) {
-				if(item.equals(o))
-					return index;
-				else
-					index++;
-			}
-			return -1;
-		}
-
-		@Override
-		public int lastIndexOf(Object o) {
-			int index = 0;
-			int lastFound = -1;
-			for(MuisElement item : this) {
-				if(item.equals(o))
-					lastFound = index;
-				index++;
-			}
-			return lastFound;
-		}
-
-		@Override
 		public AttachPointSetIterator listIterator() {
 			return new AttachPointSetIterator();
 		}
@@ -988,8 +981,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 		@Override
 		public List<MuisElement> subList(int fromIndex, int toIndex) {
-			// TODO Don't want to do this right now
-			throw new UnsupportedOperationException();
+			return new org.muis.core.mgr.SubList<>(this, fromIndex, toIndex);
 		}
 
 		@Override
@@ -1156,6 +1148,397 @@ public abstract class MuisTemplate2 extends MuisElement {
 				else
 					theIndex++;
 			}
+		}
+	}
+
+	private static class AttachPointInstanceContainer implements MuisContainer<MuisElement> {
+		private AttachPointInstanceElementList theContent;
+
+		AttachPointInstanceContainer(AttachPoint ap, MuisTemplate2 template, ElementList<?> parentChildren) {
+			theContent = new AttachPointInstanceElementList(ap, template, parentChildren);
+		}
+
+		@Override
+		public ElementList<MuisElement> getContent() {
+			return theContent;
+		}
+	}
+
+	private static class AttachPointInstanceElementList extends AbstractElementList<MuisElement> {
+		private AttachPoint theAttach;
+
+		private ElementList<?> theParentChildren;
+
+		AttachPointInstanceElementList(AttachPoint ap, MuisTemplate2 template, ElementList<?> parentChildren) {
+			super(template);
+			theAttach = ap;
+			theParentChildren = parentChildren;
+		}
+
+		@Override
+		public int size() {
+			int ret = 0;
+			for(MuisElement child : theParentChildren) {
+				if(child.atts().get(theAttach.template.role) == theAttach)
+					ret++;
+			}
+			return ret;
+		}
+
+		@Override
+		public Iterator<MuisElement> iterator() {
+			return new Iterator<MuisElement>() {
+				private final Iterator<? extends MuisElement> theBacking = theParentChildren.iterator();
+
+				private MuisElement theNext;
+
+				private boolean isRemovable;
+
+				@Override
+				public boolean hasNext() {
+					isRemovable = false;
+					while(theNext == null && theBacking.hasNext()) {
+						MuisElement next = theBacking.next();
+						if(theAttach.template.getRole(next) == theAttach)
+							theNext = next;
+					}
+					return theNext != null;
+				}
+
+				@Override
+				public MuisElement next() {
+					if(theNext == null && !hasNext())
+						throw new java.util.NoSuchElementException();
+					MuisElement ret = theNext;
+					theNext = null;
+					isRemovable = true;
+					return ret;
+				}
+
+				@Override
+				public void remove() {
+					if(!isRemovable)
+						throw new IllegalStateException("next() must be called before remove()");
+					isRemovable = false;
+					assertMutable();
+					theBacking.remove();
+				}
+			};
+		}
+
+		void assertMutable() {
+			if(!theAttach.mutable)
+				throw new UnsupportedOperationException("Attach point " + theAttach + " of template "
+					+ theAttach.template.getDefiner().getName() + " is not mutable");
+		}
+
+		void assertFits(MuisElement e) {
+			if(e == null)
+				throw new IllegalArgumentException("Cannot add null elements to an element container");
+			MuisTemplate2.assertFits(theAttach, e);
+			if(contains(e))
+				throw new IllegalArgumentException("Element is already in this container");
+		}
+
+		@Override
+		public boolean add(MuisElement e) {
+			assertMutable();
+			assertFits(e);
+			ListIterator<MuisElement> iter = listIterator();
+			while(iter.hasNext())
+				iter.next();
+			iter.add(e);
+			return true;
+		}
+
+		@Override
+		public boolean remove(Object o) {
+			assertMutable();
+			Iterator<MuisElement> iter = iterator();
+			boolean found = false;
+			while(iter.hasNext()) {
+				if(iter.next() == o) {
+					iter.remove();
+					found = true;
+					break;
+				}
+			}
+			return found;
+		}
+
+		@Override
+		public boolean containsAll(Collection<?> c) {
+			Collection<?> copy = new HashSet<>(c);
+			for(MuisElement el : this) {
+				copy.remove(el);
+				if(copy.isEmpty())
+					break;
+			}
+			return copy.isEmpty();
+		}
+
+		@Override
+		public boolean addAll(Collection<? extends MuisElement> c) {
+			assertMutable();
+			for(MuisElement e : c)
+				assertFits(e);
+			ListIterator<MuisElement> iter = listIterator();
+			while(iter.hasNext())
+				iter.next();
+			for(MuisElement e : c)
+				iter.add(e);
+			return true;
+		}
+
+		@Override
+		public boolean addAll(int index, Collection<? extends MuisElement> c) {
+			assertMutable();
+			for(MuisElement e : c)
+				assertFits(e);
+			ListIterator<MuisElement> iter = listIterator(index);
+			for(MuisElement e : c)
+				iter.add(e);
+			return true;
+		}
+
+		@Override
+		public boolean removeAll(Collection<?> c) {
+			assertMutable();
+			Iterator<MuisElement> iter = iterator();
+			boolean found = false;
+			while(iter.hasNext()) {
+				if(c.contains(iter.next())) {
+					iter.remove();
+					found = true;
+				}
+			}
+			return found;
+		}
+
+		@Override
+		public boolean retainAll(Collection<?> c) {
+			assertMutable();
+			Iterator<MuisElement> iter = iterator();
+			boolean found = false;
+			while(iter.hasNext()) {
+				if(!c.contains(iter.next())) {
+					iter.remove();
+					found = true;
+				}
+			}
+			return found;
+		}
+
+		@Override
+		public void clear() {
+			assertMutable();
+			Iterator<MuisElement> iter = iterator();
+			while(iter.hasNext()) {
+				iter.remove();
+			}
+		}
+
+		@Override
+		public MuisElement get(int index) {
+			for(MuisElement el : this) {
+				if(index == 0)
+					return el;
+				index--;
+			}
+			throw new IndexOutOfBoundsException();
+		}
+
+		@Override
+		public MuisElement set(int index, MuisElement element) {
+			assertMutable();
+			assertFits(element);
+			ListIterator<MuisElement> iter = listIterator(index);
+			if(!iter.hasNext())
+				throw new IndexOutOfBoundsException("" + index);
+			MuisElement ret = iter.next();
+			iter.set(element);
+			return ret;
+		}
+
+		@Override
+		public void add(int index, MuisElement element) {
+			assertMutable();
+			assertFits(element);
+			ListIterator<MuisElement> iter = listIterator(index);
+			iter.add(element);
+		}
+
+		@Override
+		public MuisElement remove(int index) {
+			assertMutable();
+			Iterator<MuisElement> iter = iterator();
+			int idx = index;
+			MuisElement ret = null;
+			while(idx >= 0 && iter.hasNext()) {
+				ret = iter.next();
+			}
+			if(idx >= 0)
+				throw new IndexOutOfBoundsException(index + " of " + (index - idx));
+			iter.remove();
+			return ret;
+		}
+
+		@Override
+		public int indexOf(Object o) {
+			int index = 0;
+			for(MuisElement el : this) {
+				if(el == o)
+					return index;
+				index++;
+			}
+			return -1;
+		}
+
+		@Override
+		public ListIterator<MuisElement> listIterator() {
+			return new ListIterator<MuisElement>() {
+				private final ListIterator<? extends MuisElement> theBacking = theParentChildren.listIterator();
+
+				private MuisElement theNext;
+
+				private MuisElement thePrev;
+
+				private int theIndex;
+
+				private boolean isRemovable;
+
+				@Override
+				public boolean hasNext() {
+					isRemovable = false;
+					while(theNext == null && theBacking.hasNext()) {
+						MuisElement next = theBacking.next();
+						if(theAttach.template.getRole(next) == theAttach)
+							theNext = next;
+					}
+					return theNext != null;
+				}
+
+				@Override
+				public MuisElement next() {
+					if(theNext == null && !hasNext())
+						throw new java.util.NoSuchElementException();
+					MuisElement ret = theNext;
+					theNext = null;
+					isRemovable = true;
+					theIndex++;
+					return ret;
+				}
+
+				@Override
+				public boolean hasPrevious() {
+					isRemovable = false;
+					while(thePrev == null && theBacking.hasPrevious()) {
+						MuisElement prev = theBacking.previous();
+						if(theAttach.template.getRole(prev) == theAttach)
+							thePrev = prev;
+					}
+					return thePrev != null;
+				}
+
+				@Override
+				public MuisElement previous() {
+					if(thePrev == null && !hasPrevious())
+						throw new java.util.NoSuchElementException();
+					MuisElement ret = thePrev;
+					thePrev = null;
+					isRemovable = true;
+					theIndex--;
+					return ret;
+				}
+
+				@Override
+				public int nextIndex() {
+					return theIndex;
+				}
+
+				@Override
+				public int previousIndex() {
+					return theIndex - 1;
+				}
+
+				@Override
+				public void remove() {
+					if(!isRemovable)
+						throw new IllegalStateException("next() or previous() must be called before remove()");
+					assertMutable();
+					isRemovable = false;
+					theIndex--;
+					theBacking.remove();
+				}
+
+				@Override
+				public void set(MuisElement e) {
+					if(!isRemovable)
+						throw new IllegalStateException("next() or previous() must be called before set()");
+					assertMutable();
+					assertFits(e);
+					((ListIterator<MuisElement>) theBacking).set(e);
+				}
+
+				@Override
+				public void add(MuisElement e) {
+					assertMutable();
+					assertFits(e);
+					isRemovable = false;
+					theIndex++;
+					((ListIterator<MuisElement>) theBacking).add(e);
+				}
+			};
+		}
+
+		@Override
+		public ListIterator<MuisElement> listIterator(int index) {
+			ListIterator<MuisElement> ret = listIterator();
+			int idx = index;
+			while(idx > 0 && ret.hasNext()) {
+				idx--;
+				ret.next();
+			}
+			if(idx > 0)
+				throw new IndexOutOfBoundsException(index + " of " + (index - idx));
+			return ret;
+		}
+
+		@Override
+		public List<MuisElement> subList(int fromIndex, int toIndex) {
+			return new org.muis.core.mgr.SubList<>(this, fromIndex, toIndex);
+		}
+
+		@Override
+		public MuisElement [] toArray() {
+			ArrayList<MuisElement> ret = new ArrayList<>();
+			for(MuisElement el : this)
+				ret.add(el);
+			return ret.toArray(new MuisElement[ret.size()]);
+		}
+
+		@Override
+		public boolean addAll(MuisElement [] children) {
+			assertMutable();
+			for(MuisElement child : children)
+				assertFits(child);
+			ListIterator<MuisElement> iter = listIterator();
+			while(iter.hasNext())
+				iter.next();
+			for(MuisElement child : children)
+				iter.add(child);
+			return children.length > 0;
+		}
+
+		@Override
+		public boolean addAll(int index, MuisElement [] children) {
+			assertMutable();
+			for(MuisElement child : children)
+				assertFits(child);
+			ListIterator<MuisElement> iter = listIterator(index);
+			for(MuisElement child : children)
+				iter.add(child);
+			return children.length > 0;
 		}
 	}
 }

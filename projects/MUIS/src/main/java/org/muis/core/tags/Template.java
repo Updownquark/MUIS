@@ -1,13 +1,11 @@
 package org.muis.core.tags;
 
-/** Tells {@link org.muis.core.MuisTemplate MuisTemplate} that the element this is tagged on needs to load a template file */
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+/** Tells {@link org.muis.core.MuisTemplate2 MuisTemplate} that the element this is tagged on needs to load a template file */
+@Retention(RetentionPolicy.RUNTIME)
 public @interface Template {
 	/** The location of the file to load the templated widget's definition from */
 	String location();
-
-	/** All attach points for this widget */
-	AttachPoint [] attachPoints();
-
-	/** Overrides for super class attach points */
-	AttachPointOverride [] attachPointOverrides() default {};
 }

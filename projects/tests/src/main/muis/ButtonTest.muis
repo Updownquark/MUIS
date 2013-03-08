@@ -11,8 +11,8 @@
 			<!--<base:button layout="base:simple" left="0" right="100%" top="25%" height="75%" style="bg.texture=base:raised-round;bg.color=#4040ff;
 				bg.corner-radius=15%" style.click="bg.color=purple" style.hover="bg.color=yellow">-->
 			<base:button left="0" right="100%" top="25%" height="75%">
-				<base:block left="0" right="100%" top="0" height="25">The Content</base:block>
-				<base:block left="0" right="100%" top="25">Content 2</base:block>
+				<base:block left="0" right="100%" top="0" height="25" layout="simple">The Content</base:block>
+				<base:block left="0" right="100%" top="25" layout="simple" style="font.color=red;font.weight=bold">Content 2</base:block>
 			</base:button>
     	</base:block>
     </body>

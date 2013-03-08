@@ -7,7 +7,7 @@ import org.muis.core.MuisElement;
 import org.muis.core.layout.SizePolicy;
 import org.muis.util.CompoundListener;
 
-public class SimpleFlowLayout implements org.muis.core.MuisLayout
+public class FlowLayout implements org.muis.core.MuisLayout
 {
 	private final CompoundListener.MultiElementCompoundListener theListener;
 
@@ -17,7 +17,7 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 
 	private boolean isShapeSet;
 
-	public SimpleFlowLayout()
+	public FlowLayout()
 	{
 		theDirection = Direction.RIGHT;
 		theBreakPolicy = BreakPolicy.NEEDED;

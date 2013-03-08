@@ -1,13 +1,13 @@
 
-base:=../../../MuisRegistry.xml
+//base:=../../../MuisRegistry.xml
 
-[base:block]{
+[block]{
 }
 
-[base:button]{
+[button]{
 	bg={
 		color=blue
-		texture="base:raised-round"
+		texture="raised-round"
 		corner-radius="10%"
 	}
 	.hover{

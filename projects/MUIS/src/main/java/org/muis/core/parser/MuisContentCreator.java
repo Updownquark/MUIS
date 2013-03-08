@@ -22,12 +22,13 @@ public class MuisContentCreator {
 		ArrayList<MuisElement> elements = new ArrayList<>();
 		for(MuisContent child : content.getChildren()) {
 			if(child instanceof WidgetStructure)
-				elements.add(createFromStructure(doc, doc.getRoot(), (WidgetStructure) child));
+				elements.add(createFromStructure(doc, doc.getRoot(), (WidgetStructure) child, true));
 		}
 		doc.getRoot().initChildren(elements.toArray(new MuisElement[elements.size()]));
 	}
 
-	public MuisElement createFromStructure(MuisDocument doc, MuisElement parent, WidgetStructure structure) throws MuisParseException {
+	public MuisElement createFromStructure(MuisDocument doc, MuisElement parent, WidgetStructure structure, boolean withChildren)
+		throws MuisParseException {
 		// Create the element
 		MuisElement ret = createElement(doc, null, structure);
 		// Add the attributes
@@ -38,30 +39,44 @@ public class MuisContentCreator {
 				ret.msg().error("Could not set attribute \"" + att.getKey() + "\"", e, "attribute", att.getKey(), "value", att.getValue());
 			}
 		}
-		// Add the children
-		ArrayList<MuisElement> children = new ArrayList<>();
-		for(MuisContent childStruct : structure.getChildren()) {
-			MuisElement child = getChild(ret, childStruct);
-			if(child != null)
-				children.add(child);
+		if(withChildren) {
+			// Add the children
+			ArrayList<MuisElement> children = new ArrayList<>();
+			for(MuisContent childStruct : structure.getChildren()) {
+				MuisElement child = getChild(ret, childStruct, true);
+				if(child != null)
+					children.add(child);
+			}
+			ret.initChildren(children.toArray(new MuisElement[children.size()]));
 		}
-		ret.initChildren(children.toArray(new MuisElement[children.size()]));
 		return ret;
 	}
 
 	public MuisElement createElement(MuisDocument doc, MuisElement parent, WidgetStructure structure) throws MuisParseException {
 		String ns = structure.getNamespace();
-		if(ns.length() == 0)
+		if(ns != null && ns.length() == 0)
 			ns = null;
-		MuisToolkit toolkit = structure.getClassView().getToolkit(ns);
-		if(toolkit == null && ns == null)
-			toolkit = doc.getEnvironment().getCoreToolkit();
-		String nsStr = ns == null ? "default namespace" : "namespace " + ns;
-		if(toolkit == null)
-			throw new MuisParseException("No MUIS toolkit mapped to " + nsStr);
-		String className = toolkit.getMappedClass(structure.getTagName());
-		if(className == null)
-			throw new MuisParseException("No tag name " + structure.getTagName() + " mapped for " + nsStr);
+		MuisToolkit toolkit = null;
+		String className = null;
+		if(ns != null) {
+			toolkit = structure.getClassView().getToolkit(ns);
+			String nsStr = ns == null ? "default namespace" : "namespace " + ns;
+			if(toolkit == null)
+				throw new MuisParseException("No MUIS toolkit mapped to " + nsStr);
+			className = toolkit.getMappedClass(structure.getTagName());
+			if(className == null)
+				throw new MuisParseException("No tag name " + structure.getTagName() + " mapped for " + nsStr);
+		} else {
+			for(MuisToolkit tk : structure.getClassView().getScopedToolkits()) {
+				className = tk.getMappedClass(structure.getTagName());
+				if(className != null) {
+					toolkit = tk;
+					break;
+				}
+			}
+			if(className == null)
+				throw new MuisParseException("No tag name " + structure.getTagName() + " mapped in scoped namespaces");
+		}
 		Class<? extends MuisElement> muisClass;
 		try {
 			muisClass = toolkit.loadClass(className, MuisElement.class);
@@ -78,9 +93,9 @@ public class MuisContentCreator {
 		return ret;
 	}
 
-	public MuisElement getChild(MuisElement parent, MuisContent child) throws MuisParseException {
+	public MuisElement getChild(MuisElement parent, MuisContent child, boolean withChildren) throws MuisParseException {
 		if(child instanceof WidgetStructure)
-			return createFromStructure(parent.getDocument(), parent, (WidgetStructure) child);
+			return createFromStructure(parent.getDocument(), parent, (WidgetStructure) child, withChildren);
 		else if(child instanceof MuisText) {
 			MuisText text = (MuisText) child;
 			MuisTextElement ret = new MuisTextElement(text.getContent());

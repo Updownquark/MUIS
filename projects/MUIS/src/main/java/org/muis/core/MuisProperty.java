@@ -457,14 +457,30 @@ public abstract class MuisProperty<T> {
 				ns = null;
 				tag = value;
 			}
-			MuisToolkit toolkit = classView.getToolkit(ns);
-			if(toolkit == null)
-				throw new MuisException(propName() + ": Value " + value + " refers to a toolkit \"" + ns
-					+ "\" that is inaccessible from its element");
-			String className = toolkit.getMappedClass(tag);
-			if(className == null)
-				throw new MuisException(propName() + ": Value " + value + " refers to a type \"" + tag
-					+ "\" that is not mapped within toolkit " + toolkit.getName());
+			MuisToolkit toolkit = null;
+			String className = null;
+			if(ns != null) {
+				toolkit = classView.getToolkit(ns);
+				if(toolkit == null)
+					throw new MuisException(propName() + ": Value " + value + " refers to a toolkit \"" + ns
+						+ "\" that is inaccessible from its element");
+				className = toolkit.getMappedClass(tag);
+				if(className == null)
+					throw new MuisException(propName() + ": Value " + value + " refers to a type \"" + tag
+						+ "\" that is not mapped within toolkit " + toolkit.getName());
+			} else {
+				for(MuisToolkit tk : classView.getScopedToolkits()) {
+					className = tk.getMappedClass(tag);
+					if(className != null) {
+						toolkit = tk;
+						break;
+					}
+				}
+				if(className == null) {
+					throw new MuisException(propName() + ": Value " + value + " refers to a type \"" + tag
+						+ "\" that is not mapped within a scoped toolkit");
+				}
+			}
 			Class<?> valueClass;
 			try {
 				valueClass = toolkit.loadClass(className, null);

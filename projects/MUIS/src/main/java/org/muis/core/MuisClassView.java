@@ -6,6 +6,8 @@ public class MuisClassView {
 
 	private final MuisClassView theParent;
 
+	private final MuisToolkit theMemberToolkit;
+
 	private java.util.HashMap<String, MuisToolkit> theNamespaces;
 
 	private boolean isSealed;
@@ -13,12 +15,14 @@ public class MuisClassView {
 	/**
 	 * @param env The environment to create the class view in
 	 * @param parent The parent for this class view
+	 * @param memberToolkit The toolkit that the owner of class view member belongs to
 	 */
-	public MuisClassView(MuisEnvironment env, MuisClassView parent) {
+	public MuisClassView(MuisEnvironment env, MuisClassView parent, MuisToolkit memberToolkit) {
 		if(env == null)
 			throw new NullPointerException("environment is null");
 		theEnvironment=env;
 		theParent = parent;
+		theMemberToolkit = memberToolkit;
 		theNamespaces = new java.util.HashMap<String, MuisToolkit>();
 	}
 
@@ -72,16 +76,34 @@ public class MuisClassView {
 		return ret;
 	}
 
+	/** @return The toolkits that may be used without specifying a namespace */
+	public MuisToolkit [] getScopedToolkits() {
+		java.util.LinkedHashSet<MuisToolkit> ret = new java.util.LinkedHashSet<>();
+		if(theParent != null) {
+			for(MuisToolkit tk : theParent.getScopedToolkits())
+				ret.add(tk);
+		} else
+			ret.add(theEnvironment.getCoreToolkit());
+		if(theMemberToolkit != null)
+			ret.add(theMemberToolkit);
+		return ret.toArray(new MuisToolkit[ret.size()]);
+	}
+
 	/**
 	 * Gets the toolkit that would load a class for a qualified name
 	 *
 	 * @param qName The qualified name to get the toolkit for
-	 * @return The toolkit that can load the type with the given qualified name
+	 * @return The toolkit that can load the type with the given qualified name, or null if no such tag has been mapped in this view
 	 */
 	public MuisToolkit getToolkitForQName(String qName) {
 		int idx = qName.indexOf(":");
-		if(idx < 0)
-			return getToolkit(null);
+		if(idx < 0) {
+			for(MuisToolkit toolkit : getScopedToolkits()) {
+				if(toolkit.getMappedClass(qName) != null)
+					return toolkit;
+			}
+			return null;
+		}
 		else
 			return getToolkit(qName.substring(0, idx));
 	}
@@ -95,7 +117,7 @@ public class MuisClassView {
 	 * Gets the fully-qualified class name mapped to a qualified tag name (namespace:tagName)
 	 *
 	 * @param qName The qualified tag name of the class to get
-	 * @return The fully-qualified class name mapped to the qualified tag name, or null if no such class has been mapped in this domain.
+	 * @return The fully-qualified class name mapped to the qualified tag name, or null if no such class has been mapped in this view
 	 */
 	public String getMappedClass(String qName) {
 		int idx = qName.indexOf(':');
@@ -113,10 +135,18 @@ public class MuisClassView {
 	 * @return The fully-qualified class name mapped to the tag name, or null if no such class has been mapped in this domain
 	 */
 	public String getMappedClass(String namespace, String tag) {
-		MuisToolkit toolkit = getToolkit(namespace);
-		if(toolkit == null)
+		if(namespace == null) {
+			for(MuisToolkit toolkit : getScopedToolkits()) {
+				if(toolkit.getMappedClass(tag) != null)
+					return toolkit.getMappedClass(tag);
+			}
 			return null;
-		return toolkit.getMappedClass(tag);
+		} else {
+			MuisToolkit toolkit = getToolkit(namespace);
+			if(toolkit == null)
+				return null;
+			return toolkit.getMappedClass(tag);
+		}
 	}
 
 	/**
@@ -156,12 +186,22 @@ public class MuisClassView {
 	 *             interface
 	 */
 	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass) throws MuisException {
-		MuisToolkit toolkit = getToolkit(namespace);
-		if(toolkit == null)
-			throw new MuisException("No toolkit mapped to namespace " + namespace);
-		String className = toolkit.getMappedClass(tag);
-		if(className == null)
-			throw new MuisException("No class mapped to " + tag + " for namespace " + namespace + " (toolkit " + toolkit.getName() + ")");
-		return toolkit.loadClass(className, superClass);
+		if(namespace != null) {
+			MuisToolkit toolkit = getToolkit(namespace);
+			if(toolkit == null)
+				throw new MuisException("No toolkit mapped to namespace " + namespace);
+			String className = toolkit.getMappedClass(tag);
+			if(className == null)
+				throw new MuisException("No class mapped to " + tag + " for namespace " + namespace + " (toolkit " + toolkit.getName()
+					+ ")");
+			return toolkit.loadClass(className, superClass);
+		} else {
+			for(MuisToolkit toolkit : getScopedToolkits()) {
+				String className = toolkit.getMappedClass(tag);
+				if(className != null)
+					return toolkit.loadClass(className, superClass);
+			}
+			throw new MuisException("No class mapped to " + tag + " in scoped namespaces");
+		}
 	}
 }

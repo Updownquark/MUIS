@@ -174,7 +174,8 @@ public class MuisDomParser implements MuisParser {
 			throw new MuisParseException("Could not parse toolkit XML for " + toolkit.getURI(), e);
 		}
 		for(Element el : rootEl.getChildren("style-sheet")) {
-			ParsedStyleSheet styleSheet = parseStyleSheet(el, toolkit.getURI(), null, theEnvironment.msg());
+			ParsedStyleSheet styleSheet = parseStyleSheet(el, toolkit.getURI(), new MuisClassView(theEnvironment, null, toolkit),
+				theEnvironment.msg());
 			if(styleSheet != null) {
 				toolkit.getStyle().addDependency(styleSheet);
 			}
@@ -281,7 +282,8 @@ public class MuisDomParser implements MuisParser {
 				return null;
 			}
 			try {
-				ParsedStyleSheet ret = theStyleSheetParser.parse(ssLoc, theEnvironment, msg);
+				ParsedStyleSheet ret = theStyleSheetParser.parse(ssLoc, theEnvironment, new MuisClassView(theEnvironment, classView, null),
+					msg);
 				ret.setLocation(ssLoc);
 				// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to the
 				// EventQueue somehow
@@ -330,7 +332,8 @@ public class MuisDomParser implements MuisParser {
 	 * @return The class view for the element
 	 */
 	protected MuisClassView getClassView(MuisClassView parent, Element xml, MuisMessageCenter msg, URL location) {
-		MuisClassView ret = new MuisClassView(theEnvironment, parent);
+		MuisClassView ret = new MuisClassView(theEnvironment, parent, parent == null ? null : parent.getToolkitForQName(xml
+			.getQualifiedName()));
 		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
 			MuisToolkit toolkit;
 			try {

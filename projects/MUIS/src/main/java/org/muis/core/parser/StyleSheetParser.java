@@ -814,15 +814,17 @@ public class StyleSheetParser {
 
 	/**
 	 * Parses a style sheet from an XML document
-	 *
+	 * 
 	 * @param location The location to get the document from
 	 * @param env The MUIS environment that the style sheet is being loaded for
+	 * @param classView The initial classView for loading style sheet types
 	 * @param msg The message center to report non-fatal errors to
 	 * @return The style sheet parsed from the XML resource
 	 * @throws java.io.IOException If an error occurs reading the resource
 	 * @throws MuisParseException If an error occurs parsing the XML or interpreting it as a style sheet
 	 */
-	public ParsedStyleSheet parse(URL location, MuisEnvironment env, MuisMessageCenter msg) throws java.io.IOException, MuisParseException {
+	public ParsedStyleSheet parse(URL location, MuisEnvironment env, MuisClassView classView, MuisMessageCenter msg)
+		throws java.io.IOException, MuisParseException {
 		StringBuilder text = new StringBuilder();
 		try (java.io.Reader reader = new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream()))) {
 			int read = reader.read();
@@ -840,7 +842,6 @@ public class StyleSheetParser {
 
 		ParsedStyleSheet ret = new ParsedStyleSheet(theEnv.scope(true));
 		ExpressionContextStack stack = new ExpressionContextStack();
-		MuisClassView classView = new MuisClassView(env, null);
 		boolean hadValues = false;
 		boolean hadAnimation = false;
 		for(ParsedItem item : parsed) {

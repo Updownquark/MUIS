@@ -17,7 +17,7 @@ import org.muis.core.layout.SizePolicy;
  * container and the rest of the content will not be affected by it.</li>
  * </ul>
  */
-public class FlowLayout extends AbstractFlowLayout
+public class SuperFlowLayout extends AbstractFlowLayout
 {
 	@Override
 	public void layout(MuisElement parent, MuisElement [] children)

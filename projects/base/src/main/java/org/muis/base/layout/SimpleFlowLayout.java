@@ -32,7 +32,7 @@ public class SimpleFlowLayout implements org.muis.core.MuisLayout
 		theDirection = parent.atts().get(LayoutConstants.direction);
 		if(theDirection == null)
 			theDirection = Direction.RIGHT;
-		theBreakPolicy = parent.atts().get(FlowLayout.FLOW_BREAK);
+		theBreakPolicy = parent.atts().get(AbstractFlowLayout.FLOW_BREAK);
 		if(theBreakPolicy == null)
 			theBreakPolicy = BreakPolicy.NEEDED;
 	}

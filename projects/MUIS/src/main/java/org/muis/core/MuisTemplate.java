@@ -15,7 +15,7 @@ import org.muis.core.tags.Template;
  * instance of the widget. The template file also may contain attach point definitions, allowing the widget's content to be specified from
  * the XML invoking the widget.
  */
-public abstract class MuisTemplate2 extends MuisElement {
+public abstract class MuisTemplate extends MuisElement {
 	/** An attach point under a template widget */
 	public static class AttachPoint {
 		/** The template structure that this attach point belongs to */
@@ -67,7 +67,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 		/**
 		 * Whether the element or set of elements at the attach point can be changed generically. This only affects the mutability of the
-		 * attach point as accessed from the list returned from {@link MuisTemplate2#initChildren(MuisElement[])}.
+		 * attach point as accessed from the list returned from {@link MuisTemplate#initChildren(MuisElement[])}.
 		 *
 		 * @see TemplateStructure#MUTABLE
 		 */
@@ -141,12 +141,12 @@ public abstract class MuisTemplate2 extends MuisElement {
 		public static final String MUTABLE = TEMPLATE_PREFIX + "mutable";
 
 		/** The cache key to use to retrieve instances of {@link TemplateStructure} */
-		public static MuisCache.CacheItemType<Class<? extends MuisTemplate2>, TemplateStructure, MuisException> TEMPLATE_STRUCTURE_CACHE_TYPE;
+		public static MuisCache.CacheItemType<Class<? extends MuisTemplate>, TemplateStructure, MuisException> TEMPLATE_STRUCTURE_CACHE_TYPE;
 
 		static {
-			TEMPLATE_STRUCTURE_CACHE_TYPE = new MuisCache.CacheItemType<Class<? extends MuisTemplate2>, MuisTemplate2.TemplateStructure, MuisException>() {
+			TEMPLATE_STRUCTURE_CACHE_TYPE = new MuisCache.CacheItemType<Class<? extends MuisTemplate>, MuisTemplate.TemplateStructure, MuisException>() {
 				@Override
-				public TemplateStructure generate(MuisEnvironment env, Class<? extends MuisTemplate2> key) throws MuisException {
+				public TemplateStructure generate(MuisEnvironment env, Class<? extends MuisTemplate> key) throws MuisException {
 					return genTemplateStructure(env, key);
 				}
 
@@ -180,7 +180,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 			}
 		});
 
-		private final Class<? extends MuisTemplate2> theDefiner;
+		private final Class<? extends MuisTemplate> theDefiner;
 
 		private final TemplateStructure theSuperStructure;
 
@@ -197,7 +197,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		 * @param superStructure The parent template structure
 		 * @param widgetStructure The widget structure specified in the template MUIS file
 		 */
-		public TemplateStructure(Class<? extends MuisTemplate2> definer, TemplateStructure superStructure, WidgetStructure widgetStructure) {
+		public TemplateStructure(Class<? extends MuisTemplate> definer, TemplateStructure superStructure, WidgetStructure widgetStructure) {
 			theDefiner = definer;
 			theSuperStructure = superStructure;
 			theWidgetStructure = widgetStructure;
@@ -218,7 +218,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		}
 
 		/** @return The templated class that defines this template structure */
-		public Class<? extends MuisTemplate2> getDefiner() {
+		public Class<? extends MuisTemplate> getDefiner() {
 			return theDefiner;
 		}
 
@@ -275,27 +275,27 @@ public abstract class MuisTemplate2 extends MuisElement {
 		 * @return The template structure for the given templated type
 		 * @throws MuisException If an error occurs generating the structure
 		 */
-		public static TemplateStructure genTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate2> templateType)
+		public static TemplateStructure genTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate> templateType)
 			throws MuisException {
-			if(!MuisTemplate2.class.isAssignableFrom(templateType))
-				throw new MuisException("Only extensions of " + MuisTemplate2.class.getName() + " may have template structures: "
+			if(!MuisTemplate.class.isAssignableFrom(templateType))
+				throw new MuisException("Only extensions of " + MuisTemplate.class.getName() + " may have template structures: "
 					+ templateType.getName());
-			if(templateType == MuisTemplate2.class)
+			if(templateType == MuisTemplate.class)
 				return null;
-			Class<? extends MuisTemplate2> superType = (Class<? extends MuisTemplate2>) templateType.getSuperclass();
+			Class<? extends MuisTemplate> superType = (Class<? extends MuisTemplate>) templateType.getSuperclass();
 			TemplateStructure superStructure = null;
-			while(superType != MuisTemplate2.class) {
+			while(superType != MuisTemplate.class) {
 				if(superType.getAnnotation(Template.class) != null) {
 					superStructure = env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, superType);
 					break;
 				}
-				superType = (Class<? extends MuisTemplate2>) superType.getSuperclass();
+				superType = (Class<? extends MuisTemplate>) superType.getSuperclass();
 			}
 			Template template = templateType.getAnnotation(Template.class);
 			if(template == null) {
 				if(superStructure != null)
 					return superStructure;
-				throw new MuisException("Concrete implementations of " + MuisTemplate2.class.getName() + " like " + templateType.getName()
+				throw new MuisException("Concrete implementations of " + MuisTemplate.class.getName() + " like " + templateType.getName()
 					+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
 			}
 
@@ -424,7 +424,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 		private final MuisContainer<MuisElement> theContainer;
 
-		AttachPointInstance(AttachPoint ap, MuisTemplate2 template, ElementList<?> pc) {
+		AttachPointInstance(AttachPoint ap, MuisTemplate template, ElementList<?> pc) {
 			attachPoint = ap;
 			theParentChildren = pc;
 			if(attachPoint.multiple)
@@ -535,7 +535,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 	private Set<MuisElement> theUninitialized;
 
 	/** Creates a templated widget */
-	public MuisTemplate2() {
+	public MuisTemplate() {
 		theRoleWanter = new Object();
 		theAttachPoints = new LinkedHashMap<>();
 		theStaticContent = new HashMap<>();
@@ -547,7 +547,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 				try {
 					MuisEnvironment env = getDocument().getEnvironment();
 					theTemplateStructure = env.getCache().getAndWait(env, TemplateStructure.TEMPLATE_STRUCTURE_CACHE_TYPE,
-						MuisTemplate2.this.getClass());
+						MuisTemplate.this.getClass());
 				} catch(MuisException e) {
 					msg().fatal("Could not generate template structure", e);
 				}
@@ -750,7 +750,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		try {
 			initTemplate(theTemplateStructure);
 		} catch(MuisParseException e) {
-			msg().fatal("Failed to implement widget structure for templated type " + MuisTemplate2.this.getClass().getName(), e);
+			msg().fatal("Failed to implement widget structure for templated type " + MuisTemplate.this.getClass().getName(), e);
 			return getChildManager();
 		}
 
@@ -838,7 +838,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 	private class AttachPointSetChildList extends AbstractElementList<MuisElement> {
 		AttachPointSetChildList() {
-			super(MuisTemplate2.this);
+			super(MuisTemplate.this);
 		}
 
 		@Override
@@ -869,7 +869,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 			if(role == null)
 				role = theTemplateStructure.getAttachPoint(null);
 			if(role == null) {
-				throw new UnsupportedOperationException("Templated widget " + MuisTemplate2.class.getName()
+				throw new UnsupportedOperationException("Templated widget " + MuisTemplate.class.getName()
 					+ " does not have a default attach point, and therefore does not support addition"
 					+ " of children without a role assignment");
 			}
@@ -1234,7 +1234,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 	private static class AttachPointInstanceContainer implements MuisContainer<MuisElement> {
 		private AttachPointInstanceElementList theContent;
 
-		AttachPointInstanceContainer(AttachPoint ap, MuisTemplate2 template, ElementList<?> parentChildren) {
+		AttachPointInstanceContainer(AttachPoint ap, MuisTemplate template, ElementList<?> parentChildren) {
 			theContent = new AttachPointInstanceElementList(ap, template, parentChildren);
 		}
 
@@ -1249,7 +1249,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 
 		private ElementList<?> theParentChildren;
 
-		AttachPointInstanceElementList(AttachPoint ap, MuisTemplate2 template, ElementList<?> parentChildren) {
+		AttachPointInstanceElementList(AttachPoint ap, MuisTemplate template, ElementList<?> parentChildren) {
 			super(template);
 			theAttach = ap;
 			theParentChildren = parentChildren;
@@ -1315,7 +1315,7 @@ public abstract class MuisTemplate2 extends MuisElement {
 		void assertFits(MuisElement e) {
 			if(e == null)
 				throw new IllegalArgumentException("Cannot add null elements to an element container");
-			MuisTemplate2.assertFits(theAttach, e);
+			MuisTemplate.assertFits(theAttach, e);
 			if(contains(e))
 				throw new IllegalArgumentException("Element is already in this container");
 		}

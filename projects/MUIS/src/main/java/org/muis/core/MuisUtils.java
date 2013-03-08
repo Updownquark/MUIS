@@ -264,7 +264,7 @@ public class MuisUtils
 	{
 		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
 		attribs.put(TextAttribute.FAMILY, style.get(FontStyle.family));
-		attribs.put(TextAttribute.BACKGROUND, getBackground(style));
+		attribs.put(TextAttribute.BACKGROUND, org.muis.core.style.Colors.transparent);
 		attribs.put(TextAttribute.FOREGROUND, getColor(style.get(FontStyle.color), style.get(FontStyle.transparency)));
 		if(style.get(FontStyle.kerning))
 			attribs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);

@@ -244,6 +244,19 @@ public class AttributeManager {
 	}
 
 	/**
+	 * @param name The name of the attribute to check
+	 * @return Whether an attribute with the given name is set in this attribute manager
+	 */
+	public final boolean isSet(String name) {
+		AttributeHolder holder = theAcceptedAttrs.get(name);
+		if(holder != null && holder.theValue != null)
+			return true;
+		if(theRawAttributes != null && theRawAttributes.get(name) != null)
+			return true;
+		return false;
+	}
+
+	/**
 	 * Gets the value of an attribute in this element
 	 *
 	 * @param <T> The type of the attribute to get

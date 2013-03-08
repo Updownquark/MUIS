@@ -8,6 +8,8 @@ import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
 
 /**
@@ -564,8 +566,41 @@ public abstract class MuisTemplate extends MuisElement {
 		if(structure.getSuperStructure() != null) {
 			initTemplate(structure.getSuperStructure());
 		}
-		// TODO root-level styles and attributes?
-		int todo;
+
+		for(Map.Entry<String, String> att : structure.getWidgetStructure().getAttributes().entrySet()) {
+			if(!atts().isSet(att.getKey())) {
+				try {
+					atts().set(att.getKey(), att.getValue());
+				} catch(MuisException e) {
+					msg().error(
+						"Templated root attribute " + att.getKey() + "=" + att.getValue() + " failed for templated widget "
+							+ theTemplateStructure.getDefiner().getName(), e);
+				}
+			} else if(att.getKey().equals("style")) {
+				org.muis.core.style.MuisStyle elStyle = atts().get(StyleAttributeType.STYLE_ATTRIBUTE);
+				org.muis.core.style.MuisStyle templateStyle;
+				org.muis.core.style.SealableStyle newStyle = new org.muis.core.style.SealableStyle();
+				boolean mod = false;
+				try {
+					templateStyle = StyleAttributeType.parseStyle(getClassView(), att.getValue(),
+						getMessageCenter());
+					for(StyleAttribute<?> styleAtt : templateStyle) {
+						if(!elStyle.isSet(styleAtt)) {
+							mod = true;
+							newStyle.set((StyleAttribute<Object>) styleAtt, templateStyle.get(styleAtt));
+						}
+					}
+					if(mod) {
+						for(StyleAttribute<?> styleAtt : elStyle)
+							newStyle.set((StyleAttribute<Object>) styleAtt, elStyle.get(styleAtt));
+						atts().set(StyleAttributeType.STYLE_ATTRIBUTE, newStyle);
+					}
+				} catch(MuisException e) {
+					msg().error("Could not parse style attribute of template", e);
+				}
+			}
+		}
+
 		for(MuisContent content : structure.getWidgetStructure().getChildren()) {
 			MuisElement child = getChild(structure, this, content, getDocument().getEnvironment().getContentCreator());
 			if(child != null) {

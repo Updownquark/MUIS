@@ -97,7 +97,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 				+ " of type " + attr.getType());
 		if(attr.getValidator() != null)
 			try {
-				attr.getValidator().assertValid(value);
+				attr.getValidator().assertValid(value2);
 			} catch(org.muis.core.MuisException e) {
 				throw new IllegalArgumentException(e.getMessage());
 			}

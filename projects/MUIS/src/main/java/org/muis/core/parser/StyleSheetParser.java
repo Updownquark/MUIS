@@ -814,7 +814,7 @@ public class StyleSheetParser {
 
 	/**
 	 * Parses a style sheet from an XML document
-	 * 
+	 *
 	 * @param location The location to get the document from
 	 * @param env The MUIS environment that the style sheet is being loaded for
 	 * @param classView The initial classView for loading style sheet types
@@ -1126,7 +1126,7 @@ public class StyleSheetParser {
 			return false;
 		}
 		Type attrType = new Type(attr.getType().getType());
-		if(!typeRes.getType().isAssignable(attrType)) {
+		if(!attrType.isAssignable(typeRes.getType())) {
 			msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
 				+ ", type " + attrType);
 			return false;

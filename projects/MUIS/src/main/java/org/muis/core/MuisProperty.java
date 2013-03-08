@@ -323,7 +323,8 @@ public abstract class MuisProperty<T> {
 		public Double cast(Object value) {
 			if(value instanceof Double)
 				return (Double) value;
-			else if(value instanceof Float)
+			else if(value instanceof Float || value instanceof Long || value instanceof Integer || value instanceof Short
+				|| value instanceof Byte)
 				return Double.valueOf(((Number) value).doubleValue());
 			else
 				return null;

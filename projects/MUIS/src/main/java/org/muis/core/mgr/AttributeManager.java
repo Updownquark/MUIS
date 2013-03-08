@@ -145,7 +145,10 @@ public class AttributeManager {
 		if(holder == null) {
 			if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
-			theRawAttributes.put(attr, value);
+			if(value == null)
+				theRawAttributes.remove(attr);
+			else
+				theRawAttributes.put(attr, value);
 			return null;
 		}
 		if(holder.theAttr.getPathAccepter() == null)
@@ -249,7 +252,9 @@ public class AttributeManager {
 	 */
 	public final <T> T get(MuisAttribute<T> attr) {
 		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.getName());
-		if(storedAttr != null && !storedAttr.theAttr.equals(attr))
+		if(storedAttr == null)
+			return null;
+		if(!storedAttr.theAttr.equals(attr))
 			return null; // Same name, but different attribute
 		return (T) storedAttr.theValue;
 	}

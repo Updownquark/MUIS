@@ -121,6 +121,8 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
 		Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf());
+		if(bg.getAlpha() == 0)
+			return;
 		graphics.setColor(bg);
 		if(area == null || (area.y <= h - hRad && area.y + area.height >= hRad))
 			graphics.fillRect(0, hRad, w, h - hRad * 2);

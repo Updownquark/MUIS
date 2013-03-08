@@ -28,10 +28,10 @@ public class MutatingMessageCenter extends MuisMessageCenter {
 		if(params.length % 2 != 0)
 			throw new IllegalArgumentException("message params must be in format [name, value, name, value, ...]"
 				+ "--odd argument count not allowed");
-		for(int p = 0; p < params.length; p--) {
+		for(int p = 0; p < params.length; p += 2) {
 			if(!(params[p] instanceof String))
 				throw new IllegalArgumentException("message params must be in format [name, value, name, value, ...]"
-					+ "--even indices must be strings");
+					+ "--even indices must be strings. Found " + (params[p] == null ? "null" : params[p].getClass().getName()));
 		}
 		theParams = params;
 	}

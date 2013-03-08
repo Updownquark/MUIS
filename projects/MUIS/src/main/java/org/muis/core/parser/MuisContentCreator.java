@@ -6,6 +6,13 @@ import org.muis.core.*;
 
 /** Creates active MUIS content from parsed structures */
 public class MuisContentCreator {
+	/**
+	 * Fills in a document with widget structure
+	 * 
+	 * @param doc The document to fill
+	 * @param content The parsed content to fill the document with
+	 * @throws MuisParseException If an unrecoverable error occurs
+	 */
 	public void fillDocument(MuisDocument doc, WidgetStructure content) throws MuisParseException {
 		doc.getRoot().init(doc, doc.getEnvironment().getCoreToolkit(), content.getClassView(), null, content.getNamespace(),
 			content.getTagName());
@@ -27,6 +34,16 @@ public class MuisContentCreator {
 		doc.getRoot().initChildren(elements.toArray(new MuisElement[elements.size()]));
 	}
 
+	/**
+	 * Creates an element from a structure and fills its content
+	 *
+	 * @param doc The document that the element is for
+	 * @param parent The parent for the new element
+	 * @param structure The widget structure for the element
+	 * @param withChildren Whether to also populate the element's descendants
+	 * @return The new element
+	 * @throws MuisParseException If an unrecoverable error occurs
+	 */
 	public MuisElement createFromStructure(MuisDocument doc, MuisElement parent, WidgetStructure structure, boolean withChildren)
 		throws MuisParseException {
 		// Create the element
@@ -52,7 +69,7 @@ public class MuisContentCreator {
 		return ret;
 	}
 
-	public MuisElement createElement(MuisDocument doc, MuisElement parent, WidgetStructure structure) throws MuisParseException {
+	MuisElement createElement(MuisDocument doc, MuisElement parent, WidgetStructure structure) throws MuisParseException {
 		String ns = structure.getNamespace();
 		if(ns != null && ns.length() == 0)
 			ns = null;
@@ -93,6 +110,15 @@ public class MuisContentCreator {
 		return ret;
 	}
 
+	/**
+	 * Creates an element from content
+	 *
+	 * @param parent The parent of the child to create
+	 * @param child The structure of the child
+	 * @param withChildren Whether to populate the child's descendants, if any
+	 * @return The new element
+	 * @throws MuisParseException If an unrecoverable error occurs
+	 */
 	public MuisElement getChild(MuisElement parent, MuisContent child, boolean withChildren) throws MuisParseException {
 		if(child instanceof WidgetStructure)
 			return createFromStructure(parent.getDocument(), parent, (WidgetStructure) child, withChildren);

@@ -66,7 +66,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 *         value will be exposed from this style's {@link StatefulStyle} methods
 	 */
 	public boolean matchesFilter(StateGroupTypeExpression<?> expr) {
-		return ArrayUtils.equals(expr.getGroupName(), theGroupName) && expr.getType() == theType;
+		return ArrayUtils.equals(expr.getGroupName(), theGroupName) && expr.getType().isAssignableFrom(theType);
 	}
 
 	@Override

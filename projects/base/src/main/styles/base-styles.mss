@@ -6,6 +6,7 @@
 
 [button]{
 	bg={
+		transparency=0
 		color=blue
 		texture="raised-round"
 		corner-radius="10%"

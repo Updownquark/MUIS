@@ -22,55 +22,193 @@ public class LayerLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
+	public SizePolicy getWSizer(MuisElement parent, final MuisElement [] children)
 	{
 		if(children.length == 0)
 			return new SimpleSizePolicy();
 		else if(children.length == 1)
-			return children[0].getWSizer(parentHeight);
+			return children[0].getWSizer();
 		else
-		{
-			SimpleSizePolicy ret = new SimpleSizePolicy();
-			for(MuisElement child : children)
-			{
-				SizePolicy cp = child.getWSizer(parentHeight);
-				if(ret.getMin() < cp.getMin())
-					ret.setMin(cp.getMin());
-				if(ret.getMax() > cp.getMax())
-					if(cp.getMax() >= ret.getMin())
-						ret.setMax(cp.getMax());
-				if(ret.getPreferred() < cp.getPreferred())
-					if(cp.getPreferred() >= ret.getMin() && cp.getPreferred() <= ret.getMax())
-						ret.setPreferred(cp.getPreferred());
-			}
-			return ret;
-		}
+			return new SizePolicy() {
+				@Override
+				public int getMinPreferred() {
+					int ret = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getWSizer();
+						int cpRes = cp.getMinPreferred();
+						if(cpRes > ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public int getMaxPreferred() {
+					int ret = Integer.MAX_VALUE;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getWSizer();
+						int cpRes = cp.getMaxPreferred();
+						if(cpRes < ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public int getMin(int crossSize) {
+					int ret = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getWSizer();
+						int cpRes = cp.getMin(crossSize);
+						if(cpRes > ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public int getPreferred(int crossSize) {
+					int minPref = 0;
+					int maxPref = Integer.MAX_VALUE;
+					float sumPref = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getWSizer();
+						int cpRes = cp.getMinPreferred();
+						if(cpRes > minPref)
+							minPref = cpRes;
+						cpRes = cp.getMaxPreferred();
+						if(cpRes > maxPref)
+							maxPref = cpRes;
+						sumPref = cp.getPreferred(crossSize);
+					}
+					sumPref /= children.length;
+					if(sumPref >= minPref && sumPref <= maxPref)
+						return Math.round(sumPref);
+					else if(sumPref < minPref)
+						return minPref;
+					else
+						return maxPref;
+				}
+
+				@Override
+				public int getMax(int crossSize) {
+					int ret = Integer.MAX_VALUE;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getWSizer();
+						int cpRes = cp.getMax(crossSize);
+						if(cpRes < ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public float getStretch() {
+					float ret = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getWSizer();
+						float cpRes = cp.getStretch();
+						if(cpRes > ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+			};
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
+	public SizePolicy getHSizer(MuisElement parent, final MuisElement [] children)
 	{
 		if(children.length == 0)
 			return new SimpleSizePolicy();
 		else if(children.length == 1)
-			return children[0].getHSizer(parentWidth);
+			return children[0].getHSizer();
 		else
-		{
-			SimpleSizePolicy ret = new SimpleSizePolicy();
-			for(MuisElement child : children)
-			{
-				SizePolicy cp = child.getHSizer(parentWidth);
-				if(ret.getMin() < cp.getMin())
-					ret.setMin(cp.getMin());
-				if(ret.getMax() > cp.getMax())
-					if(cp.getMax() >= ret.getMin())
-						ret.setMax(cp.getMax());
-				if(ret.getPreferred() < cp.getPreferred())
-					if(cp.getPreferred() >= ret.getMin() && cp.getPreferred() <= ret.getMax())
-						ret.setPreferred(cp.getPreferred());
+			return new SizePolicy() {
+				@Override
+				public int getMinPreferred() {
+					int ret = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getHSizer();
+						int cpRes = cp.getMinPreferred();
+						if(cpRes > ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public int getMaxPreferred() {
+					int ret = Integer.MAX_VALUE;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getHSizer();
+						int cpRes = cp.getMaxPreferred();
+						if(cpRes < ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public int getMin(int crossSize) {
+					int ret = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getHSizer();
+						int cpRes = cp.getMin(crossSize);
+						if(cpRes > ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public int getPreferred(int crossSize) {
+					int minPref = 0;
+					int maxPref = Integer.MAX_VALUE;
+					float sumPref = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getHSizer();
+						int cpRes = cp.getMinPreferred();
+						if(cpRes > minPref)
+							minPref = cpRes;
+						cpRes = cp.getMaxPreferred();
+						if(cpRes > maxPref)
+							maxPref = cpRes;
+						sumPref = cp.getPreferred(crossSize);
+					}
+					sumPref /= children.length;
+					if(sumPref >= minPref && sumPref <= maxPref)
+						return Math.round(sumPref);
+					else if(sumPref < minPref)
+						return minPref;
+					else
+						return maxPref;
+				}
+
+				@Override
+				public int getMax(int crossSize) {
+					int ret = Integer.MAX_VALUE;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getHSizer();
+						int cpRes = cp.getMax(crossSize);
+						if(cpRes < ret)
+							ret = cpRes;
+					}
+					return ret;
+				}
+
+				@Override
+				public float getStretch() {
+					float ret = 0;
+					for(MuisElement child : children) {
+						SizePolicy cp = child.getHSizer();
+						float cpRes = cp.getStretch();
+						if(cpRes > ret)
+							ret = cpRes;
+					}
+					return ret;
 			}
-			return ret;
-		}
+			};
 	}
 
 	@Override

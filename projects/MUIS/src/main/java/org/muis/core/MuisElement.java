@@ -749,14 +749,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizePolicy getWSizer() {
 		if(theHSizer == null)
 			theHSizer = new SimpleSizePolicy();
 		return theHSizer;
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
+	public SizePolicy getHSizer() {
 		if(theVSizer == null)
 			theVSizer = new SimpleSizePolicy();
 		return theVSizer;

@@ -47,17 +47,17 @@ public class SimpleLayout implements MuisLayout
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
+	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children)
 	{
 		return getSizer(children, LayoutConstants.left, LayoutConstants.right, LayoutConstants.width, LayoutConstants.minWidth,
-			LayoutConstants.maxWidth, parentHeight, false, parent.atts().get(LayoutConstants.maxInf));
+			LayoutConstants.maxWidth, false, parent.atts().get(LayoutConstants.maxInf));
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
+	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children)
 	{
 		return getSizer(children, LayoutConstants.top, LayoutConstants.bottom, LayoutConstants.height, LayoutConstants.minHeight,
-			LayoutConstants.maxHeight, parentWidth, true, parent.atts().get(LayoutConstants.maxInf));
+			LayoutConstants.maxHeight, true, parent.atts().get(LayoutConstants.maxInf));
 	}
 
 	/**
@@ -69,16 +69,59 @@ public class SimpleLayout implements MuisLayout
 	 * @param sizeAtt The attribute to control the size of a child (width or height)
 	 * @param minSizeAtt The attribute to control the minimum size of a child (minWidth or minHeight)
 	 * @param maxSizeAtt The attribute to control the maximum size of a child (maxWidth or maxHeight)
-	 * @param breadth The size of the opposite dimension of the space to lay out the children in
 	 * @param vertical Whether the children are being sized in the vertical dimension or the horizontal
 	 * @param maxInfValue The value for the {@link LayoutConstants#maxInf} attribute in the parent
 	 * @return The size policy for the container of the given children in the given dimension
 	 */
-	protected SizePolicy getSizer(MuisElement [] children, MuisAttribute<Position> minPosAtt, MuisAttribute<Position> maxPosAtt,
-		MuisAttribute<Size> sizeAtt, MuisAttribute<Size> minSizeAtt, MuisAttribute<Size> maxSizeAtt, int breadth, boolean vertical,
-		Boolean maxInfValue)
+	protected SizePolicy getSizer(final MuisElement [] children, final MuisAttribute<Position> minPosAtt,
+		final MuisAttribute<Position> maxPosAtt, final MuisAttribute<Size> sizeAtt, final MuisAttribute<Size> minSizeAtt,
+		final MuisAttribute<Size> maxSizeAtt, final boolean vertical, final Boolean maxInfValue)
 	{
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		return new SizePolicy() {
+			private int theCachedCrossSize = -1;
+
+			SimpleSizePolicy theCachedSize = new SimpleSizePolicy();
+
+			@Override
+			public int getMinPreferred() {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public int getMaxPreferred() {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public int getMin(int crossSize) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public int getPreferred(int crossSize) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public int getMax(int crossSize) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public float getStretch() {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			private void calculate(int crossSize) {
+				if(crossSize == theCachedCrossSize)
+					return;
+				theCachedCrossSize = crossSize;
 		boolean isMaxInf = Boolean.TRUE.equals(maxInfValue);
 		for(MuisElement child : children)
 		{
@@ -90,10 +133,10 @@ public class SimpleLayout implements MuisLayout
 			if(maxPosL != null && !maxPosL.getUnit().isRelative())
 			{
 				int r = maxPosL.evaluate(0);
-				if(ret.getMin() < r)
-					ret.setMin(r);
-				if(ret.getPreferred() < r)
-					ret.setPreferred(r);
+						if(theCachedSize.getMin(0) < r)
+							theCachedSize.setMin(r);
+						if(theCachedSize.getPreferred(0) < r)
+							theCachedSize.setPreferred(r);
 			}
 			else if(sizeL != null && !sizeL.getUnit().isRelative())
 			{
@@ -104,10 +147,10 @@ public class SimpleLayout implements MuisLayout
 				else
 					x = 0;
 
-				if(ret.getMin() < x + w)
-					ret.setMin(x + w);
-				if(ret.getPreferred() < x + w)
-					ret.setPreferred(x + w);
+						if(theCachedSize.getMin(0) < x + w)
+							theCachedSize.setMin(x + w);
+						if(theCachedSize.getPreferred(0) < x + w)
+							theCachedSize.setPreferred(x + w);
 				if(!isMaxInf)
 				{
 					int max;
@@ -115,20 +158,20 @@ public class SimpleLayout implements MuisLayout
 						max = maxSizeL.evaluate(0);
 					else
 					{
-						SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-						max = childSizer.getMax();
+								SizePolicy childSizer = vertical ? child.getHSizer() : child.getWSizer();
+								max = childSizer.getMax(crossSize);
 					}
 					if(max + x > max)
 						max += x;
-					if(ret.getMax() > max)
-						ret.setMax(max);
+							if(theCachedSize.getMax(0) > max)
+								theCachedSize.setMax(max);
 				}
 			}
 			else if(minSizeL != null && !minSizeL.getUnit().isRelative())
 			{
-				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
+						SizePolicy childSizer = vertical ? child.getHSizer() : child.getWSizer();
 				int minW = minSizeL.evaluate(0);
-				int prefW = childSizer.getPreferred();
+						int prefW = childSizer.getPreferred(crossSize);
 				if(prefW < minW)
 					prefW = minW;
 				int x;
@@ -137,56 +180,57 @@ public class SimpleLayout implements MuisLayout
 				else
 					x = 0;
 
-				if(ret.getMin() < x + minW)
-					ret.setMin(x + minW);
-				if(ret.getPreferred() < x + prefW)
-					ret.setPreferred(x + prefW);
+						if(theCachedSize.getMin(0) < x + minW)
+							theCachedSize.setMin(x + minW);
+						if(theCachedSize.getPreferred(0) < x + prefW)
+							theCachedSize.setPreferred(x + prefW);
 				if(!isMaxInf)
 				{
 					int max;
 					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
 						max = maxSizeL.evaluate(0);
 					else
-						max = childSizer.getMax();
+								max = childSizer.getMax(crossSize);
 					if(max + x > max)
 						max += x;
-					if(ret.getMax() > max)
-						ret.setMax(max);
+							if(theCachedSize.getMax(0) > max)
+								theCachedSize.setMax(max);
 				}
 			}
 			else if(minPosL != null && !minPosL.getUnit().isRelative())
 			{
-				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
+						SizePolicy childSizer = vertical ? child.getHSizer() : child.getWSizer();
 				int x = minPosL.evaluate(0);
-				if(ret.getMin() < x + childSizer.getMin())
-					ret.setMin(x + childSizer.getMin());
-				if(ret.getPreferred() < x + childSizer.getPreferred())
-					ret.setPreferred(x + childSizer.getPreferred());
+						if(theCachedSize.getMin(0) < x + childSizer.getMin(crossSize))
+							theCachedSize.setMin(x + childSizer.getMin(crossSize));
+						if(theCachedSize.getPreferred(0) < x + childSizer.getPreferred(crossSize))
+							theCachedSize.setPreferred(x + childSizer.getPreferred(crossSize));
 				if(!isMaxInf)
 				{
 					int max;
 					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
 						max = maxSizeL.evaluate(0);
 					else
-						max = childSizer.getMax();
+								max = childSizer.getMax(crossSize);
 					if(max + x > max)
 						max += x;
-					if(ret.getMax() > max)
-						ret.setMax(max);
+							if(theCachedSize.getMax(0) > max)
+								theCachedSize.setMax(max);
 				}
 			}
 			else
 			{
-				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-				if(ret.getMin() < childSizer.getMin())
-					ret.setMin(childSizer.getMin());
-				if(ret.getPreferred() < childSizer.getPreferred())
-					ret.setPreferred(childSizer.getPreferred());
-				if(!isMaxInf && ret.getMax() > childSizer.getMax())
-					ret.setMax(childSizer.getMax());
+						SizePolicy childSizer = vertical ? child.getHSizer() : child.getWSizer();
+						if(theCachedSize.getMin(0) < childSizer.getMin(crossSize))
+							theCachedSize.setMin(childSizer.getMin(crossSize));
+						if(theCachedSize.getPreferred(0) < childSizer.getPreferred(crossSize))
+							theCachedSize.setPreferred(childSizer.getPreferred(crossSize));
+						if(!isMaxInf && theCachedSize.getMax(0) > childSizer.getMax(crossSize))
+							theCachedSize.setMax(childSizer.getMax(crossSize));
 			}
 		}
-		return ret;
+			}
+		};
 	}
 
 	@Override
@@ -246,8 +290,8 @@ public class SimpleLayout implements MuisLayout
 			}
 			else
 			{
-				SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-				dim[1] = sizer.getPreferred();
+				SizePolicy sizer = vertical ? child.getHSizer() : child.getWSizer();
+				dim[1] = sizer.getPreferred(breadth);
 				if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
 					dim[1] = minSizeAtt.evaluate(length);
 				dim[0] = max - dim[1];
@@ -265,17 +309,17 @@ public class SimpleLayout implements MuisLayout
 		}
 		else if(minPosAtt != null)
 		{
-			SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
+			SizePolicy sizer = vertical ? child.getHSizer() : child.getWSizer();
 			dim[0] = minPosAtt.evaluate(length);
-			dim[1] = sizer.getPreferred();
+			dim[1] = sizer.getPreferred(breadth);
 			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
 				dim[1] = minSizeAtt.evaluate(length);
 		}
 		else
 		{
-			SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
+			SizePolicy sizer = vertical ? child.getHSizer() : child.getWSizer();
 			dim[0] = 0;
-			dim[1] = sizer.getPreferred();
+			dim[1] = sizer.getPreferred(breadth);
 			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
 				dim[1] = minSizeAtt.evaluate(length);
 		}

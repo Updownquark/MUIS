@@ -66,19 +66,19 @@ public class LayoutContainer extends MuisElement {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizePolicy getWSizer() {
 		if(theLayout != null)
-			return theLayout.getWSizer(this, getChildren().toArray(), height);
+			return theLayout.getWSizer(this, getChildren().toArray());
 		else
-			return super.getWSizer(height);
+			return super.getWSizer();
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
+	public SizePolicy getHSizer() {
 		if(theLayout != null)
-			return theLayout.getHSizer(this, getChildren().toArray(), width);
+			return theLayout.getHSizer(this, getChildren().toArray());
 		else
-			return super.getHSizer(width);
+			return super.getHSizer();
 	}
 
 	@Override

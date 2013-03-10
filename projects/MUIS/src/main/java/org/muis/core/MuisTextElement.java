@@ -38,13 +38,13 @@ public class MuisTextElement extends MuisLeaf {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizePolicy getWSizer() {
 		if(theText.length() == 0)
-			return new SimpleSizePolicy(0, 0, 0, 0);
+			return new SimpleSizePolicy(0, 0, 0, 0, 0, 0);
 		java.awt.Font font = MuisUtils.getFont(getStyle().getSelf());
 		if(font == null) {
 			msg().error("Could not derive font");
-			return new SimpleSizePolicy(0, 0, 0, 0);
+			return new SimpleSizePolicy(0, 0, 0, 0, 0, 0);
 		}
 		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
@@ -92,7 +92,7 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineW > max)
 					max = lineW;
 			}
-			return new SimpleSizePolicy(min, max, max, 1);
+			return new SimpleSizePolicy(min, min, max, max, max, 1);
 		} else {
 			int w = 0;
 			for(int c = 0; c < theText.length(); c++) {
@@ -113,15 +113,73 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineW > w)
 					w = lineW;
 			}
-			return new SimpleSizePolicy(w, w, w, 0);
+			return new SimpleSizePolicy(w, w, w, w, w, 0);
 		}
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
-		int [] min = new int[1];
-		int height = render(width, null, min);
-		return new SimpleSizePolicy(min[0], height, height, 1);
+	public SizePolicy getHSizer() {
+		return new SizePolicy() {
+			private int theMinPref = render(Integer.MAX_VALUE, null, new int[1]);
+
+			private int theMaxPref;
+
+			private int theCachedWidth;
+
+			private int theCachedMinHeight;
+
+			private int theCachedMaxHeight;
+
+			{
+				theCachedWidth = -1;
+				int [] min = new int[1];
+				render(Integer.MAX_VALUE, null, min);
+				theMinPref = min[0];
+				theMaxPref = render(1, null, min);
+			}
+
+			private void getSizes(int crossSize) {
+				if(crossSize == theCachedWidth)
+					return;
+				theCachedWidth = crossSize;
+				int [] min = new int[1];
+				theCachedMaxHeight = render(crossSize, null, min);
+				theCachedMinHeight = min[0];
+			}
+
+			@Override
+			public int getMinPreferred() {
+				return theMinPref;
+			}
+
+			@Override
+			public int getMaxPreferred() {
+				return theMaxPref;
+			}
+
+			@Override
+			public int getMin(int crossSize) {
+				getSizes(crossSize);
+				return theCachedMinHeight;
+			}
+
+			@Override
+			public int getPreferred(int crossSize) {
+				getSizes(crossSize);
+				return theCachedMaxHeight;
+			}
+
+			@Override
+			public int getMax(int crossSize) {
+				getSizes(crossSize);
+				return theCachedMaxHeight;
+			}
+
+			@Override
+			public float getStretch() {
+				return 1;
+			}
+		};
 	}
 
 	private int render(int width, Graphics2D graphics, int [] min) {
@@ -171,6 +229,10 @@ public class MuisTextElement extends MuisLeaf {
 								max += Math.round(font.getLineMetrics(theText, breakIdx, newBreak, context).getHeight());
 								breakIdx = newBreak;
 							}
+							if(breakIdx == c) {
+								lineW = 0;
+								continue;
+							}
 							lineBounds = font.getStringBounds(theText, breakIdx, c, context);
 							lineW = (int) Math.round(lineBounds.getMaxX());
 						}
@@ -202,6 +264,11 @@ public class MuisTextElement extends MuisLeaf {
 							if(graphics != null)
 								graphics.drawString(theText.substring(breakIdx, newBreak), 0, base + max);
 							max += Math.round(font.getLineMetrics(theText, breakIdx, newBreak, context).getHeight());
+							breakIdx = newBreak;
+						}
+						if(breakIdx == theText.length()) {
+							lineW = 0;
+							continue;
 						}
 						lineBounds = font.getStringBounds(theText, breakIdx, theText.length(), context);
 						lineW = (int) Math.round(lineBounds.getMaxX());
@@ -223,6 +290,11 @@ public class MuisTextElement extends MuisLeaf {
 							if(graphics != null)
 								graphics.drawString(theText.substring(breakIdx, newBreak), 0, base + max);
 							max += Math.round(font.getLineMetrics(theText, breakIdx, newBreak, context).getHeight());
+							breakIdx = newBreak;
+						}
+						if(breakIdx == theText.length()) {
+							lineW = 0;
+							continue;
 						}
 						lineBounds = font.getStringBounds(theText, breakIdx, theText.length(), context);
 						lineW = (int) Math.round(lineBounds.getMaxX());

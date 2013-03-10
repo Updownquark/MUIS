@@ -358,75 +358,65 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizePolicy getWSizer() {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
 			w = img.getWidth();
 			h = img.getHeight();
 		} else
-			return super.getWSizer(height);
+			return super.getWSizer();
 
 		switch (theHResizePolicy) {
 		case none:
-			return super.getWSizer(height);
+			return super.getWSizer();
 		case lock:
-			return new SimpleSizePolicy(w, w, w, 0);
+			return new SimpleSizePolicy(w, w, w, w, w, 0);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizePolicy(w, w, w, 0);
+				return new SimpleSizePolicy(w, w, w, w, w, 0);
 			else
-				return super.getWSizer(height);
+				return super.getWSizer();
 		case repeat:
-			return super.getWSizer(height);
+			return super.getWSizer();
 		case resize:
-			if(height < 0)
-				return new SimpleSizePolicy(0, w, Integer.MAX_VALUE, 0);
-			else {
-				w = w * height / h;
-				if(isProportionLocked)
-					return new SimpleSizePolicy(w, w, w, 0);
-				else
-					return new SimpleSizePolicy(0, w, Integer.MAX_VALUE, 0);
-			}
+			if(isProportionLocked)
+				return new ProportionalSizePolicy(w, h);
+			else
+				return new SimpleSizePolicy(0, 0, w, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
 		}
-		return super.getWSizer(height);
+		return super.getWSizer();
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
+	public SizePolicy getHSizer() {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
 			w = img.getWidth();
 			h = img.getHeight();
 		} else
-			return super.getHSizer(width);
+			return super.getHSizer();
 
 		switch (theVResizePolicy) {
 		case none:
-			return super.getHSizer(width);
+			return super.getHSizer();
 		case lock:
-			return new SimpleSizePolicy(h, h, h, 0);
+			return new SimpleSizePolicy(h, h, h, h, h, 0);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizePolicy(h, h, h, 0);
+				return new SimpleSizePolicy(h, h, h, h, h, 0);
 			else
-				return super.getHSizer(width);
+				return super.getHSizer();
 		case repeat:
-			return super.getHSizer(width);
+			return super.getHSizer();
 		case resize:
-			if(width < 0)
-				return new SimpleSizePolicy(0, h, Integer.MAX_VALUE, 0);
-			else {
-				h = h * width / w;
-				if(isProportionLocked)
-					return new SimpleSizePolicy(h, h, h, 0);
-				else
-					return new SimpleSizePolicy(0, h, Integer.MAX_VALUE, 0);
-			}
+			if(isProportionLocked)
+				return new ProportionalSizePolicy(h, w);
+			else
+				return new SimpleSizePolicy(0, 0, h, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
 		}
-		return super.getHSizer(width);
+		return super.getHSizer();
 	}
 
 	/** @return The image that would be displayed if this widget were painted now (may be the loading or error image) */
@@ -521,5 +511,46 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		if(area != null && (area.x >= gfxX2 || area.x + area.width <= gfxX1 || area.y >= gfxY2 || area.y + area.height <= gfxY1))
 			return;
 		graphics.drawImage(img.get(imgIdx), gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
+	}
+
+	private static class ProportionalSizePolicy implements SizePolicy {
+		private final int theMainDim;
+
+		private final int theCrossDim;
+
+		ProportionalSizePolicy(int main, int cross) {
+			theMainDim = main;
+			theCrossDim = cross;
+		}
+
+		@Override
+		public int getMinPreferred() {
+			return 0;
+		}
+
+		@Override
+		public int getMaxPreferred() {
+			return Integer.MAX_VALUE;
+		}
+
+		@Override
+		public int getMin(int crossSize) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getPreferred(int crossSize) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getMax(int crossSize) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public float getStretch() {
+			return 0;
+		}
 	}
 }

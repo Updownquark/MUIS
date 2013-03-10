@@ -23,25 +23,17 @@ public class Button extends org.muis.core.MuisTemplate {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizePolicy getWSizer() {
 		org.muis.core.MuisElement contents = getElement(getTemplate().getAttachPoint("contents"));
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		int tOff = radius.evaluate(height);
-		height -= tOff / 2;
-		if(height < 0)
-			height = 0;
-		return new RadiusAddSizePolicy(contents.getWSizer(height), radius);
+		return new RadiusAddSizePolicy(contents.getWSizer(), radius);
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
+	public SizePolicy getHSizer() {
 		org.muis.core.MuisElement contents = getElement(getTemplate().getAttachPoint("contents"));
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		int lOff = radius.evaluate(width);
-		width -= lOff / 2;
-		if(width < 0)
-			width = 0;
-		return new RadiusAddSizePolicy(contents.getHSizer(width), radius);
+		return new RadiusAddSizePolicy(contents.getHSizer(), radius);
 	}
 
 	private static class RadiusAddSizePolicy implements SizePolicy {
@@ -55,22 +47,32 @@ public class Button extends org.muis.core.MuisTemplate {
 		}
 
 		@Override
-		public int getMin() {
-			return addRadius(theWrapped.getMin());
+		public int getMinPreferred() {
+			return addRadius(theWrapped.getMinPreferred());
 		}
 
 		@Override
-		public int getPreferred() {
-			return addRadius(theWrapped.getPreferred());
+		public int getMaxPreferred() {
+			return addRadius(theWrapped.getMaxPreferred());
 		}
 
 		@Override
-		public int getMax() {
-			return addRadius(theWrapped.getMax());
+		public int getMin(int crossSize) {
+			return addRadius(theWrapped.getMin(removeRadius(crossSize)));
 		}
 
 		@Override
-		public int getStretch() {
+		public int getPreferred(int crossSize) {
+			return addRadius(theWrapped.getPreferred(removeRadius(crossSize)));
+		}
+
+		@Override
+		public int getMax(int crossSize) {
+			return addRadius(theWrapped.getMax(removeRadius(crossSize)));
+		}
+
+		@Override
+		public float getStretch() {
 			return theWrapped.getStretch();
 		}
 
@@ -87,7 +89,13 @@ public class Button extends org.muis.core.MuisTemplate {
 				size = Math.round(size * 100 / (100f - radPercent));
 				break;
 			}
+			if(size < 0)
+				return Integer.MAX_VALUE;
 			return size;
+		}
+
+		int removeRadius(int size) {
+			return size - theRadius.evaluate(size);
 		}
 	}
 }

@@ -63,6 +63,110 @@ public class LayoutAttributes {
 
 	public static final SizeAttribute maxHeight = new SizeAttribute("max-height", vertical, max);
 
+	public static PositionAttribute getPosAtt(Orientation orientation, End end, LayoutGuideType type) {
+		switch (orientation) {
+		case horizontal:
+			switch (end) {
+			case leading:
+				if(type == null)
+					return left;
+				switch (type) {
+				case min:
+					return minLeft;
+				case max:
+					return maxLeft;
+				case minPref:
+				case pref:
+				case maxPref:
+					throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+				}
+				throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+			case trailing:
+				if(type == null)
+					return right;
+				switch (type) {
+				case min:
+					return minRight;
+				case max:
+					return maxRight;
+				case minPref:
+				case pref:
+				case maxPref:
+					throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+				}
+				throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+			}
+			throw new IllegalArgumentException("Unrecognized layout end type: " + end);
+		case vertical:
+			switch (end) {
+			case leading:
+				if(type == null)
+					return top;
+				switch (type) {
+				case min:
+					return minTop;
+				case max:
+					return maxTop;
+				case minPref:
+				case pref:
+				case maxPref:
+					throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+				}
+				throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+			case trailing:
+				if(type == null)
+					return bottom;
+				switch (type) {
+				case min:
+					return minBottom;
+				case max:
+					return maxBottom;
+				case minPref:
+				case pref:
+				case maxPref:
+					throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+				}
+				throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+			}
+			throw new IllegalArgumentException("Unrecognized layout end type: " + end);
+		}
+		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orientation);
+	}
+
+	public static SizeAttribute getSizeAtt(Orientation orientation, LayoutGuideType type) {
+		switch (orientation) {
+		case horizontal:
+			if(type == null)
+				return width;
+			switch (type) {
+			case min:
+				return minWidth;
+			case max:
+				return maxWidth;
+			case minPref:
+			case pref:
+			case maxPref:
+				throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+			}
+			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+		case vertical:
+			if(type == null)
+				return height;
+			switch (type) {
+			case min:
+				return minHeight;
+			case max:
+				return maxHeight;
+			case minPref:
+			case pref:
+			case maxPref:
+				throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+			}
+			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+		}
+		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orientation);
+	}
+
 	public static int getPositionValue(org.muis.core.MuisElement element, PositionAttribute attr, int totalLength, int defVal) {
 		Position ret = element.atts().get(attr);
 		if(ret != null)
@@ -79,6 +183,10 @@ public class LayoutAttributes {
 
 	public static final MuisAttribute<Region> region = new MuisAttribute<Region>("region",
 		new MuisProperty.MuisEnumProperty<>(Region.class));
+
+	public static final MuisAttribute<Size> margin = new MuisAttribute<>("margin", SizePropertyType.instance);
+
+	public static final MuisAttribute<Size> padding = new MuisAttribute<>("padding", SizePropertyType.instance);
 
 	public static final MuisAttribute<Boolean> maxInf = new MuisAttribute<Boolean>("max-inf", MuisProperty.boolAttr);
 }

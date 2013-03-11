@@ -1,4 +1,4 @@
-package org.muis.base.layout;
+package org.muis.core.layout;
 
 /** All possible directions for laying out items */
 public enum Direction

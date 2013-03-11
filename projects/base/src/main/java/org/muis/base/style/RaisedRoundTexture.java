@@ -115,8 +115,8 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 	@Override
 	public void render(java.awt.Graphics2D graphics, org.muis.core.MuisElement element, java.awt.Rectangle area)
 	{
-		int w = element.getWidth();
-		int h = element.getHeight();
+		int w = element.bounds().getWidth();
+		int h = element.bounds().getHeight();
 		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);

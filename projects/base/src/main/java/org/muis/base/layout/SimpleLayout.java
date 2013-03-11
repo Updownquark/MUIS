@@ -1,10 +1,11 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
+import org.muis.core.layout.LayoutAttributes;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
@@ -12,9 +13,9 @@ import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 
 /**
- * A very simple layout that positions and sizes children independently using positional ({@link LayoutConstants#left},
- * {@link LayoutConstants#right}, {@link LayoutConstants#top}, {@link LayoutConstants#bottom}), size ({@link LayoutConstants#width} and
- * {@link LayoutConstants#height}) and minimum size ({@link LayoutConstants#minWidth} and {@link LayoutConstants#minHeight}) attributes or
+ * A very simple layout that positions and sizes children independently using positional ({@link LayoutAttributes#left},
+ * {@link LayoutAttributes#right}, {@link LayoutAttributes#top}, {@link LayoutAttributes#bottom}), size ({@link LayoutAttributes#width} and
+ * {@link LayoutAttributes#height}) and minimum size ({@link LayoutAttributes#minWidth} and {@link LayoutAttributes#minHeight}) attributes or
  * sizers.
  */
 public class SimpleLayout implements MuisLayout
@@ -25,7 +26,7 @@ public class SimpleLayout implements MuisLayout
 	public SimpleLayout()
 	{
 		theListener = CompoundListener.create(this);
-		theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);
+		theListener.accept(LayoutAttributes.maxInf).onChange(CompoundListener.layout);
 		theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight)
 			.onChange(CompoundListener.layout);
 	}
@@ -49,15 +50,15 @@ public class SimpleLayout implements MuisLayout
 	@Override
 	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children)
 	{
-		return getSizer(children, LayoutConstants.left, LayoutConstants.right, LayoutConstants.width, LayoutConstants.minWidth,
-			LayoutConstants.maxWidth, false, parent.atts().get(LayoutConstants.maxInf));
+		return getSizer(children, LayoutAttributes.left, LayoutAttributes.right, LayoutAttributes.width, LayoutAttributes.minWidth,
+			LayoutAttributes.maxWidth, false, parent.atts().get(LayoutAttributes.maxInf));
 	}
 
 	@Override
 	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children)
 	{
-		return getSizer(children, LayoutConstants.top, LayoutConstants.bottom, LayoutConstants.height, LayoutConstants.minHeight,
-			LayoutConstants.maxHeight, true, parent.atts().get(LayoutConstants.maxInf));
+		return getSizer(children, LayoutAttributes.top, LayoutAttributes.bottom, LayoutAttributes.height, LayoutAttributes.minHeight,
+			LayoutAttributes.maxHeight, true, parent.atts().get(LayoutAttributes.maxInf));
 	}
 
 	/**
@@ -70,7 +71,7 @@ public class SimpleLayout implements MuisLayout
 	 * @param minSizeAtt The attribute to control the minimum size of a child (minWidth or minHeight)
 	 * @param maxSizeAtt The attribute to control the maximum size of a child (maxWidth or maxHeight)
 	 * @param vertical Whether the children are being sized in the vertical dimension or the horizontal
-	 * @param maxInfValue The value for the {@link LayoutConstants#maxInf} attribute in the parent
+	 * @param maxInfValue The value for the {@link LayoutAttributes#maxInf} attribute in the parent
 	 * @return The size policy for the container of the given children in the given dimension
 	 */
 	protected SizePolicy getSizer(final MuisElement [] children, final MuisAttribute<Position> minPosAtt,
@@ -240,22 +241,22 @@ public class SimpleLayout implements MuisLayout
 		int [] dim = new int[2];
 		for(MuisElement child : children)
 		{
-			Position leftPos = child.atts().get(LayoutConstants.left);
-			Position rightPos = child.atts().get(LayoutConstants.right);
-			Position topPos = child.atts().get(LayoutConstants.top);
-			Position bottomPos = child.atts().get(LayoutConstants.bottom);
-			Size w = child.atts().get(LayoutConstants.width);
-			Size h = child.atts().get(LayoutConstants.height);
-			Size minW = child.atts().get(LayoutConstants.minWidth);
-			Size minH = child.atts().get(LayoutConstants.minHeight);
+			Position leftPos = child.atts().get(LayoutAttributes.left);
+			Position rightPos = child.atts().get(LayoutAttributes.right);
+			Position topPos = child.atts().get(LayoutAttributes.top);
+			Position bottomPos = child.atts().get(LayoutAttributes.bottom);
+			Size w = child.atts().get(LayoutAttributes.width);
+			Size h = child.atts().get(LayoutAttributes.height);
+			Size minW = child.atts().get(LayoutAttributes.minWidth);
+			Size minH = child.atts().get(LayoutAttributes.minHeight);
 
-			layout(child, false, parent.getHeight(), leftPos, rightPos, w, minW, parent.getWidth(), dim);
+			layout(child, false, parent.bounds().getHeight(), leftPos, rightPos, w, minW, parent.bounds().getWidth(), dim);
 			bounds.x = dim[0];
 			bounds.width = dim[1];
-			layout(child, true, parent.getWidth(), topPos, bottomPos, h, minH, parent.getHeight(), dim);
+			layout(child, true, parent.bounds().getWidth(), topPos, bottomPos, h, minH, parent.bounds().getHeight(), dim);
 			bounds.y = dim[0];
 			bounds.height = dim[1];
-			child.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+			child.bounds().setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 		}
 	}
 

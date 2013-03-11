@@ -36,7 +36,7 @@ public class MuisUtils
 	 */
 	public static MuisElement [] path(MuisElement element)
 	{
-		ArrayList<MuisElement> ret = new ArrayList<MuisElement>();
+		ArrayList<MuisElement> ret = new ArrayList<>();
 		while(element != null)
 		{
 			ret.add(element);
@@ -132,15 +132,15 @@ public class MuisUtils
 		MuisElement parent = el2;
 		while(parent != common)
 		{
-			ret.x -= parent.getX();
-			ret.y -= parent.getY();
+			ret.x -= parent.bounds().getX();
+			ret.y -= parent.bounds().getY();
 			parent = parent.getParent();
 		}
 		parent = el1;
 		while(parent != common)
 		{
-			ret.x += parent.getX();
-			ret.y += parent.getY();
+			ret.x += parent.bounds().getX();
+			ret.y += parent.bounds().getY();
 			parent = parent.getParent();
 		}
 		return ret;

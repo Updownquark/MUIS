@@ -126,11 +126,11 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 		MuisElement [] children = sortByZ();
 		MuisElement [] ret = new MuisElement[0];
 		for(MuisElement child : children) {
-			int relX = x - child.getX();
-			if(relX < 0 || relX >= child.getWidth())
+			int relX = x - child.bounds().getX();
+			if(relX < 0 || relX >= child.bounds().getWidth())
 				continue;
-			int relY = y - child.getY();
-			if(relY < 0 || relY >= child.getHeight())
+			int relY = y - child.bounds().getY();
+			if(relY < 0 || relY >= child.bounds().getHeight())
 				continue;
 			ret = ArrayUtils.add(ret, child);
 		}

@@ -13,8 +13,8 @@ public class RaisedSquareTexture implements Texture
 	@Override
 	public void render(Graphics2D graphics, MuisElement element, Rectangle area)
 	{
-		int w = element.getWidth();
-		int h = element.getHeight();
+		int w = element.bounds().getWidth();
+		int h = element.bounds().getHeight();
 		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);

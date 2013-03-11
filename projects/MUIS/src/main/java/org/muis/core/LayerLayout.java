@@ -215,7 +215,7 @@ public class LayerLayout implements org.muis.core.MuisLayout
 	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		for(MuisElement child : children)
-			child.setBounds(0, 0, parent.getWidth(), parent.getHeight());
+			child.bounds().setBounds(0, 0, parent.bounds().getWidth(), parent.bounds().getHeight());
 	}
 
 	@Override

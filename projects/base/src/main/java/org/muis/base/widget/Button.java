@@ -15,11 +15,11 @@ public class Button extends org.muis.core.MuisTemplate {
 	public void doLayout() {
 		org.muis.core.MuisElement contents = getElement(getTemplate().getAttachPoint("contents"));
 		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		int w = getWidth();
-		int h = getHeight();
+		int w = bounds().getWidth();
+		int h = bounds().getHeight();
 		int lOff = radius.evaluate(w);
 		int tOff = radius.evaluate(h);
-		contents.setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
+		contents.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
 	}
 
 	@Override

@@ -356,7 +356,7 @@ public class MuisTextElement extends MuisLeaf {
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		render(getWidth(), graphics, null);
+		render(bounds().getWidth(), graphics, null);
 	}
 
 	@Override

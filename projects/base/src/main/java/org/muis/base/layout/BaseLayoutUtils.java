@@ -26,40 +26,28 @@ public class BaseLayoutUtils {
 
 	public static int [] getWithMinimumWraps(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
 		int parallelSize) {
-		switch (policy) {
-		case NEVER:
-		case NEEDED:
-			int parSizeMax = 0;
-			int parSizeLine = 0;
-			int crossSizeLines = 0;
-			int crossSize = 0;
-			for(MuisElement child : children) {
-				int parSizeTemp = child.bounds().get(orientation).getGuide().get(type, parallelSize);
-				int crossSizeTemp = child.bounds().get(orientation.opposite()).getGuide().get(type, Integer.MAX_VALUE);
-				int temp = parSizeLine + parSizeTemp;
-				if(policy != BreakPolicy.NEVER && (temp < 0 || temp > parallelSize)) { // Integer overflow
-					parSizeMax += parSizeLine;
-					parSizeLine = parSizeTemp;
-					crossSizeLines += crossSize;
+		int parSizeMax = 0;
+		int parSizeLine = 0;
+		int crossSizeLines = 0;
+		int crossSize = 0;
+		for(MuisElement child : children) {
+			int parSizeTemp = child.bounds().get(orientation).getGuide().get(type, parallelSize);
+			int crossSizeTemp = child.bounds().get(orientation.opposite()).getGuide().get(type, Integer.MAX_VALUE);
+			int temp = parSizeLine + parSizeTemp;
+			if(policy != BreakPolicy.NEVER && (temp < 0 || temp > parallelSize)) { // Integer overflow
+				parSizeMax += parSizeLine;
+				parSizeLine = parSizeTemp;
+				crossSizeLines += crossSize;
+				crossSize = crossSizeTemp;
+			} else {
+				parSizeLine += parSizeTemp;
+				if(crossSizeTemp > crossSize)
 					crossSize = crossSizeTemp;
-				} else {
-					parSizeLine += parSizeTemp;
-					if(crossSizeTemp > crossSize)
-						crossSize = crossSizeTemp;
-				}
 			}
-			if(parSizeLine > parSizeMax)
-				parSizeMax = parSizeLine;
-			return new int[] {parSizeMax, crossSizeLines + crossSize};
-		case SQUARE:
-			int [][] sizes = new int[children.length][2];
-			for(int c = 0; c < children.length; c++) {
-				sizes[c][0] = children[c].bounds().get(orientation).getGuide().get(type, parallelSize);
-				sizes[c][1] = children[c].bounds().get(orientation.opposite()).getGuide().get(type, Integer.MAX_VALUE);
-			}
-			return squareOff(sizes);
 		}
-		throw new IllegalStateException("Unrecognized break policy: " + policy);
+		if(parSizeLine > parSizeMax)
+			parSizeMax = parSizeLine;
+		return new int[] {parSizeMax, crossSizeLines + crossSize};
 	}
 
 	public static int [] squareOff(int [][] childSizes) {

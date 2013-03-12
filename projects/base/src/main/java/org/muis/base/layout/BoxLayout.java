@@ -1,19 +1,18 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.*;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 
 /**
- * Lays out children one-by-one along a given {@link LayoutConstants#direction direction} ({@link Direction#DOWN DOWN} by default), with a
- * given {@link LayoutConstants#alignment alignment} along the opposite axis. {@link LayoutConstants#width}, {@link LayoutConstants#height},
- * {@link LayoutConstants#minWidth}, and {@link LayoutConstants#minHeight} may be used to help determine the sizes of children.
+ * Lays out children one-by-one along a given {@link LayoutAttributes#direction direction} ({@link Direction#DOWN DOWN} by default), with a
+ * given {@link LayoutAttributes#alignment alignment} along the opposite axis. {@link LayoutAttributes#width}, {@link LayoutAttributes#height},
+ * {@link LayoutAttributes#minWidth}, and {@link LayoutAttributes#minHeight} may be used to help determine the sizes of children.
  */
 public class BoxLayout implements MuisLayout
 {
@@ -43,37 +42,37 @@ public class BoxLayout implements MuisLayout
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
+	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children)
 	{
-		Direction dir = parent.atts().get(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
 		switch (dir)
 		{
 		case UP:
 		case DOWN:
-			return getCrossSizer(children, false, parentHeight, LayoutConstants.width, LayoutConstants.minWidth);
+			return getCrossSizer(children, false, LayoutAttributes.width, LayoutAttributes.minWidth);
 		case LEFT:
 		case RIGHT:
-			return getMainSizer(children, false, parentHeight, LayoutConstants.width, LayoutConstants.minWidth);
+			return getMainSizer(children, false, LayoutAttributes.width, LayoutAttributes.minWidth);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
+	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children)
 	{
-		Direction dir = parent.atts().get(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
 		switch (dir)
 		{
 		case UP:
 		case DOWN:
-			return getMainSizer(children, false, parentWidth, LayoutConstants.height, LayoutConstants.minHeight);
+			return getMainSizer(children, false, LayoutAttributes.height, LayoutAttributes.minHeight);
 		case LEFT:
 		case RIGHT:
-			return getCrossSizer(children, false, parentWidth, LayoutConstants.height, LayoutConstants.minHeight);
+			return getCrossSizer(children, false, LayoutAttributes.height, LayoutAttributes.minHeight);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
@@ -83,12 +82,11 @@ public class BoxLayout implements MuisLayout
 	 *
 	 * @param children The children to get the sizer for
 	 * @param vertical Whether the main direction is vertical
-	 * @param crossSize The size of the opposite (non-main) dimension of the space to lay out the children in
 	 * @param sizeAttr The attribute to control a child's size (width or height)
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, int crossSize, MuisAttribute<Size> sizeAttr,
+	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, MuisAttribute<Size> sizeAttr,
 		MuisAttribute<Size> minSizeAttr)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
@@ -122,12 +120,11 @@ public class BoxLayout implements MuisLayout
 	 *
 	 * @param children The children to get the sizer for
 	 * @param vertical Whether the non-main direction is vertical
-	 * @param mainSize The size of the opposite (main) dimension of the space to lay out the children in
 	 * @param sizeAttr The attribute to control a child's size (width or height)
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, int mainSize, MuisAttribute<Size> sizeAttr,
+	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, MuisAttribute<Size> sizeAttr,
 		MuisAttribute<Size> minSizeAttr)
 	{
 		SimpleSizePolicy ret = new SimpleSizePolicy();
@@ -165,10 +162,10 @@ public class BoxLayout implements MuisLayout
 	public void layout(MuisElement parent, MuisElement [] children)
 	{
 		java.awt.Rectangle bounds = new java.awt.Rectangle();
-		Direction dir = parent.atts().get(LayoutConstants.direction);
+		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		if(dir == null)
 			dir = Direction.DOWN;
-		Alignment align = parent.atts().get(LayoutConstants.alignment);
+		Alignment align = parent.atts().get(LayoutAttributes.alignment);
 		if(align == null)
 			align = Alignment.begin;
 		int begin = 0;
@@ -189,10 +186,10 @@ public class BoxLayout implements MuisLayout
 		}
 		for(MuisElement child : children)
 		{
-			Size w = child.atts().get(LayoutConstants.width);
-			Size h = child.atts().get(LayoutConstants.height);
-			Size minW = child.atts().get(LayoutConstants.minWidth);
-			Size minH = child.atts().get(LayoutConstants.minHeight);
+			Size w = child.atts().get(LayoutAttributes.width);
+			Size h = child.atts().get(LayoutAttributes.height);
+			Size minW = child.atts().get(LayoutAttributes.minWidth);
+			Size minH = child.atts().get(LayoutAttributes.minHeight);
 
 			int mainSize;
 			int crossSize;

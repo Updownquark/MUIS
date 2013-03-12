@@ -1,8 +1,10 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisElement;
+import org.muis.core.layout.LayoutAttributes;
+import org.muis.core.layout.Region;
 import org.muis.core.layout.SimpleSizePolicy;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
@@ -64,12 +66,12 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 		SimpleSizePolicy ret = new SimpleSizePolicy();
 		for(MuisElement child : children) {
 			Position pos;
-			Size size = child.atts().get(LayoutConstants.width);
-			Size minSize = child.atts().get(LayoutConstants.minWidth);
+			Size size = child.atts().get(LayoutAttributes.width);
+			Size minSize = child.atts().get(LayoutAttributes.minWidth);
 			SizePolicy sizer;
-			switch (child.atts().get(LayoutConstants.region)) {
+			switch (child.atts().get(LayoutAttributes.region)) {
 			case left:
-				pos = child.atts().get(LayoutConstants.right);
+				pos = child.atts().get(LayoutAttributes.right);
 				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
@@ -85,7 +87,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 				}
 				break;
 			case right:
-				pos = child.atts().get(LayoutConstants.right);
+				pos = child.atts().get(LayoutAttributes.right);
 				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));

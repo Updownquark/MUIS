@@ -1,9 +1,10 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
+import org.muis.core.layout.Direction;
 import org.muis.core.layout.SizePolicy;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;

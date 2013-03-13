@@ -3,54 +3,65 @@ package org.muis.base.layout;
 import org.muis.base.layout.AbstractFlowLayout.BreakPolicy;
 import org.muis.core.MuisElement;
 import org.muis.core.layout.LayoutGuideType;
+import org.muis.core.layout.LayoutUtils;
 import org.muis.core.layout.Orientation;
 
 public class BaseLayoutUtils {
-	public static int doLayout(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy, boolean mainAxis,
-		int crossSize) {
-		if(type!=null){
+	public static int doLayout(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
+		boolean mainAxis, int crossSize) {
+		if(type != null) {
 			int [] res;
-			switch(type){
+			switch (type) {
 			case min:
 			case minPref:
-				res= getWithMinimumWraps(children, orientation.opposite(), type, policy, crossSize);
+				res = getWithMinimumWraps(children, orientation.opposite(), type, policy, crossSize, Integer.MAX_VALUE, mainAxis);
 				return res[1];
 			case max:
 			case maxPref:
-				res=getWithMinimumWraps(children, orientation, type, policy, Integer.MAX_VALUE);
+				res = getWithMinimumWraps(children, orientation, type, policy, Integer.MAX_VALUE, crossSize, mainAxis);
 				return res[0];
 			case pref:
-				//TODO
+				res = getWithMinimumWraps(children, mainAxis ? orientation : orientation.opposite(), type, policy,
+					mainAxis ? Integer.MAX_VALUE : crossSize, mainAxis ? crossSize : Integer.MAX_VALUE, true);
+				return mainAxis ? res[0] : res[1];
+			}
 		}
+		// TODO
 	}
 
 	public static int [] getWithMinimumWraps(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
-		int parallelSize) {
+		int parallelSize, int crossSize, boolean mainAxis) {
 		int parSizeMax = 0;
 		int parSizeLine = 0;
-		int crossSizeLines = 0;
-		int crossSize = 0;
+		int crossSizeSum = 0;
+		int crossSizeLine = 0;
+		int breaks = 0;
 		for(MuisElement child : children) {
-			int parSizeTemp = child.bounds().get(orientation).getGuide().get(type, parallelSize);
-			int crossSizeTemp = child.bounds().get(orientation.opposite()).getGuide().get(type, Integer.MAX_VALUE);
+			int parSizeTemp = LayoutUtils.getSize(child, orientation, type, parallelSize, crossSize);
+			int crossSizeTemp = LayoutUtils.getSize(child, orientation.opposite(), type, crossSize, parallelSize);
 			int temp = parSizeLine + parSizeTemp;
-			if(policy != BreakPolicy.NEVER && (temp < 0 || temp > parallelSize)) { // Integer overflow
+			if(policy != BreakPolicy.NEVER && (temp < 0 /*Integer overflow*/|| temp > parallelSize)) {
 				parSizeMax += parSizeLine;
 				parSizeLine = parSizeTemp;
-				crossSizeLines += crossSize;
-				crossSize = crossSizeTemp;
+				crossSizeSum += crossSizeLine;
+				crossSizeLine = crossSizeTemp;
+				breaks++;
 			} else {
 				parSizeLine += parSizeTemp;
-				if(crossSizeTemp > crossSize)
-					crossSize = crossSizeTemp;
+				if(crossSizeTemp > crossSizeLine)
+					crossSizeLine = crossSizeTemp;
 			}
 		}
 		if(parSizeLine > parSizeMax)
 			parSizeMax = parSizeLine;
-		return new int[] {parSizeMax, crossSizeLines + crossSize};
+		if(type == LayoutGuideType.pref && policy == BreakPolicy.SQUARE) {
+			return squareOff(children, orientation, parallelSize, crossSize, mainAxis, breaks);
+		}
+		return new int[] {parSizeMax, crossSizeSum + crossSizeLine};
 	}
 
-	public static int [] squareOff(int [][] childSizes) {
+	public static int [] squareOff(MuisElement [] children, Orientation orientation, int parallelSize, int crossSize, boolean mainAxis,
+		int minBreaks) {
 		if(childSizes.length == 0)
 			return new int[] {0, 0};
 		float ratio;

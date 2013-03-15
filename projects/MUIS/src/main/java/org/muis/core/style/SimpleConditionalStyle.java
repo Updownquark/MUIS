@@ -147,7 +147,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 *            dependencies, etc.
 	 */
 	protected void styleChanged(StyleAttribute<?> attr, E expr, S root) {
-		StyleExpressionEvent<S, E, ?> newEvent = new StyleExpressionEvent<S, E, Object>(root == null ? (S) this : root, (S) this,
+		StyleExpressionEvent<S, E, ?> newEvent = new StyleExpressionEvent<>(root == null ? (S) this : root, (S) this,
 			(StyleAttribute<Object>) attr, expr);
 		for(StyleExpressionListener<S, E> listener : theListeners)
 			listener.eventOccurred(newEvent);

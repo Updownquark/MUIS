@@ -61,11 +61,11 @@ public class MuisMessage {
 		text = aText;
 		exception = anException;
 		if(params != null && params.length > 0) {
-			theParams = new java.util.HashMap<String, Object>();
+			theParams = new java.util.HashMap<>();
 			if(params.length % 2 != 0)
 				throw new IllegalArgumentException("message params must be in format [name, value, name, value, ...]"
 					+ "--odd argument count not allowed");
-			theParams = new java.util.HashMap<String, Object>();
+			theParams = new java.util.HashMap<>();
 			for(int d = 0; d < params.length; d += 2) {
 				if(!(params[d] instanceof String))
 					throw new IllegalArgumentException("message params must be in format [name, value, name, value, ...]"

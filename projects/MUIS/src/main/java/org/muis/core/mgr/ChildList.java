@@ -91,8 +91,8 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			theChildren = children;
 		}
 		childRemoved(oldChild);
-		getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, oldChild), false, false);
-		getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
+		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild), false, false);
+		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 		childAdded(child);
 		return oldChild;
 	}
@@ -107,7 +107,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 				return false;
 			children = ArrayUtils.add(children, child);
 		}
-		getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
+		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 		childAdded(child);
 		return true;
 	}
@@ -121,7 +121,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 				index = theChildren.length;
 			theChildren = ArrayUtils.add(theChildren, child, index);
 		}
-		getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
+		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 		childAdded(child);
 	}
 
@@ -135,7 +135,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			theChildren = children;
 		}
 		childRemoved(oldChild);
-		getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, oldChild), false, false);
+		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild), false, false);
 		return oldChild;
 	}
 
@@ -154,7 +154,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			theChildren = children;
 		}
 		childRemoved(oldChild);
-		getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, oldChild), false, false);
+		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild), false, false);
 		return true;
 	}
 
@@ -169,7 +169,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		}
 		for(MuisElement child : children) {
 			childRemoved(child);
-			getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_REMOVED, child), false, false);
+			getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, child), false, false);
 		}
 	}
 
@@ -192,7 +192,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		}
 
 		for(MuisElement child : toAdd) {
-			getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
+			getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 			childAdded(child);
 		}
 		return !toAdd.isEmpty();
@@ -225,7 +225,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		}
 
 		for(MuisElement child : toAdd) {
-			getParent().fireEvent(new MuisEvent<MuisElement>(CHILD_ADDED, child), false, false);
+			getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 			childAdded(child);
 		}
 		return !toAdd.isEmpty();

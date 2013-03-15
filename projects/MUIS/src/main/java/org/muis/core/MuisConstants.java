@@ -64,13 +64,13 @@ public final class MuisConstants {
 	/** Contains several event types used by the MUIS core */
 	public static final class Events {
 		/** The event type representing a mouse event */
-		public static final MuisEventType<Void> MOUSE = new MuisEventType<Void>("Mouse Event", null);
+		public static final MuisEventType<Void> MOUSE = new MuisEventType<>("Mouse Event", null);
 
 		/** The event type representing a scrolling action */
-		public static final MuisEventType<Void> SCROLL = new MuisEventType<Void>("Scroll Event", null);
+		public static final MuisEventType<Void> SCROLL = new MuisEventType<>("Scroll Event", null);
 
 		/** The event type representing a physical keyboard event */
-		public static final MuisEventType<Void> KEYBOARD = new MuisEventType<Void>("Keyboard Event", null);
+		public static final MuisEventType<Void> KEYBOARD = new MuisEventType<>("Keyboard Event", null);
 
 		/**
 		 * The event type representing the input of a character. This is distinct from a keyboard event in several situations. For example:
@@ -81,52 +81,51 @@ public final class MuisConstants {
 		 * (menu->Paste) followed by a character event with the pasted text.</li>
 		 * </ul>
 		 */
-		public static final MuisEventType<Void> CHARACTER_INPUT = new MuisEventType<Void>("Character Input", null);
+		public static final MuisEventType<Void> CHARACTER_INPUT = new MuisEventType<>("Character Input", null);
 
 		/** The event type representing focus change on an element */
-		public static final MuisEventType<Void> FOCUS = new MuisEventType<Void>("Focus Event", null);
+		public static final MuisEventType<Void> FOCUS = new MuisEventType<>("Focus Event", null);
 
 		/** The event type representing the relocation of this element within its parent */
-		public static final MuisEventType<Rectangle> BOUNDS_CHANGED = new MuisEventType<Rectangle>("Bounds Changed", null);
+		public static final MuisEventType<Rectangle> BOUNDS_CHANGED = new MuisEventType<>("Bounds Changed", null);
 
 		/** The event type representing the successful setting of an attribute */
-		public static final MuisEventType<MuisAttribute<?>> ATTRIBUTE_SET = new MuisEventType<MuisAttribute<?>>("Attribute Set",
+		public static final MuisEventType<MuisAttribute<?>> ATTRIBUTE_SET = new MuisEventType<>("Attribute Set",
 			(Class<MuisAttribute<?>>) (Class<?>) MuisAttribute.class);
 
 		/**
 		 * The event type representing the successful setting of an attribute. Different from {@link #ATTRIBUTE_SET} in that the value of
 		 * the event is the value of the attribute instead of the attribute itself.
 		 */
-		public static final MuisEventType<Object> ATTRIBUTE_CHANGED = new MuisEventType<Object>("Attribute Changed", Object.class);
+		public static final MuisEventType<Object> ATTRIBUTE_CHANGED = new MuisEventType<>("Attribute Changed", Object.class);
 
 		/** The event type representing the change of an element's stage property */
-		public static final MuisEventType<CoreStage> STAGE_CHANGED = new MuisEventType<CoreStage>("Stage Changed", CoreStage.class);
+		public static final MuisEventType<CoreStage> STAGE_CHANGED = new MuisEventType<>("Stage Changed", CoreStage.class);
 
 		/**
 		 * The event type representing the event when an element is moved from one parent element to another. The event property is the new
 		 * parent element. This method is NOT called from
 		 * {@link MuisElement#init(MuisDocument, MuisToolkit, MuisClassView, MuisElement, String, String)}
 		 */
-		public static final MuisEventType<MuisElement> ELEMENT_MOVED = new MuisEventType<MuisElement>("Element Moved", MuisElement.class);
+		public static final MuisEventType<MuisElement> ELEMENT_MOVED = new MuisEventType<>("Element Moved", MuisElement.class);
 
 		/**
 		 * The event type representing the event when a child is added to an element. The event property is the child that was added. This
 		 * method is NOT called from {@link MuisElement#initChildren(MuisElement[])}.
 		 */
-		public static final MuisEventType<MuisElement> CHILD_ADDED = new MuisEventType<MuisElement>("Child Added", MuisElement.class);
+		public static final MuisEventType<MuisElement> CHILD_ADDED = new MuisEventType<>("Child Added", MuisElement.class);
 
 		/**
 		 * The event type representing the event when a child is removed from an element. The event property is the child that was removed.
 		 * This method is NOT called from {@link MuisElement#initChildren(MuisElement[])}.
 		 */
-		public static final MuisEventType<MuisElement> CHILD_REMOVED = new MuisEventType<MuisElement>("Child Removed", MuisElement.class);
+		public static final MuisEventType<MuisElement> CHILD_REMOVED = new MuisEventType<>("Child Removed", MuisElement.class);
 
 		/** The event type representing the addition of a message to an element. */
-		public static final MuisEventType<MuisMessage> MESSAGE_ADDED = new MuisEventType<MuisMessage>("Message Added", MuisMessage.class);
+		public static final MuisEventType<MuisMessage> MESSAGE_ADDED = new MuisEventType<>("Message Added", MuisMessage.class);
 
 		/** The event type representing the removal of a message from an element. */
-		public static final MuisEventType<MuisMessage> MESSAGE_REMOVED = new MuisEventType<MuisMessage>("Message Removed",
-			MuisMessage.class);
+		public static final MuisEventType<MuisMessage> MESSAGE_REMOVED = new MuisEventType<>("Message Removed", MuisMessage.class);
 
 	}
 

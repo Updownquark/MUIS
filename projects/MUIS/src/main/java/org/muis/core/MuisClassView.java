@@ -23,7 +23,7 @@ public class MuisClassView {
 		theEnvironment=env;
 		theParent = parent;
 		theMemberToolkit = memberToolkit;
-		theNamespaces = new java.util.HashMap<String, MuisToolkit>();
+		theNamespaces = new java.util.HashMap<>();
 	}
 
 	/** @return The environment that this class view is in */

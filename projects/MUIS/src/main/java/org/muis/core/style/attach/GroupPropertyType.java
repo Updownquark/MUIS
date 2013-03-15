@@ -12,7 +12,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 	public static final GroupPropertyType instance = new GroupPropertyType();
 
 	/** The group attribute */
-	public static final MuisAttribute<String []> attribute = new MuisAttribute<String []>("group", instance);
+	public static final MuisAttribute<String []> attribute = new MuisAttribute<>("group", instance);
 
 	@Override
 	public Class<String []> getType() {

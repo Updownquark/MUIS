@@ -48,7 +48,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		if(theElement != null)
 			return theElement.getDocument();
 		else
-		return theDocument;
+			return theDocument;
 	}
 
 	/** @return This message center's element (will be null if this message center is document- or environment-level) */
@@ -76,8 +76,8 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		if(theWorstMessageType == null || type.compareTo(theWorstMessageType) > 0)
 			theWorstMessageType = type;
 		if(theElement != null)
-			theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisMessage>(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, message),
-				false, true);
+			theElement.fireEvent(new org.muis.core.event.MuisEvent<>(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, message), false,
+				true);
 	}
 
 	/**
@@ -202,7 +202,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 				if(theLastMessage.type == theWorstMessageType)
 					reEvalWorstMessage();
 				if(theElement != null)
-					theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisMessage>(org.muis.core.MuisConstants.Events.MESSAGE_REMOVED,
+					theElement.fireEvent(new org.muis.core.event.MuisEvent<>(org.muis.core.MuisConstants.Events.MESSAGE_REMOVED,
 						theLastMessage), false, true);
 			}
 		};

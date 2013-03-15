@@ -160,7 +160,7 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
-		public final MuisAttribute<AttachPoint> role = new MuisAttribute<AttachPoint>("role", new MuisProperty.PropertyType<AttachPoint>() {
+		public final MuisAttribute<AttachPoint> role = new MuisAttribute<>("role", new MuisProperty.PropertyType<AttachPoint>() {
 			@Override
 			public <V extends AttachPoint> Class<V> getType() {
 				return (Class<V>) AttachPoint.class;
@@ -266,7 +266,7 @@ public abstract class MuisTemplate extends MuisElement {
 
 		@Override
 		public java.util.Iterator<AttachPoint> iterator() {
-			return Collections.unmodifiableList(new ArrayList<AttachPoint>(theAttachPoints.values())).listIterator();
+			return Collections.unmodifiableList(new ArrayList<>(theAttachPoints.values())).listIterator();
 		}
 
 		/**

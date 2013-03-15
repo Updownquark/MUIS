@@ -11,8 +11,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
 	/** The style attribute on MUIS elements */
-	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<MuisStyle>("style", ELEMENT_TYPE, null,
-		new StylePathAccepter());
+	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<>("style", ELEMENT_TYPE, null, new StylePathAccepter());
 
 	/** Creates a style attribute type */
 	protected StyleAttributeType() {
@@ -31,7 +30,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 
 	/**
 	 * Parses a style
-	 * 
+	 *
 	 * @param classView The class view to parse the style in view of
 	 * @param value The string to parse
 	 * @param msg The message center to report errors to
@@ -103,8 +102,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	 * @param classView The class view to use for parsing if needed
 	 */
 	protected static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager,
-		org.muis.core.MuisClassView classView) {
+		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
 	}
 

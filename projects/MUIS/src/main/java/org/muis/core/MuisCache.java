@@ -111,7 +111,7 @@ public class MuisCache
 	/** Creates a MUIS cache */
 	public MuisCache()
 	{
-		theInternalCache = new prisms.util.DemandCache<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>(
+		theInternalCache = new prisms.util.DemandCache<>(
 			new prisms.util.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
 				@Override
 				public float quality(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value)
@@ -137,7 +137,7 @@ public class MuisCache
 
 	/**
 	 * Retrieves a cached item and optionally generates the item if not cached, waiting for the generation to be complete
-	 * 
+	 *
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item
@@ -184,7 +184,7 @@ public class MuisCache
 
 	/**
 	 * An asynchronous get method
-	 * 
+	 *
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item

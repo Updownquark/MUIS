@@ -6,8 +6,8 @@ import org.muis.core.layout.SizeGuide;
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
 public class LayoutContainer extends MuisElement {
 	/** The attribute that specifies the layout type for a layout container */
-	public static MuisAttribute<MuisLayout> LAYOUT_ATTR = new MuisAttribute<MuisLayout>("layout",
-		new MuisProperty.MuisTypeInstanceProperty<MuisLayout>(MuisLayout.class));
+	public static MuisAttribute<MuisLayout> LAYOUT_ATTR = new MuisAttribute<>("layout", new MuisProperty.MuisTypeInstanceProperty<>(
+		MuisLayout.class));
 
 	private MuisLayout theLayout;
 

@@ -1,10 +1,12 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisElement;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.LayoutAttributes;
+import org.muis.core.layout.Region;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
@@ -59,17 +61,17 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight) {
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children, int parentHeight) {
 
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		for(MuisElement child : children) {
 			Position pos;
-			Size size = child.atts().get(LayoutConstants.width);
-			Size minSize = child.atts().get(LayoutConstants.minWidth);
-			SizePolicy sizer;
-			switch (child.atts().get(LayoutConstants.region)) {
+			Size size = child.atts().get(LayoutAttributes.width);
+			Size minSize = child.atts().get(LayoutAttributes.minWidth);
+			SizeGuide sizer;
+			switch (child.atts().get(LayoutAttributes.region)) {
 			case left:
-				pos = child.atts().get(LayoutConstants.right);
+				pos = child.atts().get(LayoutAttributes.right);
 				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
@@ -85,7 +87,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 				}
 				break;
 			case right:
-				pos = child.atts().get(LayoutConstants.right);
+				pos = child.atts().get(LayoutAttributes.right);
 				if(pos != null && !pos.getUnit().isRelative()) {
 					ret.setMin(ret.getMin() + pos.evaluate(0));
 					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
@@ -120,7 +122,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth) {
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children, int parentWidth) {
 		// TODO Auto-generated method stub
 		return null;
 	}

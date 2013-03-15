@@ -1,59 +1,113 @@
 package org.muis.base.widget;
 
-import org.muis.core.layout.SizePolicy;
+import static org.muis.core.LayoutContainer.LAYOUT_ATTR;
+
+import org.muis.core.MuisConstants;
+import org.muis.core.MuisException;
+import org.muis.core.MuisLayout;
+import org.muis.core.event.AttributeChangedEvent;
+import org.muis.core.event.AttributeChangedListener;
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.tags.Template;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
 @Template(location = "../../../../button.muis")
 public class Button extends org.muis.core.MuisTemplate {
+	private boolean theLayoutCallbackLock;
+
 	/** Creates a button */
 	public Button() {
 		setFocusable(true);
+		atts().accept(new Object(), LAYOUT_ATTR);
+		life().runWhen(new Runnable() {
+			@Override
+			public void run() {
+				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<MuisLayout>(LAYOUT_ATTR) {
+					@Override
+					public void attributeChanged(AttributeChangedEvent<MuisLayout> event) {
+						if(theLayoutCallbackLock)
+							return;
+						theLayoutCallbackLock = true;
+						try {
+							getContentPane().atts().set(LAYOUT_ATTR, event.getValue());
+						} catch(MuisException e) {
+							throw new IllegalStateException(LAYOUT_ATTR + " not accepted by content pane?", e);
+						} finally {
+							theLayoutCallbackLock = false;
+						}
+					}
+				});
+				MuisLayout layout = atts().get(LAYOUT_ATTR);
+				if(layout != null)
+					try {
+						getContentPane().atts().set(LAYOUT_ATTR, layout);
+					} catch(MuisException e) {
+						throw new IllegalStateException(LAYOUT_ATTR + " not accepted by content pane?", e);
+					}
+				getContentPane().addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<MuisLayout>(LAYOUT_ATTR) {
+					@Override
+					public void attributeChanged(AttributeChangedEvent<MuisLayout> event) {
+						if(theLayoutCallbackLock)
+							return;
+						theLayoutCallbackLock = true;
+						try {
+							atts().set(LAYOUT_ATTR, event.getValue());
+						} catch(MuisException e) {
+							throw new IllegalStateException(LAYOUT_ATTR + " not accepted by button?", e);
+						} finally {
+							theLayoutCallbackLock = false;
+						}
+					}
+				});
+			}
+		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
+	}
+
+	/** @return The panel containing the contents of this button */
+	public Block getContentPane() {
+		return (Block) getElement(getTemplate().getAttachPoint("contents"));
 	}
 
 	@Override
 	public void doLayout() {
-		org.muis.core.MuisElement contents = getElement(getTemplate().getAttachPoint("contents"));
 		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
 		int lOff = radius.evaluate(w);
 		int tOff = radius.evaluate(h);
-		contents.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
+		getContentPane().bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
 	}
 
 	@Override
-	public SizePolicy getWSizer() {
-		org.muis.core.MuisElement contents = getElement(getTemplate().getAttachPoint("contents"));
+	public SizeGuide getWSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		return new RadiusAddSizePolicy(contents.getWSizer(), radius);
+		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
 	}
 
 	@Override
-	public SizePolicy getHSizer() {
-		org.muis.core.MuisElement contents = getElement(getTemplate().getAttachPoint("contents"));
+	public SizeGuide getHSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		return new RadiusAddSizePolicy(contents.getHSizer(), radius);
+		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
 	}
 
-	private static class RadiusAddSizePolicy implements SizePolicy {
-		private final SizePolicy theWrapped;
+	private static class RadiusAddSizePolicy extends org.muis.core.layout.AbstractSizeGuide {
+		private final SizeGuide theWrapped;
 
 		private org.muis.core.style.Size theRadius;
 
-		RadiusAddSizePolicy(SizePolicy wrap, org.muis.core.style.Size rad) {
+		RadiusAddSizePolicy(SizeGuide wrap, org.muis.core.style.Size rad) {
 			theWrapped = wrap;
 			theRadius = rad;
 		}
 
 		@Override
-		public int getMinPreferred() {
-			return addRadius(theWrapped.getMinPreferred());
+		public int getMinPreferred(int crossSize) {
+			return addRadius(theWrapped.getMinPreferred(crossSize));
 		}
 
 		@Override
-		public int getMaxPreferred() {
-			return addRadius(theWrapped.getMaxPreferred());
+		public int getMaxPreferred(int crossSize) {
+			return addRadius(theWrapped.getMaxPreferred(crossSize));
 		}
 
 		@Override
@@ -69,11 +123,6 @@ public class Button extends org.muis.core.MuisTemplate {
 		@Override
 		public int getMax(int crossSize) {
 			return addRadius(theWrapped.getMax(removeRadius(crossSize)));
-		}
-
-		@Override
-		public float getStretch() {
-			return theWrapped.getStretch();
 		}
 
 		int addRadius(int size) {

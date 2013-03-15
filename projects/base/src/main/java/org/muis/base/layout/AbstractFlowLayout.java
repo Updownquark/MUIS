@@ -1,10 +1,11 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.Direction;
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
@@ -107,7 +108,7 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
 	{
 		children = children.clone();
 		if(!isShapeSet)
@@ -125,7 +126,7 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
 	{
 		children = children.clone();
 		if(!isShapeSet)
@@ -147,11 +148,11 @@ public abstract class AbstractFlowLayout implements org.muis.core.MuisLayout
 	{
 	}
 
-	protected abstract SizePolicy getMajorSize(MuisElement [] children, int minorSize);
+	protected abstract SizeGuide getMajorSize(MuisElement [] children, int minorSize);
 
-	protected abstract SizePolicy getMinorSize(MuisElement [] children, int majorSize);
+	protected abstract SizeGuide getMinorSize(MuisElement [] children, int majorSize);
 
-	protected SizePolicy getChildSizer(MuisElement child, boolean major, int oppositeSize)
+	protected SizeGuide getChildSizer(MuisElement child, boolean major, int oppositeSize)
 	{
 		boolean horizontal = true;
 		switch (theDirection)

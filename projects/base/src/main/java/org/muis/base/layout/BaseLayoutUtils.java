@@ -3,66 +3,66 @@ package org.muis.base.layout;
 import org.muis.base.layout.AbstractFlowLayout.BreakPolicy;
 import org.muis.core.MuisElement;
 import org.muis.core.layout.LayoutGuideType;
+import org.muis.core.layout.LayoutUtils;
 import org.muis.core.layout.Orientation;
 
 public class BaseLayoutUtils {
-	public static int doLayout(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy, boolean mainAxis,
-		int crossSize) {
-		if(type!=null){
-			int [] res;
-			switch(type){
-			case min:
-			case minPref:
-				res= getWithMinimumWraps(children, orientation.opposite(), type, policy, crossSize);
-				return res[1];
-			case max:
-			case maxPref:
-				res=getWithMinimumWraps(children, orientation, type, policy, Integer.MAX_VALUE);
-				return res[0];
-			case pref:
-				//TODO
+	public static int doLayout(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
+		boolean mainAxis, int crossSize) {
+		int [] res;
+		switch (type) {
+		case min:
+		case minPref:
+			res = getWithMinimumWraps(children, orientation.opposite(), type, policy, crossSize, Integer.MAX_VALUE, mainAxis);
+			return res[1];
+		case max:
+		case maxPref:
+			res = getWithMinimumWraps(children, orientation, type, policy, Integer.MAX_VALUE, crossSize, mainAxis);
+			return res[0];
+		case pref:
+			res = getWithMinimumWraps(children, mainAxis ? orientation : orientation.opposite(), type, policy, mainAxis ? Integer.MAX_VALUE
+				: crossSize, mainAxis ? crossSize : Integer.MAX_VALUE, true);
+			return mainAxis ? res[0] : res[1];
 		}
+		throw new IllegalStateException("Unrecognized layout guide type: " + type);
+	}
+
+	public static void doLayout(MuisElement [] children, Orientation mainAxis, BreakPolicy policy, int parallelSize, int crossSize) {
 	}
 
 	public static int [] getWithMinimumWraps(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
-		int parallelSize) {
-		switch (policy) {
-		case NEVER:
-		case NEEDED:
-			int parSizeMax = 0;
-			int parSizeLine = 0;
-			int crossSizeLines = 0;
-			int crossSize = 0;
-			for(MuisElement child : children) {
-				int parSizeTemp = child.bounds().get(orientation).getGuide().get(type, parallelSize);
-				int crossSizeTemp = child.bounds().get(orientation.opposite()).getGuide().get(type, Integer.MAX_VALUE);
-				int temp = parSizeLine + parSizeTemp;
-				if(policy != BreakPolicy.NEVER && (temp < 0 || temp > parallelSize)) { // Integer overflow
-					parSizeMax += parSizeLine;
-					parSizeLine = parSizeTemp;
-					crossSizeLines += crossSize;
-					crossSize = crossSizeTemp;
-				} else {
-					parSizeLine += parSizeTemp;
-					if(crossSizeTemp > crossSize)
-						crossSize = crossSizeTemp;
-				}
+		int parallelSize, int crossSize, boolean mainAxis) {
+		int parSizeMax = 0;
+		int parSizeLine = 0;
+		int crossSizeSum = 0;
+		int crossSizeLine = 0;
+		int breaks = 0;
+		for(MuisElement child : children) {
+			int parSizeTemp = LayoutUtils.getSize(child, orientation, type, parallelSize, crossSize);
+			int crossSizeTemp = LayoutUtils.getSize(child, orientation.opposite(), type, crossSize, parallelSize);
+			int temp = parSizeLine + parSizeTemp;
+			if(policy != BreakPolicy.NEVER && (temp < 0 /*Integer overflow*/|| temp > parallelSize)) {
+				parSizeMax += parSizeLine;
+				parSizeLine = parSizeTemp;
+				crossSizeSum += crossSizeLine;
+				crossSizeLine = crossSizeTemp;
+				breaks++;
+			} else {
+				parSizeLine += parSizeTemp;
+				if(crossSizeTemp > crossSizeLine)
+					crossSizeLine = crossSizeTemp;
 			}
-			if(parSizeLine > parSizeMax)
-				parSizeMax = parSizeLine;
-			return new int[] {parSizeMax, crossSizeLines + crossSize};
-		case SQUARE:
-			int [][] sizes = new int[children.length][2];
-			for(int c = 0; c < children.length; c++) {
-				sizes[c][0] = children[c].bounds().get(orientation).getGuide().get(type, parallelSize);
-				sizes[c][1] = children[c].bounds().get(orientation.opposite()).getGuide().get(type, Integer.MAX_VALUE);
-			}
-			return squareOff(sizes);
 		}
-		throw new IllegalStateException("Unrecognized break policy: " + policy);
+		if(parSizeLine > parSizeMax)
+			parSizeMax = parSizeLine;
+		if(type == LayoutGuideType.pref && policy == BreakPolicy.SQUARE) {
+			return squareOff(children, orientation, parallelSize, crossSize, mainAxis, breaks);
+		}
+		return new int[] {parSizeMax, crossSizeSum + crossSizeLine};
 	}
 
-	public static int [] squareOff(int [][] childSizes) {
+	public static int [] squareOff(MuisElement [] children, Orientation orientation, int parallelSize, int crossSize, boolean mainAxis,
+		int minBreaks) {
 		if(childSizes.length == 0)
 			return new int[] {0, 0};
 		float ratio;

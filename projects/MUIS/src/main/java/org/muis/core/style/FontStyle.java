@@ -79,13 +79,13 @@ public class FontStyle implements StyleDomain {
 		java.util.Map<String, String> families = new java.util.TreeMap<>();
 		for(String familyName : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames())
 			families.put(familyName.replaceAll(" ", "-"), familyName);
-		family = new StyleAttribute<String>(instance, "family", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.stringAttr,
-			families), "Default");
+		family = new StyleAttribute<>(instance, "family", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.stringAttr, families),
+			"Default");
 		instance.register(family);
-		color = new StyleAttribute<Color>(instance, "color", MuisAttribute.colorAttr, Color.black);
+		color = new StyleAttribute<>(instance, "color", MuisAttribute.colorAttr, Color.black);
 		instance.register(color);
-		transparency = new StyleAttribute<Double>(instance, "transparency", MuisAttribute.amountAttr, 0d,
-			new MuisProperty.ComparableValidator<>(0d, 1d));
+		transparency = new StyleAttribute<>(instance, "transparency", MuisAttribute.amountAttr, 0d, new MuisProperty.ComparableValidator<>(
+			0d, 1d));
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
 		weights.put("normal", 1d);
@@ -99,31 +99,28 @@ public class FontStyle implements StyleDomain {
 		weights.put("heavy", (double) TextAttribute.WEIGHT_HEAVY);
 		weights.put("extra-bold", (double) TextAttribute.WEIGHT_EXTRABOLD);
 		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
-		weight = new StyleAttribute<Double>(instance, "weight",
-			new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, weights), 1d, new MuisProperty.ComparableValidator<>(0.25d,
-				3d));
+		weight = new StyleAttribute<>(instance, "weight", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, weights), 1d,
+			new MuisProperty.ComparableValidator<>(0.25d, 3d));
 		instance.register(weight);
-		slant = new StyleAttribute<Double>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal",
-			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d));
+		slant = new StyleAttribute<>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal", 0d,
+			"italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d));
 		instance.register(slant);
-		underline = new StyleAttribute<Underline>(instance, "underline", new MuisProperty.MuisEnumProperty<Underline>(Underline.class),
-			Underline.none);
+		underline = new StyleAttribute<>(instance, "underline", new MuisProperty.MuisEnumProperty<>(Underline.class), Underline.none);
 		instance.register(underline);
-		strike = new StyleAttribute<Boolean>(instance, "strike", MuisAttribute.boolAttr, false);
+		strike = new StyleAttribute<>(instance, "strike", MuisAttribute.boolAttr, false);
 		instance.register(strike);
-		size = new StyleAttribute<Double>(instance, "size", MuisAttribute.floatAttr, 12d,
-			new MuisProperty.ComparableValidator<>(0.1d, 256d));
+		size = new StyleAttribute<>(instance, "size", MuisAttribute.floatAttr, 12d, new MuisProperty.ComparableValidator<>(0.1d, 256d));
 		instance.register(size);
-		kerning = new StyleAttribute<Boolean>(instance, "kerning", MuisAttribute.boolAttr, true);
+		kerning = new StyleAttribute<>(instance, "kerning", MuisAttribute.boolAttr, true);
 		instance.register(kerning);
-		ligatures = new StyleAttribute<Boolean>(instance, "ligatures", MuisAttribute.boolAttr, true);
+		ligatures = new StyleAttribute<>(instance, "ligatures", MuisAttribute.boolAttr, true);
 		instance.register(ligatures);
-		antiAlias = new StyleAttribute<Boolean>(instance, "anti-alias", MuisAttribute.boolAttr, false);
+		antiAlias = new StyleAttribute<>(instance, "anti-alias", MuisAttribute.boolAttr, false);
 		instance.register(antiAlias);
-		wordWrap = new StyleAttribute<Boolean>(instance, "word-wrap", MuisAttribute.boolAttr, true);
+		wordWrap = new StyleAttribute<>(instance, "word-wrap", MuisAttribute.boolAttr, true);
 		instance.register(wordWrap);
-		stretch = new StyleAttribute<Double>(instance, "stretch", MuisAttribute.amountAttr, 1d, new MuisProperty.ComparableValidator<>(
-			0.05d, 100d));
+		stretch = new StyleAttribute<>(instance, "stretch", MuisAttribute.amountAttr, 1d, new MuisProperty.ComparableValidator<>(0.05d,
+			100d));
 		instance.register(stretch);
 	}
 

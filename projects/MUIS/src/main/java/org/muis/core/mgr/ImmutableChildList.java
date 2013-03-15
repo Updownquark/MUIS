@@ -191,12 +191,12 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 
 	@Override
 	public ListIterator<E> listIterator() {
-		return new ImmutableChildListIterator<E>(theContents.listIterator());
+		return new ImmutableChildListIterator<>(theContents.listIterator());
 	}
 
 	@Override
 	public ListIterator<E> listIterator(int index) {
-		return new ImmutableChildListIterator<E>(theContents.listIterator(index));
+		return new ImmutableChildListIterator<>(theContents.listIterator(index));
 	}
 
 	@Override

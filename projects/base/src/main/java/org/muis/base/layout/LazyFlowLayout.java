@@ -3,8 +3,8 @@ package org.muis.base.layout;
 import java.awt.Rectangle;
 
 import org.muis.core.MuisElement;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 
 public class LazyFlowLayout extends AbstractFlowLayout
 {
@@ -17,20 +17,20 @@ public class LazyFlowLayout extends AbstractFlowLayout
 	}
 
 	@Override
-	protected SizePolicy getMajorSize(MuisElement [] children, int minorSize)
+	protected SizeGuide getMajorSize(MuisElement [] children, int minorSize)
 	{
 		if(children.length == 1)
 			return getChildSizer(children[0], true, minorSize);
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		if(children.length == 0)
 			return ret;
 
-		SizePolicy [] childSizers = new SizePolicy [children.length];
+		SizeGuide [] childSizers = new SizeGuide [children.length];
 		for(int i = 0; i < children.length; i++)
 			childSizers[i] = getChildSizer(children[i], true, -1);
 
 		int maxStretch = -Integer.MAX_VALUE;
-		for(SizePolicy sizer : childSizers)
+		for(SizeGuide sizer : childSizers)
 			if(sizer.getStretch() > maxStretch)
 				maxStretch = sizer.getStretch();
 		ret.setStretch(maxStretch);
@@ -107,8 +107,8 @@ public class LazyFlowLayout extends AbstractFlowLayout
 					{
 						if(childSizers[i].getPreferred() <= childSizers[i].getMin())
 							continue; // Preferred size same as min size
-						SizePolicy minPolicy = getChildSizer(children[i], false, childSizers[i].getMin());
-						SizePolicy prefPolicy = getChildSizer(children[i], false, childSizers[i].getPreferred());
+						SizeGuide minPolicy = getChildSizer(children[i], false, childSizers[i].getMin());
+						SizeGuide prefPolicy = getChildSizer(children[i], false, childSizers[i].getPreferred());
 						if(minPolicy.getMin() <= prefPolicy.getMin())
 							// Not an inverse-dependent element--using preferred major size doesn't gain anything
 							continue;
@@ -174,7 +174,7 @@ public class LazyFlowLayout extends AbstractFlowLayout
 								Rectangle c = vl.getConstraint(i);
 								if(c.y + c.height <= minorSize)
 									continue;
-								SizePolicy minSizer = getChildSizer(children[i], false, -1);
+								SizeGuide minSizer = getChildSizer(children[i], false, -1);
 								if(minSizer.getMin() >= c.height)
 									continue;
 								while(vl.getConstraintCount() > i)
@@ -202,20 +202,20 @@ public class LazyFlowLayout extends AbstractFlowLayout
 	}
 
 	@Override
-	protected SizePolicy getMinorSize(MuisElement [] children, int majorSize)
+	protected SizeGuide getMinorSize(MuisElement [] children, int majorSize)
 	{
 		if(children.length == 1)
 			return getChildSizer(children[0], false, majorSize);
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		if(children.length == 0)
 			return ret;
 
-		SizePolicy [] childSizers = new SizePolicy [children.length];
+		SizeGuide [] childSizers = new SizeGuide [children.length];
 		for(int i = 0; i < children.length; i++)
 			childSizers[i] = getChildSizer(children[i], true, -1);
 
 		int maxStretch = -Integer.MAX_VALUE;
-		for(SizePolicy sizer : childSizers)
+		for(SizeGuide sizer : childSizers)
 			if(sizer.getStretch() > maxStretch)
 				maxStretch = sizer.getStretch();
 		ret.setStretch(maxStretch);
@@ -290,8 +290,8 @@ public class LazyFlowLayout extends AbstractFlowLayout
 					{
 						if(childSizers[i].getPreferred() <= childSizers[i].getMin())
 							continue; // Preferred size same as min size
-						SizePolicy minPolicy = getChildSizer(children[i], true, childSizers[i].getMin());
-						SizePolicy prefPolicy = getChildSizer(children[i], true, childSizers[i].getPreferred());
+						SizeGuide minPolicy = getChildSizer(children[i], true, childSizers[i].getMin());
+						SizeGuide prefPolicy = getChildSizer(children[i], true, childSizers[i].getPreferred());
 						if(minPolicy.getMin() <= prefPolicy.getMin())
 							// Not an inverse-dependent element--using preferred minor size doesn't gain anything
 							continue;
@@ -357,7 +357,7 @@ public class LazyFlowLayout extends AbstractFlowLayout
 								Rectangle c = vl.getConstraint(i);
 								if(c.x + c.width <= majorSize)
 									continue;
-								SizePolicy minSizer = getChildSizer(children[i], true, -1);
+								SizeGuide minSizer = getChildSizer(children[i], true, -1);
 								if(minSizer.getMin() >= c.width)
 									continue;
 								while(vl.getConstraintCount() > i)
@@ -391,7 +391,7 @@ public class LazyFlowLayout extends AbstractFlowLayout
 
 	}
 
-	private void placeChild(MuisElement [] children, int index, SizePolicy majorSizer, SizePolicy minorSizer,
+	private void placeChild(MuisElement [] children, int index, SizeGuide majorSizer, SizeGuide minorSizer,
 		VirtualLayout.LayoutHoleIterator iter, int prefMajSize, int prefMinSize, boolean alongAxis)
 	{
 		/* Note: If either prefMajSize or prefMinSize is -1, use the other one to get the first sizer that the second

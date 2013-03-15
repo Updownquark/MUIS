@@ -113,7 +113,7 @@ public class StatefulStyleSample implements MuisStyle {
 			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
 				if(evt.getExpression() == null || evt.getExpression().matches(theState)) {
 					StyleAttribute<Object> attr = (StyleAttribute<Object>) evt.getAttribute();
-					listener.eventOccurred(new org.muis.core.style.StyleAttributeEvent<Object>(StatefulStyleSample.this,
+					listener.eventOccurred(new org.muis.core.style.StyleAttributeEvent<>(StatefulStyleSample.this,
 						StatefulStyleSample.this, attr, get(attr)));
 				}
 			}

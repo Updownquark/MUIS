@@ -229,7 +229,7 @@ public class AttributeManager {
 		Object old = holder.theValue;
 		holder.theValue = value;
 		theElement.fireEvent(new MuisEvent<MuisAttribute<?>>(MuisConstants.Events.ATTRIBUTE_SET, attr), false, false);
-		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.getType().cast(old), value), false, false);
+		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<>(attr, attr.getType().cast(old), value), false, false);
 	}
 
 	/**

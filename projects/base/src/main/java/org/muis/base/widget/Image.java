@@ -6,25 +6,25 @@ import org.muis.core.MuisProperty;
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
 public class Image extends GenericImage {
 	/** The attribute to use to specify the image resource that an image is to render */
-	public static final MuisAttribute<java.net.URL> src = new MuisAttribute<java.net.URL>("src", MuisProperty.resourceAttr);
+	public static final MuisAttribute<java.net.URL> src = new MuisAttribute<>("src", MuisProperty.resourceAttr);
 
 	/**
 	 * The attribute to use to specify both resize policies at once for an image. Will be overridden if either the horizontal or vertical
 	 * resize policies are set.
 	 */
-	public static final MuisAttribute<ImageResizePolicy> resize = new MuisAttribute<ImageResizePolicy>("resize",
-		new MuisProperty.MuisEnumProperty<>(ImageResizePolicy.class));
+	public static final MuisAttribute<ImageResizePolicy> resize = new MuisAttribute<>("resize", new MuisProperty.MuisEnumProperty<>(
+		ImageResizePolicy.class));
 
 	/** The attribute to use to specify the horizontal resize policy for an image */
-	public static final MuisAttribute<ImageResizePolicy> hResize = new MuisAttribute<ImageResizePolicy>("h-resize",
-		new MuisProperty.MuisEnumProperty<>(ImageResizePolicy.class));
+	public static final MuisAttribute<ImageResizePolicy> hResize = new MuisAttribute<>("h-resize", new MuisProperty.MuisEnumProperty<>(
+		ImageResizePolicy.class));
 
 	/** The attribute to use to specify the vertical resize policy for an image */
-	public static final MuisAttribute<ImageResizePolicy> vResize = new MuisAttribute<ImageResizePolicy>("v-resize",
-		new MuisProperty.MuisEnumProperty<>(ImageResizePolicy.class));
+	public static final MuisAttribute<ImageResizePolicy> vResize = new MuisAttribute<>("v-resize", new MuisProperty.MuisEnumProperty<>(
+		ImageResizePolicy.class));
 
 	/** The attribute to use to specify the {@link #isProportionLocked() proportion-locked} attribute of an image */
-	public static final MuisAttribute<Boolean> propLocked = new MuisAttribute<Boolean>("prop-locked", MuisProperty.boolAttr);
+	public static final MuisAttribute<Boolean> propLocked = new MuisAttribute<>("prop-locked", MuisProperty.boolAttr);
 
 	/** Creates an image element */
 	public Image() {

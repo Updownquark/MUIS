@@ -7,7 +7,7 @@ import java.awt.Rectangle;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisPropertyEvent;
 import org.muis.core.layout.Orientation;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SizeGuide;
 
 public class ElementBounds implements org.muis.core.layout.Bounds {
 	private final MuisElement theElement;
@@ -190,7 +190,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 		}
 
 		@Override
-		public SizePolicy getGuide() {
+		public SizeGuide getGuide() {
 			return isVertical ? theElement.getHSizer() : theElement.getWSizer();
 		}
 	}

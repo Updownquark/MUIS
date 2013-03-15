@@ -1,7 +1,7 @@
 package org.muis.core.layout;
 
-/** A simple implementation of SizePolicy that allows all its parameters to be set directly */
-public class SimpleSizePolicy implements SizePolicy {
+/** A simple implementation of {@link SizeGuide} that allows all its parameters to be set directly */
+public class SimpleSizeGuide extends AbstractSizeGuide {
 	private int theMin;
 
 	private int thePref;
@@ -12,18 +12,13 @@ public class SimpleSizePolicy implements SizePolicy {
 
 	private int theMaxPref;
 
-	private float theStretch;
-
-	/**
-	 * Creates a SimpleSizePolicy with zero minimum and preferred sizes, infinite maximum size, and zero stretch benefit
-	 */
-	public SimpleSizePolicy() {
+	/** Creates a SimpleSizeGuide with zero minimum and preferred sizes, infinite maximum size */
+	public SimpleSizeGuide() {
 		theMin = 0;
 		theMax = Integer.MAX_VALUE;
 		thePref = 0;
 		theMinPref = 0;
 		theMaxPref = 0;
-		theStretch = 0;
 	}
 
 	/**
@@ -34,24 +29,22 @@ public class SimpleSizePolicy implements SizePolicy {
 	 * @param pref The preferred size for the widget
 	 * @param maxPref The maximum preferred size for the widget
 	 * @param max The maximum size for the widget
-	 * @param stretch The stretch factor for the widget
 	 */
-	public SimpleSizePolicy(int min, int minPref, int pref, int maxPref, int max, int stretch) {
+	public SimpleSizeGuide(int min, int minPref, int pref, int maxPref, int max) {
 		theMin = min;
 		theMinPref = minPref;
 		thePref = pref;
 		theMaxPref = maxPref;
 		theMax = max;
-		theStretch = stretch;
 	}
 
 	@Override
-	public int getMinPreferred() {
+	public int getMinPreferred(int crossSize) {
 		return theMinPref;
 	}
 
 	@Override
-	public int getMaxPreferred() {
+	public int getMaxPreferred(int crossSize) {
 		return theMaxPref;
 	}
 
@@ -70,11 +63,6 @@ public class SimpleSizePolicy implements SizePolicy {
 		return theMax;
 	}
 
-	@Override
-	public float getStretch() {
-		return theStretch;
-	}
-
 	/**
 	 * @param min The minimum size for the widget
 	 * @see #getMin(int)
@@ -89,7 +77,7 @@ public class SimpleSizePolicy implements SizePolicy {
 
 	/**
 	 * @param minPref The minimum preferred size for the widget
-	 * @see #getMinPreferred()
+	 * @see #getMinPreferred(int)
 	 */
 	public void setMinPreferred(int minPref) {
 		theMinPref = minPref;
@@ -109,7 +97,7 @@ public class SimpleSizePolicy implements SizePolicy {
 
 	/**
 	 * @param maxPref The maximum preferred size for the widget
-	 * @see #getMaxPreferred()
+	 * @see #getMaxPreferred(int)
 	 */
 	public void setMaxPreferred(int maxPref) {
 		theMaxPref = maxPref;
@@ -125,13 +113,5 @@ public class SimpleSizePolicy implements SizePolicy {
 			theMin = max;
 		if(max < thePref)
 			thePref = max;
-	}
-
-	/**
-	 * @param stretch The stretch factor for the widget
-	 * @see #getStretch()
-	 */
-	public void setStretch(float stretch) {
-		theStretch = stretch;
 	}
 }

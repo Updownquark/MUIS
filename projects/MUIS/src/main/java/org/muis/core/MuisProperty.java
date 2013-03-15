@@ -581,7 +581,7 @@ public abstract class MuisProperty<T> {
 	}
 
 	/** A MuisTypeProperty for a generic MuisElement */
-	public static final MuisTypeProperty<MuisElement> elementTypeProp = new MuisTypeProperty<MuisElement>(MuisElement.class);
+	public static final MuisTypeProperty<MuisElement> elementTypeProp = new MuisTypeProperty<>(MuisElement.class);
 
 	/**
 	 * An enumeration property type--validates elements whose value matches any of the values given in the constructor

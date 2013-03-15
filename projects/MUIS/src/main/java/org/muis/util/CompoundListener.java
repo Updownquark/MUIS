@@ -357,7 +357,7 @@ public abstract class CompoundListener<T> {
 
 		@Override
 		ChainedCompoundListener<?> createChain() {
-			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<Object>(this);
+			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<>(this);
 			theElement.addListener(Events.ATTRIBUTE_CHANGED, ret);
 			theElement.getStyle().getSelf().addListener(ret.getStyleListener());
 			return ret;
@@ -495,7 +495,7 @@ public abstract class CompoundListener<T> {
 
 		@Override
 		ChainedCompoundListener<?> createChain() {
-			return new ChildChainedCompoundListener<Object>(this);
+			return new ChildChainedCompoundListener<>(this);
 		}
 
 		@Override
@@ -1175,7 +1175,7 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener<?> createChain() {
 			if(isFinal)
 				throw new IllegalStateException("MultiElementCompoundListeners may not be modified after elements are using it");
-			return new HoldingChainedCompoundListener<Object>(this);
+			return new HoldingChainedCompoundListener<>(this);
 		}
 
 		/**
@@ -1244,7 +1244,7 @@ public abstract class CompoundListener<T> {
 	private static class MultiElementChildCompoundListener extends ChainableCompoundListener {
 		@Override
 		org.muis.util.CompoundListener.ChainedCompoundListener<?> createChain() {
-			return new HoldingChainedCompoundListener<Object>(this);
+			return new HoldingChainedCompoundListener<>(this);
 		}
 	}
 

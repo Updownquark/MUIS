@@ -10,7 +10,7 @@ import prisms.util.ArrayUtils;
 /**
  * A TypedStyleGroup is a group in MUIS that holds members of a given type. This allows styles to be applied not only to named groups (
  * {@link NamedStyleGroup}) but also to specific sub-types within the named group.
- * 
+ *
  * @param <E> The sub-type of MuisElement that this group holds
  */
 public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyle {
@@ -26,7 +26,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 
 	/**
 	 * Creates a typed style group
-	 * 
+	 *
 	 * @param doc The document that this style group exists in
 	 * @param parent The parent style group that this group is a sub-type of
 	 * @param type The type of elements that this group is to hold
@@ -84,7 +84,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	/**
 	 * Finds the group within this group's structure whose type is exactly <code>S</code>. If the group does not exist, this group is
 	 * restructured to contain such a group.
-	 * 
+	 *
 	 * @param <S> The compile-time sub-type of MuisElement to get the group for
 	 * @param type The runtime sub-type of MuisElement to get the group for
 	 * @return The group descended from this style group whose type is <code>S</code>.
@@ -106,7 +106,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		for(int c = 0; c < children.length; c++)
 			if(children[c].getType().isAssignableFrom(type))
 				return children[c].insertTypedGroup(type.asSubclass(theChildren[c].getType()));
-		TypedStyleGroup<S> ret = new TypedStyleGroup<S>(theDocument, this, type);
+		TypedStyleGroup<S> ret = new TypedStyleGroup<>(theDocument, this, type);
 		for(int c = 0; c < children.length; c++)
 			if(type.isAssignableFrom(children[c].getType())) {
 				ret.theChildren = ArrayUtils.add(ret.theChildren, children[c]);
@@ -124,7 +124,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	/**
 	 * Returns the most specific style group within this group whose type is the same as or a superclass of <code>s</code>. This may be
 	 * <code>this</code>. This method does not modify this group's structure or content.
-	 * 
+	 *
 	 * @param <S> The compile-time sub-type of MuisElement to get the group for
 	 * @param type The runtime sub-type of MuisElement to get the group for
 	 * @return The most specific style group within this group whose type is the same as or a superclass of <code>s</code>. This may be
@@ -177,19 +177,19 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 *         immutable, so it cannot affect the content of this group.
 	 */
 	public Iterable<E> members() {
-		return new MemberIterable<E, E>(this, theMembers, theChildren, theType);
+		return new MemberIterable<>(this, theMembers, theChildren, theType);
 	}
 
 	/**
 	 * Creates an iterator to iterate through every member in this group, but not its sub-typed groups. The iterator returned by this method
 	 * is an immutable capture of the content of this group at the moment. Any changes made to this group after the iterator is created are
 	 * not reflected in the iterator's content, and the iterator itself is immutable, so it cannot affect the content of this group.
-	 * 
+	 *
 	 * @return An iterable that can return an iterator to iterate through this group's members without descending into this group's
 	 *         sub-members
 	 */
 	public Iterable<E> shallowMembers() {
-		return new MemberIterable<E, E>(this, theMembers, new TypedStyleGroup[0], theType);
+		return new MemberIterable<>(this, theMembers, new TypedStyleGroup[0], theType);
 	}
 
 	/**
@@ -197,17 +197,17 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 * iterator returned by this method is an immutable capture of the content of this group and its sub-typed groups at the moment. Any
 	 * changes made to this group or its subgroups after the iterator is created are not reflected in the iterator's content, and the
 	 * iterator itself is immutable, so it cannot affect the content of this group.
-	 * 
+	 *
 	 * The argument class may be an extension of {@link MuisElement} or an arbitrary interface. If a class is given whose type is not
 	 * compatible with MuisElement, the iterator will of course be empty.
-	 * 
+	 *
 	 * @param <T> The compile-time type of the members to return
 	 * @param type The runtime type of the members to return
 	 * @return An iterable that can return an iterator to iterate through every member of this group and its subgroups that is also an
 	 *         instance of the given class.
 	 */
 	public <T> Iterable<T> members(Class<T> type) {
-		return new MemberIterable<E, T>(this, theMembers, theChildren, type);
+		return new MemberIterable<>(this, theMembers, theChildren, type);
 	}
 
 	private static class MemberIterable<E extends MuisElement, T> implements Iterable<T> {
@@ -228,7 +228,7 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 
 		@Override
 		public MemberIterator<E, T> iterator() {
-			return new MemberIterator<E, T>(theGroup, theMembers, theChildren, theType);
+			return new MemberIterator<>(theGroup, theMembers, theChildren, theType);
 		}
 	}
 

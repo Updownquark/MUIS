@@ -1,7 +1,7 @@
 package org.muis.base.layout;
 
 import org.muis.core.MuisElement;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SizeGuide;
 
 /**
  * An extremely flexible and useful layout, FlowLayout renders similarly to HTML. By default, this layout will lay out
@@ -33,14 +33,14 @@ public class SuperFlowLayout extends AbstractFlowLayout
 	}
 
 	@Override
-	protected SizePolicy getMajorSize(MuisElement [] children, int minorSize)
+	protected SizeGuide getMajorSize(MuisElement [] children, int minorSize)
 	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	protected SizePolicy getMinorSize(MuisElement [] children, int majorSize)
+	protected SizeGuide getMinorSize(MuisElement [] children, int majorSize)
 	{
 		// TODO Auto-generated method stub
 		return null;

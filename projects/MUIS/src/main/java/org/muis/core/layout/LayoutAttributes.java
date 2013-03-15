@@ -178,6 +178,9 @@ public class LayoutAttributes {
 	public static final MuisAttribute<Direction> direction = new MuisAttribute<Direction>("direction", new MuisProperty.MuisEnumProperty<>(
 		Direction.class));
 
+	public static final MuisAttribute<Orientation> orientation = new MuisAttribute<Orientation>("orientation",
+		new MuisProperty.MuisEnumProperty<>(Orientation.class));
+
 	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<Alignment>("align", new MuisProperty.MuisEnumProperty<>(
 		Alignment.class));
 

@@ -18,6 +18,7 @@
         <type tag="box">org.muis.base.layout.BoxLayout</type>
         <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>
         <type tag="raised-square">org.muis.base.style.RaisedSquareTexture</type>
+        <type tag="grooved">org.muis.base.style.GrooveTexture</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>

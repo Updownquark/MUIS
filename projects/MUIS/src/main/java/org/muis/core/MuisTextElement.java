@@ -6,8 +6,9 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.AbstractSizeGuide;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf {
@@ -38,13 +39,13 @@ public class MuisTextElement extends MuisLeaf {
 	}
 
 	@Override
-	public SizePolicy getWSizer() {
+	public SizeGuide getWSizer() {
 		if(theText.length() == 0)
-			return new SimpleSizePolicy(0, 0, 0, 0, 0, 0);
+			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		java.awt.Font font = MuisUtils.getFont(getStyle().getSelf());
 		if(font == null) {
 			msg().error("Could not derive font");
-			return new SimpleSizePolicy(0, 0, 0, 0, 0, 0);
+			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		}
 		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
@@ -92,7 +93,7 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineW > max)
 					max = lineW;
 			}
-			return new SimpleSizePolicy(min, min, max, max, max, 1);
+			return new SimpleSizeGuide(min, min, max, max, max);
 		} else {
 			int w = 0;
 			for(int c = 0; c < theText.length(); c++) {
@@ -113,17 +114,13 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineW > w)
 					w = lineW;
 			}
-			return new SimpleSizePolicy(w, w, w, w, w, 0);
+			return new SimpleSizeGuide(w, w, w, w, w);
 		}
 	}
 
 	@Override
-	public SizePolicy getHSizer() {
-		return new SizePolicy() {
-			private int theMinPref = render(Integer.MAX_VALUE, null, new int[1]);
-
-			private int theMaxPref;
-
+	public SizeGuide getHSizer() {
+		return new AbstractSizeGuide() {
 			private int theCachedWidth;
 
 			private int theCachedMinHeight;
@@ -132,10 +129,6 @@ public class MuisTextElement extends MuisLeaf {
 
 			{
 				theCachedWidth = -1;
-				int [] min = new int[1];
-				render(Integer.MAX_VALUE, null, min);
-				theMinPref = min[0];
-				theMaxPref = render(1, null, min);
 			}
 
 			private void getSizes(int crossSize) {
@@ -148,13 +141,15 @@ public class MuisTextElement extends MuisLeaf {
 			}
 
 			@Override
-			public int getMinPreferred() {
-				return theMinPref;
+			public int getMinPreferred(int crossSize) {
+				getSizes(crossSize);
+				return theCachedMinHeight;
 			}
 
 			@Override
-			public int getMaxPreferred() {
-				return theMaxPref;
+			public int getMaxPreferred(int crossSize) {
+				getSizes(crossSize);
+				return theCachedMaxHeight;
 			}
 
 			@Override
@@ -173,11 +168,6 @@ public class MuisTextElement extends MuisLeaf {
 			public int getMax(int crossSize) {
 				getSizes(crossSize);
 				return theCachedMaxHeight;
-			}
-
-			@Override
-			public float getStretch() {
-				return 1;
 			}
 		};
 	}

@@ -9,24 +9,25 @@ import org.muis.core.layout.Orientation;
 public class BaseLayoutUtils {
 	public static int doLayout(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
 		boolean mainAxis, int crossSize) {
-		if(type != null) {
-			int [] res;
-			switch (type) {
-			case min:
-			case minPref:
-				res = getWithMinimumWraps(children, orientation.opposite(), type, policy, crossSize, Integer.MAX_VALUE, mainAxis);
-				return res[1];
-			case max:
-			case maxPref:
-				res = getWithMinimumWraps(children, orientation, type, policy, Integer.MAX_VALUE, crossSize, mainAxis);
-				return res[0];
-			case pref:
-				res = getWithMinimumWraps(children, mainAxis ? orientation : orientation.opposite(), type, policy,
-					mainAxis ? Integer.MAX_VALUE : crossSize, mainAxis ? crossSize : Integer.MAX_VALUE, true);
-				return mainAxis ? res[0] : res[1];
-			}
+		int [] res;
+		switch (type) {
+		case min:
+		case minPref:
+			res = getWithMinimumWraps(children, orientation.opposite(), type, policy, crossSize, Integer.MAX_VALUE, mainAxis);
+			return res[1];
+		case max:
+		case maxPref:
+			res = getWithMinimumWraps(children, orientation, type, policy, Integer.MAX_VALUE, crossSize, mainAxis);
+			return res[0];
+		case pref:
+			res = getWithMinimumWraps(children, mainAxis ? orientation : orientation.opposite(), type, policy, mainAxis ? Integer.MAX_VALUE
+				: crossSize, mainAxis ? crossSize : Integer.MAX_VALUE, true);
+			return mainAxis ? res[0] : res[1];
 		}
-		// TODO
+		throw new IllegalStateException("Unrecognized layout guide type: " + type);
+	}
+
+	public static void doLayout(MuisElement [] children, Orientation mainAxis, BreakPolicy policy, int parallelSize, int crossSize) {
 	}
 
 	public static int [] getWithMinimumWraps(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,

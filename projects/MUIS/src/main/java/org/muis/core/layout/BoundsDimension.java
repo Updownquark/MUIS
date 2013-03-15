@@ -9,5 +9,5 @@ public interface BoundsDimension {
 
 	void setSize(int size);
 
-	SizePolicy getGuide();
+	SizeGuide getGuide();
 }

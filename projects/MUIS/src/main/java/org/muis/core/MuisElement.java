@@ -12,8 +12,8 @@ import java.util.List;
 import org.muis.core.MuisConstants.CoreStage;
 import org.muis.core.MuisConstants.States;
 import org.muis.core.event.*;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.style.BackgroundStyles;
@@ -70,8 +70,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	private int theZ;
 
 	private ElementBounds theBounds;
-	private SizePolicy theHSizer;
-	private SizePolicy theVSizer;
+	private SizeGuide theHSizer;
+	private SizeGuide theVSizer;
 
 	private boolean isFocusable;
 	private Rectangle theCacheBounds;
@@ -659,16 +659,16 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	}
 
 	@Override
-	public SizePolicy getWSizer() {
+	public SizeGuide getWSizer() {
 		if(theHSizer == null)
-			theHSizer = new SimpleSizePolicy();
+			theHSizer = new SimpleSizeGuide();
 		return theHSizer;
 	}
 
 	@Override
-	public SizePolicy getHSizer() {
+	public SizeGuide getHSizer() {
 		if(theVSizer == null)
-			theVSizer = new SimpleSizePolicy();
+			theVSizer = new SimpleSizeGuide();
 		return theVSizer;
 	}
 

@@ -1,7 +1,7 @@
 package org.muis.core;
 
 import org.muis.core.event.MuisEvent;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SizeGuide;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
 public class LayoutContainer extends MuisElement {
@@ -66,7 +66,7 @@ public class LayoutContainer extends MuisElement {
 	}
 
 	@Override
-	public SizePolicy getWSizer() {
+	public SizeGuide getWSizer() {
 		if(theLayout != null)
 			return theLayout.getWSizer(this, getChildren().toArray());
 		else
@@ -74,7 +74,7 @@ public class LayoutContainer extends MuisElement {
 	}
 
 	@Override
-	public SizePolicy getHSizer() {
+	public SizeGuide getHSizer() {
 		if(theLayout != null)
 			return theLayout.getHSizer(this, getChildren().toArray());
 		else

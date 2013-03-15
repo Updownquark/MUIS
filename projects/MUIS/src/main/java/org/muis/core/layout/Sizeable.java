@@ -4,8 +4,8 @@ package org.muis.core.layout;
 public interface Sizeable
 {
 	/** @return The size policy for this item's width */
-	SizePolicy getWSizer();
+	SizeGuide getWSizer();
 
 	/** @return The size policy for this item's height */
-	SizePolicy getHSizer();
+	SizeGuide getHSizer();
 }

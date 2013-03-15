@@ -5,8 +5,8 @@ import static org.muis.core.layout.LayoutAttributes.*;
 import org.muis.core.MuisElement;
 import org.muis.core.layout.LayoutAttributes;
 import org.muis.core.layout.Region;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
@@ -61,14 +61,14 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight) {
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children, int parentHeight) {
 
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		for(MuisElement child : children) {
 			Position pos;
 			Size size = child.atts().get(LayoutAttributes.width);
 			Size minSize = child.atts().get(LayoutAttributes.minWidth);
-			SizePolicy sizer;
+			SizeGuide sizer;
 			switch (child.atts().get(LayoutAttributes.region)) {
 			case left:
 				pos = child.atts().get(LayoutAttributes.right);
@@ -122,7 +122,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth) {
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children, int parentWidth) {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -7,8 +7,8 @@ import java.net.URL;
 
 import org.muis.base.data.ImageData;
 import org.muis.core.MuisLayout;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 
 /** Renders an image */
 public class GenericImage extends org.muis.core.LayoutContainer {
@@ -358,7 +358,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 	}
 
 	@Override
-	public SizePolicy getWSizer() {
+	public SizeGuide getWSizer() {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
@@ -371,25 +371,25 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		case none:
 			return super.getWSizer();
 		case lock:
-			return new SimpleSizePolicy(w, w, w, w, w, 0);
+			return new SimpleSizeGuide(w, w, w, w, w);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizePolicy(w, w, w, w, w, 0);
+				return new SimpleSizeGuide(w, w, w, w, w);
 			else
 				return super.getWSizer();
 		case repeat:
 			return super.getWSizer();
 		case resize:
 			if(isProportionLocked)
-				return new ProportionalSizePolicy(w, h);
+				return new ProportionalSizeGuide(w, h);
 			else
-				return new SimpleSizePolicy(0, 0, w, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+				return new SimpleSizeGuide(0, 0, w, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
 		return super.getWSizer();
 	}
 
 	@Override
-	public SizePolicy getHSizer() {
+	public SizeGuide getHSizer() {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
@@ -402,19 +402,19 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		case none:
 			return super.getHSizer();
 		case lock:
-			return new SimpleSizePolicy(h, h, h, h, h, 0);
+			return new SimpleSizeGuide(h, h, h, h, h);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizePolicy(h, h, h, h, h, 0);
+				return new SimpleSizeGuide(h, h, h, h, h);
 			else
 				return super.getHSizer();
 		case repeat:
 			return super.getHSizer();
 		case resize:
 			if(isProportionLocked)
-				return new ProportionalSizePolicy(h, w);
+				return new ProportionalSizeGuide(h, w);
 			else
-				return new SimpleSizePolicy(0, 0, h, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+				return new SimpleSizeGuide(0, 0, h, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
 		return super.getHSizer();
 	}
@@ -513,23 +513,23 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		graphics.drawImage(img.get(imgIdx), gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
 	}
 
-	private static class ProportionalSizePolicy implements SizePolicy {
+	private static class ProportionalSizeGuide extends org.muis.core.layout.AbstractSizeGuide {
 		private final int theMainDim;
 
 		private final int theCrossDim;
 
-		ProportionalSizePolicy(int main, int cross) {
+		ProportionalSizeGuide(int main, int cross) {
 			theMainDim = main;
 			theCrossDim = cross;
 		}
 
 		@Override
-		public int getMinPreferred() {
+		public int getMinPreferred(int crossSize) {
 			return 0;
 		}
 
 		@Override
-		public int getMaxPreferred() {
+		public int getMaxPreferred(int crossSize) {
 			return Integer.MAX_VALUE;
 		}
 
@@ -546,11 +546,6 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		@Override
 		public int getMax(int crossSize) {
 			return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public float getStretch() {
-			return 0;
 		}
 	}
 }

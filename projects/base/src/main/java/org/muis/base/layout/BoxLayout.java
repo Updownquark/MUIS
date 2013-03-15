@@ -42,7 +42,7 @@ public class BoxLayout implements MuisLayout
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children)
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children)
 	{
 		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		if(dir == null)
@@ -60,7 +60,7 @@ public class BoxLayout implements MuisLayout
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children)
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children)
 	{
 		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		if(dir == null)
@@ -86,10 +86,10 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, MuisAttribute<Size> sizeAttr,
+	protected SizeGuide getMainSizer(MuisElement [] children, boolean vertical, MuisAttribute<Size> sizeAttr,
 		MuisAttribute<Size> minSizeAttr)
 	{
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		for(MuisElement child : children)
 		{
 			Size size = child.atts().get(sizeAttr);
@@ -101,7 +101,7 @@ public class BoxLayout implements MuisLayout
 			}
 			else
 			{
-				SizePolicy sizer = vertical ? child.getHSizer(crossSize) : child.getWSizer(crossSize);
+				SizeGuide sizer = vertical ? child.getHSizer(crossSize) : child.getWSizer(crossSize);
 				int min = sizer.getMin();
 				int pref = sizer.getPreferred();
 				if(minSize != null && !minSize.getUnit().isRelative() && min < minSize.evaluate(0))
@@ -124,10 +124,10 @@ public class BoxLayout implements MuisLayout
 	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, MuisAttribute<Size> sizeAttr,
+	protected SizeGuide getCrossSizer(MuisElement [] children, boolean vertical, MuisAttribute<Size> sizeAttr,
 		MuisAttribute<Size> minSizeAttr)
 	{
-		SimpleSizePolicy ret = new SimpleSizePolicy();
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		for(MuisElement child : children)
 		{
 			Size size = child.atts().get(sizeAttr);
@@ -142,7 +142,7 @@ public class BoxLayout implements MuisLayout
 			}
 			else
 			{
-				SizePolicy sizer = vertical ? child.getHSizer(mainSize) : child.getWSizer(mainSize);
+				SizeGuide sizer = vertical ? child.getHSizer(mainSize) : child.getWSizer(mainSize);
 				int min = sizer.getMin();
 				int pref = sizer.getPreferred();
 				if(minSize != null && !minSize.getUnit().isRelative() && min < minSize.evaluate(0))
@@ -294,7 +294,7 @@ public class BoxLayout implements MuisLayout
 		}
 		else
 		{
-			SizePolicy sizer = vertical ? child.getHSizer(crossSize) : child.getWSizer(crossSize);
+			SizeGuide sizer = vertical ? child.getHSizer(crossSize) : child.getWSizer(crossSize);
 			ret = sizer.getPreferred();
 			if(ret > mainSize)
 				ret = mainSize;

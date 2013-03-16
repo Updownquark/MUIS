@@ -1,5 +1,6 @@
 package org.muis.core.layout;
 
+/** Implements the {@link SizeGuide#get(LayoutGuideType, int)} method */
 public abstract class AbstractSizeGuide implements SizeGuide {
 	@Override
 	public int get(LayoutGuideType type, int crossSize) {

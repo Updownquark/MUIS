@@ -14,57 +14,96 @@ import org.muis.core.style.PositionPropertyType;
 import org.muis.core.style.Size;
 import org.muis.core.style.SizePropertyType;
 
+/** MUIS {@link MuisAttribute attributes} dealing with layouts in MUIS */
 public class LayoutAttributes {
+	/** An attribute specifying a position */
 	public static class PositionAttribute extends MuisAttribute<Position> {
-		public PositionAttribute(String name, Orientation orientation, End end, LayoutGuideType type) {
+		/**
+		 * @param name The name of the attribute
+		 * @param orient The orientation of the dimension that this attribute specifies something about
+		 * @param end Which direction along the orientation that this attribute deals with
+		 * @param type This attribute's guide type
+		 */
+		public PositionAttribute(String name, Orientation orient, End end, LayoutGuideType type) {
 			super(name, PositionPropertyType.instance);
 		}
 	}
 
+	/** An attribute specifying a size */
 	public static class SizeAttribute extends MuisAttribute<Size> {
-		public SizeAttribute(String name, Orientation orientation, LayoutGuideType type) {
+		/**
+		 * @param name The name of the attribute
+		 * @param orient The orientation of the dimension that this attribute specifies something about
+		 * @param type This attribute's guide type
+		 */
+		public SizeAttribute(String name, Orientation orient, LayoutGuideType type) {
 			super(name, SizePropertyType.instance);
 		}
 	}
 
+	/** Specifies the distance between the left edge of the container and that of the component */
 	public static final PositionAttribute left = new PositionAttribute("left", horizontal, leading, null);
 
+	/** Specifies the minimum distance between the left edge of the container and that of the component */
 	public static final PositionAttribute minLeft = new PositionAttribute("min-left", horizontal, leading, min);
 
+	/** Specifies the maximum distance between the left edge of the container and that of the component */
 	public static final PositionAttribute maxLeft = new PositionAttribute("max-left", horizontal, leading, max);
 
+	/** Specifies the distance between the right edge of the container and that of the component */
 	public static final PositionAttribute right = new PositionAttribute("right", horizontal, trailing, null);
 
+	/** Specifies the minimum distance between the right edge of the container and that of the component */
 	public static final PositionAttribute minRight = new PositionAttribute("min-right", horizontal, trailing, min);
 
+	/** Specifies the maximum distance between the right edge of the container and that of the component */
 	public static final PositionAttribute maxRight = new PositionAttribute("max-right", horizontal, trailing, max);
 
+	/** Specifies the distance between the top edge of the container and that of the component */
 	public static final PositionAttribute top = new PositionAttribute("top", vertical, leading, null);
 
+	/** Specifies the minimum distance between the top edge of the container and that of the component */
 	public static final PositionAttribute minTop = new PositionAttribute("min-top", vertical, leading, min);
 
+	/** Specifies the maximum distance between the top edge of the container and that of the component */
 	public static final PositionAttribute maxTop = new PositionAttribute("max-top", vertical, leading, max);
 
+	/** Specifies the distance between the bottom edge of the container and that of the component */
 	public static final PositionAttribute bottom = new PositionAttribute("bottom", vertical, trailing, null);
 
+	/** Specifies the minimum distance between the bottom edge of the container and that of the component */
 	public static final PositionAttribute minBottom = new PositionAttribute("min-bottom", vertical, trailing, min);
 
+	/** Specifies the maximum distance between the bottom edge of the container and that of the component */
 	public static final PositionAttribute maxBottom = new PositionAttribute("max-bottom", vertical, trailing, max);
 
+	/** Specifies the distance between the left edge and the right edge of the component */
 	public static final SizeAttribute width = new SizeAttribute("width", horizontal, null);
 
+	/** Specifies the minimum distance between the left edge and the right edge of the component */
 	public static final SizeAttribute minWidth = new SizeAttribute("min-width", horizontal, min);
 
+	/** Specifies the maximum distance between the left edge and the right edge of the component */
 	public static final SizeAttribute maxWidth = new SizeAttribute("max-width", horizontal, max);
 
+	/** Specifies the distance between the top edge and the bottom edge of the component */
 	public static final SizeAttribute height = new SizeAttribute("height", vertical, null);
 
+	/** Specifies the minimum distance between the top edge and the bottom edge of the component */
 	public static final SizeAttribute minHeight = new SizeAttribute("min-height", vertical, min);
 
+	/** Specifies the maximum distance between the top edge and the bottom edge of the component */
 	public static final SizeAttribute maxHeight = new SizeAttribute("max-height", vertical, max);
 
-	public static PositionAttribute getPosAtt(Orientation orientation, End end, LayoutGuideType type) {
-		switch (orientation) {
+	/**
+	 * @param orient The orientation for the attribute
+	 * @param end The end for the attribute
+	 * @param type The guide type for the attribute
+	 * @return The attribute with the given orientation, end, and type
+	 * @throws IllegalArgumentException If no such attribute exists (preferred layout guide types)
+	 */
+	public static PositionAttribute getPosAtt(Orientation orient, End end, LayoutGuideType type) throws IllegalArgumentException {
+		switch (orient) {
 		case horizontal:
 			switch (end) {
 			case leading:
@@ -130,11 +169,17 @@ public class LayoutAttributes {
 			}
 			throw new IllegalArgumentException("Unrecognized layout end type: " + end);
 		}
-		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orientation);
+		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orient);
 	}
 
-	public static SizeAttribute getSizeAtt(Orientation orientation, LayoutGuideType type) {
-		switch (orientation) {
+	/**
+	 * @param orient The orientation for the attribute
+	 * @param type The guide type for the attribute
+	 * @return The attribute with the given orientation, end, and type
+	 * @throws IllegalArgumentException If no such attribute exists (preferred layout guide types)
+	 */
+	public static SizeAttribute getSizeAtt(Orientation orient, LayoutGuideType type) throws IllegalArgumentException {
+		switch (orient) {
 		case horizontal:
 			if(type == null)
 				return width;
@@ -164,9 +209,16 @@ public class LayoutAttributes {
 			}
 			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
 		}
-		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orientation);
+		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orient);
 	}
 
+	/**
+	 * @param element The element to get the position value for
+	 * @param attr The position attribute to get the position value for
+	 * @param totalLength The total length of the container along the attribute's orientation axis
+	 * @param defVal Default value, in pixels, to return if the attribute is not set for the element
+	 * @return The position value for the attribute on the element, in pixels
+	 */
 	public static int getPositionValue(org.muis.core.MuisElement element, PositionAttribute attr, int totalLength, int defVal) {
 		Position ret = element.atts().get(attr);
 		if(ret != null)
@@ -175,21 +227,28 @@ public class LayoutAttributes {
 			return defVal;
 	}
 
-	public static final MuisAttribute<Direction> direction = new MuisAttribute<Direction>("direction", new MuisProperty.MuisEnumProperty<>(
+	/** Direction for a layout or component (left-to-right, right-to-left, top-to-bottom, or bottom-to-top */
+	public static final MuisAttribute<Direction> direction = new MuisAttribute<>("direction", new MuisProperty.MuisEnumProperty<>(
 		Direction.class));
 
-	public static final MuisAttribute<Orientation> orientation = new MuisAttribute<Orientation>("orientation",
+	/** Orientation for a layout or component */
+	public static final MuisAttribute<Orientation> orientation = new MuisAttribute<>("orientation",
 		new MuisProperty.MuisEnumProperty<>(Orientation.class));
 
-	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<Alignment>("align", new MuisProperty.MuisEnumProperty<>(
+	/** 1-dimensional alignment of components within a container */
+	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<>("align", new MuisProperty.MuisEnumProperty<>(
 		Alignment.class));
 
-	public static final MuisAttribute<Region> region = new MuisAttribute<Region>("region",
+	/** Edge (or center) of a container */
+	public static final MuisAttribute<Region> region = new MuisAttribute<>("region",
 		new MuisProperty.MuisEnumProperty<>(Region.class));
 
+	/** The minimum distance between the edge of a container and the nearest contained component */
 	public static final MuisAttribute<Size> margin = new MuisAttribute<>("margin", SizePropertyType.instance);
 
+	/** The minimum distance between components in a container */
 	public static final MuisAttribute<Size> padding = new MuisAttribute<>("padding", SizePropertyType.instance);
 
-	public static final MuisAttribute<Boolean> maxInf = new MuisAttribute<Boolean>("max-inf", MuisProperty.boolAttr);
+	/** Specifies that a container should report an infinite maximum size, regardless of its contents */
+	public static final MuisAttribute<Boolean> maxInf = new MuisAttribute<>("max-inf", MuisProperty.boolAttr);
 }

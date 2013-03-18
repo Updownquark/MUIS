@@ -212,6 +212,10 @@ public class LayoutAttributes {
 		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orient);
 	}
 
+	public static SizeAttribute [] getSizeAttributes() {
+		return new SizeAttribute[] {width, minWidth, maxWidth, height, minHeight, maxHeight};
+	}
+
 	/**
 	 * @param element The element to get the position value for
 	 * @param attr The position attribute to get the position value for
@@ -235,19 +239,17 @@ public class LayoutAttributes {
 	public static final MuisAttribute<Orientation> orientation = new MuisAttribute<>("orientation",
 		new MuisProperty.MuisEnumProperty<>(Orientation.class));
 
-	/** 1-dimensional alignment of components within a container */
+	/** Alignment of components within a container along the major axis of the container or layout */
 	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<>("align", new MuisProperty.MuisEnumProperty<>(
+		Alignment.class));
+
+	/** Alignment of components within a container along the minor axis of the container or layout */
+	public static final MuisAttribute<Alignment> crossAlignment = new MuisAttribute<>("cross-align", new MuisProperty.MuisEnumProperty<>(
 		Alignment.class));
 
 	/** Edge (or center) of a container */
 	public static final MuisAttribute<Region> region = new MuisAttribute<>("region",
 		new MuisProperty.MuisEnumProperty<>(Region.class));
-
-	/** The minimum distance between the edge of a container and the nearest contained component */
-	public static final MuisAttribute<Size> margin = new MuisAttribute<>("margin", SizePropertyType.instance);
-
-	/** The minimum distance between components in a container */
-	public static final MuisAttribute<Size> padding = new MuisAttribute<>("padding", SizePropertyType.instance);
 
 	/** Specifies that a container should report an infinite maximum size, regardless of its contents */
 	public static final MuisAttribute<Boolean> maxInf = new MuisAttribute<>("max-inf", MuisProperty.boolAttr);

@@ -32,7 +32,7 @@ import prisms.util.ArrayUtils;
 		@State(name = States.MIDDLE_CLICK_NAME, priority = States.MIDDLE_CLICK_PRIORITY),
 		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
 		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY)})
-public abstract class MuisElement implements org.muis.core.layout.Sizeable {
+public abstract class MuisElement {
 	// TODO Add code for attach events
 
 	/**
@@ -658,14 +658,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			theParent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
 	}
 
-	@Override
+	/** @return The size policy for this item's width */
 	public SizeGuide getWSizer() {
 		if(theHSizer == null)
 			theHSizer = new SimpleSizeGuide();
 		return theHSizer;
 	}
 
-	@Override
+	/** @return The size policy for this item's height */
 	public SizeGuide getHSizer() {
 		if(theVSizer == null)
 			theVSizer = new SimpleSizeGuide();

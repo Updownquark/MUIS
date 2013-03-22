@@ -1,5 +1,7 @@
 package org.muis.base.layout;
 
+import static org.muis.core.layout.LayoutGuideType.maxPref;
+import static org.muis.core.layout.LayoutGuideType.minPref;
 import static org.muis.core.layout.Orientation.horizontal;
 import static org.muis.core.layout.Orientation.vertical;
 
@@ -11,6 +13,7 @@ import java.util.Iterator;
 import org.muis.base.layout.GeneticLayout.LayoutConstraint;
 import org.muis.base.layout.GeneticLayout.LayoutScratchPad;
 import org.muis.core.MuisElement;
+import org.muis.core.layout.LayoutUtils;
 import org.muis.core.style.LayoutStyles;
 
 public class LayoutConstraints {
@@ -117,79 +120,6 @@ public class LayoutConstraints {
         }
     }
 
-    /**
-     * A layout constraint preventing elements from being layed out on top of one another. The variable cost is the total area of
-     * intersection of elements.
-     */
-    public static final LayoutConstraint interference = new LayoutConstraint() {
-        @Override
-        public boolean isViolated(MuisElement container, Dimension size, LayoutScratchPad layout) {
-            ArrayList<Rectangle> bounds = new ArrayList<>();
-            for (MuisElement element : layout) {
-                Rectangle bound = layout.get(element);
-                for (Rectangle b : bounds) {
-                    if (b.intersects(bound))
-                        return true;
-                }
-                bounds.add(bound);
-            }
-            return false;
-        }
-
-        @Override
-        public float getViolation(MuisElement container, Dimension size, LayoutScratchPad layout) {
-            float ret = 0;
-            ArrayList<Rectangle> bounds = new ArrayList<>();
-            for (MuisElement element : layout) {
-                Rectangle bound = layout.get(element);
-                for (Rectangle b : bounds) {
-                    if (b.intersects(bound)) {
-                        Rectangle intersection = b.intersection(bound);
-                        ret += intersection.width * intersection.height;
-                    }
-                }
-                bounds.add(bound);
-            }
-            return ret;
-        }
-    };
-
-    /** A layout constraint encouraging sizes within the preferred range */
-    public static final LayoutConstraint prefSize = new LayoutConstraint() {
-        @Override
-        public boolean isViolated(MuisElement container, Dimension size, LayoutScratchPad layout) {
-            for (MuisElement child : layout) {
-                Rectangle bounds = layout.get(child);
-                if (bounds.width < child.bounds().get(horizontal).getGuide().getMinPreferred(bounds.height))
-                    return true;
-                if (bounds.width > child.bounds().get(horizontal).getGuide().getMaxPreferred(bounds.height))
-                    return true;
-                if (bounds.height < child.bounds().get(vertical).getGuide().getMinPreferred(bounds.width))
-                    return true;
-                if (bounds.height > child.bounds().get(vertical).getGuide().getMaxPreferred(bounds.width))
-                    return true;
-            }
-            return false;
-        }
-
-        @Override
-        public float getViolation(MuisElement container, Dimension size, LayoutScratchPad layout) {
-            float ret = 0;
-            for (MuisElement child : layout) {
-                Rectangle bounds = layout.get(child);
-                if (bounds.width < child.bounds().get(horizontal).getGuide().getMinPreferred(bounds.height))
-                    ret += child.bounds().get(horizontal).getGuide().getMinPreferred(bounds.height) - bounds.width;
-                if (bounds.width > child.bounds().get(horizontal).getGuide().getMaxPreferred(bounds.height))
-                    ret += bounds.width - child.bounds().get(horizontal).getGuide().getMaxPreferred(bounds.height);
-                if (bounds.height < child.bounds().get(vertical).getGuide().getMinPreferred(bounds.width))
-                    ret += child.bounds().get(vertical).getGuide().getMinPreferred(bounds.width) - bounds.height;
-                if (bounds.height > child.bounds().get(vertical).getGuide().getMaxPreferred(bounds.width))
-                    ret += bounds.height - child.bounds().get(vertical).getGuide().getMaxPreferred(bounds.width);
-            }
-            return ret;
-        }
-    };
-
     /** A layout constraint causing components to stay within the container's bounds */
     public static final LayoutConstraint containerBounds = new LayoutConstraint() {
         @Override
@@ -228,6 +158,91 @@ public class LayoutConstraints {
             }
             return ret;
         }
+    };
+
+    /**
+     * A layout constraint preventing elements from being layed out on top of one another. The variable cost is the total area of
+     * intersection of elements.
+     */
+    public static final LayoutConstraint interference = new LayoutConstraint() {
+        @Override
+        public boolean isViolated(MuisElement container, Dimension size, LayoutScratchPad layout) {
+            ArrayList<Rectangle> bounds = new ArrayList<>();
+            for (MuisElement element : layout) {
+                Rectangle bound = layout.get(element);
+                for (Rectangle b : bounds) {
+                    if (b.intersects(bound))
+                        return true;
+                }
+                bounds.add(bound);
+            }
+            return false;
+        }
+
+        @Override
+        public float getViolation(MuisElement container, Dimension size, LayoutScratchPad layout) {
+            float ret = 0;
+            ArrayList<Rectangle> bounds = new ArrayList<>();
+            for (MuisElement element : layout) {
+                Rectangle bound = layout.get(element);
+                for (Rectangle b : bounds) {
+                    if (b.intersects(bound)) {
+                        Rectangle intersection = b.intersection(bound);
+                        ret += intersection.width * intersection.height;
+                    }
+                }
+                bounds.add(bound);
+            }
+            return ret;
+        }
+    };
+
+    /** A layout constraint encouraging sizes within the preferred range */
+    public static final LayoutConstraint prefSizeRange = new LayoutConstraint() {
+        @Override
+        public boolean isViolated(MuisElement container, Dimension size, LayoutScratchPad layout) {
+            for (MuisElement child : layout) {
+                Rectangle bounds = layout.get(child);
+                if (bounds.width < LayoutUtils.getSize(child, horizontal, minPref, size.width, size.height))
+                    return true;
+                if (bounds.width > LayoutUtils.getSize(child, horizontal, maxPref, size.width, size.height))
+                    return true;
+                if (bounds.height < LayoutUtils.getSize(child, vertical, minPref, size.height, size.width))
+                    return true;
+                if (bounds.height > LayoutUtils.getSize(child, vertical, maxPref, size.height, size.width))
+                    return true;
+            }
+            return false;
+        }
+
+        @Override
+        public float getViolation(MuisElement container, Dimension size, LayoutScratchPad layout) {
+            float ret = 0;
+            for (MuisElement child : layout) {
+                Rectangle bounds = layout.get(child);
+                if (bounds.width < child.bounds().get(horizontal).getGuide().getMinPreferred(bounds.height))
+                    ret += child.bounds().get(horizontal).getGuide().getMinPreferred(bounds.height) - bounds.width;
+                if (bounds.width > child.bounds().get(horizontal).getGuide().getMaxPreferred(bounds.height))
+                    ret += bounds.width - child.bounds().get(horizontal).getGuide().getMaxPreferred(bounds.height);
+                if (bounds.height < child.bounds().get(vertical).getGuide().getMinPreferred(bounds.width))
+                    ret += child.bounds().get(vertical).getGuide().getMinPreferred(bounds.width) - bounds.height;
+                if (bounds.height > child.bounds().get(vertical).getGuide().getMaxPreferred(bounds.width))
+                    ret += bounds.height - child.bounds().get(vertical).getGuide().getMaxPreferred(bounds.width);
+            }
+            return ret;
+        }
+    };
+
+    /** A layout constraint highly encouraging sizing within the min/max range */
+    public static final LayoutConstraint sizeRange = new LayoutConstraint() {
+    };
+
+    /** A layout constraint lightly encouraging sizing according to the preferred settings */
+    public static final LayoutConstraint prefSize = new LayoutConstraint() {
+    };
+
+    /** A layout constraint that enforces {@link #prefSizeRange}, {@link #sizeRange}, and {@link #prefSize} */
+    public static final LayoutConstraint sizing = new LayoutConstraint() {
     };
 
     /**
@@ -277,6 +292,10 @@ public class LayoutConstraints {
         }
     };
 
+    /**
+     * A layout constraint enforcing the {@link LayoutStyles#padding} style. This constraint also enforces the same rules as
+     * {@link #interference}.
+     */
     public static final LayoutConstraint padding = new LayoutConstraint() {
         @Override
         public boolean isViolated(MuisElement container, Dimension size, LayoutScratchPad layout) {
@@ -323,5 +342,8 @@ public class LayoutConstraints {
             }
             return ret;
         }
+    };
+
+    public static final LayoutConstraint whiteSpace = new LayoutConstraint() {
     };
 }

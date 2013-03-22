@@ -49,7 +49,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getHSizer(MuisElement parent, final MuisElement [] children) {
 		if(checkForRelativeSizes(children))
-			return;
+            return new org.muis.core.layout.SimpleSizeGuide();
 		Direction dir = parent.atts().get(direction);
 		if(dir == null)
 			dir = Direction.RIGHT;
@@ -96,7 +96,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getWSizer(MuisElement parent, final MuisElement [] children) {
 		if(checkForRelativeSizes(children))
-			return;
+            return new org.muis.core.layout.SimpleSizeGuide();
 		Direction dir = parent.atts().get(direction);
 		if(dir == null)
 			dir = Direction.RIGHT;

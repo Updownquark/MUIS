@@ -4,21 +4,15 @@ package org.muis.core.layout;
 public interface SizeGuide {
 	/**
 	 * @param crossSize The hypothetical size of the widget in the opposite dimension
-	 * @return The minimum dimension that the widget can take and be happy
-	 */
-	int getMinPreferred(int crossSize);
-
-	/**
-	 * @param crossSize The hypothetical size of the widget in the opposite dimension
-	 * @return The maximum dimension that the widget can make use of
-	 */
-	int getMaxPreferred(int crossSize);
-
-	/**
-	 * @param crossSize The hypothetical size of the widget in the opposite dimension
 	 * @return The minimum size that the widget can allow. Good layouts should never size a widget smaller than this value.
 	 */
 	int getMin(int crossSize);
+
+	/**
+	 * @param crossSize The hypothetical size of the widget in the opposite dimension
+	 * @return The minimum dimension that the widget can take and be happy
+	 */
+	int getMinPreferred(int crossSize);
 
 	/**
 	 * @param crossSize The hypothetical size of the widget in the opposite dimension
@@ -27,6 +21,12 @@ public interface SizeGuide {
 	 *         preference.
 	 */
 	int getPreferred(int crossSize);
+
+	/**
+	 * @param crossSize The hypothetical size of the widget in the opposite dimension
+	 * @return The maximum dimension that the widget can make use of
+	 */
+	int getMaxPreferred(int crossSize);
 
 	/**
 	 * @param crossSize The hypothetical size of the widget in the opposite dimension

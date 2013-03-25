@@ -23,7 +23,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	/** Creates a flow layout */
 	public FlowLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, AbstractFlowLayout.FLOW_BREAK, alignment, crossAlignment).watchAll(margin, padding)
+		theListener.acceptAll(direction, alignment, crossAlignment).watchAll(margin, padding)
 			.onChange(CompoundListener.layout);
 		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
 	}
@@ -49,46 +49,47 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getHSizer(MuisElement parent, final MuisElement [] children) {
 		if(checkForRelativeSizes(children))
-			return;
+			return new org.muis.core.layout.SimpleSizeGuide();
 		Direction dir = parent.atts().get(direction);
 		if(dir == null)
 			dir = Direction.RIGHT;
-		final BreakPolicy bp = parent.atts().get(AbstractFlowLayout.FLOW_BREAK) != null ? parent.atts().get(AbstractFlowLayout.FLOW_BREAK)
-			: BreakPolicy.NEEDED;
 		final Size marginSz = parent.getStyle().getSelf().get(margin);
 		final Size paddingSz = parent.getStyle().getSelf().get(padding);
 
-		final boolean main = dir.getOrientation() == vertical;
+		final boolean major = dir.getOrientation() == vertical;
 
 		return new SizeGuide() {
 			@Override
-			public int getMinPreferred(int crossSize) {
-				return getLayoutSize(children, vertical, minPref, bp, main, crossSize, marginSz, paddingSz);
-			}
-
-			@Override
-			public int getMaxPreferred(int crossSize) {
-				return getLayoutSize(children, vertical, maxPref, bp, main, crossSize, marginSz, paddingSz);
-			}
-
-			@Override
 			public int getMin(int crossSize) {
-				return getLayoutSize(children, vertical, min, bp, main, crossSize, marginSz, paddingSz);
+				return get(min, crossSize);
+			}
+
+			@Override
+			public int getMinPreferred(int crossSize) {
+				return get(minPref, crossSize);
 			}
 
 			@Override
 			public int getPreferred(int crossSize) {
-				return getLayoutSize(children, vertical, pref, bp, main, crossSize, marginSz, paddingSz);
+				return get(pref, crossSize);
+			}
+
+			@Override
+			public int getMaxPreferred(int crossSize) {
+				return get(maxPref, crossSize);
 			}
 
 			@Override
 			public int getMax(int crossSize) {
-				return getLayoutSize(children, vertical, max, bp, main, crossSize, marginSz, paddingSz);
+				return get(max, crossSize);
 			}
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize) {
-				return getLayoutSize(children, vertical, type, bp, main, crossSize, marginSz, paddingSz);
+				if(major)
+					return getMajorSize(children, vertical, type, Integer.MAX_VALUE, crossSize, marginSz, paddingSz);
+				else
+					return getMinorSize(children, vertical, type, crossSize, Integer.MAX_VALUE, marginSz, paddingSz);
 			}
 		};
 	}
@@ -96,46 +97,47 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getWSizer(MuisElement parent, final MuisElement [] children) {
 		if(checkForRelativeSizes(children))
-			return;
+			return new org.muis.core.layout.SimpleSizeGuide();
 		Direction dir = parent.atts().get(direction);
 		if(dir == null)
 			dir = Direction.RIGHT;
-		final BreakPolicy bp = parent.atts().get(AbstractFlowLayout.FLOW_BREAK) != null ? parent.atts().get(AbstractFlowLayout.FLOW_BREAK)
-			: BreakPolicy.NEEDED;
 		final Size marginSz = parent.getStyle().getSelf().get(margin);
 		final Size paddingSz = parent.getStyle().getSelf().get(padding);
 
-		final boolean main = dir.getOrientation() == Orientation.horizontal;
+		final boolean major = dir.getOrientation() == Orientation.horizontal;
 
 		return new SizeGuide() {
 			@Override
-			public int getMinPreferred(int crossSize) {
-				return getLayoutSize(children, horizontal, minPref, bp, main, crossSize, marginSz, paddingSz);
-			}
-
-			@Override
-			public int getMaxPreferred(int crossSize) {
-				return getLayoutSize(children, horizontal, maxPref, bp, main, crossSize, marginSz, paddingSz);
-			}
-
-			@Override
 			public int getMin(int crossSize) {
-				return getLayoutSize(children, horizontal, min, bp, main, crossSize, marginSz, paddingSz);
+				return get(min, crossSize);
+			}
+
+			@Override
+			public int getMinPreferred(int crossSize) {
+				return get(minPref, crossSize);
 			}
 
 			@Override
 			public int getPreferred(int crossSize) {
-				return getLayoutSize(children, horizontal, pref, bp, main, crossSize, marginSz, paddingSz);
+				return get(pref, crossSize);
+			}
+
+			@Override
+			public int getMaxPreferred(int crossSize) {
+				return get(maxPref, crossSize);
 			}
 
 			@Override
 			public int getMax(int crossSize) {
-				return getLayoutSize(children, horizontal, max, bp, main, crossSize, marginSz, paddingSz);
+				return get(max, crossSize);
 			}
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize) {
-				return getLayoutSize(children, horizontal, type, bp, main, crossSize, marginSz, paddingSz);
+				if(major)
+					return getMajorSize(children, horizontal, type, Integer.MAX_VALUE, crossSize, marginSz, paddingSz);
+				else
+					return getMinorSize(children, horizontal, type, crossSize, Integer.MAX_VALUE, marginSz, paddingSz);
 			}
 		};
 	}
@@ -190,24 +192,17 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		throw new IllegalStateException("Unrecognized layout guide type: " + type);
 	}
 
-	public static void doLayout(MuisElement [] children, Orientation mainAxis, End end, BreakPolicy policy, int parallelSize,
-		int crossSize, Size marginSz, Size paddingSz) {
+	public static int getMajorSize(MuisElement [] children, Orientation orientation, LayoutGuideType type, int majorSize, int minorSize,
+		Size margin, Size padding) {
 		// TODO java's flowlayout uses a component's baseline. Not completely sure what this means or if it's worth implementing in MUIS,
 		// but it'd be a good thing to check into
-	}
-
-	public static int [] getMajorSize(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
-		int minorSize, Size margin, Size padding) {
 		int majSizeMax = 0;
 		int majSizeLine = 0;
 		int minSizeSum = 0;
 		int minSizeLine = 0;
-		for(MuisElement child : children){
+		for(MuisElement child : children) {
 			int chMajSz = LayoutUtils.getSize(child, orientation, type, 0, minorSize);
 			int chMinSz = LayoutUtils.getSize(child, orientation.opposite(), type, minorSize, Integer.MAX_VALUE);
-			if(policy != BreakPolicy.NEVER && type.isMin()) {
-
-			}
 			switch (type) {
 			case min:
 			case minPref:
@@ -215,6 +210,9 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			}
 		}
 	}
+
+	public static int getMinorSize(MuisElement [] children, Orientation orientation, LayoutGuideType type, int majorSize, int minorSize,
+		Size margin, Size padding) {
 
 	public static int [] getWithMinimumWraps(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
 		int parallelSize, int crossSize, boolean mainAxis, Size marginSz, Size paddingSz) {

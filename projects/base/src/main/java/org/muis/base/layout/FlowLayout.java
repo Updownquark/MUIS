@@ -13,18 +13,14 @@ import org.muis.core.layout.*;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 
-/**
- * Arranges components in order along a single axis, wrapping them to the next row or column according to its
- * {@link org.muis.base.layout.AbstractFlowLayout.BreakPolicy BreakPolicy}.
- */
+/** Arranges components in order along a single axis, wrapping them to the next row or column as needed. */
 public class FlowLayout implements org.muis.core.MuisLayout {
 	private final CompoundListener.MultiElementCompoundListener theListener;
 
 	/** Creates a flow layout */
 	public FlowLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, alignment, crossAlignment).watchAll(margin, padding)
-			.onChange(CompoundListener.layout);
+		theListener.acceptAll(direction, alignment, crossAlignment).watchAll(margin, padding).onChange(CompoundListener.layout);
 		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
 	}
 
@@ -49,7 +45,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getHSizer(MuisElement parent, final MuisElement [] children) {
 		if(checkForRelativeSizes(children))
-            return new org.muis.core.layout.SimpleSizeGuide();
+			return new org.muis.core.layout.SimpleSizeGuide();
 		Direction dir = parent.atts().get(direction);
 		if(dir == null)
 			dir = Direction.RIGHT;
@@ -60,32 +56,32 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize) {
-				return get(min, crossSize);
+			public int getMin(int crossSize, boolean csMax) {
+				return get(min, crossSize, csMax);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize) {
-				return get(minPref, crossSize);
+			public int getMinPreferred(int crossSize, boolean csMax) {
+				return get(minPref, crossSize, csMax);
 			}
 
 			@Override
-			public int getPreferred(int crossSize) {
-				return get(pref, crossSize);
+			public int getPreferred(int crossSize, boolean csMax) {
+				return get(pref, crossSize, csMax);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize) {
-				return get(maxPref, crossSize);
+			public int getMaxPreferred(int crossSize, boolean csMax) {
+				return get(maxPref, crossSize, csMax);
 			}
 
 			@Override
-			public int getMax(int crossSize) {
-				return get(max, crossSize);
+			public int getMax(int crossSize, boolean csMax) {
+				return get(max, crossSize, csMax);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize) {
+			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(major)
 					return getMajorSize(children, vertical, type, Integer.MAX_VALUE, crossSize, marginSz, paddingSz);
 				else
@@ -97,7 +93,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getWSizer(MuisElement parent, final MuisElement [] children) {
 		if(checkForRelativeSizes(children))
-            return new org.muis.core.layout.SimpleSizeGuide();
+			return new org.muis.core.layout.SimpleSizeGuide();
 		Direction dir = parent.atts().get(direction);
 		if(dir == null)
 			dir = Direction.RIGHT;
@@ -108,32 +104,32 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize) {
-				return get(min, crossSize);
+			public int getMin(int crossSize, boolean csMax) {
+				return get(min, crossSize, csMax);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize) {
-				return get(minPref, crossSize);
+			public int getMinPreferred(int crossSize, boolean csMax) {
+				return get(minPref, crossSize, csMax);
 			}
 
 			@Override
-			public int getPreferred(int crossSize) {
-				return get(pref, crossSize);
+			public int getPreferred(int crossSize, boolean csMax) {
+				return get(pref, crossSize, csMax);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize) {
-				return get(maxPref, crossSize);
+			public int getMaxPreferred(int crossSize, boolean csMax) {
+				return get(maxPref, crossSize, csMax);
 			}
 
 			@Override
-			public int getMax(int crossSize) {
-				return get(max, crossSize);
+			public int getMax(int crossSize, boolean csMax) {
+				return get(max, crossSize, csMax);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize) {
+			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(major)
 					return getMajorSize(children, horizontal, type, Integer.MAX_VALUE, crossSize, marginSz, paddingSz);
 				else
@@ -213,6 +209,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 	public static int getMinorSize(MuisElement [] children, Orientation orientation, LayoutGuideType type, int majorSize, int minorSize,
 		Size margin, Size padding) {
+	}
 
 	public static int [] getWithMinimumWraps(MuisElement [] children, Orientation orientation, LayoutGuideType type, BreakPolicy policy,
 		int parallelSize, int crossSize, boolean mainAxis, Size marginSz, Size paddingSz) {
@@ -245,37 +242,5 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			return squareOff(children, orientation, parallelSize, crossSize, mainAxis, breaks);
 		}
 		return new int[] {parSizeMax, crossSizeSum + crossSizeLine};
-	}
-
-	public static int [] squareOff(MuisElement [] children, Orientation orientation, int parallelSize, int crossSize, boolean mainAxis,
-		int minBreaks) {
-		if(childSizes.length == 0)
-			return new int[] {0, 0};
-		float ratio;
-		{
-			int along = 0;
-			int cross = 0;
-			for(int [] chSize : childSizes) {
-				along += chSize[0];
-				if(chSize[1] > cross)
-					cross = chSize[1];
-			}
-			ratio = along * 1.0f / cross;
-		}
-		float bestRatio = ratio;
-		int [] bestBreakIndexes = new int[0];
-		int [][] bestBreakSizes = new int[0][0];
-		for(int breaks = 1; breaks < childSizes.length && ratio > 0; breaks++) {
-			int [] breakIndexes = new int[breaks + 1];
-			for(int i = 0; i < breakIndexes.length; i++)
-				breakIndexes[i] = childSizes.length / i;
-			int [][] breakSizes = new int[breaks + 1][2];
-			for(int c = 0, index = 0; c < childSizes.length; c++) {
-				breakSizes[index][0] += childSizes[c][0];
-				if(childSizes[c][1] > breakSizes[index][1])
-					breakSizes[index][1] = childSizes[c][1];
-			}
-
-		}
 	}
 }

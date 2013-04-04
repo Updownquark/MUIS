@@ -381,7 +381,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 			return super.getWSizer();
 		case resize:
 			if(isProportionLocked)
-				return new ProportionalSizeGuide(w, h);
+				return new ProportionalSizeGuide(w, h, false);
 			else
 				return new SimpleSizeGuide(0, 0, w, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
@@ -412,7 +412,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 			return super.getHSizer();
 		case resize:
 			if(isProportionLocked)
-				return new ProportionalSizeGuide(h, w);
+				return new ProportionalSizeGuide(h, w, true);
 			else
 				return new SimpleSizeGuide(0, 0, h, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
@@ -518,9 +518,12 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 
 		private final int theCrossDim;
 
-		ProportionalSizeGuide(int main, int cross) {
+		private final boolean isVertical;
+
+		ProportionalSizeGuide(int main, int cross, boolean vertical) {
 			theMainDim = main;
 			theCrossDim = cross;
+			isVertical = vertical;
 		}
 
 		@Override
@@ -552,6 +555,11 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		@Override
 		public int getMax(int crossSize, boolean csMax) {
 			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getBaseline(int size) {
+			return isVertical ? size : 0;
 		}
 	}
 }

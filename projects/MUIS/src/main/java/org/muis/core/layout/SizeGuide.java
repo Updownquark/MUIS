@@ -46,4 +46,10 @@ public interface SizeGuide {
 	 * @return The size guide setting of the given type in this guide
 	 */
 	int get(LayoutGuideType type, int crossSize, boolean csMax);
+
+	/**
+	 * @param size The hypothetical size of the widget in this dimension
+	 * @return The location of the baseline in this dimension
+	 */
+	int getBaseline(int size);
 }

@@ -97,6 +97,13 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 					}
 					return ret;
 				}
+
+				@Override
+				public int getBaseline(int size) {
+					if(children.length == 0)
+						return 0;
+					return children[0].getWSizer().getBaseline(size);
+				}
 			};
 	}
 
@@ -178,6 +185,13 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 							ret = cpRes;
 					}
 					return ret;
+				}
+
+				@Override
+				public int getBaseline(int size) {
+					if(children.length == 0)
+						return size;
+					return children[0].getHSizer().getBaseline(size);
 				}
 			};
 	}

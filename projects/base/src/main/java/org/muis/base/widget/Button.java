@@ -81,13 +81,13 @@ public class Button extends org.muis.core.MuisTemplate {
 	@Override
 	public SizeGuide getWSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
+		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius, false);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
+		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius, true);
 	}
 
 	private static class RadiusAddSizePolicy extends org.muis.core.layout.AbstractSizeGuide {
@@ -95,9 +95,12 @@ public class Button extends org.muis.core.MuisTemplate {
 
 		private org.muis.core.style.Size theRadius;
 
-		RadiusAddSizePolicy(SizeGuide wrap, org.muis.core.style.Size rad) {
+		private boolean isVertical;
+
+		RadiusAddSizePolicy(SizeGuide wrap, org.muis.core.style.Size rad, boolean vertical) {
 			theWrapped = wrap;
 			theRadius = rad;
+			isVertical = vertical;
 		}
 
 		@Override
@@ -123,6 +126,14 @@ public class Button extends org.muis.core.MuisTemplate {
 		@Override
 		public int getMax(int crossSize, boolean csMax) {
 			return addRadius(theWrapped.getMax(removeRadius(crossSize), csMax));
+		}
+
+		@Override
+		public int getBaseline(int size) {
+			if(isVertical)
+				return removeRadius(size);
+			else
+				return addRadius(size);
 		}
 
 		int addRadius(int size) {

@@ -2,10 +2,11 @@ package org.muis.base.layout;
 
 import static org.muis.core.layout.LayoutAttributes.*;
 
-import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
 import org.muis.core.layout.*;
+import org.muis.core.layout.LayoutAttributes.PositionAttribute;
+import org.muis.core.layout.LayoutAttributes.SizeAttribute;
 import org.muis.core.style.Position;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
@@ -42,32 +43,30 @@ public class SimpleLayout implements MuisLayout {
 
 	@Override
 	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
-		return getSizer(children, LayoutAttributes.left, LayoutAttributes.right, LayoutAttributes.width, LayoutAttributes.minWidth,
-			LayoutAttributes.maxWidth, false, parent.atts().get(LayoutAttributes.maxInf));
+		return getSizer(children, Orientation.horizontal, parent.atts().get(LayoutAttributes.maxInf));
 	}
 
 	@Override
 	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
-		return getSizer(children, LayoutAttributes.top, LayoutAttributes.bottom, LayoutAttributes.height, LayoutAttributes.minHeight,
-			LayoutAttributes.maxHeight, true, parent.atts().get(LayoutAttributes.maxInf));
+		return getSizer(children, Orientation.vertical, parent.atts().get(LayoutAttributes.maxInf));
 	}
 
 	/**
 	 * Gets a sizer for a container in one dimension
 	 *
 	 * @param children The children to lay out
-	 * @param minPosAtt The attribute to control the minimum position of a child (left or top)
-	 * @param maxPosAtt The attribute to control the maximum position of a child (right or bottom)
-	 * @param sizeAtt The attribute to control the size of a child (width or height)
-	 * @param minSizeAtt The attribute to control the minimum size of a child (minWidth or minHeight)
-	 * @param maxSizeAtt The attribute to control the maximum size of a child (maxWidth or maxHeight)
-	 * @param vertical Whether the children are being sized in the vertical dimension or the horizontal
+	 * @param orient The orientation to get the sizer for
 	 * @param maxInfValue The value for the {@link LayoutAttributes#maxInf} attribute in the parent
 	 * @return The size policy for the container of the given children in the given dimension
 	 */
-	protected SizeGuide getSizer(final MuisElement [] children, final MuisAttribute<Position> minPosAtt,
-		final MuisAttribute<Position> maxPosAtt, final MuisAttribute<Size> sizeAtt, final MuisAttribute<Size> minSizeAtt,
-		final MuisAttribute<Size> maxSizeAtt, final boolean vertical, final Boolean maxInfValue) {
+	protected SizeGuide getSizer(final MuisElement [] children, final Orientation orient, final Boolean maxInfValue) {
+		final PositionAttribute minPosAtt = LayoutAttributes.getPosAtt(orient, End.leading, null);
+		final PositionAttribute maxPosAtt = LayoutAttributes.getPosAtt(orient, End.leading, null);
+		final SizeAttribute minSizeAtt = LayoutAttributes.getSizeAtt(orient, LayoutGuideType.min);
+		final SizeAttribute sizeAtt = LayoutAttributes.getSizeAtt(orient, null);
+		final SizeAttribute maxSizeAtt = LayoutAttributes.getSizeAtt(orient, LayoutGuideType.max);
+		final boolean vertical = orient == Orientation.vertical;
+
 		return new AbstractSizeGuide() {
 			private int theCachedCrossSize = -1;
 
@@ -118,6 +117,14 @@ public class SimpleLayout implements MuisLayout {
 					return theCachedSize.getMax(crossSize, csMax);
 				else
 					return theCachedCsMaxSize.getMax(crossSize, csMax);
+			}
+
+			@Override
+			public int getBaseline(int size) {
+				if(children.length == 0)
+					return 0;
+				Position pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
+				return children[0].bounds().get(orient).getGuide().getBaseline(size) + (pos == null ? 0 : pos.evaluate(size));
 			}
 
 			private void calculate(int crossSize) {

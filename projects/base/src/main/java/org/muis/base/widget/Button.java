@@ -101,28 +101,28 @@ public class Button extends org.muis.core.MuisTemplate {
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize) {
-			return addRadius(theWrapped.getMinPreferred(crossSize));
+		public int getMinPreferred(int crossSize, boolean csMax) {
+			return addRadius(theWrapped.getMinPreferred(crossSize, csMax));
 		}
 
 		@Override
-		public int getMaxPreferred(int crossSize) {
-			return addRadius(theWrapped.getMaxPreferred(crossSize));
+		public int getMaxPreferred(int crossSize, boolean csMax) {
+			return addRadius(theWrapped.getMaxPreferred(crossSize, csMax));
 		}
 
 		@Override
-		public int getMin(int crossSize) {
-			return addRadius(theWrapped.getMin(removeRadius(crossSize)));
+		public int getMin(int crossSize, boolean csMax) {
+			return addRadius(theWrapped.getMin(removeRadius(crossSize), csMax));
 		}
 
 		@Override
-		public int getPreferred(int crossSize) {
-			return addRadius(theWrapped.getPreferred(removeRadius(crossSize)));
+		public int getPreferred(int crossSize, boolean csMax) {
+			return addRadius(theWrapped.getPreferred(removeRadius(crossSize), csMax));
 		}
 
 		@Override
-		public int getMax(int crossSize) {
-			return addRadius(theWrapped.getMax(removeRadius(crossSize)));
+		public int getMax(int crossSize, boolean csMax) {
+			return addRadius(theWrapped.getMax(removeRadius(crossSize), csMax));
 		}
 
 		int addRadius(int size) {

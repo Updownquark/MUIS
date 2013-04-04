@@ -27,11 +27,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 		else
 			return new AbstractSizeGuide() {
 				@Override
-				public int getMinPreferred(int crossSize) {
+				public int getMinPreferred(int crossSize, boolean csMax) {
 					int ret = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMinPreferred(crossSize);
+						int cpRes = cp.getMinPreferred(crossSize, csMax);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -39,11 +39,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getMaxPreferred(int crossSize) {
+				public int getMaxPreferred(int crossSize, boolean csMax) {
 					int ret = Integer.MAX_VALUE;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMaxPreferred(crossSize);
+						int cpRes = cp.getMaxPreferred(crossSize, csMax);
 						if(cpRes < ret)
 							ret = cpRes;
 					}
@@ -51,11 +51,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getMin(int crossSize) {
+				public int getMin(int crossSize, boolean csMax) {
 					int ret = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMin(crossSize);
+						int cpRes = cp.getMin(crossSize, csMax);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -63,19 +63,19 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getPreferred(int crossSize) {
+				public int getPreferred(int crossSize, boolean csMax) {
 					int minPref = 0;
 					int maxPref = Integer.MAX_VALUE;
 					float sumPref = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMinPreferred(crossSize);
+						int cpRes = cp.getMinPreferred(crossSize, csMax);
 						if(cpRes > minPref)
 							minPref = cpRes;
-						cpRes = cp.getMaxPreferred(crossSize);
+						cpRes = cp.getMaxPreferred(crossSize, csMax);
 						if(cpRes > maxPref)
 							maxPref = cpRes;
-						sumPref = cp.getPreferred(crossSize);
+						sumPref = cp.getPreferred(crossSize, csMax);
 					}
 					sumPref /= children.length;
 					if(sumPref >= minPref && sumPref <= maxPref)
@@ -87,11 +87,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getMax(int crossSize) {
+				public int getMax(int crossSize, boolean csMax) {
 					int ret = Integer.MAX_VALUE;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMax(crossSize);
+						int cpRes = cp.getMax(crossSize, csMax);
 						if(cpRes < ret)
 							ret = cpRes;
 					}
@@ -109,11 +109,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 		else
 			return new AbstractSizeGuide() {
 				@Override
-				public int getMinPreferred(int crossSize) {
+				public int getMinPreferred(int crossSize, boolean csMax) {
 					int ret = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMinPreferred(crossSize);
+						int cpRes = cp.getMinPreferred(crossSize, csMax);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -121,11 +121,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getMaxPreferred(int crossSize) {
+				public int getMaxPreferred(int crossSize, boolean csMax) {
 					int ret = Integer.MAX_VALUE;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMaxPreferred(crossSize);
+						int cpRes = cp.getMaxPreferred(crossSize, csMax);
 						if(cpRes < ret)
 							ret = cpRes;
 					}
@@ -133,11 +133,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getMin(int crossSize) {
+				public int getMin(int crossSize, boolean csMax) {
 					int ret = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMin(crossSize);
+						int cpRes = cp.getMin(crossSize, csMax);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -145,19 +145,19 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getPreferred(int crossSize) {
+				public int getPreferred(int crossSize, boolean csMax) {
 					int minPref = 0;
 					int maxPref = Integer.MAX_VALUE;
 					float sumPref = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMinPreferred(crossSize);
+						int cpRes = cp.getMinPreferred(crossSize, csMax);
 						if(cpRes > minPref)
 							minPref = cpRes;
-						cpRes = cp.getMaxPreferred(crossSize);
+						cpRes = cp.getMaxPreferred(crossSize, csMax);
 						if(cpRes > maxPref)
 							maxPref = cpRes;
-						sumPref = cp.getPreferred(crossSize);
+						sumPref = cp.getPreferred(crossSize, csMax);
 					}
 					sumPref /= children.length;
 					if(sumPref >= minPref && sumPref <= maxPref)
@@ -169,11 +169,11 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				}
 
 				@Override
-				public int getMax(int crossSize) {
+				public int getMax(int crossSize, boolean csMax) {
 					int ret = Integer.MAX_VALUE;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMax(crossSize);
+						int cpRes = cp.getMax(crossSize, csMax);
 						if(cpRes < ret)
 							ret = cpRes;
 					}

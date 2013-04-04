@@ -524,27 +524,33 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize) {
-			return 0;
+		public int getMinPreferred(int crossSize, boolean csMax) {
+			if(csMax)
+				return 0;
+			else
+				return theMainDim * crossSize / theCrossDim;
 		}
 
 		@Override
-		public int getMaxPreferred(int crossSize) {
-			return Integer.MAX_VALUE;
-		}
-
-		@Override
-		public int getMin(int crossSize) {
+		public int getMaxPreferred(int crossSize, boolean csMax) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 
 		@Override
-		public int getPreferred(int crossSize) {
+		public int getMin(int crossSize, boolean csMax) {
+			if(csMax)
+				return 0;
+			else
+				return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getPreferred(int crossSize, boolean csMax) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 
 		@Override
-		public int getMax(int crossSize) {
+		public int getMax(int crossSize, boolean csMax) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 	}

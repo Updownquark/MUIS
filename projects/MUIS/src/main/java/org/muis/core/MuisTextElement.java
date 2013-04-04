@@ -141,31 +141,31 @@ public class MuisTextElement extends MuisLeaf {
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize) {
+			public int getMinPreferred(int crossSize, boolean csMax) {
 				getSizes(crossSize);
 				return theCachedMinHeight;
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize) {
+			public int getMaxPreferred(int crossSize, boolean csMax) {
 				getSizes(crossSize);
 				return theCachedMaxHeight;
 			}
 
 			@Override
-			public int getMin(int crossSize) {
+			public int getMin(int crossSize, boolean csMax) {
 				getSizes(crossSize);
 				return theCachedMinHeight;
 			}
 
 			@Override
-			public int getPreferred(int crossSize) {
+			public int getPreferred(int crossSize, boolean csMax) {
 				getSizes(crossSize);
 				return theCachedMaxHeight;
 			}
 
 			@Override
-			public int getMax(int crossSize) {
+			public int getMax(int crossSize, boolean csMax) {
 				getSizes(crossSize);
 				return theCachedMaxHeight;
 			}

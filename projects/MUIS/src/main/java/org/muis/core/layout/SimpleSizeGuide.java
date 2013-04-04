@@ -39,33 +39,33 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	}
 
 	@Override
-	public int getMinPreferred(int crossSize) {
+	public int getMinPreferred(int crossSize, boolean csMax) {
 		return theMinPref;
 	}
 
 	@Override
-	public int getMaxPreferred(int crossSize) {
+	public int getMaxPreferred(int crossSize, boolean csMax) {
 		return theMaxPref;
 	}
 
 	@Override
-	public int getMin(int crossSize) {
+	public int getMin(int crossSize, boolean csMax) {
 		return theMin;
 	}
 
 	@Override
-	public int getPreferred(int crossSize) {
+	public int getPreferred(int crossSize, boolean csMax) {
 		return thePref;
 	}
 
 	@Override
-	public int getMax(int crossSize) {
+	public int getMax(int crossSize, boolean csMax) {
 		return theMax;
 	}
 
 	/**
 	 * @param min The minimum size for the widget
-	 * @see #getMin(int)
+	 * @see #getMin(int, boolean)
 	 */
 	public void setMin(int min) {
 		theMin = min;
@@ -77,7 +77,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 
 	/**
 	 * @param minPref The minimum preferred size for the widget
-	 * @see #getMinPreferred(int)
+	 * @see #getMinPreferred(int, boolean)
 	 */
 	public void setMinPreferred(int minPref) {
 		theMinPref = minPref;
@@ -85,7 +85,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 
 	/**
 	 * @param pref The preferred size for the widget
-	 * @see #getPreferred(int)
+	 * @see #getPreferred(int, boolean)
 	 */
 	public void setPreferred(int pref) {
 		thePref = pref;
@@ -97,7 +97,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 
 	/**
 	 * @param maxPref The maximum preferred size for the widget
-	 * @see #getMaxPreferred(int)
+	 * @see #getMaxPreferred(int, boolean)
 	 */
 	public void setMaxPreferred(int maxPref) {
 		theMaxPref = maxPref;
@@ -105,7 +105,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 
 	/**
 	 * @param max The maximum size for the widget
-	 * @see #getMax(int)
+	 * @see #getMax(int, boolean)
 	 */
 	public void setMax(int max) {
 		theMax = max;
@@ -113,5 +113,13 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 			theMin = max;
 		if(max < thePref)
 			thePref = max;
+	}
+
+	public void set(int min, int minPref, int pref, int maxPref, int max) {
+		theMin = min;
+		theMinPref = minPref;
+		thePref = pref;
+		theMaxPref = maxPref;
+		theMax = max;
 	}
 }

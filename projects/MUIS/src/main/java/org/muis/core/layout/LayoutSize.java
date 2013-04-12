@@ -36,6 +36,11 @@ public class LayoutSize {
 		}
 	}
 
+	public void clear() {
+		thePixels = 0;
+		thePercents = 0;
+	}
+
 	public int getTotal() {
 		if(thePixels == 0)
 			return 0;

@@ -48,6 +48,7 @@ public class MuisTextElement extends MuisLeaf {
 			msg().error("Could not derive font");
 			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		}
+		SimpleSizeGuide ret = new SimpleSizeGuide();
 		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
 		int lineIdx = 0;
@@ -104,7 +105,7 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineW > max)
 					max = lineW;
 			}
-			return new SimpleSizeGuide(min, min, max, max, max);
+			ret.set(min, min, max, max, max);
 		} else {
 			int w = 0;
 			for(int c = 0; c < theText.length(); c++) {
@@ -129,8 +130,10 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineW > w)
 					w = lineW;
 			}
-			return new SimpleSizeGuide(w, w, w, w, w);
+			ret.set(w, w, w, w, w);
 		}
+		// TODO baseline
+		return ret;
 	}
 
 	@Override

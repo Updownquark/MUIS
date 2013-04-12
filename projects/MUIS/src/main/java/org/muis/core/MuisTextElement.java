@@ -13,6 +13,8 @@ import org.muis.core.layout.SizeGuide;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf {
+	private static final String DIVERSE_TEXT = "AjpQq";
+
 	private String theText;
 
 	/** Creates a MUIS text element */
@@ -132,7 +134,6 @@ public class MuisTextElement extends MuisLeaf {
 			}
 			ret.set(w, w, w, w, w);
 		}
-		// TODO baseline
 		return ret;
 	}
 
@@ -218,7 +219,7 @@ public class MuisTextElement extends MuisLeaf {
 				graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			else
 				graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-			base = Math.round(font.getLineMetrics("AjpQq", context).getAscent());
+			base = Math.round(font.getLineMetrics(DIVERSE_TEXT, context).getAscent());
 		}
 		int height = 0;
 		try {

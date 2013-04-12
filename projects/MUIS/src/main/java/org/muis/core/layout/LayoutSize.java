@@ -7,7 +7,7 @@ public class LayoutSize {
 
 	private int thePixels;
 
-	private float thePercents;
+	private float thePercent;
 
 	public int add(int pixels) {
 		int total = thePixels + pixels;
@@ -22,7 +22,15 @@ public class LayoutSize {
 	}
 
 	public void addPercent(float percent) {
-		thePercents += percent;
+		thePercent += percent;
+	}
+
+	public void setPixels(int pixels) {
+		thePixels = pixels;
+	}
+
+	public void setPercent(float percent) {
+		thePercent = percent;
 	}
 
 	public void add(Size size) {
@@ -36,17 +44,30 @@ public class LayoutSize {
 		}
 	}
 
+	public void add(LayoutSize size) {
+		thePixels += size.thePixels;
+		thePercent += size.thePercent;
+	}
+
 	public void clear() {
 		thePixels = 0;
-		thePercents = 0;
+		thePercent = 0;
+	}
+
+	public int getPixels() {
+		return thePixels;
+	}
+
+	public float getPercent() {
+		return thePercent;
 	}
 
 	public int getTotal() {
 		if(thePixels == 0)
 			return 0;
-		if(thePercents == 0)
+		if(thePercent == 0)
 			return thePixels;
-		float percents = thePercents;
+		float percents = thePercent;
 		if(percents >= PERCENT_THRESHOLD)
 			percents = PERCENT_THRESHOLD;
 		return Math.round(thePixels / (1 - percents / 100));

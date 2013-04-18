@@ -1,9 +1,7 @@
 package org.muis.base.layout;
 
 import org.muis.core.MuisElement;
-import org.muis.core.layout.LayoutAttributes;
-import org.muis.core.layout.LayoutGuideType;
-import org.muis.core.layout.Orientation;
+import org.muis.core.layout.*;
 import org.muis.core.style.Size;
 
 public class BaseLayoutUtils {
@@ -42,6 +40,10 @@ public class BaseLayoutUtils {
 		if(percent > 100)
 			percent = 95;
 		return Math.round(pixels / (1 - percent / 100));
+	}
+
+	public static int getBoxLayoutCrossSize(MuisElement [] children, Orientation orient, LayoutGuideType type, int mainSize,
+		boolean sizeMax, LayoutSize addTo) {
 	}
 
 	public static int getFlowLayoutSize(MuisElement [] children, Orientation flow, Orientation orient, LayoutGuideType type, int crossSize,

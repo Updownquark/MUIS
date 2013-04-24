@@ -4,11 +4,20 @@ import java.util.ArrayList;
 
 import org.muis.core.MuisElement;
 import org.muis.core.layout.*;
+import org.muis.core.style.Size;
 
 public class FlowLayoutTester {
 	private MuisElement [] theChildren;
 
 	private Orientation theOrientation;
+
+    private Size thePaddingX;
+
+    private Size thePaddingY;
+
+    private Size theMarginX;
+
+    private Size theMarginY;
 
 	private boolean [] theWraps;
 
@@ -22,7 +31,7 @@ public class FlowLayoutTester {
 
 	private final SizeGuide theCrossGuide;
 
-	public FlowLayoutTester(Orientation main, MuisElement... children) {
+    public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, MuisElement... children) {
 		theChildren = children;
 		theOrientation = main;
 		theWraps = new boolean[children.length - 1];
@@ -255,13 +264,14 @@ public class FlowLayoutTester {
 		for(boolean wrap : wraps)
 			if(wrap)
 				rowCount++;
-		int [] rowHeights = new int[rowCount];
+        Size[] rowHeights = new Size[rowCount];
+        int[] pixRowHeights;
 		Orientation crossOrient = theOrientation.opposite();
 		// Calculate the sum of the maximum of the preferred sizes for the widgets in each row
 		LayoutSize prefRowTotal = new LayoutSize();
 		int lastBreak = 0;
 		int rowIndex = 0;
-		int rowHeight;
+        Size rowHeight;
 		for(int c = 1; c < theChildren.length; c++) {
 			if(wraps[c]) {
 				rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.pref, crossSize);
@@ -275,8 +285,8 @@ public class FlowLayoutTester {
 		prefRowTotal.add(rowHeight);
 
 		if(prefRowTotal.getTotal() > crossSize) {
-			int [] prefRowHeights = rowHeights;
-			rowHeights = new int[rowCount];
+            Size[] prefRowHeights = rowHeights;
+            rowHeights = new Size[rowCount];
 			// Calculate the sum of the minimum of the preferred sizes for the widgets in each row
 			LayoutSize minRowTotal = new LayoutSize();
 			lastBreak = 0;
@@ -294,9 +304,9 @@ public class FlowLayoutTester {
 			minRowTotal.add(rowHeight);
 
 			if(minRowTotal.getTotal() <= crossSize) {
-				int [] minRowHeights = rowHeights;
-				int [] minPrefRowHeights = new int[rowCount];
-				rowHeights = new int[rowCount];
+                Size[] minRowHeights = rowHeights;
+                Size[] minPrefRowHeights = new Size[rowCount];
+                rowHeights = new Size[rowCount];
 				// Calculate the sum of the minimum of the min pref sizes for the widgets in each row
 				LayoutSize minPrefRowTotal = new LayoutSize();
 				lastBreak = 0;
@@ -313,31 +323,44 @@ public class FlowLayoutTester {
 				minPrefRowHeights[rowIndex++] = rowHeight;
 				minPrefRowTotal.add(rowHeight);
 
+                int[] pixMinPrefRowHeights = evaluateRowHeights(minPrefRowHeights);
+                pixRowHeights = new int[rowCount];
+
 				float prop;
 				if(minPrefRowTotal.getTotal() >= crossSize) {
+                    int[] pixMinRowHeights = evaluateRowHeights(minRowHeights);
 					prop = (crossSize - minRowTotal.getTotal()) * 1.0f / (minPrefRowTotal.getTotal() - minRowTotal.getTotal());
 					for(int r = 0; r < rowCount; r++)
-						rowHeights[r] = minRowHeights[r] + Math.round(prop * (minPrefRowHeights[r] - minRowHeights[r]));
+                        pixRowHeights[r] = pixMinRowHeights[r] + Math.round(prop * (pixMinPrefRowHeights[r] - pixMinRowHeights[r]));
 				} else {
+                    int[] pixPrefRowHeights = evaluateRowHeights(prefRowHeights);
 					prop = (crossSize - minPrefRowTotal.getTotal()) * 1.0f / (prefRowTotal.getTotal() - minPrefRowTotal.getTotal());
 					for(int r = 0; r < rowCount; r++)
-						rowHeights[r] = minPrefRowHeights[r] + Math.round(prop * (prefRowHeights[r] - minPrefRowHeights[r]));
+                        pixRowHeights[r] = pixMinPrefRowHeights[r] + Math.round(prop * (pixPrefRowHeights[r] - pixMinPrefRowHeights[r]));
 				}
 			}
-		}
+ else
+                pixRowHeights = evaluateRowHeights(rowHeights);
+        } else
+            pixRowHeights = evaluateRowHeights(rowHeights);
 		// Now calculate the vertical baseline for the first row
 		baseline[0] = 0;
 		for(int c = 0; c < theChildren.length; c++) {
-			int childBase = theChildren[c].bounds().get(crossOrient).getGuide().getBaseline(rowHeights[0]);
+            int childBase = theChildren[c].bounds().get(crossOrient).getGuide().getBaseline(pixRowHeights[0]);
 			if(childBase > baseline[0])
 				baseline[0] = childBase;
 			if(wraps[c])
 				break;
 		}
-		return rowHeights;
+        return pixRowHeights;
 	}
 
-	static int getMaxSize(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int size) {
+    private int[] evaluateRowHeights(Size[] minPrefRowHeights) {
+        return null;
+        // TODO Auto-generated method stub
+    }
+
+    static Size getMaxSize(MuisElement[] children, int start, int end, Orientation orient, LayoutGuideType type, int size) {
 		// Get the baseline to use for the row
 		int baseline = 0;
 		for(int c = start; c < end; c++) {
@@ -361,12 +384,16 @@ public class FlowLayoutTester {
 		return max;
 	}
 
-	static int getSumSize(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int crossSize,
+    int getSumSize(MuisElement[] children, int start, int end, Orientation orient, LayoutGuideType type, int crossSize,
 		boolean csMax) {
 		LayoutSize ret = new LayoutSize();
+        ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
 		for(int c = start; c < end; c++) {
 			LayoutUtils.getSize(children[c], orient, type, Integer.MAX_VALUE, crossSize, csMax, ret);
+            if (c != start)
+                ret.add(orient == Orientation.horizontal ? thePaddingX : thePaddingY);
 		}
+        ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
 		return ret.getTotal();
 	}
 

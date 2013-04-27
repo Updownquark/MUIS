@@ -11,13 +11,13 @@ public class FlowLayoutTester {
 
 	private Orientation theOrientation;
 
-    private Size thePaddingX;
+	private Size thePaddingX;
 
-    private Size thePaddingY;
+	private Size thePaddingY;
 
-    private Size theMarginX;
+	private Size theMarginX;
 
-    private Size theMarginY;
+	private Size theMarginY;
 
 	private boolean [] theWraps;
 
@@ -31,7 +31,7 @@ public class FlowLayoutTester {
 
 	private final SizeGuide theCrossGuide;
 
-    public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, MuisElement... children) {
+	public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, MuisElement... children) {
 		theChildren = children;
 		theOrientation = main;
 		theWraps = new boolean[children.length - 1];
@@ -73,7 +73,7 @@ public class FlowLayoutTester {
 		 * If there are no wraps or the first step fails to find a beneficial replacement wrap (i.e. rows are optimal for number of wraps)
 		 * then find the new wrap location that shortens the main length the most.
 		 */
-		int [] maxLen = new int[1];
+		LayoutSize maxLen = new LayoutSize();
 		if(findGoodWrapMovement(type, crossSize, csMax, maxLen))
 			return true;
 
@@ -86,7 +86,7 @@ public class FlowLayoutTester {
 			}
 			testWraps[c] = true;
 			int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
-			if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax) < maxLen[0]) {
+			if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 				theWraps[c] = true;
 				testRowHeights = null;
 				return true;
@@ -98,18 +98,17 @@ public class FlowLayoutTester {
 		return false;
 	}
 
-	private boolean findGoodWrapMovement(LayoutGuideType type, int crossSize, boolean csMax, int [] maxLen) {
+	private boolean findGoodWrapMovement(LayoutGuideType type, int crossSize, boolean csMax, LayoutSize maxLen) {
 		if(theChildren.length == 0)
 			return false;
 
 		int lineBreak = 0;
 		int [] rowHeights = getRowHeights(crossSize);
-		int [] rowLengths = new int[rowHeights.length];
+		LayoutSize [] rowLengths = new LayoutSize[rowHeights.length];
 		int [] rowCounts = new int[rowHeights.length];
 		int [] rowBeginIndices = new int[rowHeights.length];
 		rowBeginIndices[0] = 0;
 		int rowIndex = 0;
-		maxLen[0] = 0;
 		// Populate row lengths and wrap indices
 		for(int c = 0; c < theWraps.length; c++) {
 			if(!theWraps[c])
@@ -117,28 +116,28 @@ public class FlowLayoutTester {
 			rowCounts[rowIndex] = c + 1 - (rowIndex > 0 ? rowCounts[rowIndex - 1] : 0);
 			rowBeginIndices[rowIndex + 1] = c + 1;
 			rowLengths[rowIndex] = getSumSize(theChildren, lineBreak, c + 1, theOrientation, type, rowHeights[rowIndex], csMax);
-			if(rowLengths[rowIndex] > maxLen[0])
-				maxLen[0] = rowLengths[rowIndex];
+			if(rowLengths[rowIndex].getTotal() > maxLen.getTotal())
+				maxLen.set(rowLengths[rowIndex]);
 			lineBreak = c + 1;
 			rowIndex++;
 		}
 		rowCounts[rowIndex] = theChildren.length - (rowIndex > 0 ? rowCounts[rowIndex - 1] : 0);
 		rowLengths[rowIndex] = getSumSize(theChildren, lineBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], csMax);
-		if(rowLengths[rowIndex] > maxLen[0])
-			maxLen[0] = rowLengths[rowIndex];
+		if(rowLengths[rowIndex].getTotal() > maxLen.getTotal())
+			maxLen.set(rowLengths[rowIndex]);
 
 		// Try to replace wraps
 		boolean [] testWraps = new boolean[theWraps.length];
 		System.arraycopy(theWraps, 0, testWraps, 0, theWraps.length);
 		for(rowIndex = 0; rowIndex < rowHeights.length - 1; rowIndex++) {
-			if(rowLengths[rowIndex] < maxLen[0] && rowLengths[rowIndex + 1] < maxLen[0])
+			if(rowLengths[rowIndex].getTotal() < maxLen.getTotal() && rowLengths[rowIndex + 1].getTotal() < maxLen.getTotal())
 				continue; // Can't decrease the max length here
-			if(rowLengths[rowIndex] > rowLengths[rowIndex + 1] && rowCounts[rowIndex] > 1) {
+			if(rowLengths[rowIndex].getTotal() > rowLengths[rowIndex + 1].getTotal() && rowCounts[rowIndex] > 1) {
 				// Try moving the last child on the upper row down
 				testWraps[rowBeginIndices[rowIndex + 1] - 1] = true;
 				testWraps[rowBeginIndices[rowIndex + 1]] = false;
 				int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
-				if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax) < maxLen[0]) {
+				if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 					// Success!
 					theWraps[rowBeginIndices[rowIndex + 1] - 1] = true;
 					theWraps[rowBeginIndices[rowIndex + 1]] = false;
@@ -148,12 +147,12 @@ public class FlowLayoutTester {
 					testWraps[rowBeginIndices[rowIndex + 1] - 1] = false;
 					testWraps[rowBeginIndices[rowIndex + 1]] = true;
 				}
-			} else if(rowLengths[rowIndex] < rowLengths[rowIndex + 1] && rowCounts[rowIndex + 1] > 1) {
+			} else if(rowLengths[rowIndex].getTotal() < rowLengths[rowIndex + 1].getTotal() && rowCounts[rowIndex + 1] > 1) {
 				// Try moving the first child on the lower row up
 				testWraps[rowBeginIndices[rowIndex + 1] + 1] = true;
 				testWraps[rowBeginIndices[rowIndex + 1]] = false;
 				int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
-				if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax) < maxLen[0]) {
+				if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 					// Success!
 					theWraps[rowBeginIndices[rowIndex + 1] + 1] = true;
 					theWraps[rowBeginIndices[rowIndex + 1]] = false;
@@ -168,22 +167,20 @@ public class FlowLayoutTester {
 		return false;
 	}
 
-	private int getMaxLength(boolean [] wraps, int [] rowHeights, LayoutGuideType type, int crossSize, boolean csMax) {
-		int maxLen = 0;
+	private LayoutSize getMaxLength(boolean [] wraps, int [] rowHeights, LayoutGuideType type, int crossSize, boolean csMax) {
+		LayoutSize maxLen = new LayoutSize(true);
 		int lineBreak = 0;
 		int rowIndex = 0;
 		for(int c = 0; c < theWraps.length; c++) {
 			if(!theWraps[c])
 				continue;
-			int len = getSumSize(theChildren, lineBreak, c + 1, theOrientation, type, rowHeights[rowIndex], csMax);
-			if(len > maxLen)
-				maxLen = len;
+			LayoutSize len = getSumSize(theChildren, lineBreak, c + 1, theOrientation, type, rowHeights[rowIndex], csMax);
+			maxLen.add(len);
 			lineBreak = c + 1;
 			rowIndex++;
 		}
-		int len = getSumSize(theChildren, lineBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], csMax);
-		if(len > maxLen)
-			maxLen = len;
+		LayoutSize len = getSumSize(theChildren, lineBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], csMax);
+		maxLen.add(len);
 		return maxLen;
 	}
 
@@ -199,7 +196,7 @@ public class FlowLayoutTester {
 		 * If everything is wrapped or the first step fails to find a beneficial wrap movement (i.e. rows are optimal for number of wraps)
 		 * then find the new wrap location that shortens the main length the most.
 		 */
-		int [] maxLen = new int[1];
+		LayoutSize maxLen = new LayoutSize();
 		if(findGoodWrapMovement(type, crossSize, csMax, maxLen))
 			return true;
 
@@ -212,7 +209,7 @@ public class FlowLayoutTester {
 			}
 			testWraps[c] = false;
 			int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
-			if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax) < maxLen[0]) {
+			if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 				theWraps[c] = false;
 				testRowHeights = null;
 				return true;
@@ -264,14 +261,14 @@ public class FlowLayoutTester {
 		for(boolean wrap : wraps)
 			if(wrap)
 				rowCount++;
-        Size[] rowHeights = new Size[rowCount];
-        int[] pixRowHeights;
+		LayoutSize [] rowHeights = new LayoutSize[rowCount];
+		int [] pixRowHeights;
 		Orientation crossOrient = theOrientation.opposite();
 		// Calculate the sum of the maximum of the preferred sizes for the widgets in each row
 		LayoutSize prefRowTotal = new LayoutSize();
 		int lastBreak = 0;
 		int rowIndex = 0;
-        Size rowHeight;
+		LayoutSize rowHeight;
 		for(int c = 1; c < theChildren.length; c++) {
 			if(wraps[c]) {
 				rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.pref, crossSize);
@@ -285,8 +282,8 @@ public class FlowLayoutTester {
 		prefRowTotal.add(rowHeight);
 
 		if(prefRowTotal.getTotal() > crossSize) {
-            Size[] prefRowHeights = rowHeights;
-            rowHeights = new Size[rowCount];
+			LayoutSize [] prefRowHeights = rowHeights;
+			rowHeights = new LayoutSize[rowCount];
 			// Calculate the sum of the minimum of the preferred sizes for the widgets in each row
 			LayoutSize minRowTotal = new LayoutSize();
 			lastBreak = 0;
@@ -304,9 +301,9 @@ public class FlowLayoutTester {
 			minRowTotal.add(rowHeight);
 
 			if(minRowTotal.getTotal() <= crossSize) {
-                Size[] minRowHeights = rowHeights;
-                Size[] minPrefRowHeights = new Size[rowCount];
-                rowHeights = new Size[rowCount];
+				LayoutSize [] minRowHeights = rowHeights;
+				LayoutSize [] minPrefRowHeights = new LayoutSize[rowCount];
+				rowHeights = new LayoutSize[rowCount];
 				// Calculate the sum of the minimum of the min pref sizes for the widgets in each row
 				LayoutSize minPrefRowTotal = new LayoutSize();
 				lastBreak = 0;
@@ -323,44 +320,62 @@ public class FlowLayoutTester {
 				minPrefRowHeights[rowIndex++] = rowHeight;
 				minPrefRowTotal.add(rowHeight);
 
-                int[] pixMinPrefRowHeights = evaluateRowHeights(minPrefRowHeights);
-                pixRowHeights = new int[rowCount];
+				int [] pixMinPrefRowHeights = evaluateRowHeights(minPrefRowHeights);
+				pixRowHeights = new int[rowCount];
 
 				float prop;
 				if(minPrefRowTotal.getTotal() >= crossSize) {
-                    int[] pixMinRowHeights = evaluateRowHeights(minRowHeights);
+					int [] pixMinRowHeights = evaluateRowHeights(minRowHeights);
 					prop = (crossSize - minRowTotal.getTotal()) * 1.0f / (minPrefRowTotal.getTotal() - minRowTotal.getTotal());
 					for(int r = 0; r < rowCount; r++)
-                        pixRowHeights[r] = pixMinRowHeights[r] + Math.round(prop * (pixMinPrefRowHeights[r] - pixMinRowHeights[r]));
+						pixRowHeights[r] = pixMinRowHeights[r] + Math.round(prop * (pixMinPrefRowHeights[r] - pixMinRowHeights[r]));
 				} else {
-                    int[] pixPrefRowHeights = evaluateRowHeights(prefRowHeights);
+					int [] pixPrefRowHeights = evaluateRowHeights(prefRowHeights);
 					prop = (crossSize - minPrefRowTotal.getTotal()) * 1.0f / (prefRowTotal.getTotal() - minPrefRowTotal.getTotal());
 					for(int r = 0; r < rowCount; r++)
-                        pixRowHeights[r] = pixMinPrefRowHeights[r] + Math.round(prop * (pixPrefRowHeights[r] - pixMinPrefRowHeights[r]));
+						pixRowHeights[r] = pixMinPrefRowHeights[r] + Math.round(prop * (pixPrefRowHeights[r] - pixMinPrefRowHeights[r]));
 				}
-			}
- else
-                pixRowHeights = evaluateRowHeights(rowHeights);
-        } else
-            pixRowHeights = evaluateRowHeights(rowHeights);
+			} else
+				pixRowHeights = evaluateRowHeights(rowHeights);
+		} else
+			pixRowHeights = evaluateRowHeights(rowHeights);
 		// Now calculate the vertical baseline for the first row
 		baseline[0] = 0;
 		for(int c = 0; c < theChildren.length; c++) {
-            int childBase = theChildren[c].bounds().get(crossOrient).getGuide().getBaseline(pixRowHeights[0]);
+			int childBase = theChildren[c].bounds().get(crossOrient).getGuide().getBaseline(pixRowHeights[0]);
 			if(childBase > baseline[0])
 				baseline[0] = childBase;
 			if(wraps[c])
 				break;
 		}
-        return pixRowHeights;
+		return pixRowHeights;
 	}
 
-    private int[] evaluateRowHeights(Size[] minPrefRowHeights) {
-        return null;
-        // TODO Auto-generated method stub
-    }
+	private int [] evaluateRowHeights(LayoutSize [] rowHeights) {
+		LayoutSize totalHeight = new LayoutSize();
+		totalHeight.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
+		totalHeight.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
+		for(int i = 0; i < rowHeights.length; i++) {
+			if(i > 0)
+				totalHeight.add(theOrientation == Orientation.vertical ? thePaddingX : thePaddingY);
+			totalHeight.add(rowHeights[i]);
+		}
+		int th = totalHeight.getTotal();
+		int [] ret = new int[rowHeights.length];
+		for(int i = 0; i < rowHeights.length; i++) {
+			if(rowHeights[i].getPercent() > 0) {
+				int percentEval = Math.round(rowHeights[i].getPercent() * th);
+				if(percentEval > rowHeights[i].getPixels())
+					ret[i] = percentEval;
+				else
+					ret[i] = rowHeights[i].getPixels();
+			} else
+				ret[i] = rowHeights[i].getPixels();
+		}
+		return ret;
+	}
 
-    static Size getMaxSize(MuisElement[] children, int start, int end, Orientation orient, LayoutGuideType type, int size) {
+	LayoutSize getMaxSize(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int size) {
 		// Get the baseline to use for the row
 		int baseline = 0;
 		for(int c = start; c < end; c++) {
@@ -370,31 +385,31 @@ public class FlowLayoutTester {
 			if(childBase > baseline)
 				baseline = childBase;
 		}
-		int max = 0;
+		LayoutSize max = new LayoutSize(true);
+		LayoutSize temp = new LayoutSize();
 		for(int c = start; c < end; c++) {
-			int childSize = LayoutUtils.getSize(children[c], orient, type, 0, Integer.MAX_VALUE, true, null);
+			int childSize = LayoutUtils.getSize(children[c], orient, type, 0, Integer.MAX_VALUE, true, temp);
 			SizeGuide guide = children[c].bounds().get(orient).getGuide();
 			int childBase = guide.getBaseline(childSize);
 			if(childBase >= 0) {
-				childSize += baseline - childBase;
+				temp.add(baseline - childBase);
 			}
-			if(childSize > max)
-				max = childSize;
+			max.add(temp);
 		}
 		return max;
 	}
 
-    int getSumSize(MuisElement[] children, int start, int end, Orientation orient, LayoutGuideType type, int crossSize,
+	LayoutSize getSumSize(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int crossSize,
 		boolean csMax) {
 		LayoutSize ret = new LayoutSize();
-        ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
+		ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
 		for(int c = start; c < end; c++) {
 			LayoutUtils.getSize(children[c], orient, type, Integer.MAX_VALUE, crossSize, csMax, ret);
-            if (c != start)
-                ret.add(orient == Orientation.horizontal ? thePaddingX : thePaddingY);
+			if(c != start)
+				ret.add(orient == Orientation.horizontal ? thePaddingX : thePaddingY);
 		}
-        ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
-		return ret.getTotal();
+		ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
+		return ret;
 	}
 
 	private class FlowLayoutTesterMainSizeGuide implements SizeGuide {
@@ -426,20 +441,21 @@ public class FlowLayoutTester {
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 			int [] rowHeights = getRowHeights(crossSize);
-			int max = 0;
+			LayoutSize max = new LayoutSize(true);
 			int lastBreak = 0;
 			int rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
-				if(theWraps[c]) {
-					int rowSize = getSumSize(theChildren, lastBreak, c, theOrientation, type, rowHeights[rowIndex], csMax || type.isPref());
-					if(rowSize > max)
-						max = rowSize;
-				}
+				if(theWraps[c - 1])
+					max.add(getSumSize(theChildren, lastBreak, c, theOrientation, type, rowHeights[rowIndex], csMax || type.isPref()));
 			}
-			int rowSize = getSumSize(theChildren, lastBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], type.isPref());
-			if(rowSize > max)
-				max = rowSize;
-			return max;
+			max.add(getSumSize(theChildren, lastBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], type.isPref()));
+			max = new LayoutSize(max);
+			max.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
+			max.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
+			for(boolean wrap : theWraps)
+				if(wrap)
+					max.add(theOrientation == Orientation.vertical ? thePaddingX : thePaddingY);
+			return max.getTotal();
 		}
 
 		@Override

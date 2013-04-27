@@ -9,12 +9,33 @@ public class LayoutSize {
 
 	private float thePercent;
 
+	private boolean isMax;
+
+	public LayoutSize() {
+		this(false);
+	}
+
+	public LayoutSize(boolean max) {
+		isMax = max;
+	}
+
+	public LayoutSize(LayoutSize size) {
+		thePixels = size.thePixels;
+		thePercent = size.thePercent;
+	}
+
 	public int add(int pixels) {
-		int total = thePixels + pixels;
-		if(total < 0)
-			total = Integer.MAX_VALUE;
-		thePixels = total;
-		return total;
+		if(isMax) {
+			if(pixels > thePixels)
+				thePixels = pixels;
+			return thePixels;
+		} else {
+			int total = thePixels + pixels;
+			if(total < 0)
+				total = Integer.MAX_VALUE;
+			thePixels = total;
+			return total;
+		}
 	}
 
 	public void minus(int pixels) {
@@ -22,7 +43,11 @@ public class LayoutSize {
 	}
 
 	public void addPercent(float percent) {
-		thePercent += percent;
+		if(isMax) {
+			if(percent > thePercent)
+				thePercent = percent;
+		} else
+			thePercent += percent;
 	}
 
 	public void setPixels(int pixels) {
@@ -45,8 +70,13 @@ public class LayoutSize {
 	}
 
 	public void add(LayoutSize size) {
-		thePixels += size.thePixels;
-		thePercent += size.thePercent;
+		add(size.thePixels);
+		addPercent(size.thePercent);
+	}
+
+	public void set(LayoutSize size) {
+		thePixels = size.thePixels;
+		thePercent = size.thePercent;
 	}
 
 	public void clear() {

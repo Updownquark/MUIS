@@ -212,6 +212,7 @@ public class LayoutAttributes {
 		throw new IllegalArgumentException("Unrecognized layout orientation type: " + orient);
 	}
 
+	/** @return All standard size attributes */
 	public static SizeAttribute [] getSizeAttributes() {
 		return new SizeAttribute[] {width, minWidth, maxWidth, height, minHeight, maxHeight};
 	}
@@ -236,8 +237,8 @@ public class LayoutAttributes {
 		Direction.class));
 
 	/** Orientation for a layout or component */
-	public static final MuisAttribute<Orientation> orientation = new MuisAttribute<>("orientation",
-		new MuisProperty.MuisEnumProperty<>(Orientation.class));
+	public static final MuisAttribute<Orientation> orientation = new MuisAttribute<>("orientation", new MuisProperty.MuisEnumProperty<>(
+		Orientation.class));
 
 	/** Alignment of components within a container along the major axis of the container or layout */
 	public static final MuisAttribute<Alignment> alignment = new MuisAttribute<>("align", new MuisProperty.MuisEnumProperty<>(
@@ -248,9 +249,15 @@ public class LayoutAttributes {
 		Alignment.class));
 
 	/** Edge (or center) of a container */
-	public static final MuisAttribute<Region> region = new MuisAttribute<>("region",
-		new MuisProperty.MuisEnumProperty<>(Region.class));
+	public static final MuisAttribute<Region> region = new MuisAttribute<>("region", new MuisProperty.MuisEnumProperty<>(Region.class));
 
-	/** Specifies that a container should report an infinite maximum size, regardless of its contents */
-	public static final MuisAttribute<Boolean> maxInf = new MuisAttribute<>("max-inf", MuisProperty.boolAttr);
+	/**
+	 * <ul>
+	 * <li><b>If true:</b> The container's maximum size will be related to the sizes of its contents. These contents will fill out the
+	 * container's available space even if the container is sized larger than its maximum.</li>
+	 * <li><b>If false:</b> Typically the default. The container's maximum size is infinite. Its contents will be sized no larger than their
+	 * {@link LayoutGuideType#maxPref preferred maximum} sizes even if the container's size allows much more room.</li>
+	 * </ul>
+	 */
+	public static final MuisAttribute<Boolean> fillContainer = new MuisAttribute<>("fill-container", MuisProperty.boolAttr);
 }

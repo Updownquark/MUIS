@@ -257,6 +257,15 @@ public class AttributeManager {
 	}
 
 	/**
+	 * @param attr The attribute to check
+	 * @return Whether a value is set in this attribute manager for the given attribute
+	 */
+	public final boolean isSet(MuisAttribute<?> attr) {
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
+		return holder != null && holder.getAttribute().equals(attr) && holder.getValue() != null;
+	}
+
+	/**
 	 * Gets the value of an attribute in this element
 	 *
 	 * @param <T> The type of the attribute to get

@@ -6,6 +6,7 @@ import org.muis.core.MuisElement;
 import org.muis.core.layout.*;
 import org.muis.core.style.Size;
 
+/** Allows a flow layout to quickly test out different wrapping configurations for a set of widgets */
 public class FlowLayoutTester {
 	private MuisElement [] theChildren;
 
@@ -31,6 +32,14 @@ public class FlowLayoutTester {
 
 	private final SizeGuide theCrossGuide;
 
+	/**
+	 * @param main The main axis of the flow layout
+	 * @param paddingX The padding size in the x-direction
+	 * @param paddingY The padding size in the y-direction
+	 * @param marginX The margin size in the x-direction
+	 * @param marginY The margin size in the y-direction
+	 * @param children The children to lay out
+	 */
 	public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, MuisElement... children) {
 		theChildren = children;
 		theOrientation = main;
@@ -39,20 +48,24 @@ public class FlowLayoutTester {
 		theCrossGuide = new FlowLayoutTesterCrossSizeGuide();
 	}
 
+	/** @return The size guide along the main axis of the flow layout */
 	public SizeGuide main() {
 		return theMainGuide;
 	}
 
+	/** @return The size guide along the opposite axis of the flow layout */
 	public SizeGuide cross() {
 		return theCrossGuide;
 	}
 
+	/** Causes all children to be wrapped */
 	public void wrapAll() {
 		theRowHeights = null;
 		for(int i = 0; i < theWraps.length; i++)
 			theWraps[i] = true;
 	}
 
+	/** Causes all children to be unwrapped */
 	public void unwrapAll() {
 		theRowHeights = null;
 		for(int i = 0; i < theWraps.length; i++)
@@ -63,6 +76,8 @@ public class FlowLayoutTester {
 	 * Wraps at the next spot where it shortens the main length the most, according to the given size type
 	 *
 	 * @param type The size type to shorten the most by the wrap
+	 * @param crossSize The cross size to find the next wrap for
+	 * @param csMax Whether crossSize is a maximum or a real widget size
 	 * @return True if the wrapping was changed; false if all components are already wrapped
 	 */
 	public boolean wrapNext(LayoutGuideType type, int crossSize, boolean csMax) {
@@ -187,7 +202,9 @@ public class FlowLayoutTester {
 	/**
 	 * Unwraps at the next spot where it shortens the cross length the most, according to the given size type
 	 *
-	 * @param type The size type to shorten the most by the wrap
+	 * @param type The size type to shorten the most by the unwrap
+	 * @param crossSize The cross size to find the next unwrap for
+	 * @param csMax Whether crossSize is a maximum or a real widget size
 	 * @return True if the wrapping was changed; false if no components are wrapped
 	 */
 	public boolean unwrapNext(LayoutGuideType type, int crossSize, boolean csMax) {
@@ -221,6 +238,10 @@ public class FlowLayoutTester {
 		return false;
 	}
 
+	/**
+	 * @param childIndex The index of the child to set the wrap after
+	 * @param wrapped Whether to wrap after the given child
+	 */
 	public void setWrappedAfter(int childIndex, boolean wrapped) {
 		if(theWraps[childIndex] == wrapped)
 			return;

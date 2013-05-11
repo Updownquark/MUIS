@@ -7,5 +7,4 @@ public interface Bounds {
 	 * @return The bounds in the given dimension
 	 */
 	public abstract BoundsDimension get(Orientation orientation);
-
 }

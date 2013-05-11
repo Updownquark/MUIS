@@ -18,7 +18,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	/** Creates a flow layout */
 	public FlowLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, alignment, crossAlignment).watchAll(margin, padding).onChange(CompoundListener.layout);
+		theListener.acceptAll(direction, alignment, crossAlignment, fillContainer).watchAll(margin, padding)
+			.onChange(CompoundListener.layout);
 		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
 	}
 
@@ -41,59 +42,60 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(MuisElement parent, final MuisElement [] children) {
-		Direction dir = parent.atts().isSet(direction) ? parent.atts().get(direction) : Direction.RIGHT;
-		final Size marginSz = parent.getStyle().getSelf().get(margin);
-		final Size paddingSz = parent.getStyle().getSelf().get(padding);
-		final boolean major = dir.getOrientation() == Orientation.horizontal;
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
+		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Size marginSz = parent.getStyle().getSelf().get(margin);
+		Size paddingSz = parent.getStyle().getSelf().get(padding);
+		boolean fill = parent.atts().get(fillContainer, false);
+		boolean major = dir.getOrientation() == Orientation.horizontal;
 
-		return getSizer(dir, marginSz, paddingSz, major, children);
+		return getSizer(dir, marginSz, paddingSz, fill, major, children);
 	}
 
 	@Override
-	public SizeGuide getHSizer(MuisElement parent, final MuisElement [] children) {
-		final Direction dir = parent.atts().isSet(direction) ? parent.atts().get(direction) : Direction.RIGHT;
-		final Size marginSz = parent.getStyle().getSelf().get(margin);
-		final Size paddingSz = parent.getStyle().getSelf().get(padding);
-		final boolean major = dir.getOrientation() == vertical;
-		return getSizer(dir, marginSz, paddingSz, major, children);
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
+		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Size marginSz = parent.getStyle().getSelf().get(margin);
+		Size paddingSz = parent.getStyle().getSelf().get(padding);
+		boolean fill = parent.atts().get(fillContainer, false);
+		boolean major = dir.getOrientation() == vertical;
+
+		return getSizer(dir, marginSz, paddingSz, fill, major, children);
 	}
 
-	private SizeGuide getSizer(final Direction dir, final Size marginSz, final Size paddingSz, final boolean major,
+	private SizeGuide getSizer(final Direction dir, final Size marginSz, final Size paddingSz, final boolean fill, final boolean major,
 		final MuisElement [] children) {
 		return new AbstractSizeGuide() {
 			private FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, children);
 
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
-				if(major){
+				if(major) {
 					tester.wrapAll();
-					if(crossSize<Integer.MAX_VALUE){
-						while(tester.cross().getMin(Integer.MAX_VALUE, true)>crossSize && tester.unwrapNext(min, crossSize, csMax));
-					}
+					if(crossSize < Integer.MAX_VALUE)
+						while(tester.cross().getMin(Integer.MAX_VALUE, true) > crossSize && tester.unwrapNext(min, crossSize, csMax));
 					return tester.main().getMin(crossSize, csMax);
-				} else{
+				} else {
 					tester.unwrapAll();
-					if(crossSize<Integer.MAX_VALUE){
-						while(tester.main().getMin(Integer.MAX_VALUE, true)>crossSize && tester.wrapNext(min, Integer.MAX_VALUE, true));
-					}
+					if(crossSize < Integer.MAX_VALUE)
+						while(tester.main().getMin(Integer.MAX_VALUE, true) > crossSize && tester.wrapNext(min, Integer.MAX_VALUE, true));
 					return tester.cross().getMin(crossSize, csMax);
 				}
 			}
 
 			@Override
 			public int getMinPreferred(int crossSize, boolean csMax) {
-				if(major){
+				if(major) {
 					tester.wrapAll();
-					if(crossSize<Integer.MAX_VALUE){
-						while(tester.cross().getMinPreferred(Integer.MAX_VALUE, true)>crossSize && tester.unwrapNext(minPref, crossSize, csMax));
-					}
+					if(crossSize < Integer.MAX_VALUE)
+						while(tester.cross().getMinPreferred(Integer.MAX_VALUE, true) > crossSize
+							&& tester.unwrapNext(minPref, crossSize, csMax));
 					return tester.main().getMinPreferred(crossSize, csMax);
-				} else{
+				} else {
 					tester.unwrapAll();
-					if(crossSize<Integer.MAX_VALUE){
-						while(tester.main().getMinPreferred(Integer.MAX_VALUE, true)>crossSize && tester.wrapNext(minPref, Integer.MAX_VALUE, true));
-					}
+					if(crossSize < Integer.MAX_VALUE)
+						while(tester.main().getMinPreferred(Integer.MAX_VALUE, true) > crossSize
+							&& tester.wrapNext(minPref, Integer.MAX_VALUE, true));
 					return tester.cross().getMinPreferred(crossSize, csMax);
 				}
 			}
@@ -101,18 +103,19 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			@Override
 			public int getPreferred(int crossSize, boolean csMax) {
 				tester.unwrapAll();
-				if(major){
+				if(major)
 					return tester.main().getPreferred(crossSize, csMax);
-				} else {
-					if(csMax){
-						while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true)<crossSize && tester.wrapNext(maxPref, crossSize, csMax));
-						boolean wrappedOnPref=false;
-						while(tester.main().getPreferred(Integer.MAX_VALUE, true)<crossSize && tester.wrapNext(pref, crossSize, csMax)){
-							wrappedOnPref=true;
+				else {
+					if(csMax) {
+						while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true) < crossSize
+							&& tester.wrapNext(maxPref, crossSize, csMax));
+						boolean wrappedOnPref = false;
+						while(tester.main().getPreferred(Integer.MAX_VALUE, true) < crossSize && tester.wrapNext(pref, crossSize, csMax)) {
+							wrappedOnPref = true;
 						}
-						if(wrappedOnPref && tester.main().getPreferred(Integer.MAX_VALUE, true)>crossSize)
+						if(wrappedOnPref && tester.main().getPreferred(Integer.MAX_VALUE, true) > crossSize)
 							tester.unwrapNext(pref, crossSize, csMax);
-					} else{
+					} else {
 						// TODO Here's where we would square things up for square style
 					}
 					return tester.cross().getPreferred(crossSize, csMax);
@@ -121,20 +124,20 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
-				if(major){
+				if(major)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), maxPref, crossSize, csMax);
-				} else{
+				else
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), maxPref, crossSize, csMax);
-				}
 			}
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
-				if(major){
+				if(fill)
+					return Integer.MAX_VALUE;
+				else if(major)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), max, crossSize, csMax);
-				} else{
+				else
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), max, crossSize, csMax);
-				}
 			}
 
 			@Override
@@ -146,10 +149,19 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 	@Override
 	public void layout(MuisElement parent, MuisElement [] children) {
-		Direction dir = parent.atts().isSet(direction) ? parent.atts().get(direction) : Direction.RIGHT;
+		Direction dir = parent.atts().get(direction, Direction.RIGHT);
 		Size marginSz = parent.getStyle().getSelf().get(margin);
 		Size paddingSz = parent.getStyle().getSelf().get(padding);
+		boolean fill = parent.atts().get(fillContainer, false);
+		Alignment align = parent.atts().get(alignment, dir.getStartEnd() == End.leading ? Alignment.begin : Alignment.end);
+		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.center);
 		FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, children);
+		/* tester starts off unwrapped.
+		 * while the preferred major size is greater than the major length and the preferred minor size <= the minor length, wrap.
+		 * if the container is too small, unwrap all and try the procedure above with preferred min sizes
+		 * if still too small, unwrap all and do with min sizes
+		 * if preferred still has lots of room, try with preferred max sizes
+		 */
 		// TODO
 	}
 }

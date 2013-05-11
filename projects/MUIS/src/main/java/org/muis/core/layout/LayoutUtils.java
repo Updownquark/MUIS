@@ -6,8 +6,14 @@ import org.muis.core.style.Size;
 public class LayoutUtils {
 	public static int getSize(MuisElement element, Orientation orientation, LayoutGuideType type, int parallelSize, int crossSize,
 		boolean csMax, LayoutSize addTo) {
-		LayoutAttributes.SizeAttribute att = LayoutAttributes.getSizeAtt(orientation, type);
-		Size ret = element.atts().get(att);
+		LayoutAttributes.SizeAttribute att;
+		Size ret;
+		att = LayoutAttributes.getSizeAtt(orientation, null);
+		ret = element.atts().get(att);
+		if(ret == null && type != null) {
+			att = LayoutAttributes.getSizeAtt(orientation, type);
+			ret = element.atts().get(att);
+		}
 		if(ret != null) {
 			if(addTo != null) {
 				switch (ret.getUnit()) {

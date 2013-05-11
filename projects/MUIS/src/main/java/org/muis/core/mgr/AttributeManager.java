@@ -266,18 +266,30 @@ public class AttributeManager {
 	}
 
 	/**
-	 * Gets the value of an attribute in this element
+	 * Gets the value of an attribute in this manager
 	 *
 	 * @param <T> The type of the attribute to get
 	 * @param attr The attribute to get the value of
-	 * @return The value of the attribute in this element
+	 * @return The value of the attribute in this manager, or null if the attribute is not set
 	 */
 	public final <T> T get(MuisAttribute<T> attr) {
+		return get(attr, null);
+	}
+
+	/**
+	 * Gets the value of an attribute in this manager, returning a default value if the attribute is not set
+	 * 
+	 * @param <T> The type of the attribute to get
+	 * @param attr The attribute to get the value of
+	 * @param def The default value to return if the attribute is not set in this manager
+	 * @return The value of the attribute in this manager, or <code>def</code> if the attribute is not set
+	 */
+	public final <T> T get(MuisAttribute<T> attr, T def) {
 		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.getName());
 		if(storedAttr == null)
-			return null;
+			return def;
 		if(!storedAttr.theAttr.equals(attr))
-			return null; // Same name, but different attribute
+			return def; // Same name, but different attribute
 		return (T) storedAttr.theValue;
 	}
 

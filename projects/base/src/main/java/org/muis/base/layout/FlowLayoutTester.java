@@ -20,6 +20,8 @@ public class FlowLayoutTester {
 
 	private Size theMarginY;
 
+	private boolean isFillContainer;
+
 	private boolean [] theWraps;
 
 	private int theCachedCrossSize;
@@ -38,11 +40,17 @@ public class FlowLayoutTester {
 	 * @param paddingY The padding size in the y-direction
 	 * @param marginX The margin size in the x-direction
 	 * @param marginY The margin size in the y-direction
+	 * @param fillContainer The {@link LayoutAttributes#fillContainer} value for the container
 	 * @param children The children to lay out
 	 */
-	public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, MuisElement... children) {
+	public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, boolean fillContainer,
+		MuisElement... children) {
 		theChildren = children;
 		theOrientation = main;
+		thePaddingX = paddingX;
+		thePaddingY = paddingY;
+		theMarginX = marginX;
+		isFillContainer = fillContainer;
 		theWraps = new boolean[children.length - 1];
 		theMainGuide = new FlowLayoutTesterMainSizeGuide();
 		theCrossGuide = new FlowLayoutTesterCrossSizeGuide();

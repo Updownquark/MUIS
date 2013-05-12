@@ -66,7 +66,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	private SizeGuide getSizer(final Direction dir, final Size marginSz, final Size paddingSz, final boolean fill, final boolean major,
 		final MuisElement [] children) {
 		return new AbstractSizeGuide() {
-			private FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, children);
+			private FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, fill,
+				children);
 
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -155,7 +156,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		boolean fill = parent.atts().get(fillContainer, false);
 		Alignment align = parent.atts().get(alignment, dir.getStartEnd() == End.leading ? Alignment.begin : Alignment.end);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.center);
-		FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, children);
+		FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, fill, children);
 		/* tester starts off unwrapped.
 		 * while the preferred major size is greater than the major length and the preferred minor size <= the minor length, wrap.
 		 * if the container is too small, unwrap all and try the procedure above with preferred min sizes

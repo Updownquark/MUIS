@@ -278,7 +278,7 @@ public class AttributeManager {
 
 	/**
 	 * Gets the value of an attribute in this manager, returning a default value if the attribute is not set
-	 * 
+	 *
 	 * @param <T> The type of the attribute to get
 	 * @param attr The attribute to get the value of
 	 * @param def The default value to return if the attribute is not set in this manager
@@ -288,7 +288,7 @@ public class AttributeManager {
 		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.getName());
 		if(storedAttr == null)
 			return def;
-		if(!storedAttr.theAttr.equals(attr))
+		if(!storedAttr.theAttr.equals(attr) || storedAttr.theValue == null)
 			return def; // Same name, but different attribute
 		return (T) storedAttr.theValue;
 	}

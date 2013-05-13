@@ -66,10 +66,10 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 				if(oldParentStyle != null) {
 					if(event.getValue() != null) {
 						theParentStyle = event.getValue().getStyle();
-						replaceDependency(oldParentStyle, theParentStyle);
+						replaceDependency(oldParentStyle.getHeir(), theParentStyle.getHeir());
 					} else {
 						theParentStyle = null;
-						removeDependency(oldParentStyle);
+						removeDependency(oldParentStyle.getHeir());
 					}
 				} else if(event.getValue() != null) {
 					theParentStyle = event.getValue().getStyle();

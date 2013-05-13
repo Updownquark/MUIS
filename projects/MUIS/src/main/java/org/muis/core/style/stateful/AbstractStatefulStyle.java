@@ -162,7 +162,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 * @param depend The dependency to add in place of the given dependency to replace
 	 */
 	protected void replaceDependency(StatefulStyle toReplace, StatefulStyle depend) {
-		int idx = ArrayUtils.indexOf(theDependencies, depend);
+		int idx = ArrayUtils.indexOf(theDependencies, toReplace);
 		if(idx < 0)
 			throw new IllegalArgumentException(toReplace + " is not a dependency of " + this);
 		toReplace.removeListener(theDependencyListener);

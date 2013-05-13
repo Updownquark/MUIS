@@ -154,9 +154,23 @@ public class MuisTextElement extends MuisLeaf {
 				if(crossSize == theCachedWidth)
 					return;
 				theCachedWidth = crossSize;
-				int [] baseline = new int[1];
-				theCachedHeight = render(crossSize, null, baseline);
-				theCachedBaseline = baseline[0];
+				if(theText.length() == 0) {
+					theCachedHeight = 0;
+					theCachedBaseline = 0;
+					return;
+				}
+				java.awt.Font font = MuisUtils.getFont(getStyle());
+				if(font == null) {
+					msg().error("Could not derive font");
+					theCachedHeight = 0;
+					theCachedBaseline = 0;
+					return;
+				}
+				java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
+					.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+				java.awt.font.LineMetrics metrics = font.getLineMetrics(DIVERSE_TEXT, context);
+				theCachedHeight = Math.round(metrics.getHeight());
+				theCachedBaseline = Math.round(metrics.getBaselineOffsets()[metrics.getBaselineIndex()]);
 			}
 
 			@Override
@@ -239,7 +253,7 @@ public class MuisTextElement extends MuisLeaf {
 					if(height > 0)
 						height += layout.getLeading();
 					Rectangle2D lineBounds = layout.getBounds();
-					height += (int) lineBounds.getMaxY();
+					height += (int) Math.round(lineBounds.getHeight());
 				}
 			} else {
 				for(int c = 0; c < theText.length(); c++) {

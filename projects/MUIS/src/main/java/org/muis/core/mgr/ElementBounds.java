@@ -179,6 +179,12 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
 	}
 
+	@Override
+	public String toString() {
+		return new StringBuilder("(").append(theX).append(',').append(theY).append("){").append(theW).append(',').append(theH).append('}')
+			.toString();
+	}
+
 	/** A BoundsDimension for an element along one axis */
 	public class ElementBoundsDimension implements org.muis.core.layout.BoundsDimension {
 		private boolean isVertical;

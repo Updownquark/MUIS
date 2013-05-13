@@ -39,4 +39,21 @@ public enum LayoutGuideType {
 	public boolean isMax() {
 		return isMax;
 	}
+
+	/** @return The next larger layout guide type */
+	public LayoutGuideType next() {
+		switch (this) {
+		case min:
+			return minPref;
+		case minPref:
+			return pref;
+		case pref:
+			return maxPref;
+		case maxPref:
+			return max;
+		case max:
+			return null;
+		}
+		throw new IllegalStateException("Unrecognized layout guide type: " + this);
+	}
 }

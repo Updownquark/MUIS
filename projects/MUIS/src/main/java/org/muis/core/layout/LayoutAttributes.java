@@ -254,7 +254,7 @@ public class LayoutAttributes {
 	/**
 	 * <ul>
 	 * <li><b>If true:</b> The container's maximum size will be related to the sizes of its contents. These contents will fill out the
-	 * container's available space even if the container is sized larger than its maximum.</li>
+	 * container's available space even if the container up to its maximum.</li>
 	 * <li><b>If false:</b> Typically the default. The container's maximum size is infinite. Its contents will be sized no larger than their
 	 * {@link LayoutGuideType#maxPref preferred maximum} sizes even if the container's size allows much more room.</li>
 	 * </ul>

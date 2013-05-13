@@ -71,17 +71,17 @@ public class FlowLayoutTester {
 	 * @param index The index of the child to check
 	 * @return Whether the layout is wrapped immediately after the child at the given index
 	 */
-	public boolean isWrapped(int index){
-	    return theWraps[index];
+	public boolean isWrapped(int index) {
+		return theWraps[index];
 	}
 
-    private void clearCache() {
-        theRowHeights = null;
-    }
+	private void clearCache() {
+		theRowHeights = null;
+	}
 
 	/** Causes all children to be wrapped */
 	public void wrapAll() {
-        clearCache();
+		clearCache();
 		theRowHeights = null;
 		for(int i = 0; i < theWraps.length; i++)
 			theWraps[i] = true;
@@ -89,7 +89,7 @@ public class FlowLayoutTester {
 
 	/** Causes all children to be unwrapped */
 	public void unwrapAll() {
-        clearCache();
+		clearCache();
 		for(int i = 0; i < theWraps.length; i++)
 			theWraps[i] = false;
 	}
@@ -122,10 +122,10 @@ public class FlowLayoutTester {
 				continue;
 			}
 			testWraps[c] = true;
-            int[] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
+			int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
 			if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 				theWraps[c] = true;
-                clearCache();
+				clearCache();
 				return true;
 			} else {
 				testWraps[c] = false;
@@ -173,12 +173,12 @@ public class FlowLayoutTester {
 				// Try moving the last child on the upper row down
 				testWraps[rowBeginIndices[rowIndex + 1] - 1] = true;
 				testWraps[rowBeginIndices[rowIndex + 1]] = false;
-                int[] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
+				int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
 				if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 					// Success!
 					theWraps[rowBeginIndices[rowIndex + 1] - 1] = true;
 					theWraps[rowBeginIndices[rowIndex + 1]] = false;
-                    clearCache();
+					clearCache();
 					return true;
 				} else {
 					testWraps[rowBeginIndices[rowIndex + 1] - 1] = false;
@@ -188,12 +188,12 @@ public class FlowLayoutTester {
 				// Try moving the first child on the lower row up
 				testWraps[rowBeginIndices[rowIndex + 1] + 1] = true;
 				testWraps[rowBeginIndices[rowIndex + 1]] = false;
-                int[] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
+				int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
 				if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 					// Success!
 					theWraps[rowBeginIndices[rowIndex + 1] + 1] = true;
 					theWraps[rowBeginIndices[rowIndex + 1]] = false;
-                    clearCache();
+					clearCache();
 					return true;
 				} else {
 					testWraps[rowBeginIndices[rowIndex + 1] + 1] = false;
@@ -247,7 +247,7 @@ public class FlowLayoutTester {
 				continue;
 			}
 			testWraps[c] = false;
-            int[] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
+			int [] testRowHeights = getRowHeights(crossSize, testWraps, new int[1]);
 			if(getMaxLength(testWraps, testRowHeights, type, crossSize, csMax).getTotal() < maxLen.getTotal()) {
 				theWraps[c] = false;
 				testRowHeights = null;
@@ -267,7 +267,7 @@ public class FlowLayoutTester {
 	public void setWrappedAfter(int childIndex, boolean wrapped) {
 		if(theWraps[childIndex] == wrapped)
 			return;
-        clearCache();
+		clearCache();
 		theWraps[childIndex] = wrapped;
 	}
 
@@ -277,35 +277,51 @@ public class FlowLayoutTester {
 	 * @param crossSize The size of the cross dimension
 	 * @return The heights for each row/column in the layout
 	 */
-    public int[] getRowHeights(int crossSize) {
+	public int [] getRowHeights(int crossSize) {
 		if(theRowHeights != null && theCachedCrossSize == crossSize)
 			return theRowHeights;
 		theCachedCrossSize = crossSize;
 		int [] baseline = new int[1];
-        theRowHeights = getRowHeights(crossSize, theWraps, baseline);
+		theRowHeights = getRowHeights(crossSize, theWraps, baseline);
 		theBaseline = baseline[0];
 		return theRowHeights;
 	}
 
-    public int getRowContentHeight(int rowIndex) {
-        int margin = 0;
-        int totalRowHeight = 0;
-        if (rowIndex == 0 || rowIndex == theRowHeights.length - 1) {
-            for (int i = 0; i < theRowHeights.length; i++)
-                totalRowHeight += theRowHeights[i];
-            margin = (theOrientation == Orientation.horizontal ? theMarginX : theMarginY).evaluate(totalRowHeight);
-        }
-        int padding = 0;
-        if (rowIndex > 0) {
-            if (totalRowHeight == 0)
-                for (int i = 0; i < theRowHeights.length; i++)
-                    totalRowHeight += theRowHeights[i];
-            padding = (theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY).evaluate(totalRowHeight);
-        }
-        return theRowHeights[rowIndex] - margin - padding;
-    }
+	public int getRowChildCount(int rowIndex) {
+		int row_i = 0;
+		int rowChildCount = 0;
+		for(int i = 0; i < theWraps.length; i++) {
+			if(row_i == rowIndex) {
+				rowChildCount++;
+			}
+			if(theWraps[i])
+				row_i++;
+			if(row_i > rowIndex)
+				break;
+		}
+		return rowChildCount;
+	}
 
-    private int[] getRowHeights(int crossSize, boolean[] wraps, int[] baseline) {
+	public int getRowContentHeight(int rowIndex) {
+		int margin = 0;
+		int totalRowHeight = 0;
+		if(rowIndex == 0 || rowIndex == theRowHeights.length - 1) {
+			for(int i = 0; i < theRowHeights.length; i++)
+				totalRowHeight += theRowHeights[i];
+			margin = (theOrientation == Orientation.horizontal ? theMarginY : theMarginX).evaluate(totalRowHeight) * 2;
+		}
+		int padding = 0;
+		if(rowIndex > 0) {
+			if(totalRowHeight == 0)
+				for(int i = 0; i < theRowHeights.length; i++)
+					totalRowHeight += theRowHeights[i];
+			padding = (theOrientation == Orientation.horizontal ? thePaddingY : thePaddingX).evaluate(totalRowHeight)
+				* (getRowChildCount(rowIndex) - 1);
+		}
+		return theRowHeights[rowIndex] - margin - padding;
+	}
+
+	private int [] getRowHeights(int crossSize, boolean [] wraps, int [] baseline) {
 		/* Sequence:
 		 * * If the sum of the maximum of the preferred sizes for the widgets in each row is <=crossSize, use those.
 		 * * else if the sum of the maximum of the minimum sizes for the widgets in each row is >=crossSize, use those.
@@ -495,120 +511,117 @@ public class FlowLayoutTester {
 		return ret;
 	}
 
-    public Dimension[] getSizes(int length) {
-        Dimension[] ret = new Dimension[theChildren.length];
-        int start = 0;
-        int rowIndex = 0;
-        for (int i = 1; i < theChildren.length; i++) {
-            if (theWraps[i - 1]) {
-                fillSizes(ret, rowIndex++, start, i, length);
-                start = i;
-            }
-        }
-        fillSizes(ret, rowIndex, start, theChildren.length, length);
-        return ret;
-    }
+	public Dimension [] getSizes(int length) {
+		Dimension [] ret = new Dimension[theChildren.length];
+		int start = 0;
+		int rowIndex = 0;
+		for(int i = 1; i < theChildren.length; i++) {
+			if(theWraps[i - 1]) {
+				fillSizes(ret, rowIndex++, start, i, length);
+				start = i;
+			}
+		}
+		fillSizes(ret, rowIndex, start, theChildren.length, length);
+		return ret;
+	}
 
-    private void fillSizes(Dimension[] sizes, int rowIndex, int start, int end, int length) {
-        int margin = (theOrientation == Orientation.horizontal ? theMarginX : theMarginY).evaluate(length) * 2;
-        int padding = (theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY).evaluate(length) * (end - start);
-        length -= margin + padding;
-        int prefSize = 0;
-        for (int i = start; i < end; i++) {
-            prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.pref, length, theRowHeights[rowIndex], false,
-                    null);
-        }
-        if (prefSize > length) {
-            int minPrefSize = 0;
-            for (int i = start; i < end; i++) {
-                prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.minPref, length, theRowHeights[rowIndex],
-                        false, null);
-            }
-            if (minPrefSize > length) {
-                int minSize = 0;
-                for (int i = start; i < end; i++) {
-                    prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.min, length, theRowHeights[rowIndex],
-                            false, null);
-                }
-                if (minSize > length) {
-                    // Use min size
-                    setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, 0);
-                } else {
-                    // Use a size betwen min and min pref
-                    setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, (length - minSize) * 1.0f / (minPrefSize - minSize));
-                }
-            } else {
-                // Use a size between min pref and preferred
-                setSizes(sizes, start, end, LayoutGuideType.minPref, rowIndex, length, (length - minPrefSize) * 1.0f
-                        / (prefSize - minPrefSize));
-            }
-        } else {
-            int maxPrefSize = 0;
-            for (int i = start; i < end; i++) {
-                prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.maxPref, length, theRowHeights[rowIndex],
-                        false, null);
-            }
-            if (maxPrefSize >= length) {
-                if (isFillContainer) {
-                    int maxSize = 0;
-                    for (int i = start; i < end; i++) {
-                        prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.max, length,
-                                theRowHeights[rowIndex], false, null);
-                    }
-                    if (maxSize > length) {
-                        // Use max size
-                        setSizes(sizes, start, end, LayoutGuideType.max, rowIndex, length, 0);
-                    } else {
-                        // Use a size between max pref and max
-                        setSizes(sizes, start, end, LayoutGuideType.maxPref, rowIndex, length, (length - maxPrefSize) * 1.0f
-                                / (maxSize - maxPrefSize));
-                    }
-                } else {
-                    // Use max pref size
-                    setSizes(sizes, start, end, LayoutGuideType.maxPref, rowIndex, length, 0);
-                }
-            } else {
-                // Use a size between preferred and max pref
-                setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, (length - prefSize) * 1.0f / (maxPrefSize - prefSize));
-            }
-        }
-    }
+	private void fillSizes(Dimension [] sizes, int rowIndex, int start, int end, int length) {
+		int margin = (theOrientation == Orientation.horizontal ? theMarginX : theMarginY).evaluate(length) * 2;
+		int padding = (theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY).evaluate(length) * (end - start);
+		length -= margin + padding;
+		int prefSize = 0;
+		for(int i = start; i < end; i++) {
+			prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.pref, length, theRowHeights[rowIndex], false,
+				null);
+		}
+		if(prefSize > length) {
+			int minPrefSize = 0;
+			for(int i = start; i < end; i++) {
+				prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.minPref, length, theRowHeights[rowIndex],
+					false, null);
+			}
+			if(minPrefSize > length) {
+				int minSize = 0;
+				for(int i = start; i < end; i++) {
+					prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.min, length, theRowHeights[rowIndex],
+						false, null);
+				}
+				if(minSize > length) {
+					// Use min size
+					setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, 0);
+				} else {
+					// Use a size betwen min and min pref
+					setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, (length - minSize) * 1.0f / (minPrefSize - minSize));
+				}
+			} else {
+				// Use a size between min pref and preferred
+				setSizes(sizes, start, end, LayoutGuideType.minPref, rowIndex, length, (length - minPrefSize) * 1.0f
+					/ (prefSize - minPrefSize));
+			}
+		} else {
+			int maxPrefSize = 0;
+			for(int i = start; i < end; i++) {
+				prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.maxPref, length, theRowHeights[rowIndex],
+					false, null);
+			}
+			if(maxPrefSize >= length) {
+				if(isFillContainer) {
+					int maxSize = 0;
+					for(int i = start; i < end; i++) {
+						prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.max, length,
+							theRowHeights[rowIndex], false, null);
+					}
+					if(maxSize > length) {
+						// Use max size
+						setSizes(sizes, start, end, LayoutGuideType.max, rowIndex, length, 0);
+					} else {
+						// Use a size between max pref and max
+						setSizes(sizes, start, end, LayoutGuideType.maxPref, rowIndex, length, (length - maxPrefSize) * 1.0f
+							/ (maxSize - maxPrefSize));
+					}
+				} else {
+					// Use max pref size
+					setSizes(sizes, start, end, LayoutGuideType.maxPref, rowIndex, length, 0);
+				}
+			} else {
+				// Use a size between preferred and max pref
+				setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, (length - prefSize) * 1.0f / (maxPrefSize - prefSize));
+			}
+		}
+	}
 
-    private void setSizes(Dimension[] sizes, int start, int end, LayoutGuideType type, int rowIndex, int length, float prop) {
-        int rowHeight = getRowContentHeight(rowIndex);
-        for (int i = start; i < end; i++) {
-            int size = LayoutUtils.getSize(theChildren[i], theOrientation, type, length, rowHeight, false, null);
-            if (prop > 0) {
-                int upSize = LayoutUtils.getSize(theChildren[i], theOrientation, type.next(), length, rowHeight, false, null);
-                size = Math.round(size + prop * upSize);
-            }
-            LayoutUtils.set(sizes[i], theOrientation, size);
-            LayoutUtils.set(sizes[i], theOrientation.opposite(), getCrossSize(theChildren[i], theOrientation, length, rowHeight));
-        }
-    }
+	private void setSizes(Dimension [] sizes, int start, int end, LayoutGuideType type, int rowIndex, int length, float prop) {
+		int rowHeight = getRowContentHeight(rowIndex);
+		for(int i = start; i < end; i++) {
+			int size = LayoutUtils.getSize(theChildren[i], theOrientation, type, length, rowHeight, false, null);
+			if(prop > 0) {
+				int upSize = LayoutUtils.getSize(theChildren[i], theOrientation, type.next(), length, rowHeight, false, null);
+				size = Math.round(size + prop * upSize);
+			}
+			LayoutUtils.set(sizes[i], theOrientation, size);
+			LayoutUtils.set(sizes[i], theOrientation.opposite(), getCrossSize(theChildren[i], theOrientation, length, rowHeight));
+		}
+	}
 
-    public static int getCrossSize(MuisElement child, Orientation mainDim, int mainSize, int rowHeight){
-        int crossSize;
-        int prefCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.pref, rowHeight, mainSize, false,
-                null);
-        if (prefCross > rowHeight) {
-            int minCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.min, rowHeight, mainSize, false,
-                    null);
-            if (minCross > rowHeight) {
-                crossSize = minCross;
-            } else {
-                crossSize = rowHeight;
-            }
-        } else {
-            int maxPrefCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.maxPref, rowHeight, mainSize,
-                    false, null);
-            if (maxPrefCross > rowHeight)
-                crossSize = rowHeight;
-            else
-                crossSize = maxPrefCross;
-        }
-        return crossSize;
-    }
+	public static int getCrossSize(MuisElement child, Orientation mainDim, int mainSize, int rowHeight) {
+		int crossSize;
+		int prefCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.pref, rowHeight, mainSize, false, null);
+		if(prefCross > rowHeight) {
+			int minCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.min, rowHeight, mainSize, false, null);
+			if(minCross > rowHeight) {
+				crossSize = minCross;
+			} else {
+				crossSize = rowHeight;
+			}
+		} else {
+			int maxPrefCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.maxPref, rowHeight, mainSize, false, null);
+			if(maxPrefCross > rowHeight)
+				crossSize = rowHeight;
+			else
+				crossSize = maxPrefCross;
+		}
+		return crossSize;
+	}
 
 	LayoutSize getMaxSize(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int size) {
 		// Get the baseline to use for the row

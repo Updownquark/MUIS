@@ -51,6 +51,7 @@ public class FlowLayoutTester {
 		thePaddingX = paddingX;
 		thePaddingY = paddingY;
 		theMarginX = marginX;
+		theMarginY = marginY;
 		isFillContainer = fillContainer;
 		theWraps = new boolean[children.length - 1];
 		theMainGuide = new FlowLayoutTesterMainSizeGuide();
@@ -347,7 +348,7 @@ public class FlowLayoutTester {
 		int rowIndex = 0;
 		LayoutSize rowHeight;
 		for(int c = 1; c < theChildren.length; c++) {
-			if(wraps[c]) {
+			if(wraps[c - 1]) {
 				rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.pref, crossSize);
 				rowHeights[rowIndex++] = rowHeight;
 				prefRowTotal.add(rowHeight);
@@ -366,7 +367,7 @@ public class FlowLayoutTester {
 			lastBreak = 0;
 			rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
-				if(wraps[c]) {
+				if(wraps[c - 1]) {
 					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.min, crossSize);
 					rowHeights[rowIndex++] = rowHeight;
 					minRowTotal.add(rowHeight);
@@ -386,7 +387,7 @@ public class FlowLayoutTester {
 				lastBreak = 0;
 				rowIndex = 0;
 				for(int c = 1; c < theChildren.length; c++) {
-					if(wraps[c]) {
+					if(wraps[c - 1]) {
 						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.minPref, crossSize);
 						minPrefRowHeights[rowIndex++] = rowHeight;
 						minPrefRowTotal.add(rowHeight);
@@ -422,7 +423,7 @@ public class FlowLayoutTester {
 			lastBreak = 0;
 			rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
-				if(wraps[c]) {
+				if(wraps[c - 1]) {
 					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.maxPref, crossSize);
 					rowHeights[rowIndex++] = rowHeight;
 					maxPrefRowTotal.add(rowHeight);
@@ -442,7 +443,7 @@ public class FlowLayoutTester {
 				lastBreak = 0;
 				rowIndex = 0;
 				for(int c = 1; c < theChildren.length; c++) {
-					if(wraps[c]) {
+					if(wraps[c - 1]) {
 						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.max, crossSize);
 						maxRowHeights[rowIndex++] = rowHeight;
 						maxRowTotal.add(rowHeight);
@@ -481,7 +482,7 @@ public class FlowLayoutTester {
 			int childBase = theChildren[c].bounds().get(crossOrient).getGuide().getBaseline(pixRowHeights[0]);
 			if(childBase > baseline[0])
 				baseline[0] = childBase;
-			if(wraps[c])
+			if(c < wraps.length && wraps[c])
 				break;
 		}
 		return pixRowHeights;
@@ -513,6 +514,8 @@ public class FlowLayoutTester {
 
 	public Dimension [] getSizes(int length) {
 		Dimension [] ret = new Dimension[theChildren.length];
+		for(int i = 0; i < ret.length; i++)
+			ret[i] = new Dimension();
 		int start = 0;
 		int rowIndex = 0;
 		for(int i = 1; i < theChildren.length; i++) {

@@ -252,7 +252,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		int start = 0;
 		int rowIndex = 0;
 		int [] rowHeights = tester.getRowHeights(crossLen);
-		for(int i = 0; i < bounds.length; i++) {
+		for(int i = 0; i < bounds.length - 1; i++) {
 			if(tester.isWrapped(i)) {
 				int rowHeight = rowHeights[rowIndex];
 				position(parentBounds, bounds, dir, start, i, crossPos, rowHeights, rowIndex, align, crossAlign, marginSz, marginSz,

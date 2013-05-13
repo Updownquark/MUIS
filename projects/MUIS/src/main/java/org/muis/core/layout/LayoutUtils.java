@@ -1,5 +1,7 @@
 package org.muis.core.layout;
 
+import java.awt.Dimension;
+
 import org.muis.core.MuisElement;
 import org.muis.core.style.Size;
 
@@ -35,5 +37,27 @@ public class LayoutUtils {
 				addTo.add(size);
 			return size;
 		}
+	}
+
+	public static int get(Dimension dim, Orientation orient) {
+		switch (orient) {
+		case horizontal:
+			return dim.width;
+		case vertical:
+			return dim.height;
+		}
+		throw new IllegalStateException("Unrecognized orientation: " + orient);
+	}
+
+	public static void set(Dimension dim, Orientation orient, int size) {
+		switch (orient) {
+		case horizontal:
+			dim.width = size;
+			break;
+		case vertical:
+			dim.height = size;
+			break;
+		}
+		throw new IllegalStateException("Unrecognized orientation: " + orient);
 	}
 }

@@ -157,12 +157,65 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		Alignment align = parent.atts().get(alignment, dir.getStartEnd() == End.leading ? Alignment.begin : Alignment.end);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.center);
 		FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, fill, children);
+		int mainLen = parent.bounds().get(dir.getOrientation()).getSize();
+		int crossLen = parent.bounds().get(dir.getOrientation().opposite()).getSize();
 		/* tester starts off unwrapped.
 		 * while the preferred major size is greater than the major length and the preferred minor size <= the minor length, wrap.
 		 * if the container is too small, unwrap all and try the procedure above with preferred min sizes
 		 * if still too small, unwrap all and do with min sizes
 		 * if preferred still has lots of room, try with preferred max sizes
 		 */
-		// TODO
+		LayoutGuideType negotiated;
+		boolean useProp = true;
+		if(tester.main().getPreferred(crossLen, false) > mainLen) {
+			boolean wrapFail = false;
+			while(tester.main().getPreferred(crossLen, false) > mainLen)
+				if(!tester.wrapNext(LayoutGuideType.pref, crossLen, false)) {
+					wrapFail = true;
+					break;
+				}
+			if(!wrapFail && tester.main().getPreferred(crossLen, false) > mainLen
+				&& tester.main().getMinPreferred(crossLen, false) > mainLen) {
+				while(tester.main().getMinPreferred(crossLen, false) > mainLen)
+					if(!tester.wrapNext(LayoutGuideType.minPref, crossLen, false)) {
+						wrapFail = true;
+						break;
+					}
+				if(!wrapFail && tester.main().getMinPreferred(crossLen, false) > mainLen && tester.main().getMin(crossLen, false) > mainLen) {
+					while(tester.main().getMin(crossLen, false) > mainLen)
+						if(!tester.wrapNext(LayoutGuideType.min, crossLen, false)) {
+							wrapFail = true;
+							break;
+						}
+					negotiated = min;
+				} else {
+					negotiated = minPref;
+				}
+			} else {
+				negotiated = pref;
+			}
+		} else if(tester.main().getMaxPreferred(crossLen, false) > mainLen) {
+			negotiated = pref;
+		} else if(align != Alignment.justify && !fill) {
+			negotiated = maxPref;
+			useProp = false;
+		} else if(tester.main().getMax(crossLen, false) > mainLen) {
+			negotiated = maxPref;
+		} else {
+			negotiated = max;
+			useProp = false;
+		}
+		// Now the wrapping is right and we know the two size types to go between
+		if(!useProp) {
+			tester.main().get(negotiated, crossLen, false);
+			// TODO Get the widget sizes used by the tester and set them on the widgets
+		} else {
+			float prop;
+			int less = tester.main().get(negotiated, crossLen, false);
+			int more = tester.main().get(negotiated.next(), crossLen, false);
+			prop = (mainLen - less) * 1.0f / (more - less);
+			// TODO Get the widget sizes used by the tester for each type and use the proportion to set the correct sizes on the widgets
+		}
+		// TODO Then position the widgets in proper alignment.
 	}
 }

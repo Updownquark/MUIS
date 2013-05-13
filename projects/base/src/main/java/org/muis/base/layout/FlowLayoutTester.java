@@ -313,7 +313,7 @@ public class FlowLayoutTester {
 		if(prefRowTotal.getTotal() > crossSize) {
 			LayoutSize [] prefRowHeights = rowHeights;
 			rowHeights = new LayoutSize[rowCount];
-			// Calculate the sum of the minimum of the preferred sizes for the widgets in each row
+			// Calculate the sum of the minimum of the min sizes for the widgets in each row
 			LayoutSize minRowTotal = new LayoutSize();
 			lastBreak = 0;
 			rowIndex = 0;
@@ -366,8 +366,67 @@ public class FlowLayoutTester {
 				}
 			} else
 				pixRowHeights = evaluateRowHeights(rowHeights);
-		} else
-			pixRowHeights = evaluateRowHeights(rowHeights);
+		} else {
+			LayoutSize [] prefRowHeights = rowHeights;
+			rowHeights = new LayoutSize[rowCount];
+			// Calculate the sum of the minimum of the max pref sizes for the widgets in each row
+			LayoutSize maxPrefRowTotal = new LayoutSize();
+			lastBreak = 0;
+			rowIndex = 0;
+			for(int c = 1; c < theChildren.length; c++) {
+				if(wraps[c]) {
+					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.maxPref, crossSize);
+					rowHeights[rowIndex++] = rowHeight;
+					maxPrefRowTotal.add(rowHeight);
+					lastBreak = c;
+				}
+			}
+			rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.maxPref, crossSize);
+			rowHeights[rowIndex++] = rowHeight;
+			maxPrefRowTotal.add(rowHeight);
+
+			if(isFillContainer && maxPrefRowTotal.getTotal() < crossSize) {
+				LayoutSize [] maxPrefRowHeights = rowHeights;
+				LayoutSize [] maxRowHeights = new LayoutSize[rowCount];
+				rowHeights = new LayoutSize[rowCount];
+				// Calculate the sum of the minimum of the max sizes for the widgets in each row
+				LayoutSize maxRowTotal = new LayoutSize();
+				lastBreak = 0;
+				rowIndex = 0;
+				for(int c = 1; c < theChildren.length; c++) {
+					if(wraps[c]) {
+						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.max, crossSize);
+						maxRowHeights[rowIndex++] = rowHeight;
+						maxRowTotal.add(rowHeight);
+						lastBreak = c;
+					}
+				}
+				rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.max, crossSize);
+				maxRowHeights[rowIndex++] = rowHeight;
+				maxRowTotal.add(rowHeight);
+
+				int [] pixMaxRowHeights = evaluateRowHeights(maxRowHeights);
+				pixRowHeights = new int[rowCount];
+
+				float prop;
+				if(maxRowTotal.getTotal() <= crossSize)
+					pixRowHeights = evaluateRowHeights(maxRowHeights);
+				else {
+					int [] pixMaxPrefRowHeights = evaluateRowHeights(maxPrefRowHeights);
+					prop = (crossSize - maxPrefRowTotal.getTotal()) * 1.0f / (maxRowTotal.getTotal() - maxPrefRowTotal.getTotal());
+					for(int r = 0; r < rowCount; r++)
+						pixRowHeights[r] = pixMaxPrefRowHeights[r] + Math.round(prop * (pixMaxRowHeights[r] - pixMaxPrefRowHeights[r]));
+				}
+			} else {
+				float prop;
+				int [] pixMaxPrefRowHeights = evaluateRowHeights(rowHeights);
+				int [] pixPrefRowHeights = evaluateRowHeights(prefRowHeights);
+				pixRowHeights = new int[rowCount];
+				prop = (crossSize - prefRowTotal.getTotal()) * 1.0f / (maxPrefRowTotal.getTotal() - prefRowTotal.getTotal());
+				for(int r = 0; r < rowCount; r++)
+					pixRowHeights[r] = pixPrefRowHeights[r] + Math.round(prop * (pixMaxPrefRowHeights[r] - pixPrefRowHeights[r]));
+			}
+		}
 		// Now calculate the vertical baseline for the first row
 		baseline[0] = 0;
 		for(int c = 0; c < theChildren.length; c++) {

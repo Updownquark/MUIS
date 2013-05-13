@@ -1,6 +1,7 @@
 package org.muis.core.layout;
 
 import java.awt.Dimension;
+import java.awt.Rectangle;
 
 import org.muis.core.MuisElement;
 import org.muis.core.style.Size;
@@ -56,6 +57,50 @@ public class LayoutUtils {
 			break;
 		case vertical:
 			dim.height = size;
+			break;
+		}
+		throw new IllegalStateException("Unrecognized orientation: " + orient);
+	}
+
+	public static int getPos(Rectangle rect, Orientation orient) {
+		switch (orient) {
+		case horizontal:
+			return rect.x;
+		case vertical:
+			return rect.y;
+		}
+		throw new IllegalStateException("Unrecognized orientation: " + orient);
+	}
+
+	public static void setPos(Rectangle rect, Orientation orient, int size) {
+		switch (orient) {
+		case horizontal:
+			rect.x = size;
+			break;
+		case vertical:
+			rect.y = size;
+			break;
+		}
+		throw new IllegalStateException("Unrecognized orientation: " + orient);
+	}
+
+	public static int getSize(Rectangle rect, Orientation orient) {
+		switch (orient) {
+		case horizontal:
+			return rect.width;
+		case vertical:
+			return rect.height;
+		}
+		throw new IllegalStateException("Unrecognized orientation: " + orient);
+	}
+
+	public static void setSize(Rectangle rect, Orientation orient, int size) {
+		switch (orient) {
+		case horizontal:
+			rect.width = size;
+			break;
+		case vertical:
+			rect.height = size;
 			break;
 		}
 		throw new IllegalStateException("Unrecognized orientation: " + orient);

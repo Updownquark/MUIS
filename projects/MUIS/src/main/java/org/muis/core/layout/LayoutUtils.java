@@ -15,7 +15,8 @@ public class LayoutUtils {
 		ret = element.atts().get(att);
 		if(ret == null && type != null) {
 			att = LayoutAttributes.getSizeAtt(orientation, type);
-			ret = element.atts().get(att);
+			if(att != null)
+				ret = element.atts().get(att);
 		}
 		if(ret != null) {
 			if(addTo != null) {
@@ -59,7 +60,6 @@ public class LayoutUtils {
 			dim.height = size;
 			break;
 		}
-		throw new IllegalStateException("Unrecognized orientation: " + orient);
 	}
 
 	public static int getPos(Rectangle rect, Orientation orient) {
@@ -81,7 +81,6 @@ public class LayoutUtils {
 			rect.y = size;
 			break;
 		}
-		throw new IllegalStateException("Unrecognized orientation: " + orient);
 	}
 
 	public static int getSize(Rectangle rect, Orientation orient) {
@@ -103,6 +102,5 @@ public class LayoutUtils {
 			rect.height = size;
 			break;
 		}
-		throw new IllegalStateException("Unrecognized orientation: " + orient);
 	}
 }

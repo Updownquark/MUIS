@@ -175,10 +175,9 @@ public class LayoutAttributes {
 	/**
 	 * @param orient The orientation for the attribute
 	 * @param type The guide type for the attribute
-	 * @return The attribute with the given orientation, end, and type
-	 * @throws IllegalArgumentException If no such attribute exists (preferred layout guide types)
+	 * @return The attribute with the given orientation, end, and type, or null if no such attribute exists (preferred layout guide types)
 	 */
-	public static SizeAttribute getSizeAtt(Orientation orient, LayoutGuideType type) throws IllegalArgumentException {
+	public static SizeAttribute getSizeAtt(Orientation orient, LayoutGuideType type) {
 		switch (orient) {
 		case horizontal:
 			if(type == null)
@@ -191,7 +190,7 @@ public class LayoutAttributes {
 			case minPref:
 			case pref:
 			case maxPref:
-				throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+				return null;
 			}
 			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
 		case vertical:
@@ -205,7 +204,7 @@ public class LayoutAttributes {
 			case minPref:
 			case pref:
 			case maxPref:
-				throw new IllegalArgumentException("No position attribute for layout guide type: " + type);
+				return null;
 			}
 			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
 		}

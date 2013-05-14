@@ -129,9 +129,11 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
 				if(major)
-					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), maxPref, crossSize, csMax);
+					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), maxPref, crossSize, csMax, marginSz, marginSz,
+						paddingSz, paddingSz);
 				else
-					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), maxPref, crossSize, csMax);
+					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), maxPref, crossSize, csMax, marginSz,
+						marginSz, paddingSz, paddingSz);
 			}
 
 			@Override
@@ -139,9 +141,11 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				if(fill)
 					return Integer.MAX_VALUE;
 				else if(major)
-					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), max, crossSize, csMax);
+					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), max, crossSize, csMax, marginSz, marginSz,
+						paddingSz, paddingSz);
 				else
-					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), max, crossSize, csMax);
+					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), max, crossSize, csMax, marginSz,
+						marginSz, paddingSz, paddingSz);
 			}
 
 			@Override
@@ -236,7 +240,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 					LayoutUtils.set(lessSizes[i], dir.getOrientation().opposite(),
 						FlowLayoutTester.getCrossSize(children[i], dir.getOrientation(), mainLen, rowHeight));
 				}
-				if(tester.isWrapped(i))
+				if(i < children.length - 1 && tester.isWrapped(i))
 					rowIndex++;
 			}
 			sizes = lessSizes;

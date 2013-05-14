@@ -118,7 +118,7 @@ public class FlowLayoutTester {
 		// Try to find a good place for a new wrap
 		boolean [] testWraps = new boolean[theWraps.length];
 		System.arraycopy(theWraps, 0, testWraps, 0, theWraps.length);
-		for(int c = 0; c < theChildren.length; c++) {
+		for(int c = 0; c < theWraps.length; c++) {
 			if(theWraps[c]) {
 				continue;
 			}
@@ -288,6 +288,10 @@ public class FlowLayoutTester {
 		return theRowHeights;
 	}
 
+	/**
+	 * @param rowIndex The index of the row to get the child count of
+	 * @return The number of children in the given row with the current wrapping
+	 */
 	public int getRowChildCount(int rowIndex) {
 		int row_i = 0;
 		int rowChildCount = 0;
@@ -303,6 +307,11 @@ public class FlowLayoutTester {
 		return rowChildCount;
 	}
 
+	/**
+	 * @param rowIndex The index of the row
+	 * @return The amount of space (pixels) in which content may be placed for the given row. This is calculated from the row height minus
+	 *         appropriate margin and padding.
+	 */
 	public int getRowContentHeight(int rowIndex) {
 		int margin = 0;
 		int totalRowHeight = 0;
@@ -512,6 +521,10 @@ public class FlowLayoutTester {
 		return ret;
 	}
 
+	/**
+	 * @param length The major size of the container
+	 * @return The sizes for each child in the layout
+	 */
 	public Dimension [] getSizes(int length) {
 		Dimension [] ret = new Dimension[theChildren.length];
 		for(int i = 0; i < ret.length; i++)
@@ -530,7 +543,7 @@ public class FlowLayoutTester {
 
 	private void fillSizes(Dimension [] sizes, int rowIndex, int start, int end, int length) {
 		int margin = (theOrientation == Orientation.horizontal ? theMarginX : theMarginY).evaluate(length) * 2;
-		int padding = (theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY).evaluate(length) * (end - start);
+		int padding = (theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY).evaluate(length) * (end - start - 1);
 		length -= margin + padding;
 		int prefSize = 0;
 		for(int i = start; i < end; i++) {
@@ -606,6 +619,15 @@ public class FlowLayoutTester {
 		}
 	}
 
+	/**
+	 * Gets the cross size for a single element in a container with a flow layout
+	 *
+	 * @param child The child to get the cross size for
+	 * @param mainDim The orientation of the flow layout
+	 * @param mainSize The main length of the container
+	 * @param rowHeight The content height of the row that the child is in
+	 * @return The size for the given element along the cross dimension
+	 */
 	public static int getCrossSize(MuisElement child, Orientation mainDim, int mainSize, int rowHeight) {
 		int crossSize;
 		int prefCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.pref, rowHeight, mainSize, false, null);
@@ -701,11 +723,11 @@ public class FlowLayoutTester {
 			}
 			max.add(getSumSize(theChildren, lastBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], type.isPref()));
 			max = new LayoutSize(max);
-			max.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
-			max.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
+			max.add(theOrientation == Orientation.horizontal ? theMarginX : theMarginY);
+			max.add(theOrientation == Orientation.horizontal ? theMarginX : theMarginY);
 			for(boolean wrap : theWraps)
 				if(wrap)
-					max.add(theOrientation == Orientation.vertical ? thePaddingX : thePaddingY);
+					max.add(theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY);
 			return max.getTotal();
 		}
 
@@ -753,20 +775,36 @@ public class FlowLayoutTester {
 				iterations--;
 				int sum = 0;
 				float percentSum = 0;
-				for(int c = 0; c < theChildren.length; c++) {
+				for(int c = 0; c < theWraps.length; c++) {
 					row.add(theChildren[c]);
 					if(theWraps[c]) {
 						temp.clear();
 						BaseLayoutUtils.getBoxLayoutCrossSize(row.toArray(new MuisElement[row.size()]), theOrientation, type, crossSize,
 							csMax, temp);
+						if(c == 0)
+							temp.add(theOrientation == Orientation.horizontal ? theMarginY : theMarginX);
+						else
+							temp.add(theOrientation == Orientation.horizontal ? thePaddingY : thePaddingX);
 						int rowHeight = temp.getPixels();
 						percentSum += temp.getPercent();
 						int percentHeight = Math.round(temp.getPercent() * size);
 						if(percentHeight > rowHeight)
 							rowHeight = percentHeight;
 						sum += rowHeight;
+						row.clear();
 					}
 				}
+				row.add(theChildren[theWraps.length]);
+				temp.clear();
+				BaseLayoutUtils.getBoxLayoutCrossSize(row.toArray(new MuisElement[row.size()]), theOrientation, type, crossSize, csMax,
+					temp);
+				temp.add(theOrientation == Orientation.horizontal ? theMarginY : theMarginX);
+				int rowHeight = temp.getPixels();
+				percentSum += temp.getPercent();
+				int percentHeight = Math.round(temp.getPercent() * size);
+				if(percentHeight > rowHeight)
+					rowHeight = percentHeight;
+				sum += rowHeight;
 				if(sum > size) {
 					size = sum;
 					if(percentSum > 0)

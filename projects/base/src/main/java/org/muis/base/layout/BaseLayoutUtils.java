@@ -5,26 +5,19 @@ import org.muis.core.layout.*;
 import org.muis.core.style.Size;
 
 public class BaseLayoutUtils {
-	public static int getBoxLayoutSize(MuisElement [] children, Orientation orient, LayoutGuideType type, int crossSize, boolean csMax) {
-		int pixels = 0;
-		float percent = 0;
-		for(MuisElement child : children) {
-			Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient, type));
-			if(size != null) {
-				switch (size.getUnit()) {
-				case pixels:
-				case lexips: // Invalid, but don't bother throwing exception
-					pixels += size.evaluate(0);
-					break;
-				case percent:
-					percent += size.getValue();
-					break;
-				}
-			} else {
-				pixels += child.bounds().get(orient).getGuide().get(type, crossSize, csMax);
-			}
+	public static int getBoxLayoutSize(MuisElement [] children, Orientation orient, LayoutGuideType type, int crossSize, boolean csMax,
+		Size marginX, Size marginY, Size paddingX, Size paddingY) {
+		LayoutSize temp = new LayoutSize();
+		for(int i = 0; i < children.length; i++) {
+			if(i == 0)
+				temp.add(orient == Orientation.horizontal ? marginX : marginY);
+			else
+				temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
+			if(i == children.length - 1)
+				temp.add(orient == Orientation.horizontal ? marginX : marginY);
+			LayoutUtils.getSize(children[i], orient, type, Integer.MAX_VALUE, crossSize, csMax, temp);
 		}
-		if(pixels == 0) {
+		if(temp.getPixels() == 0) {
 			switch (type) {
 			case min:
 			case minPref:
@@ -35,55 +28,20 @@ public class BaseLayoutUtils {
 				return Integer.MAX_VALUE;
 			}
 		}
-		if(percent == 0)
-			return pixels;
-		if(percent > 100)
-			percent = 95;
-		return Math.round(pixels / (1 - percent / 100));
+		return temp.getTotal();
 	}
 
 	public static int getBoxLayoutCrossSize(MuisElement [] children, Orientation orient, LayoutGuideType type, int mainSize,
 		boolean sizeMax, LayoutSize addTo) {
-	}
-
-	public static int getFlowLayoutSize(MuisElement [] children, Orientation flow, Orientation orient, LayoutGuideType type, int crossSize,
-		boolean csMax) {
-		boolean main = flow == orient;
-		switch (type) {
-		case min:
-		case minPref:
-			if(main) {
-				// Minimum means wrapping every single component
-				int [] widths = new int[children.length];
-				boolean [] widthPercents = new boolean[children.length];
-				int [] heights = new int[1];
-				boolean [] heightPercents = new boolean[children.length];
-				int maxHeight = 0;
-				for(int i = 0; i < children.length; i++) {
-					MuisElement child = children[i];
-					Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient, type));
-					if(size != null) {
-						switch (size.getUnit()) {
-						case pixels:
-						case lexips: // Invalid, but don't bother throwing exception
-							widths[i] = size.evaluate(0);
-							if(widths[i] > maxWidth)
-								maxWidth = widths[i];
-							break;
-						case percent:
-							percent += size.getValue();
-							break;
-						}
-					} else {
-						pixels += child.bounds().get(orient).getGuide().get(type, crossSize, csMax);
-					}
-				}
-			} else {
-			}
-			break;
-		case pref:
-		case maxPref:
-		case max:
+		LayoutSize temp = new LayoutSize(true);
+		int ret = 0;
+		for(MuisElement child : children) {
+			int sz = LayoutUtils.getSize(child, orient, type, Integer.MAX_VALUE, mainSize, sizeMax, temp);
+			if(sz > ret)
+				ret = sz;
 		}
+		if(addTo != null)
+			addTo.add(temp);
+		return ret;
 	}
 }

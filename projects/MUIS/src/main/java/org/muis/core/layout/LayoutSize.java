@@ -102,4 +102,14 @@ public class LayoutSize {
 			percents = PERCENT_THRESHOLD;
 		return Math.round(thePixels / (1 - percents / 100));
 	}
+
+	@Override
+	public String toString() {
+		if(thePercent == 0)
+			return thePixels + "px";
+		else if(thePixels == 0)
+			return thePercent + "%";
+		else
+			return thePixels + "px" + (isMax ? " or " : "-") + thePercent + "%";
+	}
 }

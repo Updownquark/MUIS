@@ -723,11 +723,6 @@ public class FlowLayoutTester {
 			}
 			max.add(getSumSize(theChildren, lastBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], type.isPref()));
 			max = new LayoutSize(max);
-			max.add(theOrientation == Orientation.horizontal ? theMarginX : theMarginY);
-			max.add(theOrientation == Orientation.horizontal ? theMarginX : theMarginY);
-			for(boolean wrap : theWraps)
-				if(wrap)
-					max.add(theOrientation == Orientation.horizontal ? thePaddingX : thePaddingY);
 			return max.getTotal();
 		}
 

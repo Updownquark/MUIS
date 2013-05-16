@@ -63,7 +63,6 @@ public class MuisTextElement extends MuisLeaf {
 				if(ch == ' ') {
 					if(c > wordIdx) {
 						TextLayout layout = new TextLayout(theText.substring(wordIdx, c), font, context);
-						// TODO may need to call TextLayout.render here.
 						Rectangle2D bounds = layout.getBounds();
 						int wordW = (int) Math.round(bounds.getMaxX());
 						if(wordW > min)
@@ -73,7 +72,6 @@ public class MuisTextElement extends MuisLeaf {
 				} else if(ch == '\n') {
 					if(c > wordIdx) {
 						TextLayout layout = new TextLayout(theText.substring(wordIdx, c), font, context);
-						// TODO may need to call TextLayout.render here.
 						Rectangle2D bounds = layout.getBounds();
 						int wordW = (int) Math.round(bounds.getMaxX());
 						if(wordW > min)
@@ -82,7 +80,6 @@ public class MuisTextElement extends MuisLeaf {
 					wordIdx = c + 1;
 					if(c > lineIdx) {
 						TextLayout layout = new TextLayout(theText.substring(lineIdx, c), font, context);
-						// TODO may need to call TextLayout.render here.
 						Rectangle2D bounds = layout.getBounds();
 						int lineW = (int) Math.round(bounds.getMaxX());
 						if(lineW > max)
@@ -93,7 +90,6 @@ public class MuisTextElement extends MuisLeaf {
 			}
 			if(wordIdx < theText.length()) {
 				TextLayout layout = new TextLayout(theText.substring(wordIdx, theText.length()), font, context);
-				// TODO may need to call TextLayout.render here.
 				Rectangle2D bounds = layout.getBounds();
 				int wordW = (int) Math.round(bounds.getMaxX());
 				if(wordW > min)
@@ -115,7 +111,6 @@ public class MuisTextElement extends MuisLeaf {
 				if(ch == '\n') {
 					if(c > lineIdx) {
 						TextLayout layout = new TextLayout(theText.substring(lineIdx, c), font, context);
-						// TODO may need to call TextLayout.render here.
 						Rectangle2D bounds = layout.getBounds();
 						int lineW = (int) Math.round(bounds.getMaxX());
 						if(lineW > w)
@@ -126,7 +121,6 @@ public class MuisTextElement extends MuisLeaf {
 			}
 			if(lineIdx < theText.length()) {
 				TextLayout layout = new TextLayout(theText.substring(lineIdx, theText.length()), font, context);
-				// TODO may need to call TextLayout.render here.
 				Rectangle2D bounds = layout.getBounds();
 				int lineW = (int) Math.round(bounds.getMaxX());
 				if(lineW > w)
@@ -159,6 +153,10 @@ public class MuisTextElement extends MuisLeaf {
 					theCachedBaseline = 0;
 					return;
 				}
+				int [] baseline = new int[1];
+				theCachedHeight = render(crossSize, null, baseline);
+				theCachedBaseline = baseline[0];
+				/*
 				java.awt.Font font = MuisUtils.getFont(getStyle());
 				if(font == null) {
 					msg().error("Could not derive font");
@@ -171,6 +169,7 @@ public class MuisTextElement extends MuisLeaf {
 				java.awt.font.LineMetrics metrics = font.getLineMetrics(DIVERSE_TEXT, context);
 				theCachedHeight = Math.round(metrics.getHeight());
 				theCachedBaseline = Math.round(metrics.getBaselineOffsets()[metrics.getBaselineIndex()]);
+				*/
 			}
 
 			@Override
@@ -215,7 +214,7 @@ public class MuisTextElement extends MuisLeaf {
 	private int render(int width, Graphics2D graphics, int [] baseline) {
 		if(theText.length() == 0)
 			return 0;
-		java.awt.Font font = MuisUtils.getFont(getStyle());
+		java.awt.Font font = MuisUtils.getFont(getStyle().getSelf());
 		if(font == null) {
 			msg().error("Could not derive font");
 			return 0;
@@ -229,6 +228,7 @@ public class MuisTextElement extends MuisLeaf {
 			preFont = graphics.getFont();
 			preAntiAlias = graphics.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING) == RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
 			graphics.setFont(font);
+			graphics.setColor(getStyle().getSelf().get(org.muis.core.style.FontStyle.color));
 			if(getStyle().getSelf().get(org.muis.core.style.FontStyle.antiAlias))
 				graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			else
@@ -252,8 +252,7 @@ public class MuisTextElement extends MuisLeaf {
 						layout.draw(graphics, 0, height + layout.getAscent());
 					if(height > 0)
 						height += layout.getLeading();
-					Rectangle2D lineBounds = layout.getBounds();
-					height += (int) Math.round(lineBounds.getHeight());
+					height += Math.round(layout.getAscent() + layout.getDescent());
 				}
 			} else {
 				for(int c = 0; c < theText.length(); c++) {
@@ -263,7 +262,7 @@ public class MuisTextElement extends MuisLeaf {
 						if(graphics != null)
 							layout.draw(graphics, 0, base + height);
 						graphics.drawString(theText.substring(lineIdx, c), 0, base + height);
-						int lineH = (int) Math.round(layout.getBounds().getHeight());
+						int lineH = Math.round(layout.getAscent() + layout.getDescent()) * 2;
 						height += lineH;
 						lineIdx = c + 1;
 					}
@@ -271,7 +270,7 @@ public class MuisTextElement extends MuisLeaf {
 				if(lineIdx < theText.length()) {
 					if(graphics != null)
 						graphics.drawString(theText.substring(lineIdx), 0, base + height);
-					height += Math.round(font.getLineMetrics(theText, lineIdx, theText.length(), context).getHeight());
+					height += Math.round(font.getLineMetrics(theText, lineIdx, theText.length(), context).getHeight()) * 2;
 				}
 			}
 		} finally {

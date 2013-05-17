@@ -577,10 +577,13 @@ public class FlowLayoutTester {
 		} else {
 			int maxPrefSize = 0;
 			for(int i = start; i < end; i++) {
-				prefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.maxPref, length, theRowHeights[rowIndex],
-					false, null);
+				maxPrefSize += LayoutUtils.getSize(theChildren[i], theOrientation, LayoutGuideType.maxPref, length,
+					theRowHeights[rowIndex], false, null);
 			}
 			if(maxPrefSize >= length) {
+				// Use a size between preferred and max pref
+				setSizes(sizes, start, end, LayoutGuideType.pref, rowIndex, length, (length - prefSize) * 1.0f / (maxPrefSize - prefSize));
+			} else {
 				if(isFillContainer) {
 					int maxSize = 0;
 					for(int i = start; i < end; i++) {
@@ -599,9 +602,6 @@ public class FlowLayoutTester {
 					// Use max pref size
 					setSizes(sizes, start, end, LayoutGuideType.maxPref, rowIndex, length, 0);
 				}
-			} else {
-				// Use a size between preferred and max pref
-				setSizes(sizes, start, end, LayoutGuideType.min, rowIndex, length, (length - prefSize) * 1.0f / (maxPrefSize - prefSize));
 			}
 		}
 	}

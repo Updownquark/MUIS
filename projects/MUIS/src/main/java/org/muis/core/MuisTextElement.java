@@ -5,7 +5,6 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.font.TextLayout;
-import java.awt.geom.Rectangle2D;
 
 import org.muis.core.layout.AbstractSizeGuide;
 import org.muis.core.layout.SimpleSizeGuide;
@@ -50,85 +49,33 @@ public class MuisTextElement extends MuisLeaf {
 			msg().error("Could not derive font");
 			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		}
-		SimpleSizeGuide ret = new SimpleSizeGuide();
 		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
-		int lineIdx = 0;
-		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
-			int min = 0;
-			int max = 0;
-			int wordIdx = 0;
-			for(int c = 0; c < theText.length(); c++) {
-				char ch = theText.charAt(c);
-				if(ch == ' ') {
-					if(c > wordIdx) {
-						TextLayout layout = new TextLayout(theText.substring(wordIdx, c), font, context);
-						Rectangle2D bounds = layout.getBounds();
-						int wordW = (int) Math.round(bounds.getMaxX());
-						if(wordW > min)
-							min = wordW;
-					}
-					wordIdx = c + 1;
-				} else if(ch == '\n') {
-					if(c > wordIdx) {
-						TextLayout layout = new TextLayout(theText.substring(wordIdx, c), font, context);
-						Rectangle2D bounds = layout.getBounds();
-						int wordW = (int) Math.round(bounds.getMaxX());
-						if(wordW > min)
-							min = wordW;
-					}
-					wordIdx = c + 1;
-					if(c > lineIdx) {
-						TextLayout layout = new TextLayout(theText.substring(lineIdx, c), font, context);
-						Rectangle2D bounds = layout.getBounds();
-						int lineW = (int) Math.round(bounds.getMaxX());
-						if(lineW > max)
-							max = lineW;
-					}
-					lineIdx = c + 1;
-				}
-			}
-			if(wordIdx < theText.length()) {
-				TextLayout layout = new TextLayout(theText.substring(wordIdx, theText.length()), font, context);
-				Rectangle2D bounds = layout.getBounds();
-				int wordW = (int) Math.round(bounds.getMaxX());
-				if(wordW > min)
-					min = wordW;
-			}
-			if(lineIdx < theText.length()) {
-				TextLayout layout = new TextLayout(theText.substring(lineIdx, theText.length()), font, context);
-				// TODO may need to call TextLayout.render here.
-				Rectangle2D bounds = layout.getBounds();
-				int lineW = (int) Math.round(bounds.getMaxX());
-				if(lineW > max)
-					max = lineW;
-			}
-			ret.set(min, min, max, max, max);
-		} else {
-			int w = 0;
-			for(int c = 0; c < theText.length(); c++) {
-				char ch = theText.charAt(c);
-				if(ch == '\n') {
-					if(c > lineIdx) {
-						TextLayout layout = new TextLayout(theText.substring(lineIdx, c), font, context);
-						Rectangle2D bounds = layout.getBounds();
-						int lineW = (int) Math.round(bounds.getMaxX());
-						if(lineW > w)
-							w = lineW;
-					}
-					lineIdx = c + 1;
-				}
-			}
-			if(lineIdx < theText.length()) {
-				TextLayout layout = new TextLayout(theText.substring(lineIdx, theText.length()), font, context);
-				Rectangle2D bounds = layout.getBounds();
-				int lineW = (int) Math.round(bounds.getMaxX());
-				if(lineW > w)
-					w = lineW;
-			}
-			ret.set(w, w, w, w, w);
+		int min = 0;
+		int max = 0;
+		java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(
+			new java.text.AttributedString(theText).getIterator(), java.text.BreakIterator.getWordInstance(), context);
+		while(true) {
+			TextLayout layout = measurer.nextLayout(Integer.MAX_VALUE);
+			if(layout == null)
+				break;
+			int advance = Math.round(layout.getAdvance());
+			if(advance > max)
+				max = advance;
 		}
-		return ret;
+		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
+			measurer.setPosition(0);
+			while(true) {
+				TextLayout layout = measurer.nextLayout(1);
+				if(layout == null)
+					break;
+				int advance = Math.round(layout.getAdvance());
+				if(advance > min)
+					min = advance;
+			}
+		} else
+			min = max;
+		return new SimpleSizeGuide(min, min, max, max, max);
 	}
 
 	@Override

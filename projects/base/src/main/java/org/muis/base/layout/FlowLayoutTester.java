@@ -209,8 +209,8 @@ public class FlowLayoutTester {
 		LayoutSize maxLen = new LayoutSize(true);
 		int lineBreak = 0;
 		int rowIndex = 0;
-		for(int c = 0; c < theWraps.length; c++) {
-			if(!theWraps[c])
+		for(int c = 0; c < wraps.length; c++) {
+			if(!wraps[c])
 				continue;
 			LayoutSize len = getSumSize(theChildren, lineBreak, c + 1, theOrientation, type, rowHeights[rowIndex], csMax);
 			maxLen.add(len);
@@ -272,6 +272,10 @@ public class FlowLayoutTester {
 		theWraps[childIndex] = wrapped;
 	}
 
+	public int getRowHeight(int rowIndex) {
+		return theRowHeights[rowIndex];
+	}
+
 	/**
 	 * Determines the row heights (or column widths for vertical layout) for each wrapped row of widgets
 	 *
@@ -307,30 +311,6 @@ public class FlowLayoutTester {
 		return rowChildCount;
 	}
 
-	/**
-	 * @param rowIndex The index of the row
-	 * @return The amount of space (pixels) in which content may be placed for the given row. This is calculated from the row height minus
-	 *         appropriate margin and padding.
-	 */
-	public int getRowContentHeight(int rowIndex) {
-		int margin = 0;
-		int totalRowHeight = 0;
-		if(rowIndex == 0 || rowIndex == theRowHeights.length - 1) {
-			for(int i = 0; i < theRowHeights.length; i++)
-				totalRowHeight += theRowHeights[i];
-			margin = (theOrientation == Orientation.horizontal ? theMarginY : theMarginX).evaluate(totalRowHeight) * 2;
-		}
-		int padding = 0;
-		if(rowIndex > 0) {
-			if(totalRowHeight == 0)
-				for(int i = 0; i < theRowHeights.length; i++)
-					totalRowHeight += theRowHeights[i];
-			padding = (theOrientation == Orientation.horizontal ? thePaddingY : thePaddingX).evaluate(totalRowHeight)
-				* (getRowChildCount(rowIndex) - 1);
-		}
-		return theRowHeights[rowIndex] - margin - padding;
-	}
-
 	private int [] getRowHeights(int crossSize, boolean [] wraps, int [] baseline) {
 		/* Sequence:
 		 * * If the sum of the maximum of the preferred sizes for the widgets in each row is <=crossSize, use those.
@@ -364,7 +344,8 @@ public class FlowLayoutTester {
 				lastBreak = c;
 			}
 		}
-		rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.pref, crossSize);
+		rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.pref,
+			crossSize);
 		rowHeights[rowIndex++] = rowHeight;
 		prefRowTotal.add(rowHeight);
 
@@ -377,7 +358,8 @@ public class FlowLayoutTester {
 			rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
 				if(wraps[c - 1]) {
-					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.min, crossSize);
+					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.min,
+						crossSize);
 					rowHeights[rowIndex++] = rowHeight;
 					minRowTotal.add(rowHeight);
 					lastBreak = c;
@@ -433,7 +415,8 @@ public class FlowLayoutTester {
 			rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
 				if(wraps[c - 1]) {
-					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.maxPref, crossSize);
+					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.maxPref,
+						crossSize);
 					rowHeights[rowIndex++] = rowHeight;
 					maxPrefRowTotal.add(rowHeight);
 					lastBreak = c;
@@ -453,7 +436,8 @@ public class FlowLayoutTester {
 				rowIndex = 0;
 				for(int c = 1; c < theChildren.length; c++) {
 					if(wraps[c - 1]) {
-						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.max, crossSize);
+						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.max,
+							crossSize);
 						maxRowHeights[rowIndex++] = rowHeight;
 						maxRowTotal.add(rowHeight);
 						lastBreak = c;
@@ -607,7 +591,7 @@ public class FlowLayoutTester {
 	}
 
 	private void setSizes(Dimension [] sizes, int start, int end, LayoutGuideType type, int rowIndex, int length, float prop) {
-		int rowHeight = getRowContentHeight(rowIndex);
+		int rowHeight = theRowHeights[rowIndex];
 		for(int i = start; i < end; i++) {
 			int size = LayoutUtils.getSize(theChildren[i], theOrientation, type, length, rowHeight, false, null);
 			if(prop > 0) {
@@ -661,6 +645,10 @@ public class FlowLayoutTester {
 		LayoutSize max = new LayoutSize(true);
 		LayoutSize temp = new LayoutSize();
 		for(int c = start; c < end; c++) {
+			/* TODO Seems like we need an actual value here for the cross size (major size of the individual child). This value is
+			 * being reported much larger than it should because csMax is true, so the component is looking for its max pref cross
+			 * size for a potentially tight space.  Since the return value becomes a row height, this value directly impacts the look
+			 * of the container. */
 			int childSize = LayoutUtils.getSize(children[c], orient, type, 0, Integer.MAX_VALUE, true, temp);
 			SizeGuide guide = children[c].bounds().get(orient).getGuide();
 			int childBase = guide.getBaseline(childSize);

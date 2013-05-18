@@ -131,9 +131,14 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				if(major)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), maxPref, crossSize, csMax, marginSz, marginSz,
 						paddingSz, paddingSz);
-				else
+				else if(csMax)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), maxPref, crossSize, csMax, marginSz,
 						marginSz, paddingSz, paddingSz);
+				else {
+					tester.unwrapAll();
+					while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true) < crossSize && tester.wrapNext(maxPref, crossSize, csMax));
+					return tester.cross().getMaxPreferred(crossSize, csMax);
+				}
 			}
 
 			@Override
@@ -143,9 +148,14 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				else if(major)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), max, crossSize, csMax, marginSz, marginSz,
 						paddingSz, paddingSz);
-				else
+				else if(csMax)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation().opposite(), max, crossSize, csMax, marginSz,
 						marginSz, paddingSz, paddingSz);
+				else {
+					tester.unwrapAll();
+					while(tester.main().getMax(Integer.MAX_VALUE, true) < crossSize && tester.wrapNext(max, crossSize, csMax));
+					return tester.cross().getMax(crossSize, csMax);
+				}
 			}
 
 			@Override
@@ -215,14 +225,17 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			Dimension [] lessSizes = tester.getSizes(mainLen);
 			int more = tester.main().get(negotiated.next(), crossLen, false);
 			Dimension [] moreSizes = tester.getSizes(mainLen);
-			prop = (mainLen - less) * 1.0f / (more - less);
+			if(less < more)
+				prop = (mainLen - less) * 1.0f / (more - less);
+			else
+				prop = 0;
 			int rowIndex = 0;
 			for(int i = 0; i < children.length; i++) {
 				int lessSize = LayoutUtils.get(lessSizes[i], dir.getOrientation());
 				int moreSize = LayoutUtils.get(moreSizes[i], dir.getOrientation());
 				int mainSize = Math.round(lessSize + prop * (moreSize - lessSize));
 				LayoutUtils.set(lessSizes[i], dir.getOrientation(), mainSize);
-				int rowHeight = tester.getRowContentHeight(rowIndex);
+				int rowHeight = tester.getRowHeight(rowIndex);
 				if(crossAlign == Alignment.justify) {
 					int minCross = LayoutUtils.getSize(children[i], dir.getOrientation().opposite(), LayoutGuideType.min, mainLen,
 						rowHeight, false, null);
@@ -259,9 +272,9 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		for(int i = 0; i < bounds.length - 1; i++) {
 			if(tester.isWrapped(i)) {
 				int rowHeight = rowHeights[rowIndex];
-				position(parentBounds, bounds, dir, start, i, crossPos, rowHeights, rowIndex, align, crossAlign, marginSz, marginSz,
+				position(parentBounds, bounds, dir, start, i + 1, crossPos, rowHeights, rowIndex, align, crossAlign, marginSz, marginSz,
 					paddingSz, paddingSz);
-				start = i;
+				start = i + 1;
 				rowIndex++;
 				crossPos += rowHeight;
 			}
@@ -328,7 +341,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			case center:
 			case justify:
 				LayoutUtils.setPos(bounds[i], dir.getOrientation().opposite(),
-					crossPos + (rowHeight - LayoutUtils.getSize(bounds[i], dir.getOrientation().opposite()) - topPad - bottomPad) / 2);
+					crossPos + topPad + (rowHeight - LayoutUtils.getSize(bounds[i], dir.getOrientation().opposite())) / 2);
 				break;
 			}
 		}

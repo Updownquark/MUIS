@@ -7,6 +7,29 @@ import org.muis.core.MuisElement;
 import org.muis.core.style.Size;
 
 public class LayoutUtils {
+	public static class LayoutInterpolation<T> {
+		public final LayoutGuideType lowerType;
+
+		public final double proportion;
+
+		public final T lowerValue;
+
+		public final T upperValue;
+
+		public LayoutInterpolation(LayoutGuideType type, double prop, T lowValue, T highValue) {
+			lowerType = type;
+			proportion = prop;
+			lowerValue = lowValue;
+			upperValue = highValue;
+		}
+	}
+
+	public static interface LayoutChecker<T> {
+		T getLayoutValue(LayoutGuideType type);
+
+		int getSize(T layoutValue);
+	}
+
 	public static int getSize(MuisElement element, Orientation orientation, LayoutGuideType type, int parallelSize, int crossSize,
 		boolean csMax, LayoutSize addTo) {
 		LayoutAttributes.SizeAttribute att;
@@ -102,5 +125,51 @@ public class LayoutUtils {
 			rect.height = size;
 			break;
 		}
+	}
+
+	public static <T> LayoutInterpolation<T> interpolate(LayoutChecker<T> checker, int size) {
+		T prefValue = checker.getLayoutValue(LayoutGuideType.pref);
+		int prefSize = checker.getSize(prefValue);
+		if(prefSize > size) {
+			T minPrefValue = checker.getLayoutValue(LayoutGuideType.minPref);
+			int minPrefSize = checker.getSize(minPrefValue);
+			if(minPrefSize > size) {
+				T minValue = checker.getLayoutValue(LayoutGuideType.min);
+				int minSize = checker.getSize(minValue);
+				if(minSize == minPrefSize)
+					return new LayoutInterpolation<>(LayoutGuideType.minPref, 0, minPrefValue, minPrefValue);
+				else if(minSize >= size)
+					return new LayoutInterpolation<>(LayoutGuideType.min, 0, minValue, minValue);
+				else {
+					// Some proportion between min and minPref
+					double prop = (size - minSize) * 1.0 / (minPrefSize - minSize);
+					return new LayoutInterpolation<>(LayoutGuideType.min, prop, minValue, minPrefValue);
+				}
+			} else if(minPrefSize < size) {
+				// Some proportion between minPref and pref
+				double prop = (size - minPrefSize) * 1.0 / (prefSize - minPrefSize);
+				return new LayoutInterpolation<>(LayoutGuideType.minPref, prop, minPrefValue, prefValue);
+			} else
+				return new LayoutInterpolation<>(LayoutGuideType.minPref, 0, minPrefValue, minPrefValue);
+		} else if(prefSize < size) {
+			T maxPrefValue = checker.getLayoutValue(LayoutGuideType.maxPref);
+			int maxPrefSize = checker.getSize(maxPrefValue);
+			if(maxPrefSize > size) {
+				// Some proportion between pref and maxPref
+				double prop = (size - prefSize) * 1.0 / (maxPrefSize - prefSize);
+				return new LayoutInterpolation<>(LayoutGuideType.pref, prop, prefValue, maxPrefValue);
+			} else if(maxPrefSize < size) {
+				T maxValue = checker.getLayoutValue(LayoutGuideType.max);
+				int maxSize = checker.getSize(maxValue);
+				if(maxSize > size) {
+					// Some proportion between maxPref and max
+					double prop = (size - maxPrefSize) * 1.0 / (maxSize - maxPrefSize);
+					return new LayoutInterpolation<>(LayoutGuideType.maxPref, prop, maxPrefValue, maxValue);
+				} else
+					return new LayoutInterpolation<>(LayoutGuideType.max, 0, maxValue, maxValue);
+			} else
+				return new LayoutInterpolation<>(LayoutGuideType.maxPref, 0, maxPrefValue, maxPrefValue);
+		} else
+			return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);
 	}
 }

@@ -469,6 +469,9 @@ public class FlowLayoutTester {
 					pixRowHeights[r] = pixPrefRowHeights[r] + Math.round(prop * (pixMaxPrefRowHeights[r] - pixPrefRowHeights[r]));
 			}
 		}
+		// The pixRowHeights is now the max row heights for a potentially limited main dimension. Now we need to lay the rows out along the
+		// main axis and use those component widths to get more accurate (likely smaller) row heights
+
 		// Now calculate the vertical baseline for the first row
 		baseline[0] = 0;
 		for(int c = 0; c < theChildren.length; c++) {
@@ -632,7 +635,7 @@ public class FlowLayoutTester {
 		return crossSize;
 	}
 
-	LayoutSize getMaxSize(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int size) {
+	LayoutSize getRowHeight(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int size, int crossSize) {
 		// Get the baseline to use for the row
 		int baseline = 0;
 		for(int c = start; c < end; c++) {
@@ -657,6 +660,10 @@ public class FlowLayoutTester {
 			}
 			max.add(temp);
 		}
+		// We have a max row height now. Now we lay out the elements along the main axis and use those widths to get a more accurate
+		// (likely smaller) row height
+		int maxPix = max.getTotal(crossSize);
+		// TODO Use LayoutUtils.interpolate
 		return max;
 	}
 

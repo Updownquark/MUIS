@@ -93,6 +93,8 @@ public class LayoutSize {
 	}
 
 	public int getTotal() {
+		if(isMax)
+			return thePixels;
 		if(thePixels == 0)
 			return 0;
 		if(thePercent == 0)
@@ -101,6 +103,14 @@ public class LayoutSize {
 		if(percents >= PERCENT_THRESHOLD)
 			percents = PERCENT_THRESHOLD;
 		return Math.round(thePixels / (1 - percents / 100));
+	}
+
+	public int getTotal(int size) {
+		int percentPix = Math.round(thePercent * size / 100);
+		if(isMax)
+			return percentPix > thePixels ? percentPix : thePixels;
+		else
+			return thePixels + percentPix;
 	}
 
 	@Override

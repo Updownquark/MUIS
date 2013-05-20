@@ -338,14 +338,13 @@ public class FlowLayoutTester {
 		LayoutSize rowHeight;
 		for(int c = 1; c < theChildren.length; c++) {
 			if(wraps[c - 1]) {
-				rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.pref, crossSize);
+				rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.pref, crossSize);
 				rowHeights[rowIndex++] = rowHeight;
 				prefRowTotal.add(rowHeight);
 				lastBreak = c;
 			}
 		}
-		rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.pref,
-			crossSize);
+		rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.pref, crossSize);
 		rowHeights[rowIndex++] = rowHeight;
 		prefRowTotal.add(rowHeight);
 
@@ -358,14 +357,13 @@ public class FlowLayoutTester {
 			rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
 				if(wraps[c - 1]) {
-					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.min,
-						crossSize);
+					rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.min, crossSize);
 					rowHeights[rowIndex++] = rowHeight;
 					minRowTotal.add(rowHeight);
 					lastBreak = c;
 				}
 			}
-			rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.min, crossSize);
+			rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.min, crossSize);
 			rowHeights[rowIndex++] = rowHeight;
 			minRowTotal.add(rowHeight);
 
@@ -379,13 +377,13 @@ public class FlowLayoutTester {
 				rowIndex = 0;
 				for(int c = 1; c < theChildren.length; c++) {
 					if(wraps[c - 1]) {
-						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.minPref, crossSize);
+						rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.minPref, crossSize);
 						minPrefRowHeights[rowIndex++] = rowHeight;
 						minPrefRowTotal.add(rowHeight);
 						lastBreak = c;
 					}
 				}
-				rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.minPref, crossSize);
+				rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.minPref, crossSize);
 				minPrefRowHeights[rowIndex++] = rowHeight;
 				minPrefRowTotal.add(rowHeight);
 
@@ -415,14 +413,13 @@ public class FlowLayoutTester {
 			rowIndex = 0;
 			for(int c = 1; c < theChildren.length; c++) {
 				if(wraps[c - 1]) {
-					rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.maxPref,
-						crossSize);
+					rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.maxPref, crossSize);
 					rowHeights[rowIndex++] = rowHeight;
 					maxPrefRowTotal.add(rowHeight);
 					lastBreak = c;
 				}
 			}
-			rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.maxPref, crossSize);
+			rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.maxPref, crossSize);
 			rowHeights[rowIndex++] = rowHeight;
 			maxPrefRowTotal.add(rowHeight);
 
@@ -436,14 +433,13 @@ public class FlowLayoutTester {
 				rowIndex = 0;
 				for(int c = 1; c < theChildren.length; c++) {
 					if(wraps[c - 1]) {
-						rowHeight = getMaxSize(theChildren, lastBreak, c, crossOrient, LayoutGuideType.max,
-							crossSize);
+						rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.max, crossSize);
 						maxRowHeights[rowIndex++] = rowHeight;
 						maxRowTotal.add(rowHeight);
 						lastBreak = c;
 					}
 				}
-				rowHeight = getMaxSize(theChildren, lastBreak, theChildren.length, crossOrient, LayoutGuideType.max, crossSize);
+				rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.max, crossSize);
 				maxRowHeights[rowIndex++] = rowHeight;
 				maxRowTotal.add(rowHeight);
 
@@ -635,9 +631,10 @@ public class FlowLayoutTester {
 		return crossSize;
 	}
 
-	LayoutSize getRowHeight(MuisElement [] children, int start, int end, Orientation orient, LayoutGuideType type, int size, int crossSize) {
+	LayoutSize getRowHeight(final MuisElement [] children, final int start, final int end, LayoutGuideType type, final int size) {
 		// Get the baseline to use for the row
 		int baseline = 0;
+		Orientation orient = theOrientation.opposite();
 		for(int c = start; c < end; c++) {
 			int childSize = LayoutUtils.getSize(children[c], orient, type, size, Integer.MAX_VALUE, true, null);
 			SizeGuide guide = children[c].bounds().get(orient).getGuide();
@@ -652,6 +649,7 @@ public class FlowLayoutTester {
 			 * being reported much larger than it should because csMax is true, so the component is looking for its max pref cross
 			 * size for a potentially tight space.  Since the return value becomes a row height, this value directly impacts the look
 			 * of the container. */
+			temp.clear();
 			int childSize = LayoutUtils.getSize(children[c], orient, type, 0, Integer.MAX_VALUE, true, temp);
 			SizeGuide guide = children[c].bounds().get(orient).getGuide();
 			int childBase = guide.getBaseline(childSize);
@@ -662,8 +660,41 @@ public class FlowLayoutTester {
 		}
 		// We have a max row height now. Now we lay out the elements along the main axis and use those widths to get a more accurate
 		// (likely smaller) row height
-		int maxPix = max.getTotal(crossSize);
-		// TODO Use LayoutUtils.interpolate
+		final int maxPix = max.getTotal(500); 	/* This number only affects maxPix if a percent size is used. If a size attribute is so set,
+												 * then the height is somewhat artificial anyway and shouldn't affect the opposite dimension
+												 * very much.  So this is just a positive value with a significant but not huge layout size
+												 * and shouldn't really matter in the vast majority of cases.  Or so I hope. */
+		LayoutUtils.LayoutInterpolation<int []> result = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<int []>() {
+			@Override
+			public int [] getLayoutValue(LayoutGuideType checkType) {
+				int [] ret = new int[end - start];
+				for(int i = start; i < end; i++)
+					ret[i - start] = LayoutUtils.getSize(children[i], theOrientation, checkType, size, maxPix, true, null);
+				return ret;
+			}
+
+			@Override
+			public int getSize(int [] layoutValue) {
+				int ret = 0;
+				for(int lv : layoutValue)
+					ret += lv;
+				return ret;
+			}
+		}, size, true, isFillContainer);
+		if(result.proportion > 0)
+			for(int i = 0; i < result.lowerValue.length; i++)
+				result.lowerValue[i] += Math.round(result.proportion * (result.upperValue[i] - result.lowerValue[i]));
+		max.clear();
+		for(int c = start; c < end; c++) {
+			temp.clear();
+			int childSize = LayoutUtils.getSize(children[c], orient, type, 0, result.lowerValue[c - start], false, temp);
+			SizeGuide guide = children[c].bounds().get(orient).getGuide();
+			int childBase = guide.getBaseline(childSize);
+			if(childBase >= 0) {
+				temp.add(baseline - childBase);
+			}
+			max.add(temp);
+		}
 		return max;
 	}
 

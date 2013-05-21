@@ -265,21 +265,32 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			bounds[i] = new Rectangle(sizes[i]);
 		}
 		Dimension parentBounds = parent.bounds().getSize();
-		int crossPos = 0;
+		int crossPos = marginSz.evaluate(crossLen);
 		int start = 0;
 		int rowIndex = 0;
 		int [] rowHeights = tester.getRowHeights(crossLen);
+		int totalRowHeight = 0;
+		for(int rh : rowHeights)
+			totalRowHeight += rh;
+		int usedRowSpace = 0;
+		int leftover = crossLen - totalRowHeight - marginSz.evaluate(crossLen) * 2;
+		if(bounds.length > 1)
+			leftover -= paddingSz.evaluate(crossLen) * (bounds.length - 1);
 		for(int i = 0; i < bounds.length - 1; i++) {
 			if(tester.isWrapped(i)) {
+				int space = Math.round(leftover * 1.0f * rowIndex / (rowHeights.length + 1));
 				int rowHeight = rowHeights[rowIndex];
-				position(parentBounds, bounds, dir, start, i + 1, crossPos, rowHeights, rowIndex, align, crossAlign, marginSz, marginSz,
-					paddingSz, paddingSz);
+				position(parentBounds, bounds, dir, start, i + 1, crossPos + space - usedRowSpace, rowHeights, rowIndex, align, crossAlign,
+					marginSz, marginSz, paddingSz, paddingSz);
+				usedRowSpace = space;
 				start = i + 1;
 				rowIndex++;
-				crossPos += rowHeight;
+				crossPos += rowHeight + paddingSz.evaluate(crossLen);
 			}
 		}
-		position(parent.bounds().getSize(), bounds, dir, start, children.length, crossPos, rowHeights, rowIndex, align, crossAlign,
+		int space = Math.round(leftover * 1.0f * (rowIndex + 1) / (rowHeights.length + 1));
+		position(parent.bounds().getSize(), bounds, dir, start, children.length, crossPos + space - usedRowSpace, rowHeights, rowIndex,
+			align, crossAlign,
 			marginSz, marginSz, paddingSz, paddingSz);
 
 		for(int c = 0; c < children.length; c++)
@@ -321,7 +332,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				break;
 			case center:
 			case justify:
-				int space = Math.round(leftover * 1.0f * (i - start) / (end - start + 1));
+				int space = Math.round(leftover * 1.0f * (i - start + 1) / (end - start + 1));
 				LayoutUtils.setPos(bounds[i], dir.getOrientation(), mainPos + space - usedSpace);
 				usedSpace = space;
 				break;
@@ -336,12 +347,12 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				break;
 			case end:
 				LayoutUtils.setPos(bounds[i], dir.getOrientation().opposite(),
-					crossPos + rowHeight - bottomPad - LayoutUtils.getSize(bounds[i], dir.getOrientation().opposite()) - 1);
+					crossPos + rowHeight - LayoutUtils.getSize(bounds[i], dir.getOrientation().opposite()) - 1);
 				break;
 			case center:
 			case justify:
 				LayoutUtils.setPos(bounds[i], dir.getOrientation().opposite(),
-					crossPos + topPad + (rowHeight - LayoutUtils.getSize(bounds[i], dir.getOrientation().opposite())) / 2);
+					crossPos + (rowHeight - LayoutUtils.getSize(bounds[i], dir.getOrientation().opposite())) / 2);
 				break;
 			}
 		}

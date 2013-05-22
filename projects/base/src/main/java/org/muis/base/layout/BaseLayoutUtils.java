@@ -36,7 +36,7 @@ public class BaseLayoutUtils {
 		LayoutSize temp = new LayoutSize(true);
 		int ret = 0;
 		for(MuisElement child : children) {
-			int sz = LayoutUtils.getSize(child, orient, type, Integer.MAX_VALUE, mainSize, sizeMax, temp);
+			int sz = LayoutUtils.getSize(child, orient.opposite(), type, Integer.MAX_VALUE, mainSize, sizeMax, temp);
 			if(sz > ret)
 				ret = sz;
 		}

@@ -243,7 +243,7 @@ public class FlowLayoutTester {
 		// Try to find a good place for a new wrap
 		boolean [] testWraps = new boolean[theWraps.length];
 		System.arraycopy(theWraps, 0, testWraps, 0, theWraps.length);
-		for(int c = 0; c < theChildren.length; c++) {
+		for(int c = 0; c < theWraps.length; c++) {
 			if(!theWraps[c]) {
 				continue;
 			}
@@ -311,7 +311,7 @@ public class FlowLayoutTester {
 		return rowChildCount;
 	}
 
-	private int [] getRowHeights(int crossSize, boolean [] wraps, int [] baseline) {
+	private int [] getRowHeights(final int crossSize, final boolean [] wraps, int [] baseline) {
 		/* Sequence:
 		 * * If the sum of the maximum of the preferred sizes for the widgets in each row is <=crossSize, use those.
 		 * * else if the sum of the maximum of the minimum sizes for the widgets in each row is >=crossSize, use those.
@@ -324,154 +324,49 @@ public class FlowLayoutTester {
 		 * Using the determined row heights as cross sizes, get the maximum of the sum of the minimum sizes for each row.
 		 * TODO incorporate maxPref and max sizes here
 		 */
-		int rowCount = 1;
+		int rc = 1;
 		for(boolean wrap : wraps)
 			if(wrap)
-				rowCount++;
-		LayoutSize [] rowHeights = new LayoutSize[rowCount];
-		int [] pixRowHeights;
-		Orientation crossOrient = theOrientation.opposite();
-		// Calculate the sum of the maximum of the preferred sizes for the widgets in each row
-		LayoutSize prefRowTotal = new LayoutSize();
-		int lastBreak = 0;
-		int rowIndex = 0;
-		LayoutSize rowHeight;
-		for(int c = 1; c < theChildren.length; c++) {
-			if(wraps[c - 1]) {
-				rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.pref, crossSize);
-				rowHeights[rowIndex++] = rowHeight;
-				prefRowTotal.add(rowHeight);
-				lastBreak = c;
-			}
-		}
-		rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.pref, crossSize);
-		rowHeights[rowIndex++] = rowHeight;
-		prefRowTotal.add(rowHeight);
-
-		if(prefRowTotal.getTotal() > crossSize) {
-			LayoutSize [] prefRowHeights = rowHeights;
-			rowHeights = new LayoutSize[rowCount];
-			// Calculate the sum of the minimum of the min sizes for the widgets in each row
-			LayoutSize minRowTotal = new LayoutSize();
-			lastBreak = 0;
-			rowIndex = 0;
-			for(int c = 1; c < theChildren.length; c++) {
-				if(wraps[c - 1]) {
-					rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.min, crossSize);
-					rowHeights[rowIndex++] = rowHeight;
-					minRowTotal.add(rowHeight);
-					lastBreak = c;
-				}
-			}
-			rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.min, crossSize);
-			rowHeights[rowIndex++] = rowHeight;
-			minRowTotal.add(rowHeight);
-
-			if(minRowTotal.getTotal() <= crossSize) {
-				LayoutSize [] minRowHeights = rowHeights;
-				LayoutSize [] minPrefRowHeights = new LayoutSize[rowCount];
-				rowHeights = new LayoutSize[rowCount];
-				// Calculate the sum of the minimum of the min pref sizes for the widgets in each row
-				LayoutSize minPrefRowTotal = new LayoutSize();
-				lastBreak = 0;
-				rowIndex = 0;
+				rc++;
+		final int rowCount = rc;
+		LayoutUtils.LayoutInterpolation<LayoutSize []> result = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<LayoutSize []>() {
+			@Override
+			public LayoutSize [] getLayoutValue(LayoutGuideType type) {
+				LayoutSize [] ret = new LayoutSize[rowCount];
+				int lastBreak = 0;
+				int rowIndex = 0;
+				LayoutSize rowHeight;
 				for(int c = 1; c < theChildren.length; c++) {
 					if(wraps[c - 1]) {
-						rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.minPref, crossSize);
-						minPrefRowHeights[rowIndex++] = rowHeight;
-						minPrefRowTotal.add(rowHeight);
+						rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.pref, crossSize);
+						ret[rowIndex++] = rowHeight;
 						lastBreak = c;
 					}
 				}
-				rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.minPref, crossSize);
-				minPrefRowHeights[rowIndex++] = rowHeight;
-				minPrefRowTotal.add(rowHeight);
-
-				int [] pixMinPrefRowHeights = evaluateRowHeights(minPrefRowHeights);
-				pixRowHeights = new int[rowCount];
-
-				float prop;
-				if(minPrefRowTotal.getTotal() >= crossSize) {
-					int [] pixMinRowHeights = evaluateRowHeights(minRowHeights);
-					prop = (crossSize - minRowTotal.getTotal()) * 1.0f / (minPrefRowTotal.getTotal() - minRowTotal.getTotal());
-					for(int r = 0; r < rowCount; r++)
-						pixRowHeights[r] = pixMinRowHeights[r] + Math.round(prop * (pixMinPrefRowHeights[r] - pixMinRowHeights[r]));
-				} else {
-					int [] pixPrefRowHeights = evaluateRowHeights(prefRowHeights);
-					prop = (crossSize - minPrefRowTotal.getTotal()) * 1.0f / (prefRowTotal.getTotal() - minPrefRowTotal.getTotal());
-					for(int r = 0; r < rowCount; r++)
-						pixRowHeights[r] = pixMinPrefRowHeights[r] + Math.round(prop * (pixPrefRowHeights[r] - pixMinPrefRowHeights[r]));
-				}
-			} else
-				pixRowHeights = evaluateRowHeights(rowHeights);
-		} else {
-			LayoutSize [] prefRowHeights = rowHeights;
-			rowHeights = new LayoutSize[rowCount];
-			// Calculate the sum of the minimum of the max pref sizes for the widgets in each row
-			LayoutSize maxPrefRowTotal = new LayoutSize();
-			lastBreak = 0;
-			rowIndex = 0;
-			for(int c = 1; c < theChildren.length; c++) {
-				if(wraps[c - 1]) {
-					rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.maxPref, crossSize);
-					rowHeights[rowIndex++] = rowHeight;
-					maxPrefRowTotal.add(rowHeight);
-					lastBreak = c;
-				}
+				rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.pref, crossSize);
+				ret[rowIndex++] = rowHeight;
+				return ret;
 			}
-			rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.maxPref, crossSize);
-			rowHeights[rowIndex++] = rowHeight;
-			maxPrefRowTotal.add(rowHeight);
 
-			if(isFillContainer && maxPrefRowTotal.getTotal() < crossSize) {
-				LayoutSize [] maxPrefRowHeights = rowHeights;
-				LayoutSize [] maxRowHeights = new LayoutSize[rowCount];
-				rowHeights = new LayoutSize[rowCount];
-				// Calculate the sum of the minimum of the max sizes for the widgets in each row
-				LayoutSize maxRowTotal = new LayoutSize();
-				lastBreak = 0;
-				rowIndex = 0;
-				for(int c = 1; c < theChildren.length; c++) {
-					if(wraps[c - 1]) {
-						rowHeight = getRowHeight(theChildren, lastBreak, c, LayoutGuideType.max, crossSize);
-						maxRowHeights[rowIndex++] = rowHeight;
-						maxRowTotal.add(rowHeight);
-						lastBreak = c;
-					}
-				}
-				rowHeight = getRowHeight(theChildren, lastBreak, theChildren.length, LayoutGuideType.max, crossSize);
-				maxRowHeights[rowIndex++] = rowHeight;
-				maxRowTotal.add(rowHeight);
-
-				int [] pixMaxRowHeights = evaluateRowHeights(maxRowHeights);
-				pixRowHeights = new int[rowCount];
-
-				float prop;
-				if(maxRowTotal.getTotal() <= crossSize)
-					pixRowHeights = evaluateRowHeights(maxRowHeights);
-				else {
-					int [] pixMaxPrefRowHeights = evaluateRowHeights(maxPrefRowHeights);
-					prop = (crossSize - maxPrefRowTotal.getTotal()) * 1.0f / (maxRowTotal.getTotal() - maxPrefRowTotal.getTotal());
-					for(int r = 0; r < rowCount; r++)
-						pixRowHeights[r] = pixMaxPrefRowHeights[r] + Math.round(prop * (pixMaxRowHeights[r] - pixMaxPrefRowHeights[r]));
-				}
-			} else {
-				float prop;
-				int [] pixMaxPrefRowHeights = evaluateRowHeights(rowHeights);
-				int [] pixPrefRowHeights = evaluateRowHeights(prefRowHeights);
-				pixRowHeights = new int[rowCount];
-				prop = (crossSize - prefRowTotal.getTotal()) * 1.0f / (maxPrefRowTotal.getTotal() - prefRowTotal.getTotal());
-				for(int r = 0; r < rowCount; r++)
-					pixRowHeights[r] = pixPrefRowHeights[r] + Math.round(prop * (pixMaxPrefRowHeights[r] - pixPrefRowHeights[r]));
+			@Override
+			public int getSize(LayoutSize [] layoutValue) {
+				LayoutSize total = new LayoutSize();
+				for(LayoutSize lv : layoutValue)
+					total.add(lv);
+				return total.getTotal(crossSize);
 			}
+		}, crossSize, true, isFillContainer);
+		int [] pixRowHeights = new int[result.lowerValue.length];
+		for(int i = 0; i < pixRowHeights.length; i++) {
+			pixRowHeights[i] = result.lowerValue[i].getTotal(crossSize);
+			if(result.proportion > 0)
+				pixRowHeights[i] += Math.round(result.proportion * (result.upperValue[i].getTotal(crossSize) - pixRowHeights[i]));
 		}
-		// The pixRowHeights is now the max row heights for a potentially limited main dimension. Now we need to lay the rows out along the
-		// main axis and use those component widths to get more accurate (likely smaller) row heights
 
 		// Now calculate the vertical baseline for the first row
 		baseline[0] = 0;
 		for(int c = 0; c < theChildren.length; c++) {
-			int childBase = theChildren[c].bounds().get(crossOrient).getGuide().getBaseline(pixRowHeights[0]);
+			int childBase = theChildren[c].bounds().get(theOrientation.opposite()).getGuide().getBaseline(pixRowHeights[0]);
 			if(childBase > baseline[0])
 				baseline[0] = childBase;
 			if(c < wraps.length && wraps[c])

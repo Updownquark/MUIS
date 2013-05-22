@@ -111,13 +111,13 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 					return tester.main().getPreferred(crossSize, csMax);
 				else {
 					if(csMax) {
-						while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true) < crossSize
+						while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true) > crossSize
 							&& tester.wrapNext(maxPref, crossSize, csMax));
 						boolean wrappedOnPref = false;
-						while(tester.main().getPreferred(Integer.MAX_VALUE, true) < crossSize && tester.wrapNext(pref, crossSize, csMax)) {
+						while(tester.main().getPreferred(Integer.MAX_VALUE, true) > crossSize && tester.wrapNext(pref, crossSize, csMax)) {
 							wrappedOnPref = true;
 						}
-						if(wrappedOnPref && tester.main().getPreferred(Integer.MAX_VALUE, true) > crossSize)
+						if(wrappedOnPref && tester.main().getPreferred(Integer.MAX_VALUE, true) < crossSize)
 							tester.unwrapNext(pref, crossSize, csMax);
 					} else {
 						// TODO Here's where we would square things up for square style
@@ -136,7 +136,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 						marginSz, paddingSz, paddingSz);
 				else {
 					tester.unwrapAll();
-					while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true) < crossSize && tester.wrapNext(maxPref, crossSize, csMax));
+					while(tester.main().getMaxPreferred(Integer.MAX_VALUE, true) > crossSize && tester.wrapNext(maxPref, crossSize, csMax));
 					return tester.cross().getMaxPreferred(crossSize, csMax);
 				}
 			}
@@ -153,7 +153,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 						marginSz, paddingSz, paddingSz);
 				else {
 					tester.unwrapAll();
-					while(tester.main().getMax(Integer.MAX_VALUE, true) < crossSize && tester.wrapNext(max, crossSize, csMax));
+					while(tester.main().getMax(Integer.MAX_VALUE, true) > crossSize && tester.wrapNext(max, crossSize, csMax));
 					return tester.cross().getMax(crossSize, csMax);
 				}
 			}
@@ -278,9 +278,10 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			leftover -= paddingSz.evaluate(crossLen) * (bounds.length - 1);
 		for(int i = 0; i < bounds.length - 1; i++) {
 			if(tester.isWrapped(i)) {
-				int space = Math.round(leftover * 1.0f * rowIndex / (rowHeights.length + 1));
+				int space = Math.round(leftover * 1.0f * (rowIndex + 1) / (rowHeights.length + 1));
+				crossPos += space - usedRowSpace;
 				int rowHeight = rowHeights[rowIndex];
-				position(parentBounds, bounds, dir, start, i + 1, crossPos + space - usedRowSpace, rowHeights, rowIndex, align, crossAlign,
+				position(parentBounds, bounds, dir, start, i + 1, crossPos, rowHeights, rowIndex, align, crossAlign,
 					marginSz, marginSz, paddingSz, paddingSz);
 				usedRowSpace = space;
 				start = i + 1;

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import org.muis.core.MuisElement;
 import org.muis.core.layout.*;
 import org.muis.core.style.Size;
+import org.muis.util.SimpleCache;
 
 /** Allows a flow layout to quickly test out different wrapping configurations for a set of widgets */
 public class FlowLayoutTester {
@@ -375,30 +376,6 @@ public class FlowLayoutTester {
 		return pixRowHeights;
 	}
 
-	private int [] evaluateRowHeights(LayoutSize [] rowHeights) {
-		LayoutSize totalHeight = new LayoutSize();
-		totalHeight.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
-		totalHeight.add(theOrientation == Orientation.vertical ? theMarginX : theMarginY);
-		for(int i = 0; i < rowHeights.length; i++) {
-			if(i > 0)
-				totalHeight.add(theOrientation == Orientation.vertical ? thePaddingX : thePaddingY);
-			totalHeight.add(rowHeights[i]);
-		}
-		int th = totalHeight.getTotal();
-		int [] ret = new int[rowHeights.length];
-		for(int i = 0; i < rowHeights.length; i++) {
-			if(rowHeights[i].getPercent() > 0) {
-				int percentEval = Math.round(rowHeights[i].getPercent() * th);
-				if(percentEval > rowHeights[i].getPixels())
-					ret[i] = percentEval;
-				else
-					ret[i] = rowHeights[i].getPixels();
-			} else
-				ret[i] = rowHeights[i].getPixels();
-		}
-		return ret;
-	}
-
 	/**
 	 * @param length The major size of the container
 	 * @return The sizes for each child in the layout
@@ -607,6 +584,8 @@ public class FlowLayoutTester {
 	}
 
 	private class FlowLayoutTesterMainSizeGuide implements SizeGuide {
+		private SimpleCache<Integer> theCache = new SimpleCache<>();
+
 		@Override
 		public int getMin(int crossSize, boolean csMax) {
 			return get(LayoutGuideType.min, crossSize, csMax);
@@ -634,6 +613,9 @@ public class FlowLayoutTester {
 
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			Integer ret = theCache.get(type, crossSize, csMax);
+			if(ret != null)
+				return ret;
 			int [] rowHeights = getRowHeights(crossSize);
 			LayoutSize max = new LayoutSize(true);
 			int lastBreak = 0;
@@ -644,6 +626,7 @@ public class FlowLayoutTester {
 			}
 			max.add(getSumSize(theChildren, lastBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], type.isPref()));
 			max = new LayoutSize(max);
+			theCache.set(max.getTotal(), type, crossSize, csMax);
 			return max.getTotal();
 		}
 
@@ -654,6 +637,8 @@ public class FlowLayoutTester {
 	}
 
 	class FlowLayoutTesterCrossSizeGuide implements SizeGuide {
+		private SimpleCache<Integer> theCache = new SimpleCache<>();
+
 		@Override
 		public int getMin(int crossSize, boolean csMax) {
 			return get(LayoutGuideType.min, crossSize, csMax);
@@ -681,6 +666,9 @@ public class FlowLayoutTester {
 
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			Integer ret = theCache.get(type, crossSize, csMax);
+			if(ret != null)
+				return ret;
 			LayoutSize temp = new LayoutSize();
 			ArrayList<MuisElement> row = new ArrayList<>();
 			int size = 0;
@@ -727,12 +715,14 @@ public class FlowLayoutTester {
 						sizeChanged = true;
 				}
 			}
+			theCache.set(size, type, crossSize, csMax);
+			theCache.set(theBaseline, "baseline", size);
 			return size;
 		}
 
 		@Override
 		public int getBaseline(int size) {
-			return theBaseline;
+			return theCache.get("baseline", size);
 		}
 	}
 }

@@ -13,10 +13,13 @@ import org.muis.core.MuisElement;
 import org.muis.core.layout.*;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
+import org.muis.util.SimpleCache;
 
 /** Arranges components in order along a single axis, wrapping them to the next row or column as needed. */
 public class FlowLayout implements org.muis.core.MuisLayout {
 	private final CompoundListener.MultiElementCompoundListener theListener;
+
+	private SimpleCache<SizeGuide> theSizerCache;
 
 	/** Creates a flow layout */
 	public FlowLayout() {
@@ -24,6 +27,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		theListener.acceptAll(direction, alignment, crossAlignment, fillContainer).watchAll(margin, padding)
 			.onChange(CompoundListener.layout);
 		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
+		theSizerCache = new SimpleCache<>();
 	}
 
 	@Override
@@ -68,9 +72,12 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 	private SizeGuide getSizer(final Direction dir, final Size marginSz, final Size paddingSz, final boolean fill, final boolean major,
 		final MuisElement [] children) {
-		return new AbstractSizeGuide() {
-			private FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz, fill,
-				children);
+		SizeGuide ret = theSizerCache.get(dir, marginSz, paddingSz, fill, major, children);
+		if(ret != null)
+			return ret;
+		ret = new AbstractSizeGuide() {
+			private final FlowLayoutTester tester = new FlowLayoutTester(dir.getOrientation(), paddingSz, paddingSz, marginSz, marginSz,
+				fill, children);
 
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -163,6 +170,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				return major ? tester.main().getBaseline(size) : tester.cross().getBaseline(size);
 			}
 		};
+		theSizerCache.set(ret, dir, marginSz, paddingSz, fill, major, children);
+		return ret;
 	}
 
 	@Override
@@ -281,8 +290,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 				int space = Math.round(leftover * 1.0f * (rowIndex + 1) / (rowHeights.length + 1));
 				crossPos += space - usedRowSpace;
 				int rowHeight = rowHeights[rowIndex];
-				position(parentBounds, bounds, dir, start, i + 1, crossPos, rowHeights, rowIndex, align, crossAlign,
-					marginSz, marginSz, paddingSz, paddingSz);
+				position(parentBounds, bounds, dir, start, i + 1, crossPos, rowHeights, rowIndex, align, crossAlign, marginSz, marginSz,
+					paddingSz, paddingSz);
 				usedRowSpace = space;
 				start = i + 1;
 				rowIndex++;
@@ -291,8 +300,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		}
 		int space = Math.round(leftover * 1.0f * (rowIndex + 1) / (rowHeights.length + 1));
 		position(parent.bounds().getSize(), bounds, dir, start, children.length, crossPos + space - usedRowSpace, rowHeights, rowIndex,
-			align, crossAlign,
-			marginSz, marginSz, paddingSz, paddingSz);
+			align, crossAlign, marginSz, marginSz, paddingSz, paddingSz);
 
 		for(int c = 0; c < children.length; c++)
 			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
@@ -301,22 +309,11 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	private void position(Dimension parentSize, Rectangle [] bounds, Direction dir, int start, int end, int crossPos, int [] rowHeights,
 		int rowIndex, Alignment mainAlign, Alignment crossAlign, Size marginX, Size marginY, Size paddingX, Size paddingY) {
 		int mainLen = LayoutUtils.get(parentSize, dir.getOrientation());
-		int crossLen = LayoutUtils.get(parentSize, dir.getOrientation().opposite());
 		int childLen = 0;
 		for(int i = start; i < end; i++)
 			childLen += LayoutUtils.getSize(bounds[i], dir.getOrientation());
 		int mainMargin = (dir.getOrientation() == Orientation.horizontal ? marginX : marginY).evaluate(mainLen);
 		int mainPadding = (dir.getOrientation() == Orientation.horizontal ? paddingX : paddingY).evaluate(mainLen);
-		int crossMargin = (dir.getOrientation() == Orientation.horizontal ? marginY : marginX).evaluate(crossLen);
-		int crossPadding = (dir.getOrientation() == Orientation.horizontal ? paddingY : paddingX).evaluate(crossLen);
-		int topPad = 0;
-		int bottomPad = 0;
-		if(rowIndex == 0)
-			topPad += crossMargin;
-		else
-			topPad += crossPadding;
-		if(rowIndex == rowHeights.length - 1)
-			bottomPad += crossMargin;
 		int rowHeight = rowHeights[rowIndex];
 		int leftover = mainLen - childLen - mainMargin * 2 - mainPadding * (end - start - 1);
 		int mainPos = mainMargin;
@@ -344,7 +341,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			// Align in cross dimension
 			switch (crossAlign) {
 			case begin:
-				LayoutUtils.setPos(bounds[i], dir.getOrientation().opposite(), crossPos + topPad);
+				LayoutUtils.setPos(bounds[i], dir.getOrientation().opposite(), crossPos);
 				break;
 			case end:
 				LayoutUtils.setPos(bounds[i], dir.getOrientation().opposite(),

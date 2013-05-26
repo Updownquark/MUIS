@@ -613,7 +613,7 @@ public class FlowLayoutTester {
 
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-			Integer ret = theCache.get(type, crossSize, csMax);
+			Integer ret = theCache.get(type, crossSize, csMax, theWraps);
 			if(ret != null)
 				return ret;
 			int [] rowHeights = getRowHeights(crossSize);
@@ -626,7 +626,7 @@ public class FlowLayoutTester {
 			}
 			max.add(getSumSize(theChildren, lastBreak, theChildren.length, theOrientation, type, rowHeights[rowIndex], type.isPref()));
 			max = new LayoutSize(max);
-			theCache.set(max.getTotal(), type, crossSize, csMax);
+			theCache.set(max.getTotal(), type, crossSize, csMax, theWraps);
 			return max.getTotal();
 		}
 
@@ -666,7 +666,7 @@ public class FlowLayoutTester {
 
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-			Integer ret = theCache.get(type, crossSize, csMax);
+			Integer ret = theCache.get(type, crossSize, csMax, theWraps);
 			if(ret != null)
 				return ret;
 			LayoutSize temp = new LayoutSize();
@@ -715,14 +715,14 @@ public class FlowLayoutTester {
 						sizeChanged = true;
 				}
 			}
-			theCache.set(size, type, crossSize, csMax);
-			theCache.set(theBaseline, "baseline", size);
+			theCache.set(size, type, crossSize, csMax, theWraps);
+			theCache.set(theBaseline, "baseline", size, theWraps);
 			return size;
 		}
 
 		@Override
 		public int getBaseline(int size) {
-			return theCache.get("baseline", size);
+			return theCache.get("baseline", size, theWraps);
 		}
 	}
 }

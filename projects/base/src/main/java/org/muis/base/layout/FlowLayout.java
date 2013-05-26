@@ -304,6 +304,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 		for(int c = 0; c < children.length; c++)
 			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
+
+		theSizerCache.clear();
 	}
 
 	private void position(Dimension parentSize, Rectangle [] bounds, Direction dir, int start, int end, int crossPos, int [] rowHeights,

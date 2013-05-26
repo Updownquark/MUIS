@@ -3,7 +3,7 @@ package org.muis.util;
 /**
  * A very simple-to-use cache based on {@link prisms.util.DemandCache} that just stores values for compound keys. This class is ideal for
  * smaller data sets
- * 
+ *
  * @param <T> The type of value to store in the cache
  */
 public class SimpleCache<T> {
@@ -23,6 +23,19 @@ public class SimpleCache<T> {
 	 */
 	public void set(T value, Object... key) {
 		theCache.put(new CompoundKey(key), value);
+	}
+
+	/**
+	 * @param key The key of the entry to remove
+	 * @return The value that was stored for the key before it was removed
+	 */
+	public T remove(Object... key) {
+		return theCache.remove(new CompoundKey(key));
+	}
+
+	/** Removes all entries from this cache */
+	public void clear() {
+		theCache.clear();
 	}
 
 	private static class CompoundKey {

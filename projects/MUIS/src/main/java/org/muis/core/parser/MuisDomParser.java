@@ -192,17 +192,19 @@ public class MuisDomParser implements MuisParser {
 
 	@Override
 	public MuisDocumentStructure parseDocument(MuisEnvironment env, URL location, Reader reader) throws MuisParseException, IOException {
+		return parseDocument(location, reader, null, env.msg());
+	}
+
+	@Override
+	public MuisDocumentStructure parseDocument(URL location, Reader reader, MuisClassView rootClassView, MuisMessageCenter msg)
+		throws IOException, MuisParseException {
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
 		} catch(org.jdom2.JDOMException e) {
 			throw new MuisParseException("Could not parse document XML", e);
 		}
-		return parseDocument(location, rootEl, null, env.getMessageCenter());
-	}
 
-	private MuisDocumentStructure parseDocument(URL location, Element rootEl, MuisClassView rootClassView, MuisMessageCenter msg)
-		throws MuisParseException {
 		MuisHeadSection head = new MuisHeadSection();
 		MuisClassView classView = getClassView(rootClassView, rootEl, msg, location);
 		if(rootEl.getTextTrim().length() > 0)
@@ -223,6 +225,20 @@ public class MuisDomParser implements MuisParser {
 					styleSheet.seal();
 				}
 			}
+			for(Element modelEl : headEl[0].getChildren("model")) {
+				String name = modelEl.getAttributeValue("name");
+				if(name == null) {
+					msg.error("No name specified for model", "element", modelEl);
+					continue;
+				}
+				if(head.getModel(name) != null) {
+					msg.error("Model \"" + name + "\" specified multiple times", "element", modelEl);
+					continue;
+				}
+				MuisModel model = parseModel(modelEl, location, classView, msg);
+				if(model != null)
+					head.addModel(name, model);
+			}
 		}
 		head.seal();
 		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
@@ -241,17 +257,43 @@ public class MuisDomParser implements MuisParser {
 		return new MuisDocumentStructure(location, head, content);
 	}
 
-	@Override
-	public MuisDocumentStructure parseDocument(URL location, Reader reader, MuisClassView rootClassView, MuisMessageCenter msg)
-		throws IOException, MuisParseException {
-		Element rootEl;
-		try {
-			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
-		} catch(org.jdom2.JDOMException e) {
-			throw new MuisParseException("Could not parse document XML", e);
+	/**
+	 * Creates a fully-initialized class view
+	 *
+	 * @param parent The parent class view
+	 * @param xml The XML element to get namespaces to map
+	 * @param msg The message center to report errors to
+	 * @param location The location of the XML file
+	 * @return The class view for the element
+	 */
+	protected MuisClassView getClassView(MuisClassView parent, Element xml, MuisMessageCenter msg, URL location) {
+		MuisClassView ret = new MuisClassView(theEnvironment, parent, parent == null ? null : parent.getToolkitForQName(xml
+			.getQualifiedName()));
+		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
+			MuisToolkit toolkit;
+			try {
+				toolkit = theEnvironment.getToolkit(MuisUtils.resolveURL(location, ns.getURI()));
+			} catch(MalformedURLException e) {
+				msg.error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
+				continue;
+			} catch(IOException e) {
+				msg.error("Could not read toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
+				continue;
+			} catch(MuisParseException e) {
+				msg.error("Could not parse toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
+				continue;
+			} catch(MuisException e) {
+				msg.error("Could not resolve location of toolkit for namespace " + ns.getPrefix(), e);
+				continue;
+			}
+			try {
+				ret.addNamespace(ns.getPrefix(), toolkit);
+			} catch(MuisException e) {
+				msg.error("Could not add namespace", e);
+			}
 		}
-
-		return parseDocument(null, rootEl, rootClassView, msg);
+		ret.seal();
+		return ret;
 	}
 
 	/**
@@ -329,43 +371,28 @@ public class MuisDomParser implements MuisParser {
 		}*/
 	}
 
-	/**
-	 * Creates a fully-initialized class view
-	 *
-	 * @param parent The parent class view
-	 * @param xml The xml element to get namespaces to map
-	 * @param msg The message center to report errors to
-	 * @param location The location of the XML file
-	 * @return The class view for the element
-	 */
-	protected MuisClassView getClassView(MuisClassView parent, Element xml, MuisMessageCenter msg, URL location) {
-		MuisClassView ret = new MuisClassView(theEnvironment, parent, parent == null ? null : parent.getToolkitForQName(xml
-			.getQualifiedName()));
-		for(org.jdom2.Namespace ns : xml.getNamespacesIntroduced()) {
-			MuisToolkit toolkit;
-			try {
-				toolkit = theEnvironment.getToolkit(MuisUtils.resolveURL(location, ns.getURI()));
-			} catch(MalformedURLException e) {
-				msg.error("Invalid URL \"" + ns.getURI() + "\" for toolkit at namespace " + ns.getPrefix(), e);
-				continue;
-			} catch(IOException e) {
-				msg.error("Could not read toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
-				continue;
-			} catch(MuisParseException e) {
-				msg.error("Could not parse toolkit " + ns.getPrefix() + ":" + ns.getURI(), e);
-				continue;
-			} catch(MuisException e) {
-				msg.error("Could not resolve location of toolkit for namespace " + ns.getPrefix(), e);
-				continue;
+	protected MuisModel parseModel(Element modelEl, URL reference, MuisClassView classView, MuisMessageCenter msg) {
+		String name = modelEl.getAttributeValue("name");
+		String classAtt = modelEl.getAttributeValue("class");
+		if(classAtt != null) {
+			Class<?> modelType = null;
+			for(MuisToolkit tk : classView.getScopedToolkits()) {
+				try {
+					modelType = tk.loadClass(classAtt);
+				} catch(ClassNotFoundException e) {
+				}
+				if(modelType != null)
+					break;
 			}
-			try {
-				ret.addNamespace(ns.getPrefix(), toolkit);
-			} catch(MuisException e) {
-				msg.error("Could not add namespace", e);
+			if(modelType == null) {
+				msg.error("No such class \"" + classAtt + "\" found for model \"" + name + "\"", "element", modelEl);
+				return null;
 			}
+			if(MuisModel.class.isAssignableFrom(modelType)) {
+				// TODO
+			}
+			// TODO
 		}
-		ret.seal();
-		return ret;
 	}
 
 	/**

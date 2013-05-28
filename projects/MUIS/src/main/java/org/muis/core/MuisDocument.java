@@ -87,16 +87,17 @@ public class MuisDocument {
 
 	/**
 	 * Creates a document
-	 *
+	 * 
 	 * @param env The environment for the document
 	 * @param parser The parser that created this document
 	 * @param location The location of the file that this document was generated from
+	 * @param head The head section for this document
 	 */
-	public MuisDocument(MuisEnvironment env, org.muis.core.parser.MuisParser parser, java.net.URL location) {
+	public MuisDocument(MuisEnvironment env, org.muis.core.parser.MuisParser parser, java.net.URL location, MuisHeadSection head) {
 		theEnvironment = env;
 		theParser = parser;
 		theLocation = location;
-		theHead = new MuisHeadSection();
+		theHead = head;
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
@@ -108,6 +109,13 @@ public class MuisDocument {
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
 		theLocker = new MuisLocker();
+
+		applyHead();
+	}
+
+	private void applyHead() {
+		for(org.muis.core.style.sheet.ParsedStyleSheet styleSheet : theHead.getStyleSheets())
+			theDocumentStyle.addStyleSheet(styleSheet);
 	}
 
 	/** @param classView The class view for the document */

@@ -31,6 +31,7 @@ public interface MuisParser {
 	/**
 	 * Parses a document's structure from XML
 	 *
+	 * @param env The MUIS environment to use to parse the structure
 	 * @param location The location for the document
 	 * @param reader The reader to the XML document
 	 * @param graphics The document's source for graphics
@@ -38,19 +39,20 @@ public interface MuisParser {
 	 * @throws IOException If an error occurs reading the XML document
 	 * @throws MuisParseException If an unrecoverable error occurs parsing the document into MUIS format
 	 */
-	MuisDocumentStructure parseDocument(java.net.URL location, java.io.Reader reader) throws IOException, MuisParseException;
+	MuisDocumentStructure parseDocument(MuisEnvironment env, java.net.URL location, java.io.Reader reader) throws IOException,
+		MuisParseException;
 
 	/**
-	 * Parses widget structure from XML
+	 * Parses a document's structure from XML, specifying an initial class view and message center
 	 *
 	 * @param location The location of the XML file to read
 	 * @param reader The reader to the XML structure
 	 * @param rootClassView The class view for the root of the widget structure
 	 * @param msg The message center to report parsing errors to
-	 * @return The widget structure of the XML data in the file
+	 * @return The parsed document structure
 	 * @throws IOException If an error occurs reading the file
-	 * @throws MuisParseException If an unrecoverable error occurs parsing the XML into MUIS format
+	 * @throws MuisParseException If an unrecoverable error occurs parsing the document into MUIS format
 	 */
-	WidgetStructure parseContent(java.net.URL location, java.io.Reader reader, org.muis.core.MuisClassView rootClassView,
+	MuisDocumentStructure parseDocument(java.net.URL location, java.io.Reader reader, org.muis.core.MuisClassView rootClassView,
 		org.muis.core.mgr.MuisMessageCenter msg) throws IOException, MuisParseException;
 }

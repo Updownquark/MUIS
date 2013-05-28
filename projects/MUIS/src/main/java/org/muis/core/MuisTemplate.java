@@ -308,13 +308,13 @@ public abstract class MuisTemplate extends MuisElement {
 				throw new MuisException("Could not resolve template path " + template.location() + " for templated widget "
 					+ templateType.getName(), e);
 			}
-			WidgetStructure widgetStructure;
+			org.muis.core.parser.MuisDocumentStructure docStruct;
 			try (java.io.Reader templateReader = new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream()))) {
 				MuisClassView classView = new MuisClassView(env, null, (MuisToolkit) templateType.getClassLoader());
 				classView.addNamespace("this", (MuisToolkit) templateType.getClassLoader());
 				org.muis.core.mgr.MutatingMessageCenter msg = new org.muis.core.mgr.MutatingMessageCenter(env.msg(), "Template "
 					+ templateType.getName() + ": ", "template", templateType);
-				widgetStructure = env.getParser().parseContent(location, templateReader, classView, msg);
+				docStruct = env.getParser().parseDocument(location, templateReader, classView, msg);
 			} catch(java.io.IOException e) {
 				throw new MuisException("Could not read template resource " + template.location() + " for templated widget "
 					+ templateType.getName(), e);
@@ -322,10 +322,29 @@ public abstract class MuisTemplate extends MuisElement {
 				throw new MuisException("Could not parse template resource " + template.location() + " for templated widget "
 					+ templateType.getName(), e);
 			}
-			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure, widgetStructure);
+			if(docStruct.getHead().getTitle() != null)
+				env.msg().warn(
+					"title specified but ignored in template xml \"" + location + "\" for template class " + templateType.getName());
+			if(!docStruct.getHead().getStyleSheets().isEmpty())
+				env.msg().warn(
+					docStruct.getHead().getStyleSheets().size() + " style sheet "
+						+ (docStruct.getHead().getStyleSheets().size() == 1 ? "" : "s") + " specified but ignored in template xml \""
+						+ location + "\" for template class " + templateType.getName());
+			if(docStruct.getContent().getChildren().isEmpty())
+				throw new MuisException("No contents specified in body section of template XML \"" + location + "\" for template class "
+					+ templateType.getName());
+			if(docStruct.getContent().getChildren().size() > 1)
+				throw new MuisException("More than one content element (" + docStruct.getContent().getChildren().size()
+					+ ") specified in body section of template XML \"" + location + "\" for template class " + templateType.getName());
+			if(!(docStruct.getContent().getChildren().get(0) instanceof WidgetStructure))
+				throw new MuisException("Non-widget contents specified in body section of template XML \"" + location
+					+ "\" for template class " + templateType.getName());
+
+			WidgetStructure content = (WidgetStructure) docStruct.getContent().getChildren().get(0);
+			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure, content);
 			Map<AttachPoint, WidgetStructure> attaches = new HashMap<>();
 			try {
-				pullAttachPoints(templateStruct, widgetStructure, attaches);
+				pullAttachPoints(templateStruct, content, attaches);
 			} catch(MuisException e) {
 				throw new MuisException("Error in template resource " + template.location() + " for templated widget "
 					+ templateType.getName() + ": " + e.getMessage(), e);
@@ -454,11 +473,11 @@ public abstract class MuisTemplate extends MuisElement {
 			if(attachPoint.multiple)
 				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
 			assertFits(attachPoint, el);
-			if(el==null){
-				Iterator<? extends MuisElement> iter=theParentChildren.iterator();
-				while(iter.hasNext()){
-					MuisElement ret=iter.next();
-					if(attachPoint.template.getRole(ret)==attachPoint){
+			if(el == null) {
+				Iterator<? extends MuisElement> iter = theParentChildren.iterator();
+				while(iter.hasNext()) {
+					MuisElement ret = iter.next();
+					if(attachPoint.template.getRole(ret) == attachPoint) {
 						iter.remove();
 						return ret;
 					}
@@ -488,13 +507,13 @@ public abstract class MuisTemplate extends MuisElement {
 						foundAttach = true;
 				}
 			}
-			ListIterator<? extends MuisElement> iter=theParentChildren.listIterator();
-			while(iter.hasNext()){
-				MuisElement ret=iter.next();
-				if(attachPoint.template.getRole(ret)==attachPoint){
-					((ListIterator<MuisElement>)iter).set(el);
+			ListIterator<? extends MuisElement> iter = theParentChildren.listIterator();
+			while(iter.hasNext()) {
+				MuisElement ret = iter.next();
+				if(attachPoint.template.getRole(ret) == attachPoint) {
+					((ListIterator<MuisElement>) iter).set(el);
 					return ret;
-				} else{
+				} else {
 					boolean postAttach = postAttachEls.contains(ret);
 					if(!postAttach && postAttachAPs.contains(ret.atts().get(attachPoint.template.role)))
 						postAttach = true;
@@ -506,7 +525,7 @@ public abstract class MuisTemplate extends MuisElement {
 					}
 				}
 			}
-			((ListIterator<MuisElement>)iter).add(el);
+			((ListIterator<MuisElement>) iter).add(el);
 			return null;
 		}
 
@@ -582,8 +601,7 @@ public abstract class MuisTemplate extends MuisElement {
 				org.muis.core.style.SealableStyle newStyle = new org.muis.core.style.SealableStyle();
 				boolean mod = false;
 				try {
-					templateStyle = StyleAttributeType.parseStyle(getClassView(), att.getValue(),
-						getMessageCenter());
+					templateStyle = StyleAttributeType.parseStyle(getClassView(), att.getValue(), getMessageCenter());
 					for(StyleAttribute<?> styleAtt : templateStyle) {
 						if(!elStyle.isSet(styleAtt)) {
 							mod = true;
@@ -719,8 +737,7 @@ public abstract class MuisTemplate extends MuisElement {
 			attaches.clear(); // Override the provided implementation
 		if(!role.multiple && !attaches.isEmpty()) {
 			msg().error("Multiple children fulfilling role \"" + role + "\" in templated widget " + template.getDefiner().getName(),
-				"child",
-				child);
+				"child", child);
 			return;
 		}
 		WidgetStructure widgetStruct = template.getWidgetStructure(role);
@@ -826,10 +843,11 @@ public abstract class MuisTemplate extends MuisElement {
 		if(parent != this && !theUninitialized.contains(parent))
 			return;
 		List<MuisElement> ret = new ArrayList<>();
-		List<AttachPoint> attaches=new ArrayList<>();
+		List<AttachPoint> attaches = new ArrayList<>();
 		for(MuisContent childStruct : structure.getChildren()) {
-			if(childStruct instanceof WidgetStructure && ((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT)!=null) {
-				String attach=((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT);
+			if(childStruct instanceof WidgetStructure
+				&& ((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT) != null) {
+				String attach = ((WidgetStructure) childStruct).getAttributes().get(TemplateStructure.ATTACH_POINT);
 				AttachPoint ap = theTemplateStructure.getAttachPoint(attach);
 				attaches.add(ap);
 				for(MuisElement child : theAttachmentMappings.get(ap)) {
@@ -842,7 +860,7 @@ public abstract class MuisTemplate extends MuisElement {
 				initChildren(child, (WidgetStructure) childStruct);
 			}
 		}
-		MuisElement [] children= ret.toArray(new MuisElement[ret.size()]);
+		MuisElement [] children = ret.toArray(new MuisElement[ret.size()]);
 
 		try {
 			parent.atts().set(TemplateStructure.IMPLEMENTATION, null);
@@ -851,10 +869,10 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		ElementList<?> childList;
-		if(parent==this)
-			childList=super.initChildren(children);
+		if(parent == this)
+			childList = super.initChildren(children);
 		else
-			childList=parent.initChildren(children);
+			childList = parent.initChildren(children);
 
 		for(AttachPoint attach : attaches)
 			theAttachPoints.put(attach, new AttachPointInstance(attach, this, childList));

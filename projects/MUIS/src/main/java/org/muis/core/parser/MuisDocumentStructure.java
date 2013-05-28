@@ -1,25 +1,34 @@
 package org.muis.core.parser;
 
-import org.muis.core.MuisDocument;
+import org.muis.core.MuisHeadSection;
 
 /** Represents the parsed structure of a MUIS document */
 public class MuisDocumentStructure {
-	private final MuisDocument theDocument;
+	private final java.net.URL theLocation;
+
+	private final MuisHeadSection theHead;
 
 	private final WidgetStructure theContent;
 
 	/**
-	 * @param doc The MUIS document that this structure is for
+	 * @param location The location of the XML file parsed into this structure
+	 * @param head The head section containing metadata for the MUIS document
 	 * @param content The root content structure of the document
 	 */
-	public MuisDocumentStructure(MuisDocument doc, WidgetStructure content) {
-		theDocument = doc;
+	public MuisDocumentStructure(java.net.URL location, MuisHeadSection head, WidgetStructure content) {
+		theLocation = location;
+		theHead = head;
 		theContent = content;
 	}
 
-	/** @return The MUIS document that this structure is for */
-	public MuisDocument getDocument() {
-		return theDocument;
+	/** @return The location of the XML file parsed into this structure */
+	public java.net.URL getLocation() {
+		return theLocation;
+	}
+
+	/** @return The had section containing metadata for the MUIS document */
+	public MuisHeadSection getHead() {
+		return theHead;
 	}
 
 	/** @return The root content structure of the document */

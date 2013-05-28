@@ -191,51 +191,58 @@ public class MuisDomParser implements MuisParser {
 	}
 
 	@Override
-	public MuisDocumentStructure parseDocument(URL location, Reader reader) throws MuisParseException, IOException {
+	public MuisDocumentStructure parseDocument(MuisEnvironment env, URL location, Reader reader) throws MuisParseException, IOException {
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(reader).getRootElement();
 		} catch(org.jdom2.JDOMException e) {
 			throw new MuisParseException("Could not parse document XML", e);
 		}
-		MuisDocument doc = new MuisDocument(theEnvironment, this, location);
-		doc.setClassView(getClassView(null, rootEl, doc.msg(), location));
+		return parseDocument(location, rootEl, null, env.getMessageCenter());
+	}
+
+	private MuisDocumentStructure parseDocument(URL location, Element rootEl, MuisClassView rootClassView, MuisMessageCenter msg)
+		throws MuisParseException {
+		MuisHeadSection head = new MuisHeadSection();
+		MuisClassView classView = getClassView(rootClassView, rootEl, msg, location);
 		if(rootEl.getTextTrim().length() > 0)
-			doc.msg().warn("Text found under root element: " + rootEl.getTextTrim());
-		Element [] head = rootEl.getChildren("head").toArray(new Element[0]);
-		if(head.length > 1)
-			doc.msg().error("Multiple head elements in document XML");
-		if(head.length > 0) {
-			if(head[0].getTextTrim().length() > 0)
-				doc.msg().warn("Text found in head section: " + head[0].getTextTrim());
-			String title = head[0].getChildTextTrim("title");
+			msg.warn("Text found under root element: " + rootEl.getTextTrim());
+		Element [] headEl = rootEl.getChildren("head").toArray(new Element[0]);
+		if(headEl.length > 1)
+			msg.error("Multiple head elements in document XML");
+		if(headEl.length > 0) {
+			if(headEl[0].getTextTrim().length() > 0)
+				msg.warn("Text found in head section: " + headEl[0].getTextTrim());
+			String title = headEl[0].getChildTextTrim("title");
 			if(title != null)
-				doc.getHead().setTitle(title);
-		}
-		for(Element styleSheetEl : head[0].getChildren("style-sheet")) {
-			ParsedStyleSheet styleSheet = parseStyleSheet(styleSheetEl, location, doc.getClassView(), doc.msg());
-			if(styleSheet != null) {
-				doc.getStyle().addStyleSheet(styleSheet);
-				styleSheet.seal();
+				head.setTitle(title);
+			for(Element styleSheetEl : headEl[0].getChildren("style-sheet")) {
+				ParsedStyleSheet styleSheet = parseStyleSheet(styleSheetEl, location, classView, msg);
+				if(styleSheet != null) {
+					head.getStyleSheets().add(styleSheet);
+					styleSheet.seal();
+				}
 			}
 		}
+		head.seal();
 		Element [] body = rootEl.getChildren("body").toArray(new Element[0]);
 		if(body.length > 1)
-			doc.msg().error("Multiple body elements in document XML");
+			msg.error("Multiple body elements in document XML");
 		if(body.length == 0)
 			throw new MuisParseException("No body in document XML");
 		for(Element el : rootEl.getChildren()) {
 			if(el.getName().equals("head") || el.getName().equals("body"))
 				continue;
-			doc.msg().error("Extra element " + el.getName() + " in document XML");
+			msg.error("Extra element " + el.getName() + " in document XML");
 		}
-		WidgetStructure content = parseContent(new WidgetStructure(null, theEnvironment, doc.getClassView(), rootEl.getNamespacePrefix(),
-			rootEl.getName()), null, body[0], doc.msg(), location);
-		return new MuisDocumentStructure(doc, content);
+		WidgetStructure content = parseContent(
+			new WidgetStructure(null, theEnvironment, classView, rootEl.getNamespacePrefix(), rootEl.getName()), null, body[0], msg,
+			location);
+		return new MuisDocumentStructure(location, head, content);
 	}
 
 	@Override
-	public WidgetStructure parseContent(URL location, Reader reader, MuisClassView rootClassView, MuisMessageCenter msg)
+	public MuisDocumentStructure parseDocument(URL location, Reader reader, MuisClassView rootClassView, MuisMessageCenter msg)
 		throws IOException, MuisParseException {
 		Element rootEl;
 		try {
@@ -244,7 +251,7 @@ public class MuisDomParser implements MuisParser {
 			throw new MuisParseException("Could not parse document XML", e);
 		}
 
-		return parseContent(null, rootClassView, rootEl, msg, location);
+		return parseDocument(null, rootEl, rootClassView, msg);
 	}
 
 	/**

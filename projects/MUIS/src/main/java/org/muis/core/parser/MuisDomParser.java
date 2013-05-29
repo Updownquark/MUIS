@@ -10,6 +10,8 @@ import org.jdom2.Element;
 import org.jdom2.Text;
 import org.muis.core.*;
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.model.DefaultMuisModel;
+import org.muis.core.model.MuisModel;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 
 /** Parses MUIS components using the JDOM library */
@@ -235,7 +237,7 @@ public class MuisDomParser implements MuisParser {
 					msg.error("Model \"" + name + "\" specified multiple times", "element", modelEl);
 					continue;
 				}
-				MuisModel model = parseModel(modelEl, location, classView, msg);
+				MuisModel model = parseModel(modelEl, name, classView, msg);
 				if(model != null)
 					head.addModel(name, model);
 			}
@@ -371,8 +373,16 @@ public class MuisDomParser implements MuisParser {
 		}*/
 	}
 
-	protected MuisModel parseModel(Element modelEl, URL reference, MuisClassView classView, MuisMessageCenter msg) {
-		String name = modelEl.getAttributeValue("name");
+	/**
+	 * Parses a model from XML
+	 *
+	 * @param modelEl The XML element defining or referring to the model
+	 * @param name The name of the model (for informative messaging)
+	 * @param classView The class view that the model is defined under
+	 * @param msg The messaging center to relay any relevant messages to about parsing
+	 * @return The parsed model, or null if the model could not be parsed (errors go to the messaging center)
+	 */
+	protected MuisModel parseModel(Element modelEl, String name, MuisClassView classView, MuisMessageCenter msg) {
 		String classAtt = modelEl.getAttributeValue("class");
 		if(classAtt != null) {
 			Class<?> modelType = null;
@@ -388,11 +398,100 @@ public class MuisDomParser implements MuisParser {
 				msg.error("No such class \"" + classAtt + "\" found for model \"" + name + "\"", "element", modelEl);
 				return null;
 			}
-			if(MuisModel.class.isAssignableFrom(modelType)) {
-				// TODO
+			Object modelObj;
+			try {
+				modelObj = modelType.newInstance();
+			} catch(InstantiationException | IllegalAccessException e) {
+				msg.error("Could not instantiate model \"" + name + "\", type \"" + modelType.getName() + "\"", e, "element", modelEl);
+				return null;
 			}
-			// TODO
+			if(!(modelObj instanceof MuisModel))
+				modelObj = new org.muis.core.model.MuisWrappingModel(modelObj);
+			return (MuisModel) modelObj;
+		} else {
+			DefaultMuisModel model = new DefaultMuisModel();
+			for(Element el : modelEl.getChildren()) {
+				String subName = el.getAttributeValue("name");
+				switch (el.getName()) {
+				case "model":
+					MuisModel subModel = parseModel(el, name + "." + subName, classView, msg);
+					if(subModel != null)
+						model.models().put(subName, subModel);
+					break;
+				case "value":
+					String typeAtt = el.getAttributeValue("type");
+					if(typeAtt == null) {
+						msg.error("No type specified for value " + name + "." + subName, "element", modelEl);
+						continue;
+					}
+					Class<?> type = parseType(typeAtt, classView, msg, name + "." + subName, modelEl);
+					if(type == null)
+						continue;
+					org.muis.core.model.MuisModelValue<?> value = new org.muis.core.model.MuisModelValue<>(type);
+					((org.muis.core.model.MuisModelValue<Object>) value).set(getDefaultValue(type), null);
+					model.values().put(subName, value);
+					break;
+				default:
+					msg.error("Unrecognized model element child: " + el.getName(), "element", modelEl);
+				}
+			}
+			return model;
 		}
+	}
+
+	private Class<?> parseType(String typeName, MuisClassView classView, MuisMessageCenter msg, String modelName, Element modelEl) {
+		if(typeName.equals("char"))
+			return Character.class;
+		else if(typeName.equals("boolean"))
+			return Boolean.class;
+		else if(typeName.equals("byte"))
+			return Byte.class;
+		else if(typeName.equals("short"))
+			return Short.class;
+		else if(typeName.equals("int"))
+			return Integer.class;
+		else if(typeName.equals("long"))
+			return Long.class;
+		else if(typeName.equals("float"))
+			return Float.class;
+		else if(typeName.equals("double"))
+			return Double.class;
+		Class<?> ret = null;
+		for(MuisToolkit tk : classView.getScopedToolkits()) {
+			try {
+				ret = tk.loadClass(typeName);
+			} catch(ClassNotFoundException e) {
+			}
+			if(ret != null)
+				break;
+		}
+		if(ret == null) {
+			msg.error("No such type \"" + typeName + "\" found for model value \"" + modelName + "\"", "element", modelEl);
+			return null;
+		}
+		return ret;
+	}
+
+	private Object getDefaultValue(Class<?> type) {
+		if(type == Boolean.class)
+			return Boolean.FALSE;
+		else if(type == Character.class)
+			return Character.valueOf(' ');
+		else if(type == Byte.class)
+			return Byte.valueOf((byte) 0);
+		else if(type == Short.class)
+			return Short.valueOf((short) 0);
+		else if(type == Integer.class)
+			return Integer.valueOf(0);
+		else if(type == Long.class)
+			return Long.valueOf(0);
+		else if(type == Float.class)
+			return Float.valueOf(0);
+		else if(type == Double.class)
+			return Double.valueOf(0);
+		else if(Enum.class.isAssignableFrom(type) && type.getEnumConstants().length > 0)
+			return type.getEnumConstants()[0];
+		return null;
 	}
 
 	/**

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.muis.core.model.MuisModel;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 
 import prisms.util.Sealable;

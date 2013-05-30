@@ -2,15 +2,20 @@ package org.muis.core.model;
 
 import java.util.Map;
 
-public class DefaultMuisModel implements MuisModel, prisms.util.Sealable {
+/** The default (typically XML-specified) implementation for MuisAppModel */
+public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 	private boolean isSealed;
 
-	private Map<String, MuisModel> theModels;
+	private Map<String, MuisAppModel> theSubModels;
 
-	private Map<String, MuisModelValue<?>> theValues;
+	private Map<String, MuisWidgetModel> theWidgetModels;
 
+	private Map<String, DefaultMuisModelValue<?>> theValues;
+
+	/** Creates the model */
 	public DefaultMuisModel() {
-		theModels = new java.util.HashMap<>(2);
+		theSubModels = new java.util.HashMap<>(2);
+		theWidgetModels = new java.util.HashMap<>(2);
 		theValues = new java.util.HashMap<>(2);
 	}
 
@@ -21,30 +26,49 @@ public class DefaultMuisModel implements MuisModel, prisms.util.Sealable {
 
 	@Override
 	public void seal() {
-		theModels = java.util.Collections.unmodifiableMap(theModels);
+		theSubModels = java.util.Collections.unmodifiableMap(theSubModels);
+		theWidgetModels = java.util.Collections.unmodifiableMap(theWidgetModels);
 		theValues = java.util.Collections.unmodifiableMap(theValues);
 		isSealed = true;
 	}
 
-	public Map<String, MuisModel> models() {
-		return theModels;
+	/** @return The sub model map for this model. This map is modifiable if this model has not been sealed yet. */
+	public Map<String, MuisAppModel> subModels() {
+		return theSubModels;
 	}
 
-	public Map<String, MuisModelValue<?>> values() {
+	/** @return The widget model map for this model. This map is modifiable if this model has not been sealed yet. */
+	public Map<String, MuisWidgetModel> widgetModels() {
+		return theWidgetModels;
+	}
+
+	/** @return The value map for this model. This map is modifiable if this model has not been sealed yet. */
+	public Map<String, DefaultMuisModelValue<?>> values() {
 		return theValues;
 	}
 
 	@Override
-	public MuisModel getModel(String name) {
-		return theModels.get(name);
+	public MuisAppModel getSubModel(String name) {
+		return theSubModels.get(name);
 	}
 
 	@Override
-	public <T> MuisModelValue<? extends T> getValue(String name, Class<T> type) {
-		MuisModelValue<?> value = theValues.get(name);
+	public <T extends MuisWidgetModel> T getWidgetModel(String name, Class<T> modelType) {
+		MuisWidgetModel model = theWidgetModels.get(name);
+		if(model == null)
+			return null;
+		if(!modelType.isInstance(model))
+			throw new ClassCastException("Widget model \"" + name + "\" is of type " + model.getClass().getName() + ", not "
+				+ modelType.getName());
+		return modelType.cast(model);
+	}
+
+	@Override
+	public <T> DefaultMuisModelValue<? extends T> getValue(String name, Class<T> type) {
+		DefaultMuisModelValue<?> value = theValues.get(name);
 		if(type != null && !type.isAssignableFrom(value.getType()))
 			throw new ClassCastException("Value \"" + name + "\" is type \"" + value.getType().getName() + "\", not \"" + type.getName()
 				+ "\"");
-		return (MuisModelValue<? extends T>) value;
+		return (DefaultMuisModelValue<? extends T>) value;
 	}
 }

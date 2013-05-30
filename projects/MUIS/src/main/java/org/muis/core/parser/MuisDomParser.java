@@ -11,7 +11,7 @@ import org.jdom2.Text;
 import org.muis.core.*;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.DefaultMuisModel;
-import org.muis.core.model.MuisModel;
+import org.muis.core.model.MuisAppModel;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 
 /** Parses MUIS components using the JDOM library */
@@ -237,7 +237,7 @@ public class MuisDomParser implements MuisParser {
 					msg.error("Model \"" + name + "\" specified multiple times", "element", modelEl);
 					continue;
 				}
-				MuisModel model = parseModel(modelEl, name, classView, msg);
+				MuisAppModel model = parseModel(modelEl, name, classView, msg);
 				if(model != null)
 					head.addModel(name, model);
 			}
@@ -382,7 +382,7 @@ public class MuisDomParser implements MuisParser {
 	 * @param msg The messaging center to relay any relevant messages to about parsing
 	 * @return The parsed model, or null if the model could not be parsed (errors go to the messaging center)
 	 */
-	protected MuisModel parseModel(Element modelEl, String name, MuisClassView classView, MuisMessageCenter msg) {
+	protected MuisAppModel parseModel(Element modelEl, String name, MuisClassView classView, MuisMessageCenter msg) {
 		String classAtt = modelEl.getAttributeValue("class");
 		if(classAtt != null) {
 			Class<?> modelType = null;
@@ -405,18 +405,18 @@ public class MuisDomParser implements MuisParser {
 				msg.error("Could not instantiate model \"" + name + "\", type \"" + modelType.getName() + "\"", e, "element", modelEl);
 				return null;
 			}
-			if(!(modelObj instanceof MuisModel))
+			if(!(modelObj instanceof MuisAppModel))
 				modelObj = new org.muis.core.model.MuisWrappingModel(modelObj);
-			return (MuisModel) modelObj;
+			return (MuisAppModel) modelObj;
 		} else {
 			DefaultMuisModel model = new DefaultMuisModel();
 			for(Element el : modelEl.getChildren()) {
 				String subName = el.getAttributeValue("name");
 				switch (el.getName()) {
 				case "model":
-					MuisModel subModel = parseModel(el, name + "." + subName, classView, msg);
+					MuisAppModel subModel = parseModel(el, name + "." + subName, classView, msg);
 					if(subModel != null)
-						model.models().put(subName, subModel);
+						model.subModels().put(subName, subModel);
 					break;
 				case "value":
 					String typeAtt = el.getAttributeValue("type");
@@ -427,14 +427,15 @@ public class MuisDomParser implements MuisParser {
 					Class<?> type = parseType(typeAtt, classView, msg, name + "." + subName, modelEl);
 					if(type == null)
 						continue;
-					org.muis.core.model.MuisModelValue<?> value = new org.muis.core.model.MuisModelValue<>(type);
-					((org.muis.core.model.MuisModelValue<Object>) value).set(getDefaultValue(type), null);
+					org.muis.core.model.DefaultMuisModelValue<?> value = new org.muis.core.model.DefaultMuisModelValue<>(type);
+					((org.muis.core.model.DefaultMuisModelValue<Object>) value).set(getDefaultValue(type), null);
 					model.values().put(subName, value);
 					break;
 				default:
 					msg.error("Unrecognized model element child: " + el.getName(), "element", modelEl);
 				}
 			}
+			model.seal();
 			return model;
 		}
 	}

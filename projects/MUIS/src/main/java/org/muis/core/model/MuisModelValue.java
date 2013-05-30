@@ -1,64 +1,26 @@
 package org.muis.core.model;
 
-import java.util.List;
+/**
+ * Represents a single, simple value that can be changed by the user
+ *
+ * @param <T> The (compile-time) type of the value
+ */
+public interface MuisModelValue<T> {
+	/** @return The (run-time) type of the value */
+	Class<T> getType();
 
-import org.muis.core.MuisElement;
+	/** @return The current value */
+	T get();
 
-public class MuisModelValue<T> implements WidgetRegister {
-	private final Class<T> theType;
+	/**
+	 * @param value The value to set
+	 * @param event The user event that caused the change. May be null.
+	 */
+	void set(T value, org.muis.core.event.MuisEvent<?> event);
 
-	private T theValue;
+	/** @param listener The listener to be notified when this value changes. This will be ignored if unsupported. */
+	void addListener(MuisModelValueListener<? super T> listener);
 
-	private List<MuisModelValueListener<? super T>> theListeners;
-
-	private List<MuisElement> theRegisteredElements;
-
-	public MuisModelValue(Class<T> type) {
-		theType = type;
-		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
-		theRegisteredElements = new java.util.concurrent.CopyOnWriteArrayList<>();
-	}
-
-	public Class<T> getType() {
-		return theType;
-	}
-
-	public T get() {
-		return theValue;
-	}
-
-	public void set(T value, org.muis.core.event.MuisEvent<?> userEvent) {
-		T oldValue = theValue;
-		theValue = value;
-		MuisModelValueEvent<T> event = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
-		for(MuisModelValueListener<? super T> listener : theListeners)
-			listener.valueChanged(event);
-	}
-
-	public void addListener(MuisModelValueListener<? super T> listener) {
-		if(listener != null)
-			theListeners.add(listener);
-	}
-
-	public void removeListener(MuisModelValueListener<? super T> listener) {
-		theListeners.remove(listener);
-	}
-
-	@Override
-	public WidgetRegistration register(final MuisElement widget) {
-		if(widget == null)
-			return null;
-		theRegisteredElements.add(widget);
-		return new WidgetRegistration() {
-			@Override
-			public void unregister() {
-				theRegisteredElements.remove(widget);
-			}
-		};
-	}
-
-	@Override
-	public List<MuisElement> registered() {
-		return java.util.Collections.unmodifiableList(theRegisteredElements);
-	}
+	/** @param listener The listener to remove from notification */
+	void removeListener(MuisModelValueListener<? super T> listener);
 }

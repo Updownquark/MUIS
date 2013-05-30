@@ -2,6 +2,11 @@ package org.muis.core.model;
 
 import org.muis.core.event.MuisEvent;
 
+/**
+ * An event representing a user's choice to change the value of {@link MuisModelValue}
+ * 
+ * @param <T> The type of value changed
+ */
 public class MuisModelValueEvent<T> {
 	private final MuisModelValue<T> theModelValue;
 
@@ -11,6 +16,12 @@ public class MuisModelValueEvent<T> {
 
 	private final T theNewValue;
 
+	/**
+	 * @param modelValue The model value that was modified
+	 * @param userEvent The event that caused the change. May be null.
+	 * @param oldValue The value before the change
+	 * @param newValue The value after the change
+	 */
 	public MuisModelValueEvent(MuisModelValue<T> modelValue, MuisEvent<?> userEvent, T oldValue, T newValue) {
 		theModelValue = modelValue;
 		theUserEvent = userEvent;
@@ -18,19 +29,23 @@ public class MuisModelValueEvent<T> {
 		theNewValue = newValue;
 	}
 
-	public MuisModelValue<T> getTheModelValue() {
+	/** @return The model value that was modified */
+	public MuisModelValue<T> getModelValue() {
 		return theModelValue;
 	}
 
-	public MuisEvent<?> getTheUserEvent() {
+	/** @return The event that caused the change. May be null. */
+	public MuisEvent<?> getUserEvent() {
 		return theUserEvent;
 	}
 
-	public T getTheOldValue() {
+	/** @return The value before the change */
+	public T getOldValue() {
 		return theOldValue;
 	}
 
-	public T getTheNewValue() {
+	/** @return The value after the change */
+	public T getNewValue() {
 		return theNewValue;
 	}
 }

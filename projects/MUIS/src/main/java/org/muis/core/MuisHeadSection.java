@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.muis.core.model.MuisModel;
+import org.muis.core.model.MuisAppModel;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 
 import prisms.util.Sealable;
@@ -15,7 +15,7 @@ public class MuisHeadSection implements Sealable {
 
 	private List<ParsedStyleSheet> theStyleSheets;
 
-	private Map<String, MuisModel> theModels;
+	private Map<String, MuisAppModel> theModels;
 
 	private boolean isSealed;
 
@@ -58,7 +58,7 @@ public class MuisHeadSection implements Sealable {
 	 * @param name The name of the model to get
 	 * @return The model of the given name specified in this head section, or null if no so-named model was specified
 	 */
-	public MuisModel getModel(String name) {
+	public MuisAppModel getModel(String name) {
 		return theModels.get(name);
 	}
 
@@ -66,7 +66,7 @@ public class MuisHeadSection implements Sealable {
 	 * @param name The name of the model to add
 	 * @param model The model specified in this head section under the given name
 	 */
-	public void addModel(String name, MuisModel model) {
+	public void addModel(String name, MuisAppModel model) {
 		if(isSealed)
 			throw new SealedException(this);
 		theModels.put(name, model);

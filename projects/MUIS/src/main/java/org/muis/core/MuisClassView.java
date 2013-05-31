@@ -84,6 +84,8 @@ public class MuisClassView {
 				ret.add(tk);
 		} else
 			ret.add(theEnvironment.getCoreToolkit());
+		for(MuisToolkit tk : theNamespaces.values())
+			ret.add(tk);
 		if(theMemberToolkit != null)
 			ret.add(theMemberToolkit);
 		return ret.toArray(new MuisToolkit[ret.size()]);

@@ -25,4 +25,10 @@ public interface MuisAppModel {
 	 * @throws ClassCastException If the given value exists in this model, but is not of the given type
 	 */
 	<T> MuisModelValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException;
+
+	/**
+	 * @param name The name of the action to get the listener for
+	 * @return The action listener for the given action, or null if this model is not listening to the given action
+	 */
+	MuisActionListener getAction(String name);
 }

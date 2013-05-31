@@ -12,11 +12,14 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 
 	private Map<String, DefaultMuisModelValue<?>> theValues;
 
+	private Map<String, AggregateActionListener> theActions;
+
 	/** Creates the model */
 	public DefaultMuisModel() {
 		theSubModels = new java.util.HashMap<>(2);
 		theWidgetModels = new java.util.HashMap<>(2);
 		theValues = new java.util.HashMap<>(2);
+		theActions = new java.util.HashMap<>(2);
 	}
 
 	@Override
@@ -47,6 +50,38 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 		return theValues;
 	}
 
+	/**
+	 * @param action The action to listen for
+	 * @param listener The listen to be notified when the action occurs
+	 */
+	public void addActionListener(String action, MuisActionListener listener) {
+		if(isSealed)
+			throw new SealedException(this);
+		if(listener == null)
+			return;
+		AggregateActionListener agg = theActions.get(action);
+		if(agg == null) {
+			agg = new AggregateActionListener();
+			theActions.put(action, agg);
+		}
+		agg.addListener(listener);
+	}
+
+	/**
+	 * @param action The action to remove the listener for
+	 * @param listener The listener to stop notification for
+	 */
+	public void removeActionListener(String action, MuisActionListener listener) {
+		if(isSealed)
+			throw new SealedException(this);
+		if(listener == null)
+			return;
+		AggregateActionListener agg = theActions.get(action);
+		if(agg == null)
+			return;
+		agg.removeListener(listener);
+	}
+
 	@Override
 	public MuisAppModel getSubModel(String name) {
 		return theSubModels.get(name);
@@ -70,5 +105,10 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 			throw new ClassCastException("Value \"" + name + "\" is type \"" + value.getType().getName() + "\", not \"" + type.getName()
 				+ "\"");
 		return (DefaultMuisModelValue<? extends T>) value;
+	}
+
+	@Override
+	public MuisActionListener getAction(String name) {
+		return theActions.get(name);
 	}
 }

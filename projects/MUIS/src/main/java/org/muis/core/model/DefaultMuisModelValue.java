@@ -14,6 +14,8 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 
 	private T theValue;
 
+	private boolean isMutable;
+
 	private List<MuisModelValueListener<? super T>> theListeners;
 
 	private List<MuisElement> theRegisteredElements;
@@ -21,6 +23,7 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 	/** @param type The (run-time) type of the value */
 	public DefaultMuisModelValue(Class<T> type) {
 		theType = type;
+		isMutable = true;
 		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 		theRegisteredElements = new java.util.concurrent.CopyOnWriteArrayList<>();
 	}
@@ -36,7 +39,25 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 	}
 
 	@Override
-	public void set(T value, org.muis.core.event.MuisEvent<?> userEvent) {
+	public boolean isMutable() {
+		return isMutable;
+	}
+
+	/**
+	 * @param mutable Whether this value should be modifiable or not
+	 * @param userEvent The user event that caused the change. May be null.
+	 */
+	public void setMutable(boolean mutable, org.muis.core.event.UserEvent userEvent) {
+		isMutable = mutable;
+		MuisModelValueEvent<T> event = new MuisModelValueEvent<>(this, userEvent, theValue, theValue);
+		for(MuisModelValueListener<? super T> listener : theListeners)
+			listener.valueChanged(event);
+	}
+
+	@Override
+	public void set(T value, org.muis.core.event.UserEvent userEvent) {
+		if(!isMutable)
+			throw new IllegalStateException("This value is not mutable");
 		T oldValue = theValue;
 		theValue = value;
 		MuisModelValueEvent<T> event = new MuisModelValueEvent<>(this, userEvent, oldValue, value);

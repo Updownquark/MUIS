@@ -15,8 +15,8 @@ import org.muis.core.mgr.MuisMessageCenter;
 public abstract class MuisProperty<T> {
 	/**
 	 * A property type understands how to produce items of a certain type from parseable strings and other types
-	 *
-	 * @param <T> The type of value that this property type produces
+	 * 
+	 * @param <T> The type of value that this property type produces TODO Get rid of all the V types
 	 */
 	public static interface PropertyType<T> {
 		/**

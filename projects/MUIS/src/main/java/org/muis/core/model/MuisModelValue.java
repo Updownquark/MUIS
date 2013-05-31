@@ -12,11 +12,15 @@ public interface MuisModelValue<T> {
 	/** @return The current value */
 	T get();
 
+	/** @return Whether this value can be modified */
+	boolean isMutable();
+
 	/**
 	 * @param value The value to set
 	 * @param event The user event that caused the change. May be null.
+	 * @throws IllegalStateException If this value is {@link #isMutable() immutable}
 	 */
-	void set(T value, org.muis.core.event.MuisEvent<?> event);
+	void set(T value, org.muis.core.event.UserEvent event) throws IllegalStateException;
 
 	/** @param listener The listener to be notified when this value changes. This will be ignored if unsupported. */
 	void addListener(MuisModelValueListener<? super T> listener);

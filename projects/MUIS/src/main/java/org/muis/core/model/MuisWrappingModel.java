@@ -1,8 +1,10 @@
 package org.muis.core.model;
 
 import java.lang.reflect.*;
+import java.util.List;
 
-import org.muis.core.event.MuisEvent;
+import org.muis.core.MuisElement;
+import org.muis.core.event.UserEvent;
 
 /** An implementation of MuisAppModel that wraps a POJO and makes its values and models available via reflection */
 public class MuisWrappingModel implements MuisAppModel {
@@ -30,29 +32,49 @@ public class MuisWrappingModel implements MuisAppModel {
 		VALUE_TYPES = java.util.Collections.unmodifiableSet(valueTypes);
 	}
 
-	private final Object theWrapped;
+	private final org.muis.core.mgr.MuisMessageCenter theMessageCenter;
+
+	private final Getter<?> theWrapped;
 
 	private final java.util.Map<String, Object> theData;
 
-	/** @param wrap The POJO model to wrap */
-	public MuisWrappingModel(Object wrap) {
+	private final java.util.Map<String, AggregateActionListener> theActions;
+
+	/**
+	 * @param wrap The POJO model to wrap
+	 * @param msg The message center to give errors and other messages to
+	 */
+	public MuisWrappingModel(Getter<?> wrap, org.muis.core.mgr.MuisMessageCenter msg) {
+		theMessageCenter = msg;
 		theWrapped = wrap;
-		theData = new java.util.HashMap<>();
+		theData = new java.util.HashMap<>(5);
+		theActions = new java.util.HashMap<>(2);
 		buildReflectiveModel();
 	}
 
 	private void buildReflectiveModel() {
-		for(Field f : theWrapped.getClass().getFields()) {
+		for(Field f : theWrapped.getType().getFields()) {
 			if(!f.isAccessible() || (f.getModifiers() & Modifier.STATIC) != 0)
 				continue;
 			if(isValue(f, f.getType()))
 				theData.put(f.getName(), new MuisMemberValue<>(theWrapped, f));
 			else if(MuisWidgetModel.class.isAssignableFrom(f.getType()))
 				theData.put(f.getName(), new MuisMemberAccessor<>(theWrapped, f));
+			else if(MuisAppModel.class.isAssignableFrom(f.getType()))
+				try {
+					theData.put(f.getName(), f.get(theWrapped.get()));
+				} catch(Exception e) {
+					theMessageCenter.error("Muis sub model field " + f.getName() + " cannot be used", e);
+				}
 			else if(isAppModel(f, f.getType()))
-				theData.put(f.getName(), new MuisMemberAppModel<>(theWrapped, f));
+				try {
+					theData.put(f.getName(), new MuisWrappingModel(new MemberGetter<Object>(theWrapped, f), theMessageCenter));
+				} catch(IllegalArgumentException e) {
+					if(f.getAnnotation(MuisSubModel.class) != null)
+						theMessageCenter.error("Tagged sub model field " + f.getName() + " cannot be used", e);
+				}
 		}
-		for(Method m : theWrapped.getClass().getMethods()) {
+		for(Method m : theWrapped.getType().getMethods()) {
 			if(!m.isAccessible() || !m.getName().startsWith("get") || m.getParameterTypes().length > 0
 				|| (m.getModifiers() & Modifier.STATIC) != 0)
 				continue;
@@ -61,9 +83,34 @@ public class MuisWrappingModel implements MuisAppModel {
 				theData.put(name, new MuisMemberValue<>(theWrapped, m));
 			else if(MuisWidgetModel.class.isAssignableFrom(m.getReturnType()))
 				theData.put(name, new MuisMemberAccessor<>(theWrapped, m));
+			else if(MuisAppModel.class.isAssignableFrom(m.getReturnType()))
+				try {
+					theData.put(name, m.invoke(theWrapped.get()));
+				} catch(Exception e) {
+					theMessageCenter.error("Muis sub model method " + m.getName() + " cannot be used", e);
+				}
 			else if(isAppModel(m, m.getReturnType()))
-				theData.put(name, new MuisMemberAppModel<>(theWrapped, m));
+				try {
+					theData.put(name, new MuisWrappingModel(new MemberGetter<Object>(theWrapped, m), theMessageCenter));
+				} catch(IllegalArgumentException e) {
+					if(m.getAnnotation(MuisSubModel.class) != null)
+						theMessageCenter.error("Tagged sub model method " + m.getName() + " cannot be used", e);
+				}
+			else if(isAction(m)) {
+				MuisAction action = m.getAnnotation(MuisAction.class);
+				MethodActionListener mal = new MethodActionListener(theWrapped, m);
+				if(action != null && action.actions().length > 0) {
+					for(String ac : action.actions())
+						addActionListener(ac, mal);
+				} else
+					addActionListener(m.getName(), mal);
+			}
 		}
+	}
+
+	/** @return The POJO model object that this wraps */
+	public Object getWrapped() {
+		return theWrapped.get();
 	}
 
 	@Override
@@ -100,6 +147,11 @@ public class MuisWrappingModel implements MuisAppModel {
 				+ type.getName());
 	}
 
+	@Override
+	public MuisActionListener getAction(String name) {
+		return theActions.get(name);
+	}
+
 	private String normalize(String name) {
 		if(name.length() == 0)
 			return name;
@@ -127,47 +179,163 @@ public class MuisWrappingModel implements MuisAppModel {
 			return false;
 	}
 
-	private static boolean isAppModel(AccessibleObject member, Class<?> type) {
+	private boolean isAppModel(AccessibleObject member, Class<?> type) {
+		if(MuisAppModel.class.isAssignableFrom(type))
+			return true;
+		else if(member.getAnnotation(MuisSubModel.class) != null)
+			return true;
+		else if(type.getAnnotation(MuisSubModel.class) != null)
+			return true;
+		else
+			return false;
 	}
 
-	private static class MuisMemberAccessor<T> implements WidgetRegister {
-		private final Object theAppModel;
+	private boolean isAction(Method m) {
+		if(m.getName().startsWith("set"))
+			return false;
+		if(!Void.TYPE.equals(m.getReturnType()))
+			return false;
+		for(Class<?> type : m.getParameterTypes()) {
+			if(UserEvent.class.equals(type))
+				continue;
+			if(MuisElement.class.equals(type))
+				continue;
+			return false;
+		}
+		return true;
+	}
 
-		private final Member theMember;
+	private void addActionListener(String action, MuisActionListener listener) {
+		AggregateActionListener agg = theActions.get(action);
+		if(agg == null) {
+			agg = new AggregateActionListener();
+			theActions.put(action, agg);
+		}
+		agg.addListener(listener);
+	}
 
-		MuisMemberAccessor(Object appModel, Member member) {
+	private class MuisMemberAccessor<T> implements WidgetRegister {
+		private final Getter<?> theAppModel;
+
+		private final String theName;
+
+		private final Member theFieldGetter;
+
+		private Method theFieldSetter;
+
+		private List<MuisElement> theRegisteredElements;
+
+		MuisMemberAccessor(Getter<?> appModel, Member member) {
 			theAppModel = appModel;
-			theMember = member;
+			theFieldGetter = member;
+			if(theFieldGetter instanceof Method) {
+				theName = normalize(theFieldGetter.getName().substring(3));
+				String setterName;
+				MuisValue mvAnn = ((Method) theFieldGetter).getAnnotation(MuisValue.class);
+				if(mvAnn != null && mvAnn.setter().length() > 0)
+					setterName = mvAnn.setter();
+				else
+					setterName = "set" + theFieldGetter.getName().substring(3);
+				try {
+					theFieldSetter = theFieldGetter.getDeclaringClass().getMethod(setterName, ((Method) theFieldGetter).getReturnType());
+				} catch(NoSuchMethodException | SecurityException e) {
+					if(mvAnn != null)
+						theMessageCenter.error("MUIS value \"" + theName + "\"'s tagged setter method, \"" + mvAnn.setter()
+							+ "\" does not exist or cannot be accessed", e);
+					theFieldSetter = null;
+				}
+				if(!theFieldSetter.isAccessible() || (theFieldSetter.getModifiers() & Modifier.PUBLIC) == 0
+					|| (theFieldSetter.getModifiers() & Modifier.STATIC) != 0) {
+					if(mvAnn != null)
+						theMessageCenter.error("MUIS value \"" + theName + "\"'s tagged setter method, \"" + mvAnn.setter()
+							+ "\" cannot be accessed");
+					theFieldSetter = null;
+				}
+			} else
+				theName = theFieldGetter.getName();
+			theRegisteredElements = new java.util.concurrent.CopyOnWriteArrayList<>();
 		}
 
 		Class<T> getType() {
-			if(theMember instanceof Field)
-				return (Class<T>) ((Field) theMember).getType();
+			if(theFieldGetter instanceof Field)
+				return (Class<T>) ((Field) theFieldGetter).getType();
 			else
-				return (Class<T>) ((Method) theMember).getReturnType();
+				return (Class<T>) ((Method) theFieldGetter).getReturnType();
+		}
+
+		@SuppressWarnings("unused")
+		String getName() {
+			return theName;
 		}
 
 		T get() {
 			try {
-				if(theMember instanceof Field)
-					return (T) ((Field) theMember).get(theAppModel);
+				if(theFieldGetter instanceof Field)
+					return (T) ((Field) theFieldGetter).get(theAppModel.get());
 				else
-					return (T) ((Method) theMember).invoke(theAppModel);
+					return (T) ((Method) theFieldGetter).invoke(theAppModel.get());
 			} catch(IllegalArgumentException | IllegalAccessException e) {
+				theMessageCenter.error(e.getClass().getSimpleName() + " should not have been thrown here", e);
 				throw new IllegalStateException(e.getClass().getSimpleName() + " should not have been thrown here", e);
 			} catch(InvocationTargetException e) {
+				theMessageCenter.error("Model's value getter threw exception", e);
 				throw new IllegalStateException("Model's value getter threw exception", e);
 			}
 		}
 
+		boolean isMutable() {
+			if(theFieldSetter != null)
+				return true;
+			else if(theFieldGetter instanceof Field && (theFieldGetter.getModifiers() & Modifier.FINAL) == 0)
+				return true;
+			else
+				return false;
+		}
+
 		void set(T value) {
-			// TODO
+			if(!isMutable())
+				throw new IllegalStateException("MUIS value \"" + theName + "\" is not mutable");
+			try {
+				if(theFieldSetter != null)
+					theFieldSetter.invoke(theAppModel.get(), value);
+				else
+					((Field) theFieldGetter).set(theAppModel.get(), value);
+			} catch(IllegalAccessException e) {
+				theMessageCenter.error("Could not access setter for MUIS value \"" + theName + "\"", e);
+			} catch(IllegalArgumentException e) {
+				theMessageCenter.error("Illegal argument for MUIS value \"" + theName + "\"", e);
+				throw e;
+			} catch(InvocationTargetException e) {
+				theMessageCenter.error("Setter for MUIS value \"" + theName + "\" threw exception", e);
+				throw new IllegalStateException("Setter for MUIS value \"" + theName + "\" threw exception", e);
+			}
+		}
+
+		@Override
+		public WidgetRegistration register(final MuisElement widget) {
+			if(widget == null)
+				return null;
+			theRegisteredElements.add(widget);
+			return new WidgetRegistration() {
+				@Override
+				public void unregister() {
+					theRegisteredElements.remove(widget);
+				}
+			};
+		}
+
+		@Override
+		public List<MuisElement> registered() {
+			return java.util.Collections.unmodifiableList(theRegisteredElements);
 		}
 	}
 
-	private static class MuisMemberValue<T> extends MuisMemberAccessor<T> implements MuisModelValue<T> {
-		MuisMemberValue(Object appModel, Member member) {
+	private class MuisMemberValue<T> extends MuisMemberAccessor<T> implements MuisModelValue<T> {
+		private List<MuisModelValueListener<? super T>> theListeners;
+
+		MuisMemberValue(Getter<?> appModel, Member member) {
 			super(appModel, member);
+			theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 		}
 
 		@Override
@@ -181,46 +349,55 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public void set(T value, MuisEvent<?> event) {
-			// TODO Auto-generated method stub
+		public boolean isMutable() {
+			return super.isMutable();
+		}
 
+		@Override
+		public void set(T value, UserEvent userEvent) {
+			T oldValue = get();
+			set(value);
+			MuisModelValueEvent<T> valueEvent = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
+			for(MuisModelValueListener<? super T> listener : theListeners)
+				listener.valueChanged(valueEvent);
 		}
 
 		@Override
 		public void addListener(MuisModelValueListener<? super T> listener) {
-			// TODO Auto-generated method stub
-
+			if(listener != null)
+				theListeners.add(listener);
 		}
 
 		@Override
 		public void removeListener(MuisModelValueListener<? super T> listener) {
-			// TODO Auto-generated method stub
-
+			theListeners.remove(listener);
 		}
 	}
 
-	private static class MuisMemberAppModel<T> extends MuisMemberAccessor<T> implements MuisAppModel {
-		MuisMemberAppModel(Object appModel, Member member) {
-			super(appModel, member);
+	private class MethodActionListener implements MuisActionListener {
+		private Getter<?> theAppModel;
+
+		private Method theMethod;
+
+		MethodActionListener(Getter<?> appModel, Method getter) {
+			theAppModel = appModel;
+			theMethod = getter;
 		}
 
 		@Override
-		public MuisAppModel getSubModel(String name) {
-			// TODO Auto-generated method stub
-			return null;
+		public void actionPerformed(UserEvent event) {
+			Object [] params = new Object[theMethod.getParameterTypes().length];
+			for(int p = 0; p < params.length; p++) {
+				if(theMethod.getParameterTypes()[p] == UserEvent.class)
+					params[p] = event;
+				else if(theMethod.getParameterTypes()[p] == MuisElement.class)
+					params[p] = event.getElement();
+			}
+			try {
+				theMethod.invoke(theAppModel.get(), params);
+			} catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException | IllegalStateException e) {
+				theMessageCenter.error("Could not invoke action listener method " + theMethod, e);
+			}
 		}
-
-		@Override
-		public <T extends MuisWidgetModel> T getWidgetModel(String name, Class<T> modelType) throws ClassCastException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public <T> MuisModelValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
 	}
 }

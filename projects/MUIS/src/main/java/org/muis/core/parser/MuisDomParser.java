@@ -254,7 +254,7 @@ public class MuisDomParser implements MuisParser {
 			msg.error("Extra element " + el.getName() + " in document XML");
 		}
 		WidgetStructure content = parseContent(
-			new WidgetStructure(null, theEnvironment, classView, rootEl.getNamespacePrefix(), rootEl.getName()), null, body[0], msg,
+			new WidgetStructure(null, theEnvironment, classView, rootEl.getNamespacePrefix(), rootEl.getName()), classView, body[0], msg,
 			location);
 		return new MuisDocumentStructure(location, head, content);
 	}
@@ -398,7 +398,7 @@ public class MuisDomParser implements MuisParser {
 				msg.error("No such class \"" + classAtt + "\" found for model \"" + name + "\"", "element", modelEl);
 				return null;
 			}
-			Object modelObj;
+			final Object modelObj;
 			try {
 				modelObj = modelType.newInstance();
 			} catch(InstantiationException | IllegalAccessException e) {
@@ -406,8 +406,19 @@ public class MuisDomParser implements MuisParser {
 				return null;
 			}
 			if(!(modelObj instanceof MuisAppModel))
-				modelObj = new org.muis.core.model.MuisWrappingModel(modelObj);
-			return (MuisAppModel) modelObj;
+				return new org.muis.core.model.MuisWrappingModel(new org.muis.core.model.Getter<Object>() {
+					@Override
+					public Class<Object> getType() {
+						return (Class<Object>) modelObj.getClass();
+					}
+
+					@Override
+					public Object get() throws IllegalStateException {
+						return modelObj;
+					}
+				}, msg);
+			else
+				return (MuisAppModel) modelObj;
 		} else {
 			DefaultMuisModel model = new DefaultMuisModel();
 			for(Element el : modelEl.getChildren()) {

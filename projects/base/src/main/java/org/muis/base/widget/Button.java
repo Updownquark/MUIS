@@ -2,12 +2,15 @@ package org.muis.base.widget;
 
 import static org.muis.core.LayoutContainer.LAYOUT_ATTR;
 
+import java.awt.Point;
+
 import org.muis.core.MuisConstants;
 import org.muis.core.MuisException;
 import org.muis.core.MuisLayout;
-import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.AttributeChangedListener;
+import org.muis.core.event.*;
 import org.muis.core.layout.SizeGuide;
+import org.muis.core.mgr.MuisState;
+import org.muis.core.model.ModelAttributes;
 import org.muis.core.tags.Template;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
@@ -19,9 +22,46 @@ public class Button extends org.muis.core.MuisTemplate {
 	public Button() {
 		setFocusable(true);
 		atts().accept(new Object(), LAYOUT_ATTR);
+		atts().accept(new Object(), ModelAttributes.action);
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
+				state().addListener(MuisConstants.States.CLICK_NAME, new org.muis.core.mgr.StateEngine.StateListener() {
+					private Point theClickLocation;
+
+					@Override
+					public void entered(MuisState state, MuisEvent<?> cause) {
+						if(cause instanceof MouseEvent) {
+							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
+						} else
+							theClickLocation = null;
+					}
+
+					@Override
+					public void exited(MuisState state, MuisEvent<?> cause) {
+						if(theClickLocation == null || !(cause instanceof MouseEvent))
+							return;
+						Point click = theClickLocation;
+						theClickLocation = null;
+						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
+						int dx = click.x - unclick.x;
+						int dy = click.y - unclick.y;
+						double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyles.clickTolerance);
+						if(dx > tol || dy > tol)
+							return;
+						double dist2 = dx * dx + dy * dy;
+						if(dist2 > tol * tol)
+							return;
+						org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
+						if(listener == null)
+							return;
+						try {
+							listener.actionPerformed((MouseEvent) cause);
+						} catch(RuntimeException e) {
+							msg().error("Action listener threw exception", e);
+						}
+					}
+				});
 				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<MuisLayout>(LAYOUT_ATTR) {
 					@Override
 					public void attributeChanged(AttributeChangedEvent<MuisLayout> event) {
@@ -81,13 +121,13 @@ public class Button extends org.muis.core.MuisTemplate {
 	@Override
 	public SizeGuide getWSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-        return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
+		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
-        return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
+		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
 	}
 
 	private static class RadiusAddSizePolicy extends org.muis.core.layout.AbstractSizeGuide {
@@ -95,7 +135,7 @@ public class Button extends org.muis.core.MuisTemplate {
 
 		private org.muis.core.style.Size theRadius;
 
-        RadiusAddSizePolicy(SizeGuide wrap, org.muis.core.style.Size rad) {
+		RadiusAddSizePolicy(SizeGuide wrap, org.muis.core.style.Size rad) {
 			theWrapped = wrap;
 			theRadius = rad;
 		}
@@ -127,9 +167,9 @@ public class Button extends org.muis.core.MuisTemplate {
 
 		@Override
 		public int getBaseline(int size) {
-            int remove = size - removeRadius(size);
-            int ret = theWrapped.getBaseline(size - remove * 2);
-            return ret + remove;
+			int remove = size - removeRadius(size);
+			int ret = theWrapped.getBaseline(size - remove * 2);
+			return ret + remove;
 		}
 
 		int addRadius(int size) {

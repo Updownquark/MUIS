@@ -340,7 +340,7 @@ public abstract class MuisTemplate extends MuisElement {
 				throw new MuisException("Non-widget contents specified in body section of template XML \"" + location
 					+ "\" for template class " + templateType.getName());
 
-			WidgetStructure content = (WidgetStructure) docStruct.getContent().getChildren().get(0);
+			WidgetStructure content = docStruct.getContent();
 			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure, content);
 			Map<AttachPoint, WidgetStructure> attaches = new HashMap<>();
 			try {

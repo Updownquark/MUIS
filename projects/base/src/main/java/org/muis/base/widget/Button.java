@@ -4,13 +4,12 @@ import static org.muis.core.LayoutContainer.LAYOUT_ATTR;
 
 import java.awt.Point;
 
-import org.muis.core.MuisConstants;
-import org.muis.core.MuisException;
-import org.muis.core.MuisLayout;
+import org.muis.core.*;
 import org.muis.core.event.*;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.model.ModelAttributes;
+import org.muis.core.model.MuisActionEvent;
 import org.muis.core.tags.Template;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
@@ -55,8 +54,24 @@ public class Button extends org.muis.core.MuisTemplate {
 						org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
 						if(listener == null)
 							return;
-						org.muis.core.model.MuisActionEvent actionEvent = new org.muis.core.model.MuisActionEvent("clicked",
-							(MouseEvent) cause);
+						MuisActionEvent actionEvent = new MuisActionEvent("clicked", (MouseEvent) cause);
+						try {
+							listener.actionPerformed(actionEvent);
+						} catch(RuntimeException e) {
+							msg().error("Action listener threw exception", e);
+						}
+					}
+				});
+				addListener(MuisConstants.Events.KEYBOARD, new org.muis.core.event.KeyBoardListener(false) {
+					@Override
+					public void keyReleased(KeyBoardEvent kEvt, MuisElement element) {
+						super.keyReleased(kEvt, element);
+						if(kEvt.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && kEvt.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
+							return;
+						org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
+						if(listener == null)
+							return;
+						MuisActionEvent actionEvent = new MuisActionEvent("clicked", kEvt);
 						try {
 							listener.actionPerformed(actionEvent);
 						} catch(RuntimeException e) {

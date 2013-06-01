@@ -41,7 +41,7 @@ public class MemberGetter<T> implements Getter<T> {
 		} else
 			throw new IllegalArgumentException("Cannot make a member getter with member type +" + fieldGetter.getClass());
 		if(!((AccessibleObject) fieldGetter).isAccessible())
-			throw new IllegalArgumentException("Member " + fieldGetter + " is not accessible");
+			((AccessibleObject) fieldGetter).setAccessible(true);
 	}
 
 	@Override

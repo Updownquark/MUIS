@@ -4,7 +4,7 @@
     <head>
         <title>Testing Buttons</title>
         <!--<style-sheet ref="../style/sample.mss" />-->
-        <model name="model" type="org.muis.test.model.ButtonTestModel" />
+        <model name="model" class="org.muis.test.model.ButtonTestModel" />
     </head>
     <body layout="base:simple">
     	<block layout="base:simple" width="100%" top="0" height="100%">

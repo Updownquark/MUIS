@@ -33,8 +33,6 @@ import prisms.util.ArrayUtils;
 		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
 		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY)})
 public abstract class MuisElement {
-	// TODO Add code for attach events
-
 	/**
 	 * Used to lock this elements' child sets
 	 *

@@ -54,56 +54,65 @@ public class MuisWrappingModel implements MuisAppModel {
 
 	private void buildReflectiveModel() {
 		for(Field f : theWrapped.getType().getFields()) {
-			if(!f.isAccessible() || (f.getModifiers() & Modifier.STATIC) != 0)
+			if((f.getModifiers() & Modifier.STATIC) != 0 || (f.getModifiers() & Modifier.PUBLIC) == 0)
 				continue;
-			if(isValue(f, f.getType()))
-				theData.put(f.getName(), new MuisMemberValue<>(theWrapped, f));
-			else if(MuisWidgetModel.class.isAssignableFrom(f.getType()))
-				theData.put(f.getName(), new MuisMemberAccessor<>(theWrapped, f));
-			else if(MuisAppModel.class.isAssignableFrom(f.getType()))
-				try {
-					theData.put(f.getName(), f.get(theWrapped.get()));
-				} catch(Exception e) {
-					theMessageCenter.error("Muis sub model field " + f.getName() + " cannot be used", e);
-				}
-			else if(isAppModel(f, f.getType()))
-				try {
-					theData.put(f.getName(), new MuisWrappingModel(new MemberGetter<Object>(theWrapped, f), theMessageCenter));
-				} catch(IllegalArgumentException e) {
-					if(f.getAnnotation(MuisSubModel.class) != null)
-						theMessageCenter.error("Tagged sub model field " + f.getName() + " cannot be used", e);
-				}
+			try {
+				if(isValue(f, f.getType()))
+					theData.put(f.getName(), new MuisMemberValue<>(theWrapped, f));
+				else if(MuisWidgetModel.class.isAssignableFrom(f.getType()))
+					theData.put(f.getName(), new MuisMemberAccessor<>(theWrapped, f));
+				else if(MuisAppModel.class.isAssignableFrom(f.getType()))
+					try {
+						theData.put(f.getName(), f.get(theWrapped.get()));
+					} catch(Exception e) {
+						theMessageCenter.error("Muis sub model field " + f.getName() + " cannot be used", e);
+					}
+				else if(isAppModel(f, f.getType()))
+					try {
+						theData.put(f.getName(), new MuisWrappingModel(new MemberGetter<>(theWrapped, f), theMessageCenter));
+					} catch(IllegalArgumentException e) {
+						if(f.getAnnotation(MuisSubModel.class) != null)
+							theMessageCenter.error("Tagged sub model field " + f.getName() + " cannot be used", e);
+					}
+			} catch(SecurityException e) {
+				theMessageCenter.warn("Could not gain access to field " + f, e);
+			}
 		}
 		for(Method m : theWrapped.getType().getMethods()) {
-			if(!m.isAccessible() || !m.getName().startsWith("get") || m.getParameterTypes().length > 0
-				|| (m.getModifiers() & Modifier.STATIC) != 0)
+			if((m.getModifiers() & Modifier.STATIC) != 0 || (m.getModifiers() & Modifier.PUBLIC) == 0)
 				continue;
-			String name = normalize(m.getName().substring(3));
-			if(isValue(m, m.getReturnType()))
-				theData.put(name, new MuisMemberValue<>(theWrapped, m));
-			else if(MuisWidgetModel.class.isAssignableFrom(m.getReturnType()))
-				theData.put(name, new MuisMemberAccessor<>(theWrapped, m));
-			else if(MuisAppModel.class.isAssignableFrom(m.getReturnType()))
-				try {
-					theData.put(name, m.invoke(theWrapped.get()));
-				} catch(Exception e) {
-					theMessageCenter.error("Muis sub model method " + m.getName() + " cannot be used", e);
+			try {
+				if(m.getName().startsWith("get") && m.getParameterTypes().length == 0) {
+					String name = normalize(m.getName().substring(3));
+					if(isValue(m, m.getReturnType()))
+						theData.put(name, new MuisMemberValue<>(theWrapped, m));
+					else if(MuisWidgetModel.class.isAssignableFrom(m.getReturnType()))
+						theData.put(name, new MuisMemberAccessor<>(theWrapped, m));
+					else if(MuisAppModel.class.isAssignableFrom(m.getReturnType()))
+						try {
+							theData.put(name, m.invoke(theWrapped.get()));
+						} catch(Exception e) {
+							theMessageCenter.error("Muis sub model method " + m.getName() + " cannot be used", e);
+						}
+					else if(isAppModel(m, m.getReturnType()))
+						try {
+							theData.put(name, new MuisWrappingModel(new MemberGetter<>(theWrapped, m), theMessageCenter));
+						} catch(IllegalArgumentException e) {
+							if(m.getAnnotation(MuisSubModel.class) != null)
+								theMessageCenter.error("Tagged sub model method " + m.getName() + " cannot be used", e);
+						}
 				}
-			else if(isAppModel(m, m.getReturnType()))
-				try {
-					theData.put(name, new MuisWrappingModel(new MemberGetter<Object>(theWrapped, m), theMessageCenter));
-				} catch(IllegalArgumentException e) {
-					if(m.getAnnotation(MuisSubModel.class) != null)
-						theMessageCenter.error("Tagged sub model method " + m.getName() + " cannot be used", e);
+				if(isAction(m)) {
+					MuisAction action = m.getAnnotation(MuisAction.class);
+					MethodActionListener mal = new MethodActionListener(theWrapped, m);
+					if(action != null && action.actions().length > 0) {
+						for(String ac : action.actions())
+							addActionListener(ac, mal);
+					} else
+						addActionListener(m.getName(), mal);
 				}
-			else if(isAction(m)) {
-				MuisAction action = m.getAnnotation(MuisAction.class);
-				MethodActionListener mal = new MethodActionListener(theWrapped, m);
-				if(action != null && action.actions().length > 0) {
-					for(String ac : action.actions())
-						addActionListener(ac, mal);
-				} else
-					addActionListener(m.getName(), mal);
+			} catch(SecurityException e) {
+				theMessageCenter.warn("Could not gain access to method " + m, e);
 			}
 		}
 	}
@@ -226,6 +235,8 @@ public class MuisWrappingModel implements MuisAppModel {
 		private List<MuisElement> theRegisteredElements;
 
 		MuisMemberAccessor(Getter<?> appModel, Member member) {
+			if(!((AccessibleObject) member).isAccessible())
+				((AccessibleObject) member).setAccessible(true);
 			theAppModel = appModel;
 			theFieldGetter = member;
 			if(theFieldGetter instanceof Method) {
@@ -380,6 +391,8 @@ public class MuisWrappingModel implements MuisAppModel {
 		private Method theMethod;
 
 		MethodActionListener(Getter<?> appModel, Method getter) {
+			if(!((AccessibleObject) getter).isAccessible())
+				((AccessibleObject) getter).setAccessible(true);
 			theAppModel = appModel;
 			theMethod = getter;
 		}

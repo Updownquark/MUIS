@@ -225,7 +225,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 			while(theIndex < getChildCount())
 			{
 				if(theChildIter == null)
-					theChildIter = getChild(theIndex).getTargets().iterator();
+					theChildIter = getChild(theIndex).iterator();
 				if(theChildIter.hasNext())
 					return true;
 				else

@@ -11,10 +11,15 @@
 		texture="raised-round"
 		corner-radius="10%"
 	}
+	light={
+		color=white
+		shadow=black
+	}
 	.hover{
-		bg.color=yellow
+		bg.color=rgb(64, 64, 255)
 	}
 	.click{
-		bg.color=purple
+		light.color=black
+		light.shadow=white
 	}
 }

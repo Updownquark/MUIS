@@ -52,7 +52,7 @@ public class LightedStyle implements StyleDomain {
 
 	@Override
 	public String getName() {
-		return "tex";
+		return "light";
 	}
 
 	@Override

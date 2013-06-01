@@ -1,7 +1,5 @@
 package org.muis.core.model;
 
-import org.muis.core.event.UserEvent;
-
 /** A MUIS action listener that propagates the events it gets to one or more other listeners */
 public class AggregateActionListener implements MuisActionListener, prisms.util.Sealable {
 	private boolean isSealed;
@@ -14,7 +12,7 @@ public class AggregateActionListener implements MuisActionListener, prisms.util.
 	}
 
 	@Override
-	public void actionPerformed(UserEvent event) {
+	public void actionPerformed(MuisActionEvent event) {
 		for(MuisActionListener listener : theListeners)
 			listener.actionPerformed(event);
 	}

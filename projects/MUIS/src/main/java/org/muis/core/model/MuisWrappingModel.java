@@ -205,6 +205,10 @@ public class MuisWrappingModel implements MuisAppModel {
 		if(!Void.TYPE.equals(m.getReturnType()))
 			return false;
 		for(Class<?> type : m.getParameterTypes()) {
+			if(MuisActionEvent.class.equals(type))
+				continue;
+			if(String.class.equals(type))
+				continue;
 			if(UserEvent.class.equals(type))
 				continue;
 			if(MuisElement.class.equals(type))
@@ -398,13 +402,17 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public void actionPerformed(UserEvent event) {
+		public void actionPerformed(MuisActionEvent event) {
 			Object [] params = new Object[theMethod.getParameterTypes().length];
 			for(int p = 0; p < params.length; p++) {
-				if(theMethod.getParameterTypes()[p] == UserEvent.class)
+				if(theMethod.getParameterTypes()[p] == MuisActionEvent.class)
 					params[p] = event;
-				else if(theMethod.getParameterTypes()[p] == MuisElement.class)
-					params[p] = event.getElement();
+				else if(theMethod.getParameterTypes()[p] == String.class)
+					params[p] = event.getAction();
+				else if(theMethod.getParameterTypes()[p] == UserEvent.class)
+					params[p] = event.getUserEvent();
+				else if(theMethod.getParameterTypes()[p] == MuisElement.class && event.getUserEvent() != null)
+					params[p] = event.getUserEvent().getElement();
 			}
 			try {
 				theMethod.invoke(theAppModel.get(), params);

@@ -55,8 +55,10 @@ public class Button extends org.muis.core.MuisTemplate {
 						org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
 						if(listener == null)
 							return;
+						org.muis.core.model.MuisActionEvent actionEvent = new org.muis.core.model.MuisActionEvent("clicked",
+							(MouseEvent) cause);
 						try {
-							listener.actionPerformed((MouseEvent) cause);
+							listener.actionPerformed(actionEvent);
 						} catch(RuntimeException e) {
 							msg().error("Action listener threw exception", e);
 						}

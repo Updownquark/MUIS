@@ -26,7 +26,7 @@ public class Button extends org.muis.core.MuisTemplate {
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
-				state().addListener(MuisConstants.States.CLICK_NAME, new org.muis.core.mgr.StateEngine.StateListener() {
+				state().addListener(MuisConstants.States.CLICK, new org.muis.core.mgr.StateEngine.StateListener() {
 					private Point theClickLocation;
 
 					@Override

@@ -5,8 +5,6 @@ import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleAttributeEvent;
-import org.muis.core.style.StyleListener;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
@@ -43,13 +41,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	private void addDependencies() {
-		// Add a dependency for typed, non-grouped style sheet attributes
-		addListener(new StyleListener() {
-			@Override
-			public void eventOccurred(StyleAttributeEvent<?> event) {
-				theElement.fireEvent(event, false, false);
-			}
-		});
 		if(theElement.getParent() != null) {
 			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);

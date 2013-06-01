@@ -2,6 +2,8 @@ package org.muis.core.style.attach;
 
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleListener;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
@@ -22,6 +24,13 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 			public void run() {
 				theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement().getClass());
 				addDependency(theStyleSheet);
+				// Add a dependency for typed, non-grouped style sheet attributes
+				addListener(new StyleListener() {
+					@Override
+					public void eventOccurred(StyleAttributeEvent<?> event) {
+						theElStyle.getElement().fireEvent(event, false, false);
+					}
+				});
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}

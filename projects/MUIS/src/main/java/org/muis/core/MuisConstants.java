@@ -99,6 +99,10 @@ public final class MuisConstants {
 		 */
 		public static final MuisEventType<Object> ATTRIBUTE_CHANGED = new MuisEventType<>("Attribute Changed", Object.class);
 
+		/** The event type representing the addition or subtraction of an attribute into an element's accepted set */
+		public static final MuisEventType<MuisAttribute<?>> ATTRIBUTE_ACCEPTED = new MuisEventType<>("Attribute Accepted",
+			(Class<MuisAttribute<?>>) (Class<?>) MuisAttribute.class);
+
 		/** The event type representing the change of an element's stage property */
 		public static final MuisEventType<CoreStage> STAGE_CHANGED = new MuisEventType<>("Stage Changed", CoreStage.class);
 

@@ -381,15 +381,17 @@ public class AttributeManager {
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {
-			if(holder.theAttr.equals(attr))
+			if(holder.theAttr.equals(attr)) {
+				fireAccepted(wanter, require, attr, initValue);
 				holder.addWanter(wanter, require); // The attribute is already required
-			else
+			} else
 				throw new IllegalStateException("An attribute named " + attr.getName() + " (" + holder.theAttr
 					+ ") is already accepted in this element");
 		} else {
 			holder = new AttributeHolder(attr);
 			holder.addWanter(wanter, require);
 			theAcceptedAttrs.put(attr.getName(), holder);
+			fireAccepted(wanter, require, attr, initValue);
 			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
@@ -402,6 +404,10 @@ public class AttributeManager {
 		}
 		if(initValue != null && holder.theValue == null)
 			set(attr, initValue);
+	}
+
+	private void fireAccepted(Object wanter, boolean require, MuisAttribute<?> attr, Object value) {
+		theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, wanter, true, require, value), false, false);
 	}
 
 	/**
@@ -419,6 +425,7 @@ public class AttributeManager {
 			holder.reject(holder);
 			if(!holder.isWanted())
 				theAcceptedAttrs.remove(attr.getName());
+			theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, wanter, false, false, null), false, false);
 		}
 	}
 

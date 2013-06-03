@@ -14,6 +14,7 @@
 		<type tag="font">org.muis.core.style.FontStyle</type>
 		<type tag="light">org.muis.core.style.LightedStyle</type>
 		<type tag="layer">org.muis.core.LayerLayout</type>
+		<type tag="no-texture">org.muis.core.style.BaseTexture</type>
 	</types>
 	<security />
 </registry>

@@ -1115,22 +1115,23 @@ public class StyleSheetParser {
 	private boolean checkValidity(ParsedStyleSheet style, StyleAttribute<?> attr, ParsedItem value, MuisClassView classView,
 		MuisMessageCenter msg, URL location) {
 		EvaluationEnvironment env = theEnv.scope(true);
-		EvaluationResult typeRes;
+		// EvaluationResult typeRes;
 		try {
 			for(AnimatedStyleSheet.AnimatedVariable var : style) {
 				env.declareVariable(var.getName(), new Type(Double.TYPE), false, value, 0);
 			}
-			typeRes = value.evaluate(env, false, false);
+			// typeRes = value.evaluate(env, false, false);
 		} catch(EvaluationException e) {
 			msg.error("Could not evaluate value " + value + " for attribute " + attr, e, "attribute", attr, "value", value);
 			return false;
 		}
-		Type attrType = new Type(attr.getType().getType());
-		if(!attrType.isAssignable(typeRes.getType())) {
-			msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
-				+ ", type " + attrType);
-			return false;
-		}
+		// This type checking is flawed because of the conversion ability in MUIS properties
+		// Type attrType = new Type(attr.getType().getType());
+		// if(!attrType.isAssignable(typeRes.getType())) {
+		// msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
+		// + ", type " + attrType);
+		// return false;
+		// }
 		return true;
 	}
 

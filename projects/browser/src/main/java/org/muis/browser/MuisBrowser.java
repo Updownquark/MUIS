@@ -83,11 +83,15 @@ public class MuisBrowser extends javax.swing.JPanel {
 			throw new IllegalArgumentException("Could not parse XML document at " + address, e);
 		}
 
-		muisDoc.postCreate();
-		theContentPane.setContent(muisDoc);
-		if(getParent() instanceof java.awt.Frame)
-			((java.awt.Frame) getParent()).setTitle(muisDoc.getHead().getTitle());
-		repaint();
+		try {
+			muisDoc.postCreate();
+			theContentPane.setContent(muisDoc);
+			if(getParent() instanceof java.awt.Frame)
+				((java.awt.Frame) getParent()).setTitle(muisDoc.getHead().getTitle());
+			repaint();
+		} catch(RuntimeException e) {
+			e.printStackTrace();
+		}
 		muisDoc.getRoot().addListener(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, theMessageListener);
 		for(MuisMessage msg : env.msg())
 			printMessage(msg);

@@ -206,10 +206,10 @@
 	</operator>
 	<operator name="state" priority="-1" impl="org.muis.core.parser.StyleSheetParser$ParsedState">
 		<literal>.</literal>
-		<op type="identifier" storeAs="state" />
+		<op storeAs="state" />
 		<option min="0">
 			<literal>_</literal>
-			<op type="identifier" storeAs="state" />
+			<op storeAs="state" />
 		</option>
 	</operator>
 	<operator name="assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedAssignment">

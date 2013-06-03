@@ -404,6 +404,11 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
+		public boolean isEnabled() {
+			return true;
+		}
+
+		@Override
 		public void actionPerformed(MuisActionEvent event) {
 			Object [] params = new Object[theMethod.getParameterTypes().length];
 			for(int p = 0; p < params.length; p++) {

@@ -12,6 +12,17 @@ public class AggregateActionListener implements MuisActionListener, prisms.util.
 	}
 
 	@Override
+	public boolean isEnabled() {
+		boolean ret = false;
+		for(MuisActionListener listener : theListeners)
+			if(listener.isEnabled()) {
+				ret = true;
+				break;
+			}
+		return ret;
+	}
+
+	@Override
 	public void actionPerformed(MuisActionEvent event) {
 		for(MuisActionListener listener : theListeners)
 			listener.actionPerformed(event);

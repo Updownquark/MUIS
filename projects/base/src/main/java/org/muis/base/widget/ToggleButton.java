@@ -21,6 +21,8 @@ public class ToggleButton extends Button {
 
 	private org.muis.core.model.MuisModelValueListener<Boolean> theValueListener;
 
+	private org.muis.core.model.WidgetRegistration theRegistration;
+
 	/** Creates a toggle button */
 	public ToggleButton() {
 		super(false);
@@ -63,14 +65,19 @@ public class ToggleButton extends Button {
 	}
 
 	private void setModelValue(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
-		if(oldValue != null)
+		if(oldValue != null) {
 			oldValue.removeListener(theValueListener);
+			if(theRegistration != null)
+				theRegistration.unregister();
+		}
 		if(newValue != null) {
 			if(newValue.getType() != Boolean.class && newValue.getType() != Boolean.TYPE) {
 				msg().error("Toggle button backed by non-boolean model: " + newValue.getType(), "modelValue", newValue);
 				return;
 			}
 			((MuisModelValue<Boolean>) newValue).addListener(theValueListener);
+			if(newValue instanceof org.muis.core.model.WidgetRegister)
+				theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(this);
 			setEnabled(newValue.isMutable(), null);
 		} else {
 			setEnabled(true, null);

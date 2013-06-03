@@ -11,6 +11,7 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionEvent;
+import org.muis.core.model.MuisActionListener;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
@@ -28,6 +29,8 @@ public class Button extends org.muis.core.MuisTemplate {
 
 	private boolean isActionable = true;
 
+	private org.muis.core.model.WidgetRegistration theRegistration;
+
 	/** Creates a button */
 	public Button() {
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
@@ -39,7 +42,14 @@ public class Button extends org.muis.core.MuisTemplate {
 			public void run() {
 				if(isActionable) {
 					atts().accept(new Object(), ModelAttributes.action);
-					// TODO add attribute listener for action
+					addListener(MuisConstants.Events.ATTRIBUTE_CHANGED,
+						new org.muis.core.event.AttributeChangedListener<MuisActionListener>(ModelAttributes.action) {
+							@Override
+							public void attributeChanged(AttributeChangedEvent<MuisActionListener> event) {
+								listenerChanged(event.getOldValue(), event.getValue());
+							}
+						});
+					listenerChanged(null, atts().get(ModelAttributes.action));
 				}
 				state().addListener(MuisConstants.States.CLICK, new org.muis.core.mgr.StateEngine.StateListener() {
 					private Point theClickLocation;
@@ -201,7 +211,7 @@ public class Button extends org.muis.core.MuisTemplate {
 			return;
 		if(!atts().isAccepted(ModelAttributes.action))
 			return;
-		org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
+		MuisActionListener listener = atts().get(ModelAttributes.action);
 		if(listener == null)
 			return;
 		MuisActionEvent actionEvent = new MuisActionEvent("clicked", cause);
@@ -210,6 +220,15 @@ public class Button extends org.muis.core.MuisTemplate {
 		} catch(RuntimeException e) {
 			msg().error("Action listener threw exception", e);
 		}
+	}
+
+	private void listenerChanged(MuisActionListener oldValue, MuisActionListener newValue) {
+		if(theRegistration != null)
+			theRegistration.unregister();
+		if(newValue instanceof org.muis.core.model.WidgetRegister)
+			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(Button.this);
+		if(newValue != null)
+			setEnabled(newValue.isEnabled(), null);
 	}
 
 	private void checkDepressed(MuisEvent<?> cause) {

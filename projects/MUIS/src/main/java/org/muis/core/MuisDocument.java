@@ -87,7 +87,7 @@ public class MuisDocument {
 
 	/**
 	 * Creates a document
-	 * 
+	 *
 	 * @param env The environment for the document
 	 * @param parser The parser that created this document
 	 * @param location The location of the file that this document was generated from
@@ -619,8 +619,6 @@ public class MuisDocument {
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, pressed);
 
-		if(theFocus != null)
-			theFocus.fireEvent(evt, false, true);
 		synchronized(theKeysLock) {
 			if(pressed) {
 				if(!ArrayUtils.contains(thePressedKeys, code))
@@ -628,6 +626,8 @@ public class MuisDocument {
 			} else if(ArrayUtils.contains(thePressedKeys, code))
 				thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
 		}
+		if(theFocus != null)
+			theFocus.fireEvent(evt, false, true);
 		MuisElementCapture capture = null;
 		if(!evt.isCanceled()) {
 			MuisElement scrollElement = null;

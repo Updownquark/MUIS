@@ -133,7 +133,7 @@ public final class MuisConstants {
 
 	}
 
-	/** Contains several string representing {@link org.muis.core.mgr.StateEngine states} that are used by the MUIS core */
+	/** Contains several {@link org.muis.core.mgr.StateEngine states} that are used by the MUIS core */
 	public static final class States {
 		/** The name of the state that is true whenever the left mouse button is pressed on top of an element */
 		public static final String CLICK_NAME = "click";

@@ -214,6 +214,19 @@ public class StateEngine implements StateSet {
 		}
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		ret.append('{');
+		for(MuisState state : this) {
+			if(ret.length() > 1)
+				ret.append(", ");
+			ret.append(state.getName());
+		}
+		ret.append('}');
+		return ret.toString();
+	}
+
 	private class StateControllerImpl implements StateController {
 		private final MuisState theState;
 

@@ -4,6 +4,7 @@ import static org.muis.core.LayoutContainer.LAYOUT_ATTR;
 
 import java.awt.Point;
 
+import org.muis.base.BaseConstants;
 import org.muis.core.*;
 import org.muis.core.event.*;
 import org.muis.core.layout.SizeGuide;
@@ -16,26 +17,37 @@ import org.muis.core.tags.Template;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
 @Template(location = "../../../../button.muis")
-@StateSupport({@State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY)})
+@StateSupport({@State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY),
+		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
 public class Button extends org.muis.core.MuisTemplate {
 	private boolean theLayoutCallbackLock;
 
 	private final org.muis.core.mgr.StateEngine.StateController theDepressedController;
 
+	private final org.muis.core.mgr.StateEngine.StateController theEnabledController;
+
+	private boolean isActionable = true;
+
 	/** Creates a button */
 	public Button() {
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
+		theEnabledController = state().control(BaseConstants.States.ENABLED);
+		theEnabledController.setActive(true, null);
 		setFocusable(true);
-		atts().accept(new Object(), LAYOUT_ATTR);
-		atts().accept(new Object(), ModelAttributes.action);
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
+				if(isActionable) {
+					atts().accept(new Object(), ModelAttributes.action);
+					// TODO add attribute listener for action
+				}
 				state().addListener(MuisConstants.States.CLICK, new org.muis.core.mgr.StateEngine.StateListener() {
 					private Point theClickLocation;
 
 					@Override
 					public void entered(MuisState state, MuisEvent<?> cause) {
+						if(!state().is(BaseConstants.States.ENABLED))
+							return;
 						if(cause instanceof MouseEvent) {
 							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
 							theDepressedController.setActive(true, cause);
@@ -45,13 +57,15 @@ public class Button extends org.muis.core.MuisTemplate {
 
 					@Override
 					public void exited(MuisState state, MuisEvent<?> cause) {
+						if(!state().is(BaseConstants.States.ENABLED))
+							return;
 						Point click = theClickLocation;
 						theClickLocation = null;
+						checkDepressed(cause);
 						if(click == null || !(cause instanceof MouseEvent)
 							|| ((MouseEvent) cause).getMouseEventType() != MouseEvent.MouseEventType.released) {
 							return;
 						}
-						checkDepressed(cause);
 						if(state().is(BaseConstants.States.DEPRESSED))
 							return;
 						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
@@ -72,6 +86,8 @@ public class Button extends org.muis.core.MuisTemplate {
 						super.keyPressed(kEvt, element);
 						if(kEvt.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && kEvt.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
 							return;
+						if(!state().is(BaseConstants.States.ENABLED))
+							return;
 						theDepressedController.setActive(true, kEvt);
 					}
 
@@ -79,6 +95,8 @@ public class Button extends org.muis.core.MuisTemplate {
 					public void keyReleased(KeyBoardEvent kEvt, MuisElement element) {
 						super.keyReleased(kEvt, element);
 						if(kEvt.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && kEvt.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
+							return;
+						if(!state().is(BaseConstants.States.ENABLED))
 							return;
 						checkDepressed(kEvt);
 						if(state().is(BaseConstants.States.DEPRESSED))
@@ -130,9 +148,25 @@ public class Button extends org.muis.core.MuisTemplate {
 		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
+	/** @param actionable Whether this button should fire actions */
+	protected Button(boolean actionable) {
+		this();
+		isActionable = actionable;
+	}
+
 	/** @return The panel containing the contents of this button */
 	public Block getContentPane() {
 		return (Block) getElement(getTemplate().getAttachPoint("contents"));
+	}
+
+	/**
+	 * @param enabled Whether this button should be enabled or not
+	 * @param cause The cause of the change (may be null)
+	 */
+	public void setEnabled(boolean enabled, MuisEvent<?> cause) {
+		theEnabledController.setActive(enabled, cause);
+		if(!enabled)
+			theDepressedController.setActive(false, cause);
 	}
 
 	@Override
@@ -163,6 +197,10 @@ public class Button extends org.muis.core.MuisTemplate {
 	 * @param cause The cause of the action
 	 */
 	protected void action(UserEvent cause) {
+		if(!state().is(BaseConstants.States.ENABLED))
+			return;
+		if(!atts().isAccepted(ModelAttributes.action))
+			return;
 		org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
 		if(listener == null)
 			return;
@@ -176,7 +214,7 @@ public class Button extends org.muis.core.MuisTemplate {
 
 	private void checkDepressed(MuisEvent<?> cause) {
 		boolean pressed;
-		if(!state().is(MuisConstants.States.FOCUS))
+		if(!state().is(MuisConstants.States.FOCUS) || !state().is(BaseConstants.States.ENABLED))
 			pressed = false;
 		else if(state().is(MuisConstants.States.CLICK) || getDocument().isKeyPressed(KeyBoardEvent.KeyCode.SPACE)
 			|| getDocument().isKeyPressed(KeyBoardEvent.KeyCode.ENTER))

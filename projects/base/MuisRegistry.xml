@@ -14,6 +14,7 @@
         <type tag="block">org.muis.base.widget.Block</type>
         <type tag="image">org.muis.base.widget.Image</type>
         <type tag="button">org.muis.base.widget.Button</type>
+        <type tag="toggle-button">org.muis.base.widget.ToggleButton</type>
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
         <type tag="flow">org.muis.base.layout.FlowLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>

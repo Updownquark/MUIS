@@ -59,9 +59,9 @@ public class MuisWrappingModel implements MuisAppModel {
 			try {
 				if(isValue(f, f.getType()))
 					theData.put(f.getName(), new MuisMemberValue<>(theWrapped, f));
-				else if(MuisWidgetModel.class.isAssignableFrom(f.getType()))
+				if(MuisWidgetModel.class.isAssignableFrom(f.getType()))
 					theData.put(f.getName(), new MuisMemberAccessor<>(theWrapped, f));
-				else if(MuisAppModel.class.isAssignableFrom(f.getType()))
+				if(MuisAppModel.class.isAssignableFrom(f.getType()))
 					try {
 						theData.put(f.getName(), f.get(theWrapped.get()));
 					} catch(Exception e) {
@@ -82,13 +82,13 @@ public class MuisWrappingModel implements MuisAppModel {
 			if((m.getModifiers() & Modifier.STATIC) != 0 || (m.getModifiers() & Modifier.PUBLIC) == 0)
 				continue;
 			try {
-				if(m.getName().startsWith("get") && m.getParameterTypes().length == 0) {
+				if(m.getName().startsWith("get") && m.getParameterTypes().length == 0 && m.getDeclaringClass() != Object.class) {
 					String name = normalize(m.getName().substring(3));
 					if(isValue(m, m.getReturnType()))
 						theData.put(name, new MuisMemberValue<>(theWrapped, m));
-					else if(MuisWidgetModel.class.isAssignableFrom(m.getReturnType()))
+					if(MuisWidgetModel.class.isAssignableFrom(m.getReturnType()))
 						theData.put(name, new MuisMemberAccessor<>(theWrapped, m));
-					else if(MuisAppModel.class.isAssignableFrom(m.getReturnType()))
+					if(MuisAppModel.class.isAssignableFrom(m.getReturnType()))
 						try {
 							theData.put(name, m.invoke(theWrapped.get()));
 						} catch(Exception e) {
@@ -203,6 +203,8 @@ public class MuisWrappingModel implements MuisAppModel {
 		if(m.getName().startsWith("set"))
 			return false;
 		if(!Void.TYPE.equals(m.getReturnType()))
+			return false;
+		if(m.getDeclaringClass() == Object.class)
 			return false;
 		for(Class<?> type : m.getParameterTypes()) {
 			if(MuisActionEvent.class.equals(type))
@@ -384,7 +386,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public void removeListener(MuisModelValueListener<? super T> listener) {
+		public void removeListener(MuisModelValueListener<?> listener) {
 			theListeners.remove(listener);
 		}
 	}

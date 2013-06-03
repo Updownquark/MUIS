@@ -72,7 +72,7 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 	}
 
 	@Override
-	public void removeListener(MuisModelValueListener<? super T> listener) {
+	public void removeListener(MuisModelValueListener<?> listener) {
 		theListeners.remove(listener);
 	}
 

@@ -145,6 +145,8 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 		int bgRGB = bg.getRGB();
 		int lightRGB = light.getRGB() & 0xffffff;
 		int shadowRGB = shadow.getRGB() & 0xffffff;
+		if(wRad == 0 || hRad == 0)
+			return;
 		BufferedImage cornerBgImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 		BufferedImage cornerShadeImg = new BufferedImage(wRad, hRad, BufferedImage.TYPE_4BYTE_ABGR);
 		BufferedImage tbEdgeImg = new BufferedImage(1, hRad, BufferedImage.TYPE_4BYTE_ABGR);

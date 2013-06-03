@@ -22,4 +22,16 @@
 		light.color=black
 		light.shadow=white
 	}
+	.!enabled{
+		bg.color=lightgray
+	}
+}
+[toggle-button]{
+	.selected{
+		bg.color=cyan
+		.hover{
+		}
+		.depressed{
+		}
+	}
 }

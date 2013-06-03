@@ -26,5 +26,5 @@ public interface MuisModelValue<T> {
 	void addListener(MuisModelValueListener<? super T> listener);
 
 	/** @param listener The listener to remove from notification */
-	void removeListener(MuisModelValueListener<? super T> listener);
+	void removeListener(MuisModelValueListener<?> listener);
 }

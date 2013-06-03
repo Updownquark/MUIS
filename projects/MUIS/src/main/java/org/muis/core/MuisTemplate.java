@@ -75,8 +75,11 @@ public abstract class MuisTemplate extends MuisElement {
 		 */
 		public final boolean mutable;
 
+		/** Whether the immutable implementation in this attach point exposes its attributes through the template widget */
+		public final boolean exposeAtts;
+
 		AttachPoint(TemplateStructure temp, WidgetStructure src, String aName, Class<? extends MuisElement> aType, boolean ext,
-			boolean req, boolean mult, boolean def, boolean impl, boolean isMutable) {
+			boolean req, boolean mult, boolean def, boolean impl, boolean isMutable, boolean attsExposed) {
 			template = temp;
 			source = src;
 			name = aName;
@@ -87,6 +90,7 @@ public abstract class MuisTemplate extends MuisElement {
 			isDefault = def;
 			implementation = impl;
 			mutable = isMutable;
+			exposeAtts = attsExposed;
 		}
 
 		@Override
@@ -141,6 +145,13 @@ public abstract class MuisTemplate extends MuisElement {
 
 		/** The attribute specifying that the element or elements occupying the attach point may be modified dynamically. Default is true. */
 		public static final String MUTABLE = TEMPLATE_PREFIX + "mutable";
+
+		/**
+		 * The attribute specifying that the element occupying the attach point should expose its attributes through the template widget,
+		 * allowing them to be modified from application-level XML. This attribute may only be set on an {@link #MUTABLE immutable} attach
+		 * point.
+		 */
+		public static final String EXPOSE_ATTRIBUTES = TEMPLATE_PREFIX + "expose-atts";
 
 		/** The cache key to use to retrieve instances of {@link TemplateStructure} */
 		public static MuisCache.CacheItemType<Class<? extends MuisTemplate>, TemplateStructure, MuisException> TEMPLATE_STRUCTURE_CACHE_TYPE;
@@ -390,27 +401,35 @@ public abstract class MuisTemplate extends MuisElement {
 				boolean required = getBoolean(child, REQUIRED, !implementation && !multiple, name);
 				boolean def = getBoolean(child, DEFAULT, false, name);
 				boolean mutable = getBoolean(child, MUTABLE, true, name);
+				boolean attsExposed = getBoolean(child, EXPOSE_ATTRIBUTES, false, name);
 				if(!external && (required || multiple || def || !implementation)) {
 					throw new MuisException("Non-externally-specifiable attach points (" + name
 						+ ") may not be required, default, or allow multiples");
 				}
 				if(!external && !implementation)
 					throw new MuisException("Non-externally-specifiable attach points (" + name + ") must be implementations");
+				if(!mutable && !implementation)
+					throw new MuisException("Immutable attach points (" + name + ") must be implementations");
 				if(!external && multiple)
 					throw new MuisException("Non-externally-specifiable attach points (" + name + ") may not allow multiples");
+				if(!mutable && multiple)
+					throw new MuisException("Immutable attach points (" + name + ") may not allow multiples");
 				if(implementation && multiple)
 					throw new MuisException("Attach points (" + name + ") that allow multiples cannot be implementations");
+				if(attsExposed && mutable)
+					throw new MuisException("Mutable attach points (" + name + ") may not expose attributes");
 				for(String attName : child.getAttributes().keySet()) {
 					if(!attName.startsWith(TEMPLATE_PREFIX))
 						continue;
 					if(attName.equals(ATTACH_POINT) || attName.equals(EXTERNAL) || attName.equals(IMPLEMENTATION)
-						|| attName.equals(REQUIRED) || attName.equals(MULTIPLE) || attName.equals(DEFAULT))
+						|| attName.equals(REQUIRED) || attName.equals(MULTIPLE) || attName.equals(DEFAULT) || attName.equals(MUTABLE)
+						|| attName.equals(EXPOSE_ATTRIBUTES))
 						continue;
 					throw new MuisException("Template attribute " + attName + " not recognized");
 				}
 
-				attaches.put(new AttachPoint(template, child, name, type, external, required, multiple, def, implementation, mutable),
-					child);
+				attaches.put(new AttachPoint(template, child, name, type, external, required, multiple, def, implementation, mutable,
+					attsExposed), child);
 				if(external) {
 					Map<AttachPoint, WidgetStructure> check = new HashMap<>();
 					pullAttachPoints(template, child, check);
@@ -851,6 +870,8 @@ public abstract class MuisTemplate extends MuisElement {
 				AttachPoint ap = theTemplateStructure.getAttachPoint(attach);
 				attaches.add(ap);
 				for(MuisElement child : theAttachmentMappings.get(ap)) {
+					if(ap.exposeAtts)
+						new org.muis.util.MuisAttributeExposer(this, child, msg());
 					ret.add(child);
 					initChildren(child, (WidgetStructure) childStruct);
 				}

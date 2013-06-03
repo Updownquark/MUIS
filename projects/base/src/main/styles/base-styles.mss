@@ -18,7 +18,7 @@
 	.hover{
 		bg.color=rgb(64, 64, 255)
 	}
-	.click{
+	.depressed{
 		light.color=black
 		light.shadow=white
 	}

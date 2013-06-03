@@ -10,15 +10,21 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionEvent;
+import org.muis.core.tags.State;
+import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
 @Template(location = "../../../../button.muis")
+@StateSupport({@State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY)})
 public class Button extends org.muis.core.MuisTemplate {
 	private boolean theLayoutCallbackLock;
 
+	private final org.muis.core.mgr.StateEngine.StateController theDepressedController;
+
 	/** Creates a button */
 	public Button() {
+		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
 		setFocusable(true);
 		atts().accept(new Object(), LAYOUT_ATTR);
 		atts().accept(new Object(), ModelAttributes.action);
@@ -32,16 +38,22 @@ public class Button extends org.muis.core.MuisTemplate {
 					public void entered(MuisState state, MuisEvent<?> cause) {
 						if(cause instanceof MouseEvent) {
 							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
+							theDepressedController.setActive(true, cause);
 						} else
 							theClickLocation = null;
 					}
 
 					@Override
 					public void exited(MuisState state, MuisEvent<?> cause) {
-						if(theClickLocation == null || !(cause instanceof MouseEvent))
-							return;
 						Point click = theClickLocation;
 						theClickLocation = null;
+						if(click == null || !(cause instanceof MouseEvent)
+							|| ((MouseEvent) cause).getMouseEventType() != MouseEvent.MouseEventType.released) {
+							return;
+						}
+						checkDepressed(cause);
+						if(state().is(BaseConstants.States.DEPRESSED))
+							return;
 						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
 						int dx = click.x - unclick.x;
 						int dy = click.y - unclick.y;
@@ -51,32 +63,30 @@ public class Button extends org.muis.core.MuisTemplate {
 						double dist2 = dx * dx + dy * dy;
 						if(dist2 > tol * tol)
 							return;
-						org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
-						if(listener == null)
-							return;
-						MuisActionEvent actionEvent = new MuisActionEvent("clicked", (MouseEvent) cause);
-						try {
-							listener.actionPerformed(actionEvent);
-						} catch(RuntimeException e) {
-							msg().error("Action listener threw exception", e);
-						}
+						action((MouseEvent) cause);
 					}
 				});
 				addListener(MuisConstants.Events.KEYBOARD, new org.muis.core.event.KeyBoardListener(false) {
+					@Override
+					public void keyPressed(KeyBoardEvent kEvt, MuisElement element) {
+						super.keyPressed(kEvt, element);
+						if(kEvt.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && kEvt.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
+							return;
+						theDepressedController.setActive(true, kEvt);
+					}
+
 					@Override
 					public void keyReleased(KeyBoardEvent kEvt, MuisElement element) {
 						super.keyReleased(kEvt, element);
 						if(kEvt.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && kEvt.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
 							return;
+						checkDepressed(kEvt);
+						if(state().is(BaseConstants.States.DEPRESSED))
+							return;
 						org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
 						if(listener == null)
 							return;
-						MuisActionEvent actionEvent = new MuisActionEvent("clicked", kEvt);
-						try {
-							listener.actionPerformed(actionEvent);
-						} catch(RuntimeException e) {
-							msg().error("Action listener threw exception", e);
-						}
+						action(kEvt);
 					}
 				});
 				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<MuisLayout>(LAYOUT_ATTR) {
@@ -145,6 +155,36 @@ public class Button extends org.muis.core.MuisTemplate {
 	public SizeGuide getHSizer() {
 		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
 		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
+	}
+
+	/**
+	 * Fires the action event for this button
+	 *
+	 * @param cause The cause of the action
+	 */
+	protected void action(UserEvent cause) {
+		org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
+		if(listener == null)
+			return;
+		MuisActionEvent actionEvent = new MuisActionEvent("clicked", cause);
+		try {
+			listener.actionPerformed(actionEvent);
+		} catch(RuntimeException e) {
+			msg().error("Action listener threw exception", e);
+		}
+	}
+
+	private void checkDepressed(MuisEvent<?> cause) {
+		boolean pressed;
+		if(!state().is(MuisConstants.States.FOCUS))
+			pressed = false;
+		else if(state().is(MuisConstants.States.CLICK) || getDocument().isKeyPressed(KeyBoardEvent.KeyCode.SPACE)
+			|| getDocument().isKeyPressed(KeyBoardEvent.KeyCode.ENTER))
+			pressed = true;
+		else
+			pressed = false;
+		if(!pressed)
+			theDepressedController.setActive(pressed, cause);
 	}
 
 	private static class RadiusAddSizePolicy extends org.muis.core.layout.AbstractSizeGuide {

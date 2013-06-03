@@ -382,7 +382,7 @@ public class AttributeManager {
 		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {
 			if(holder.theAttr.equals(attr)) {
-				fireAccepted(wanter, require, attr, initValue);
+				fireAccepted(require, attr, initValue);
 				holder.addWanter(wanter, require); // The attribute is already required
 			} else
 				throw new IllegalStateException("An attribute named " + attr.getName() + " (" + holder.theAttr
@@ -391,7 +391,7 @@ public class AttributeManager {
 			holder = new AttributeHolder(attr);
 			holder.addWanter(wanter, require);
 			theAcceptedAttrs.put(attr.getName(), holder);
-			fireAccepted(wanter, require, attr, initValue);
+			fireAccepted(require, attr, initValue);
 			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
@@ -406,8 +406,8 @@ public class AttributeManager {
 			set(attr, initValue);
 	}
 
-	private void fireAccepted(Object wanter, boolean require, MuisAttribute<?> attr, Object value) {
-		theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, wanter, true, require, value), false, false);
+	private void fireAccepted(boolean require, MuisAttribute<?> attr, Object value) {
+		theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, true, require, value), false, false);
 	}
 
 	/**
@@ -425,7 +425,7 @@ public class AttributeManager {
 			holder.reject(holder);
 			if(!holder.isWanted())
 				theAcceptedAttrs.remove(attr.getName());
-			theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, wanter, false, false, null), false, false);
+			theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, false, false, null), false, false);
 		}
 	}
 

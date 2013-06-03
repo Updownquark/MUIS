@@ -7,8 +7,6 @@ import org.muis.core.MuisAttribute;
  * {@link org.muis.core.mgr.AttributeManager#reject(Object, MuisAttribute) rejected} on an element.
  */
 public class AttributeAcceptedEvent extends MuisEvent<MuisAttribute<?>> {
-	private final Object theWanter;
-
 	private final boolean isAccepted;
 
 	private final boolean isRequired;
@@ -17,22 +15,15 @@ public class AttributeAcceptedEvent extends MuisEvent<MuisAttribute<?>> {
 
 	/**
 	 * @param attr The attribute that was accepted or rejected
-	 * @param wanter The object that either cares or now doesn't care about the attribute
 	 * @param accepted Whether the attribute was accepted or rejected
 	 * @param required Whether the attribute was requested as required or optional
 	 * @param initVal The value to set for the attribute if a value is not set already
 	 */
-	public AttributeAcceptedEvent(MuisAttribute<?> attr, Object wanter, boolean accepted, boolean required, Object initVal) {
+	public AttributeAcceptedEvent(MuisAttribute<?> attr, boolean accepted, boolean required, Object initVal) {
 		super(org.muis.core.MuisConstants.Events.ATTRIBUTE_ACCEPTED, attr);
-		theWanter = wanter;
 		isAccepted = accepted;
 		isRequired = required;
 		theInitialValue = initVal;
-	}
-
-	/** @return The object that cares about the attribute */
-	public Object getWanter() {
-		return theWanter;
 	}
 
 	/** @return Whether the attribute was accepted or rejected */

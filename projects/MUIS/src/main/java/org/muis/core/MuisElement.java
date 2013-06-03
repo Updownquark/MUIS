@@ -954,13 +954,13 @@ public abstract class MuisElement {
 				if(childArea.y + childArea.height > child.theBounds.getHeight())
 					childArea.height = child.theBounds.getHeight() - childArea.y;
 				graphics.translate(translateX, translateY);
-				child.paint(graphics, childArea);
 				translateX = -childX;
 				translateY = -childY;
+				child.paint(graphics, childArea);
 			}
 		} finally {
 			if(translateX != 0 || translateY != 0)
-				graphics.translate(-translateX, -translateY);
+				graphics.translate(translateX, translateY);
 		}
 	}
 

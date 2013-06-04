@@ -118,19 +118,19 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 		for(StyleAttribute<?> attr : theElement.getStyle().localAttributes())
 			groupAttrs.remove(attr);
 		if(event.getRemoveIndex() < 0)
-			for(NamedStyleGroup g : theElement.getStyle().groups(false)) {
+			for(TypedStyleGroup<?> g : theElement.getStyle().groups(false)) {
 				if(g == event.getValue())
 					break;
-				for(StyleAttribute<?> attr : new StatefulStyleSample(g.getGroupForType(theElement.getClass()), state))
+				for(StyleAttribute<?> attr : new StatefulStyleSample(g, state))
 					groupAttrs.remove(attr);
 			}
 		else {
-			java.util.ListIterator<NamedStyleGroup> iter;
-			iter = (java.util.ListIterator<NamedStyleGroup>) theElement.getStyle().groups(false).iterator();
+			java.util.ListIterator<TypedStyleGroup<?>> iter;
+			iter = (java.util.ListIterator<TypedStyleGroup<?>>) theElement.getStyle().groups(false).iterator();
 			while(iter.hasNext()) {
 				if(iter.nextIndex() <= event.getRemoveIndex())
 					break;
-				for(StyleAttribute<?> attr : new StatefulStyleSample(iter.next().getGroupForType(theElement.getClass()), state))
+				for(StyleAttribute<?> attr : new StatefulStyleSample(iter.next(), state))
 					groupAttrs.remove(attr);
 			}
 		}
@@ -165,7 +165,7 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 			nsg = (NamedStyleGroup) group;
 			if(!nsg.isMember(theElement))
 				return;
-			for(NamedStyleGroup g : theElement.getStyle().groups(false)) {
+			for(TypedStyleGroup<?> g : theElement.getStyle().groups(false)) {
 				if(g == nsg)
 					break;
 				if(new StatefulStyleSample(g, theElement.getStateEngine().toArray()).isSet(event.getAttribute()))

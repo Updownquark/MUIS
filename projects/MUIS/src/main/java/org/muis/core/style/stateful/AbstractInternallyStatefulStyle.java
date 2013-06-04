@@ -14,6 +14,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	private final java.util.concurrent.ConcurrentLinkedQueue<StyleListener> theStyleListeners;
 
+	private final StyleListener theDependencyStyleListener;
+
 	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
@@ -37,6 +39,42 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 				styleChanged(evt.getAttribute(), get(evt.getAttribute()), root);
 			}
 		});
+		theDependencyStyleListener = new StyleListener() {
+			@Override
+			public void eventOccurred(StyleAttributeEvent<?> event) {
+				styleChanged(event.getAttribute(), event.getNewValue(), event.getRootStyle());
+			}
+		};
+	}
+
+	@Override
+	protected void addDependency(StatefulStyle depend, StatefulStyle after) {
+		super.addDependency(depend, after);
+		if(depend instanceof InternallyStatefulStyle)
+			((InternallyStatefulStyle) depend).addListener(theDependencyStyleListener);
+	}
+
+	@Override
+	protected void addDependency(StatefulStyle depend) {
+		super.addDependency(depend);
+		if(depend instanceof InternallyStatefulStyle)
+			((InternallyStatefulStyle) depend).addListener(theDependencyStyleListener);
+	}
+
+	@Override
+	protected void removeDependency(StatefulStyle depend) {
+		super.removeDependency(depend);
+		if(depend instanceof InternallyStatefulStyle)
+			((InternallyStatefulStyle) depend).removeListener(theDependencyStyleListener);
+	}
+
+	@Override
+	protected void replaceDependency(StatefulStyle toReplace, StatefulStyle depend) {
+		super.replaceDependency(toReplace, depend);
+		if(toReplace instanceof InternallyStatefulStyle)
+			((InternallyStatefulStyle) toReplace).removeListener(theDependencyStyleListener);
+		if(depend instanceof InternallyStatefulStyle)
+			((InternallyStatefulStyle) depend).addListener(theDependencyStyleListener);
 	}
 
 	/**

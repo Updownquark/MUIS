@@ -320,7 +320,7 @@ public class MuisDomParser implements MuisParser {
 						return null;
 					}
 				} else {
-					msg.error(styleSheetEl.getName() + " elements that refer to a style sheet resoruce may not have any entitiesy",
+					msg.error(styleSheetEl.getName() + " elements that refer to a style sheet resoruce may not have any entities",
 						"element", styleSheetEl);
 					return null;
 				}

@@ -41,23 +41,33 @@ public abstract class MuisElement {
 	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
 
 	private final MuisLifeCycleManager theLifeCycleManager;
+
 	private MuisLifeCycleManager.Controller theLifeCycleController;
+
 	private final StateEngine theStateEngine;
+
 	private final MuisMessageCenter theMessageCenter;
 
 	private MuisDocument theDocument;
+
 	private MuisToolkit theToolkit;
+
 	private MuisElement theParent;
+
 	private MuisClassView theClassView;
 
 	private String theNamespace;
+
 	private String theTagName;
 
 	private final AttributeManager theAttributeManager;
+
 	private final ChildList theChildren;
 
 	private final ImmutableChildList<MuisElement> theExposedChildren;
+
 	private final ElementStyle theStyle;
+
 	private final CompoundStyleListener theDefaultStyleListener;
 
 	@SuppressWarnings({"rawtypes"})
@@ -68,12 +78,17 @@ public abstract class MuisElement {
 	private int theZ;
 
 	private ElementBounds theBounds;
+
 	private SizeGuide theHSizer;
+
 	private SizeGuide theVSizer;
 
 	private boolean isFocusable;
+
 	private Rectangle theCacheBounds;
+
 	private long thePaintDirtyTime;
+
 	private long theLayoutDirtyTime;
 
 	/** Creates a MUIS element */
@@ -155,36 +170,7 @@ public abstract class MuisElement {
 					return;
 				groupCallbackLock[0] = true;
 				try {
-					ArrayList<NamedStyleGroup> groups = new ArrayList<>();
-					for(NamedStyleGroup group : getDocument().groups())
-						groups.add(group);
-					ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), event.getValue(),
-						new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
-							@Override
-							public boolean identity(NamedStyleGroup o1, String o2) {
-								return o1.getName().equals(o2);
-							}
-
-							@Override
-							public NamedStyleGroup added(String o, int mIdx, int retIdx) {
-								getStyle().addGroup(getDocument().getGroup(o));
-								return null;
-							}
-
-							@Override
-							public NamedStyleGroup removed(NamedStyleGroup o, int oIdx, int incMod, int retIdx) {
-								if(o.isMember(MuisElement.this))
-									getStyle().removeGroup(o);
-								return null;
-							}
-
-							@Override
-							public NamedStyleGroup set(NamedStyleGroup o1, int idx1, int incMod, String o2, int idx2, int retIdx) {
-								if(!o1.isMember(MuisElement.this))
-									getStyle().addGroup(o1);
-								return null;
-							}
-						});
+					setGroups(event.getValue());
 				} finally {
 					groupCallbackLock[0] = false;
 				}
@@ -199,8 +185,8 @@ public abstract class MuisElement {
 				try {
 					GroupMemberEvent gme = (GroupMemberEvent) event;
 					ArrayList<String> groupList = new ArrayList<>();
-					for(NamedStyleGroup group : getStyle().groups(true))
-						groupList.add(group.getName());
+					for(TypedStyleGroup<?> group : getStyle().groups(true))
+						groupList.add(group.getRoot().getName());
 					String [] groups = groupList.toArray(new String[groupList.size()]);
 					if(!ArrayUtils.equals(groups, atts().get(GroupPropertyType.attribute)))
 						try {
@@ -235,6 +221,7 @@ public abstract class MuisElement {
 		theLifeCycleManager.runWhen(new Runnable() {
 			@Override
 			public void run() {
+				setGroups(theAttributeManager.get(GroupPropertyType.attribute));
 				repaint(null, false);
 			}
 		}, CoreStage.INIT_SELF.toString(), 2);
@@ -346,6 +333,40 @@ public abstract class MuisElement {
 			@Override
 			public boolean isLocal() {
 				return true;
+			}
+		});
+	}
+
+	private void setGroups(String [] groupNames) {
+		if(groupNames == null)
+			groupNames = new String[0];
+		ArrayList<NamedStyleGroup> groups = new ArrayList<>();
+		for(NamedStyleGroup group : getDocument().groups())
+			groups.add(group);
+		ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), groupNames, new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
+			@Override
+			public boolean identity(NamedStyleGroup o1, String o2) {
+				return o1.getName().equals(o2);
+			}
+
+			@Override
+			public NamedStyleGroup added(String o, int mIdx, int retIdx) {
+				getStyle().addGroup(getDocument().getGroup(o));
+				return null;
+			}
+
+			@Override
+			public NamedStyleGroup removed(NamedStyleGroup o, int oIdx, int incMod, int retIdx) {
+				if(o.isMember(MuisElement.this))
+					getStyle().removeGroup(o);
+				return null;
+			}
+
+			@Override
+			public NamedStyleGroup set(NamedStyleGroup o1, int idx1, int incMod, String o2, int idx2, int retIdx) {
+				if(!o1.isMember(MuisElement.this))
+					getStyle().addGroup(o1);
+				return null;
 			}
 		});
 	}

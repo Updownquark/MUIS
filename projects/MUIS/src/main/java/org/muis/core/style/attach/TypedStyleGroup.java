@@ -32,6 +32,18 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 * @param type The type of elements that this group is to hold
 	 */
 	public TypedStyleGroup(MuisDocument doc, TypedStyleGroup<? super E> parent, Class<E> type) {
+		this(doc, parent, type, null);
+	}
+
+	/**
+	 * Creates a typed style group
+	 *
+	 * @param doc The document that this style group exists in
+	 * @param parent The parent style group that this group is a sub-type of
+	 * @param type The type of elements that this group is to hold
+	 * @param name The name of the root
+	 */
+	protected TypedStyleGroup(MuisDocument doc, TypedStyleGroup<? super E> parent, Class<E> type, String name) {
 		theDocument = doc;
 		theParent = parent;
 		theType = type;
@@ -42,13 +54,11 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		 * 2) style sheet entries for this group's type, group-unspecific (if this group is not a NamedStyleGroup and is not descended from one)
 		 * 3) the parent type group, if it's not null
 		 */
-		TypedStyleGroup<?> root = theParent;
-		while(root != null && !(root instanceof NamedStyleGroup))
-			root = root.theParent;
-		if(root != null)
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), ((NamedStyleGroup) root).getName(), type));
+		NamedStyleGroup root = getRoot();
+		if(root != null && root.getName() != null) // name==null Happens in the super constructor call for NamedStyleGroup
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type));
 		else
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), null, type));
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), name, type));
 		if(parent != null)
 			addDependency(parent, null);
 	}
@@ -61,6 +71,14 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	/** @return The parent style group that this group is a sub-type of */
 	public TypedStyleGroup<? super E> getParent() {
 		return theParent;
+	}
+
+	/** @return The named group that is at the root of the hierarchy this style group is in, or null if the root is not a named group */
+	public NamedStyleGroup getRoot() {
+		TypedStyleGroup<?> root = this;
+		while(root != null && !(root instanceof NamedStyleGroup))
+			root = root.theParent;
+		return (NamedStyleGroup) root;
 	}
 
 	/** @return This group's type */
@@ -154,15 +172,16 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		return ArrayUtils.contains((E []) group.theMembers, element);
 	}
 
-	void addMember(E member) {
-		addMember(member, theMembers.length);
+	<T extends E> TypedStyleGroup<T> addMember(T member) {
+		return addMember(member, theMembers.length);
 	}
 
-	<T extends E, V extends T> void addMember(V member, int index) {
-		TypedStyleGroup<T> group = (TypedStyleGroup<T>) getGroupForType((Class<V>) member.getClass());
+	<T extends E> TypedStyleGroup<T> addMember(T member, int index) {
+		TypedStyleGroup<T> group = insertTypedGroup((Class<T>) member.getClass());
 		if(index < 0)
 			index = group.theMembers.length;
 		group.theMembers = prisms.util.ArrayUtils.add(group.theMembers, member, index);
+		return group;
 	}
 
 	void removeMember(E member) {

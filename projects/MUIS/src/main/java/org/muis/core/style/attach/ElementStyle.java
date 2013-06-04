@@ -20,7 +20,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 	private ElementHeirStyle theHeirStyle;
 
-	private NamedStyleGroup [] theStyleGroups;
+	private TypedStyleGroup<?> [] theStyleGroups;
 
 	/**
 	 * Creates an element style
@@ -31,7 +31,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
-		theStyleGroups = new NamedStyleGroup[0];
+		theStyleGroups = new TypedStyleGroup[0];
 		element.life().runWhen(new Runnable() {
 			@Override
 			public void run() {
@@ -131,7 +131,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 	/** @param group The named style group to add to this element style */
 	public void addGroup(NamedStyleGroup group) {
-		group.addMember(theElement);
+		TypedStyleGroup<?> typedGroup = group.addMember(theElement);
 		AbstractStatefulStyle after;
 		if(theStyleGroups.length > 0)
 			after = theStyleGroups[theStyleGroups.length - 1];
@@ -139,20 +139,21 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			after = theParentStyle.getHeir();
 		else
 			after = null;
-		addDependency(group, after);
-		if(!prisms.util.ArrayUtils.contains(theStyleGroups, group))
-			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, group);
+		addDependency(typedGroup, after);
+		if(!prisms.util.ArrayUtils.contains(theStyleGroups, typedGroup))
+			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, typedGroup);
 		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1), false, false);
 	}
 
 	/** @param group The named style group to remove from this element style */
 	public void removeGroup(NamedStyleGroup group) {
-		removeDependency(group);
+		TypedStyleGroup<?> typedGroup = group.getGroupForType(theElement.getClass());
+		removeDependency(typedGroup);
 		group.removeMember(theElement);
-		int index = prisms.util.ArrayUtils.indexOf(theStyleGroups, group);
+		int index = prisms.util.ArrayUtils.indexOf(theStyleGroups, typedGroup);
 		if(index < 0)
 			return;
-		theStyleGroups = prisms.util.ArrayUtils.remove(theStyleGroups, group);
+		theStyleGroups = prisms.util.ArrayUtils.remove(theStyleGroups, typedGroup);
 		theElement.fireEvent(new GroupMemberEvent(theElement, group, index), false, false);
 	}
 
@@ -176,8 +177,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 * @param forward Whether to iterate forward through the groups or backward
 	 * @return An iterable to get the groups associated with this style
 	 */
-	public Iterable<NamedStyleGroup> groups(final boolean forward) {
-		return new Iterable<NamedStyleGroup>() {
+	public Iterable<TypedStyleGroup<?>> groups(final boolean forward) {
+		return new Iterable<TypedStyleGroup<?>>() {
 			@Override
 			public NamedStyleIterator iterator() {
 				return new NamedStyleIterator(theStyleGroups, forward);
@@ -185,8 +186,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		};
 	}
 
-	private class NamedStyleIterator implements java.util.ListIterator<NamedStyleGroup> {
-		private NamedStyleGroup [] theGroups;
+	private class NamedStyleIterator implements java.util.ListIterator<TypedStyleGroup<?>> {
+		private TypedStyleGroup<?> [] theGroups;
 
 		private int index;
 
@@ -194,7 +195,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 		Boolean lastCalledNext;
 
-		NamedStyleIterator(NamedStyleGroup [] groups, boolean forward) {
+		NamedStyleIterator(TypedStyleGroup<?> [] groups, boolean forward) {
 			isForward = forward;
 			if(!forward)
 				groups = prisms.util.ArrayUtils.reverse(groups);
@@ -207,8 +208,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		}
 
 		@Override
-		public NamedStyleGroup next() {
-			NamedStyleGroup ret = theGroups[index];
+		public TypedStyleGroup<?> next() {
+			TypedStyleGroup<?> ret = theGroups[index];
 			index++;
 			lastCalledNext = Boolean.TRUE;
 			return ret;
@@ -228,7 +229,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		}
 
 		@Override
-		public NamedStyleGroup previous() {
+		public TypedStyleGroup<?> previous() {
 			index--;
 			lastCalledNext = Boolean.FALSE;
 			return theGroups[index];
@@ -243,11 +244,11 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		}
 
 		@Override
-		public void add(NamedStyleGroup e) {
+		public void add(TypedStyleGroup<?> e) {
 			if(e == null)
 				throw new NullPointerException("Cannot add a null style group");
 			lastCalledNext = null;
-			addGroup(e);
+			addGroup(e.getRoot());
 			theGroups = prisms.util.ArrayUtils.add(theGroups, e, index);
 			index++;
 		}
@@ -265,13 +266,13 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 				throw new IndexOutOfBoundsException("No element to remove--at beginning of list");
 			} else if(index >= theGroups.length)
 				throw new IndexOutOfBoundsException("No element to remove--at end of list");
-			removeGroup(theGroups[index]);
+			removeGroup(theGroups[index].getRoot());
 			theGroups = prisms.util.ArrayUtils.remove(theGroups, index);
 			index--;
 		}
 
 		@Override
-		public void set(NamedStyleGroup e) {
+		public void set(TypedStyleGroup<?> e) {
 			if(e == null)
 				throw new NullPointerException("Cannot set a null style group");
 			if(lastCalledNext == null)
@@ -284,8 +285,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 				throw new IndexOutOfBoundsException("No element to remove--at beginning of list");
 			else if(setIndex >= theGroups.length)
 				throw new IndexOutOfBoundsException("No element to remove--at end of list");
-			removeGroup(theGroups[setIndex]);
-			addGroup(e);
+			removeGroup(theGroups[setIndex].getRoot());
+			addGroup(e.getRoot());
 			theGroups[setIndex] = e;
 		}
 	}

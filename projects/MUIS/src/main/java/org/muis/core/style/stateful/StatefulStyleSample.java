@@ -36,7 +36,9 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public Iterator<StyleAttribute<?>> iterator() {
-		return ArrayUtils.iterable(ArrayUtils.add(getDependencies(), localAttributes(), 0)).iterator();
+		Iterable<StyleAttribute<?>> [] array = new Iterable[getDependencies().length];
+		System.arraycopy(getDependencies(), 0, array, 0, array.length);
+		return ArrayUtils.iterable(ArrayUtils.add(array, localAttributes(), 0)).iterator();
 	}
 
 	@Override

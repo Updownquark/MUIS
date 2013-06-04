@@ -13,7 +13,7 @@ public class NamedStyleGroup extends TypedStyleGroup<org.muis.core.MuisElement> 
 	 * @param name The name for the group
 	 */
 	public NamedStyleGroup(MuisDocument doc, String name) {
-		super(doc, null, org.muis.core.MuisElement.class);
+		super(doc, null, org.muis.core.MuisElement.class, name);
 		if(doc == null)
 			throw new IllegalArgumentException("Cannot create a named style group without a document");
 		theName = name;

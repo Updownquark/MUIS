@@ -145,7 +145,10 @@ public class AttributeManager {
 		if(holder == null) {
 			if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
-			theRawAttributes.put(attr, value);
+			if(value == null)
+				theRawAttributes.remove(attr);
+			else
+				theRawAttributes.put(attr, value);
 			return null;
 		}
 		if(holder.theAttr.getPathAccepter() == null)
@@ -226,7 +229,7 @@ public class AttributeManager {
 		Object old = holder.theValue;
 		holder.theValue = value;
 		theElement.fireEvent(new MuisEvent<MuisAttribute<?>>(MuisConstants.Events.ATTRIBUTE_SET, attr), false, false);
-		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<T>(attr, attr.getType().cast(old), value), false, false);
+		theElement.fireEvent(new org.muis.core.event.AttributeChangedEvent<>(attr, attr.getType().cast(old), value), false, false);
 	}
 
 	/**
@@ -241,16 +244,52 @@ public class AttributeManager {
 	}
 
 	/**
-	 * Gets the value of an attribute in this element
+	 * @param name The name of the attribute to check
+	 * @return Whether an attribute with the given name is set in this attribute manager
+	 */
+	public final boolean isSet(String name) {
+		AttributeHolder holder = theAcceptedAttrs.get(name);
+		if(holder != null && holder.theValue != null)
+			return true;
+		if(theRawAttributes != null && theRawAttributes.get(name) != null)
+			return true;
+		return false;
+	}
+
+	/**
+	 * @param attr The attribute to check
+	 * @return Whether a value is set in this attribute manager for the given attribute
+	 */
+	public final boolean isSet(MuisAttribute<?> attr) {
+		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
+		return holder != null && holder.getAttribute().equals(attr) && holder.getValue() != null;
+	}
+
+	/**
+	 * Gets the value of an attribute in this manager
 	 *
 	 * @param <T> The type of the attribute to get
 	 * @param attr The attribute to get the value of
-	 * @return The value of the attribute in this element
+	 * @return The value of the attribute in this manager, or null if the attribute is not set
 	 */
 	public final <T> T get(MuisAttribute<T> attr) {
+		return get(attr, null);
+	}
+
+	/**
+	 * Gets the value of an attribute in this manager, returning a default value if the attribute is not set
+	 *
+	 * @param <T> The type of the attribute to get
+	 * @param attr The attribute to get the value of
+	 * @param def The default value to return if the attribute is not set in this manager
+	 * @return The value of the attribute in this manager, or <code>def</code> if the attribute is not set
+	 */
+	public final <T> T get(MuisAttribute<T> attr, T def) {
 		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.getName());
-		if(storedAttr != null && !storedAttr.theAttr.equals(attr))
-			return null; // Same name, but different attribute
+		if(storedAttr == null)
+			return def;
+		if(!storedAttr.theAttr.equals(attr) || storedAttr.theValue == null)
+			return def; // Same name, but different attribute
 		return (T) storedAttr.theValue;
 	}
 
@@ -342,15 +381,17 @@ public class AttributeManager {
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
 		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {
-			if(holder.theAttr.equals(attr))
+			if(holder.theAttr.equals(attr)) {
+				fireAccepted(require, attr, initValue);
 				holder.addWanter(wanter, require); // The attribute is already required
-			else
+			} else
 				throw new IllegalStateException("An attribute named " + attr.getName() + " (" + holder.theAttr
 					+ ") is already accepted in this element");
 		} else {
 			holder = new AttributeHolder(attr);
 			holder.addWanter(wanter, require);
 			theAcceptedAttrs.put(attr.getName(), holder);
+			fireAccepted(require, attr, initValue);
 			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
@@ -363,6 +404,10 @@ public class AttributeManager {
 		}
 		if(initValue != null && holder.theValue == null)
 			set(attr, initValue);
+	}
+
+	private void fireAccepted(boolean require, MuisAttribute<?> attr, Object value) {
+		theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, true, require, value), false, false);
 	}
 
 	/**
@@ -380,6 +425,7 @@ public class AttributeManager {
 			holder.reject(holder);
 			if(!holder.isWanted())
 				theAcceptedAttrs.remove(attr.getName());
+			theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, false, false, null), false, false);
 		}
 	}
 

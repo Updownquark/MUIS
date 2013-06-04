@@ -1,13 +1,13 @@
 package org.muis.core;
 
 import org.muis.core.event.MuisEvent;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SizeGuide;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
 public class LayoutContainer extends MuisElement {
 	/** The attribute that specifies the layout type for a layout container */
-	public static MuisAttribute<MuisLayout> LAYOUT_ATTR = new MuisAttribute<MuisLayout>("layout",
-		new MuisProperty.MuisTypeInstanceProperty<MuisLayout>(MuisLayout.class));
+	public static MuisAttribute<MuisLayout> LAYOUT_ATTR = new MuisAttribute<>("layout", new MuisProperty.MuisTypeInstanceProperty<>(
+		MuisLayout.class));
 
 	private MuisLayout theLayout;
 
@@ -22,8 +22,8 @@ public class LayoutContainer extends MuisElement {
 	}
 
 	@Override
-	public void initChildren(MuisElement [] children) {
-		super.initChildren(children);
+	public org.muis.core.mgr.ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
+		org.muis.core.mgr.ElementList<? extends MuisElement> ret = super.initChildren(children);
 		addListener(MuisConstants.Events.ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
@@ -39,6 +39,7 @@ public class LayoutContainer extends MuisElement {
 			}
 		});
 		setLayout(atts().get(LAYOUT_ATTR));
+		return ret;
 	}
 
 	/**
@@ -65,19 +66,19 @@ public class LayoutContainer extends MuisElement {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizeGuide getWSizer() {
 		if(theLayout != null)
-			return theLayout.getWSizer(this, getChildren().toArray(), height);
+			return theLayout.getWSizer(this, getChildren().toArray());
 		else
-			return super.getWSizer(height);
+			return super.getWSizer();
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
+	public SizeGuide getHSizer() {
 		if(theLayout != null)
-			return theLayout.getHSizer(this, getChildren().toArray(), width);
+			return theLayout.getHSizer(this, getChildren().toArray());
 		else
-			return super.getHSizer(width);
+			return super.getHSizer();
 	}
 
 	@Override

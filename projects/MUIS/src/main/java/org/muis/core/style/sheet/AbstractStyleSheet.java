@@ -49,8 +49,6 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		theDependencyListener = new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
 			@Override
 			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> event) {
-				if(isSet(AbstractStyleSheet.this, event.getAttribute(), event.getExpression()))
-					return;
 				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute())) {
 					if(expr.getExpression() == event.getExpression())
 						break;
@@ -58,12 +56,6 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
 				}
-				int idx = ArrayUtils.indexOf(theDependencies, event.getRootStyle());
-				if(idx < 0)
-					return;
-				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], event.getAttribute(), event.getExpression()))
-						return;
 				styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 			}
 		};
@@ -82,20 +74,28 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		int idx;
 		if(after == null)
 			idx = 0;
-		else
+		else {
 			idx = ArrayUtils.indexOf(theDependencies, after);
-		if(idx < 0)
-			throw new IllegalArgumentException(after + " is not a dependency of " + this);
+			if(idx < 0)
+				throw new IllegalArgumentException(after + " is not a dependency of " + this);
+			idx++;
+		}
 		theDependencies = ArrayUtils.add(theDependencies, depend, idx);
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -110,12 +110,18 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -129,12 +135,16 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		theDependencies = ArrayUtils.remove(theDependencies, idx);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -148,27 +158,48 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		if(idx < 0)
 			throw new IllegalArgumentException(toReplace + " is not a dependency of " + this);
 		toReplace.removeListener(theDependencyListener);
-		theDependencies[idx] = depend;
 		java.util.HashSet<prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>> attrs = new java.util.HashSet<>();
 		for(StyleAttribute<?> attr : toReplace.allAttrs()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				attrs.add(new prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>(attr, sev.getExpression()));
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : toReplace.getExpressions(attr)) {
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride) {
+					for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : depend.getExpressions(attr)) {
+						if(expr.getExpression() == null
+							|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+							foundOverride = true;
+							break;
+						}
+					}
+				}
+				if(!foundOverride)
+					attrs.add(new prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>(attr, sev.getExpression()));
 			}
 		}
+		theDependencies[idx] = depend;
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(foundOverride)
+					attrs.add(new prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>(attr, sev.getExpression()));
 			}
 		}
 		for(prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>> attr : attrs)
@@ -191,9 +222,8 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		for(StyleSheet dep : theDependencies) {
 			StyleExpressionValue<StateGroupTypeExpression<?>, T> [] depRet = dep.getExpressions(attr);
 			if(depRet.length > 0)
-				ret = ArrayUtils.addAll(ret, depRet);
+				ret = ArrayUtils.addAll(ret, depRet, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
 		}
-		java.util.Arrays.sort(ret, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
 		return ret;
 	}
 }

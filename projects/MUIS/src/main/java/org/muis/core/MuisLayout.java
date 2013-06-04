@@ -1,6 +1,6 @@
 package org.muis.core;
 
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SizeGuide;
 
 /** Manages the position and size of children in a container */
 public interface MuisLayout
@@ -36,22 +36,20 @@ public interface MuisLayout
 	/**
 	 * @param parent The parent that the children will be layed out within
 	 * @param children The children to get the width policy for
-	 * @param parentHeight The height that this layout has determined for the parent, or <=0 if this information has not been decided
 	 * @return The size policy that determines how a container using this layout should be sized horizontally
 	 */
-	SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight);
+	SizeGuide getWSizer(MuisElement parent, MuisElement [] children);
 
 	/**
 	 * @param parent The parent that the children will be layed out within
 	 * @param children The children to get the height policy for
-	 * @param parentWidth The width that this layout has determined for the parent, or <=0 if this information has not been decided
 	 * @return The size policy that determines how a container using this layout should be sized vertically
 	 */
-	SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth);
+	SizeGuide getHSizer(MuisElement parent, MuisElement [] children);
 
 	/**
 	 * Adjusts the position and size of the container's children according to this layout's scheme
-	 * 
+	 *
 	 * @param parent The container of the children to layout.
 	 * @param children The children to adjust within the container
 	 */

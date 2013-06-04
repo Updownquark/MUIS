@@ -2,22 +2,22 @@
 
 <muis>
     <head>
-        <title>Paint Test (for Mouse Events)</title>
+        <title>Text Test</title>
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
-    	<base:block layout="base:box" style="bg.color=blanchedAlmond;font.color=black">
-    		<base:block layout="base:box" style="font.family=Arial">
-    			<base:block layout="base:simple">Arial Base</base:block>
-    			<base:block layout="base:simple" style="font.size=20">BIG</base:block>
-    			<base:block layout="base:simple" style="font.size=8">small</base:block>
-    			<base:block layout="base:simple" style="font.weight=light">Light</base:block>
-    			<base:block layout="base:simple" style="font.weight=bold">Bold</base:block>
-    			<base:block layout="base:simple" style="font.weight=ultra-bold">Ultra Bold</base:block>
-    			<base:block layout="base:simple" style="font.slant=italic">Italic</base:block>
-    			<base:block layout="base:simple" style="font.slant=-.75">BackSlant</base:block>
-    			<base:block layout="base:simple" style="font.strike=true">Strikethrough!</base:block>
-    			<base:block layout="base:simple" style="font.underline=dashed">Underline!</base:block>
-    		</base:block>
-    	</base:block>
+    	<block layout="base:box" style="bg.color=blanchedAlmond;font.color=black">
+    		<block layout="base:box" style="font.family=Arial" direction="down">
+    			<block>Arial Base</block>
+    			<block style="font.size=20">BIG</block>
+    			<block style="font.size=8">small</block>
+    			<block style="font.weight=light">Light</block>
+    			<block style="font.weight=bold">Bold</block>
+    			<block style="font.weight=ultra-bold">Ultra Bold</block>
+    			<block style="font.slant=italic">Italic</block>
+    			<block style="font.slant=-.75">Back Slant (Not always supported)</block>
+    			<block style="font.strike=true">Strikethrough!</block>
+    			<block style="font.underline=dashed">Underline!</block>
+    		</block>
+    	</block>
     </body>
 </muis>

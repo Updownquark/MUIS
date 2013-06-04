@@ -4,13 +4,16 @@ package org.muis.core.style;
 public class BaseTexture implements Texture {
 	@Override
 	public void render(java.awt.Graphics2D graphics, org.muis.core.MuisElement element, java.awt.Rectangle area) {
-		int w = element.getWidth();
-		int h = element.getHeight();
+		int w = element.bounds().getWidth();
+		int h = element.bounds().getHeight();
 		int x = area == null ? 0 : area.x;
 		int y = area == null ? 0 : area.y;
-		int renderW = area == null ? element.getWidth() : (area.width < w ? area.width : w);
-		int renderH = area == null ? element.getHeight() : (area.height < h ? area.height : h);
-		graphics.setColor(org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf()));
+		int renderW = area == null ? element.bounds().getWidth() : (area.width < w ? area.width : w);
+		int renderH = area == null ? element.bounds().getHeight() : (area.height < h ? area.height : h);
+		java.awt.Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf());
+		if(bg.getAlpha() == 0)
+			return;
+		graphics.setColor(bg);
 		Size cornerRad = element.getStyle().getSelf().get(BackgroundStyles.cornerRadius);
 		int wRad = cornerRad.evaluate(w);
 		int hRad = cornerRad.evaluate(h);

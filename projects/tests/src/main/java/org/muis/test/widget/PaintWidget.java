@@ -71,7 +71,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 					try {
 						theImage.setRGB(pos.x, pos.y, getStyle().getSelf().get(org.muis.core.style.FontStyle.color).getRGB());
 					} catch(ArrayIndexOutOfBoundsException e) {
-						System.err.println("Position " + pos + " out of bounds (" + getWidth() + "x" + getHeight() + ")");
+						System.err.println("Position " + pos + " out of bounds (" + bounds().getWidth() + "x" + bounds().getHeight() + ")");
 					}
 					repaint(new Rectangle(pos.x, pos.y, 1, 1), true);
 				}
@@ -102,12 +102,13 @@ public class PaintWidget extends org.muis.base.widget.Block {
 	}
 
 	void resized() {
-		if(theImage == null && getWidth() > 0 && getHeight() > 0) {
-			theImage = new java.awt.image.BufferedImage(getWidth(), getHeight(), java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
+		if(theImage == null && bounds().getWidth() > 0 && bounds().getHeight() > 0) {
+			theImage = new java.awt.image.BufferedImage(bounds().getWidth(), bounds().getHeight(),
+				java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
 			repaint(null, false);
-		} else if(theImage != null && getWidth() > theImage.getWidth() || getHeight() > theImage.getHeight()) {
-			int w = getWidth() > theImage.getWidth() ? getWidth() : theImage.getWidth();
-			int h = getHeight() > theImage.getHeight() ? getHeight() : theImage.getHeight();
+		} else if(theImage != null && bounds().getWidth() > theImage.getWidth() || bounds().getHeight() > theImage.getHeight()) {
+			int w = bounds().getWidth() > theImage.getWidth() ? bounds().getWidth() : theImage.getWidth();
+			int h = bounds().getHeight() > theImage.getHeight() ? bounds().getHeight() : theImage.getHeight();
 			java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
 			img.getGraphics().drawImage(theImage, 0, 0, theImage.getWidth(), theImage.getHeight(),
 				getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.color), null);

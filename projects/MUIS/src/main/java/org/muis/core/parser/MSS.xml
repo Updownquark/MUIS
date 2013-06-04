@@ -28,6 +28,7 @@
 			</option>
 		</select>
 		<option>
+			<whitespace type="forbid" />
 			<literal pattern="[eE]" />
 			<option>
 				<literal storeAs="expNeg">-</literal>
@@ -35,6 +36,7 @@
 			<charset pattern="[1-9][_0-9]*" storeAs="exp" />
 		</option>
 		<option>
+			<whitespace type="forbid" />
 			<literal pattern="[fF]" storeAs="floatType" />
 			<forbid>
 				<whitespace type="forbid" />
@@ -42,6 +44,7 @@
 			</forbid>
 		</option>
 		<option>
+			<whitespace type="forbid" />
 			<literal pattern="[lL]" storeAs="longType" />
 			<forbid>
 				<whitespace type="forbid" />
@@ -54,6 +57,7 @@
 		<whitespace type="forbid" />
 		<charset pattern="[_0-9a-fA-F]+" storeAs="value" />
 		<option>
+			<whitespace type="forbid" />
 			<literal pattern="[lL]" storeAs="longType" />
 		</option>
 		<forbid>
@@ -66,6 +70,7 @@
 		<whitespace type="forbid" />
 		<charset pattern="[_0-9]+" storeAs="value" />
 		<option>
+			<whitespace type="forbid" />
 			<literal pattern="[lL]" storeAs="longType" />
 			<forbid>
 				<whitespace type="forbid" />
@@ -78,6 +83,7 @@
 		<whitespace type="forbid" />
 		<charset pattern="[_0-9]*" storeAs="value" />
 		<option>
+			<whitespace type="forbid" />
 			<literal pattern="[lL]" storeAs="longType" />
 			<forbid>
 				<whitespace type="forbid" />
@@ -206,10 +212,10 @@
 	</operator>
 	<operator name="state" priority="-1" impl="org.muis.core.parser.StyleSheetParser$ParsedState">
 		<literal>.</literal>
-		<op type="identifier" storeAs="state" />
+		<op storeAs="state" />
 		<option min="0">
 			<literal>_</literal>
-			<op type="identifier" storeAs="state" />
+			<op storeAs="state" />
 		</option>
 	</operator>
 	<operator name="assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedAssignment">
@@ -218,6 +224,9 @@
 		<op type="identifier" storeAs="name" />
 		<literal>=</literal>
 		<op storeAs="value" />
+		<option>
+			<literal>;</literal>
+		</option>
 	</operator>
 	<operator name="domain assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedDomainAssignment">
 		<op type="muis type" storeAs="domain" />

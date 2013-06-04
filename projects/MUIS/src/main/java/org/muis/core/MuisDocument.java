@@ -47,13 +47,11 @@ public class MuisDocument {
 
 	private final java.net.URL theLocation;
 
-	private java.awt.Toolkit theAwtToolkit;
-
-	private org.muis.core.parser.MuisParser theParser;
+	private final org.muis.core.parser.MuisParser theParser;
 
 	private MuisClassView theClassView;
 
-	private MuisCache theCache;
+	private java.awt.Toolkit theAwtToolkit;
 
 	private MuisHeadSection theHead;
 
@@ -91,19 +89,19 @@ public class MuisDocument {
 	 * Creates a document
 	 *
 	 * @param env The environment for the document
+	 * @param parser The parser that created this document
 	 * @param location The location of the file that this document was generated from
-	 * @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand
+	 * @param head The head section for this document
 	 */
-	public MuisDocument(MuisEnvironment env, java.net.URL location, GraphicsGetter graphics) {
+	public MuisDocument(MuisEnvironment env, org.muis.core.parser.MuisParser parser, java.net.URL location, MuisHeadSection head) {
 		theEnvironment = env;
+		theParser = parser;
 		theLocation = location;
-		theHead = new MuisHeadSection();
+		theHead = head;
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
-		theCache = new MuisCache();
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
-		theGraphics = graphics;
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new MouseEvent.ButtonType[0];
 		thePressedKeys = new KeyBoardEvent.KeyCode[0];
@@ -111,25 +109,30 @@ public class MuisDocument {
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
 		theLocker = new MuisLocker();
+
+		applyHead();
 	}
 
-	/** @param parser The parser that created this document */
-	public void initDocument(org.muis.core.parser.MuisParser parser) {
-		if(theParser != null)
-			throw new IllegalArgumentException("Cannot initialize a document twice");
-		theParser = parser;
-		theClassView = new MuisClassView(theEnvironment, null);
-		theHead = new MuisHeadSection();
+	private void applyHead() {
+		for(org.muis.core.style.sheet.ParsedStyleSheet styleSheet : theHead.getStyleSheets())
+			theDocumentStyle.addStyleSheet(styleSheet);
+	}
+
+	/** @param classView The class view for the document */
+	public void setClassView(MuisClassView classView) {
+		if(theClassView != null)
+			throw new IllegalStateException("A document's class view may only be set once");
+		theClassView = classView;
+	}
+
+	/** @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand */
+	public void setGraphics(GraphicsGetter graphics) {
+		theGraphics = graphics;
 	}
 
 	/** @return The environment that this document was created in */
 	public MuisEnvironment getEnvironment() {
 		return theEnvironment;
-	}
-
-	/** @return The location of the file that this document was generated from */
-	public java.net.URL getLocation() {
-		return theLocation;
 	}
 
 	/** @return The parser that created this document */
@@ -142,9 +145,9 @@ public class MuisDocument {
 		return theClassView;
 	}
 
-	/** @return The resource cache for this document */
-	public MuisCache getCache() {
-		return theCache;
+	/** @return The location of the file that this document was generated from */
+	public java.net.URL getLocation() {
+		return theLocation;
 	}
 
 	/** @return The head section of this document */
@@ -616,8 +619,6 @@ public class MuisDocument {
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, pressed);
 
-		if(theFocus != null)
-			theFocus.fireEvent(evt, false, true);
 		synchronized(theKeysLock) {
 			if(pressed) {
 				if(!ArrayUtils.contains(thePressedKeys, code))
@@ -625,6 +626,8 @@ public class MuisDocument {
 			} else if(ArrayUtils.contains(thePressedKeys, code))
 				thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
 		}
+		if(theFocus != null)
+			theFocus.fireEvent(evt, false, true);
 		MuisElementCapture capture = null;
 		if(!evt.isCanceled()) {
 			MuisElement scrollElement = null;

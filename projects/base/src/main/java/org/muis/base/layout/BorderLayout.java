@@ -3,12 +3,8 @@ package org.muis.base.layout;
 import static org.muis.core.layout.LayoutAttributes.*;
 
 import org.muis.core.MuisElement;
-import org.muis.core.layout.LayoutAttributes;
 import org.muis.core.layout.Region;
-import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
-import org.muis.core.style.Position;
-import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 import org.muis.util.CompoundListener.CompoundElementListener;
 
@@ -61,68 +57,18 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children, int parentHeight) {
+	public void remove(MuisElement parent) {
+		theListener.dropFor(parent);
+	}
 
-		SimpleSizeGuide ret = new SimpleSizeGuide();
-		for(MuisElement child : children) {
-			Position pos;
-			Size size = child.atts().get(LayoutAttributes.width);
-			Size minSize = child.atts().get(LayoutAttributes.minWidth);
-			SizeGuide sizer;
-			switch (child.atts().get(LayoutAttributes.region)) {
-			case left:
-				pos = child.atts().get(LayoutAttributes.right);
-				if(pos != null && !pos.getUnit().isRelative()) {
-					ret.setMin(ret.getMin() + pos.evaluate(0));
-					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
-				}
-				else if(size != null && !size.getUnit().isRelative()) {
-					ret.setMin(ret.getMin() + size.evaluate(0));
-					ret.setPreferred(ret.getPreferred() + size.evaluate(0));
-				}
-				else {
-					sizer = child.getWSizer(parentHeight);
-					ret.setMin(ret.getMin() + sizer.getMin());
-					ret.setPreferred(ret.getPreferred() + sizer.getPreferred());
-				}
-				break;
-			case right:
-				pos = child.atts().get(LayoutAttributes.right);
-				if(pos != null && !pos.getUnit().isRelative()) {
-					ret.setMin(ret.getMin() + pos.evaluate(0));
-					ret.setPreferred(ret.getPreferred() + pos.evaluate(0));
-				}
-				else if(size != null && !size.getUnit().isRelative()) {
-					ret.setMin(ret.getMin() + size.evaluate(0));
-					ret.setPreferred(ret.getPreferred() + size.evaluate(0));
-				}
-				else {
-					sizer = child.getWSizer(parentHeight);
-					ret.setMin(ret.getMin() + sizer.getMin());
-					ret.setPreferred(ret.getPreferred() + sizer.getPreferred());
-				}
-				break;
-			case top:
-				if(size != null && !size.getUnit().isRelative()) {
-					ret.setMin(ret.getMin() + size.evaluate(0));
-					ret.setPreferred(ret.getPreferred() + size.evaluate(0));
-				}
-				else {
-					sizer = child.getWSizer(parentHeight);
-					ret.setMin(ret.getMin() + sizer.getMin());
-					ret.setPreferred(ret.getPreferred() + sizer.getPreferred());
-				}
-				break;
-			case bottom:
-			case center:
-			}
-		}
+	@Override
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children, int parentWidth) {
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -131,11 +77,5 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	public void layout(MuisElement parent, MuisElement [] children) {
 		// TODO Auto-generated method stub
 
-	}
-
-	@Override
-	public void remove(MuisElement parent) {
-		for(MuisElement child : parent.getChildren())
-			childRemoved(parent, child);
 	}
 }

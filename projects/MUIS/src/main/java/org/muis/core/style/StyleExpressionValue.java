@@ -28,4 +28,28 @@ public class StyleExpressionValue<E extends StyleExpression<E>, V> {
 	public V getValue() {
 		return theValue;
 	}
+
+	@Override
+	public int hashCode() {
+		int ret = 0;
+		if(theExpression != null)
+			ret += theExpression.hashCode();
+		ret *= 13;
+		if(theValue != null)
+			ret += theValue.hashCode();
+		return ret;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(!(obj instanceof StyleExpressionValue))
+			return false;
+		StyleExpressionValue<?, ?> sev = (StyleExpressionValue<?, ?>) obj;
+		return prisms.util.ArrayUtils.equals(theExpression, sev.theExpression) && prisms.util.ArrayUtils.equals(theValue, sev.theValue);
+	}
+
+	@Override
+	public String toString() {
+		return theExpression + "=" + theValue;
+	}
 }

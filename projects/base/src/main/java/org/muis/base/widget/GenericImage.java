@@ -7,8 +7,8 @@ import java.net.URL;
 
 import org.muis.base.data.ImageData;
 import org.muis.core.MuisLayout;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 
 /** Renders an image */
 public class GenericImage extends org.muis.core.LayoutContainer {
@@ -93,7 +93,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 	static {
 		cacheType = new org.muis.core.MuisCache.CacheItemType<URL, ImageData, java.io.IOException>() {
 			@Override
-			public ImageData generate(org.muis.core.MuisDocument doc, URL key) throws java.io.IOException {
+			public ImageData generate(org.muis.core.MuisEnvironment env, URL key) throws java.io.IOException {
 				javax.imageio.stream.ImageInputStream imInput = javax.imageio.ImageIO.createImageInputStream(key.openStream());
 				if(imInput == null)
 					throw new java.io.IOException("File format not recognized: " + key.getPath());
@@ -151,13 +151,13 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
+				org.muis.core.MuisEnvironment env = getDocument().getEnvironment();
 				org.muis.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
 				if(res == null)
 					msg().error("No configured img-load-icon");
 				if(res != null && theLoadingImage == null)
 					try {
-						getDocument().getCache().get(getDocument(), cacheType,
-							org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						env.getCache().get(env, cacheType, org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
 							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 								@Override
 								public void itemGenerated(URL key, ImageData value) {
@@ -180,8 +180,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 					msg().error("No configured img-load-failed-icon");
 				if(res != null && theErrorImage == null)
 					try {
-						getDocument().getCache().get(getDocument(), cacheType,
-							org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						env.getCache().get(env, cacheType, org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
 							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 								@Override
 								public void itemGenerated(URL key, ImageData value) {
@@ -221,8 +220,8 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		theLoadError = null;
 		theImage = null;
 		try {
-			theImage = getDocument().getCache().get(getDocument(), cacheType, location,
-				new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
+			theImage = getDocument().getEnvironment().getCache()
+				.get(getDocument().getEnvironment(), cacheType, location, new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 					@Override
 					public void itemGenerated(URL key, ImageData value) {
 						if(!key.equals(theLocation))
@@ -359,75 +358,65 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizeGuide getWSizer() {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
 			w = img.getWidth();
 			h = img.getHeight();
 		} else
-			return super.getWSizer(height);
+			return super.getWSizer();
 
 		switch (theHResizePolicy) {
 		case none:
-			return super.getWSizer(height);
+			return super.getWSizer();
 		case lock:
-			return new SimpleSizePolicy(w, w, w, 0);
+			return new SimpleSizeGuide(w, w, w, w, w);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizePolicy(w, w, w, 0);
+				return new SimpleSizeGuide(w, w, w, w, w);
 			else
-				return super.getWSizer(height);
+				return super.getWSizer();
 		case repeat:
-			return super.getWSizer(height);
+			return super.getWSizer();
 		case resize:
-			if(height < 0)
-				return new SimpleSizePolicy(0, w, Integer.MAX_VALUE, 0);
-			else {
-				w = w * height / h;
-				if(isProportionLocked)
-					return new SimpleSizePolicy(w, w, w, 0);
-				else
-					return new SimpleSizePolicy(0, w, Integer.MAX_VALUE, 0);
-			}
+			if(isProportionLocked)
+                return new ProportionalSizeGuide(w, h);
+			else
+				return new SimpleSizeGuide(0, 0, w, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
-		return super.getWSizer(height);
+		return super.getWSizer();
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
+	public SizeGuide getHSizer() {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
 			w = img.getWidth();
 			h = img.getHeight();
 		} else
-			return super.getHSizer(width);
+			return super.getHSizer();
 
 		switch (theVResizePolicy) {
 		case none:
-			return super.getHSizer(width);
+			return super.getHSizer();
 		case lock:
-			return new SimpleSizePolicy(h, h, h, 0);
+			return new SimpleSizeGuide(h, h, h, h, h);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizePolicy(h, h, h, 0);
+				return new SimpleSizeGuide(h, h, h, h, h);
 			else
-				return super.getHSizer(width);
+				return super.getHSizer();
 		case repeat:
-			return super.getHSizer(width);
+			return super.getHSizer();
 		case resize:
-			if(width < 0)
-				return new SimpleSizePolicy(0, h, Integer.MAX_VALUE, 0);
-			else {
-				h = h * width / w;
-				if(isProportionLocked)
-					return new SimpleSizePolicy(h, h, h, 0);
-				else
-					return new SimpleSizePolicy(0, h, Integer.MAX_VALUE, 0);
-			}
+			if(isProportionLocked)
+                return new ProportionalSizeGuide(h, w);
+			else
+				return new SimpleSizeGuide(0, 0, h, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
-		return super.getHSizer(width);
+		return super.getHSizer();
 	}
 
 	/** @return The image that would be displayed if this widget were painted now (may be the loading or error image) */
@@ -470,22 +459,22 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 			drawImage(graphics, img, off.y, off.y + h, 0, h, area, imgIdx);
 			break;
 		case repeat:
-			for(int y = 0; y < getHeight(); y += h)
+			for(int y = 0; y < bounds().getHeight(); y += h)
 				drawImage(graphics, img, y + off.y, y + off.y + h, 0, h, area, imgIdx);
 			break;
 		case resize:
 			if(isProportionLocked) {
 				int w = img.getWidth();
-				if((off.y + h) * getWidth() / getHeight() / (off.x + w) > 0) {
-					int offY = off.y * getHeight() / (off.y + h);
-					drawImage(graphics, img, offY, getHeight(), 0, h, area, imgIdx);
+				if((off.y + h) * bounds().getWidth() / bounds().getHeight() / (off.x + w) > 0) {
+					int offY = off.y * bounds().getHeight() / (off.y + h);
+					drawImage(graphics, img, offY, bounds().getHeight(), 0, h, area, imgIdx);
 				} else {
-					int offY = off.y * getWidth() / (off.x + w);
-					drawImage(graphics, img, offY, (off.y + h) * getWidth() / (off.x + w), 0, h, area, imgIdx);
+					int offY = off.y * bounds().getWidth() / (off.x + w);
+					drawImage(graphics, img, offY, (off.y + h) * bounds().getWidth() / (off.x + w), 0, h, area, imgIdx);
 				}
 			} else {
-				int offY = off.y * getHeight() / (off.y + h);
-				drawImage(graphics, img, offY, getHeight(), 0, h, area, imgIdx);
+				int offY = off.y * bounds().getHeight() / (off.y + h);
+				drawImage(graphics, img, offY, bounds().getHeight(), 0, h, area, imgIdx);
 			}
 			break;
 		}
@@ -501,7 +490,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 			drawImage(graphics, img, off.x, gfxY1, off.x + w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		case repeat:
-			for(int x = 0; x < getWidth(); x += w)
+			for(int x = 0; x < bounds().getWidth(); x += w)
 				drawImage(graphics, img, x + off.x, gfxY1, x + off.x + w, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			break;
 		case resize:
@@ -510,8 +499,8 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 				int offX = off.x * gfxW / (off.x + w);
 				drawImage(graphics, img, offX, gfxY1, gfxW, gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			} else {
-				int offX = off.x * getWidth() / (off.x + w);
-				drawImage(graphics, img, offX, gfxY1, getWidth(), gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
+				int offX = off.x * bounds().getWidth() / (off.x + w);
+				drawImage(graphics, img, offX, gfxY1, bounds().getWidth(), gfxY2, 0, imgY1, w, imgY2, area, imgIdx);
 			}
 			break;
 		}
@@ -522,5 +511,52 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 		if(area != null && (area.x >= gfxX2 || area.x + area.width <= gfxX1 || area.y >= gfxY2 || area.y + area.height <= gfxY1))
 			return;
 		graphics.drawImage(img.get(imgIdx), gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
+	}
+
+	private static class ProportionalSizeGuide extends org.muis.core.layout.AbstractSizeGuide {
+		private final int theMainDim;
+
+		private final int theCrossDim;
+
+        ProportionalSizeGuide(int main, int cross) {
+			theMainDim = main;
+			theCrossDim = cross;
+		}
+
+		@Override
+		public int getMinPreferred(int crossSize, boolean csMax) {
+			if(csMax)
+				return 0;
+			else
+				return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getMaxPreferred(int crossSize, boolean csMax) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getMin(int crossSize, boolean csMax) {
+			if(csMax)
+				return 0;
+			else
+				return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getPreferred(int crossSize, boolean csMax) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getMax(int crossSize, boolean csMax) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getBaseline(int size) {
+            return -1;
+		}
 	}
 }

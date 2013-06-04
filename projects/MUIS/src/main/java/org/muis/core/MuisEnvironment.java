@@ -1,6 +1,7 @@
 package org.muis.core;
 
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.parser.MuisContentCreator;
 import org.muis.core.parser.MuisParser;
 import org.muis.core.style.sheet.StyleSheet;
 
@@ -18,9 +19,13 @@ public class MuisEnvironment {
 
 	private MuisParser theParser;
 
+	private MuisContentCreator theContentCreator;
+
 	private MuisMessageCenter theMessageCenter;
 
 	private java.util.Map<String, MuisToolkit> theToolkits;
+
+	private MuisCache theCache;
 
 	private EnvironmentStyle theStyle;
 
@@ -30,6 +35,7 @@ public class MuisEnvironment {
 	public MuisEnvironment() {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new MuisMessageCenter(this, null, null);
+		theCache = new MuisCache();
 		theStyle = new EnvironmentStyle();
 		theToolkitLock = new Object();
 	}
@@ -46,6 +52,18 @@ public class MuisEnvironment {
 		theParser = parser;
 	}
 
+	/** @return The content creator for the environment */
+	public MuisContentCreator getContentCreator() {
+		return theContentCreator;
+	}
+
+	/** @param creator The content creator for this environment */
+	public void setContentCreator(MuisContentCreator creator) {
+		if(theContentCreator != null)
+			throw new IllegalStateException("The environment content creator may not be re-set");
+		theContentCreator = creator;
+	}
+
 	/** @return The message center for this environment */
 	public MuisMessageCenter getMessageCenter() {
 		return theMessageCenter;
@@ -57,6 +75,11 @@ public class MuisEnvironment {
 	 */
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
+	}
+
+	/** @return The resource cache for this environment */
+	public MuisCache getCache() {
+		return theCache;
 	}
 
 	/** @return The sum of all toolkit styles in this environment */

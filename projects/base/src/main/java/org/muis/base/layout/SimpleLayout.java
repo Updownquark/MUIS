@@ -1,289 +1,193 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
-import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.*;
 import org.muis.core.style.Position;
-import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 
 /**
- * A very simple layout that positions and sizes children independently using positional ({@link LayoutConstants#left},
- * {@link LayoutConstants#right}, {@link LayoutConstants#top}, {@link LayoutConstants#bottom}), size ({@link LayoutConstants#width} and
- * {@link LayoutConstants#height}) and minimum size ({@link LayoutConstants#minWidth} and {@link LayoutConstants#minHeight}) attributes or
- * sizers.
+ * A very simple layout that positions and sizes children independently using positional ({@link LayoutAttributes#left},
+ * {@link LayoutAttributes#right}, {@link LayoutAttributes#top}, {@link LayoutAttributes#bottom}) and size ({@link LayoutAttributes#width}
+ * and {@link LayoutAttributes#height}) attributes or sizers.
  */
-public class SimpleLayout implements MuisLayout
-{
+public class SimpleLayout implements MuisLayout {
 	private final CompoundListener.MultiElementCompoundListener theListener;
 
 	/** Creates a simple layout */
-	public SimpleLayout()
-	{
+	public SimpleLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.accept(LayoutConstants.maxInf).onChange(CompoundListener.layout);
-		theListener.child().acceptAll(left, right, top, bottom, width, minWidth, maxWidth, height, minHeight, maxHeight)
+		theListener.child().acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
 			.onChange(CompoundListener.layout);
 	}
 
 	@Override
-	public void initChildren(MuisElement parent, MuisElement [] children)
-	{
+	public void initChildren(MuisElement parent, MuisElement [] children) {
 		theListener.listenerFor(parent);
 	}
 
 	@Override
-	public void childAdded(MuisElement parent, MuisElement child)
-	{
+	public void remove(MuisElement parent) {
+		theListener.dropFor(parent);
 	}
 
 	@Override
-	public void childRemoved(MuisElement parent, MuisElement child)
-	{
+	public void childAdded(MuisElement parent, MuisElement child) {
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
-	{
-		return getSizer(children, LayoutConstants.left, LayoutConstants.right, LayoutConstants.width, LayoutConstants.minWidth,
-			LayoutConstants.maxWidth, parentHeight, false, parent.atts().get(LayoutConstants.maxInf));
+	public void childRemoved(MuisElement parent, MuisElement child) {
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
-	{
-		return getSizer(children, LayoutConstants.top, LayoutConstants.bottom, LayoutConstants.height, LayoutConstants.minHeight,
-			LayoutConstants.maxHeight, parentWidth, true, parent.atts().get(LayoutConstants.maxInf));
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
+		return getSizer(children, Orientation.horizontal);
+	}
+
+	@Override
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
+		return getSizer(children, Orientation.vertical);
 	}
 
 	/**
 	 * Gets a sizer for a container in one dimension
 	 *
 	 * @param children The children to lay out
-	 * @param minPosAtt The attribute to control the minimum position of a child (left or top)
-	 * @param maxPosAtt The attribute to control the maximum position of a child (right or bottom)
-	 * @param sizeAtt The attribute to control the size of a child (width or height)
-	 * @param minSizeAtt The attribute to control the minimum size of a child (minWidth or minHeight)
-	 * @param maxSizeAtt The attribute to control the maximum size of a child (maxWidth or maxHeight)
-	 * @param breadth The size of the opposite dimension of the space to lay out the children in
-	 * @param vertical Whether the children are being sized in the vertical dimension or the horizontal
-	 * @param maxInfValue The value for the {@link LayoutConstants#maxInf} attribute in the parent
+	 * @param orient The orientation to get the sizer for
 	 * @return The size policy for the container of the given children in the given dimension
 	 */
-	protected SizePolicy getSizer(MuisElement [] children, MuisAttribute<Position> minPosAtt, MuisAttribute<Position> maxPosAtt,
-		MuisAttribute<Size> sizeAtt, MuisAttribute<Size> minSizeAtt, MuisAttribute<Size> maxSizeAtt, int breadth, boolean vertical,
-		Boolean maxInfValue)
-	{
-		SimpleSizePolicy ret = new SimpleSizePolicy();
-		boolean isMaxInf = Boolean.TRUE.equals(maxInfValue);
-		for(MuisElement child : children)
-		{
-			Position minPosL = child.atts().get(minPosAtt);
-			Position maxPosL = child.atts().get(maxPosAtt);
-			Size sizeL = child.atts().get(sizeAtt);
-			Size minSizeL = child.atts().get(minSizeAtt);
-			Size maxSizeL = child.atts().get(maxSizeAtt);
-			if(maxPosL != null && !maxPosL.getUnit().isRelative())
-			{
-				int r = maxPosL.evaluate(0);
-				if(ret.getMin() < r)
-					ret.setMin(r);
-				if(ret.getPreferred() < r)
-					ret.setPreferred(r);
+	protected SizeGuide getSizer(final MuisElement [] children, final Orientation orient) {
+		return new SizeGuide() {
+			@Override
+			public int getMin(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.min, crossSize, csMax);
 			}
-			else if(sizeL != null && !sizeL.getUnit().isRelative())
-			{
-				int w = sizeL.evaluate(0);
-				int x;
-				if(minPosL != null && !minPosL.getUnit().isRelative())
-					x = minPosL.evaluate(0);
-				else
-					x = 0;
 
-				if(ret.getMin() < x + w)
-					ret.setMin(x + w);
-				if(ret.getPreferred() < x + w)
-					ret.setPreferred(x + w);
-				if(!isMaxInf)
-				{
-					int max;
-					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
-						max = maxSizeL.evaluate(0);
-					else
-					{
-						SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-						max = childSizer.getMax();
+			@Override
+			public int getMinPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.minPref, crossSize, csMax);
+			}
+
+			@Override
+			public int getPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.pref, crossSize, csMax);
+			}
+
+			@Override
+			public int getMaxPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			}
+
+			@Override
+			public int getMax(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.max, crossSize, csMax);
+			}
+
+			@Override
+			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+				int maximum = 0;
+				boolean maxChange = true;
+				int iterations = 5;
+				while(maxChange && iterations > 0) {
+					maxChange = false;
+					iterations--;
+					for(MuisElement child : children) {
+						int size = LayoutUtils.getSize(child, orient, type, maximum, crossSize, csMax, null);
+						Position pos = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
+						if(pos != null) {
+							if(pos.getUnit() == org.muis.core.style.LengthUnit.lexips)
+								size += Math.round(pos.getValue());
+							else
+								size += pos.evaluate(maximum);
+						}
+						pos = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+						if(pos != null) {
+							if(pos.getUnit() == org.muis.core.style.LengthUnit.lexips)
+								size += Math.round(pos.getValue());
+							else
+								size += pos.evaluate(maximum);
+						}
+						if(size > maximum) {
+							maximum = size;
+							maxChange = true;
+						}
 					}
-					if(max + x > max)
-						max += x;
-					if(ret.getMax() > max)
-						ret.setMax(max);
 				}
+				return maximum;
 			}
-			else if(minSizeL != null && !minSizeL.getUnit().isRelative())
-			{
-				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-				int minW = minSizeL.evaluate(0);
-				int prefW = childSizer.getPreferred();
-				if(prefW < minW)
-					prefW = minW;
-				int x;
-				if(minPosL != null && !minPosL.getUnit().isRelative())
-					x = minPosL.evaluate(0);
-				else
-					x = 0;
 
-				if(ret.getMin() < x + minW)
-					ret.setMin(x + minW);
-				if(ret.getPreferred() < x + prefW)
-					ret.setPreferred(x + prefW);
-				if(!isMaxInf)
-				{
-					int max;
-					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
-						max = maxSizeL.evaluate(0);
-					else
-						max = childSizer.getMax();
-					if(max + x > max)
-						max += x;
-					if(ret.getMax() > max)
-						ret.setMax(max);
+			@Override
+			public int getBaseline(int size) {
+				if(children.length == 0)
+					return 0;
+				for(MuisElement child : children) {
+					int childSize = LayoutUtils.getSize(child, orient, LayoutGuideType.pref, size, Integer.MAX_VALUE, true, null);
+					int ret = child.bounds().get(orient).getGuide().getBaseline(childSize);
+					if(ret < 0)
+						continue;
+					Position pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
+					if(pos != null) {
+						return ret + pos.evaluate(size);
+					}
+					pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+					if(pos != null) {
+						return size - pos.evaluate(size) - childSize + ret;
+					}
+					return ret;
 				}
+				return -1;
 			}
-			else if(minPosL != null && !minPosL.getUnit().isRelative())
-			{
-				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-				int x = minPosL.evaluate(0);
-				if(ret.getMin() < x + childSizer.getMin())
-					ret.setMin(x + childSizer.getMin());
-				if(ret.getPreferred() < x + childSizer.getPreferred())
-					ret.setPreferred(x + childSizer.getPreferred());
-				if(!isMaxInf)
-				{
-					int max;
-					if(maxSizeL != null && !maxSizeL.getUnit().isRelative())
-						max = maxSizeL.evaluate(0);
-					else
-						max = childSizer.getMax();
-					if(max + x > max)
-						max += x;
-					if(ret.getMax() > max)
-						ret.setMax(max);
-				}
-			}
-			else
-			{
-				SizePolicy childSizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-				if(ret.getMin() < childSizer.getMin())
-					ret.setMin(childSizer.getMin());
-				if(ret.getPreferred() < childSizer.getPreferred())
-					ret.setPreferred(childSizer.getPreferred());
-				if(!isMaxInf && ret.getMax() > childSizer.getMax())
-					ret.setMax(childSizer.getMax());
-			}
-		}
-		return ret;
+		};
 	}
 
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children)
-	{
-		java.awt.Rectangle bounds = new java.awt.Rectangle();
-		int [] dim = new int[2];
+	public void layout(MuisElement parent, MuisElement [] children) {
 		for(MuisElement child : children)
-		{
-			Position leftPos = child.atts().get(LayoutConstants.left);
-			Position rightPos = child.atts().get(LayoutConstants.right);
-			Position topPos = child.atts().get(LayoutConstants.top);
-			Position bottomPos = child.atts().get(LayoutConstants.bottom);
-			Size w = child.atts().get(LayoutConstants.width);
-			Size h = child.atts().get(LayoutConstants.height);
-			Size minW = child.atts().get(LayoutConstants.minWidth);
-			Size minH = child.atts().get(LayoutConstants.minHeight);
-
-			layout(child, false, parent.getHeight(), leftPos, rightPos, w, minW, parent.getWidth(), dim);
-			bounds.x = dim[0];
-			bounds.width = dim[1];
-			layout(child, true, parent.getWidth(), topPos, bottomPos, h, minH, parent.getHeight(), dim);
-			bounds.y = dim[0];
-			bounds.height = dim[1];
-			child.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
-		}
+			layout(parent, child);
 	}
 
-	/**
-	 * Lays out a single child on one dimension within its parent based on its attributes and its size policy
-	 *
-	 * @param child The child to position
-	 * @param vertical Whether the layout dimension is vertical (to get the child's sizer if needed)
-	 * @param breadth The size of the non-layout dimension of the parent
-	 * @param minPosAtt The value of the attribute controlling the child's minimum position (left or top)
-	 * @param maxPosAtt The value of the attribute controlling the child's maximum position (right or bottom)
-	 * @param sizeAtt The value of the attribute controlling the child's size (width or height)
-	 * @param minSizeAtt The value of the attribute controlling the child's minimum size(minWidth or minHeight)
-	 * @param length The length of the parent container along the dimension
-	 * @param dim The array to put the result (position (x or y) and size (width or height)) into
-	 */
-	protected void layout(MuisElement child, boolean vertical, int breadth, Position minPosAtt, Position maxPosAtt, Size sizeAtt,
-		Size minSizeAtt, int length, int [] dim)
-	{
-		if(maxPosAtt != null)
-		{
-			int max = maxPosAtt.evaluate(length);
-			if(minPosAtt != null)
-			{
-				dim[0] = minPosAtt.evaluate(length);
-				dim[1] = max - dim[0];
-			}
-			else if(sizeAtt != null)
-			{
-				dim[1] = sizeAtt.evaluate(length);
-				dim[0] = max - dim[1];
-			}
+	private void layout(MuisElement parent, MuisElement child) {
+		Position pos1 = child.atts().get(LayoutAttributes.left);
+		Position pos2 = child.atts().get(LayoutAttributes.right);
+		int x, w;
+		if(pos1 != null) {
+			x = pos1.evaluate(parent.bounds().getWidth());
+			if(pos2 != null)
+				w = pos2.evaluate(parent.bounds().getWidth()) - x;
 			else
-			{
-				SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-				dim[1] = sizer.getPreferred();
-				if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-					dim[1] = minSizeAtt.evaluate(length);
-				dim[0] = max - dim[1];
-			}
+				w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(), parent.bounds()
+					.getHeight(), false, null);
+		} else if(pos2 != null) {
+			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(), parent.bounds()
+				.getHeight(), false, null);
+			x = pos2.evaluate(parent.bounds().getWidth()) - w;
+		} else {
+			x = 0;
+			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(), parent.bounds()
+				.getHeight(), false, null);
 		}
-		else if(sizeAtt != null)
-		{
-			dim[1] = sizeAtt.evaluate(length);
-			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-				dim[1] = minSizeAtt.evaluate(length);
-			if(minPosAtt != null)
-				dim[0] = minPosAtt.evaluate(length);
-			else
-				dim[0] = 0;
-		}
-		else if(minPosAtt != null)
-		{
-			SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-			dim[0] = minPosAtt.evaluate(length);
-			dim[1] = sizer.getPreferred();
-			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-				dim[1] = minSizeAtt.evaluate(length);
-		}
-		else
-		{
-			SizePolicy sizer = vertical ? child.getHSizer(breadth) : child.getWSizer(breadth);
-			dim[0] = 0;
-			dim[1] = sizer.getPreferred();
-			if(minSizeAtt != null && dim[1] < minSizeAtt.evaluate(length))
-				dim[1] = minSizeAtt.evaluate(length);
-		}
-	}
 
-	@Override
-	public void remove(MuisElement parent)
-	{
-		theListener.dropFor(parent);
+		pos1 = child.atts().get(LayoutAttributes.top);
+		pos2 = child.atts().get(LayoutAttributes.bottom);
+		int y, h;
+		if(pos1 != null) {
+			y = pos1.evaluate(parent.bounds().getHeight());
+			if(pos2 != null) {
+				h = pos2.evaluate(parent.bounds().getHeight()) - y;
+			} else
+				h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(), parent.bounds()
+					.getWidth(), false, null);
+		} else if(pos2 != null) {
+			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(), parent.bounds()
+				.getWidth(), false, null);
+			y = pos2.evaluate(parent.bounds().getHeight()) - h;
+		} else {
+			y = 0;
+			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(), parent.bounds()
+				.getWidth(), false, null);
+		}
+		child.bounds().setBounds(x, y, w, h);
 	}
 }

@@ -61,7 +61,14 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	 */
 	@Override
 	public int getPriority() {
-		int ret = theType != null ? 1000 : 0;
+		int ret = 0;
+		if(theType != null) {
+			Class<?> type = theType;
+			while(!(type == MuisElement.class)) {
+				ret += 100;
+				type = type.getSuperclass();
+			}
+		}
 		if(theState != null)
 			ret += theState.getPriority();
 		if(theGroupName != null)
@@ -82,5 +89,29 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	/** @return The element type of this condition, or null if this expression is type-independent. */
 	public Class<E> getType() {
 		return theType;
+	}
+
+	@Override
+	public String toString() {
+		if(theState == null && theGroupName == null && theType == null)
+			return "(null)";
+		if(theState != null && theGroupName == null && theType == null)
+			return theState.toString();
+		StringBuilder ret = new StringBuilder();
+		ret.append('(');
+		if(theType != null)
+			ret.append("type " + theType.getSimpleName());
+		if(theGroupName != null) {
+			if(ret.length() > 1)
+				ret.append(", ");
+			ret.append("group " + theGroupName);
+		}
+		if(theState != null) {
+			if(ret.length() > 1)
+				ret.append(", ");
+			ret.append("state " + theState);
+		}
+		ret.append(')');
+		return ret.toString();
 	}
 }

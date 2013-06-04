@@ -2,12 +2,11 @@ package org.muis.core.parser;
 
 import java.io.IOException;
 
-import org.muis.core.*;
-import org.muis.core.MuisDocument.GraphicsGetter;
+import org.muis.core.MuisEnvironment;
+import org.muis.core.MuisToolkit;
 
-/** Parses MUIS components from XML */
-public interface MuisParser
-{
+/** Parses MUIS structures from XML */
+public interface MuisParser {
 	/** @return The environment that this parser operates in */
 	MuisEnvironment getEnvironment();
 
@@ -22,7 +21,7 @@ public interface MuisParser
 
 	/**
 	 * Fills in the given toolkit's style information by parsing its location
-	 * 
+	 *
 	 * @param toolkit The toolkit to parse
 	 * @throws IOException If an error occurs reading the toolkit or style information
 	 * @throws MuisParseException If an error occurs parsing the style information
@@ -30,27 +29,30 @@ public interface MuisParser
 	void fillToolkitStyles(MuisToolkit toolkit) throws IOException, MuisParseException;
 
 	/**
-	 * Parses a document from XML
+	 * Parses a document's structure from XML
 	 *
+	 * @param env The MUIS environment to use to parse the structure
 	 * @param location The location for the document
 	 * @param reader The reader to the XML document
 	 * @param graphics The document's source for graphics
-	 * @return The parsed document
+	 * @return The parsed document structure
 	 * @throws IOException If an error occurs reading the XML document
 	 * @throws MuisParseException If an unrecoverable error occurs parsing the document into MUIS format
 	 */
-	MuisDocument parseDocument(java.net.URL location, java.io.Reader reader, GraphicsGetter graphics) throws IOException,
+	MuisDocumentStructure parseDocument(MuisEnvironment env, java.net.URL location, java.io.Reader reader) throws IOException,
 		MuisParseException;
 
 	/**
-	 * Parses MUIS content elements from XML
+	 * Parses a document's structure from XML, specifying an initial class view and message center
 	 *
-	 * @param reader The reader to the XML document
-	 * @param parent The parent for the root elements in the XML
-	 * @param useRootAttrs Whether to apply attributes in the root element of the XML to the parent element
-	 * @return The content elements parsed
-	 * @throws IOException If an error occurs reading the document
-	 * @throws MuisParseException If an unrecoverable error occurs parsing the document into MUIS content
+	 * @param location The location of the XML file to read
+	 * @param reader The reader to the XML structure
+	 * @param rootClassView The class view for the root of the widget structure
+	 * @param msg The message center to report parsing errors to
+	 * @return The parsed document structure
+	 * @throws IOException If an error occurs reading the file
+	 * @throws MuisParseException If an unrecoverable error occurs parsing the document into MUIS format
 	 */
-	MuisElement [] parseContent(java.io.Reader reader, MuisElement parent, boolean useRootAttrs) throws IOException, MuisParseException;
+	MuisDocumentStructure parseDocument(java.net.URL location, java.io.Reader reader, org.muis.core.MuisClassView rootClassView,
+		org.muis.core.mgr.MuisMessageCenter msg) throws IOException, MuisParseException;
 }

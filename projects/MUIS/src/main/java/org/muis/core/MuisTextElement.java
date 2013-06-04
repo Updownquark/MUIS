@@ -4,13 +4,16 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
-import java.awt.geom.Rectangle2D;
+import java.awt.font.TextLayout;
 
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.AbstractSizeGuide;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf {
+	private static final String DIVERSE_TEXT = "AjpQq";
+
 	private String theText;
 
 	/** Creates a MUIS text element */
@@ -38,101 +41,134 @@ public class MuisTextElement extends MuisLeaf {
 	}
 
 	@Override
-	public SizePolicy getWSizer(int height) {
+	public SizeGuide getWSizer() {
 		if(theText.length() == 0)
-			return new SimpleSizePolicy(0, 0, 0, 0);
+			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		java.awt.Font font = MuisUtils.getFont(getStyle().getSelf());
 		if(font == null) {
 			msg().error("Could not derive font");
-			return new SimpleSizePolicy(0, 0, 0, 0);
+			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		}
-		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
+		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
-		int lineIdx = 0;
-		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
-			int min = 0;
-			int max = 0;
-			int wordIdx = 0;
-			for(int c = 0; c < theText.length(); c++) {
-				char ch = theText.charAt(c);
-				if(ch == ' ') {
-					if(c > wordIdx) {
-						Rectangle2D bounds = font.getStringBounds(theText, wordIdx, c, context);
-						int wordW = (int) Math.round(bounds.getMaxX());
-						if(wordW > min)
-							min = wordW;
-					}
-					wordIdx = c + 1;
-				} else if(ch == '\n') {
-					if(c > wordIdx) {
-						Rectangle2D bounds = font.getStringBounds(theText, wordIdx, c, context);
-						int wordW = (int) Math.round(bounds.getMaxX());
-						if(wordW > min)
-							min = wordW;
-					}
-					wordIdx = c + 1;
-					if(c > lineIdx) {
-						Rectangle2D bounds = font.getStringBounds(theText, lineIdx, c, context);
-						int lineW = (int) Math.round(bounds.getMaxX());
-						if(lineW > max)
-							max = lineW;
-					}
-					lineIdx = c + 1;
-				}
-			}
-			if(wordIdx < theText.length()) {
-				Rectangle2D bounds = font.getStringBounds(theText, wordIdx, theText.length(), context);
-				int wordW = (int) Math.round(bounds.getMaxX());
-				if(wordW > min)
-					min = wordW;
-			}
-			if(lineIdx < theText.length()) {
-				Rectangle2D bounds = font.getStringBounds(theText, lineIdx, theText.length(), context);
-				int lineW = (int) Math.round(bounds.getMaxX());
-				if(lineW > max)
-					max = lineW;
-			}
-			return new SimpleSizePolicy(min, max, max, 1);
-		} else {
-			int w = 0;
-			for(int c = 0; c < theText.length(); c++) {
-				char ch = theText.charAt(c);
-				if(ch == '\n') {
-					if(c > lineIdx) {
-						Rectangle2D bounds = font.getStringBounds(theText, lineIdx, c, context);
-						int lineW = (int) Math.round(bounds.getMaxX());
-						if(lineW > w)
-							w = lineW;
-					}
-					lineIdx = c + 1;
-				}
-			}
-			if(lineIdx < theText.length()) {
-				Rectangle2D bounds = font.getStringBounds(theText, lineIdx, theText.length(), context);
-				int lineW = (int) Math.round(bounds.getMaxX());
-				if(lineW > w)
-					w = lineW;
-			}
-			return new SimpleSizePolicy(w, w, w, 0);
+		int min = 0;
+		int max = 0;
+		java.text.AttributedString attrStr = new java.text.AttributedString(theText);
+		attrStr.addAttributes(font.getAttributes(), 0, theText.length());
+		java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(),
+			java.text.BreakIterator.getWordInstance(), context);
+		while(true) {
+			TextLayout layout = measurer.nextLayout(Integer.MAX_VALUE);
+			if(layout == null)
+				break;
+			int advance = Math.round(layout.getAdvance());
+			if(advance > max)
+				max = advance;
 		}
+		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
+			measurer.setPosition(0);
+			while(true) {
+				TextLayout layout = measurer.nextLayout(1);
+				if(layout == null)
+					break;
+				int advance = Math.round(layout.getAdvance());
+				if(advance > min)
+					min = advance;
+			}
+		} else
+			min = max;
+		return new SimpleSizeGuide(min, min, max, max, max);
 	}
 
 	@Override
-	public SizePolicy getHSizer(int width) {
-		int [] min = new int[1];
-		int height = render(width, null, min);
-		return new SimpleSizePolicy(min[0], height, height, 1);
+	public SizeGuide getHSizer() {
+		return new AbstractSizeGuide() {
+			private int theCachedWidth;
+
+			private int theCachedHeight;
+
+			private int theCachedBaseline;
+
+			{
+				theCachedWidth = -1;
+			}
+
+			private void getSizes(int crossSize) {
+				if(crossSize == theCachedWidth)
+					return;
+				theCachedWidth = crossSize;
+				if(theText.length() == 0) {
+					theCachedHeight = 0;
+					theCachedBaseline = 0;
+					return;
+				}
+				int [] baseline = new int[1];
+				theCachedHeight = render(crossSize, null, baseline);
+				theCachedBaseline = baseline[0];
+				/*
+				java.awt.Font font = MuisUtils.getFont(getStyle());
+				if(font == null) {
+					msg().error("Could not derive font");
+					theCachedHeight = 0;
+					theCachedBaseline = 0;
+					return;
+				}
+				java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
+					.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+				java.awt.font.LineMetrics metrics = font.getLineMetrics(DIVERSE_TEXT, context);
+				theCachedHeight = Math.round(metrics.getHeight());
+				theCachedBaseline = Math.round(metrics.getBaselineOffsets()[metrics.getBaselineIndex()]);
+				*/
+			}
+
+			@Override
+			public int getMinPreferred(int crossSize, boolean csMax) {
+				getSizes(crossSize);
+				return theCachedHeight;
+			}
+
+			@Override
+			public int getMaxPreferred(int crossSize, boolean csMax) {
+				getSizes(crossSize);
+				return theCachedHeight;
+			}
+
+			@Override
+			public int getMin(int crossSize, boolean csMax) {
+				getSizes(crossSize);
+				return theCachedHeight;
+			}
+
+			@Override
+			public int getPreferred(int crossSize, boolean csMax) {
+				getSizes(crossSize);
+				return theCachedHeight;
+			}
+
+			@Override
+			public int getMax(int crossSize, boolean csMax) {
+				getSizes(crossSize);
+				return theCachedHeight;
+			}
+
+			@Override
+			public int getBaseline(int size) {
+				if(theCachedWidth < 0)
+					getSizes(Integer.MAX_VALUE);
+				return theCachedBaseline;
+			}
+		};
 	}
 
-	private int render(int width, Graphics2D graphics, int [] min) {
+	private int render(int width, Graphics2D graphics, int [] baseline) {
 		if(theText.length() == 0)
 			return 0;
-		java.awt.Font font = MuisUtils.getFont(getStyle());
+		java.awt.Font font = MuisUtils.getFont(getStyle().getSelf());
 		if(font == null) {
 			msg().error("Could not derive font");
 			return 0;
 		}
-		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
+		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
 		Font preFont = null;
 		boolean preAntiAlias = false;
@@ -141,119 +177,52 @@ public class MuisTextElement extends MuisLeaf {
 			preFont = graphics.getFont();
 			preAntiAlias = graphics.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING) == RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
 			graphics.setFont(font);
+			graphics.setColor(getStyle().getSelf().get(org.muis.core.style.FontStyle.color));
 			if(getStyle().getSelf().get(org.muis.core.style.FontStyle.antiAlias))
 				graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			else
 				graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-			base = Math.round(font.getLineMetrics("AjpQq", context).getAscent());
+			base = Math.round(font.getLineMetrics(DIVERSE_TEXT, context).getAscent());
 		}
+		int height = 0;
 		try {
 			int lineIdx = 0;
 			if(getStyle().get(org.muis.core.style.FontStyle.wordWrap) && width > 0) {
-				int max = 0;
-				int wordIdx = 0;
-				int breakIdx = 0;
-				for(int c = 0; c < theText.length(); c++) {
-					char ch = theText.charAt(c);
-					if(ch == ' ' || ch == '\n') {
-						Rectangle2D lineBounds = font.getStringBounds(theText, breakIdx, c, context);
-						int lineW = (int) Math.round(lineBounds.getMaxX());
-						while(lineW > width && c > breakIdx) {
-							if(wordIdx > breakIdx) { // Can break at the last word
-								if(graphics != null)
-									graphics.drawString(theText.substring(breakIdx, wordIdx), 0, base + max);
-								max += Math.round(font.getLineMetrics(theText, breakIdx, wordIdx, context).getHeight());
-								breakIdx = wordIdx;
-							} else { // The first word is too long--break it where we can
-								int newBreak = getBreak(breakIdx, c, font, context, width);
-								if(graphics != null)
-									graphics.drawString(theText.substring(breakIdx, newBreak), 0, base + max);
-								max += Math.round(font.getLineMetrics(theText, breakIdx, newBreak, context).getHeight());
-								breakIdx = newBreak;
-							}
-							lineBounds = font.getStringBounds(theText, breakIdx, c, context);
-							lineW = (int) Math.round(lineBounds.getMaxX());
-						}
-						wordIdx = c + 1;
-					}
-					if(ch == '\n') {
-						if(breakIdx < c) {
-							if(graphics != null)
-								graphics.drawString(theText.substring(breakIdx), 0, base + max);
-							max += Math.round(font.getLineMetrics(theText, breakIdx, c, context).getHeight());
-							breakIdx = c + 1;
-						}
-						if(min != null)
-							min[0] += Math.round(font.getLineMetrics(theText, lineIdx, c, context).getHeight());
-						lineIdx = c + 1;
-					}
+				java.text.AttributedString attrStr = new java.text.AttributedString(theText);
+				attrStr.addAttributes(font.getAttributes(), 0, theText.length());
+				java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(),
+					java.text.BreakIterator.getWordInstance(), context);
+				boolean hasSetBaseline = false;
+				while(true) {
+					TextLayout layout = measurer.nextLayout(width);
+					if(layout == null)
+						break;
+					if(!hasSetBaseline && baseline != null)
+						baseline[0] = layout.getBaseline();
+					if(graphics != null)
+						layout.draw(graphics, 0, height + layout.getAscent());
+					if(height > 0)
+						height += layout.getLeading();
+					height += Math.round(layout.getAscent() + layout.getDescent());
 				}
-				if(wordIdx < theText.length() && width > 0) {
-					Rectangle2D lineBounds = font.getStringBounds(theText, breakIdx, theText.length(), context);
-					int lineW = (int) Math.round(lineBounds.getMaxX());
-					while(lineW > width && breakIdx < theText.length()) {
-						if(wordIdx > breakIdx) { // Can break at the last word
-							if(graphics != null)
-								graphics.drawString(theText.substring(breakIdx, wordIdx), 0, base + max);
-							max += Math.round(font.getLineMetrics(theText, breakIdx, wordIdx, context).getHeight());
-							breakIdx = wordIdx;
-						} else { // The first word is too long--break it where we can
-							int newBreak = getBreak(breakIdx, theText.length(), font, context, width);
-							if(graphics != null)
-								graphics.drawString(theText.substring(breakIdx, newBreak), 0, base + max);
-							max += Math.round(font.getLineMetrics(theText, breakIdx, newBreak, context).getHeight());
-						}
-						lineBounds = font.getStringBounds(theText, breakIdx, theText.length(), context);
-						lineW = (int) Math.round(lineBounds.getMaxX());
-					}
-				}
-				if(min != null && lineIdx < theText.length())
-					min[0] += Math.round(font.getLineMetrics(theText, lineIdx, theText.length(), context).getHeight());
-				if(breakIdx < theText.length()) {
-					Rectangle2D lineBounds = font.getStringBounds(theText, breakIdx, theText.length(), context);
-					int lineW = (int) Math.round(lineBounds.getMaxX());
-					while(lineW > width && breakIdx < theText.length()) {
-						if(wordIdx > breakIdx) { // Can break at the last word
-							if(graphics != null)
-								graphics.drawString(theText.substring(breakIdx, wordIdx), 0, base + max);
-							max += Math.round(font.getLineMetrics(theText, breakIdx, wordIdx, context).getHeight());
-							breakIdx = wordIdx;
-						} else { // The first word is too long--break it where we can
-							int newBreak = getBreak(breakIdx, theText.length(), font, context, width);
-							if(graphics != null)
-								graphics.drawString(theText.substring(breakIdx, newBreak), 0, base + max);
-							max += Math.round(font.getLineMetrics(theText, breakIdx, newBreak, context).getHeight());
-						}
-						lineBounds = font.getStringBounds(theText, breakIdx, theText.length(), context);
-						lineW = (int) Math.round(lineBounds.getMaxX());
-					}
-					if(breakIdx < theText.length()) {
-						if(graphics != null)
-							graphics.drawString(theText.substring(breakIdx), 0, base + max);
-						max += Math.round(font.getLineMetrics(theText, breakIdx, theText.length(), context).getHeight());
-					}
-				}
-				return max;
 			} else {
-				int h = 0;
 				for(int c = 0; c < theText.length(); c++) {
 					char ch = theText.charAt(c);
 					if(ch == '\n') {
+						TextLayout layout = new TextLayout(theText.substring(lineIdx, c), font, context);
 						if(graphics != null)
-							graphics.drawString(theText.substring(lineIdx, c), 0, base + h);
-						int lineH = Math.round(font.getLineMetrics(theText, lineIdx, c, context).getHeight());
-						h += lineH;
+							layout.draw(graphics, 0, base + height);
+						graphics.drawString(theText.substring(lineIdx, c), 0, base + height);
+						int lineH = Math.round(layout.getAscent() + layout.getDescent()) * 2;
+						height += lineH;
 						lineIdx = c + 1;
 					}
 				}
 				if(lineIdx < theText.length()) {
 					if(graphics != null)
-						graphics.drawString(theText.substring(lineIdx), 0, base + h);
-					h += Math.round(font.getLineMetrics(theText, lineIdx, theText.length(), context).getHeight());
+						graphics.drawString(theText.substring(lineIdx), 0, base + height);
+					height += Math.round(font.getLineMetrics(theText, lineIdx, theText.length(), context).getHeight()) * 2;
 				}
-				if(min != null)
-					min[0] = h;
-				return h;
 			}
 		} finally {
 			if(graphics != null) {
@@ -264,33 +233,19 @@ public class MuisTextElement extends MuisLeaf {
 					graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
 			}
 		}
-	}
-
-	private int getBreak(int from, int to, java.awt.Font font, java.awt.font.FontRenderContext context, int width) {
-		int min = from + 1, max = to;
-		while(min > max) {
-			int mid = (min + max + 1) / 2;
-			int lineW = (int) Math.round(font.getStringBounds(theText, from, mid, context).getMaxX());
-			if(lineW > width)
-				max = mid - 1;
-			else if(lineW < width)
-				min = mid;
-			else
-				return mid;
-		}
-		return min;
+		return height;
 	}
 
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		render(getWidth(), graphics, null);
+		render(bounds().getWidth(), graphics, null);
 	}
 
 	@Override
 	public String toString() {
-		StringBuilder ret=new  StringBuilder();
-		if(getTagName()!=null)
+		StringBuilder ret = new StringBuilder();
+		if(getTagName() != null)
 			ret.append('<').append(getTagName()).append('>');
 		else
 			ret.append("<!TEXT>");
@@ -303,7 +258,7 @@ public class MuisTextElement extends MuisLeaf {
 				return false;
 			}
 		}, "\n", theText));
-		if(getTagName()!=null)
+		if(getTagName() != null)
 			ret.append('<').append('/').append(getTagName()).append('>');
 		else
 			ret.append("</TEXT\u00a1>");

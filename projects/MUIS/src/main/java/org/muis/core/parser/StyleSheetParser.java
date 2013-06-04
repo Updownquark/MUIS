@@ -817,12 +817,14 @@ public class StyleSheetParser {
 	 *
 	 * @param location The location to get the document from
 	 * @param env The MUIS environment that the style sheet is being loaded for
+	 * @param classView The initial classView for loading style sheet types
 	 * @param msg The message center to report non-fatal errors to
 	 * @return The style sheet parsed from the XML resource
 	 * @throws java.io.IOException If an error occurs reading the resource
 	 * @throws MuisParseException If an error occurs parsing the XML or interpreting it as a style sheet
 	 */
-	public ParsedStyleSheet parse(URL location, MuisEnvironment env, MuisMessageCenter msg) throws java.io.IOException, MuisParseException {
+	public ParsedStyleSheet parse(URL location, MuisEnvironment env, MuisClassView classView, MuisMessageCenter msg)
+		throws java.io.IOException, MuisParseException {
 		StringBuilder text = new StringBuilder();
 		try (java.io.Reader reader = new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream()))) {
 			int read = reader.read();
@@ -840,7 +842,6 @@ public class StyleSheetParser {
 
 		ParsedStyleSheet ret = new ParsedStyleSheet(theEnv.scope(true));
 		ExpressionContextStack stack = new ExpressionContextStack();
-		MuisClassView classView = new MuisClassView(env, null);
 		boolean hadValues = false;
 		boolean hadAnimation = false;
 		for(ParsedItem item : parsed) {
@@ -1114,22 +1115,23 @@ public class StyleSheetParser {
 	private boolean checkValidity(ParsedStyleSheet style, StyleAttribute<?> attr, ParsedItem value, MuisClassView classView,
 		MuisMessageCenter msg, URL location) {
 		EvaluationEnvironment env = theEnv.scope(true);
-		EvaluationResult typeRes;
+		// EvaluationResult typeRes;
 		try {
 			for(AnimatedStyleSheet.AnimatedVariable var : style) {
 				env.declareVariable(var.getName(), new Type(Double.TYPE), false, value, 0);
 			}
-			typeRes = value.evaluate(env, false, false);
+			// typeRes = value.evaluate(env, false, false);
 		} catch(EvaluationException e) {
 			msg.error("Could not evaluate value " + value + " for attribute " + attr, e, "attribute", attr, "value", value);
 			return false;
 		}
-		Type attrType = new Type(attr.getType().getType());
-		if(!typeRes.getType().isAssignable(attrType)) {
-			msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
-				+ ", type " + attrType);
-			return false;
-		}
+		// This type checking is flawed because of the conversion ability in MUIS properties
+		// Type attrType = new Type(attr.getType().getType());
+		// if(!attrType.isAssignable(typeRes.getType())) {
+		// msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
+		// + ", type " + attrType);
+		// return false;
+		// }
 		return true;
 	}
 

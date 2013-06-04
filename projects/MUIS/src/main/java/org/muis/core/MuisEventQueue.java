@@ -215,8 +215,8 @@ public class MuisEventQueue
 					&& area.y + area.height >= area2.y + area2.height)
 					return true; // Element's area will be repainted with its ancestor
 			}
-			else if(area.x <= 0 && area.y <= 0 && area.x + area.width >= theElement.getWidth()
-				&& area.y + area.height >= theElement.getHeight())
+ else if(area.x <= 0 && area.y <= 0 && area.x + area.width >= theElement.bounds().getWidth()
+				&& area.y + area.height >= theElement.bounds().getHeight())
 				return true; // Element will be repainted with its ancestor
 			return false;
 		}
@@ -310,7 +310,7 @@ public class MuisEventQueue
 		@Override
 		protected void doHandleAction()
 		{
-			theElement.setBounds(theBounds.x, theBounds.y, theBounds.width, theBounds.height);
+			theElement.bounds().setBounds(theBounds.x, theBounds.y, theBounds.width, theBounds.height);
 		}
 	}
 

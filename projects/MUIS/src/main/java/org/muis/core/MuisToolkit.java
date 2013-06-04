@@ -338,14 +338,16 @@ public class MuisToolkit extends java.net.URLClassLoader {
 
 	@Override
 	public URL findResource(String name) {
-		String path = name.replace('.', '/').concat(".class");
 		for(URL url : getURLs()) {
 			String file = url.getFile();
 			if(file.endsWith(".jar"))
 				continue;
 			if(!file.endsWith("/"))
 				file += "/";
-			file += path;
+			if(name.startsWith("/"))
+				file += name.substring(1);
+			else
+				file += name;
 			URL res;
 			try {
 				res = new URL(url.getProtocol(), url.getHost(), file);

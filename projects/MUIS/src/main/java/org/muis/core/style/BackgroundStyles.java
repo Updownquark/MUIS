@@ -34,16 +34,15 @@ public class BackgroundStyles implements StyleDomain {
 
 	static {
 		instance = new BackgroundStyles();
-		texture = new StyleAttribute<Texture>(instance, "texture", new MuisProperty.MuisTypeInstanceProperty<Texture>(Texture.class),
-			new BaseTexture());
+		texture = new StyleAttribute<>(instance, "texture", new MuisProperty.MuisTypeInstanceProperty<>(Texture.class), new BaseTexture());
 		instance.register(texture);
-		color = new StyleAttribute<java.awt.Color>(instance, "color", MuisProperty.colorAttr, new java.awt.Color(255, 255, 255));
+		color = new StyleAttribute<>(instance, "color", MuisProperty.colorAttr, new java.awt.Color(255, 255, 255));
 		instance.register(color);
-		transparency = new StyleAttribute<Double>(instance, "transparency", MuisProperty.amountAttr, 0d,
-			new MuisProperty.ComparableValidator<Double>(0d, 1d));
+		transparency = new StyleAttribute<>(instance, "transparency", MuisProperty.amountAttr, 0d, new MuisProperty.ComparableValidator<>(
+			0d, 1d));
 		instance.register(transparency);
-		cornerRadius = new StyleAttribute<Size>(instance, "corner-radius", SizePropertyType.instance, new Size(),
-			new MuisProperty.ComparableValidator<Size>(new Size(), null));
+		cornerRadius = new StyleAttribute<>(instance, "corner-radius", SizePropertyType.instance, new Size(),
+			new MuisProperty.ComparableValidator<>(new Size(), null));
 		instance.register(cornerRadius);
 	}
 

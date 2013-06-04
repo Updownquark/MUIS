@@ -273,6 +273,10 @@ public class FlowLayoutTester {
 		theWraps[childIndex] = wrapped;
 	}
 
+	/**
+	 * @param rowIndex The index of the row to get the height of
+	 * @return The height of the given row
+	 */
 	public int getRowHeight(int rowIndex) {
 		return theRowHeights[rowIndex];
 	}
@@ -313,18 +317,6 @@ public class FlowLayoutTester {
 	}
 
 	private int [] getRowHeights(final int crossSize, final boolean [] wraps, int [] baseline) {
-		/* Sequence:
-		 * * If the sum of the maximum of the preferred sizes for the widgets in each row is <=crossSize, use those.
-		 * * else if the sum of the maximum of the minimum sizes for the widgets in each row is >=crossSize, use those.
-		 * * else if ...                       ... min pref sizes...                            >=crossSize, find a variable prop
-		 *     such that the sum of min+prop*(minPref-min) for each row is crossSize, where min and minPref are the maximum of the
-		 *     minimum and min pref sizes for the widgets in each row.
-		 * * else find a variable prop
-		 *     such that the sum of minPref+prop*(pref-minPref) for each row is crossSize, where minPref and pref are the maximum of the
-		 *     min pref and preferred sizes for the widgets in each row.
-		 * Using the determined row heights as cross sizes, get the maximum of the sum of the minimum sizes for each row.
-		 * TODO incorporate maxPref and max sizes here
-		 */
 		int rc = 1;
 		for(boolean wrap : wraps)
 			if(wrap)
@@ -517,10 +509,6 @@ public class FlowLayoutTester {
 		LayoutSize max = new LayoutSize(true);
 		LayoutSize temp = new LayoutSize();
 		for(int c = start; c < end; c++) {
-			/* TODO Seems like we need an actual value here for the cross size (major size of the individual child). This value is
-			 * being reported much larger than it should because csMax is true, so the component is looking for its max pref cross
-			 * size for a potentially tight space.  Since the return value becomes a row height, this value directly impacts the look
-			 * of the container. */
 			temp.clear();
 			int childSize = LayoutUtils.getSize(children[c], orient, type, 0, Integer.MAX_VALUE, true, temp);
 			SizeGuide guide = children[c].bounds().get(orient).getGuide();

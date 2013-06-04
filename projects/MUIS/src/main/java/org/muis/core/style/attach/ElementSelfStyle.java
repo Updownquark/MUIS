@@ -2,6 +2,9 @@ package org.muis.core.style.attach;
 
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleListener;
+import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
@@ -10,10 +13,26 @@ import org.muis.core.style.stateful.StateExpression;
 public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
 	private final ElementStyle theElStyle;
 
+	private FilteredStyleSheet<?> theStyleSheet;
+
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
 		theElStyle = elStyle;
 		addDependency(elStyle);
+		theElStyle.getElement().life().runWhen(new Runnable() {
+			@Override
+			public void run() {
+				theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement().getClass());
+				addDependency(theStyleSheet);
+				// Add a dependency for typed, non-grouped style sheet attributes
+				addListener(new StyleListener() {
+					@Override
+					public void eventOccurred(StyleAttributeEvent<?> event) {
+						theElStyle.getElement().fireEvent(event, false, false);
+					}
+				});
+			}
+		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 
 	/** @return The element style that depends on this self-style */

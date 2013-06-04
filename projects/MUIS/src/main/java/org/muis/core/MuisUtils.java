@@ -9,6 +9,8 @@ import java.util.ArrayList;
 
 import org.muis.core.style.BackgroundStyles;
 import org.muis.core.style.FontStyle;
+import org.muis.core.tags.State;
+import org.muis.core.tags.StateSupport;
 
 /** A set of utilities to use with core MUIS elements */
 public class MuisUtils
@@ -34,7 +36,7 @@ public class MuisUtils
 	 */
 	public static MuisElement [] path(MuisElement element)
 	{
-		ArrayList<MuisElement> ret = new ArrayList<MuisElement>();
+		ArrayList<MuisElement> ret = new ArrayList<>();
 		while(element != null)
 		{
 			ret.add(element);
@@ -130,15 +132,15 @@ public class MuisUtils
 		MuisElement parent = el2;
 		while(parent != common)
 		{
-			ret.x -= parent.getX();
-			ret.y -= parent.getY();
+			ret.x -= parent.bounds().getX();
+			ret.y -= parent.bounds().getY();
 			parent = parent.getParent();
 		}
 		parent = el1;
 		while(parent != common)
 		{
-			ret.x += parent.getX();
-			ret.y += parent.getY();
+			ret.x += parent.bounds().getX();
+			ret.y += parent.bounds().getY();
 			parent = parent.getParent();
 		}
 		return ret;
@@ -262,7 +264,7 @@ public class MuisUtils
 	{
 		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
 		attribs.put(TextAttribute.FAMILY, style.get(FontStyle.family));
-		attribs.put(TextAttribute.BACKGROUND, getBackground(style));
+		attribs.put(TextAttribute.BACKGROUND, org.muis.core.style.Colors.transparent);
 		attribs.put(TextAttribute.FOREGROUND, getColor(style.get(FontStyle.color), style.get(FontStyle.transparency)));
 		if(style.get(FontStyle.kerning))
 			attribs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);

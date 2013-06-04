@@ -53,21 +53,13 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		theDependencyListener = new StyleExpressionListener<StatefulStyle, StateExpression>() {
 			@Override
 			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> event) {
-				if(isSet(AbstractStatefulStyle.this, event.getAttribute(), event.getExpression()))
-					return;
 				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute())) {
 					if(expr.getExpression() == event.getExpression())
-						continue;
+						break;
 					if(expr.getExpression() == null
 						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
 						return;
 				}
-				int idx = ArrayUtils.indexOf(theDependencies, event.getRootStyle());
-				if(idx < 0)
-					return;
-				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], event.getAttribute(), event.getExpression()))
-						return;
 				styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 			}
 		};
@@ -88,20 +80,28 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		int idx;
 		if(after == null)
 			idx = 0;
-		else
+		else {
 			idx = ArrayUtils.indexOf(theDependencies, after);
-		if(idx < 0)
-			throw new IllegalArgumentException(after + " is not a dependency of " + this);
+			if(idx < 0)
+				throw new IllegalArgumentException(after + " is not a dependency of " + this);
+			idx++;
+		}
 		theDependencies = ArrayUtils.add(theDependencies, depend, idx);
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < idx; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -116,12 +116,18 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -135,12 +141,18 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		theDependencies = ArrayUtils.remove(theDependencies, idx);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					styleChanged(attr, sev.getExpression(), null);
 			}
 		}
 	}
@@ -150,31 +162,52 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 * @param depend The dependency to add in place of the given dependency to replace
 	 */
 	protected void replaceDependency(StatefulStyle toReplace, StatefulStyle depend) {
-		int idx = ArrayUtils.indexOf(theDependencies, depend);
+		int idx = ArrayUtils.indexOf(theDependencies, toReplace);
 		if(idx < 0)
 			throw new IllegalArgumentException(toReplace + " is not a dependency of " + this);
 		toReplace.removeListener(theDependencyListener);
-		theDependencies[idx] = depend;
 		java.util.HashSet<prisms.util.DualKey<StyleAttribute<Object>, StateExpression>> attrs = new java.util.HashSet<>();
 		for(StyleAttribute<?> attr : toReplace.allAttrs()) {
-			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				attrs.add(new prisms.util.DualKey<>((StyleAttribute<Object>) attr, sev.getExpression()));
+			for(StyleExpressionValue<StateExpression, ?> sev : toReplace.getExpressions(attr)) {
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride) {
+					for(StyleExpressionValue<StateExpression, ?> expr : depend.getExpressions(attr)) {
+						if(expr.getExpression() == null
+							|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+							foundOverride = true;
+							break;
+						}
+					}
+				}
+				if(!foundOverride)
+					attrs.add(new prisms.util.DualKey<>((StyleAttribute<Object>) attr, sev.getExpression()));
 			}
 		}
+		theDependencies[idx] = depend;
 		depend.addListener(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-				if(isSet(this, attr, sev.getExpression()))
-					continue;
-				for(int i = 0; i < theDependencies.length - 1; i++)
-					if(isSetDeep(theDependencies[i], attr, sev.getExpression()))
-						continue;
-				styleChanged(attr, sev.getExpression(), null);
+				boolean foundOverride = false;
+				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
+					if(expr.getExpression() == sev.getExpression())
+						break;
+					if(expr.getExpression() == null
+						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
+						foundOverride = true;
+						break;
+					}
+				}
+				if(!foundOverride)
+					attrs.add(new prisms.util.DualKey<>((StyleAttribute<Object>) attr, sev.getExpression()));
 			}
 		}
 		for(prisms.util.DualKey<StyleAttribute<Object>, StateExpression> attr : attrs)
@@ -187,9 +220,8 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		for(StatefulStyle dep : theDependencies) {
 			StyleExpressionValue<StateExpression, T> [] depRet = dep.getExpressions(attr);
 			if(depRet.length > 0)
-				ret = ArrayUtils.addAll(ret, depRet);
+				ret = ArrayUtils.addAll(ret, depRet, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
 		}
-		java.util.Arrays.sort(ret, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
 		return ret;
 	}
 

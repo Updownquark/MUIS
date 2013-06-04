@@ -6,23 +6,22 @@ import static org.muis.core.MuisConstants.Events.*;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.muis.core.MuisConstants.CoreStage;
 import org.muis.core.MuisConstants.States;
-import org.muis.core.event.MuisEvent;
-import org.muis.core.event.MuisEventListener;
-import org.muis.core.event.MuisEventType;
-import org.muis.core.event.MuisPropertyEvent;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.event.*;
+import org.muis.core.layout.SimpleSizeGuide;
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.style.BackgroundStyles;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.Texture;
-import org.muis.core.style.attach.CompoundStyleListener;
-import org.muis.core.style.attach.ElementStyle;
-import org.muis.core.style.attach.StyleAttributeType;
+import org.muis.core.style.attach.*;
+import org.muis.core.tags.State;
+import org.muis.core.tags.StateSupport;
 
 import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
@@ -33,9 +32,7 @@ import prisms.util.ArrayUtils;
 		@State(name = States.MIDDLE_CLICK_NAME, priority = States.MIDDLE_CLICK_PRIORITY),
 		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
 		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY)})
-public abstract class MuisElement implements org.muis.core.layout.Sizeable {
-	// TODO Add code for attach events
-
+public abstract class MuisElement {
 	/**
 	 * Used to lock this elements' child sets
 	 *
@@ -44,59 +41,40 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	public static final String CHILDREN_LOCK_TYPE = "Muis Child Lock";
 
 	private final MuisLifeCycleManager theLifeCycleManager;
-
 	private MuisLifeCycleManager.Controller theLifeCycleController;
-
 	private final StateEngine theStateEngine;
-
 	private final MuisMessageCenter theMessageCenter;
 
 	private MuisDocument theDocument;
-
 	private MuisToolkit theToolkit;
-
 	private MuisElement theParent;
-
 	private MuisClassView theClassView;
 
 	private String theNamespace;
-
 	private String theTagName;
 
 	private final AttributeManager theAttributeManager;
-
 	private final ChildList theChildren;
 
+	private final ImmutableChildList<MuisElement> theExposedChildren;
 	private final ElementStyle theStyle;
-
 	private final CompoundStyleListener theDefaultStyleListener;
-
-	private int theX;
-
-	private int theY;
-
-	private int theZ;
-
-	private int theW;
-
-	private int theH;
-
-	private SizePolicy theHSizer;
-
-	private SizePolicy theVSizer;
 
 	@SuppressWarnings({"rawtypes"})
 	private final ListenerManager<MuisEventListener> theListeners;
 
-	private boolean isFocusable;
-
-	private Rectangle theCacheBounds;
-
-	private long thePaintDirtyTime;
-
-	private long theLayoutDirtyTime;
-
 	private final CoreStateControllers theStateControllers;
+
+	private int theZ;
+
+	private ElementBounds theBounds;
+	private SizeGuide theHSizer;
+	private SizeGuide theVSizer;
+
+	private boolean isFocusable;
+	private Rectangle theCacheBounds;
+	private long thePaintDirtyTime;
+	private long theLayoutDirtyTime;
 
 	/** Creates a MUIS element */
 	public MuisElement() {
@@ -116,7 +94,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				theLifeCycleManager.addStage(stage.toString(), lastStage);
 				lastStage = stage.toString();
 			}
+		theBounds = new ElementBounds(this);
 		theChildren = new ChildList(this);
+		theExposedChildren = new ImmutableChildList<>(theChildren);
 		theAttributeManager = new AttributeManager(this);
 		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
@@ -136,7 +116,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				if(event.getType() == CHILD_REMOVED) {
 					// Need to repaint where the element left even if nothing changes as a result of the layout
 					unregisterChild(event.getValue());
-					repaint(new Rectangle(element.getX(), element.getY(), element.getWidth(), element.getHeight()), false);
+					repaint(element.theBounds.getBounds(), false);
 				} else if(event.getType() == CHILD_ADDED) {
 					registerChild(event.getValue());
 				}
@@ -162,8 +142,83 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			}
 		});
 		Object styleWanter = new Object();
-		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
-		addListener(ATTRIBUTE_CHANGED, (MuisEventListener<Object>) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+		theAttributeManager.accept(styleWanter, org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE);
+		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute);
+		addListener(ATTRIBUTE_CHANGED,
+			(MuisEventListener<Object>) org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+		final boolean [] groupCallbackLock = new boolean[1];
+		addListener(ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<String []>(
+			org.muis.core.style.attach.GroupPropertyType.attribute) {
+			@Override
+			public void attributeChanged(AttributeChangedEvent<String []> event) {
+				if(groupCallbackLock[0])
+					return;
+				groupCallbackLock[0] = true;
+				try {
+					ArrayList<NamedStyleGroup> groups = new ArrayList<>();
+					for(NamedStyleGroup group : getDocument().groups())
+						groups.add(group);
+					ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), event.getValue(),
+						new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
+							@Override
+							public boolean identity(NamedStyleGroup o1, String o2) {
+								return o1.getName().equals(o2);
+							}
+
+							@Override
+							public NamedStyleGroup added(String o, int mIdx, int retIdx) {
+								getStyle().addGroup(getDocument().getGroup(o));
+								return null;
+							}
+
+							@Override
+							public NamedStyleGroup removed(NamedStyleGroup o, int oIdx, int incMod, int retIdx) {
+								if(o.isMember(MuisElement.this))
+									getStyle().removeGroup(o);
+								return null;
+							}
+
+							@Override
+							public NamedStyleGroup set(NamedStyleGroup o1, int idx1, int incMod, String o2, int idx2, int retIdx) {
+								if(!o1.isMember(MuisElement.this))
+									getStyle().addGroup(o1);
+								return null;
+							}
+						});
+				} finally {
+					groupCallbackLock[0] = false;
+				}
+			}
+		});
+		addListener(GroupMemberEvent.TYPE, new MuisEventListener<NamedStyleGroup>() {
+			@Override
+			public void eventOccurred(MuisEvent<NamedStyleGroup> event, MuisElement element) {
+				if(groupCallbackLock[0])
+					return;
+				groupCallbackLock[0] = true;
+				try {
+					GroupMemberEvent gme = (GroupMemberEvent) event;
+					ArrayList<String> groupList = new ArrayList<>();
+					for(NamedStyleGroup group : getStyle().groups(true))
+						groupList.add(group.getName());
+					String [] groups = groupList.toArray(new String[groupList.size()]);
+					if(!ArrayUtils.equals(groups, atts().get(GroupPropertyType.attribute)))
+						try {
+							atts().set(GroupPropertyType.attribute, groups);
+						} catch(MuisException e) {
+							msg().warn("Error reconciling " + GroupPropertyType.attribute + " attribute with group membership change", e,
+								"group", gme.getValue());
+						}
+				} finally {
+					groupCallbackLock[0] = false;
+				}
+			}
+
+			@Override
+			public boolean isLocal() {
+				return true;
+			}
+		});
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
@@ -403,8 +458,9 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * Initializes an element's descendants
 	 *
 	 * @param children The child elements specified in the MUIS XML
+	 * @return The child list that the children are populated into
 	 */
-	public void initChildren(MuisElement [] children) {
+	public ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		theLifeCycleController.advance(CoreStage.INIT_CHILDREN.toString());
 		try (MuisLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true)) {
 			theChildren.clear();
@@ -412,9 +468,10 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		}
 		for(MuisElement child : children)
 			registerChild(child);
-		if(theW != 0 && theH != 0) // No point laying out if there's nothing to show
+		if(theBounds.getWidth() != 0 && theBounds.getHeight() != 0) // No point laying out if there's nothing to show
 			relayout(false);
 		theLifeCycleController.advance(CoreStage.INITIALIZED.toString());
+		return theChildren;
 	}
 
 	/**
@@ -480,7 +537,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	/** @return All messages in this element or any of its children */
 	public Iterable<MuisMessage> allMessages() {
-		java.util.ArrayList<Iterable<MuisMessage>> centers = new java.util.ArrayList<>();
+		ArrayList<Iterable<MuisMessage>> centers = new ArrayList<>();
 		centers.add(theMessageCenter);
 		for(MuisElement child : theChildren)
 			centers.add(child.allMessages());
@@ -506,21 +563,26 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			theParent.theChildren.remove(this);
 		}
 		theParent = parent;
-		fireEvent(new MuisEvent<MuisElement>(ELEMENT_MOVED, theParent), false, false);
+		fireEvent(new MuisEvent<>(ELEMENT_MOVED, theParent), false, false);
 	}
 
-	/** @return An augmented {@link java.util.List list} of this element's children */
-	public ChildList getChildren() {
-		return theChildren;
+	/** @return An unmodifiable list of this element's children */
+	public ImmutableChildList<? extends MuisElement> getChildren() {
+		return theExposedChildren;
 	}
 
 	/**
 	 * Short-hand for {@link #getChildren()}
 	 *
-	 * @return An augmented {@link java.util.List list} of this element's children
+	 * @return An unmodifiable list of this element's children
 	 */
-	public ChildList ch() {
+	public ImmutableChildList<? extends MuisElement> ch() {
 		return getChildren();
+	}
+
+	/** @return An augmented, modifiable {@link List} of this element's children */
+	protected ChildList getChildManager() {
+		return theChildren;
 	}
 
 	/**
@@ -550,8 +612,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		MuisElement current = this;
 		MuisElement [] children = current.theChildren.at(x, y);
 		while(children.length > 0) {
-			x -= current.theX;
-			y -= current.theY;
+			x -= current.theBounds.getX();
+			y -= current.theBounds.getY();
 			current = children[0];
 			children = current.theChildren.at(x, y);
 		}
@@ -570,45 +632,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 
 	// Bounds methods
 
-	/** @return The x-coordinate of this element's upper left corner */
-	public final int getX() {
-		return theX;
+	/** @return The bounds of this element */
+	public final ElementBounds getBounds() {
+		return theBounds;
 	}
 
-	/** @param x The x-coordinate for this element's upper left corner */
-	public final void setX(int x) {
-		if(theX == x)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/** @return The y-coordinate of this element's upper left corner */
-	public final int getY() {
-		return theY;
-	}
-
-	/** @param y The y-coordinate for this element's upper left corner */
-	public final void setY(int y) {
-		if(theY == y)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theY = y;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/**
-	 * @param x The x-coordinate for this element's upper left corner
-	 * @param y The y-coordinate for this element's upper left corner
-	 */
-	public final void setPosition(int x, int y) {
-		if(theX == x && theY == y)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		theY = y;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+	/** @return The bounds of this element */
+	public final ElementBounds bounds() {
+		return theBounds;
 	}
 
 	/** @return The z-index determining the order in which this element is drawn among its siblings */
@@ -622,78 +653,20 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			return;
 		theZ = z;
 		if(theParent != null)
-			theParent.repaint(new Rectangle(theX, theY, theW, theH), false);
+			theParent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
 	}
 
-	/** @return The width of this element */
-	public final int getWidth() {
-		return theW;
-	}
-
-	/** @param width The width for this element */
-	public final void setWidth(int width) {
-		if(theW == width)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theW = width;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/** @return The height of this element */
-	public final int getHeight() {
-		return theH;
-	}
-
-	/** @param height The height for this element */
-	public final void setHeight(int height) {
-		if(theH == height)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theH = height;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/**
-	 * @param width The width for this element
-	 * @param height The height for this element
-	 */
-	public final void setSize(int width, int height) {
-		if(theW == width && theH == height)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theW = width;
-		theH = height;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	/**
-	 * @param x The x-coordinate for this element's upper left corner
-	 * @param y The y-coordinate for this element's upper left corner
-	 * @param width The width for this element
-	 * @param height The height for this element
-	 */
-	public final void setBounds(int x, int y, int width, int height) {
-		if(theX == x && theY == y && theW == width && theH == height)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		theY = y;
-		theW = width;
-		theH = height;
-		fireEvent(new MuisPropertyEvent<Rectangle>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
-	}
-
-	@Override
-	public SizePolicy getWSizer(int height) {
+	/** @return The size policy for this item's width */
+	public SizeGuide getWSizer() {
 		if(theHSizer == null)
-			theHSizer = new SimpleSizePolicy();
+			theHSizer = new SimpleSizeGuide();
 		return theHSizer;
 	}
 
-	@Override
-	public SizePolicy getHSizer(int width) {
+	/** @return The size policy for this item's height */
+	public SizeGuide getHSizer() {
 		if(theVSizer == null)
-			theVSizer = new SimpleSizePolicy();
+			theVSizer = new SimpleSizeGuide();
 		return theVSizer;
 	}
 
@@ -703,8 +676,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		int y = 0;
 		MuisElement el = this;
 		while(el.theParent != null) {
-			x += el.theX;
-			y += el.theY;
+			x += el.theBounds.getX();
+			y += el.theBounds.getY();
 			el = el.theParent;
 		}
 		return new Point(x, y);
@@ -854,7 +827,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * @param now Whether to perform the layout action now or allow it to be performed asynchronously
 	 */
 	public final void relayout(boolean now) {
-		if(theW <= 0 || theH <= 0)
+		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point layout out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now), now);
@@ -874,8 +847,8 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		int x = 0, y = 0;
 		MuisElement el = this;
 		while(el.theParent != null) {
-			x += getX();
-			y += getY();
+			x += theBounds.getX();
+			y += theBounds.getY();
 			el = el.theParent;
 		}
 		java.awt.Graphics2D graphics = theDocument.getGraphics();
@@ -883,7 +856,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 			graphics = (Graphics2D) graphics.create(x, y, 0, 0);
 			return graphics;
 		}
-		graphics = (Graphics2D) graphics.create(x, y, theW, theH);
+		graphics = (Graphics2D) graphics.create(x, y, theBounds.getWidth(), theBounds.getHeight());
 		return graphics;
 	}
 
@@ -892,7 +865,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 *         outside the element's layout bounds (e.g. for a menu, which expands, but does not cause a relayout when it does so).
 	 */
 	public Rectangle getPaintBounds() {
-		return new Rectangle(0, 0, theW, theH);
+		return new Rectangle(0, 0, theBounds.getWidth(), theBounds.getHeight());
 	}
 
 	/**
@@ -902,12 +875,12 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 * @param area The area to draw
 	 */
 	public final void paint(java.awt.Graphics2D graphics, Rectangle area) {
-		if((area != null && (area.width == 0 || area.height == 0)) || theW == 0 || theH == 0)
+		if((area != null && (area.width == 0 || area.height == 0)) || theBounds.getWidth() == 0 || theBounds.getHeight() == 0)
 			return;
 		Rectangle paintBounds = getPaintBounds();
 		theCacheBounds.setBounds(paintBounds);
-		theCacheBounds.x += theX;
-		theCacheBounds.y += theY;
+		theCacheBounds.x += theBounds.getX();
+		theCacheBounds.y += theBounds.getY();
 		Rectangle preClip = graphics.getClipBounds();
 		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
@@ -928,7 +901,7 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 	 *            from an independent thread.
 	 */
 	public final void repaint(Rectangle area, boolean now) {
-		if(theW <= 0 || theH <= 0)
+		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area, now), now);
@@ -958,14 +931,14 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 		if(children.length == 0)
 			return;
 		if(area == null)
-			area = new Rectangle(theX, theY, theW, theH);
+			area = theBounds.getBounds();
 		int translateX = 0;
 		int translateY = 0;
 		try {
 			Rectangle childArea = new Rectangle();
 			for(MuisElement child : children) {
-				int childX = child.theX;
-				int childY = child.theY;
+				int childX = child.theBounds.getX();
+				int childY = child.theBounds.getY();
 				translateX += childX;
 				translateY += childY;
 				childArea.x = area.x - translateX;
@@ -975,19 +948,19 @@ public abstract class MuisElement implements org.muis.core.layout.Sizeable {
 				if(childArea.y < 0)
 					childArea.y = 0;
 				childArea.width = area.width - childArea.x;
-				if(childArea.x + childArea.width > child.getWidth())
-					childArea.width = child.getWidth() - childArea.x;
+				if(childArea.x + childArea.width > child.theBounds.getWidth())
+					childArea.width = child.theBounds.getWidth() - childArea.x;
 				childArea.height = area.height - childArea.y;
-				if(childArea.y + childArea.height > child.getHeight())
-					childArea.height = child.getHeight() - childArea.y;
+				if(childArea.y + childArea.height > child.theBounds.getHeight())
+					childArea.height = child.theBounds.getHeight() - childArea.y;
 				graphics.translate(translateX, translateY);
-				child.paint(graphics, childArea);
 				translateX = -childX;
 				translateY = -childY;
+				child.paint(graphics, childArea);
 			}
 		} finally {
 			if(translateX != 0 || translateY != 0)
-				graphics.translate(-translateX, -translateY);
+				graphics.translate(translateX, translateY);
 		}
 	}
 

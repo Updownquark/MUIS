@@ -1,19 +1,41 @@
 
-base:=../../../MuisRegistry.xml
+//base:=../../../MuisRegistry.xml
 
-[base:block]{
+[block]{
 }
 
-[base:button]{
+[button]{
 	bg={
+		transparency=0
 		color=blue
-		texture="base:raised-round"
+		texture="raised-round"
 		corner-radius="10%"
 	}
+	light={
+		color=white
+		shadow=black
+	}
 	.hover{
-		bg.color=yellow
+		bg.color=rgb(64, 64, 255)
 	}
-	.click{
-		bg.color=purple
+	.depressed{
+		light.color=black
+		light.shadow=white
 	}
+	.!enabled{
+		bg.color=lightgray
+	}
+}
+[toggle-button]{
+	.selected{
+		bg.color=cyan
+		.hover{
+		}
+		.depressed{
+		}
+	}
+}
+[label]{
+	layout.margin=0;
+	layout.padding=0
 }

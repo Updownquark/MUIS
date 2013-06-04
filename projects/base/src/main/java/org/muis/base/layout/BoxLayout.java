@@ -1,79 +1,78 @@
 package org.muis.base.layout;
 
-import static org.muis.base.layout.LayoutConstants.*;
+import static org.muis.core.layout.LayoutAttributes.*;
 
-import org.muis.core.MuisAttribute;
+import java.awt.Rectangle;
+
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
-import org.muis.core.layout.SimpleSizePolicy;
-import org.muis.core.layout.SizePolicy;
+import org.muis.core.layout.*;
+import org.muis.core.style.LayoutStyle;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 
 /**
- * Lays out children one-by-one along a given {@link LayoutConstants#direction direction} ({@link Direction#DOWN DOWN} by default), with a
- * given {@link LayoutConstants#alignment alignment} along the opposite axis. {@link LayoutConstants#width}, {@link LayoutConstants#height},
- * {@link LayoutConstants#minWidth}, and {@link LayoutConstants#minHeight} may be used to help determine the sizes of children.
+ * Lays out children one-by-one along a given {@link LayoutAttributes#direction direction} ({@link Direction#DOWN DOWN} by default), with a
+ * given {@link LayoutAttributes#alignment alignment} along the opposite axis. {@link LayoutAttributes#width},
+ * {@link LayoutAttributes#height}, {@link LayoutAttributes#minWidth}, and {@link LayoutAttributes#minHeight} may be used to help determine
+ * the sizes of children.
  */
-public class BoxLayout implements MuisLayout
-{
+public class BoxLayout implements MuisLayout {
 	private final CompoundListener.MultiElementCompoundListener theListener;
 
 	/** Creates a box layout */
-	public BoxLayout()
-	{
+	public BoxLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, alignment).onChange(CompoundListener.layout);
-		theListener.child().acceptAll(width, minWidth, height, minHeight).onChange(CompoundListener.layout);
+		theListener.acceptAll(direction, alignment, crossAlignment).onChange(CompoundListener.layout);
+		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
 	}
 
 	@Override
-	public void initChildren(MuisElement parent, MuisElement [] children)
-	{
+	public void initChildren(MuisElement parent, MuisElement [] children) {
+		theListener.listenerFor(parent);
 	}
 
 	@Override
-	public void childAdded(MuisElement parent, MuisElement child)
-	{
+	public void childAdded(MuisElement parent, MuisElement child) {
 	}
 
 	@Override
-	public void childRemoved(MuisElement parent, MuisElement child)
-	{
+	public void childRemoved(MuisElement parent, MuisElement child) {
 	}
 
 	@Override
-	public SizePolicy getWSizer(MuisElement parent, MuisElement [] children, int parentHeight)
-	{
-		Direction dir = parent.atts().get(LayoutConstants.direction);
-		if(dir == null)
-			dir = Direction.DOWN;
-		switch (dir)
-		{
+	public void remove(MuisElement parent) {
+		theListener.dropFor(parent);
+	}
+
+	@Override
+	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
+		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
+		Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
+		switch (dir) {
 		case UP:
 		case DOWN:
-			return getCrossSizer(children, false, parentHeight, LayoutConstants.width, LayoutConstants.minWidth);
+			return getCrossSizer(children, dir.getOrientation(), margin);
 		case LEFT:
 		case RIGHT:
-			return getMainSizer(children, false, parentHeight, LayoutConstants.width, LayoutConstants.minWidth);
+			return getMainSizer(children, dir.getOrientation(), margin, padding);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
 
 	@Override
-	public SizePolicy getHSizer(MuisElement parent, MuisElement [] children, int parentWidth)
-	{
-		Direction dir = parent.atts().get(LayoutConstants.direction);
-		if(dir == null)
-			dir = Direction.DOWN;
-		switch (dir)
-		{
+	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
+		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
+		Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
+		switch (dir) {
 		case UP:
 		case DOWN:
-			return getMainSizer(children, false, parentWidth, LayoutConstants.height, LayoutConstants.minHeight);
+			return getMainSizer(children, dir.getOrientation(), margin, padding);
 		case LEFT:
 		case RIGHT:
-			return getCrossSizer(children, false, parentWidth, LayoutConstants.height, LayoutConstants.minHeight);
+			return getCrossSizer(children, dir.getOrientation(), margin);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
@@ -82,251 +81,229 @@ public class BoxLayout implements MuisLayout
 	 * Gets the size policy in the main direction of the container
 	 *
 	 * @param children The children to get the sizer for
-	 * @param vertical Whether the main direction is vertical
-	 * @param crossSize The size of the opposite (non-main) dimension of the space to lay out the children in
-	 * @param sizeAttr The attribute to control a child's size (width or height)
-	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
+	 * @param orient The orientation for the layout
+	 * @param margin The margin size for the parent
+	 * @param padding The padding size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getMainSizer(MuisElement [] children, boolean vertical, int crossSize, MuisAttribute<Size> sizeAttr,
-		MuisAttribute<Size> minSizeAttr)
-	{
-		SimpleSizePolicy ret = new SimpleSizePolicy();
-		for(MuisElement child : children)
-		{
-			Size size = child.atts().get(sizeAttr);
-			Size minSize = child.atts().get(minSizeAttr);
-			if(size != null && !size.getUnit().isRelative())
-			{
-				ret.setMin(ret.getMin() + size.evaluate(0));
-				ret.setPreferred(ret.getPreferred() + size.evaluate(0));
+	protected SizeGuide getMainSizer(final MuisElement [] children, final Orientation orient, final Size margin, final Size padding) {
+		return new SizeGuide() {
+			@Override
+			public int getMin(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.min, crossSize, csMax);
 			}
-			else
-			{
-				SizePolicy sizer = vertical ? child.getHSizer(crossSize) : child.getWSizer(crossSize);
-				int min = sizer.getMin();
-				int pref = sizer.getPreferred();
-				if(minSize != null && !minSize.getUnit().isRelative() && min < minSize.evaluate(0))
-					min = minSize.evaluate(0);
-				if(pref < min)
-					pref = min;
-				ret.setMin(ret.getMin() + min);
-				ret.setPreferred(ret.getPreferred() + pref);
+
+			@Override
+			public int getMinPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.minPref, crossSize, csMax);
 			}
-		}
-		return ret;
+
+			@Override
+			public int getPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.pref, crossSize, csMax);
+			}
+
+			@Override
+			public int getMaxPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			}
+
+			@Override
+			public int getMax(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.max, crossSize, csMax);
+			}
+
+			@Override
+			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+				return BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, margin, margin, padding, padding);
+			}
+
+			@Override
+			public int getBaseline(int size) {
+				return 0;
+			}
+		};
 	}
 
 	/**
 	 * Gets the size policy in the non-main direction of the container
 	 *
 	 * @param children The children to get the sizer for
-	 * @param vertical Whether the non-main direction is vertical
-	 * @param mainSize The size of the opposite (main) dimension of the space to lay out the children in
-	 * @param sizeAttr The attribute to control a child's size (width or height)
-	 * @param minSizeAttr The attribute to control a child's minimum size (minWidth or minHeight)
+	 * @param orient The orientation for the layout (not the cross direction of the layout)
+	 * @param margin The margin size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizePolicy getCrossSizer(MuisElement [] children, boolean vertical, int mainSize, MuisAttribute<Size> sizeAttr,
-		MuisAttribute<Size> minSizeAttr)
-	{
-		SimpleSizePolicy ret = new SimpleSizePolicy();
-		for(MuisElement child : children)
-		{
-			Size size = child.atts().get(sizeAttr);
-			Size minSize = child.atts().get(minSizeAttr);
-			if(size != null && !size.getUnit().isRelative())
-			{
-				int sz = size.evaluate(0);
-				if(ret.getMin() < sz)
-					ret.setMin(sz);
-				if(ret.getPreferred() < sz)
-					ret.setPreferred(sz);
+	protected SizeGuide getCrossSizer(final MuisElement [] children, final Orientation orient, final Size margin) {
+		return new SizeGuide() {
+			@Override
+			public int getMin(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.min, crossSize, csMax);
 			}
-			else
-			{
-				SizePolicy sizer = vertical ? child.getHSizer(mainSize) : child.getWSizer(mainSize);
-				int min = sizer.getMin();
-				int pref = sizer.getPreferred();
-				if(minSize != null && !minSize.getUnit().isRelative() && min < minSize.evaluate(0))
-					min = minSize.evaluate(0);
-				if(pref < min)
-					pref = min;
-				if(ret.getMin() < min)
-					ret.setMin(min);
-				if(ret.getPreferred() < pref)
-					ret.setPreferred(pref);
+
+			@Override
+			public int getMinPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.minPref, crossSize, csMax);
 			}
-		}
-		return ret;
+
+			@Override
+			public int getPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.pref, crossSize, csMax);
+			}
+
+			@Override
+			public int getMaxPreferred(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			}
+
+			@Override
+			public int getMax(int crossSize, boolean csMax) {
+				return get(LayoutGuideType.max, crossSize, csMax);
+			}
+
+			@Override
+			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+				LayoutSize ret = new LayoutSize();
+				BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, ret);
+				ret.add(margin);
+				ret.add(margin);
+				return ret.getTotal();
+			}
+
+			@Override
+			public int getBaseline(int size) {
+				return 0;
+			}
+		};
 	}
 
 	@Override
-	public void layout(MuisElement parent, MuisElement [] children)
-	{
-		java.awt.Rectangle bounds = new java.awt.Rectangle();
-		Direction dir = parent.atts().get(LayoutConstants.direction);
-		if(dir == null)
-			dir = Direction.DOWN;
-		Alignment align = parent.atts().get(LayoutConstants.alignment);
-		if(align == null)
-			align = Alignment.begin;
-		int begin = 0;
-		switch (dir)
-		{
-		case DOWN:
-			begin = 0;
-			break;
-		case UP:
-			begin = parent.getHeight();
-			break;
-		case RIGHT:
-			begin = 0;
-			break;
-		case LEFT:
-			begin = parent.getWidth();
-			break;
-		}
-		for(MuisElement child : children)
-		{
-			Size w = child.atts().get(LayoutConstants.width);
-			Size h = child.atts().get(LayoutConstants.height);
-			Size minW = child.atts().get(LayoutConstants.minWidth);
-			Size minH = child.atts().get(LayoutConstants.minHeight);
+	public void layout(MuisElement parent, final MuisElement [] children) {
+		final Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Alignment align = parent.atts().get(alignment, Alignment.begin);
+		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.begin);
+		final Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
+		final Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
 
-			int mainSize;
-			int crossSize;
-			switch (dir)
-			{
-			case UP:
-			case DOWN:
-				mainSize = getMainSize(child, true, parent.getHeight(), parent.getWidth(), h, minH);
-				if(dir.isPositive())
-				{
-					bounds.y = begin;
-					begin += mainSize;
+		final int parallelSize = parent.bounds().get(dir.getOrientation()).getSize();
+		final int crossSize = parent.bounds().get(dir.getOrientation().opposite()).getSize();
+		final int crossSizeWOMargin = crossSize - margin.evaluate(crossSize) * 2;
+		LayoutUtils.LayoutInterpolation<LayoutSize []> result = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<LayoutSize []>() {
+			@Override
+			public LayoutSize [] getLayoutValue(LayoutGuideType type) {
+				LayoutSize [] ret = new LayoutSize[children.length];
+				for(int i = 0; i < ret.length; i++) {
+					ret[i] = new LayoutSize();
+					LayoutUtils.getSize(children[i], dir.getOrientation(), type, parallelSize, crossSizeWOMargin, true, ret[i]);
 				}
-				else
-				{
-					begin -= mainSize;
-					bounds.y = begin;
-				}
-				bounds.height = mainSize;
-
-				if(align == Alignment.justify)
-					crossSize = parent.getWidth();
-				else
-					crossSize = getCrossSize(child, false, parent.getHeight(), parent.getWidth(), w, minW);
-				bounds.width = crossSize;
-				switch (align)
-				{
-				case begin:
-					bounds.x = 0;
-					break;
-				case end:
-					bounds.x = parent.getWidth() - crossSize;
-					break;
-				case center:
-					bounds.x = (parent.getWidth() - crossSize) / 2;
-					break;
-				case justify:
-					bounds.x = 0;
-					break;
-				}
-				break;
-			case LEFT:
-			case RIGHT:
-				mainSize = getMainSize(child, false, parent.getWidth(), parent.getHeight(), w, minW);
-				if(dir.isPositive())
-				{
-					bounds.x = begin;
-					begin += mainSize;
-				}
-				else
-				{
-					begin -= mainSize;
-					bounds.x = begin;
-				}
-				bounds.width = mainSize;
-
-				if(align == Alignment.justify)
-					crossSize = parent.getHeight();
-				else
-					crossSize = getCrossSize(child, true, parent.getWidth(), parent.getHeight(), h, minH);
-				bounds.height = crossSize;
-				switch (align)
-				{
-				case begin:
-					bounds.y = 0;
-					break;
-				case end:
-					bounds.y = parent.getHeight() - crossSize;
-					break;
-				case center:
-					bounds.y = (parent.getHeight() - crossSize) / 2;
-					break;
-				case justify:
-					bounds.y = 0;
-					break;
-				}
-				break;
+				return ret;
 			}
-			child.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
-		}
-	}
 
-	/**
-	 * Gets the size for a child in the main direction of the container
-	 *
-	 * @param child The child to size
-	 * @param vertical Whether the main direction is vertical
-	 * @param mainSize The size of the parent in the main dimension
-	 * @param crossSize The size of the parent in the cross dimension
-	 * @param sizeAttr The value of the attribute to control the size of the child (width or height)
-	 * @param minSizeAttr The value of the attribute to control the minimum size of the child (minWidth or minHeight)
-	 * @return The main-dimension size of the child
-	 */
-	protected int getMainSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Size sizeAttr, Size minSizeAttr)
-	{
-		int ret;
-		if(sizeAttr != null)
-		{
-			ret = sizeAttr.evaluate(mainSize);
-			if(minSizeAttr != null && ret < minSizeAttr.evaluate(mainSize))
-				ret = minSizeAttr.evaluate(mainSize);
-		}
-		else
-		{
-			SizePolicy sizer = vertical ? child.getHSizer(crossSize) : child.getWSizer(crossSize);
-			ret = sizer.getPreferred();
-			if(ret > mainSize)
-				ret = mainSize;
-			if(ret < sizer.getMin())
-				ret = sizer.getMin();
-			if(minSizeAttr != null && ret < minSizeAttr.evaluate(mainSize))
-				ret = minSizeAttr.evaluate(mainSize);
-		}
-		return ret;
-	}
+			@Override
+			public int getSize(LayoutSize [] layoutValue) {
+				LayoutSize ret = new LayoutSize();
+				ret.add(margin);
+				ret.add(margin);
+				for(int i = 0; i < layoutValue.length; i++) {
+					if(i > 0)
+						ret.add(padding);
+					ret.add(layoutValue[i]);
+				}
+				return ret.getTotal(parallelSize);
+			}
+		}, parallelSize, true, align == Alignment.justify);
 
-	/**
-	 * Gets the size for a child in the non-main direction of the container
-	 *
-	 * @param child The child to size
-	 * @param vertical Whether the cross direction is vertical
-	 * @param mainSize The size of the parent in the main dimension
-	 * @param crossSize The size of the parent in the cross dimension
-	 * @param sizeAttr The value of the attribute to control the size of the child (width or height)
-	 * @param minSizeAttr The value of the attribute to control the minimum size of the child (minWidth or minHeight)
-	 * @return The non-main-dimension size of the child
-	 */
-	protected int getCrossSize(MuisElement child, boolean vertical, int mainSize, int crossSize, Size sizeAttr, Size minSizeAttr)
-	{
-		return getMainSize(child, vertical, crossSize, mainSize, sizeAttr, minSizeAttr);
-	}
+		Rectangle [] bounds = new Rectangle[children.length];
+		for(int c = 0; c < children.length; c++) {
+			bounds[c] = new Rectangle();
+			int mainSize = result.lowerValue[c].getTotal(parallelSize);
+			if(result.proportion > 0)
+				mainSize += Math.round(result.proportion
+					* (result.upperValue[c].getTotal(parallelSize) - result.lowerValue[c].getTotal(parallelSize)));
+			LayoutUtils.setSize(bounds[c], dir.getOrientation(), mainSize);
 
-	@Override
-	public void remove(MuisElement parent)
-	{
+			int prefCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.pref, crossSize,
+				mainSize, false, null);
+			int oppSize;
+			if(crossSize < prefCrossSize) {
+				int minCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.min, crossSize,
+					mainSize, false, null);
+				if(crossSize < minCrossSize)
+					oppSize = minCrossSize;
+				else
+					oppSize = crossSize;
+			} else if(align == Alignment.justify) {
+				int maxCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.max, crossSize,
+					mainSize, false, null);
+				if(crossSize < maxCrossSize)
+					oppSize = crossSize;
+				else
+					oppSize = maxCrossSize;
+			} else
+				oppSize = prefCrossSize;
+			LayoutUtils.setSize(bounds[c], dir.getOrientation().opposite(), oppSize);
+		}
+
+		// Main alignment
+		switch (align) {
+		case begin:
+		case end:
+			int pos = 0;
+			for(int c = 0; c < children.length; c++) {
+				int childPos = pos;
+				if(c == 0)
+					childPos += margin.evaluate(parallelSize);
+				else
+					childPos += padding.evaluate(parallelSize);
+				LayoutUtils.setPos(bounds[c], dir.getOrientation(), align == Alignment.begin ? childPos : parallelSize - childPos
+					- LayoutUtils.getSize(bounds[c], dir.getOrientation()));
+				pos = childPos + LayoutUtils.getSize(bounds[c], dir.getOrientation());
+			}
+			break;
+		case center:
+		case justify:
+			int freeSpace = parallelSize;
+			freeSpace -= margin.evaluate(parallelSize);
+			for(int c = 0; c < bounds.length; c++) {
+				if(c > 0)
+					freeSpace -= padding.evaluate(parallelSize);
+				freeSpace -= LayoutUtils.getSize(bounds[c], dir.getOrientation());
+			}
+
+			pos = 0;
+			int usedSpace = 0;
+			for(int c = 0; c < children.length; c++) {
+				int extraSpace = (freeSpace - usedSpace) / (children.length + 1 - c);
+				int childPos = pos + extraSpace;
+				if(c == 0)
+					childPos += margin.evaluate(parallelSize);
+				else
+					childPos += padding.evaluate(parallelSize);
+				LayoutUtils.setPos(bounds[c], dir.getOrientation(), align == Alignment.begin ? childPos : parallelSize - childPos
+					- LayoutUtils.getSize(bounds[c], dir.getOrientation()));
+				pos = childPos + LayoutUtils.getSize(bounds[c], dir.getOrientation());
+				usedSpace += extraSpace;
+			}
+		}
+
+		// Cross alignment
+		switch (crossAlign) {
+		case begin:
+			for(Rectangle bound : bounds)
+				LayoutUtils.setPos(bound, dir.getOrientation().opposite(), margin.evaluate(crossSize));
+			break;
+		case end:
+			for(Rectangle bound : bounds)
+				LayoutUtils.setPos(bound, dir.getOrientation().opposite(),
+					crossSize - LayoutUtils.getSize(bound, dir.getOrientation().opposite()) - margin.evaluate(crossSize));
+			break;
+		case center:
+		case justify:
+			for(Rectangle bound : bounds)
+				LayoutUtils.setPos(bound, dir.getOrientation().opposite(),
+					margin.evaluate(crossSize) + (crossSizeWOMargin - LayoutUtils.getSize(bound, dir.getOrientation().opposite())) / 2);
+		}
+
+		for(int c = 0; c < children.length; c++)
+			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
 	}
 }

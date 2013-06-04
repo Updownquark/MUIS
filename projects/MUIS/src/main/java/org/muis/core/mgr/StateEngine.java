@@ -148,7 +148,7 @@ public class StateEngine implements StateSet {
 	 * @param state The state to listen for, or null to receive notification when any state changes
 	 * @param listener The listener to notify when the given state (or any state if {@code state} is null) changes
 	 */
-	public void addListener(String state, StateListener listener) {
+	public void addListener(MuisState state, StateListener listener) {
 		if(state == null)
 			theListeners.addListener(listener);
 		else
@@ -159,7 +159,7 @@ public class StateEngine implements StateSet {
 	 * @param state The state to remove the listener for
 	 * @param listener The listener to remove from listening for changes to the given state
 	 */
-	public void removeListener(String state, StateListener listener) {
+	public void removeListener(MuisState state, StateListener listener) {
 		theListeners.removeListener(state, listener);
 	}
 
@@ -212,6 +212,19 @@ public class StateEngine implements StateSet {
 			else
 				listener.exited(state, event);
 		}
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		ret.append('{');
+		for(MuisState state : this) {
+			if(ret.length() > 1)
+				ret.append(", ");
+			ret.append(state.getName());
+		}
+		ret.append('}');
+		return ret.toString();
 	}
 
 	private class StateControllerImpl implements StateController {

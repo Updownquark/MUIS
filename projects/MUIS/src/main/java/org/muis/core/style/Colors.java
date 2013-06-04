@@ -246,7 +246,7 @@ public class Colors
 	public static final Color lightGoldenRodYellow = _parseColor("#fafad2");
 
 	/** #d3d3d3 <font color="#d3d3d3">######</font> */
-	public static final Color lightGrey = _parseColor("#d3d3d3");
+	public static final Color lightGray = _parseColor("#d3d3d3");
 
 	/** #90ee90 <font color="#90ee90">######</font> */
 	public static final Color lightGreen = _parseColor("#90ee90");

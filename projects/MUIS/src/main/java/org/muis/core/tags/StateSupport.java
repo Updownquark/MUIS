@@ -1,4 +1,4 @@
-package org.muis.core;
+package org.muis.core.tags;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

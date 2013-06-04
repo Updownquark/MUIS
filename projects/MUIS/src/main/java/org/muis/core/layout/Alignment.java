@@ -1,4 +1,4 @@
-package org.muis.base.layout;
+package org.muis.core.layout;
 
 /** Alignment options */
 public enum Alignment

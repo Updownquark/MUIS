@@ -5,9 +5,6 @@ import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleAttributeEvent;
-import org.muis.core.style.StyleListener;
-import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
@@ -22,8 +19,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	private ElementSelfStyle theSelfStyle;
 
 	private ElementHeirStyle theHeirStyle;
-
-	private FilteredStyleSheet<?> theStyleSheet;
 
 	private NamedStyleGroup [] theStyleGroups;
 
@@ -46,13 +41,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	private void addDependencies() {
-		// Add a dependency for typed, non-grouped style sheet attributes
-		addListener(new StyleListener() {
-			@Override
-			public void eventOccurred(StyleAttributeEvent<?> event) {
-				theElement.fireEvent(event, false, false);
-			}
-		});
 		if(theElement.getParent() != null) {
 			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
@@ -65,17 +53,21 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el) {
-				if(theParentStyle != null)
-					removeDependency(theParentStyle.getHeir());
-				if(event.getValue() != null) {
+				ElementStyle oldParentStyle = theParentStyle;
+				if(oldParentStyle != null) {
+					if(event.getValue() != null) {
+						theParentStyle = event.getValue().getStyle();
+						replaceDependency(oldParentStyle.getHeir(), theParentStyle.getHeir());
+					} else {
+						theParentStyle = null;
+						removeDependency(oldParentStyle.getHeir());
+					}
+				} else if(event.getValue() != null) {
 					theParentStyle = event.getValue().getStyle();
 					addDependency(theParentStyle.getHeir(), null);
-				} else
-					theParentStyle = null;
+				}
 			}
 		});
-		theStyleSheet = new FilteredStyleSheet<>(theElement.getDocument().getStyle(), null, theElement.getClass());
-		addDependency(theStyleSheet, null);
 		MuisState [] currentState = theElement.state().toArray();
 		setState(currentState);
 		theSelfStyle.setState(currentState);

@@ -1,37 +1,42 @@
-package org.muis.base.layout;
+package org.muis.core.layout;
+
+import static org.muis.core.layout.End.leading;
+import static org.muis.core.layout.End.trailing;
+import static org.muis.core.layout.Orientation.horizontal;
+import static org.muis.core.layout.Orientation.vertical;
 
 /** All possible directions for laying out items */
 public enum Direction
 {
 	/** Items will be arranged top-to-bottom */
-	DOWN(true, true),
+	DOWN(vertical, leading),
 	/** Items will be arranged bottom-to-top */
-	UP(true, false),
+	UP(vertical, trailing),
 	/** Items will be arranged left-to-right */
-	RIGHT(false, true),
+	RIGHT(horizontal, leading),
 	/** Items will be arranged right-to-left */
-	LEFT(false, false);
+	LEFT(horizontal, trailing);
 
-	private final boolean isVertical;
+	private final Orientation theOrientation;
 
-	private final boolean isPositive;
+	private final End theStartEnd;
 
-	Direction(boolean vert, boolean pos)
+	Direction(Orientation orientation, End startEnd)
 	{
-		isVertical = vert;
-		isPositive = pos;
+		theOrientation = orientation;
+		theStartEnd = startEnd;
 	}
 
-	/** @return Whether this direction is along the vertical or horizontal axis */
-	public boolean isVertical()
+	/** @return This direction's orientation */
+	public Orientation getOrientation()
 	{
-		return isVertical;
+		return theOrientation;
 	}
 
 	/** @return Whether this direction is positive with respect to either horizontal or vertical */
-	public boolean isPositive()
+	public End getStartEnd()
 	{
-		return isPositive;
+		return theStartEnd;
 	}
 
 	/**

@@ -7,7 +7,7 @@ package org.muis.core.style;
  */
 public class StyleAttributeEvent<T> extends org.muis.core.event.MuisEvent<Void> {
 	/** The event type that this event is */
-	public static final org.muis.core.event.MuisEventType<Void> TYPE = new org.muis.core.event.MuisEventType<Void>("Style Attribute Event",
+	public static final org.muis.core.event.MuisEventType<Void> TYPE = new org.muis.core.event.MuisEventType<>("Style Attribute Event",
 		null);
 
 	private MuisStyle theRootStyle;

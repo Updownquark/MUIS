@@ -49,12 +49,14 @@ public class MuisTextElement extends MuisLeaf {
 			msg().error("Could not derive font");
 			return new SimpleSizeGuide(0, 0, 0, 0, 0);
 		}
-		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
+		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
 		int min = 0;
 		int max = 0;
-		java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(
-			new java.text.AttributedString(theText).getIterator(), java.text.BreakIterator.getWordInstance(), context);
+		java.text.AttributedString attrStr = new java.text.AttributedString(theText);
+		attrStr.addAttributes(font.getAttributes(), 0, theText.length());
+		java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(),
+			java.text.BreakIterator.getWordInstance(), context);
 		while(true) {
 			TextLayout layout = measurer.nextLayout(Integer.MAX_VALUE);
 			if(layout == null)
@@ -166,7 +168,7 @@ public class MuisTextElement extends MuisLeaf {
 			msg().error("Could not derive font");
 			return 0;
 		}
-		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, getStyle().getSelf()
+		java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
 			.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
 		Font preFont = null;
 		boolean preAntiAlias = false;
@@ -186,8 +188,10 @@ public class MuisTextElement extends MuisLeaf {
 		try {
 			int lineIdx = 0;
 			if(getStyle().get(org.muis.core.style.FontStyle.wordWrap) && width > 0) {
-				java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(
-					new java.text.AttributedString(theText).getIterator(), java.text.BreakIterator.getWordInstance(), context);
+				java.text.AttributedString attrStr = new java.text.AttributedString(theText);
+				attrStr.addAttributes(font.getAttributes(), 0, theText.length());
+				java.awt.font.LineBreakMeasurer measurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(),
+					java.text.BreakIterator.getWordInstance(), context);
 				boolean hasSetBaseline = false;
 				while(true) {
 					TextLayout layout = measurer.nextLayout(width);

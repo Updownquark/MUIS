@@ -1,10 +1,10 @@
 package org.muis.core.style;
 
 /** Styles that may affect layout */
-public class LayoutStyles implements StyleDomain {
+public class LayoutStyle implements StyleDomain {
 	private StyleAttribute<?> [] theAttributes;
 
-	private LayoutStyles() {
+	private LayoutStyle() {
 		theAttributes = new StyleAttribute[0];
 	}
 
@@ -12,7 +12,7 @@ public class LayoutStyles implements StyleDomain {
 		theAttributes = prisms.util.ArrayUtils.add(theAttributes, attr);
 	}
 
-	private static final LayoutStyles instance;
+	private static final LayoutStyle instance;
 
 	/** The minimum distance between the edge of a container and the nearest contained component */
 	public static final StyleAttribute<Size> margin;
@@ -21,7 +21,7 @@ public class LayoutStyles implements StyleDomain {
 	public static final StyleAttribute<Size> padding;
 
 	static {
-		instance = new LayoutStyles();
+		instance = new LayoutStyle();
 		margin = new StyleAttribute<>(instance, "margin", SizePropertyType.instance, new Size(3, LengthUnit.pixels));
 		instance.register(margin);
 		padding = new StyleAttribute<>(instance, "padding", SizePropertyType.instance, new Size(2, LengthUnit.pixels));
@@ -29,13 +29,13 @@ public class LayoutStyles implements StyleDomain {
 	}
 
 	/** @return The style domain for all background styles */
-	public static LayoutStyles getDomainInstance() {
+	public static LayoutStyle getDomainInstance() {
 		return instance;
 	}
 
 	@Override
 	public String getName() {
-		return "bg";
+		return "layout";
 	}
 
 	@Override

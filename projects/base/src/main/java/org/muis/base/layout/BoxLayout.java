@@ -7,7 +7,7 @@ import java.awt.Rectangle;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisLayout;
 import org.muis.core.layout.*;
-import org.muis.core.style.LayoutStyles;
+import org.muis.core.style.LayoutStyle;
 import org.muis.core.style.Size;
 import org.muis.util.CompoundListener;
 
@@ -48,8 +48,8 @@ public class BoxLayout implements MuisLayout {
 	@Override
 	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size margin = parent.getStyle().getSelf().get(LayoutStyles.margin);
-		Size padding = parent.getStyle().getSelf().get(LayoutStyles.padding);
+		Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
+		Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
 		switch (dir) {
 		case UP:
 		case DOWN:
@@ -64,8 +64,8 @@ public class BoxLayout implements MuisLayout {
 	@Override
 	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size margin = parent.getStyle().getSelf().get(LayoutStyles.margin);
-		Size padding = parent.getStyle().getSelf().get(LayoutStyles.padding);
+		Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
+		Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
 		switch (dir) {
 		case UP:
 		case DOWN:
@@ -181,8 +181,8 @@ public class BoxLayout implements MuisLayout {
 		final Direction dir = parent.atts().get(direction, Direction.RIGHT);
 		Alignment align = parent.atts().get(alignment, Alignment.begin);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.begin);
-		final Size margin = parent.getStyle().getSelf().get(LayoutStyles.margin);
-		final Size padding = parent.getStyle().getSelf().get(LayoutStyles.padding);
+		final Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
+		final Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
 
 		final int parallelSize = parent.bounds().get(dir.getOrientation()).getSize();
 		final int crossSize = parent.bounds().get(dir.getOrientation().opposite()).getSize();

@@ -3,8 +3,8 @@ package org.muis.base.layout;
 import static org.muis.core.layout.LayoutAttributes.*;
 import static org.muis.core.layout.LayoutGuideType.*;
 import static org.muis.core.layout.Orientation.vertical;
-import static org.muis.core.style.LayoutStyles.margin;
-import static org.muis.core.style.LayoutStyles.padding;
+import static org.muis.core.style.LayoutStyle.margin;
+import static org.muis.core.style.LayoutStyle.padding;
 
 import java.awt.Dimension;
 import java.awt.Rectangle;

@@ -14,7 +14,7 @@ import org.muis.base.layout.GeneticLayout.LayoutConstraint;
 import org.muis.base.layout.GeneticLayout.LayoutScratchPad;
 import org.muis.core.MuisElement;
 import org.muis.core.layout.LayoutUtils;
-import org.muis.core.style.LayoutStyles;
+import org.muis.core.style.LayoutStyle;
 
 public class LayoutConstraints {
 	public static abstract class ExpressionConstraint implements LayoutConstraint, Iterable<LayoutConstraint> {
@@ -279,14 +279,14 @@ public class LayoutConstraints {
 	};
 
 	/**
-	 * A layout constraint enforcing the {@link LayoutStyles#margin} style. This constraint also enforces the same rules as
+	 * A layout constraint enforcing the {@link LayoutStyle#margin} style. This constraint also enforces the same rules as
 	 * {@link #containerBounds}.
 	 */
 	public static final LayoutConstraint margin = new LayoutConstraint() {
 		@Override
 		public boolean isViolated(MuisElement container, Dimension size, LayoutScratchPad layout) {
-			int wMargin = container.getStyle().getSelf().get(LayoutStyles.margin).evaluate(size.width);
-			int hMargin = container.getStyle().getSelf().get(LayoutStyles.margin).evaluate(size.height);
+			int wMargin = container.getStyle().getSelf().get(LayoutStyle.margin).evaluate(size.width);
+			int hMargin = container.getStyle().getSelf().get(LayoutStyle.margin).evaluate(size.height);
 			for(MuisElement child : layout) {
 				Rectangle bounds = layout.get(child);
 				if(bounds.x < wMargin)
@@ -305,8 +305,8 @@ public class LayoutConstraints {
 
 		@Override
 		public float getViolation(MuisElement container, Dimension size, LayoutScratchPad layout) {
-			int wMargin = container.getStyle().getSelf().get(LayoutStyles.margin).evaluate(size.width);
-			int hMargin = container.getStyle().getSelf().get(LayoutStyles.margin).evaluate(size.height);
+			int wMargin = container.getStyle().getSelf().get(LayoutStyle.margin).evaluate(size.width);
+			int hMargin = container.getStyle().getSelf().get(LayoutStyle.margin).evaluate(size.height);
 			float ret = 0;
 			for(MuisElement child : layout) {
 				Rectangle bounds = layout.get(child);
@@ -326,7 +326,7 @@ public class LayoutConstraints {
 	};
 
 	/**
-	 * A layout constraint enforcing the {@link LayoutStyles#padding} style. This constraint also enforces the same rules as
+	 * A layout constraint enforcing the {@link LayoutStyle#padding} style. This constraint also enforces the same rules as
 	 * {@link #interference}.
 	 */
 	public static final LayoutConstraint padding = new LayoutConstraint() {
@@ -341,8 +341,8 @@ public class LayoutConstraints {
 		}
 
 		private float getViolation(MuisElement container, Dimension size, LayoutScratchPad layout, boolean variable) {
-			int wPadding = container.getStyle().getSelf().get(LayoutStyles.padding).evaluate(size.width);
-			int hPadding = container.getStyle().getSelf().get(LayoutStyles.padding).evaluate(size.height);
+			int wPadding = container.getStyle().getSelf().get(LayoutStyle.padding).evaluate(size.width);
+			int hPadding = container.getStyle().getSelf().get(LayoutStyle.padding).evaluate(size.height);
 			float ret = 0;
 			ArrayList<Rectangle> bounds = new ArrayList<>();
 			for(MuisElement child : layout) {

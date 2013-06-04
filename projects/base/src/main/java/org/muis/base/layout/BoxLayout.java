@@ -300,7 +300,7 @@ public class BoxLayout implements MuisLayout {
 		case justify:
 			for(Rectangle bound : bounds)
 				LayoutUtils.setPos(bound, dir.getOrientation().opposite(),
-					margin.evaluate(crossSize) + (crossSize - LayoutUtils.getSize(bound, dir.getOrientation().opposite())) / 2);
+					margin.evaluate(crossSize) + (crossSizeWOMargin - LayoutUtils.getSize(bound, dir.getOrientation().opposite())) / 2);
 		}
 
 		for(int c = 0; c < children.length; c++)

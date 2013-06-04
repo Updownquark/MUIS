@@ -2,7 +2,7 @@
 
 <muis>
     <head>
-        <title>Paint Test (for Mouse Events)</title>
+        <title>Image Test</title>
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
     	<base:block layout="base:simple" style="bg.color=green">

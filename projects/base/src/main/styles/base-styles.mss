@@ -35,3 +35,7 @@
 		}
 	}
 }
+[label]{
+	layout.margin=0;
+	layout.padding=0
+}

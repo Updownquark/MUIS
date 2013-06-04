@@ -86,8 +86,9 @@ public class MuisBrowser extends javax.swing.JPanel {
 		try {
 			muisDoc.postCreate();
 			theContentPane.setContent(muisDoc);
-			if(getParent() instanceof java.awt.Frame)
-				((java.awt.Frame) getParent()).setTitle(muisDoc.getHead().getTitle());
+			java.awt.Window window = getWindow();
+			if(window instanceof java.awt.Frame)
+				((java.awt.Frame) window).setTitle(muisDoc.getHead().getTitle());
 			repaint();
 		} catch(RuntimeException e) {
 			e.printStackTrace();
@@ -119,6 +120,13 @@ public class MuisBrowser extends javax.swing.JPanel {
 	/** @return The content pane that renders content pointed to from this browser */
 	public MuisContentPane getContentPane() {
 		return theContentPane;
+	}
+
+	private java.awt.Window getWindow() {
+		java.awt.Component parent = getParent();
+		while(parent != null && !(parent instanceof java.awt.Window))
+			parent = parent.getParent();
+		return (java.awt.Window) parent;
 	}
 
 	/**

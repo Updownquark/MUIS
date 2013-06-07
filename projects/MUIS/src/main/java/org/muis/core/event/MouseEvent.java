@@ -56,7 +56,7 @@ public class MouseEvent extends PositionedUserEvent {
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public MouseEvent(MuisDocument doc, MuisElement element, MouseEventType type, int docX, int docY, ButtonType buttonType,
-		int clickCount, org.muis.core.MuisElementCapture capture) {
+		int clickCount, org.muis.core.MuisEventPositionCapture<?> capture) {
 		super(org.muis.core.MuisConstants.Events.MOUSE, doc, element, docX, docY, capture);
 		theTime = System.currentTimeMillis();
 		theType = type;

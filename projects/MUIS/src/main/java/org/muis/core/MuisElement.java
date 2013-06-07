@@ -876,7 +876,7 @@ public abstract class MuisElement {
 	 * @param area The area to draw
 	 * @return The cached bounds used to draw the element
 	 */
-	public final MuisRendering.ElementBound paint(java.awt.Graphics2D graphics, Rectangle area) {
+	public final MuisElementCapture<?> paint(java.awt.Graphics2D graphics, Rectangle area) {
 		Rectangle paintBounds = getPaintBounds();
 		int cacheX = paintBounds.x + theBounds.getX();
 		int cacheY = paintBounds.y + theBounds.getY();
@@ -887,11 +887,13 @@ public abstract class MuisElement {
 			if((area != null && (area.width == 0 || area.height == 0)) || theBounds.getWidth() == 0 || theBounds.getHeight() == 0) {
 			} else
 				paintSelf(graphics, area);
-			MuisRendering.ElementBound[] childBounds = paintChildren(graphics, area);
-			MuisRendering.ElementBound ret = new MuisRendering.ElementBound(this, cacheX, cacheY, cacheZ, paintBounds.width,
-				paintBounds.height, childBounds);
-			for(MuisRendering.ElementBound bound : childBounds)
-				bound.parent = ret;
+			@SuppressWarnings("rawtypes")
+			MuisElementCapture ret = new MuisElementCapture<>(null, this, cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height);
+			for(@SuppressWarnings("rawtypes")
+			MuisElementCapture childBound : paintChildren(graphics, area)) {
+				childBound.setParent(ret);
+				ret.addChild(childBound);
+			}
 			return ret;
 		} finally {
 			graphics.setClip(preClip);
@@ -934,9 +936,9 @@ public abstract class MuisElement {
 	 * @param area The area in this element's coordinates to repaint
 	 * @return The cached bounds used to draw each of the element's children
 	 */
-	public final MuisRendering.ElementBound[] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
+	public final MuisElementCapture<?> [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
 		MuisElement [] children = ch().sortByZ();
-		MuisRendering.ElementBound[] childBounds = new MuisRendering.ElementBound[children.length];
+		MuisElementCapture<?> [] childBounds = new MuisElementCapture[children.length];
 		if(children.length == 0)
 			return childBounds;
 		if(area == null)

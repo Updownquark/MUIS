@@ -45,7 +45,7 @@ public class ScrollEvent extends PositionedUserEvent
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public ScrollEvent(org.muis.core.MuisDocument doc, org.muis.core.MuisElement element, int docX, int docY, ScrollType scrollType,
-		boolean vertical, int amount, KeyBoardEvent keyEvent, org.muis.core.MuisElementCapture capture)
+		boolean vertical, int amount, KeyBoardEvent keyEvent, org.muis.core.MuisEventPositionCapture<?> capture)
 	{
 		super(org.muis.core.MuisConstants.Events.SCROLL, doc, element, docX, docY, capture);
 		theScrollType = scrollType;

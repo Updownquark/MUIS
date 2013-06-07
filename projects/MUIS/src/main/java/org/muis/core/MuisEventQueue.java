@@ -178,7 +178,8 @@ public class MuisEventQueue {
 			MuisRendering render = theElement.getDocument().getRender();
 			if(render == null)
 				return;
-			MuisRendering.ElementBound bound = render.getFor(theElement);
+			@SuppressWarnings("rawtypes")
+			MuisElementCapture bound = render.getFor(theElement);
 			if(bound == null) {
 				// Hierarchy may have been restructured. Need to repaint everything.
 				theElement.getDocument().getRoot().repaint(null, false);
@@ -189,9 +190,9 @@ public class MuisEventQueue {
 			Point trans = bound.getDocLocation();
 			java.awt.Graphics2D graphics = (java.awt.Graphics2D) newRender.getImage().getGraphics();
 			graphics.translate(-trans.x, -trans.y);
-			MuisRendering.ElementBound newBound = theElement.paint(graphics, theArea);
-			if(bound.parent != null)
-				bound.parent.children[prisms.util.ArrayUtils.indexOf(bound.parent.children, bound)] = newBound;
+			MuisElementCapture<?> newBound = theElement.paint(graphics, theArea);
+			if(bound.getParent() != null)
+				bound.getParent().getChildren().set(bound.getParent().getChildren().indexOf(bound), newBound);
 			else
 				render.setRoot(newBound);
 			graphics.translate(trans.x, trans.y);
@@ -365,8 +366,8 @@ public class MuisEventQueue {
 					}
 				}
 			} else
-				for(MuisElementCapture el : theEvent.getCapture().iterate(!isDownward))
-					el.element.fireEvent(theEvent, theEvent.isCanceled(), false);
+				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
+					el.getElement().fireEvent(theEvent, theEvent.isCanceled(), false);
 		}
 	}
 

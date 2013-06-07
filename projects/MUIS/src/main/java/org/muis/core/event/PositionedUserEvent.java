@@ -1,15 +1,15 @@
 package org.muis.core.event;
 
 import org.muis.core.MuisElement;
+import org.muis.core.MuisEventPositionCapture;
 
 /** An event caused by user interaction for which an x,y point location is relevant */
-public class PositionedUserEvent extends UserEvent
-{
+public class PositionedUserEvent extends UserEvent {
 	private final int theDocumentX;
 
 	private final int theDocumentY;
 
-	private org.muis.core.MuisElementCapture theCapture;
+	private MuisEventPositionCapture<?> theCapture;
 
 	/**
 	 * Creates a positioned user event
@@ -22,8 +22,7 @@ public class PositionedUserEvent extends UserEvent
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public PositionedUserEvent(MuisEventType<Void> type, org.muis.core.MuisDocument doc, MuisElement element, int docX, int docY,
-		org.muis.core.MuisElementCapture capture)
-	{
+		MuisEventPositionCapture<?> capture) {
 		super(type, doc, element);
 		theDocumentX = docX;
 		theDocumentY = docY;
@@ -33,20 +32,17 @@ public class PositionedUserEvent extends UserEvent
 	}
 
 	/** @return The absolute x-coordinate of the event relative to the document's root element */
-	public int getX()
-	{
+	public int getX() {
 		return theDocumentX;
 	}
 
 	/** @return The absolute y-coordinate of the event relative to the document's root element */
-	public int getY()
-	{
+	public int getY() {
 		return theDocumentY;
 	}
 
 	/** @return The capture of all elements that this event might be relevant to */
-	public org.muis.core.MuisElementCapture getCapture()
-	{
+	public MuisEventPositionCapture<?> getCapture() {
 		return theCapture;
 	}
 
@@ -54,18 +50,16 @@ public class PositionedUserEvent extends UserEvent
 	 * @param element The element to get the position of for this event
 	 * @return The position of this event over the given element, or null if this information cannot be obtained from this event's capture
 	 */
-	public java.awt.Point getPosition(MuisElement element)
-	{
+	public java.awt.Point getPosition(MuisElement element) {
 		if(theCapture == null)
 			return null;
-		org.muis.core.MuisElementCapture capture = theCapture.find(element);
+		MuisEventPositionCapture<?> capture = theCapture.find(element);
 		if(capture == null)
-			for(org.muis.core.MuisElementCapture mec : theCapture.iterate(false))
-				if(mec.element == element)
-				{
+			for(MuisEventPositionCapture<?> mec : theCapture.iterate(false))
+				if(mec.getElement() == element) {
 					capture = mec;
 					break;
 				}
-		return capture == null ? null : new java.awt.Point(capture.x, capture.y);
+		return capture == null ? null : new java.awt.Point(capture.getX(), capture.getY());
 	}
 }

@@ -147,45 +147,6 @@ public class MuisUtils
 	}
 
 	/**
-	 * Sinks into the element hierarchy by position using the cached bounds of the elements
-	 *
-	 * @param root The element hierarchy to fire the mouse event for
-	 * @param x The x-position of the mouse event within the element
-	 * @param y The y-position of the mouse event within the element
-	 * @return The capture of each element in the hierarchy of root that the event occurred over
-	 */
-	public static MuisElementCapture captureEventTargets(MuisElement root, int x, int y)
-	{
-		return captureEventTargets(new MuisElementCapture(null, root, x, y), x, y);
-	}
-
-	private static MuisElementCapture captureEventTargets(MuisElementCapture root, int x, int y)
-	{
-		MuisElement [] children = prisms.util.ArrayUtils.reverse(root.element.getChildren().sortByZ());
-		for(MuisElement child : children)
-		{
-			Rectangle bounds = child.getCacheBounds();
-			int relX = x - bounds.x;
-			int relY = y - bounds.y;
-			if(relX >= 0 && relY >= 0 && relX < bounds.width && relY < bounds.height)
-			{
-				MuisElementCapture childCapture = captureEventTargets(child, relX, relY);
-				root.addChild(childCapture);
-				boolean isClickThrough = true;
-				for(MuisElementCapture mec : childCapture)
-					if(!mec.element.isClickThrough())
-					{
-						isClickThrough = false;
-						break;
-					}
-				if(!isClickThrough)
-					break;
-			}
-		}
-		return root;
-	}
-
-	/**
 	 * @param reference The URL to be the reference of the relative path
 	 * @param relativePath The path relative to the reference URL to resolve
 	 * @return A URL that is equivalent to <code>relativePath</code> resolved with reference to <code>reference</code>

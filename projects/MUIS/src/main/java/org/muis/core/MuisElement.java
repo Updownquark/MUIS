@@ -3,7 +3,6 @@ package org.muis.core;
 
 import static org.muis.core.MuisConstants.Events.*;
 
-import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -85,8 +84,6 @@ public abstract class MuisElement {
 
 	private boolean isFocusable;
 
-	private Rectangle theCacheBounds;
-
 	private long thePaintDirtyTime;
 
 	private long theLayoutDirtyTime;
@@ -113,7 +110,6 @@ public abstract class MuisElement {
 		theChildren = new ChildList(this);
 		theExposedChildren = new ImmutableChildList<>(theChildren);
 		theAttributeManager = new AttributeManager(this);
-		theCacheBounds = new Rectangle();
 		theStyle = new ElementStyle(this);
 		theDefaultStyleListener = new CompoundStyleListener(this) {
 			@Override
@@ -707,10 +703,12 @@ public abstract class MuisElement {
 	// End bounds methods
 
 	/**
+	 * @param x The x-position to check for click-through
+	 * @param y The y-position to check for click-through
 	 * @return Whether positional events are consumed by this element, or whether they should be propagated to elements under this element.
 	 *         By default, this method returns true if and only if the background transparency is one.
 	 */
-	public boolean isClickThrough() {
+	public boolean isClickThrough(int x, int y) {
 		return getStyle().getSelf().get(BackgroundStyles.transparency) >= 1;
 	}
 
@@ -863,24 +861,6 @@ public abstract class MuisElement {
 
 	// Paint methods
 
-	/** @return The graphics object to use to draw this element */
-	public Graphics2D getGraphics() {
-		int x = 0, y = 0;
-		MuisElement el = this;
-		while(el.theParent != null) {
-			x += theBounds.getX();
-			y += theBounds.getY();
-			el = el.theParent;
-		}
-		java.awt.Graphics2D graphics = theDocument.getGraphics();
-		if(el != theDocument.getRoot()) {
-			graphics = (Graphics2D) graphics.create(x, y, 0, 0);
-			return graphics;
-		}
-		graphics = (Graphics2D) graphics.create(x, y, theBounds.getWidth(), theBounds.getHeight());
-		return graphics;
-	}
-
 	/**
 	 * @return The bounds within which this element may draw and receive events, relative to the layout x,y position. This may extend
 	 *         outside the element's layout bounds (e.g. for a menu, which expands, but does not cause a relayout when it does so).
@@ -891,22 +871,24 @@ public abstract class MuisElement {
 
 	/**
 	 * Renders this element in a graphics context.
-	 *
+	 * 
 	 * @param graphics The graphics context to render this element in
 	 * @param area The area to draw
+	 * @return The cached bounds used to draw the element
 	 */
-	public final void paint(java.awt.Graphics2D graphics, Rectangle area) {
+	public final MuisRendering.ElementBound paint(java.awt.Graphics2D graphics, Rectangle area) {
 		if((area != null && (area.width == 0 || area.height == 0)) || theBounds.getWidth() == 0 || theBounds.getHeight() == 0)
-			return;
+			return null;
 		Rectangle paintBounds = getPaintBounds();
-		theCacheBounds.setBounds(paintBounds);
-		theCacheBounds.x += theBounds.getX();
-		theCacheBounds.y += theBounds.getY();
+		int cacheX = paintBounds.x + theBounds.getX();
+		int cacheY = paintBounds.y + theBounds.getY();
+		int cacheZ = theZ;
 		Rectangle preClip = graphics.getClipBounds();
 		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
 			paintSelf(graphics, area);
-			paintChildren(graphics, area);
+			MuisRendering.ElementBound[] childBounds = paintChildren(graphics, area);
+			return new MuisRendering.ElementBound(this, cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height, childBounds);
 		} finally {
 			graphics.setClip(preClip);
 		}
@@ -914,12 +896,12 @@ public abstract class MuisElement {
 
 	/**
 	 * Causes this element to be repainted.
-	 *
+	 * 
 	 * @param area The area in this element that needs to be repainted. May be null to specify that the entire element needs to be redrawn.
 	 * @param now Whether this element should be repainted immediately or not. This parameter should usually be false when this is called as
 	 *            a result of a user operation such as a mouse or keyboard event because this allows all necessary paint events to be
-	 *            performed at one time with no duplication after the event is finished. This parameter should be true if this is called
-	 *            from an independent thread.
+	 *            performed at one time with no duplication after the event is finished. This parameter may be true if this is called from
+	 *            an independent thread.
 	 */
 	public final void repaint(Rectangle area, boolean now) {
 		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
@@ -943,21 +925,24 @@ public abstract class MuisElement {
 
 	/**
 	 * Draws this element's children
-	 *
+	 * 
 	 * @param graphics The graphics context to render in
 	 * @param area The area in this element's coordinates to repaint
+	 * @return The cached bounds used to draw each of the element's children
 	 */
-	public final void paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
+	public final MuisRendering.ElementBound[] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
 		MuisElement [] children = ch().sortByZ();
+		MuisRendering.ElementBound[] childBounds = new MuisRendering.ElementBound[children.length];
 		if(children.length == 0)
-			return;
+			return childBounds;
 		if(area == null)
 			area = theBounds.getBounds();
 		int translateX = 0;
 		int translateY = 0;
 		try {
 			Rectangle childArea = new Rectangle();
-			for(MuisElement child : children) {
+			for(int c = 0; c < children.length; c++) {
+				MuisElement child = children[c];
 				int childX = child.theBounds.getX();
 				int childY = child.theBounds.getY();
 				translateX += childX;
@@ -977,22 +962,18 @@ public abstract class MuisElement {
 				graphics.translate(translateX, translateY);
 				translateX = -childX;
 				translateY = -childY;
-				child.paint(graphics, childArea);
+				childBounds[c] = child.paint(graphics, childArea);
 			}
 		} finally {
 			if(translateX != 0 || translateY != 0)
 				graphics.translate(translateX, translateY);
 		}
+		return childBounds;
 	}
 
 	/** @return The last time a paint event was scheduled for this element */
 	public final long getPaintDirtyTime() {
 		return thePaintDirtyTime;
-	}
-
-	/** @return This element's bounds as of the last time it was painted */
-	public final Rectangle getCacheBounds() {
-		return theCacheBounds;
 	}
 
 	// End paint methods

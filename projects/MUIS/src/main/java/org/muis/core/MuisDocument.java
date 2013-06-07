@@ -85,6 +85,8 @@ public class MuisDocument {
 
 	private final MuisLocker theLocker;
 
+	private MuisRendering theRendering;
+
 	/**
 	 * Creates a document
 	 *
@@ -277,11 +279,6 @@ public class MuisDocument {
 		theScrollPolicy = policy;
 	}
 
-	/** @return The graphics that this document should use to render itself */
-	public java.awt.Graphics2D getGraphics() {
-		return theGraphics.getGraphics();
-	}
-
 	/**
 	 * Sets the size that this document can render its content in
 	 *
@@ -298,7 +295,9 @@ public class MuisDocument {
 	 * @param graphics The graphics context to render in
 	 */
 	public void paint(java.awt.Graphics2D graphics) {
-		theRoot.paint(graphics, null);
+		MuisRendering rendering = theRendering;
+		if(rendering != null)
+			graphics.drawImage(rendering.getImage(), null, 0, 0);
 	}
 
 	/** @return Whether the mouse is over this document */
@@ -399,8 +398,11 @@ public class MuisDocument {
 		hasMouse = type != MouseEvent.MouseEventType.exited;
 		theMouseX = x;
 		theMouseY = y;
-		MuisElementCapture newCapture = MuisUtils.captureEventTargets(theRoot, x, y);
-		MuisElementCapture oldCapture = MuisUtils.captureEventTargets(theRoot, oldX, oldY);
+		MuisRendering rendering = theRendering;
+		if(rendering == null)
+			return;
+		MuisElementCapture newCapture = rendering.capture(x, y);
+		MuisElementCapture oldCapture = rendering.capture(oldX, oldY);
 		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().element, type, x, y, buttonType, clickCount, newCapture);
 
 		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
@@ -534,7 +536,7 @@ public class MuisDocument {
 			return;
 		if(searchFocus(theFocus, true))
 			return;
-		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable element. */
+		/* If we get here, then there was no next focusable element. We must wrap around to the first focusable element. */
 		MuisElement deepest = getDeepestElement(theRoot, true);
 		searchFocus(deepest, true);
 	}
@@ -590,10 +592,13 @@ public class MuisDocument {
 	public void scroll(int x, int y, int amount) {
 		ScrollEvent evt = null;
 		MuisElement element = null;
+		MuisRendering rendering = theRendering;
+		if(rendering == null)
+			return;
 		switch (theScrollPolicy) {
 		case MOUSE:
 		case MIXED:
-			MuisElementCapture capture = MuisUtils.captureEventTargets(theRoot, x, y);
+			MuisElementCapture capture = rendering.capture(x, y);
 			evt = new ScrollEvent(this, element, x, y, ScrollEvent.ScrollType.UNIT, true, amount, null, capture);
 			break;
 		case FOCUS:
@@ -618,6 +623,7 @@ public class MuisDocument {
 			evt = new KeyBoardEvent(this, theFocus, code, pressed);
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, pressed);
+		MuisRendering rendering = theRendering;
 
 		synchronized(theKeysLock) {
 			if(pressed) {
@@ -634,8 +640,8 @@ public class MuisDocument {
 			int x = 0, y = 0;
 			switch (theScrollPolicy) {
 			case MOUSE:
-				if(hasMouse) {
-					capture = MuisUtils.captureEventTargets(theRoot, theMouseX, theMouseY);
+				if(hasMouse && rendering != null) {
+					capture = rendering.capture(theMouseX, theMouseY);
 					scrollElement = capture.getTarget().element;
 					x = theMouseX;
 					y = theMouseY;

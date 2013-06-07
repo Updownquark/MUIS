@@ -167,15 +167,17 @@ public class MuisEventQueue {
 
 		@Override
 		protected void doHandleAction() {
-			MuisRendering render = theElement.getDocument().getRender();
-			if(render == null) {
-				if(theElement == theElement.getDocument().getRoot()) {
-					render = new MuisRendering(theElement.bounds().getWidth(), theElement.bounds().getHeight());
-					java.awt.Graphics2D graphics = (java.awt.Graphics2D) render.getImage().getGraphics();
-					render.setRoot(theElement.paint(graphics, theArea));
-				} else
-					return;
+			MuisDocument doc = theElement.getDocument();
+			if(theElement == doc.getRoot()) {
+				MuisRendering render = new MuisRendering(theElement.bounds().getWidth(), theElement.bounds().getHeight());
+				java.awt.Graphics2D graphics = (java.awt.Graphics2D) render.getImage().getGraphics();
+				render.setRoot(theElement.paint(graphics, theArea));
+				theElement.getDocument().setRender(render);
+				return;
 			}
+			MuisRendering render = theElement.getDocument().getRender();
+			if(render == null)
+				return;
 			MuisRendering.ElementBound bound = render.getFor(theElement);
 			if(bound == null) {
 				// Hierarchy may have been restructured. Need to repaint everything.
@@ -297,6 +299,16 @@ public class MuisEventQueue {
 		@Override
 		protected void doHandleAction() {
 			theElement.bounds().setBounds(theBounds.x, theBounds.y, theBounds.width, theBounds.height);
+		}
+
+		@Override
+		public boolean isSupersededBy(Event evt) {
+			return evt instanceof ReboundEvent && evt.getTime() > getTime();
+		}
+
+		@Override
+		public boolean shouldHandle(long time) {
+			return time - getTime() > 50;
 		}
 	}
 

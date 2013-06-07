@@ -43,6 +43,12 @@ public class MuisDocument {
 		java.awt.Graphics2D getGraphics();
 	}
 
+	/** A listener to be notified when the rendering changes for a MUIS document */
+	public interface RenderListener {
+		/** @param doc The MUIS document whose rendering was changed */
+		void renderUpdate(MuisDocument doc);
+	}
+
 	private final MuisEnvironment theEnvironment;
 
 	private final java.net.URL theLocation;
@@ -62,8 +68,6 @@ public class MuisDocument {
 	private DocumentStyleSheet theDocumentStyle;
 
 	private NamedStyleGroup [] theDocumentGroups;
-
-	private GraphicsGetter theGraphics;
 
 	private ScrollPolicy theScrollPolicy;
 
@@ -85,7 +89,9 @@ public class MuisDocument {
 
 	private final MuisLocker theLocker;
 
-	private MuisRendering theRendering;
+	private volatile MuisRendering theRendering;
+
+	private java.util.Collection<RenderListener> theRenderListeners;
 
 	/**
 	 * Creates a document
@@ -111,6 +117,7 @@ public class MuisDocument {
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
 		theLocker = new MuisLocker();
+		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
 		applyHead();
 	}
@@ -127,9 +134,15 @@ public class MuisDocument {
 		theClassView = classView;
 	}
 
-	/** @param graphics The graphics getter that this document will use for retrieving the graphics object to draw itself on demand */
-	public void setGraphics(GraphicsGetter graphics) {
-		theGraphics = graphics;
+	/** @param listener The listener to be notified when the rendering of this document changes */
+	public void addRenderListener(RenderListener listener) {
+		if(listener != null)
+			theRenderListeners.add(listener);
+	}
+
+	/** @param listener The listener to stop notifying */
+	public void removeRenderListener(RenderListener listener) {
+		theRenderListeners.remove(listener);
 	}
 
 	/** @return The environment that this document was created in */
@@ -287,6 +300,17 @@ public class MuisDocument {
 	 */
 	public void setSize(int width, int height) {
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.ReboundEvent(theRoot, new java.awt.Rectangle(0, 0, width, height)), true);
+	}
+
+	/** @return The most recent rendering of this document */
+	public MuisRendering getRender() {
+		return theRendering;
+	}
+
+	void setRender(MuisRendering render) {
+		theRendering = render;
+		for(RenderListener listener : theRenderListeners)
+			listener.renderUpdate(this);
 	}
 
 	/**

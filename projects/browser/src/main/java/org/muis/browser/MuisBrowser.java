@@ -70,10 +70,10 @@ public class MuisBrowser extends javax.swing.JPanel {
 			org.muis.core.parser.MuisDocumentStructure docStruct = env.getParser().parseDocument(env, url,
 				new java.io.InputStreamReader(url.openStream()));
 			muisDoc = new MuisDocument(env, env.getParser(), docStruct.getLocation(), docStruct.getHead());
-			muisDoc.setGraphics(new org.muis.core.MuisDocument.GraphicsGetter() {
+			muisDoc.addRenderListener(new MuisDocument.RenderListener() {
 				@Override
-				public java.awt.Graphics2D getGraphics() {
-					return (java.awt.Graphics2D) getContentPane().getGraphics();
+				public void renderUpdate(MuisDocument doc) {
+					repaint();
 				}
 			});
 			env.getContentCreator().fillDocument(muisDoc, docStruct.getContent());

@@ -871,14 +871,12 @@ public abstract class MuisElement {
 
 	/**
 	 * Renders this element in a graphics context.
-	 * 
+	 *
 	 * @param graphics The graphics context to render this element in
 	 * @param area The area to draw
 	 * @return The cached bounds used to draw the element
 	 */
 	public final MuisRendering.ElementBound paint(java.awt.Graphics2D graphics, Rectangle area) {
-		if((area != null && (area.width == 0 || area.height == 0)) || theBounds.getWidth() == 0 || theBounds.getHeight() == 0)
-			return null;
 		Rectangle paintBounds = getPaintBounds();
 		int cacheX = paintBounds.x + theBounds.getX();
 		int cacheY = paintBounds.y + theBounds.getY();
@@ -886,9 +884,15 @@ public abstract class MuisElement {
 		Rectangle preClip = graphics.getClipBounds();
 		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
-			paintSelf(graphics, area);
+			if((area != null && (area.width == 0 || area.height == 0)) || theBounds.getWidth() == 0 || theBounds.getHeight() == 0) {
+			} else
+				paintSelf(graphics, area);
 			MuisRendering.ElementBound[] childBounds = paintChildren(graphics, area);
-			return new MuisRendering.ElementBound(this, cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height, childBounds);
+			MuisRendering.ElementBound ret = new MuisRendering.ElementBound(this, cacheX, cacheY, cacheZ, paintBounds.width,
+				paintBounds.height, childBounds);
+			for(MuisRendering.ElementBound bound : childBounds)
+				bound.parent = ret;
+			return ret;
 		} finally {
 			graphics.setClip(preClip);
 		}
@@ -896,7 +900,7 @@ public abstract class MuisElement {
 
 	/**
 	 * Causes this element to be repainted.
-	 * 
+	 *
 	 * @param area The area in this element that needs to be repainted. May be null to specify that the entire element needs to be redrawn.
 	 * @param now Whether this element should be repainted immediately or not. This parameter should usually be false when this is called as
 	 *            a result of a user operation such as a mouse or keyboard event because this allows all necessary paint events to be
@@ -925,7 +929,7 @@ public abstract class MuisElement {
 
 	/**
 	 * Draws this element's children
-	 * 
+	 *
 	 * @param graphics The graphics context to render in
 	 * @param area The area in this element's coordinates to repaint
 	 * @return The cached bounds used to draw each of the element's children

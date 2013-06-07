@@ -6,8 +6,7 @@ import java.util.Iterator;
  * Represents a capture of an element structure at a point in time. X and Y attributes are available if this is used for elements under a
  * screen point
  */
-public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisElementCapture>
-{
+public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisElementCapture> {
 	/** This capture element's parent in the hierarchy */
 	public final MuisElementCapture parent;
 
@@ -30,8 +29,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	 * @param anX The x-coordinate of the screen point relative to this element
 	 * @param aY The y-coordinate of the screen point relative to this element
 	 */
-	public MuisElementCapture(MuisElementCapture aParent, MuisElement el, int anX, int aY)
-	{
+	public MuisElementCapture(MuisElementCapture aParent, MuisElement el, int anX, int aY) {
 		parent = aParent;
 		element = el;
 		x = anX;
@@ -43,16 +41,14 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	 * @param child The child to add to this capture
 	 * @throws SealedException If this capture has been sealed
 	 */
-	public void addChild(MuisElementCapture child) throws SealedException
-	{
+	public void addChild(MuisElementCapture child) throws SealedException {
 		if(isSealed)
 			throw new SealedException(this);
 		theChildren = prisms.util.ArrayUtils.add(theChildren, child);
 	}
 
 	/** @return The number of children this capture has--that is, the number of children this capture's element had at the moment of capture */
-	public int getChildCount()
-	{
+	public int getChildCount() {
 		return theChildren.length;
 	}
 
@@ -60,33 +56,28 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	 * @param index The index of the child to get
 	 * @return This capture's child at the given index
 	 */
-	public MuisElementCapture getChild(int index)
-	{
+	public MuisElementCapture getChild(int index) {
 		return theChildren[index];
 	}
 
 	/** @return An iterator over this capture's immediate children */
-	public Iterable<MuisElementCapture> getChildren()
-	{
+	public Iterable<MuisElementCapture> getChildren() {
 		return prisms.util.ArrayUtils.iterable(theChildren, true);
 	}
 
 	/** @return An iterator of each end point (leaf node) in this hierarchy */
-	public Iterable<MuisElementCapture> getTargets()
-	{
+	public Iterable<MuisElementCapture> getTargets() {
 		if(theChildren.length == 0)
 			return new Iterable<MuisElementCapture>() {
 				@Override
-				public Iterator<MuisElementCapture> iterator()
-				{
+				public Iterator<MuisElementCapture> iterator() {
 					return new SelfIterator();
 				}
 			};
 		else
 			return new Iterable<MuisElementCapture>() {
 				@Override
-				public Iterator<MuisElementCapture> iterator()
-				{
+				public Iterator<MuisElementCapture> iterator() {
 					return new MuisCaptureIterator(false, true);
 				}
 			};
@@ -94,8 +85,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 
 	/** Performs a depth-first iteration of this capture structure */
 	@Override
-	public Iterator<MuisElementCapture> iterator()
-	{
+	public Iterator<MuisElementCapture> iterator() {
 		return new MuisCaptureIterator(true, true);
 	}
 
@@ -103,12 +93,10 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	 * @param depthFirst Whether to iterate depth-first or breadth-first
 	 * @return An iterable to iterate over every element in this hierarchy
 	 */
-	public Iterable<MuisElementCapture> iterate(final boolean depthFirst)
-	{
+	public Iterable<MuisElementCapture> iterate(final boolean depthFirst) {
 		return new Iterable<MuisElementCapture>() {
 			@Override
-			public Iterator<MuisElementCapture> iterator()
-			{
+			public Iterator<MuisElementCapture> iterator() {
 				return new MuisCaptureIterator(true, depthFirst);
 			}
 		};
@@ -118,17 +106,14 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	 * @param el The element to search for
 	 * @return The capture of the given element in this hierarhcy, or null if the given element was not located in this capture
 	 */
-	public MuisElementCapture find(MuisElement el)
-	{
+	public MuisElementCapture find(MuisElement el) {
 		MuisElement [] path = MuisUtils.path(el);
 		MuisElementCapture ret = this;
 		int pathIdx;
-		for(pathIdx = 1; pathIdx < path.length; pathIdx++)
-		{
+		for(pathIdx = 1; pathIdx < path.length; pathIdx++) {
 			boolean found = false;
 			for(MuisElementCapture child : ret.theChildren)
-				if(child.element == path[pathIdx])
-				{
+				if(child.element == path[pathIdx]) {
 					found = true;
 					ret = child;
 					break;
@@ -140,67 +125,56 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 	}
 
 	/** @return The last end point (leaf node) in this hierarchy */
-	public MuisElementCapture getTarget()
-	{
+	public MuisElementCapture getTarget() {
 		if(theChildren.length == 0)
 			return this;
 		return theChildren[theChildren.length - 1].getTarget();
 	}
 
 	@Override
-	public boolean isSealed()
-	{
+	public boolean isSealed() {
 		return isSealed;
 	}
 
 	@Override
-	public void seal()
-	{
+	public void seal() {
 		isSealed = true;
 	}
 
 	@Override
-	public int hashCode()
-	{
+	public int hashCode() {
 		return element.hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj)
-	{
+	public boolean equals(Object obj) {
 		return obj instanceof MuisElementCapture && ((MuisElementCapture) obj).element.equals(element);
 	}
 
-	private class SelfIterator implements Iterator<MuisElementCapture>
-	{
+	private class SelfIterator implements Iterator<MuisElementCapture> {
 		private boolean hasReturned;
 
-		SelfIterator()
-		{
+		SelfIterator() {
 		}
 
 		@Override
-		public boolean hasNext()
-		{
+		public boolean hasNext() {
 			return !hasReturned;
 		}
 
 		@Override
-		public MuisElementCapture next()
-		{
+		public MuisElementCapture next() {
 			hasReturned = true;
 			return MuisElementCapture.this;
 		}
 
 		@Override
-		public void remove()
-		{
+		public void remove() {
 			throw new UnsupportedOperationException();
 		}
 	}
 
-	private class MuisCaptureIterator implements Iterator<MuisElementCapture>
-	{
+	private class MuisCaptureIterator implements Iterator<MuisElementCapture> {
 		private int theIndex;
 
 		private Iterator<MuisElementCapture> theChildIter;
@@ -211,19 +185,16 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 
 		private boolean hasReturnedSelf;
 
-		MuisCaptureIterator(boolean returnSelf, boolean depthFirst)
-		{
+		MuisCaptureIterator(boolean returnSelf, boolean depthFirst) {
 			isReturningSelf = returnSelf;
 			isDepthFirst = depthFirst;
 		}
 
 		@Override
-		public boolean hasNext()
-		{
+		public boolean hasNext() {
 			if(isReturningSelf && !isDepthFirst && !hasReturnedSelf)
 				return true;
-			while(theIndex < getChildCount())
-			{
+			while(theIndex < getChildCount()) {
 				if(theChildIter == null)
 					theChildIter = getChild(theIndex).iterator();
 				if(theChildIter.hasNext())
@@ -236,17 +207,14 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 		}
 
 		@Override
-		public MuisElementCapture next()
-		{
-			if(isReturningSelf && !isDepthFirst && !hasReturnedSelf)
-			{
+		public MuisElementCapture next() {
+			if(isReturningSelf && !isDepthFirst && !hasReturnedSelf) {
 				hasReturnedSelf = true;
 				return MuisElementCapture.this;
 			}
 			if(theChildIter != null)
 				return theChildIter.next();
-			if(isReturningSelf && isDepthFirst && !hasReturnedSelf)
-			{
+			if(isReturningSelf && isDepthFirst && !hasReturnedSelf) {
 				hasReturnedSelf = true;
 				return MuisElementCapture.this;
 			}
@@ -254,8 +222,7 @@ public class MuisElementCapture implements prisms.util.Sealable, Iterable<MuisEl
 		}
 
 		@Override
-		public void remove()
-		{
+		public void remove() {
 			throw new UnsupportedOperationException();
 		}
 	}

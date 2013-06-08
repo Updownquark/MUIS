@@ -3,7 +3,7 @@ package org.muis.test.model;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.model.MuisModelValueEvent;
-import org.muis.core.style.BackgroundStyles;
+import org.muis.core.style.BackgroundStyle;
 
 /** A simple MUIS model for the button test */
 public class ButtonTestModel {
@@ -21,7 +21,7 @@ public class ButtonTestModel {
 					return;
 				try {
 					evt.getUserEvent().getDocument().getRoot().getStyle().getSelf()
-						.set(BackgroundStyles.color, org.muis.core.style.Colors.parseColor(theColorGroup.get()));
+						.set(BackgroundStyle.color, org.muis.core.style.Colors.parseColor(theColorGroup.get()));
 				} catch(ClassCastException | IllegalArgumentException | MuisException e) {
 					e.printStackTrace();
 				}
@@ -39,7 +39,7 @@ public class ButtonTestModel {
 			return;
 		org.muis.core.BodyElement body = element.getDocument().getRoot();
 		java.awt.Color color = getColor();
-		body.getStyle().getSelf().set(BackgroundStyles.color, color);
+		body.getStyle().getSelf().set(BackgroundStyle.color, color);
 		theCount++;
 	}
 

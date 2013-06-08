@@ -28,7 +28,7 @@ public class LayoutStyle implements StyleDomain {
 		instance.register(padding);
 	}
 
-	/** @return The style domain for all background styles */
+	/** @return The style domain for all layout styles */
 	public static LayoutStyle getDomainInstance() {
 		return instance;
 	}

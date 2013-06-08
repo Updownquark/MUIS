@@ -7,10 +7,10 @@ import org.muis.core.MuisProperty;
  * all of its subclasses unless the {@link org.muis.core.MuisElement#paintSelf(java.awt.Graphics2D, java.awt.Rectangle)} method is
  * overridden in a way that ignores them.
  */
-public class BackgroundStyles implements StyleDomain {
+public class BackgroundStyle implements StyleDomain {
 	private StyleAttribute<?> [] theAttributes;
 
-	private BackgroundStyles() {
+	private BackgroundStyle() {
 		theAttributes = new StyleAttribute[0];
 	}
 
@@ -18,7 +18,7 @@ public class BackgroundStyles implements StyleDomain {
 		theAttributes = prisms.util.ArrayUtils.add(theAttributes, attr);
 	}
 
-	private static final BackgroundStyles instance;
+	private static final BackgroundStyle instance;
 
 	/** The texture to render an element's background with */
 	public static final StyleAttribute<? extends Texture> texture;
@@ -33,7 +33,7 @@ public class BackgroundStyles implements StyleDomain {
 	public static final StyleAttribute<Size> cornerRadius;
 
 	static {
-		instance = new BackgroundStyles();
+		instance = new BackgroundStyle();
 		texture = new StyleAttribute<>(instance, "texture", new MuisProperty.MuisTypeInstanceProperty<>(Texture.class), new BaseTexture());
 		instance.register(texture);
 		color = new StyleAttribute<>(instance, "color", MuisProperty.colorAttr, new java.awt.Color(255, 255, 255));
@@ -47,7 +47,7 @@ public class BackgroundStyles implements StyleDomain {
 	}
 
 	/** @return The style domain for all background styles */
-	public static BackgroundStyles getDomainInstance() {
+	public static BackgroundStyle getDomainInstance() {
 		return instance;
 	}
 

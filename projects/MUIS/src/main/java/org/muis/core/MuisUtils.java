@@ -7,7 +7,7 @@ import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
 
-import org.muis.core.style.BackgroundStyles;
+import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.FontStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
@@ -214,7 +214,7 @@ public class MuisUtils
 	 */
 	public static Color getBackground(org.muis.core.style.MuisStyle style)
 	{
-		return getColor(style.get(BackgroundStyles.color), style.get(BackgroundStyles.transparency));
+		return getColor(style.get(BackgroundStyle.color), style.get(BackgroundStyle.transparency));
 	}
 
 	/**

@@ -14,7 +14,7 @@ public class BaseTexture implements Texture {
 		if(bg.getAlpha() == 0)
 			return;
 		graphics.setColor(bg);
-		Size cornerRad = element.getStyle().getSelf().get(BackgroundStyles.cornerRadius);
+		Size cornerRad = element.getStyle().getSelf().get(BackgroundStyle.cornerRadius);
 		int wRad = cornerRad.evaluate(w);
 		int hRad = cornerRad.evaluate(h);
 		int wRad2 = wRad * 2;

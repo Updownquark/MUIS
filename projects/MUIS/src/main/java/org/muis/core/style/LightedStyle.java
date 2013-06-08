@@ -45,7 +45,7 @@ public class LightedStyle implements StyleDomain {
 			new MuisProperty.ComparableValidator<>(0d, 1d));
 	}
 
-	/** @return The style domain for all background styles */
+	/** @return The style domain for all lighting styles */
 	public static LightedStyle getDomainInstance() {
 		return instance;
 	}

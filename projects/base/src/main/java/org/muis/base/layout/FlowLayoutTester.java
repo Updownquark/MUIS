@@ -710,7 +710,8 @@ public class FlowLayoutTester {
 
 		@Override
 		public int getBaseline(int size) {
-			return theCache.get("baseline", size, theWraps);
+			Number ret=theCache.get("baseline", size, theWraps);
+			return ret == null ? 0 : ret.intValue();
 		}
 	}
 }

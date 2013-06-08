@@ -170,8 +170,14 @@ public abstract class MuisTemplate extends MuisElement {
 			};
 		}
 
-		/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
-		public final MuisAttribute<AttachPoint> role = new MuisAttribute<>("role", new MuisProperty.PropertyType<AttachPoint>() {
+		/** The attribute type of the templated role attribute */
+		public static final class RoleAttributeType implements MuisProperty.PropertyType<AttachPoint> {
+			private final TemplateStructure theTemplate;
+
+			RoleAttributeType(TemplateStructure template) {
+				theTemplate = template;
+			}
+
 			@Override
 			public <V extends AttachPoint> Class<V> getType() {
 				return (Class<V>) AttachPoint.class;
@@ -179,9 +185,9 @@ public abstract class MuisTemplate extends MuisElement {
 
 			@Override
 			public <V extends AttachPoint> V parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
-				AttachPoint ret = theAttachPoints.get(value);
+				AttachPoint ret = theTemplate.getAttachPoint(value);
 				if(ret == null)
-					throw new MuisException("No such attach point \"" + value + "\" in template " + theDefiner.getName());
+					throw new MuisException("No such attach point \"" + value + "\" in template " + theTemplate.getDefiner().getName());
 				return (V) ret;
 			}
 
@@ -191,7 +197,10 @@ public abstract class MuisTemplate extends MuisElement {
 					return (V) value;
 				return null;
 			}
-		});
+		}
+
+		/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
+		public final MuisAttribute<AttachPoint> role = new MuisAttribute<>("role", new RoleAttributeType(this));
 
 		private final Class<? extends MuisTemplate> theDefiner;
 

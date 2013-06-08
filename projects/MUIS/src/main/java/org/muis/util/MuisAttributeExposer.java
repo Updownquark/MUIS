@@ -61,10 +61,11 @@ public class MuisAttributeExposer implements AutoCloseable {
 		theListeners[1] = new MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
-				MuisAttribute<Object> att = (MuisAttribute<Object>) event.getValue();
-				if(!EXCLUDED.contains(att) && theDest.atts().isAccepted(att))
+				MuisAttribute<?> att = event.getValue();
+				if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)
+					&& theDest.atts().isAccepted(att))
 					try {
-						theDest.atts().set(att, theSource.atts().get(att));
+						theDest.atts().set((MuisAttribute<Object>) att, theSource.atts().get(att));
 					} catch(MuisException e) {
 						theMessageCenter.error("Attribute synchronization failed: Destination " + theDest + " cannot accept value "
 							+ theSource.atts().get(att) + " for attribute " + att, e);
@@ -78,17 +79,17 @@ public class MuisAttributeExposer implements AutoCloseable {
 		};
 		theDest.addListener(Events.ATTRIBUTE_ACCEPTED, theListeners[0]);
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder holder : theDest.atts().holders()) {
-			MuisAttribute<Object> att = (MuisAttribute<Object>) holder.getAttribute();
-			if(!EXCLUDED.contains(att)) {
+			MuisAttribute<?> att = holder.getAttribute();
+			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)) {
 				try {
-					theSource.atts().accept(this, holder.isRequired(), att, holder.getValue());
+					theSource.atts().accept(this, holder.isRequired(), (MuisAttribute<Object>) att, holder.getValue());
 				} catch(MuisException e) {
 					theMessageCenter.error("Attribute synchronization failed: Source " + theSource + " cannot accept attribute " + att, e);
 				}
 				Object newVal = theSource.atts().get(att);
 				if(!java.util.Objects.equals(holder.getValue(), newVal))
 					try {
-						theDest.atts().set(att, newVal);
+						theDest.atts().set((MuisAttribute<Object>) att, newVal);
 					} catch(MuisException e) {
 						theMessageCenter.error("Attribute synchronization failed: Destination " + theDest + " cannot accept value "
 							+ theSource.atts().get(att) + " for attribute " + att, e);

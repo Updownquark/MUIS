@@ -953,8 +953,8 @@ public abstract class MuisElement {
 				int childY = child.theBounds.getY();
 				translateX += childX;
 				translateY += childY;
-				childArea.x = area.x - translateX;
-				childArea.y = area.y - translateY;
+				childArea.x = area.x - childX;
+				childArea.y = area.y - childY;
 				if(childArea.x < 0)
 					childArea.x = 0;
 				if(childArea.y < 0)

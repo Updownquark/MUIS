@@ -10,9 +10,9 @@
     		<block layout="base:simple" left="0" right="100%" top="0" height="25%">This is a MUIS Document</block>
 			<!--<base:button layout="base:simple" left="0" right="100%" top="25%" height="75%" style="bg.texture=base:raised-round;bg.color=#4040ff;
 				bg.corner-radius=15%" style.click="bg.color=purple" style.hover="bg.color=yellow">-->
-			<button left="0" right="100%" top="25%" height="75%" action="model.clicked">
+			<button left="0" right="100%" top="25%" height="75%" action="model.clicked" layout="simple">
 				The first set of Content is short
-				<block style="font.color=red;font.weight=bold;bg.color=purple" layout="flow">The second set of Content is a bit longer than the first set</block>
+				<block y="150" style="font.color=red;font.weight=bold;bg.color=purple" layout="flow">The second set of Content is a bit longer than the first set</block>
 			</button>
     	</block>
     </body>

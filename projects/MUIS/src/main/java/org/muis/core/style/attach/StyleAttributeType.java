@@ -117,7 +117,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 		for(StyleAttribute<?> attr : value.localAttributes()) {
 			if(ret.length() > 0)
 				ret.append(';');
-			ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append(':');
+			ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append('=');
 			String valueStr;
 			if(attr.getType() instanceof org.muis.core.MuisProperty.PrintablePropertyType)
 				valueStr = ((org.muis.core.MuisProperty.PrintablePropertyType<Object>) attr.getType()).toString(value.get(attr));

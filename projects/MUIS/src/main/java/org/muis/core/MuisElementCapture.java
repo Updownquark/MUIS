@@ -3,10 +3,9 @@ package org.muis.core;
 import java.util.Iterator;
 
 /**
- * Represents a capture of an element structure at a point in time. X and Y attributes are available if this is used for elements under a
- * screen point
+ * Represents a capture of an element's bounds and hierarchy at a point in time
  *
- * @param <C> The sub-type of the capture
+ * @param <C> The sub-type of the capture. Used to make subclasses go a little nicer.
  */
 public class MuisElementCapture<C extends MuisElementCapture<C>> implements Cloneable, prisms.util.Sealable, Iterable<C> {
 	private C theParent;
@@ -30,16 +29,16 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	private boolean isSealed;
 
 	/**
-	 * @param aParent This capture element's parent in the hierarchy
-	 * @param el The element that this capture represents
+	 * @param p This capture element's parent in the hierarchy
+	 * @param el The MUIS element that this structure is a capture of
 	 * @param xPos The x-coordinate of the element's upper-left corner
 	 * @param yPos The y-coordinate of the element's upper-left corner
 	 * @param zIndex The z-index of the element
 	 * @param w The width of the element
 	 * @param h The height of the element
 	 */
-	public MuisElementCapture(C aParent, MuisElement el, int xPos, int yPos, int zIndex, int w, int h) {
-		theParent = aParent;
+	public MuisElementCapture(C p, MuisElement el, int xPos, int yPos, int zIndex, int w, int h) {
+		theParent = p;
 		theElement = el;
 		theX = xPos;
 		theY = yPos;
@@ -116,7 +115,7 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 
 	/**
 	 * @param el The element to search for
-	 * @return The capture of the given element in this hierarhcy, or null if the given element was not located in this capture
+	 * @return The capture of the given element in this hierarchy, or null if the given element was not located in this capture
 	 */
 	public C find(MuisElement el) {
 		MuisElement [] path = MuisUtils.path(el);
@@ -181,26 +180,32 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 		return theElement;
 	}
 
+	/** @return The x-coordinate of the element */
 	public int getX() {
 		return theX;
 	}
 
+	/** @return The y-coordinate of the element */
 	public int getY() {
 		return theY;
 	}
 
+	/** @return The z-index of the element */
 	public int getZ() {
 		return theZ;
 	}
 
+	/** @return The width of the element */
 	public int getWidth() {
 		return theWidth;
 	}
 
+	/** @return The height of the element */
 	public int getHeight() {
 		return theHeight;
 	}
 
+	/** @return The location of the top left corner of this element relative to the document's top left corner */
 	public java.awt.Point getDocLocation() {
 		java.awt.Point ret = new java.awt.Point(theX, theY);
 		MuisElementCapture<C> parent = theParent;

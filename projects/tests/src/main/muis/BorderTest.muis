@@ -6,10 +6,10 @@
     </head>
     <body layout="base:simple">
     	<block layout="base:simple" width="100%" top="0" height="100%">
-    		<block layout="base:simple" left="0" right="100%" top="0" height="25%">This is a MUIS Document</block>
-    		<border left="0" right="100%" top="25%" height="75%" layout="simple">
-    			<border style="border-style={color=red,thickness=5}">
-	    			<label>This should have a little border and a big border around it</label>
+    		<label layout="base:simple" left="3" right="100%" top="0" height="25%">This is a MUIS Document</label>
+    		<border left="0" right="100%" top="25%" height="75%">
+    			<border style="border-style={color=red;thickness=5}">
+	    			<label>This should have a thick little red border and a thin big black border around it</label>
 	    		</border>
     		</border>
     	</block>

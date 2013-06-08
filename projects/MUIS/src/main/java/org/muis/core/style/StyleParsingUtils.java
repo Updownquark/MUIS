@@ -69,7 +69,7 @@ public class StyleParsingUtils {
 				continue;
 			if(ch == ';' && bracket == 0) {
 				if(c - begin > 0)
-					ret.add(value.substring(begin, c - 1).trim());
+					ret.add(value.substring(begin, c).trim());
 				begin = c + 1;
 				continue;
 			} else if(ch == '{')

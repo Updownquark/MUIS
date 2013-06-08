@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<muis xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
+    <head>
+        <title>Testing Borders</title>
+    </head>
+    <body layout="base:simple">
+    	<block layout="base:simple" width="100%" top="0" height="100%">
+    		<block layout="base:simple" left="0" right="100%" top="0" height="25%">This is a MUIS Document</block>
+    		<border left="0" right="100%" top="25%" height="75%" layout="simple">
+    			<border style="border-style={color=red,thickness=5}">
+	    			<label>This should have a little border and a big border around it</label>
+	    		</border>
+    		</border>
+    	</block>
+    </body>
+</muis>

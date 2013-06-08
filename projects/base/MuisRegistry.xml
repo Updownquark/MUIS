@@ -5,7 +5,7 @@
 	<description>
 		This toolkit provides basic MUIS functionality
 	</description>
-	<version>10Jul2012</version>
+	<version>07Jun2013</version>
 	<dependencies>
 		<classpath>classes</classpath>
 	</dependencies>
@@ -17,6 +17,7 @@
         <type tag="button">org.muis.base.widget.Button</type>
         <type tag="toggle-button">org.muis.base.widget.ToggleButton</type>
         <type tag="label">org.muis.base.widget.Label</type>
+        <type tag="border">org.muis.base.widget.BorderPane</type>
         
 		<!-- Layouts -->
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
@@ -27,10 +28,12 @@
 		<!-- Textures -->
         <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>
         <type tag="raised-square">org.muis.base.style.RaisedSquareTexture</type>
+        <type tag="border-texture">org.muis.base.style.BorderTexture</type>
         <type tag="grooved">org.muis.base.style.GrooveTexture</type>
         
 		<!-- Style Domains -->
-        <type tag="btn">org.muis.base.style.ButtonStyles</type>
+        <type tag="btn">org.muis.base.style.ButtonStyle</type>
+        <type tag="border-style">org.muis.base.style.BorderStyle</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>

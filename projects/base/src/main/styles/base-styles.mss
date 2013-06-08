@@ -39,3 +39,8 @@
 	layout.margin=0;
 	layout.padding=0
 }
+
+[border]{
+	bg.texture=border-texture
+	bg.corner-radius=5
+}

@@ -6,13 +6,11 @@
         <model name="model" class="org.muis.test.model.ButtonTestModel" />
     </head>
     <body layout="base:simple">
-    	<block layout="base:simple" width="100%" top="0" height="100%">
-    		<block layout="base:simple" left="0" right="100%" top="0" height="25%">This is a MUIS Document</block>
-			<!--<base:button layout="base:simple" left="0" right="100%" top="25%" height="75%" style="bg.texture=base:raised-round;bg.color=#4040ff;
-				bg.corner-radius=15%" style.click="bg.color=purple" style.hover="bg.color=yellow">-->
-			<button left="0" right="100%" top="25%" height="75%" action="model.clicked" layout="simple">
+    	<block layout="simple" width="100%" top="0" height="100%">
+    		<label left="3" right="100%" top="0" height="25%">This is a MUIS Document</label>
+			<button left="0" right="100%" top="25%" height="75%" action="model.clicked">
 				The first set of Content is short
-				<block y="150" style="font.color=red;font.weight=bold;bg.color=purple" layout="flow">The second set of Content is a bit longer than the first set</block>
+				<label style="font.color=red;font.weight=bold;bg.color=purple">The second set of Content is a bit longer than the first set</label>
 			</button>
     	</block>
     </body>

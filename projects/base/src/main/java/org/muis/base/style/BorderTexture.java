@@ -13,6 +13,7 @@ public class BorderTexture implements Texture {
 		int thickness = element.getStyle().getSelf().get(BorderStyle.thickness).intValue();
 		if(thickness == 0)
 			return;
+		int inset = element.getStyle().getSelf().get(BorderStyle.inset).intValue();
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
 		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
@@ -30,31 +31,38 @@ public class BorderTexture implements Texture {
 		Color oldColor = graphics.getColor();
 		graphics.setStroke(stroke);
 		graphics.setColor(color);
+		Object oldRH = graphics.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
+		graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+		w--;// Makes the ends work easier
+		h--;
 		if(wRad > 0 && hRad > 0) {
+			double quarter = 90;
+			int offset = inset + thickness / 2;
 			// Corners
 			// Upper left
-			graphics.draw(new Arc2D.Double(thickness / 2, thickness / 2, wRad * 2, hRad * 2, Math.PI / 2, Math.PI / 2, Arc2D.OPEN));
+			graphics.draw(new Arc2D.Double(offset, offset, wRad * 2, hRad * 2, quarter, quarter, Arc2D.OPEN));
 			// Upper right
-			graphics.draw(new Arc2D.Double(w - wRad * 2 - thickness / 2, thickness / 2, wRad * 2, hRad * 2, 0, Math.PI / 2, Arc2D.OPEN));
+			graphics.draw(new Arc2D.Double(w - wRad * 2 - offset, offset, wRad * 2, hRad * 2, 0, quarter, Arc2D.OPEN));
 			// Lower right
-			graphics.draw(new Arc2D.Double(w - wRad * 2 - thickness / 2, h - hRad * 2 - thickness / 2, wRad * 2, hRad * 2, -Math.PI / 2,
-				Math.PI / 2, Arc2D.OPEN));
+			graphics
+				.draw(new Arc2D.Double(w - wRad * 2 - offset, h - hRad * 2 - offset, wRad * 2, hRad * 2, -quarter, quarter, Arc2D.OPEN));
 			// Lower left
-			graphics.draw(new Arc2D.Double(thickness / 2, h - hRad * 2 - thickness / 2, wRad * 2, hRad * 2, Math.PI, Math.PI / 2,
-				Arc2D.OPEN));
+			graphics.draw(new Arc2D.Double(offset, h - hRad * 2 - offset, wRad * 2, hRad * 2, quarter * 2, quarter, Arc2D.OPEN));
 
 			// Sides
 			// Top
-			graphics.drawLine(wRad + thickness / 2, thickness / 2, w - wRad - thickness / 2, thickness / 2);
+			graphics.drawLine(wRad + offset, offset, w - wRad - offset, offset);
 			// Right
-			graphics.drawLine(w - thickness / 2, hRad + thickness / 2, w - thickness / 2, h - hRad - thickness / 2);
+			graphics.drawLine(w - offset, hRad + offset, w - offset, h - hRad - offset);
 			// Bottom
-			graphics.drawLine(wRad + thickness / 2, h - thickness / 2, w - wRad - thickness / 2, h - thickness / 2);
+			graphics.drawLine(wRad + offset, h - offset, w - wRad - offset, h - offset);
 			// Left
-			graphics.drawLine(thickness / 2, hRad + thickness / 2, thickness / 2, h - hRad - thickness / 2);
+			graphics.drawLine(offset, hRad + offset, offset, h - hRad - offset);
 		} else
 			graphics.drawRect(thickness / 2, thickness / 2, w - thickness, h - thickness);
+
+		graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldRH);
 		graphics.setColor(oldColor);
 		graphics.setStroke(oldStroke);
 	}

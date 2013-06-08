@@ -18,8 +18,11 @@ public class BorderStyle implements StyleDomain {
 
 	private static final BorderStyle instance;
 
-	/** The thickness of the border */
+	/** The thickness of the border, in pixels */
 	public static final StyleAttribute<Long> thickness;
+
+	/** The number of pixels to inset the border */
+	public static final StyleAttribute<Long> inset;
 
 	/** The color of a widget's border */
 	public static final StyleAttribute<java.awt.Color> color;
@@ -34,6 +37,8 @@ public class BorderStyle implements StyleDomain {
 		instance = new BorderStyle();
 		thickness = new StyleAttribute<>(instance, "thickness", MuisProperty.intAttr, 1L, new MuisProperty.ComparableValidator<>(0L, 1000L));
 		instance.register(thickness);
+		inset = new StyleAttribute<>(instance, "inset", MuisProperty.intAttr, 1L, new MuisProperty.ComparableValidator<>(0L, 1000L));
+		instance.register(inset);
 		color = new StyleAttribute<>(instance, "color", MuisProperty.colorAttr, new java.awt.Color(0, 0, 0));
 		instance.register(color);
 		dashLength = new StyleAttribute<>(instance, "dash-length", MuisProperty.floatAttr, 3d, new MuisProperty.ComparableValidator<>(1d,

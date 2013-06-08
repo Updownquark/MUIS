@@ -40,7 +40,11 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	public static MuisStyle parseStyle(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
 		throws MuisException {
 		SealableStyle ret = new SealableStyle();
-		String [] styles = value.split(";");
+		String [] styles = StyleParsingUtils.splitStyles(value);
+		if(styles == null) {
+			ret.seal();
+			return ret;
+		}
 		for(String style : styles) {
 			int equalIdx = style.indexOf("=");
 			if(equalIdx < 0) {

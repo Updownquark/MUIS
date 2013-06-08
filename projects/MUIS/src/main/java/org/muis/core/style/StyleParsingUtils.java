@@ -1,6 +1,7 @@
 package org.muis.core.style;
 
 import org.muis.core.MuisException;
+import org.muis.core.mgr.MuisMessageCenter;
 
 /** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {
@@ -50,6 +51,38 @@ public class StyleParsingUtils {
 	}
 
 	/**
+	 * Splits a style value into the individual values or value sets to be parsed. This method has no smarts and only exists because simply
+	 * splitting on the ';' would break domain-scoped styles. It always returns something non-null, though it may be zero-length. Real
+	 * parsing and error handling are done elsewhere.
+	 *
+	 * @param value The style value to split
+	 * @return The styles or style sets to parse
+	 */
+	public static String [] splitStyles(String value) {
+		java.util.ArrayList<String> ret = new java.util.ArrayList<>(1);
+		int begin = 0;
+		int bracket = 0;
+		int c;
+		for(c = 0; c < value.length(); c++) {
+			char ch = value.charAt(c);
+			if(Character.isWhitespace(ch))
+				continue;
+			if(ch == ';' && bracket == 0) {
+				if(c - begin > 0)
+					ret.add(value.substring(begin, c - 1).trim());
+				begin = c + 1;
+				continue;
+			} else if(ch == '{')
+				bracket++;
+			else if(ch == '}' && bracket > 0)
+				bracket--;
+		}
+		if(c > begin)
+			ret.add(value.substring(begin, c).trim());
+		return ret.toArray(new String[ret.size()]);
+	}
+
+	/**
 	 * Applies a single style attribute to a style
 	 *
 	 * @param style The style to apply the attribute to
@@ -60,7 +93,7 @@ public class StyleParsingUtils {
 	 * @param classView The class view to use for parsing if needed
 	 */
 	public static void applyStyleAttribute(MutableStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
+		MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
 			if(attrib.getName().equals(attrName)) {
@@ -100,9 +133,9 @@ public class StyleParsingUtils {
 	 * @param messager The message center to issue warnings to if there are errors with the styles
 	 * @param classView The class view to use for parsing if needed
 	 */
-	public static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr, org.muis.core.mgr.MuisMessageCenter messager,
+	public static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr, MuisMessageCenter messager,
 		org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk
-		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(1) != '}') {
+		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(valueStr.length() - 1) != '}') {
 			messager.warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
 			return;
 		}

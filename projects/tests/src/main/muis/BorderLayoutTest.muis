@@ -12,7 +12,7 @@
 		<block group="opaque" style="bg.color=purple" region="left" width="50" />
 		<block group="opaque" style="bg.color=pink" region="bottom" height="25%" />
 		<block group="opaque" style="bg.color=orange" region="right" width="50" />
-		<block group="opaque" style="bg.color=yellow" style.-click="bg.color=black" region="top" height="50" />
+		<block group="opaque" style="bg.color=yellow" region="top" height="50" />
 		<block group="opaque" style="bg.color=gray" />
 	</body>
 </muis>

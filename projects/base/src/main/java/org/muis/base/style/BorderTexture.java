@@ -4,12 +4,12 @@ import java.awt.*;
 import java.awt.geom.Arc2D;
 
 import org.muis.core.MuisElement;
-import org.muis.core.style.Texture;
 
 /** Draws a border at the very edge of an element */
-public class BorderTexture implements Texture {
+public class BorderTexture extends org.muis.core.style.BaseTexture {
 	@Override
 	public void render(Graphics2D graphics, MuisElement element, Rectangle area) {
+		super.render(graphics, element, area);
 		int thickness = element.getStyle().getSelf().get(BorderStyle.thickness).intValue();
 		if(thickness == 0)
 			return;

@@ -60,6 +60,6 @@ public class PositionedUserEvent extends UserEvent {
 					capture = mec;
 					break;
 				}
-		return capture == null ? null : new java.awt.Point(capture.getX(), capture.getY());
+		return capture == null ? null : new java.awt.Point(capture.getEventX(), capture.getEventY());
 	}
 }

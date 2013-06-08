@@ -117,7 +117,7 @@ public class RaisedRoundTexture implements org.muis.core.style.Texture
 	{
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
-		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.cornerRadius);
+		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
 		Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf());

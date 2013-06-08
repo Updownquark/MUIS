@@ -97,7 +97,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 		super.paintSelf(graphics, area);
 		if(theImage != null) {
 			graphics.drawImage(theImage, 0, 0, theImage.getWidth(), theImage.getHeight(),
-				getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.color), null);
+				getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.color), null);
 		}
 	}
 
@@ -111,7 +111,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 			int h = bounds().getHeight() > theImage.getHeight() ? bounds().getHeight() : theImage.getHeight();
 			java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
 			img.getGraphics().drawImage(theImage, 0, 0, theImage.getWidth(), theImage.getHeight(),
-				getStyle().getSelf().get(org.muis.core.style.BackgroundStyles.color), null);
+				getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.color), null);
 			repaint(null, false);
 		}
 	}

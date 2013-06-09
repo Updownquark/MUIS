@@ -16,11 +16,12 @@ public class Label extends org.muis.core.LayoutContainer {
 
 	private org.muis.core.model.MuisModelValueListener<Object> theValueListener;
 
+	/** Creates the label */
 	public Label() {
 		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
 			@Override
 			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
-				setText(String.valueOf(evt.getNewValue()));
+				setText(getTextFor(evt.getNewValue()));
 			}
 		};
 		life().runWhen(new Runnable() {
@@ -39,6 +40,12 @@ public class Label extends org.muis.core.LayoutContainer {
 		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
+	/** @param text The initial text for the label */
+	public Label(String text) {
+		this();
+		setText(text);
+	}
+
 	/** @return The text displayed by this label, or null if this label contains no */
 	public String getText() {
 		if(getChildren().isEmpty())
@@ -48,8 +55,15 @@ public class Label extends org.muis.core.LayoutContainer {
 		return ((MuisTextElement) getChildren().get(0)).getText();
 	}
 
+	/**
+	 * Sets this label's text. This call replaces all of this widget's content with a single {@link MuisTextElement} with the given text.
+	 *
+	 * @param text The text to display
+	 */
 	public void setText(String text) {
-		if(getChildren().isEmpty())
+		if(text == null)
+			getChildManager().clear();
+		else if(getChildren().isEmpty())
 			getChildManager().add(new MuisTextElement(text));
 		else {
 			if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
@@ -61,14 +75,22 @@ public class Label extends org.muis.core.LayoutContainer {
 	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
 		if(theRegistration != null)
 			theRegistration.unregister();
+		if(oldValue != null)
+			oldValue.removeListener(theValueListener);
 		if(newValue instanceof org.muis.core.model.WidgetRegister)
 			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(Label.this);
-		// TODO Auto-generated method stub
-
+		if(newValue != null) {
+			newValue.addListener(theValueListener);
+			setText(getTextFor(newValue.get()));
+		}
 	}
 
 	@Override
 	protected org.muis.core.MuisLayout getDefaultLayout() {
 		return new org.muis.base.layout.FlowLayout();
+	}
+
+	private static String getTextFor(Object value) {
+		return value == null ? null : value.toString();
 	}
 }

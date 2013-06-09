@@ -54,7 +54,7 @@ public class FlowLayoutTester {
 		theMarginX = marginX;
 		theMarginY = marginY;
 		isFillContainer = fillContainer;
-		theWraps = new boolean[children.length - 1];
+		theWraps = new boolean[children.length == 0 ? 0 : children.length - 1];
 		theMainGuide = new FlowLayoutTesterMainSizeGuide();
 		theCrossGuide = new FlowLayoutTesterCrossSizeGuide();
 	}

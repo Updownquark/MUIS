@@ -81,6 +81,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
+				if(children.length == 0)
+					return 0;
 				if(major) {
 					tester.wrapAll();
 					if(crossSize < Integer.MAX_VALUE)
@@ -96,6 +98,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getMinPreferred(int crossSize, boolean csMax) {
+				if(children.length == 0)
+					return 0;
 				if(major) {
 					tester.wrapAll();
 					if(crossSize < Integer.MAX_VALUE)
@@ -113,6 +117,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getPreferred(int crossSize, boolean csMax) {
+				if(children.length == 0)
+					return 0;
 				tester.unwrapAll();
 				if(major)
 					return tester.main().getPreferred(crossSize, csMax);
@@ -135,6 +141,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
+				if(children.length == 0)
+					return 0;
 				if(major)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), maxPref, crossSize, csMax, marginSz, marginSz,
 						paddingSz, paddingSz);
@@ -152,6 +160,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 			public int getMax(int crossSize, boolean csMax) {
 				if(fill)
 					return Integer.MAX_VALUE;
+				else if(children.length == 0)
+					return 0;
 				else if(major)
 					return BaseLayoutUtils.getBoxLayoutSize(children, dir.getOrientation(), max, crossSize, csMax, marginSz, marginSz,
 						paddingSz, paddingSz);
@@ -167,6 +177,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getBaseline(int size) {
+				if(children.length == 0)
+					return 0;
 				return major ? tester.main().getBaseline(size) : tester.cross().getBaseline(size);
 			}
 		};

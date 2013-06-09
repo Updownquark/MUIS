@@ -5,7 +5,9 @@ import static org.muis.core.MuisConstants.Events.CHILD_REMOVED;
 
 import java.util.*;
 
+import org.muis.core.MuisConstants.CoreStage;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisToolkit;
 import org.muis.core.event.MuisEvent;
 
 import prisms.util.ArrayUtils;
@@ -89,6 +91,7 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			children = children.clone();
 			children[index] = child;
 			theChildren = children;
+			checkChildState(child);
 		}
 		childRemoved(oldChild);
 		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild), false, false);
@@ -105,7 +108,8 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			MuisElement [] children = theChildren;
 			if(ArrayUtils.contains(children, child))
 				return false;
-			children = ArrayUtils.add(children, child);
+			theChildren = ArrayUtils.add(children, child);
+			checkChildState(child);
 		}
 		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 		childAdded(child);
@@ -117,9 +121,12 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		if(child == null)
 			throw new NullPointerException();
 		try (MuisLock lock = getParent().getDocument().getLocker().lock(MuisElement.CHILDREN_LOCK_TYPE, getParent(), true)) {
+			if(ArrayUtils.contains(theChildren, child))
+				return;
 			if(index < 0)
 				index = theChildren.length;
 			theChildren = ArrayUtils.add(theChildren, child, index);
+			checkChildState(child);
 		}
 		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child), false, false);
 		childAdded(child);
@@ -188,6 +195,8 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			if(!toAdd.isEmpty()) {
 				newChildren = ArrayUtils.addAll(newChildren, toAdd.toArray(new MuisElement[toAdd.size()]));
 				theChildren = newChildren;
+				for(MuisElement child : toAdd)
+					checkChildState(child);
 			}
 		}
 
@@ -221,6 +230,8 @@ public class ChildList extends AbstractElementList<MuisElement> {
 				System.arraycopy(cacheChildren, index, toAdd.toArray(new MuisElement[toAdd.size()]), 0, toAdd.size());
 				System.arraycopy(cacheChildren, index, newChildren2, index + toAdd.size(), cacheChildren.length - index);
 				theChildren = newChildren2;
+				for(MuisElement child : toAdd)
+					checkChildState(child);
 			}
 		}
 
@@ -282,6 +293,26 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			}
 		}
 		return changed;
+	}
+
+	private void checkChildState(MuisElement child) {
+		// Need to catch the child up to where the parent is in the life cycle
+		if(child.life().isAfter(CoreStage.INIT_SELF.name()) < 0 && getParent().life().isAfter(CoreStage.PARSE_CHILDREN.name()) > 0) {
+			MuisToolkit tk;
+			if(child.getClass().getClassLoader() instanceof MuisToolkit)
+				tk = (MuisToolkit) child.getClass().getClassLoader();
+			else
+				tk = getParent().getDocument().getEnvironment().getCoreToolkit();
+			org.muis.core.MuisClassView classView = new org.muis.core.MuisClassView(getParent().getDocument().getEnvironment(), getParent()
+				.getClassView(), tk);
+			child.init(getParent().getDocument(), tk, classView, getParent(), null, null);
+		}
+		if(child.life().isAfter(CoreStage.INIT_CHILDREN.name()) < 0 && getParent().life().isAfter(CoreStage.INITIALIZED.name()) > 0) {
+			child.initChildren(new MuisElement[0]);
+		}
+		if(child.life().isAfter(CoreStage.STARTUP.name()) < 0 && getParent().life().isAfter(CoreStage.READY.name()) > 0) {
+			child.postCreate();
+		}
 	}
 
 	@Override

@@ -96,7 +96,8 @@ public class ToggleButton extends Button {
 			modelValue.set(value, cause);
 		} catch(RuntimeException e) {
 			msg().error("Model value threw exception for value \"" + value + "\"", e);
-			theSelectedController.setActive(modelValue.get(), null);
 		}
+		if(modelValue.get().booleanValue() != value)
+			theSelectedController.setActive(modelValue.get(), null);
 	}
 }

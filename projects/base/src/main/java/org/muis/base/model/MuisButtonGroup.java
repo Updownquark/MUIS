@@ -120,7 +120,8 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 
 		@Override
 		public void set(Boolean value, UserEvent event) throws IllegalStateException {
-			MuisButtonGroup.this.set(theCaseValue, event);
+			if(!value.equals(get()))
+				MuisButtonGroup.this.set(theCaseValue, event);
 		}
 
 		@Override

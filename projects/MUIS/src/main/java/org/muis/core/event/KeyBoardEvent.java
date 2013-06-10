@@ -295,4 +295,9 @@ public class KeyBoardEvent extends UserEvent {
 		// TODO
 		return 'a';
 	}
+
+	@Override
+	public String toString() {
+		return "Keyboard event: " + theKeyCode + (wasPressed ? " pressed " : " released ") + " for " + getElement();
+	}
 }

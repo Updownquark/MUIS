@@ -86,6 +86,6 @@ public class MouseEvent extends PositionedUserEvent {
 
 	@Override
 	public String toString() {
-		return "Mouse " + theType + " with " + theButtonType + (theClickCount > 1 ? " x" + theClickCount : "");
+		return "Mouse " + theType + " with " + theButtonType + (theClickCount > 1 ? " x" + theClickCount : "") + " at " + getElement();
 	}
 }

@@ -221,6 +221,11 @@ public class MuisEventQueue {
 				return true; // Element will be repainted with its ancestor
 			return false;
 		}
+
+		@Override
+		public String toString() {
+			return "Paint event for " + theElement;
+		}
 	}
 
 	/** Represents an element's need to lay out its children */
@@ -266,6 +271,11 @@ public class MuisEventQueue {
 		public boolean isSupersededBy(Event evt) {
 			return evt instanceof LayoutEvent && ((LayoutEvent) evt).theElement == theElement;
 		}
+
+		@Override
+		public String toString() {
+			return "Layout event for " + theElement;
+		}
 	}
 
 	/** Represents a request to set an element's bounds */
@@ -310,6 +320,11 @@ public class MuisEventQueue {
 		@Override
 		public boolean shouldHandle(long time) {
 			return time - getTime() > 50;
+		}
+
+		@Override
+		public String toString() {
+			return "Bound event for " + theElement + " to " + theBounds;
 		}
 	}
 
@@ -369,6 +384,11 @@ public class MuisEventQueue {
 				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
 					el.getElement().fireEvent(theEvent, theEvent.isCanceled(), false);
 		}
+
+		@Override
+		public String toString() {
+			return "User positioned event: " + theEvent;
+		}
 	}
 
 	/** Represents a non-positioned user event that needs to be fired */
@@ -413,6 +433,11 @@ public class MuisEventQueue {
 				}
 			}
 		}
+
+		@Override
+		public String toString() {
+			return "User event: " + theEvent;
+		}
 	}
 
 	private static MuisEventQueue theInstance = new MuisEventQueue();
@@ -433,6 +458,8 @@ public class MuisEventQueue {
 	private volatile boolean isShuttingDown;
 
 	volatile boolean isInterrupted;
+
+	volatile boolean hasNewEvent;
 
 	private long theFrequency;
 
@@ -494,12 +521,12 @@ public class MuisEventQueue {
 				spot = theEvents.length;
 			theEvents = prisms.util.ArrayUtils.add(theEvents, event, spot);
 		}
+		hasNewEvent = true;
 		start();
-		if(now) {
+		if(now)
 			isInterrupted = true;
-			if(theThread != null)
-				theThread.interrupt();
-		}
+		if(theThread != null)
+			theThread.interrupt();
 	}
 
 	void remove(Event event) {
@@ -575,13 +602,15 @@ public class MuisEventQueue {
 					return;
 				theThread = this;
 			}
-			while(!isShuttingDown())
+			while(!isShuttingDown()) {
 				try {
 					isInterrupted = false;
 					Event [] events = getEvents();
+					hasNewEvent = false;
 					boolean acted = false;
 					long now = System.currentTimeMillis();
 					for(Event evt : events) {
+						System.out.println("Processing " + evt);
 						if(isInterrupted)
 							break;
 						if(evt.isFinished())
@@ -593,10 +622,11 @@ public class MuisEventQueue {
 							now = System.currentTimeMillis(); // Update the time, since the action may have taken some
 						}
 					}
-					if(!acted && !isInterrupted)
+					if(!acted && !hasNewEvent)
 						Thread.sleep(getFrequency());
 				} catch(InterruptedException e) {
 				}
+			}
 			theThread = null;
 			isShuttingDown = false;
 		}

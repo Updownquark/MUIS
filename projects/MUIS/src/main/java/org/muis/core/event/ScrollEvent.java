@@ -8,18 +8,12 @@ package org.muis.core.event;
  * @see org.muis.core.MuisDocument.ScrollPolicy#FOCUS
  * @see org.muis.core.MuisDocument.ScrollPolicy#MIXED
  */
-public class ScrollEvent extends PositionedUserEvent
-{
+public class ScrollEvent extends PositionedUserEvent {
 	/** Different types of scroll actions that may cause a ScrollEvent */
-	public static enum ScrollType
-	{
-		/**
-		 * Represents scrolling by a small unit, e.g. arrow keys or mouse wheel
-		 */
+	public static enum ScrollType {
+		/** Represents scrolling by a small unit, e.g. arrow keys or mouse wheel */
 		UNIT,
-		/**
-		 * Represents scrolling by a block on the page, e.g. Pg Up/Pg Dn
-		 */
+		/** Represents scrolling by a block on the page, e.g. Pg Up/Pg Dn */
 		BLOCK;
 	}
 
@@ -45,8 +39,7 @@ public class ScrollEvent extends PositionedUserEvent
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public ScrollEvent(org.muis.core.MuisDocument doc, org.muis.core.MuisElement element, int docX, int docY, ScrollType scrollType,
-		boolean vertical, int amount, KeyBoardEvent keyEvent, org.muis.core.MuisEventPositionCapture<?> capture)
-	{
+		boolean vertical, int amount, KeyBoardEvent keyEvent, org.muis.core.MuisEventPositionCapture<?> capture) {
 		super(org.muis.core.MuisConstants.Events.SCROLL, doc, element, docX, docY, capture);
 		theScrollType = scrollType;
 		isVertical = vertical;
@@ -55,20 +48,17 @@ public class ScrollEvent extends PositionedUserEvent
 	}
 
 	/** @return The type of scrolling that generated this event */
-	public ScrollType getScrollType()
-	{
+	public ScrollType getScrollType() {
 		return theScrollType;
 	}
 
 	/** @return Whether this scroll event represents a vertical or a horizontal scrolling action */
-	public boolean isVertical()
-	{
+	public boolean isVertical() {
 		return isVertical;
 	}
 
 	/** @return The key event that caused this scroll event, or null if this scroll event was not caused by a key event */
-	public KeyBoardEvent getKeyEvent()
-	{
+	public KeyBoardEvent getKeyEvent() {
 		return theKeyEvent;
 	}
 
@@ -78,8 +68,12 @@ public class ScrollEvent extends PositionedUserEvent
 	 *
 	 * @return The number of units or blocks to scroll for this event
 	 */
-	public int getAmount()
-	{
+	public int getAmount() {
 		return theAmount;
+	}
+
+	@Override
+	public String toString() {
+		return "Scrolled " + theAmount + " " + theScrollType + (isVertical ? " " : " horizontally ") + " at " + getElement();
 	}
 }

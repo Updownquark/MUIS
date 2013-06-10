@@ -186,7 +186,7 @@ public abstract class MuisElement {
 
 			@Override
 			public boolean isLocal() {
-				return true;
+				return false;
 			}
 		});
 		Object styleWanter = new Object();

@@ -20,7 +20,7 @@ public class SimpleLayout implements MuisLayout {
 	public SimpleLayout() {
 		theListener = CompoundListener.create(this);
 		theListener.child().acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
-			.onChange(CompoundListener.layout);
+			.onChange(CompoundListener.sizeNeedsChanged);
 	}
 
 	@Override

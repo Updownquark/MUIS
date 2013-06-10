@@ -123,7 +123,7 @@ public abstract class MuisElement {
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
-				relayout(false);
+				fireEvent(new SizeNeedsChangedEvent(null), false, false);
 				if(event.getType() == CHILD_REMOVED) {
 					// Need to repaint where the element left even if nothing changes as a result of the layout
 					unregisterChild(event.getValue());
@@ -145,6 +145,35 @@ public abstract class MuisElement {
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
 				Rectangle paintRect = event.getValue().union(((MuisPropertyEvent<Rectangle>) event).getOldValue());
 				repaint(paintRect, false);
+			}
+
+			@Override
+			public boolean isLocal() {
+				return true;
+			}
+		});
+		theChildren.addChildListener(SIZE_NEEDS_CHANGED, new MuisEventListener<Void>() {
+			@Override
+			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
+				SizeNeedsChangedEvent snce = (SizeNeedsChangedEvent) event;
+				if(!isInPreferred(org.muis.core.layout.Orientation.horizontal) || !isInPreferred(org.muis.core.layout.Orientation.vertical)) {
+					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(snce);
+					fireEvent(newEvent, true, false);
+					if(!newEvent.isHandled()) {
+						newEvent.handle();
+						relayout(false);
+					}
+				} else {
+					snce.handle();
+					relayout(false);
+				}
+			}
+
+			private boolean isInPreferred(org.muis.core.layout.Orientation orient) {
+				org.muis.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
+				int size = dim.getSize();
+				int cross = bounds().get(orient.opposite()).getSize();
+				return size >= dim.getGuide().getMinPreferred(cross, false) && size <= dim.getGuide().getMaxPreferred(cross, false);
 			}
 
 			@Override

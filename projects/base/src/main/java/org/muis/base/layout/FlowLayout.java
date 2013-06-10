@@ -24,9 +24,9 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	/** Creates a flow layout */
 	public FlowLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, alignment, crossAlignment, fillContainer).watchAll(margin, padding)
-			.onChange(CompoundListener.layout);
-		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
+		theListener.acceptAll(direction, fillContainer).onChange(CompoundListener.sizeNeedsChanged)
+			.acceptAll(alignment, crossAlignment, fillContainer).watchAll(margin, padding).onChange(CompoundListener.sizeNeedsChanged);
+		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.sizeNeedsChanged);
 		theSizerCache = new SimpleCache<>();
 	}
 

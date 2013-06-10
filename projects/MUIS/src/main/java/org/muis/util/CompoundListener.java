@@ -135,6 +135,14 @@ public abstract class CompoundListener<T> {
 		}
 	};
 
+	/** A utility change listener to fire a {@link Events#SIZE_NEEDS_CHANGED} event on the element or parent element */
+	public static final ChangeListener sizeNeedsChanged = new ChangeListener() {
+		@Override
+		public void changed(MuisElement element) {
+			element.fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+		}
+	};
+
 	/**
 	 * When passed to {@link CompoundListener.CompoundElementListener#eachChild(IndividualElementListener)}, this listener allows code to
 	 * deal with each child of an element individually, potentially accepting different attribute sets for each child.

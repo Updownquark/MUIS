@@ -89,6 +89,9 @@ public final class MuisConstants {
 		/** The event type representing the relocation of this element within its parent */
 		public static final MuisEventType<Rectangle> BOUNDS_CHANGED = new MuisEventType<>("Bounds Changed", null);
 
+		/** The event type representing an element's decision that it may need a different size */
+		public static final MuisEventType<Void> SIZE_NEEDS_CHANGED = new MuisEventType<>("Size Needs Changed", null);
+
 		/** The event type representing the successful setting of an attribute */
 		public static final MuisEventType<MuisAttribute<?>> ATTRIBUTE_SET = new MuisEventType<>("Attribute Set",
 			(Class<MuisAttribute<?>>) (Class<?>) MuisAttribute.class);

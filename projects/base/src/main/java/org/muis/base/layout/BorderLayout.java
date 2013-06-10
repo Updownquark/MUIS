@@ -23,18 +23,18 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	/** Creates a border layout */
 	public BorderLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.layout);
+		theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.sizeNeedsChanged);
 		theListener.eachChild(new CompoundListener.IndividualElementListener() {
 			@Override
 			public void individual(MuisElement element, CompoundElementListener listener) {
 				listener.chain(Region.left.name()).acceptAll(width, minWidth, maxWidth, right, minRight, maxRight)
-					.onChange(CompoundListener.layout);
+					.onChange(CompoundListener.sizeNeedsChanged);
 				listener.chain(Region.right.name()).acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft)
-					.onChange(CompoundListener.layout);
+					.onChange(CompoundListener.sizeNeedsChanged);
 				listener.chain(Region.top.name()).acceptAll(height, minHeight, maxHeight, bottom, minBottom, maxBottom)
-					.onChange(CompoundListener.layout);
+					.onChange(CompoundListener.sizeNeedsChanged);
 				listener.chain(Region.bottom.name()).acceptAll(height, minHeight, maxHeight, top, minTop, maxTop)
-					.onChange(CompoundListener.layout);
+					.onChange(CompoundListener.sizeNeedsChanged);
 				update(element, listener);
 			}
 

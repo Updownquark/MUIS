@@ -23,8 +23,9 @@ public class BoxLayout implements MuisLayout {
 	/** Creates a box layout */
 	public BoxLayout() {
 		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, alignment, crossAlignment).onChange(CompoundListener.layout);
-		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.layout);
+		theListener.accept(direction).onChange(CompoundListener.sizeNeedsChanged).acceptAll(alignment, crossAlignment)
+			.onChange(CompoundListener.layout);
+		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.sizeNeedsChanged);
 	}
 
 	@Override

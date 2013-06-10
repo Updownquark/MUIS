@@ -33,8 +33,7 @@ public class MuisTextElement extends MuisLeaf {
 	/** @param text The text content for this element */
 	public void setText(String text) {
 		theText = text;
-		if(getParent() != null)
-			getParent().doLayout();
+		fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
 	}
 
 	/** @return This element's text content */

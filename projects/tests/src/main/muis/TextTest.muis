@@ -5,19 +5,17 @@
         <title>Text Test</title>
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
-    	<block layout="base:box" style="bg.color=blanchedAlmond;font.color=black">
-    		<block layout="base:box" style="font.family=Arial" direction="down">
-    			<label>Arial Base</label>
-    			<label style="font.size=20">BIG</label>
-    			<label style="font.size=8">small</label>
-    			<label style="font.weight=light">Light</label>
-    			<label style="font.weight=bold">Bold</label>
-    			<label style="font.weight=ultra-bold">Ultra Bold</label>
-    			<label style="font.slant=italic">Italic</label>
-    			<label style="font.slant=-.75">Back Slant (Not always supported)</label>
-    			<label style="font.strike=true">Strikethrough!</label>
-    			<label style="font.underline=dashed">Underline!</label>
-    		</block>
-    	</block>
+   		<block layout="base:box" style="font.family=Arial" direction="down">
+   			<label>Arial Base</label>
+   			<label style="font.size=20">BIG</label>
+   			<label style="font.size=8">small</label>
+   			<label style="font.weight=light">Light</label>
+   			<label style="font.weight=bold">Bold</label>
+   			<label style="font.weight=ultra-bold">Ultra Bold</label>
+   			<label style="font.slant=italic">Italic</label>
+   			<label style="font.slant=-.75">Back Slant (Not always supported)</label>
+   			<label style="font.strike=true">Strikethrough!</label>
+   			<label style="font.underline=dashed">Underline!</label>
+   		</block>
     </body>
 </muis>

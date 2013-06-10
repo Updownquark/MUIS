@@ -16,7 +16,7 @@ public class GrooveTexture implements org.muis.core.style.Texture {
 		Orientation orientation = element.atts().get(org.muis.core.layout.LayoutAttributes.orientation);
 		if(orientation == null)
 			orientation = Orientation.horizontal;
-		Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf());
+		Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf());
 		if(bg.getAlpha() == 0)
 			return;
 		graphics.setColor(bg);

@@ -2,6 +2,8 @@ package org.muis.core;
 
 import java.awt.image.BufferedImage;
 
+import org.muis.util.MuisUtils;
+
 /** Represents a rendering of a MUIS document and some state associated with the rendering */
 public class MuisRendering implements Cloneable {
 	private BufferedImage theImage;

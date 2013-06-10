@@ -855,7 +855,7 @@ public class StyleSheetParser {
 
 				ParsedNamespaceDeclaration ns = (ParsedNamespaceDeclaration) item;
 				try {
-					classView.addNamespace(ns.getName(), env.getToolkit(org.muis.core.MuisUtils.resolveURL(location, ns.getLocation())));
+					classView.addNamespace(ns.getName(), env.getToolkit(org.muis.util.MuisUtils.resolveURL(location, ns.getLocation())));
 				} catch(MuisException e) {
 					throw new MuisParseException("Could not resolve toolkit for namespace \"" + ns.getName() + "\", location "
 						+ ns.getLocation(), e);
@@ -1006,7 +1006,7 @@ public class StyleSheetParser {
 		MuisState ret = null;
 		for(int i = 0; i < types.length; i++) {
 			boolean found = false;
-			MuisState [] states = org.muis.core.MuisUtils.getStatesFor(types[i]);
+			MuisState [] states = org.muis.util.MuisUtils.getStatesFor(types[i]);
 			for(int j = 0; j < states.length; j++)
 				if(states[j].getName().equals(name)) {
 					found = true;

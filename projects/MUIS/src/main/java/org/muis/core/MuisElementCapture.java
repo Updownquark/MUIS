@@ -2,6 +2,8 @@ package org.muis.core;
 
 import java.util.Iterator;
 
+import org.muis.util.MuisUtils;
+
 /**
  * Represents a capture of an element's bounds and hierarchy at a point in time
  *

@@ -11,6 +11,7 @@ import org.muis.core.parser.WidgetStructure;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
+import org.muis.util.MuisUtils;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template MUIS file with widget definitions that are reproduced in each

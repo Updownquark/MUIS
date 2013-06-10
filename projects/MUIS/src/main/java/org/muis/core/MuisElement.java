@@ -869,6 +869,8 @@ public abstract class MuisElement {
 	/**
 	 * Causes this element to adjust the position and size of its children in a way defined in this element type's implementation. By
 	 * default this does nothing.
+	 *
+	 * TODO This should probably not be public, as it should only be called by the paint event from the MUIS event queue. Right?
 	 */
 	public void doLayout() {
 		theLayoutDirtyTime = 0;
@@ -884,7 +886,7 @@ public abstract class MuisElement {
 	 */
 	public final void relayout(boolean now) {
 		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
-			return; // No point layout out if there's nothing to show
+			return; // No point laying out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now), now);
 	}
@@ -979,7 +981,7 @@ public abstract class MuisElement {
 		if(children.length == 0)
 			return childBounds;
 		if(area == null)
-			area = theBounds.getBounds();
+			area = new Rectangle(0, 0, theBounds.getWidth(), theBounds.getHeight());
 		int translateX = 0;
 		int translateY = 0;
 		try {
@@ -988,8 +990,6 @@ public abstract class MuisElement {
 				MuisElement child = children[c];
 				int childX = child.theBounds.getX();
 				int childY = child.theBounds.getY();
-				translateX += childX;
-				translateY += childY;
 				childArea.x = area.x - childX;
 				childArea.y = area.y - childY;
 				if(childArea.x < 0)
@@ -1002,6 +1002,8 @@ public abstract class MuisElement {
 				childArea.height = area.height - childArea.y;
 				if(childArea.y + childArea.height > child.theBounds.getHeight())
 					childArea.height = child.theBounds.getHeight() - childArea.y;
+				translateX += childX;
+				translateY += childY;
 				graphics.translate(translateX, translateY);
 				translateX = -childX;
 				translateY = -childY;

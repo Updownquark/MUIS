@@ -13,6 +13,7 @@ import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.DefaultMuisModel;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.style.sheet.ParsedStyleSheet;
+import org.muis.util.MuisUtils;
 
 /** Parses MUIS components using the JDOM library */
 public class MuisDomParser implements MuisParser {

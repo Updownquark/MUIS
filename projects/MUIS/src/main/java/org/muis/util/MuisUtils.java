@@ -1,4 +1,4 @@
-package org.muis.core;
+package org.muis.util;
 
 import java.awt.Color;
 import java.awt.Point;
@@ -7,24 +7,25 @@ import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
 
+import org.muis.core.MuisElement;
+import org.muis.core.MuisException;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.FontStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 
+import prisms.util.ArrayUtils;
+
 /** A set of utilities to use with core MUIS elements */
-public class MuisUtils
-{
-	private MuisUtils()
-	{
+public class MuisUtils {
+	private MuisUtils() {
 	}
 
 	/**
 	 * @param element The element to get the most distant ancestor of
 	 * @return The most distant ancestor of the given element
 	 */
-	public static MuisElement getRoot(MuisElement element)
-	{
+	public static MuisElement getRoot(MuisElement element) {
 		while(element.getParent() != null)
 			element = element.getParent();
 		return element;
@@ -34,15 +35,26 @@ public class MuisUtils
 	 * @param element The element to get the path of
 	 * @return The path from the root to the given element
 	 */
-	public static MuisElement [] path(MuisElement element)
-	{
+	public static MuisElement [] path(MuisElement element) {
 		ArrayList<MuisElement> ret = new ArrayList<>();
-		while(element != null)
-		{
+		while(element != null) {
 			ret.add(element);
 			element = element.getParent();
 		}
-		return ret.toArray(new MuisElement[ret.size()]);
+		return ArrayUtils.reverse(ret.toArray(new MuisElement[ret.size()]));
+	}
+
+	/**
+	 * @param element The element to get the document depth of
+	 * @return The number of ancestors the given element has
+	 */
+	public static int getDepth(MuisElement element) {
+		int ret = 0;
+		while(element.getParent() != null) {
+			ret++;
+			element = element.getParent();
+		}
+		return ret;
 	}
 
 	/**
@@ -50,8 +62,7 @@ public class MuisUtils
 	 * @param descendant The descendant element to check
 	 * @return Whether ancestor is the same as or an ancestor of descendant
 	 */
-	public static boolean isAncestor(MuisElement ancestor, MuisElement descendant)
-	{
+	public static boolean isAncestor(MuisElement ancestor, MuisElement descendant) {
 		MuisElement parent = descendant;
 		while(parent != null && parent != ancestor)
 			parent = parent.getParent();
@@ -63,11 +74,10 @@ public class MuisUtils
 	 * @param el2 The second element
 	 * @return The deepest element that is an ancestor of both arguments, or null if the two elements are not in the same document tree
 	 */
-	public static MuisElement commonAncestor(MuisElement el1, MuisElement el2)
-	{
+	public static MuisElement commonAncestor(MuisElement el1, MuisElement el2) {
 		MuisElement [] path1 = path(el1);
 		MuisElement test = el2;
-		while(test != null && !prisms.util.ArrayUtils.contains(path1, test))
+		while(test != null && !ArrayUtils.contains(path1, test))
 			test = test.getParent();
 		return test;
 	}
@@ -85,8 +95,7 @@ public class MuisUtils
 	 *         </ol>
 	 *         or null if there is no common ancestor between the two elements
 	 */
-	public static MuisElement [] getBranchPoint(MuisElement el1, MuisElement el2)
-	{
+	public static MuisElement [] getBranchPoint(MuisElement el1, MuisElement el2) {
 		MuisElement [] path1 = path(el1);
 		MuisElement [] path2 = path(el2);
 		if(path1.length == 0 || path2.length == 0 || path1[0] != path2[0])
@@ -106,8 +115,7 @@ public class MuisUtils
 	 * @param el2 The element whose coordinates to translate <code>area</code> to
 	 * @return <code>area</code> translated from <code>el1</code>'s coordinates to <code>el2</code>'s
 	 */
-	public static Rectangle relative(Rectangle area, MuisElement el1, MuisElement el2)
-	{
+	public static Rectangle relative(Rectangle area, MuisElement el1, MuisElement el2) {
 		Point relP = relative(area.getLocation(), el1, el2);
 		return new Rectangle(relP.x, relP.y, area.width, area.height);
 	}
@@ -121,8 +129,7 @@ public class MuisUtils
 	 * @param el2 The element whose coordinates to translate <code>point</code> to
 	 * @return <code>point</code> translated from <code>el1</code>'s coordinates to <code>el2</code>'s
 	 */
-	public static Point relative(Point point, MuisElement el1, MuisElement el2)
-	{
+	public static Point relative(Point point, MuisElement el1, MuisElement el2) {
 		if(el1 == null)
 			el1 = getRoot(el2);
 		Point ret = new Point(point);
@@ -130,15 +137,13 @@ public class MuisUtils
 		if(common == null)
 			return null;
 		MuisElement parent = el2;
-		while(parent != common)
-		{
+		while(parent != common) {
 			ret.x -= parent.bounds().getX();
 			ret.y -= parent.bounds().getY();
 			parent = parent.getParent();
 		}
 		parent = el1;
-		while(parent != common)
-		{
+		while(parent != common) {
 			ret.x += parent.bounds().getX();
 			ret.y += parent.bounds().getY();
 			parent = parent.getParent();
@@ -152,16 +157,13 @@ public class MuisUtils
 	 * @return A URL that is equivalent to <code>relativePath</code> resolved with reference to <code>reference</code>
 	 * @throws MuisException If the given path is not either an absolute URL or a relative path
 	 */
-	public static URL resolveURL(URL reference, final String relativePath) throws MuisException
-	{
+	public static URL resolveURL(URL reference, final String relativePath) throws MuisException {
 		java.util.regex.Pattern urlPattern = java.util.regex.Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*:/");
 		java.util.regex.Matcher matcher = urlPattern.matcher(relativePath);
 		if(matcher.find() && matcher.start() == 0)
-			try
-			{
+			try {
 				return new URL(relativePath);
-			} catch(java.net.MalformedURLException e)
-			{
+			} catch(java.net.MalformedURLException e) {
 				throw new MuisException("Malformed URL " + relativePath, e);
 			}
 		String file = reference.getFile();
@@ -169,21 +171,18 @@ public class MuisUtils
 		if(slashIdx >= 0)
 			file = file.substring(0, slashIdx);
 		String [] cp = relativePath.split("[/\\\\]");
-		while(cp.length > 0 && cp[0].equals(".."))
-		{
+		while(cp.length > 0 && cp[0].equals("..")) {
 			slashIdx = file.lastIndexOf('/');
 			if(slashIdx < 0)
 				throw new MuisException("Cannot resolve " + relativePath + " with respect to " + reference);
 			file = file.substring(0, slashIdx);
-			cp = prisms.util.ArrayUtils.remove(cp, 0);
+			cp = ArrayUtils.remove(cp, 0);
 		}
 		for(String cps : cp)
 			file += "/" + cps;
-		try
-		{
+		try {
 			return new URL(reference.getProtocol(), reference.getHost(), file);
-		} catch(java.net.MalformedURLException e)
-		{
+		} catch(java.net.MalformedURLException e) {
 			throw new MuisException("Cannot resolve \"" + file + "\"", e);
 		}
 	}
@@ -195,8 +194,7 @@ public class MuisUtils
 	 * @param transparency The transparency of the color to make
 	 * @return The resulting partially transparent color
 	 */
-	public static Color getColor(Color base, double transparency)
-	{
+	public static Color getColor(Color base, double transparency) {
 		if(transparency == 0)
 			return base;
 		else if(transparency == 1)
@@ -212,8 +210,7 @@ public class MuisUtils
 	 * @param style The style to get the background color for
 	 * @return The background color to paint for the style
 	 */
-	public static Color getBackground(org.muis.core.style.MuisStyle style)
-	{
+	public static Color getBackground(org.muis.core.style.MuisStyle style) {
 		return getColor(style.get(BackgroundStyle.color), style.get(BackgroundStyle.transparency));
 	}
 
@@ -221,8 +218,7 @@ public class MuisUtils
 	 * @param style The style to derive the font from
 	 * @return The font to use to render text in the specified style
 	 */
-	public static java.awt.Font getFont(org.muis.core.style.MuisStyle style)
-	{
+	public static java.awt.Font getFont(org.muis.core.style.MuisStyle style) {
 		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
 		attribs.put(TextAttribute.FAMILY, style.get(FontStyle.family));
 		attribs.put(TextAttribute.BACKGROUND, org.muis.core.style.Colors.transparent);
@@ -232,8 +228,7 @@ public class MuisUtils
 		if(style.get(FontStyle.ligatures))
 			attribs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
 		attribs.put(TextAttribute.SIZE, style.get(FontStyle.size));
-		switch (style.get(FontStyle.underline))
-		{
+		switch (style.get(FontStyle.underline)) {
 		case none:
 			break;
 		case on:

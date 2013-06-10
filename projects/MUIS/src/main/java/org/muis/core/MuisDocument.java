@@ -91,6 +91,8 @@ public class MuisDocument {
 
 	private volatile MuisRendering theRendering;
 
+	private GraphicsGetter theGraphics;
+
 	private java.util.Collection<RenderListener> theRenderListeners;
 
 	/**
@@ -132,6 +134,16 @@ public class MuisDocument {
 		if(theClassView != null)
 			throw new IllegalStateException("A document's class view may only be set once");
 		theClassView = classView;
+	}
+
+	/** @param graphics The getter for graphics to be redrawn when the rendering is updated */
+	public void setGraphics(GraphicsGetter graphics) {
+		theGraphics = graphics;
+	}
+
+	/** @return Graphics to be updated on repaint. May be null. */
+	public java.awt.Graphics2D getGraphics() {
+		return theGraphics == null ? null : theGraphics.getGraphics();
 	}
 
 	/** @param listener The listener to be notified when the rendering of this document changes */

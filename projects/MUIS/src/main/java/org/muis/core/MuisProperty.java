@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.Map;
 
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.util.MuisUtils;
 
 /**
  * Represents a property in MUIS

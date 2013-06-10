@@ -1,7 +1,10 @@
 package org.muis.core;
 
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+
+import org.muis.util.MuisUtils;
 
 /** The event queue in MUIS which makes sure elements's states stay up-to-date */
 public class MuisEventQueue {
@@ -47,6 +50,14 @@ public class MuisEventQueue {
 
 		/** @return This event's priority. This value must not change for the event. */
 		int getPriority();
+
+		/**
+		 * Compares the priority of two events whose {@link #getPriority()} methods return the same value.
+		 *
+		 * @param evt The event to compare with
+		 * @return The relative priority of this event compared to <code>o2</code>
+		 */
+		int comparePriority(Event evt);
 	}
 
 	/** Implements the trivial parts of {@link Event} */
@@ -120,6 +131,11 @@ public class MuisEventQueue {
 		public int getPriority() {
 			return thePriority;
 		}
+
+		@Override
+		public int comparePriority(Event evt) {
+			return 0;
+		}
 	}
 
 	/** Represents an element's need to be redrawn */
@@ -170,7 +186,10 @@ public class MuisEventQueue {
 			MuisDocument doc = theElement.getDocument();
 			if(theElement == doc.getRoot()) {
 				MuisRendering render = new MuisRendering(theElement.bounds().getWidth(), theElement.bounds().getHeight());
-				java.awt.Graphics2D graphics = (java.awt.Graphics2D) render.getImage().getGraphics();
+				Graphics2D graphics = (Graphics2D) render.getImage().getGraphics();
+				Graphics2D docGraphics = doc.getGraphics();
+				if(docGraphics != null)
+					graphics = new org.muis.util.AggregateGraphics(docGraphics, graphics);
 				render.setRoot(theElement.paint(graphics, theArea));
 				theElement.getDocument().setRender(render);
 				return;
@@ -188,19 +207,30 @@ public class MuisEventQueue {
 			MuisRendering newRender = render.clone();
 			bound = newRender.getFor(theElement);
 			Point trans = bound.getDocLocation();
-			java.awt.Graphics2D graphics = (java.awt.Graphics2D) newRender.getImage().getGraphics();
-			graphics.translate(-trans.x, -trans.y);
-			MuisElementCapture<?> newBound = theElement.paint(graphics, theArea);
+			Graphics2D graphics = (Graphics2D) newRender.getImage().getGraphics();
+			Graphics2D docGraphics = doc.getGraphics();
+			if(docGraphics != null)
+				graphics = new org.muis.util.AggregateGraphics(docGraphics, graphics);
+			MuisElementCapture<?> newBound;
+			graphics.translate(trans.x, trans.y);
+			try {
+				newBound = theElement.paint(graphics, theArea);
+			} finally {
+				graphics.translate(-trans.x, -trans.y);
+			}
 			if(bound.getParent() != null)
 				bound.getParent().getChildren().set(bound.getParent().getChildren().indexOf(bound), newBound);
 			else
 				render.setRoot(newBound);
-			graphics.translate(trans.x, trans.y);
 			theElement.getDocument().setRender(newRender);
 		}
 
 		@Override
 		public boolean isSupersededBy(Event evt) {
+			if(evt instanceof ReboundEvent && MuisUtils.isAncestor(((ReboundEvent) evt).getElement(), theElement))
+				return true;
+			if(evt instanceof LayoutEvent && MuisUtils.isAncestor(((LayoutEvent) evt).getElement(), theElement))
+				return true;
 			if(!(evt instanceof PaintEvent))
 				return false;
 			PaintEvent paint = (PaintEvent) evt;
@@ -270,6 +300,17 @@ public class MuisEventQueue {
 		@Override
 		public boolean isSupersededBy(Event evt) {
 			return evt instanceof LayoutEvent && ((LayoutEvent) evt).theElement == theElement;
+		}
+
+		@Override
+		public int comparePriority(Event evt) {
+			if(!(evt instanceof LayoutEvent))
+				return super.comparePriority(evt);
+			if(MuisUtils.isAncestor(theElement, ((LayoutEvent) evt).theElement))
+				return 1;
+			if(MuisUtils.isAncestor(((LayoutEvent) evt).theElement, theElement))
+				return -1;
+			return MuisUtils.getDepth(((LayoutEvent) evt).theElement) - MuisUtils.getDepth(theElement);
 		}
 
 		@Override
@@ -476,6 +517,12 @@ public class MuisEventQueue {
 			public int compare(Event o1, Event o2) {
 				int diff = o1.getPriority() - o2.getPriority();
 				if(diff != 0)
+					return -diff;
+				diff = o1.comparePriority(o2);
+				if(diff != 0)
+					return -diff;
+				diff = o2.comparePriority(o1);
+				if(diff != 0)
 					return diff;
 				long timeDiff = o1.getTime() - o2.getTime();
 				return timeDiff < 0 ? -1 : (timeDiff > 0 ? 1 : 0);
@@ -610,7 +657,6 @@ public class MuisEventQueue {
 					boolean acted = false;
 					long now = System.currentTimeMillis();
 					for(Event evt : events) {
-						System.out.println("Processing " + evt);
 						if(isInterrupted)
 							break;
 						if(evt.isFinished())

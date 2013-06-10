@@ -157,7 +157,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 					msg().error("No configured img-load-icon");
 				if(res != null && theLoadingImage == null)
 					try {
-						env.getCache().get(env, cacheType, org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						env.getCache().get(env, cacheType, org.muis.util.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
 							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 								@Override
 								public void itemGenerated(URL key, ImageData value) {
@@ -180,7 +180,7 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 					msg().error("No configured img-load-failed-icon");
 				if(res != null && theErrorImage == null)
 					try {
-						env.getCache().get(env, cacheType, org.muis.core.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						env.getCache().get(env, cacheType, org.muis.util.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
 							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
 								@Override
 								public void itemGenerated(URL key, ImageData value) {

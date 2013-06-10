@@ -1,6 +1,8 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.muis.browser;
 
+import java.awt.Graphics2D;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
@@ -70,10 +72,10 @@ public class MuisBrowser extends javax.swing.JPanel {
 			org.muis.core.parser.MuisDocumentStructure docStruct = env.getParser().parseDocument(env, url,
 				new java.io.InputStreamReader(url.openStream()));
 			muisDoc = new MuisDocument(env, env.getParser(), docStruct.getLocation(), docStruct.getHead());
-			muisDoc.addRenderListener(new MuisDocument.RenderListener() {
+			muisDoc.setGraphics(new MuisDocument.GraphicsGetter() {
 				@Override
-				public void renderUpdate(MuisDocument doc) {
-					repaint();
+				public Graphics2D getGraphics() {
+					return (Graphics2D) theContentPane.getGraphics();
 				}
 			});
 			env.getContentCreator().fillDocument(muisDoc, docStruct.getContent());

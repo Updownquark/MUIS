@@ -18,7 +18,7 @@ public class RaisedSquareTexture implements Texture
 		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
-		java.awt.Color bg = org.muis.core.MuisUtils.getBackground(element.getStyle().getSelf());
+		java.awt.Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf());
 		if(bg.getAlpha() == 0)
 			return;
 		graphics.setColor(bg);

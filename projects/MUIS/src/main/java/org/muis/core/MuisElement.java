@@ -173,7 +173,15 @@ public abstract class MuisElement {
 				org.muis.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
 				int size = dim.getSize();
 				int cross = bounds().get(orient.opposite()).getSize();
-				return size >= dim.getGuide().getMinPreferred(cross, false) && size <= dim.getGuide().getMaxPreferred(cross, false);
+				int minPref = org.muis.core.layout.LayoutUtils.getSize(MuisElement.this, orient,
+					org.muis.core.layout.LayoutGuideType.minPref, getParent().bounds().get(orient).getSize(), cross, false, null);
+				if(size < minPref)
+					return false;
+				int maxPref = org.muis.core.layout.LayoutUtils.getSize(MuisElement.this, orient,
+					org.muis.core.layout.LayoutGuideType.maxPref, getParent().bounds().get(orient).getSize(), cross, false, null);
+				if(size > maxPref)
+					return false;
+				return true;
 			}
 
 			@Override

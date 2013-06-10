@@ -187,11 +187,11 @@ public class MuisEventQueue {
 			if(theElement == doc.getRoot()) {
 				MuisRendering render = new MuisRendering(theElement.bounds().getWidth(), theElement.bounds().getHeight());
 				Graphics2D graphics = (Graphics2D) render.getImage().getGraphics();
+				render.setRoot(theElement.paint(graphics, theArea));
+				doc.setRender(render);
 				Graphics2D docGraphics = doc.getGraphics();
 				if(docGraphics != null)
-					graphics = new org.muis.util.AggregateGraphics(docGraphics, graphics);
-				render.setRoot(theElement.paint(graphics, theArea));
-				theElement.getDocument().setRender(render);
+					docGraphics.drawImage(render.getImage(), null, 0, 0);
 				return;
 			}
 			MuisRendering render = theElement.getDocument().getRender();
@@ -208,9 +208,6 @@ public class MuisEventQueue {
 			bound = newRender.getFor(theElement);
 			Point trans = bound.getDocLocation();
 			Graphics2D graphics = (Graphics2D) newRender.getImage().getGraphics();
-			Graphics2D docGraphics = doc.getGraphics();
-			if(docGraphics != null)
-				graphics = new org.muis.util.AggregateGraphics(docGraphics, graphics);
 			MuisElementCapture<?> newBound;
 			graphics.translate(trans.x, trans.y);
 			try {
@@ -218,6 +215,10 @@ public class MuisEventQueue {
 			} finally {
 				graphics.translate(-trans.x, -trans.y);
 			}
+			Graphics2D docGraphics = doc.getGraphics();
+			if(docGraphics != null)
+				docGraphics.drawImage(newRender.getImage().getSubimage(trans.x, trans.y, newBound.getWidth(), newBound.getHeight()),
+					trans.x, trans.y, null);
 			if(bound.getParent() != null)
 				bound.getParent().getChildren().set(bound.getParent().getChildren().indexOf(bound), newBound);
 			else

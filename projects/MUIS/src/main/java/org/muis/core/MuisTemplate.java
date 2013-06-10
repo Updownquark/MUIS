@@ -114,6 +114,9 @@ public abstract class MuisTemplate extends MuisElement {
 		/** The name of an element that is an attach point if the type of the attach point is not specified */
 		public static final String GENERIC_ELEMENT = TEMPLATE_PREFIX + "element";
 
+		/** The name of an element that is an attach point if the type of the attach point is a text element */
+		public static final String GENERIC_TEXT = TEMPLATE_PREFIX + "text";
+
 		/**
 		 * The attribute specifying whether an attach point may be specified externally (from the XML invoking the templated widget) or not.
 		 * Internal-only attach points may simply be used as binding points, preventing a templated widget implementation from having to
@@ -397,6 +400,8 @@ public abstract class MuisTemplate extends MuisElement {
 				Class<? extends MuisElement> type;
 				if(child.getNamespace() == null && child.getTagName().equals(TemplateStructure.GENERIC_ELEMENT))
 					type = MuisElement.class;
+				else if(child.getNamespace() == null && child.getTagName().equals(TemplateStructure.GENERIC_TEXT))
+					type = MuisTextElement.class;
 				else
 					try {
 						type = child.getClassView().loadMappedClass(child.getNamespace(), child.getTagName(), MuisElement.class);
@@ -662,7 +667,8 @@ public abstract class MuisTemplate extends MuisElement {
 	private MuisElement getChild(TemplateStructure template, MuisElement parent, MuisContent child,
 		org.muis.core.parser.MuisContentCreator creator) throws MuisParseException {
 		if(child instanceof WidgetStructure && ((WidgetStructure) child).getNamespace() == null
-			&& ((WidgetStructure) child).getTagName().equals(TemplateStructure.GENERIC_ELEMENT))
+			&& (((WidgetStructure) child).getTagName().equals(TemplateStructure.GENERIC_ELEMENT) || ((WidgetStructure) child).getTagName()
+				.equals(TemplateStructure.GENERIC_TEXT)))
 			return null;
 		MuisElement ret;
 		if(child instanceof WidgetStructure && ((WidgetStructure) child).getAttributes().containsKey(TemplateStructure.ATTACH_POINT)) {
@@ -861,7 +867,7 @@ public abstract class MuisTemplate extends MuisElement {
 	}
 
 	private boolean verifyAttachPoint(TemplateStructure struct, AttachPoint ap) {
-		if(ap.required && theAttachmentMappings.get(struct.getWidgetStructure(ap)).isEmpty()) {
+		if(ap.required && theAttachmentMappings.get(ap).isEmpty()) {
 			msg().error("No widget specified for role " + ap.name + " for template " + struct.getDefiner().getName());
 			return false;
 		}

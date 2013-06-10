@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<muis>
+    <head>
+        <title>Text Test</title>
+    </head>
+    <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
+   		<block layout="base:box" style="font.family=Arial" direction="down">
+   			<text-field>This is a text field</text-field>
+   		</block>
+    </body>
+</muis>

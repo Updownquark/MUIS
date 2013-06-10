@@ -43,4 +43,7 @@
 [border]{
 	bg.texture=border-texture
 	bg.corner-radius=5
+	(textfield-border){
+		bg.corner-radius=0
+	}
 }

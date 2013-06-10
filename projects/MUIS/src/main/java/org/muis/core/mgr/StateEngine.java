@@ -3,6 +3,7 @@ package org.muis.core.mgr;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.muis.core.event.MuisEvent;
 
@@ -10,8 +11,6 @@ import prisms.util.ArrayUtils;
 
 /** Keeps track of states for an entity and fires events when they change */
 public class StateEngine implements StateSet {
-	private static final String INACTIVE = "inactive";
-
 	/** Allows control over one state in an engine */
 	public interface StateController {
 		/** @return The engine that this controller controls a state in */
@@ -45,7 +44,36 @@ public class StateEngine implements StateSet {
 		void exited(MuisState state, MuisEvent<?> cause);
 	}
 
-	private final ConcurrentHashMap<MuisState, String> theStates;
+	private static class StateValue {
+		private final boolean isActive;
+
+		private AtomicInteger theStackChecker;
+
+		StateValue(boolean active, AtomicInteger stackChecker) {
+			isActive = active;
+			theStackChecker = stackChecker;
+		}
+
+		StateValue(boolean active) {
+			isActive = active;
+		}
+
+		boolean isActive() {
+			return isActive;
+		}
+
+		AtomicInteger getStackChecker() {
+			if(theStackChecker == null)
+				theStackChecker = new AtomicInteger();
+			return theStackChecker;
+		}
+
+		void setStackChecker(AtomicInteger stackChecker) {
+			theStackChecker = stackChecker;
+		}
+	}
+
+	private final ConcurrentHashMap<MuisState, StateValue> theStates;
 
 	private StateControllerImpl [] theStateControllers;
 
@@ -66,8 +94,8 @@ public class StateEngine implements StateSet {
 		return isActive(theStates.get(state));
 	}
 
-	private static boolean isActive(String stateValue) {
-		return stateValue != null && stateValue != INACTIVE;
+	private static boolean isActive(StateValue stateValue) {
+		return stateValue != null && stateValue.isActive();
 	}
 
 	/**
@@ -95,9 +123,9 @@ public class StateEngine implements StateSet {
 	@Override
 	public Iterator<MuisState> iterator() {
 		return ArrayUtils.conditionalIterator(theStates.entrySet().iterator(),
-			new ArrayUtils.Accepter<java.util.Map.Entry<MuisState, String>, MuisState>() {
+			new ArrayUtils.Accepter<java.util.Map.Entry<MuisState, StateValue>, MuisState>() {
 				@Override
-				public MuisState accept(Entry<MuisState, String> value) {
+				public MuisState accept(Entry<MuisState, StateValue> value) {
 					if(!isActive(value.getValue()))
 						return null;
 					return value.getKey();
@@ -108,7 +136,7 @@ public class StateEngine implements StateSet {
 	@Override
 	public MuisState [] toArray() {
 		java.util.ArrayList<MuisState> ret = new java.util.ArrayList<>();
-		for(java.util.Map.Entry<MuisState, String> entry : theStates.entrySet()) {
+		for(java.util.Map.Entry<MuisState, StateValue> entry : theStates.entrySet()) {
 			if(isActive(entry.getValue()))
 				ret.add(entry.getKey());
 		}
@@ -177,7 +205,7 @@ public class StateEngine implements StateSet {
 			throw new NullPointerException("state cannot be null");
 		if(theStates.containsKey(state))
 			throw new IllegalArgumentException("The state \"" + state + "\" is already added to this engine");
-		theStates.put(state, INACTIVE);
+		theStates.put(state, new StateValue(false, new AtomicInteger()));
 	}
 
 	/**
@@ -202,11 +230,16 @@ public class StateEngine implements StateSet {
 	}
 
 	private void stateChanged(MuisState state, final boolean active, MuisEvent<?> event) {
-		String old = theStates.put(state, active ? state.getName() : INACTIVE);
-		if(isActive(old) == active)
+		StateValue newState = new StateValue(active);
+		StateValue old = theStates.put(state, newState);
+		newState.setStackChecker(old.getStackChecker());
+		int stack = newState.getStackChecker().incrementAndGet();
+		if(old.isActive() == active)
 			return;
 		StateListener [] listeners = theListeners.getListeners(state);
 		for(StateListener listener : listeners) {
+			if(stack != newState.getStackChecker().get())
+				break;
 			if(active)
 				listener.entered(state, event);
 			else

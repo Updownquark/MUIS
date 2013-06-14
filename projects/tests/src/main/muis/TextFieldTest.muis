@@ -2,7 +2,7 @@
 
 <muis>
     <head>
-        <title>Text Test</title>
+        <title>Text Field Test</title>
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">

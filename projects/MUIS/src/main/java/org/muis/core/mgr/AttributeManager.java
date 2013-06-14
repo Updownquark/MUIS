@@ -105,7 +105,9 @@ public class AttributeManager {
 		}
 	}
 
-	private ConcurrentHashMap<String, AttributeHolder> theAcceptedAttrs;
+	private ConcurrentHashMap<MuisAttribute<?>, AttributeHolder> theAcceptedAttrs;
+
+	private ConcurrentHashMap<String, MuisAttribute<?>> theAttributesByName;
 
 	private ConcurrentHashMap<String, String> theRawAttributes;
 
@@ -114,6 +116,7 @@ public class AttributeManager {
 	/** @param element The element to manage attribute information for */
 	public AttributeManager(MuisElement element) {
 		theAcceptedAttrs = new ConcurrentHashMap<>();
+		theAttributesByName = new ConcurrentHashMap<>();
 		theRawAttributes = new ConcurrentHashMap<>();
 		theElement = element;
 		theElement.life().runWhen(new Runnable() {
@@ -134,15 +137,24 @@ public class AttributeManager {
 	 *             element has already been initialized and the value is not valid for the given attribute
 	 */
 	public final Object set(String attr, String value) throws MuisException {
-		AttributeHolder holder = theAcceptedAttrs.get(attr);
-		if(holder != null)
-			return set(holder.theAttr, value);
+		MuisAttribute<?> attrObj = theAttributesByName.get(attr);
+		if(attrObj != null)
+			return set(attrObj, value);
 		String baseName = attr;
 		int dotIdx = baseName.indexOf('.');
 		if(dotIdx >= 0)
 			baseName = baseName.substring(0, dotIdx);
-		holder = theAcceptedAttrs.get(baseName);
-		if(holder == null) {
+		attrObj = theAttributesByName.get(baseName);
+		AttributeHolder holder;
+		if(attrObj != null) {
+			holder = theAcceptedAttrs.get(attrObj);
+			if(holder.theAttr.getPathAccepter() == null)
+				throw new MuisException("Attribute " + attr + " is not hierarchical");
+			String [] path = attr.substring(dotIdx + 1).split("\\.");
+			if(!holder.theAttr.getPathAccepter().accept(theElement, path))
+				throw new MuisException("Attribute " + attr + " does not accept path \"" + attr.substring(dotIdx + 1) + "\"");
+			return set(new MuisPathedAttribute<>(holder.theAttr, theElement, path), value);
+		} else {
 			if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
 			if(value == null)
@@ -151,12 +163,6 @@ public class AttributeManager {
 				theRawAttributes.put(attr, value);
 			return null;
 		}
-		if(holder.theAttr.getPathAccepter() == null)
-			throw new MuisException("Attribute " + attr + " is not hierarchical");
-		String [] path = attr.substring(dotIdx + 1).split("\\.");
-		if(!holder.theAttr.getPathAccepter().accept(theElement, path))
-			throw new MuisException("Attribute " + attr + " does not accept path \"" + attr.substring(dotIdx + 1) + "\"");
-		return set(new MuisPathedAttribute<>(holder.theAttr, theElement, path), value);
 	}
 
 	/**
@@ -188,35 +194,31 @@ public class AttributeManager {
 	public final <T> void set(MuisAttribute<T> attr, T value) throws MuisException {
 		if(theRawAttributes != null)
 			theRawAttributes.remove(attr.getName());
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder == null) {
 			if(attr instanceof MuisPathedAttribute) {
 				MuisPathedAttribute<T> pathed = (MuisPathedAttribute<T>) attr;
-				holder = theAcceptedAttrs.get(pathed.getBase().getName());
-				if(holder != null) {
-					if(!holder.theAttr.equals(pathed.getBase()))
-						throw new MuisException("A different attribute named " + pathed.getBase().getName()
-							+ " is already accepted or set in this element");
-				} else {
+				holder = theAcceptedAttrs.get(pathed.getBase());
+				if(holder == null) {
 					if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 						throw new MuisException("Attribute " + attr + " is not accepted in this element");
 					holder = new AttributeHolder(pathed.getBase());
-					theAcceptedAttrs.put(pathed.getBase().getName(), holder);
+					theAcceptedAttrs.put(attr, holder);
 				}
 				AttributeHolder pathedHolder = new AttributeHolder(pathed, holder);
-				theAcceptedAttrs.put(pathed.getName(), pathedHolder);
+				theAcceptedAttrs.put(attr, pathedHolder);
+				theAttributesByName.put(attr.getName(), attr);
 				holder = pathedHolder;
 			} else {
 				if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 					throw new MuisException("Attribute " + attr + " is not accepted in this element");
 				holder = new AttributeHolder(attr);
-				theAcceptedAttrs.put(attr.getName(), holder);
+				theAcceptedAttrs.put(attr, holder);
+				theAttributesByName.put(attr.getName(), attr);
 				holder.theValue = value;
 				return;
 			}
 		}
-		if(!holder.theAttr.equals(attr))
-			throw new MuisException("A different attribute named " + attr.getName() + " is already accepted or set in this element");
 		if(value == null && holder.isRequired())
 			throw new MuisException("Attribute " + attr + " is required--cannot be set to null");
 		if(value != null) {
@@ -237,7 +239,10 @@ public class AttributeManager {
 	 * @return The value of the named attribute
 	 */
 	public final Object get(String name) {
-		AttributeHolder holder = theAcceptedAttrs.get(name);
+		MuisAttribute<?> attr = theAttributesByName.get(name);
+		if(attr == null)
+			return null;
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder == null)
 			return null;
 		return holder.theValue;
@@ -248,7 +253,10 @@ public class AttributeManager {
 	 * @return Whether an attribute with the given name is set in this attribute manager
 	 */
 	public final boolean isSet(String name) {
-		AttributeHolder holder = theAcceptedAttrs.get(name);
+		MuisAttribute<?> attr = theAttributesByName.get(name);
+		if(attr == null)
+			return false;
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder != null && holder.theValue != null)
 			return true;
 		if(theRawAttributes != null && theRawAttributes.get(name) != null)
@@ -261,8 +269,8 @@ public class AttributeManager {
 	 * @return Whether a value is set in this attribute manager for the given attribute
 	 */
 	public final boolean isSet(MuisAttribute<?> attr) {
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
-		return holder != null && holder.getAttribute().equals(attr) && holder.getValue() != null;
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
+		return holder != null && holder.getValue() != null;
 	}
 
 	/**
@@ -285,10 +293,10 @@ public class AttributeManager {
 	 * @return The value of the attribute in this manager, or <code>def</code> if the attribute is not set
 	 */
 	public final <T> T get(MuisAttribute<T> attr, T def) {
-		AttributeHolder storedAttr = theAcceptedAttrs.get(attr.getName());
+		AttributeHolder storedAttr = theAcceptedAttrs.get(attr);
 		if(storedAttr == null)
 			return def;
-		if(!storedAttr.theAttr.equals(attr) || storedAttr.theValue == null)
+		if(storedAttr.theValue == null)
 			return def; // Same name, but different attribute
 		return (T) storedAttr.theValue;
 	}
@@ -328,7 +336,7 @@ public class AttributeManager {
 	 * @param attr The attribute to accept but not require
 	 */
 	public final void unrequire(Object wanter, MuisAttribute<?> attr) {
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder != null)
 			holder.unrequire(wanter);
 		else
@@ -379,18 +387,15 @@ public class AttributeManager {
 			throw new IllegalArgumentException("Pathed attributes cannot be accepted or required");
 		if(require && initValue == null && theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
 		if(holder != null) {
-			if(holder.theAttr.equals(attr)) {
-				fireAccepted(require, attr, initValue);
-				holder.addWanter(wanter, require); // The attribute is already required
-			} else
-				throw new IllegalStateException("An attribute named " + attr.getName() + " (" + holder.theAttr
-					+ ") is already accepted in this element");
+			fireAccepted(require, attr, initValue);
+			holder.addWanter(wanter, require); // The attribute is already required
 		} else {
 			holder = new AttributeHolder(attr);
 			holder.addWanter(wanter, require);
-			theAcceptedAttrs.put(attr.getName(), holder);
+			theAcceptedAttrs.put(attr, holder);
+			theAttributesByName.put(attr.getName(), attr);
 			fireAccepted(require, attr, initValue);
 			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
@@ -423,8 +428,10 @@ public class AttributeManager {
 		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
 		if(holder != null) {
 			holder.reject(holder);
-			if(!holder.isWanted())
-				theAcceptedAttrs.remove(attr.getName());
+			if(!holder.isWanted()) {
+				theAcceptedAttrs.remove(attr);
+				namedAttrRemoved(attr);
+			}
 			theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, false, false, null), false, false);
 		}
 	}
@@ -441,8 +448,8 @@ public class AttributeManager {
 	public final boolean isAccepted(MuisAttribute<?> attr) {
 		if(attr instanceof MuisPathedAttribute)
 			return isAccepted(((MuisPathedAttribute<?>) attr).getBase());
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
-		return holder != null && holder.theAttr.equals(attr);
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
+		return holder != null;
 	}
 
 	/**
@@ -452,8 +459,8 @@ public class AttributeManager {
 	public final boolean isRequired(MuisAttribute<?> attr) {
 		if(attr instanceof MuisPathedAttribute)
 			return false;
-		AttributeHolder holder = theAcceptedAttrs.get(attr.getName());
-		return holder != null && !holder.theAttr.equals(attr) && holder.isRequired();
+		AttributeHolder holder = theAcceptedAttrs.get(attr);
+		return holder != null && holder.isRequired();
 	}
 
 	/** @return An iterable to iterate through all accepted attributes in this manager */
@@ -537,6 +544,7 @@ public class AttributeManager {
 			AttributeHolder holder = holders.next();
 			if(!holder.wasWanted()) {
 				holders.remove();
+				namedAttrRemoved(holder.getAttribute());
 				theElement.msg().error("Attribute " + holder.getAttribute() + " is not accepted in this element", "value",
 					holder.getValue());
 			}
@@ -544,6 +552,30 @@ public class AttributeManager {
 		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
 			theElement.msg().error("No attribute named " + attr.getKey() + " is not accepted in this element", "value", attr.getValue());
 		theRawAttributes = null;
+	}
+
+	private void namedAttrRemoved(MuisAttribute<?> attr) {
+		if(theAttributesByName.get(attr.getName()) != attr)
+			return;
+		/* Not sure how to tag this.  There *could* potentially be a fundamental problem with the way the attribute manager's guts are
+		 * structured here.  The potential problem is that if 3 or more attributes of the same name are accepted in an element and the last
+		 * one to be accepted is then rejected, the one that should be exposed by name would be the second attribute that was accepted.
+		 * The manager, however, keeps record only of the latest one added, so it has a roughly even chance of picking the right one among
+		 * the remaining attributes.
+		 *
+		 * The acceptance of multiple attributes with the same name was added to support the role attribute in templates, but that attribute
+		 * should never be rejected, so it isn't a problem for that.  Hopefully it will never be a problem for anybody, as fixing it the
+		 * right way in a concurrency-safe way will involve a bit more thought and perhaps a slight performance hit for locking.
+		 */
+		boolean found = false;
+		for(MuisAttribute<?> att : theAcceptedAttrs.keySet())
+			if(att != attr && att.getName().equals(attr.getName())) {
+				theAttributesByName.put(attr.getName(), att);
+				found = true;
+				break;
+			}
+		if(!found)
+			theAttributesByName.remove(attr.getName());
 	}
 
 	@Override

@@ -700,6 +700,20 @@ public abstract class MuisTemplate extends MuisElement {
 	}
 
 	@Override
+	protected void registerChild(MuisElement child) {
+		super.registerChild(child);
+		if(theLayout != null)
+			theLayout.childAdded(this, child);
+	}
+
+	@Override
+	protected void unregisterChild(MuisElement child) {
+		super.unregisterChild(child);
+		if(theLayout != null)
+			theLayout.childRemoved(this, child);
+	}
+
+	@Override
 	public ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		if(theTemplateStructure == null)
 			return getChildManager(); // Failed to parse template structure
@@ -723,6 +737,9 @@ public abstract class MuisTemplate extends MuisElement {
 			return super.ch();
 
 		initChildren(this, theTemplateStructure.getWidgetStructure());
+
+		if(theLayout != null)
+			theLayout.initChildren(this, getChildren().toArray());
 
 		// Don't need these anymore
 		theAttachmentMappings = null;

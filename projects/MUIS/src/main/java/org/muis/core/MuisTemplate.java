@@ -2,6 +2,7 @@ package org.muis.core;
 
 import java.util.*;
 
+import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
 import org.muis.core.mgr.MuisMessageCenter;
@@ -218,6 +219,8 @@ public abstract class MuisTemplate extends MuisElement {
 
 		private Map<AttachPoint, WidgetStructure> theAttachPointWidgets;
 
+		private Class<? extends MuisLayout> theLayoutClass;
+
 		/**
 		 * @param definer The templated class that defines the template structure
 		 * @param superStructure The parent template structure
@@ -293,6 +296,11 @@ public abstract class MuisTemplate extends MuisElement {
 			return Collections.unmodifiableList(new ArrayList<>(theAttachPoints.values())).listIterator();
 		}
 
+		/** @return The type of layout to use for the templated widget */
+		public Class<? extends MuisLayout> getLayoutClass() {
+			return theLayoutClass;
+		}
+
 		/**
 		 * Generates a template structure for a template type
 		 *
@@ -365,7 +373,22 @@ public abstract class MuisTemplate extends MuisElement {
 					+ "\" for template class " + templateType.getName());
 
 			WidgetStructure content = docStruct.getContent();
+			String layout = content.getAttributes().remove(LayoutContainer.LAYOUT_ATTR.getName());
 			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure, content);
+			if(layout != null) {
+				MuisToolkit tk;
+				if(templateType.getClassLoader() instanceof MuisToolkit)
+					tk = (MuisToolkit) templateType.getClassLoader();
+				else
+					tk = env.getCoreToolkit();
+				try {
+					templateStruct.theLayoutClass = new MuisClassView(env, null, tk).loadMappedClass(layout, MuisLayout.class);
+				} catch(MuisException e) {
+					env.msg().warn(
+						LayoutContainer.LAYOUT_ATTR.getName() + " value \"" + layout + "\" on template body for template class "
+							+ templateType.getName() + " cannot be loaded", e);
+				}
+			}
 			Map<AttachPoint, WidgetStructure> attaches = new HashMap<>();
 			try {
 				pullAttachPoints(templateStruct, content, attaches);
@@ -589,6 +612,8 @@ public abstract class MuisTemplate extends MuisElement {
 
 	private Set<MuisElement> theUninitialized;
 
+	private MuisLayout theLayout;
+
 	/** Creates a templated widget */
 	public MuisTemplate() {
 		theRoleWanter = new Object();
@@ -615,9 +640,107 @@ public abstract class MuisTemplate extends MuisElement {
 		return theTemplateStructure;
 	}
 
+	/**
+	 * @param attach The attach point to get the container for
+	 * @return The container of all elements occupying the attach point in this widget instance
+	 * @throws IllegalArgumentException If the attach point is not recognized in this templated widget or does not support multiple elements
+	 */
+	protected MuisContainer<MuisElement> getContainer(AttachPoint attach) throws IllegalArgumentException {
+		AttachPointInstance instance = theAttachPoints.get(attach);
+		if(instance == null)
+			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
+		return instance.getContainer();
+	}
+
+	/**
+	 * @param attach The attach point to get the element at
+	 * @return The element attached at the given attach point. May be null.
+	 */
+	protected MuisElement getElement(AttachPoint attach) {
+		AttachPointInstance instance = theAttachPoints.get(attach);
+		if(instance == null)
+			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
+		return instance.getValue();
+	}
+
+	/**
+	 * @param attach The attach point to set the element at
+	 * @param element The element to set for the given attach point. May be null if the attach point is not required.
+	 * @return The element that occupied the attach point before this call
+	 * @throws IllegalArgumentException If the given element may not be set as occupying the given attach point
+	 */
+	protected MuisElement setElement(AttachPoint attach, MuisElement element) throws IllegalArgumentException {
+		AttachPointInstance instance = theAttachPoints.get(attach);
+		if(instance == null)
+			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
+		return instance.setValue(element);
+	}
+
+	@Override
+	public SizeGuide getWSizer() {
+		if(theLayout != null)
+			return theLayout.getWSizer(this, getChildren().toArray());
+		else
+			return super.getWSizer();
+	}
+
+	@Override
+	public SizeGuide getHSizer() {
+		if(theLayout != null)
+			return theLayout.getHSizer(this, getChildren().toArray());
+		else
+			return super.getWSizer();
+	}
+
+	@Override
+	public void doLayout() {
+		if(theLayout != null)
+			theLayout.layout(this, getChildren().toArray());
+		super.doLayout();
+	}
+
+	@Override
+	public ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
+		if(theTemplateStructure == null)
+			return getChildManager(); // Failed to parse template structure
+		if(theAttachmentMappings == null)
+			throw new IllegalArgumentException("initChildren() may only be called once on an element");
+
+		/* Initialize this templated widget using theTemplateStructure from the top (direct extension of MuisTemplate2) down
+		 * (to this templated class) */
+		try {
+			initTemplate(theTemplateStructure);
+		} catch(MuisParseException e) {
+			msg().fatal("Failed to implement widget structure for templated type " + MuisTemplate.this.getClass().getName(), e);
+			return getChildManager();
+		}
+
+		for(MuisElement child : children)
+			addContent(child, theTemplateStructure);
+
+		// Verify we've got all required attach points satisfied, etc.
+		if(!verifyTemplateStructure(theTemplateStructure))
+			return super.ch();
+
+		initChildren(this, theTemplateStructure.getWidgetStructure());
+
+		// Don't need these anymore
+		theAttachmentMappings = null;
+		theUninitialized = null;
+
+		return new AttachPointSetChildList();
+	}
+
 	private void initTemplate(TemplateStructure structure) throws MuisParseException {
-		if(structure.getSuperStructure() != null) {
+		if(structure.getSuperStructure() != null)
 			initTemplate(structure.getSuperStructure());
+
+		if(structure.getLayoutClass() != null) {
+			try {
+				theLayout = structure.getLayoutClass().newInstance();
+			} catch(InstantiationException | IllegalAccessException e) {
+				msg().error("Could not instantiate layout type " + structure.getLayoutClass().getName(), e);
+			}
 		}
 
 		for(Map.Entry<String, String> att : structure.getWidgetStructure().getAttributes().entrySet()) {
@@ -787,74 +910,6 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 		}
 		attaches.add(child);
-	}
-
-	/**
-	 * @param attach The attach point to get the container for
-	 * @return The container of all elements occupying the attach point in this widget instance
-	 * @throws IllegalArgumentException If the attach point is not recognized in this templated widget or does not support multiple elements
-	 */
-	protected MuisContainer<MuisElement> getContainer(AttachPoint attach) throws IllegalArgumentException {
-		AttachPointInstance instance = theAttachPoints.get(attach);
-		if(instance == null)
-			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
-		return instance.getContainer();
-	}
-
-	/**
-	 * @param attach The attach point to get the element at
-	 * @return The element attached at the given attach point. May be null.
-	 */
-	protected MuisElement getElement(AttachPoint attach) {
-		AttachPointInstance instance = theAttachPoints.get(attach);
-		if(instance == null)
-			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
-		return instance.getValue();
-	}
-
-	/**
-	 * @param attach The attach point to set the element at
-	 * @param element The element to set for the given attach point. May be null if the attach point is not required.
-	 * @return The element that occupied the attach point before this call
-	 * @throws IllegalArgumentException If the given element may not be set as occupying the given attach point
-	 */
-	protected MuisElement setElement(AttachPoint attach, MuisElement element) throws IllegalArgumentException {
-		AttachPointInstance instance = theAttachPoints.get(attach);
-		if(instance == null)
-			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
-		return instance.setValue(element);
-	}
-
-	@Override
-	public ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
-		if(theTemplateStructure == null)
-			return getChildManager(); // Failed to parse template structure
-		if(theAttachmentMappings == null)
-			throw new IllegalArgumentException("initChildren() may only be called once on an element");
-
-		/* Initialize this templated widget using theTemplateStructure from the top (direct extension of MuisTemplate2) down
-		 * (to this templated class) */
-		try {
-			initTemplate(theTemplateStructure);
-		} catch(MuisParseException e) {
-			msg().fatal("Failed to implement widget structure for templated type " + MuisTemplate.this.getClass().getName(), e);
-			return getChildManager();
-		}
-
-		for(MuisElement child : children)
-			addContent(child, theTemplateStructure);
-
-		// Verify we've got all required attach points satisfied, etc.
-		if(!verifyTemplateStructure(theTemplateStructure))
-			return super.ch();
-
-		initChildren(this, theTemplateStructure.getWidgetStructure());
-
-		// Don't need these anymore
-		theAttachmentMappings = null;
-		theUninitialized = null;
-
-		return new AttachPointSetChildList();
 	}
 
 	private boolean verifyTemplateStructure(TemplateStructure struct) {

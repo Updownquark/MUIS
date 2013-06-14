@@ -3,8 +3,8 @@
 <template>
 	<head>
 	</head>
-	<body>
-		<border template-attach-point="border" template-external="false" template-mutable="false" group="textfield-border" layout="layer">
+	<body layout="layer">
+		<border template-attach-point="border" template-external="false" template-mutable="false" group="textfield-border" layout="box">
 			<label template-attach-point="text" template-external="false" template-mutable="false" group="textfield-text" style="bg.color=white">
 				<template-text template-attach-point="value" template-external="true" template-default="true" />
 			</label>

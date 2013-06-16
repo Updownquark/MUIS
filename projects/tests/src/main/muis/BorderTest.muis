@@ -11,6 +11,11 @@
     			<border style="border-style={color=red;thickness=5}">
 	    			<label>This should have a thick little red border and a thin big black border around it</label>
 	    		</border>
+	    		<block style="bg.transparency=0;bg.color=orange" width="200" height="100">
+	    			<border left="0" right="0xp" top="0" bottom="0xp" style="bg.corner-radius=0" layout="simple">
+	    				<block left="0" right="0xp" top="0" bottom="0xp" style="bg.transparency=0;bg.color=purple"/>
+	    			</border>
+	    		</block>
     		</border>
     	</block>
     </body>

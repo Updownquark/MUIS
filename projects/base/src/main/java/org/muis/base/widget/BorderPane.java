@@ -14,10 +14,12 @@ public class BorderPane extends org.muis.core.MuisTemplate {
 	@Override
 	public void doLayout() {
 		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
+		int thickness = getStyle().getSelf().get(org.muis.base.style.BorderStyle.thickness).intValue();
+		thickness += getStyle().getSelf().get(org.muis.base.style.BorderStyle.inset).intValue();
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
-		int lOff = radius.evaluate(w);
-		int tOff = radius.evaluate(h);
+		int lOff = radius.evaluate(w) + thickness;
+		int tOff = radius.evaluate(h) + thickness;
 		getContentPane().bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
 	}
 

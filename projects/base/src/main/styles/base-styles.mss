@@ -45,5 +45,6 @@
 	bg.corner-radius=5
 	(textfield-border){
 		bg.corner-radius=0
+		border-style.inset=0
 	}
 }

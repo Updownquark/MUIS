@@ -34,8 +34,6 @@ public class BorderTexture extends org.muis.core.style.BaseTexture {
 		Object oldRH = graphics.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
 		graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-		w--;// Makes the ends work easier
-		h--;
 		if(wRad > 0 && hRad > 0) {
 			double quarter = 90;
 			int offset = inset + thickness / 2;
@@ -60,7 +58,7 @@ public class BorderTexture extends org.muis.core.style.BaseTexture {
 			// Left
 			graphics.drawLine(offset, hRad + offset, offset, h - hRad - offset);
 		} else
-			graphics.drawRect(thickness / 2, thickness / 2, w - thickness, h - thickness);
+			graphics.drawRect(inset + thickness / 2, inset + thickness / 2, w - thickness - inset * 2, h - thickness - inset * 2);
 
 		graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldRH);
 		graphics.setColor(oldColor);

@@ -93,6 +93,8 @@ public class MuisDocument {
 
 	private GraphicsGetter theGraphics;
 
+	private GraphicsGetter theDebugGraphics;
+
 	private java.util.Collection<RenderListener> theRenderListeners;
 
 	/**
@@ -144,6 +146,16 @@ public class MuisDocument {
 	/** @return Graphics to be updated on repaint. May be null. */
 	public java.awt.Graphics2D getGraphics() {
 		return theGraphics == null ? null : theGraphics.getGraphics();
+	}
+
+	/** @param graphics The getter for graphics to be used in debugging (drawn piece-wise instead of in batches) */
+	public void setDebugGraphics(GraphicsGetter graphics) {
+		theDebugGraphics = graphics;
+	}
+
+	/** @return The graphics to be used in debugging */
+	public java.awt.Graphics2D getDebugGraphics() {
+		return theDebugGraphics == null ? null : theDebugGraphics.getGraphics();
 	}
 
 	/** @param listener The listener to be notified when the rendering of this document changes */

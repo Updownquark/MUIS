@@ -14,6 +14,8 @@ public class MuisBrowser extends javax.swing.JPanel {
 
 	private MuisContentPane theContentPane;
 
+	private java.awt.Component theDebugPanel;
+
 	private boolean theDataLock;
 
 	private org.muis.core.event.MuisEventListener<MuisMessage> theMessageListener;
@@ -48,6 +50,11 @@ public class MuisBrowser extends javax.swing.JPanel {
 		};
 	}
 
+	/** @param debug The component to draw debug graphics on */
+	public void setDebugPanel(java.awt.Component debug) {
+		theDebugPanel = debug;
+	}
+
 	/** @param address The address of the document to get */
 	public void goToAddress(String address) {
 		if(!theDataLock && !theAddressBar.getText().equals(address)) {
@@ -78,6 +85,13 @@ public class MuisBrowser extends javax.swing.JPanel {
 					return (Graphics2D) theContentPane.getGraphics();
 				}
 			});
+			if(theDebugPanel != null)
+				muisDoc.setDebugGraphics(new MuisDocument.GraphicsGetter() {
+					@Override
+					public Graphics2D getGraphics() {
+						return theDebugPanel == null ? null : (Graphics2D) theDebugPanel.getGraphics();
+					}
+				});
 			env.getContentCreator().fillDocument(muisDoc, docStruct.getContent());
 		} catch(java.io.IOException e) {
 			throw new IllegalArgumentException("Could not access address " + address, e);
@@ -131,6 +145,8 @@ public class MuisBrowser extends javax.swing.JPanel {
 		return (java.awt.Window) parent;
 	}
 
+	private static final boolean DEBUG = true;
+
 	/**
 	 * Starts up a MuisBrowser
 	 *
@@ -139,11 +155,28 @@ public class MuisBrowser extends javax.swing.JPanel {
 	 */
 	public static void main(String [] args) {
 		MuisBrowser browser = new MuisBrowser();
-		javax.swing.JFrame frame = new javax.swing.JFrame("MUIS Browser");
+		final javax.swing.JFrame frame = new javax.swing.JFrame("MUIS Browser");
 		frame.setContentPane(browser);
 		frame.setBounds(0, 0, 900, 600);
 		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
+
+		if(DEBUG) {
+			final javax.swing.JFrame debugFrame = new javax.swing.JFrame("MUIS Graphics Debug");
+			javax.swing.JPanel debugContent = new javax.swing.JPanel();
+			debugFrame.setContentPane(debugContent);
+			browser.setDebugPanel(debugContent);
+			debugFrame.setSize(frame.getSize());
+			debugFrame.setDefaultCloseOperation(javax.swing.JFrame.DO_NOTHING_ON_CLOSE);
+			debugFrame.setVisible(true);
+			frame.addComponentListener(new java.awt.event.ComponentAdapter() {
+				@Override
+				public void componentResized(java.awt.event.ComponentEvent e) {
+					debugFrame.setSize(frame.getSize());
+				}
+			});
+		}
+
 		if(args.length > 0)
 			browser.goToAddress(args[0]);
 	}

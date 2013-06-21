@@ -74,10 +74,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 			return theValues;
 		StyleExpressionValue<E, V> [] values = theValues;
 		java.util.Arrays.sort(values, STYLE_EXPRESSION_COMPARE);
-		if(values != theValues) {
-			theValues = values;
-			isSorted = true;
-		}
+		isSorted = true;
 		return values;
 	}
 

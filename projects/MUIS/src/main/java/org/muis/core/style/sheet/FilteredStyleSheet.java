@@ -83,9 +83,23 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
 						@Override
 						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> exp : theStyleSheet.getExpressions(value))
+							prisms.util.ProgramTracker.TrackNode track = null;
+							prisms.util.ProgramTracker.TrackNode exprTrack = null;
+							if(org.muis.core.MuisEventQueue.get().track().getCurrentTask() != null) {
+								track = org.muis.core.MuisEventQueue.get().track().start("accept");
+								exprTrack = org.muis.core.MuisEventQueue.get().track().start("expr");
+							}
+							StyleExpressionValue<StateGroupTypeExpression<?>, ?> [] exps = theStyleSheet.getExpressions(value);
+							if(exprTrack != null)
+								org.muis.core.MuisEventQueue.get().track().end(exprTrack);
+							try {
+								for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> exp : exps)
 								if(matchesFilter(exp.getExpression()))
 									return value;
+							} finally {
+							if(track != null)
+								org.muis.core.MuisEventQueue.get().track().end(track);
+							}
 							return null;
 						}
 					}, false);

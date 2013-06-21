@@ -218,7 +218,12 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 
 	@Override
 	public <T> StyleExpressionValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
+		prisms.util.ProgramTracker.TrackNode track = null;
+		if(org.muis.core.MuisEventQueue.get().track().getCurrentTask() != null)
+			track = org.muis.core.MuisEventQueue.get().track().start("local");
 		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] ret = getLocalExpressions(attr);
+		if(track != null)
+			org.muis.core.MuisEventQueue.get().track().end(track);
 		for(StyleSheet dep : theDependencies) {
 			StyleExpressionValue<StateGroupTypeExpression<?>, T> [] depRet = dep.getExpressions(attr);
 			if(depRet.length > 0)

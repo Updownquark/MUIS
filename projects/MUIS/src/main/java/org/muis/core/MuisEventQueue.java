@@ -156,6 +156,7 @@ public class MuisEventQueue {
 		 */
 		public PaintEvent(MuisElement element, Rectangle area, boolean now) {
 			super(PRIORITY);
+			// System.out.println("Paint created  " + System.nanoTime() % 1000000000);
 			theElement = element;
 			theArea = area;
 			isNow = now;
@@ -183,6 +184,7 @@ public class MuisEventQueue {
 
 		@Override
 		protected void doHandleAction() {
+			// System.out.println("Paint executed " + System.nanoTime() % 1000000000);
 			MuisDocument doc = theElement.getDocument();
 			if(theElement == doc.getRoot()) {
 				MuisRendering render = new MuisRendering(theElement.bounds().getWidth(), theElement.bounds().getHeight());
@@ -395,6 +397,9 @@ public class MuisEventQueue {
 			theRoot = root;
 			theEvent = evt;
 			isDownward = downward;
+			// if(theEvent instanceof org.muis.core.event.MouseEvent
+			// && ((org.muis.core.event.MouseEvent) theEvent).getMouseEventType() == org.muis.core.event.MouseEvent.MouseEventType.pressed)
+			// System.out.println("Mouse created   " + System.nanoTime() % 1000000000);
 		}
 
 		/** @return The root from which this event fires downward or to which it fires upward */
@@ -414,6 +419,11 @@ public class MuisEventQueue {
 
 		@Override
 		protected void doHandleAction() {
+			prisms.util.ProgramTracker.TrackNode track = null;
+			if(theEvent instanceof org.muis.core.event.MouseEvent
+				&& ((org.muis.core.event.MouseEvent) theEvent).getMouseEventType() == org.muis.core.event.MouseEvent.MouseEventType.pressed)
+				track = get().track().start("press handle");
+			// System.out.println("Mouse executing " + System.nanoTime() % 1000000000);
 			if(theEvent.getCapture() == null) // Non-positioned event
 			{
 				if(isDownward)
@@ -429,6 +439,14 @@ public class MuisEventQueue {
 			} else
 				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
 					el.getElement().fireEvent(theEvent, theEvent.isCanceled(), false);
+			if(track != null) {
+				get().track().end(track);
+				get().track().printData();
+				get().track().clear();
+			}
+			// if(theEvent instanceof org.muis.core.event.MouseEvent
+			// && ((org.muis.core.event.MouseEvent) theEvent).getMouseEventType() == org.muis.core.event.MouseEvent.MouseEventType.pressed)
+			// System.out.println("Mouse executed  " + System.nanoTime() % 1000000000);
 		}
 
 		@Override
@@ -486,7 +504,7 @@ public class MuisEventQueue {
 		}
 	}
 
-	private static MuisEventQueue theInstance = new MuisEventQueue();
+	private static final MuisEventQueue theInstance = new MuisEventQueue();
 
 	/** @return The instance of the queue to use to schedule core events */
 	public static MuisEventQueue get() {
@@ -515,6 +533,8 @@ public class MuisEventQueue {
 
 	private boolean isPrioritized;
 
+	private prisms.util.ProgramTracker theTracker;
+
 	private MuisEventQueue() {
 		theEvents = new Event[0];
 		theComparator = new java.util.Comparator<Event>() {
@@ -538,6 +558,7 @@ public class MuisEventQueue {
 		thePaintDirtyTolerance = 10;
 		theLayoutDirtyTolerance = 10;
 		isPrioritized = true;
+		theTracker = new prisms.util.ProgramTracker("MUIS Events");
 	}
 
 	/**
@@ -634,6 +655,11 @@ public class MuisEventQueue {
 	 */
 	public long getLayoutDirtyTolerance() {
 		return theLayoutDirtyTolerance;
+	}
+
+	/** @return The program tracker to use for debugging */
+	public prisms.util.ProgramTracker track() {
+		return theTracker;
 	}
 
 	private class EventQueueThread extends Thread {

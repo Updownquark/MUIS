@@ -31,8 +31,20 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 
 	@Override
 	public <T> StyleExpressionValue<E, T> [] getLocalExpressions(StyleAttribute<T> attr) {
+		prisms.util.ProgramTracker.TrackNode track = null;
+		if(org.muis.core.MuisEventQueue.get().track().getCurrentTask() != null)
+			track = org.muis.core.MuisEventQueue.get().track().start("get");
 		StyleValueHolder<E, T> holder = (StyleValueHolder<E, T>) theAttributes.get(attr);
+		if(track != null)
+			org.muis.core.MuisEventQueue.get().track().end(track);
+		if(track != null)
+			track = org.muis.core.MuisEventQueue.get().track().start("sort");
+		try {
 		return holder == null ? new StyleExpressionValue[0] : holder.sort();
+		} finally {
+			if(track != null)
+				org.muis.core.MuisEventQueue.get().track().end(track);
+		}
 	}
 
 	@Override

@@ -746,7 +746,8 @@ public abstract class MuisElement {
 	 *         By default, this method returns true if and only if the background transparency is one.
 	 */
 	public boolean isClickThrough(int x, int y) {
-		return getStyle().getSelf().get(BackgroundStyle.transparency) >= 1;
+		return false;
+		// return getStyle().getSelf().get(BackgroundStyle.transparency) >= 1;
 	}
 
 	/** @return Whether this element is able to accept the focus for the document */

@@ -28,4 +28,16 @@ public class ConstantItem extends prisms.lang.ParsedItem {
 	public prisms.lang.EvaluationResult evaluate(prisms.lang.EvaluationEnvironment env, boolean asType, boolean withValues) {
 		return theValue;
 	}
+
+	@Override
+	public String toString() {
+		if(theValue.getValue() != null)
+			return theValue.getValue().toString();
+		else if(theValue.getType() != null)
+			return theValue.getType().toString();
+		else if(theValue.getPackageName() != null)
+			return theValue.getPackageName();
+		else
+			return "?";
+	}
 }

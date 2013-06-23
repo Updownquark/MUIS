@@ -145,7 +145,7 @@ public class MuisBrowser extends javax.swing.JPanel {
 		return (java.awt.Window) parent;
 	}
 
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 
 	/**
 	 * Starts up a MuisBrowser

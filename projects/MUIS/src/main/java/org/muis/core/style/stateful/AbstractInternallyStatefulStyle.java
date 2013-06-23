@@ -109,9 +109,6 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	 * @param newState The new state set for this style
 	 */
 	protected void setState(MuisState... newState) {
-		prisms.util.ProgramTracker.TrackNode track = null;
-		if(org.muis.core.MuisEventQueue.get().track().getCurrentTask() != null)
-			track = org.muis.core.MuisEventQueue.get().track().start("setState");
 		MuisState [] oldState = theCurrentState;
 		StatefulStyle [] deps = getConditionalDependencies();
 		theCurrentState = newState;
@@ -137,25 +134,14 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			checkValues(dep, oldState, newState, forNewState, newValues);
 		for(Map.Entry<StyleAttribute<?>, Object> value : newValues.entrySet())
 			styleChanged(value.getKey(), value.getValue(), null);
-		if(track != null)
-			org.muis.core.MuisEventQueue.get().track().end(track);
 	}
 
 	private void checkValues(StatefulStyle dep, MuisState [] oldState, MuisState [] newState, MuisStyle forNewState,
 		Map<StyleAttribute<?>, Object> newValues) {
 		if(dep instanceof InternallyStatefulStyle)
 			return;
-		prisms.util.ProgramTracker.TrackNode track = null;
-		if(org.muis.core.MuisEventQueue.get().track().getCurrentTask() != null)
-			track = org.muis.core.MuisEventQueue.get().track().start("checkValues");
 		for(StyleAttribute<?> attr : dep.allAttrs()) {
-			prisms.util.ProgramTracker.TrackNode exprTrack = null;
-			if(track != null)
-				exprTrack = org.muis.core.MuisEventQueue.get().track().start("expr");
-			StyleExpressionValue<StateExpression, ?> [] sevs = getExpressions(attr);
-			if(exprTrack != null)
-				org.muis.core.MuisEventQueue.get().track().end(exprTrack);
-			for(StyleExpressionValue<StateExpression, ?> sev : sevs) {
+			for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(attr)) {
 				if(newValues.containsKey(attr) || forNewState.isSet(attr))
 					continue;
 				StateExpression expr = sev.getExpression();
@@ -172,8 +158,6 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 				break;
 			}
 		}
-		if(track != null)
-			org.muis.core.MuisEventQueue.get().track().end(track);
 	}
 
 	@Override

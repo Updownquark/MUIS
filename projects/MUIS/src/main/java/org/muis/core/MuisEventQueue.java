@@ -414,6 +414,7 @@ public class MuisEventQueue {
 
 		@Override
 		protected void doHandleAction() {
+			long start = System.nanoTime();
 			if(theEvent.getCapture() == null) // Non-positioned event
 			{
 				if(isDownward)
@@ -429,6 +430,9 @@ public class MuisEventQueue {
 			} else
 				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
 					el.getElement().fireEvent(theEvent, theEvent.isCanceled(), false);
+			if(theEvent instanceof org.muis.core.event.MouseEvent
+				&& ((org.muis.core.event.MouseEvent) theEvent).getMouseEventType() == org.muis.core.event.MouseEvent.MouseEventType.pressed)
+				System.out.println(System.nanoTime() - start);
 		}
 
 		@Override

@@ -107,7 +107,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	private <T> void setValue(StyleAttribute<T> attr, E exp, T value) {
 		if(value == null)
 			value = (T) NULL;
-		StyleExpressionValue<E, T> sev = new StyleExpressionValue<>(exp, value);
+		StyleExpressionValue<E, T> sev = createStyleExpressionValue(attr, exp, value);
 		StyleValueHolder<E, T> holder = (StyleValueHolder<E, T>) theAttributes.get(attr);
 		if(holder == null) {
 			holder = new StyleValueHolder<>(sev);
@@ -115,6 +115,19 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		} else
 			holder.set(sev);
 		styleChanged(attr, exp, null);
+	}
+
+	/**
+	 * Creates a {@link StyleExpressionValue}
+	 *
+	 * @param <T> The type of the value
+	 * @param attr The attribute to create the expression value for
+	 * @param exp The expression that the value is valid for
+	 * @param value The style value
+	 * @return The style expression value for the expression and value
+	 */
+	protected <T> StyleExpressionValue<E, T> createStyleExpressionValue(StyleAttribute<T> attr, E exp, T value) {
+		return new StyleExpressionValue<>(exp, value);
 	}
 
 	/**
@@ -162,9 +175,8 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 			throw new IllegalStateException(e);
 		}
 		ret.theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
-		for(java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<E, ?>> entry : theAttributes.entrySet()) {
+		for(java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<E, ?>> entry : theAttributes.entrySet())
 			ret.theAttributes.put(entry.getKey(), entry.getValue().clone());
-		}
 		ret.theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		// Don't add the listeners--ret is a new style
 		return ret;

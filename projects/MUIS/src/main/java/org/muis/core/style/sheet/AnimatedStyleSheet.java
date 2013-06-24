@@ -260,8 +260,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		}
 		// Iterate through local attributes and fire events for variable-dependent values
 		for(StyleAttribute<?> attr : allLocal()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ParsedItem> sev : getLocalAnimatedValues(attr)) {
-				if(hasVariable(sev.getValue(), changedVars))
+			for(StyleExpressionEvalValue<StateGroupTypeExpression<?>, ?> sev : getLocalExpressions(attr)) {
+				if(hasVariable(sev.getValueExpression(), changedVars))
 					styleChanged(attr, sev.getExpression(), this);
 			}
 		}
@@ -307,12 +307,14 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		return prisms.util.ArrayUtils.immutableIterator(theVariables.iterator());
 	}
 
-	/**
-	 * @param attr The attribute to get the values of
-	 * @return All expressions for values of the given attribute local to this style sheet
-	 */
-	public StyleExpressionValue<StateGroupTypeExpression<?>, ParsedItem> [] getLocalAnimatedValues(StyleAttribute<?> attr) {
-		return (StyleExpressionValue<StateGroupTypeExpression<?>, ParsedItem> []) super.getLocalExpressions(attr);
+	@Override
+	protected <T> StyleExpressionValue<StateGroupTypeExpression<?>, T> createStyleExpressionValue(StyleAttribute<T> attr,
+		StateGroupTypeExpression<?> exp, T value) {
+		if(value == null)
+			value = (T) new ConstantItem(attr.getType().getType(), null);
+		else if(!(value instanceof ParsedItem))
+			value = (T) new ConstantItem(value.getClass(), value);
+		return new StyleExpressionEvalValue<StateGroupTypeExpression<?>, T>(this, attr, exp, (ParsedItem) value);
 	}
 
 	/**
@@ -325,12 +327,18 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	}
 
 	@Override
-	public <T> StyleExpressionValue<StateGroupTypeExpression<?>, T> [] getLocalExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<StateGroupTypeExpression<?>, ParsedItem> [] exprs = getLocalAnimatedValues(attr);
-		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionValue[exprs.length];
-		for(int i = 0; i < exprs.length; i++) {
-			ret[i] = new StyleExpressionValue<StateGroupTypeExpression<?>, T>(exprs[i].getExpression(), evaluate(attr, exprs[i].getValue()));
-		}
+	public <T> StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] getLocalExpressions(StyleAttribute<T> attr) {
+		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] array = super.getLocalExpressions(attr);
+		StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionEvalValue[array.length];
+		System.arraycopy(array, 0, ret, 0, array.length);
+		return ret;
+	}
+
+	@Override
+	public <T> StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
+		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] array = super.getExpressions(attr);
+		StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionEvalValue[array.length];
+		System.arraycopy(array, 0, ret, 0, array.length);
 		return ret;
 	}
 
@@ -357,7 +365,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	@Override
 	protected <T> T castAndValidate(StyleAttribute<T> attr, T value) throws ClassCastException {
 		if(!(value instanceof ParsedItem))
-			throw new IllegalStateException("Implementation error: " + ParsedItem.class.getSimpleName() + " expected");
+			throw new IllegalStateException("Implementation error: " + ParsedItem.class.getSimpleName() + " expected, "
+				+ (value == null ? "null" : value.getClass().getSimpleName()) + " received");
 		ParsedItem pi = (ParsedItem) value;
 		T realValue = evaluate(attr, pi);
 		if(realValue == null)

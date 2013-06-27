@@ -1,6 +1,10 @@
 package org.muis.core.style.sheet;
 
+import java.util.List;
+
+import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisTemplate;
 import org.muis.core.style.stateful.StateExpression;
 
 import prisms.util.ArrayUtils;
@@ -19,17 +23,22 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 
 	private final Class<E> theType;
 
+	private final List<MuisAttribute<MuisTemplate.AttachPoint>> theTemplateRoles;
+
 	/**
 	 * @param state The state expression of this condition, or null if this expression is to be state-independent.
 	 * @param group The group name of this condition, or null if this expression is to be group-independent.
 	 * @param type The element type of this condition, or null if this expression is to be type-independent.
+	 * @param templateRoles The template roles that this condition applies to
 	 */
-	public StateGroupTypeExpression(StateExpression state, String group, Class<E> type) {
+	public StateGroupTypeExpression(StateExpression state, String group, Class<E> type,
+		MuisAttribute<MuisTemplate.AttachPoint>... templateRoles) {
 		if(type == null)
 			type = (Class<E>) MuisElement.class;
 		theState = state;
 		theGroupName = group;
 		theType = type;
+		theTemplateRoles = java.util.Collections.unmodifiableList(java.util.Arrays.asList(templateRoles));
 	}
 
 	@Override
@@ -89,6 +98,11 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	/** @return The element type of this condition, or null if this expression is type-independent. */
 	public Class<E> getType() {
 		return theType;
+	}
+
+	/** @return The roles in {@link MuisTemplate templated widgets} that this expression applies to */
+	public List<MuisAttribute<MuisTemplate.AttachPoint>> getTemplateRoles() {
+		return theTemplateRoles;
 	}
 
 	@Override

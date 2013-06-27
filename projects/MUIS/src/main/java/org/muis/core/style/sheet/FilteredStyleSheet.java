@@ -1,6 +1,10 @@
 package org.muis.core.style.sheet;
 
+import java.util.List;
+
+import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisTemplate;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionEvent;
 import org.muis.core.style.StyleExpressionListener;
@@ -22,19 +26,24 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	private final Class<E> theType;
 
+	private final List<MuisAttribute<MuisTemplate.AttachPoint>> theTemplateRoles;
+
 	private final java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener<StatefulStyle, StateExpression>> theListeners;
 
 	/**
 	 * @param styleSheet The style sheet to get the style information from
 	 * @param groupName The group name to filter by
 	 * @param type The element type to filter by
+	 * @param templateRoles The template roles that this filter should accept
 	 */
-	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type) {
+	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type,
+		List<MuisAttribute<MuisTemplate.AttachPoint>> templateRoles) {
 		theStyleSheet = styleSheet;
 		theGroupName = groupName;
 		if(type == null)
 			type = (Class<E>) MuisElement.class;
 		theType = type;
+		theTemplateRoles = java.util.Collections.unmodifiableList(templateRoles);
 		styleSheet.addListener(new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
 			@Override
 			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> evt) {
@@ -60,13 +69,19 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 		return theType;
 	}
 
+	/** @return The template roles that this filter accepts */
+	public List<MuisAttribute<MuisTemplate.AttachPoint>> getTemplateRoles() {
+		return theTemplateRoles;
+	}
+
 	/**
 	 * @param expr The expression to check
 	 * @return Whether a {@link StateGroupTypeExpression} with the given group name and type matches this filter such that its attribute
 	 *         value will be exposed from this style's {@link StatefulStyle} methods
 	 */
 	public boolean matchesFilter(StateGroupTypeExpression<?> expr) {
-		return ArrayUtils.equals(expr.getGroupName(), theGroupName) && expr.getType().isAssignableFrom(theType);
+		return ArrayUtils.equals(expr.getGroupName(), theGroupName) && expr.getType().isAssignableFrom(theType)
+			&& theTemplateRoles.containsAll(expr.getTemplateRoles());
 	}
 
 	@Override

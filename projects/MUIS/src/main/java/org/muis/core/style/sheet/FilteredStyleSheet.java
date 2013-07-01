@@ -1,10 +1,8 @@
 package org.muis.core.style.sheet;
 
-import java.util.List;
+import java.util.Map;
 
-import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
-import org.muis.core.MuisTemplate;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionEvent;
 import org.muis.core.style.StyleExpressionListener;
@@ -26,7 +24,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	private final Class<E> theType;
 
-	private final List<MuisAttribute<MuisTemplate.AttachPoint>> theTemplateRoles;
+	private final TemplatePath [] theTemplatePaths;
 
 	private final java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener<StatefulStyle, StateExpression>> theListeners;
 
@@ -34,16 +32,14 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 * @param styleSheet The style sheet to get the style information from
 	 * @param groupName The group name to filter by
 	 * @param type The element type to filter by
-	 * @param templateRoles The template roles that this filter should accept
 	 */
-	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type,
-		List<MuisAttribute<MuisTemplate.AttachPoint>> templateRoles) {
+	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type) {
 		theStyleSheet = styleSheet;
 		theGroupName = groupName;
 		if(type == null)
 			type = (Class<E>) MuisElement.class;
 		theType = type;
-		theTemplateRoles = java.util.Collections.unmodifiableList(templateRoles);
+		theTemplatePaths = new TemplatePath[0];
 		styleSheet.addListener(new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
 			@Override
 			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> evt) {
@@ -70,8 +66,88 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	/** @return The template roles that this filter accepts */
-	public List<MuisAttribute<MuisTemplate.AttachPoint>> getTemplateRoles() {
-		return theTemplateRoles;
+	public TemplatePath [] getTemplateRoles() {
+		return theTemplatePaths.clone();
+	}
+
+	/** @param path The path to add to the filtering on this style sheet */
+	public void addTemplatePath(TemplatePath path) {
+		for(TemplatePath p : theTemplatePaths)
+			if(p.containsPath(path))
+				return;
+		TemplatePath [] paths = ArrayUtils.add(theTemplatePaths, path);
+		setTemplatePaths(paths);
+	}
+
+	/** @param path The path to remove from the filtering on this style sheet */
+	public void removeTemplatePath(TemplatePath path) {
+		int index = ArrayUtils.indexOf(theTemplatePaths, path);
+		if(index < 0)
+			return;
+		TemplatePath [] paths = ArrayUtils.remove(theTemplatePaths, index);
+		setTemplatePaths(paths);
+	}
+
+	/**
+	 * @param oldPath The path to remove from the filtering on this style sheet
+	 * @param newPath The path to add to the filtering on this style sheet
+	 */
+	public void replaceTemplatePath(TemplatePath oldPath, TemplatePath newPath) {
+		TemplatePath [] paths = theTemplatePaths;
+		boolean add = true;
+		for(TemplatePath p : paths)
+			if(p.containsPath(newPath)) {
+				add = false;
+				break;
+			}
+		int index = ArrayUtils.indexOf(paths, oldPath);
+		boolean remove = index >= 0;
+		if(remove) {
+			paths = ArrayUtils.remove(paths, index);
+			if(add)
+				paths = ArrayUtils.add(paths, newPath, index);
+		} else if(add)
+			paths = ArrayUtils.add(paths, newPath);
+		if(remove || add)
+			setTemplatePaths(paths);
+	}
+
+	/** @param paths The paths to set for the filtering on this style sheet */
+	protected void setTemplatePaths(TemplatePath [] newPaths) {
+		TemplatePath [] oldState = theTemplatePaths;
+		StatefulStyle [] deps = getConditionalDependencies();
+		theTemplatePaths = newPaths;
+		// MuisStyle forNewState = new StyleSheetSample(this, newPaths);
+		Map<StyleAttribute<?>, Object> newValues = new java.util.HashMap<>();
+		for(StyleAttribute<?> attr : allLocal()) {
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : theStyleSheet.getExpressions(attr)) {
+				StateGroupTypeExpression<?> expr = sev.getExpression();
+				if(expr == null)
+					continue;
+				boolean oldMatch = matches(expr.getTemplatePath(), oldState);
+				boolean newMatch = matches(expr.getTemplatePath(), newPaths);
+				if(oldMatch == newMatch)
+					continue;
+				if(newMatch)
+					newValues.put(attr, sev.getValue());
+				else
+					newValues.put(attr, forNewState.get(attr));
+				break;
+			}
+		}
+		for(StatefulStyle dep : deps)
+			checkValues(dep, oldState, newPaths, forNewState, newValues);
+		for(Map.Entry<StyleAttribute<?>, Object> value : newValues.entrySet())
+			styleChanged(value.getKey(), value.getValue(), null);
+	}
+
+	private static boolean matches(TemplatePath path, TemplatePath [] paths) {
+		if(path == null)
+			return true;
+		for(TemplatePath p : paths)
+			if(p.containsPath(path))
+				return true;
+		return false;
 	}
 
 	/**
@@ -80,8 +156,14 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 *         value will be exposed from this style's {@link StatefulStyle} methods
 	 */
 	public boolean matchesFilter(StateGroupTypeExpression<?> expr) {
-		return ArrayUtils.equals(expr.getGroupName(), theGroupName) && expr.getType().isAssignableFrom(theType)
-			&& theTemplateRoles.containsAll(expr.getTemplateRoles());
+		if(!ArrayUtils.equals(expr.getGroupName(), theGroupName) || !expr.getType().isAssignableFrom(theType))
+			return false;
+		if(expr.getTemplatePath() == null)
+			return true;
+		for(TemplatePath path : theTemplatePaths)
+			if(path.containsPath(expr.getTemplatePath()))
+				return true;
+		return false;
 	}
 
 	@Override

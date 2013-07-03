@@ -16,6 +16,7 @@ import org.muis.core.style.StyleDomain;
 import org.muis.core.style.sheet.AnimatedStyleSheet;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 import org.muis.core.style.sheet.StateGroupTypeExpression;
+import org.muis.core.style.sheet.TemplatePath;
 import org.muis.core.style.stateful.StateExpression;
 
 import prisms.arch.PrismsConfig;
@@ -571,9 +572,12 @@ public class StyleSheetParser {
 
 		StateExpression theState;
 
+		TemplatePath theTemplatePath;
+
 		ExpressionContext() {
 			theTypes = new ArrayList<>();
 			theGroups = new ArrayList<>();
+			theTemplatePath = new TemplatePath();
 		}
 
 		boolean isEmpty() {
@@ -670,6 +674,8 @@ public class StyleSheetParser {
 
 				private StateExpression theOverallState;
 
+				private TemplatePath theTemplatePath;
+
 				private int theTypeIdx;
 
 				private int theGroupIdx;
@@ -704,9 +710,9 @@ public class StyleSheetParser {
 					if(theGroupIdx < theIterableGroups.size()) {
 						if(theTypeIdx < theIterableTypes.length) {
 							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx),
-								theIterableTypes[theTypeIdx++]);
+								theIterableTypes[theTypeIdx++], theTemplatePath);
 						} else {
-							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx), null);
+							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx), null, theTemplatePath);
 						}
 						if(theTypeIdx >= theIterableTypes.length) {
 							theGroupIdx++;
@@ -714,9 +720,9 @@ public class StyleSheetParser {
 						}
 					} else if(theIterableGroups.isEmpty()) {
 						if(theTypeIdx < theIterableTypes.length) {
-							ret = new StateGroupTypeExpression<>(theOverallState, null, theIterableTypes[theTypeIdx++]);
+							ret = new StateGroupTypeExpression<>(theOverallState, null, theIterableTypes[theTypeIdx++], theTemplatePath);
 						} else if(theIterableTypes.length == 0) {
-							ret = new StateGroupTypeExpression<>(theOverallState, null, null);
+							ret = new StateGroupTypeExpression<>(theOverallState, null, null, theTemplatePath);
 						} else
 							throw new java.util.NoSuchElementException();
 					} else
@@ -1064,7 +1070,7 @@ public class StyleSheetParser {
 					for(StateGroupTypeExpression<?> expr : stack)
 						style.setAnimatedValue(attr, expr, value);
 				else
-					style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null), value);
+					style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
 				return;
 			}
 		}
@@ -1101,7 +1107,7 @@ public class StyleSheetParser {
 						for(StateGroupTypeExpression<?> expr : stack)
 							style.setAnimatedValue(attr, expr, value);
 					else
-						style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null), value);
+						style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
 					break;
 				}
 			}

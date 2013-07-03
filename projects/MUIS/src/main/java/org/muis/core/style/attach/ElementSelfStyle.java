@@ -1,8 +1,5 @@
 package org.muis.core.style.attach;
 
-import org.muis.core.MuisAttribute;
-import org.muis.core.MuisElement;
-import org.muis.core.MuisTemplate;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
@@ -18,18 +15,15 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 
 	private FilteredStyleSheet<?> theStyleSheet;
 
-	private java.util.List<MuisAttribute<MuisTemplate.AttachPoint>> theTemplateRoles;
-
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
 		theElStyle = elStyle;
-		theTemplateRoles = new java.util.ArrayList<>();
 		addDependency(elStyle);
 		theElStyle.getElement().life().runWhen(new Runnable() {
 			@Override
 			public void run() {
 				theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement()
-					.getClass(), theTemplateRoles);
+					.getClass());
 				addDependency(theStyleSheet);
 				// Add a dependency for typed, non-grouped style sheet attributes
 				addListener(new StyleListener() {
@@ -40,19 +34,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 				});
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
-		elStyle.getElement().addListener(org.muis.core.MuisConstants.Events.ATTRIBUTE_ACCEPTED,
-			new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
-				@Override
-				public void eventOccurred(org.muis.core.event.MuisEvent<MuisAttribute<?>> event, MuisElement element) {
-					if(event.getValue().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType)
-						theTemplateRoles.add((MuisAttribute<MuisTemplate.AttachPoint>) event.getValue());
-				}
-
-				@Override
-				public boolean isLocal() {
-					return true;
-				}
-			});
+		int todo;// TODO Add listener to modify the filtered style sheet's template path
 	}
 
 	/** @return The element style that depends on this self-style */

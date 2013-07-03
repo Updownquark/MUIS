@@ -56,9 +56,9 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		 */
 		NamedStyleGroup root = getRoot();
 		if(root != null && root.getName() != null) // name==null Happens in the super constructor call for NamedStyleGroup
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type, java.util.Collections.EMPTY_LIST));
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type));
 		else
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), name, type, java.util.Collections.EMPTY_LIST));
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), name, type));
 		if(parent != null)
 			addDependency(parent, null);
 	}

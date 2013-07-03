@@ -1,5 +1,6 @@
 package org.muis.core.style.sheet;
 
+import java.util.List;
 import java.util.Map;
 
 import org.muis.core.MuisElement;
@@ -24,7 +25,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	private final Class<E> theType;
 
-	private final TemplatePath [] theTemplatePaths;
+	private TemplatePath [] theTemplatePaths;
 
 	private final java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener<StatefulStyle, StateExpression>> theListeners;
 
@@ -112,33 +113,26 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 			setTemplatePaths(paths);
 	}
 
-	/** @param paths The paths to set for the filtering on this style sheet */
+	/** @param newPaths The paths to set for the filtering on this style sheet */
 	protected void setTemplatePaths(TemplatePath [] newPaths) {
 		TemplatePath [] oldState = theTemplatePaths;
-		StatefulStyle [] deps = getConditionalDependencies();
 		theTemplatePaths = newPaths;
-		// MuisStyle forNewState = new StyleSheetSample(this, newPaths);
-		Map<StyleAttribute<?>, Object> newValues = new java.util.HashMap<>();
+		Map<StyleAttribute<?>, List<StateExpression>> changedExprs = new java.util.HashMap<>();
 		for(StyleAttribute<?> attr : allLocal()) {
+			changedExprs.put(attr, new java.util.ArrayList<StateExpression>());
 			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : theStyleSheet.getExpressions(attr)) {
 				StateGroupTypeExpression<?> expr = sev.getExpression();
 				if(expr == null)
 					continue;
 				boolean oldMatch = matches(expr.getTemplatePath(), oldState);
 				boolean newMatch = matches(expr.getTemplatePath(), newPaths);
-				if(oldMatch == newMatch)
-					continue;
-				if(newMatch)
-					newValues.put(attr, sev.getValue());
-				else
-					newValues.put(attr, forNewState.get(attr));
-				break;
+				if(oldMatch != newMatch)
+					changedExprs.get(attr).add(expr.getState());
 			}
 		}
-		for(StatefulStyle dep : deps)
-			checkValues(dep, oldState, newPaths, forNewState, newValues);
-		for(Map.Entry<StyleAttribute<?>, Object> value : newValues.entrySet())
-			styleChanged(value.getKey(), value.getValue(), null);
+		for(Map.Entry<StyleAttribute<?>, List<StateExpression>> value : changedExprs.entrySet())
+			for(StateExpression exp : value.getValue())
+				styleChanged(value.getKey(), exp);
 	}
 
 	private static boolean matches(TemplatePath path, TemplatePath [] paths) {

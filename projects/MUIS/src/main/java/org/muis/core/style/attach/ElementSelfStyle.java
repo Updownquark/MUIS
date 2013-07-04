@@ -5,6 +5,7 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleListener;
 import org.muis.core.style.sheet.FilteredStyleSheet;
+import org.muis.core.style.sheet.TemplatePath;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
@@ -24,6 +25,24 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 			public void run() {
 				theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement()
 					.getClass());
+				// Add listener to modify the filtered style sheet's template path
+				TemplatePathListener tpl = new TemplatePathListener();
+				tpl.addListener(new TemplatePathListener.Listener() {
+					@Override
+					public void pathAdded(TemplatePath path) {
+						theStyleSheet.addTemplatePath(path);
+					}
+
+					@Override
+					public void pathRemoved(TemplatePath path) {
+						theStyleSheet.removeTemplatePath(path);
+					}
+
+					@Override
+					public void pathChanged(TemplatePath oldPath, TemplatePath newPath) {
+						theStyleSheet.replaceTemplatePath(oldPath, newPath);
+					}
+				});
 				addDependency(theStyleSheet);
 				// Add a dependency for typed, non-grouped style sheet attributes
 				addListener(new StyleListener() {
@@ -34,7 +53,6 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 				});
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
-		int todo;// TODO Add listener to modify the filtered style sheet's template path
 	}
 
 	/** @return The element style that depends on this self-style */

@@ -20,8 +20,11 @@ public class TemplatePathListener {
 
 	private MuisElement theElement;
 
+	private java.util.Map<MuisAttribute<AttachPoint>, MuisElement> theAttachParents;
+
 	public TemplatePathListener() {
 		theListeners = new java.util.ArrayList<>();
+		theAttachParents = new java.util.HashMap<>();
 	}
 
 	public void listen(MuisElement element) {
@@ -42,6 +45,12 @@ public class TemplatePathListener {
 				return true;
 			}
 		});
+		for(MuisAttribute<?> att : theElement.atts().attributes()) {
+			if(att.getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType) {
+				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) att;
+				roleChanged(roleAttr, theElement.atts().get(roleAttr));
+			}
+		}
 	}
 
 	public void unlisten() {
@@ -60,7 +69,25 @@ public class TemplatePathListener {
 		theListeners.remove(listener);
 	}
 
-	private void roleChanged(MuisAttribute<MuisTemplate.AttachPoint> roleAttr, MuisTemplate.AttachPoint role) {
-		int todo; // TODO
+	private void roleChanged(MuisAttribute<MuisTemplate.AttachPoint> roleAttr, AttachPoint role) {
+		MuisElement newAttachParent = getAttachParent(role);
+		MuisElement oldAttachParent;
+		if(newAttachParent != null)
+			oldAttachParent = theAttachParents.put(roleAttr, newAttachParent);
+		else
+			oldAttachParent = theAttachParents.remove(roleAttr);
+		if(oldAttachParent == newAttachParent)
+			return;
+		if(oldAttachParent != null) {
+			// TODO Remove the template path listener from old attach parent. Remove template paths that it contributed to,
+			// replacing them with one-element paths. Fire listeners.
+		}
+		if(newAttachParent != null) {
+			// Add a template path listener to the new attach parent. Add template paths that the new parent contributes to. Fire listeners.
+		}
+		int todo;
+	}
+
+	private MuisElement getAttachParent(AttachPoint role) {
 	}
 }

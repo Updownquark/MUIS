@@ -26,6 +26,16 @@ public class TemplatePath implements List<AttachPoint> {
 	}
 
 	/**
+	 * @param base The base template path to append onto
+	 * @param append The attach point to append onto the base path
+	 */
+	public TemplatePath(TemplatePath base, AttachPoint append) {
+		List<AttachPoint> path = new java.util.ArrayList<>(base.thePath);
+		path.add(append);
+		thePath = java.util.Collections.unmodifiableList(path);
+	}
+
+	/**
 	 * @param path The path to test
 	 * @return Whether a widget with this template path also satisfies the given path
 	 */

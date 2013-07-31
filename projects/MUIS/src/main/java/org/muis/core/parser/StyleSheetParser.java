@@ -5,10 +5,7 @@ import java.net.URL;
 import java.util.ArrayList;
 
 import org.jdom2.Element;
-import org.muis.core.MuisClassView;
-import org.muis.core.MuisElement;
-import org.muis.core.MuisEnvironment;
-import org.muis.core.MuisException;
+import org.muis.core.*;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
@@ -93,8 +90,7 @@ public class StyleSheetParser {
 					while(steps.size() < values.size() - 1)
 						steps.add(0d);
 					steps.add(getNumber(m, "step size"));
-				}
-				else if("time".equals(m.config.get("storeAs")))
+				} else if("time".equals(m.config.get("storeAs")))
 					times.add(getNumber(m, "time"));
 			}
 			theNextValues = new double[values.size()];
@@ -311,6 +307,25 @@ public class StyleSheetParser {
 		@Override
 		public ParsedItem [] getDependents() {
 			return new ParsedItem[] {theState};
+		}
+	}
+
+	public static class ParsedAttachPoint extends ParsedStyleFilter {
+		private String theAttachPoint;
+
+		@Override
+		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
+			super.setup(parser, parent, match);
+			theAttachPoint = getStored("attachPoint").text;
+		}
+
+		public String getAttachPoint() {
+			return theAttachPoint;
+		}
+
+		@Override
+		public ParsedItem [] getDependents() {
+			return new ParsedItem[0];
 		}
 	}
 
@@ -640,6 +655,26 @@ public class StyleSheetParser {
 			top().theState = state;
 		}
 
+		void addAttachPoint(String attachPoint, MuisEnvironment env) throws MuisParseException {
+			Class<? extends MuisElement> type;
+			if(top().theTypes.isEmpty())
+				type = MuisElement.class;
+			else
+				type = top().theTypes.get(top().theTypes.size() - 1);
+			if(!(MuisTemplate.class.isAssignableFrom(type)))
+				throw new MuisParseException("Element type " + type.getName() + " is not templated--cannot specify attach point styles");
+			MuisTemplate.TemplateStructure templateStruct;
+			try {
+				templateStruct = MuisTemplate.TemplateStructure.genTemplateStructure(env, (Class<? extends MuisTemplate>) type);
+			} catch(MuisException e) {
+				throw new MuisParseException("Could not parse template structure for " + type.getName(), e);
+			}
+			MuisTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
+			if(ap == null)
+				throw new MuisParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
+			top().theTemplatePath = new TemplatePath(top().theTemplatePath, ap);
+		}
+
 		Class<? extends MuisElement> [] getTopTypes() {
 			for(int i = theStack.size() - 1; i >= 0; i--) {
 				if(!theStack.get(i).theTypes.isEmpty())
@@ -941,7 +976,7 @@ public class StyleSheetParser {
 							stack.addGroup(groupName);
 						} catch(MuisParseException e) {
 							int [] lc = getLineChar(section.getRoot().getFullCommand(), filter.getMatch().index);
-							msg.error(e.getMessage() + ": " + location + " at line " + (lc[0] + 1) + ", char " + (lc[1] + 1));
+							msg.error(e.getMessage() + ": " + location + " at line " + (lc[0] + 1) + ", char " + (lc[1] + 1), e);
 							return;
 						}
 				} else if(filter instanceof ParsedState) {
@@ -949,8 +984,15 @@ public class StyleSheetParser {
 					try {
 						stack.setState(evaluateState(state, stack, location));
 					} catch(MuisParseException e) {
-						msg.error(e.getMessage());
+						msg.error(e.getMessage(), e);
 						return;
+					}
+				} else if(filter instanceof ParsedAttachPoint) {
+					String attachPoint = ((ParsedAttachPoint) filter).getAttachPoint();
+					try {
+						stack.addAttachPoint(attachPoint, classView.getEnvironment());
+					} catch(MuisParseException e) {
+						msg.error(e.getMessage(), e);
 					}
 				} else {
 					msg.error("Unrecognized style filter type: " + filter.getClass().getName());

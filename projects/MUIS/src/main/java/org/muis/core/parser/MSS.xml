@@ -218,6 +218,10 @@
 			<op storeAs="state" />
 		</option>
 	</operator>
+	<operator name="attach-point" priority="-1" impl="org.muis.core.parser.StyleSheetParser$ParsedAttachPoint">
+		<literal>#</literal>
+		<op storeAs="attachPoint" />
+	</operator>
 	<operator name="assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedAssignment">
 		<op type="muis type" storeAs="domain" />
 		<literal>.</literal>

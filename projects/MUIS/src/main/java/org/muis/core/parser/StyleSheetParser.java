@@ -656,11 +656,17 @@ public class StyleSheetParser {
 		}
 
 		void addAttachPoint(String attachPoint, MuisEnvironment env) throws MuisParseException {
-			Class<? extends MuisElement> type;
-			if(top().theTypes.isEmpty())
+			Class<? extends MuisElement> type = null;
+			for(int i = theStack.size() - 1; i >= 0; i--) {
+				if(!theStack.get(i).theTypes.isEmpty()) {
+					if(theStack.get(i).theTypes.size() > 1)
+						throw new MuisParseException("Cannot attach-point specific styles to more than one type at once");
+					type = theStack.get(i).theTypes.get(0);
+					break;
+				}
+			}
+			if(type == null)
 				type = MuisElement.class;
-			else
-				type = top().theTypes.get(top().theTypes.size() - 1);
 			if(!(MuisTemplate.class.isAssignableFrom(type)))
 				throw new MuisParseException("Element type " + type.getName() + " is not templated--cannot specify attach point styles");
 			MuisTemplate.TemplateStructure templateStruct;

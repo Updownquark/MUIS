@@ -168,6 +168,9 @@
 				<option>
 					<op type="state" storeAs="filter" />
 				</option>
+				<option>
+					<op type="attach-point" storeAs="filter" />
+				</option>
 			</select>
 		</option>
 		<op type="block" storeAs="content" />

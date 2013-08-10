@@ -45,7 +45,15 @@
 	bg.corner-radius=5
 }
 
-[text-field]#border{
-	bg.corner-radius=0
-	border-style.inset=0
+[text-field]{
+	#border{
+		bg.corner-radius=0
+		bg.color=white
+		bg.transparency=0
+		border-style.inset=0
+		
+		.click{
+			bg.color=red
+		}
+	}
 }

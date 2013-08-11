@@ -152,7 +152,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	public boolean matchesFilter(StateGroupTypeExpression<?> expr) {
 		if(!ArrayUtils.equals(expr.getGroupName(), theGroupName) || !expr.getType().isAssignableFrom(theType))
 			return false;
-		if(expr.getTemplatePath() == null)
+		if(expr.getTemplatePath() == null || expr.getTemplatePath().isEmpty())
 			return true;
 		for(TemplatePath path : theTemplatePaths)
 			if(path.containsPath(expr.getTemplatePath()))

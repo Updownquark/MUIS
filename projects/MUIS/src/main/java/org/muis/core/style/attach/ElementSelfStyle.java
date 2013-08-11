@@ -43,6 +43,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 						theStyleSheet.replaceTemplatePath(oldPath, newPath);
 					}
 				});
+				tpl.listen(theElStyle.getElement());
 				addDependency(theStyleSheet);
 				// Add a dependency for typed, non-grouped style sheet attributes
 				addListener(new StyleListener() {

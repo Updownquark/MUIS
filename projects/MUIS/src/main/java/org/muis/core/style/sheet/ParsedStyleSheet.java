@@ -111,4 +111,9 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 		assertUnsealed();
 		super.clear(attr, exp);
 	}
+
+	@Override
+	public String toString() {
+		return theLocation.getFile();
+	}
 }

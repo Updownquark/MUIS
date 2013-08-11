@@ -137,22 +137,25 @@ public class MuisCache
 
 	/**
 	 * Retrieves a cached item and optionally generates the item if not cached, waiting for the generation to be complete
-	 *
+	 * 
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item
 	 * @param env The environment to get the resource within
 	 * @param type The type of item to get
 	 * @param key The key to get the cached item by
+	 * @param generate Whether to generate the value if it does not currently exist in the cache
 	 * @return The value cached for the given type and key
 	 * @throws E If an exception occurs generating a new cache value
 	 */
-	public <K, V, E extends Exception> V getAndWait(MuisEnvironment env, CacheItemType<K, V, E> type, K key) throws E
+	public <K, V, E extends Exception> V getAndWait(MuisEnvironment env, CacheItemType<K, V, E> type, K key, boolean generate) throws E
 	{
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 		if(stored == null)
 		{
+			if(!generate)
+				return null;
 			stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			while(stored == null)
 			{ // This is in a while loop because it's remotely possible that the entry could be purged before get returns
@@ -160,7 +163,6 @@ public class MuisCache
 				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			}
 		}
-		assert stored != null : "Should not return null from getAndWait if generate is true";
 
 		while(stored.isLoading)
 			try

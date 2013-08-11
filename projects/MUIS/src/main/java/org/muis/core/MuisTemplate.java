@@ -302,6 +302,19 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		/**
+		 * Gets a template structure for a template type
+		 *
+		 * @param env The MUIS environment to get the structure within
+		 * @param templateType The template type to get the structure for
+		 * @return The template structure for the given templated type
+		 * @throws MuisException If an error occurs generating the structure
+		 */
+		public static TemplateStructure getTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate> templateType)
+			throws MuisException {
+			return env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, templateType, true);
+		}
+
+		/**
 		 * Generates a template structure for a template type
 		 *
 		 * @param env The MUIS environment to generate the structure within
@@ -309,7 +322,7 @@ public abstract class MuisTemplate extends MuisElement {
 		 * @return The template structure for the given templated type
 		 * @throws MuisException If an error occurs generating the structure
 		 */
-		public static TemplateStructure genTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate> templateType)
+		private static TemplateStructure genTemplateStructure(MuisEnvironment env, Class<? extends MuisTemplate> templateType)
 			throws MuisException {
 			if(!MuisTemplate.class.isAssignableFrom(templateType))
 				throw new MuisException("Only extensions of " + MuisTemplate.class.getName() + " may have template structures: "
@@ -320,7 +333,7 @@ public abstract class MuisTemplate extends MuisElement {
 			TemplateStructure superStructure = null;
 			while(superType != MuisTemplate.class) {
 				if(superType.getAnnotation(Template.class) != null) {
-					superStructure = env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, superType);
+					superStructure = getTemplateStructure(env, superType);
 					break;
 				}
 				superType = (Class<? extends MuisTemplate>) superType.getSuperclass();
@@ -626,8 +639,7 @@ public abstract class MuisTemplate extends MuisElement {
 			public void run() {
 				try {
 					MuisEnvironment env = getDocument().getEnvironment();
-					theTemplateStructure = env.getCache().getAndWait(env, TemplateStructure.TEMPLATE_STRUCTURE_CACHE_TYPE,
-						MuisTemplate.this.getClass());
+					theTemplateStructure = TemplateStructure.getTemplateStructure(env, MuisTemplate.this.getClass());
 				} catch(MuisException e) {
 					msg().fatal("Could not generate template structure", e);
 				}

@@ -673,7 +673,7 @@ public class StyleSheetParser {
 				throw new MuisParseException("Element type " + type.getName() + " is not templated--cannot specify attach point styles");
 			MuisTemplate.TemplateStructure templateStruct;
 			try {
-				templateStruct = MuisTemplate.TemplateStructure.genTemplateStructure(env, (Class<? extends MuisTemplate>) type);
+				templateStruct = MuisTemplate.TemplateStructure.getTemplateStructure(env, (Class<? extends MuisTemplate>) type);
 			} catch(MuisException e) {
 				throw new MuisParseException("Could not parse template structure for " + type.getName(), e);
 			}

@@ -64,11 +64,13 @@ public class TemplatePath implements List<AttachPoint> {
 
 	@Override
 	public String toString() {
+		if(isEmpty())
+			return "";
 		StringBuilder ret = new StringBuilder();
 		ret.append(thePath.get(0).template.getDefiner().getSimpleName());
 		for(AttachPoint ap : thePath)
 			ret.append('#').append(ap.name);
-		return thePath.toString();
+		return ret.toString();
 	}
 
 	@Override

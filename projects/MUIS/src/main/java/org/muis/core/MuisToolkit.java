@@ -21,8 +21,15 @@ public class MuisToolkit extends java.net.URLClassLoader {
 						continue;
 					for(org.muis.core.style.StyleExpressionValue<org.muis.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : depend
 						.getExpressions(attr)) {
-						if(sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != MuisToolkit.this) {
-							int todo; // TODO Add code to tolerate this if the expression's template path is specific to the toolkit
+						boolean isSpecific = false;
+						for(MuisTemplate.AttachPoint ap : sev.getExpression().getTemplatePath()) {
+							if(ap.template.getDefiner().getClassLoader() == MuisToolkit.this) {
+								isSpecific = true;
+								break;
+							}
+						}
+						if(!isSpecific
+							&& (sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != MuisToolkit.this)) {
 							String msg = "Toolkit " + theURI + ": Style sheet";
 							if(depend instanceof org.muis.core.style.sheet.ParsedStyleSheet)
 								msg += " defined in " + ((org.muis.core.style.sheet.ParsedStyleSheet) depend).getLocation();
@@ -48,6 +55,11 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		@Override
 		public void seal() {
 			throw new IllegalStateException("Toolkit style sheets cannot be sealed--the toolkit seals it");
+		}
+
+		@Override
+		public String toString() {
+			return "Style sheet for toolkit " + MuisToolkit.this;
 		}
 	}
 
@@ -388,5 +400,10 @@ public class MuisToolkit extends java.net.URLClassLoader {
 	void assertUnsealed() {
 		if(isSealed)
 			throw new SealedException("Cannot modify a sealed toolkit");
+	}
+
+	@Override
+	public String toString() {
+		return theName + " v" + theVersion;
 	}
 }

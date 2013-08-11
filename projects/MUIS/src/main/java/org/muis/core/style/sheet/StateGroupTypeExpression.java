@@ -74,9 +74,10 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	 */
 	@Override
 	public int getPriority() {
-		int todo; // TODO Add template path here
 		int ret = 0;
-		if(theType != null) {
+		if(theTemplatePath != null && !theTemplatePath.isEmpty())
+			ret += theTemplatePath.size() * 1000;
+		else if(theType != null) {
 			Class<?> type = theType;
 			while(!(type == MuisElement.class)) {
 				ret += 100;
@@ -118,7 +119,7 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 			return theState.toString();
 		StringBuilder ret = new StringBuilder();
 		ret.append('(');
-		if(theTemplatePath != null)
+		if(theTemplatePath != null && !theTemplatePath.isEmpty())
 			ret.append(theTemplatePath);
 		else if(theType != null)
 			ret.append("type " + theType.getSimpleName());
@@ -131,11 +132,6 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 			if(ret.length() > 1)
 				ret.append(", ");
 			ret.append("state " + theState);
-		}
-		if(theTemplatePath != null) {
-			if(ret.length() > 1)
-				ret.append(", ");
-			ret.append("templatePath " + theTemplatePath);
 		}
 
 		ret.append(')');

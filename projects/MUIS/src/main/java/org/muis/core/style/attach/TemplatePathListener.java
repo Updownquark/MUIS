@@ -43,6 +43,7 @@ public class TemplatePathListener {
 		if(theElement != null)
 			throw new IllegalStateException("This " + getClass().getSimpleName() + " is already listening to "
 				+ (element == theElement ? "this" : "a different") + " element.");
+		theElement = element;
 		theElement.addListener(Events.ATTRIBUTE_SET, new MuisEventListener<MuisAttribute<?>>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement evtElement) {
@@ -57,6 +58,24 @@ public class TemplatePathListener {
 				return true;
 			}
 		});
+		if(theElement.getParent() != null)
+			checkCurrent();
+		else
+			theElement.addListener(MuisConstants.Events.ELEMENT_MOVED, new MuisEventListener<MuisElement>() {
+				@Override
+				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement el) {
+					theElement.removeListener(this);
+					checkCurrent();
+				}
+
+				@Override
+				public boolean isLocal() {
+					return true;
+				}
+			});
+	}
+
+	private void checkCurrent() {
 		for(MuisAttribute<?> att : theElement.atts().attributes()) {
 			if(att.getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType) {
 				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) att;
@@ -84,19 +103,19 @@ public class TemplatePathListener {
 	private void roleChanged(MuisAttribute<MuisTemplate.AttachPoint> roleAttr, AttachPoint role) {
 		MuisElement newAttachParent = getAttachParent(role);
 		final TemplateListenerValue newValue;
-		if(newAttachParent!=null){
-			newValue=new TemplateListenerValue();
+		if(newAttachParent != null) {
+			newValue = new TemplateListenerValue();
 			newValue.role = role;
-			newValue.parent=newAttachParent;
+			newValue.parent = newAttachParent;
 		} else
-			newValue=null;
+			newValue = null;
 
 		TemplateListenerValue oldValue;
-		if(newValue!=null)
-			oldValue=theAttachParents.put(roleAttr, newValue);
+		if(newValue != null)
+			oldValue = theAttachParents.put(roleAttr, newValue);
 		else
-			oldValue=theAttachParents.remove(roleAttr);
-		if(oldValue!=null && newAttachParent==oldValue.parent)
+			oldValue = theAttachParents.remove(roleAttr);
+		if(oldValue != null && newAttachParent == oldValue.parent)
 			return;
 		if(oldValue != null) {
 			// Remove old listener and template paths

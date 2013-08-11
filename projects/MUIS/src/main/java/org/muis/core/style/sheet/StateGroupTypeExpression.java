@@ -118,7 +118,9 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 			return theState.toString();
 		StringBuilder ret = new StringBuilder();
 		ret.append('(');
-		if(theType != null)
+		if(theTemplatePath != null)
+			ret.append(theTemplatePath);
+		else if(theType != null)
 			ret.append("type " + theType.getSimpleName());
 		if(theGroupName != null) {
 			if(ret.length() > 1)

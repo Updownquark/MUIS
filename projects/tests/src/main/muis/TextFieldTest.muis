@@ -7,6 +7,9 @@
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">
    			<text-field>This is a text field</text-field>
+   			<border>
+   				This text is in a normal border
+   			</border>
    		</block>
     </body>
 </muis>

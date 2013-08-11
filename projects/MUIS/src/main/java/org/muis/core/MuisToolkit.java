@@ -22,6 +22,7 @@ public class MuisToolkit extends java.net.URLClassLoader {
 					for(org.muis.core.style.StyleExpressionValue<org.muis.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : depend
 						.getExpressions(attr)) {
 						if(sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != MuisToolkit.this) {
+							int todo; // TODO Add code to tolerate this if the expression's template path is specific to the toolkit
 							String msg = "Toolkit " + theURI + ": Style sheet";
 							if(depend instanceof org.muis.core.style.sheet.ParsedStyleSheet)
 								msg += " defined in " + ((org.muis.core.style.sheet.ParsedStyleSheet) depend).getLocation();

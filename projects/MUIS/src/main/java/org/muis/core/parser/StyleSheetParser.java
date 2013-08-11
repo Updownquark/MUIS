@@ -289,7 +289,7 @@ public class StyleSheetParser {
 		}
 	}
 
-	/** Represents a style expression that a set of styles will be applied for */
+	/** Represents a state expression that a set of styles will be applied for */
 	public static class ParsedState extends ParsedStyleFilter {
 		private ParsedItem theState;
 
@@ -310,6 +310,7 @@ public class StyleSheetParser {
 		}
 	}
 
+	/** Represents an attach point within a type of templated widget that a set of styles will be applied to */
 	public static class ParsedAttachPoint extends ParsedStyleFilter {
 		private String theAttachPoint;
 
@@ -319,6 +320,7 @@ public class StyleSheetParser {
 			theAttachPoint = getStored("attachPoint").text;
 		}
 
+		/** @return The name of the attach point */
 		public String getAttachPoint() {
 			return theAttachPoint;
 		}
@@ -596,7 +598,7 @@ public class StyleSheetParser {
 		}
 
 		boolean isEmpty() {
-			return theTypes.isEmpty() && theGroups.isEmpty() && theState == null;
+			return theTypes.isEmpty() && theGroups.isEmpty() && theState == null && theTemplatePath.isEmpty();
 		}
 	}
 
@@ -678,15 +680,26 @@ public class StyleSheetParser {
 			MuisTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
 			if(ap == null)
 				throw new MuisParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
-			top().theTemplatePath = new TemplatePath(top().theTemplatePath, ap);
+			top().theTemplatePath = new TemplatePath(getTopTemplatePath(), ap);
+			top().theTypes.add(ap.type);
 		}
 
 		Class<? extends MuisElement> [] getTopTypes() {
 			for(int i = theStack.size() - 1; i >= 0; i--) {
+				if(!theStack.get(i).theTemplatePath.isEmpty())
+					return new Class[0];
 				if(!theStack.get(i).theTypes.isEmpty())
 					return theStack.get(i).theTypes.toArray(new Class[theStack.get(i).theTypes.size()]);
 			}
 			return new Class[0];
+		}
+
+		TemplatePath getTopTemplatePath() {
+			for(int i = theStack.size() - 1; i >= 0; i--) {
+				if(!theStack.get(i).theTemplatePath.isEmpty())
+					return theStack.get(i).theTemplatePath;
+			}
+			return new TemplatePath();
 		}
 
 		@Override
@@ -725,6 +738,7 @@ public class StyleSheetParser {
 
 				{
 					theIterableTypes = getTopTypes();
+					theTemplatePath = getTopTemplatePath();
 					theIterableGroups = new ArrayList<>();
 					for(int i = theStack.size() - 1; i >= 0; i--) {
 						if(theIterableGroups.isEmpty())
@@ -742,7 +756,7 @@ public class StyleSheetParser {
 
 				@Override
 				public boolean hasNext() {
-					return !hasCalledNext || theTypeIdx < top().theTypes.size() || theGroupIdx < top().theGroups.size();
+					return !hasCalledNext || theTypeIdx < theIterableTypes.length || theGroupIdx < theIterableGroups.size();
 				}
 
 				@Override

@@ -20,7 +20,7 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 
 	private final Class<E> theType;
 
-	private final TemplatePath theTemplatePath;
+	private final TemplateRole theTemplatePath;
 
 	/**
 	 * @param state The state expression of this condition, or null if this expression is to be state-independent.
@@ -28,7 +28,7 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	 * @param type The element type of this condition, or null if this expression is to be type-independent.
 	 * @param templatePath The role path that this condition applies to
 	 */
-	public StateGroupTypeExpression(StateExpression state, String group, Class<E> type, TemplatePath templatePath) {
+	public StateGroupTypeExpression(StateExpression state, String group, Class<E> type, TemplateRole templatePath) {
 		if(type == null)
 			type = (Class<E>) MuisElement.class;
 		theState = state;
@@ -75,8 +75,8 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	@Override
 	public int getPriority() {
 		int ret = 0;
-		if(theTemplatePath != null && !theTemplatePath.isEmpty())
-			ret += theTemplatePath.size() * 1000;
+		if(theTemplatePath != null)
+			ret += theTemplatePath.getDepth() * 1000;
 		else if(theType != null) {
 			Class<?> type = theType;
 			while(!(type == MuisElement.class)) {
@@ -107,7 +107,7 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 	}
 
 	/** @return The role path in {@link MuisTemplate templated widgets} that this expression applies to */
-	public TemplatePath getTemplatePath() {
+	public TemplateRole getTemplateRole() {
 		return theTemplatePath;
 	}
 
@@ -119,7 +119,7 @@ public class StateGroupTypeExpression<E extends org.muis.core.MuisElement> imple
 			return theState.toString();
 		StringBuilder ret = new StringBuilder();
 		ret.append('(');
-		if(theTemplatePath != null && !theTemplatePath.isEmpty())
+		if(theTemplatePath != null)
 			ret.append(theTemplatePath);
 		else if(theType != null)
 			ret.append("type " + theType.getSimpleName());

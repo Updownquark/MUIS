@@ -13,7 +13,7 @@ import org.muis.core.style.StyleDomain;
 import org.muis.core.style.sheet.AnimatedStyleSheet;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 import org.muis.core.style.sheet.StateGroupTypeExpression;
-import org.muis.core.style.sheet.TemplatePath;
+import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.StateExpression;
 
 import prisms.arch.PrismsConfig;
@@ -589,16 +589,15 @@ public class StyleSheetParser {
 
 		StateExpression theState;
 
-		TemplatePath theTemplatePath;
+		TemplateRole theTemplatePath;
 
 		ExpressionContext() {
 			theTypes = new ArrayList<>();
 			theGroups = new ArrayList<>();
-			theTemplatePath = new TemplatePath();
 		}
 
 		boolean isEmpty() {
-			return theTypes.isEmpty() && theGroups.isEmpty() && theState == null && theTemplatePath.isEmpty();
+			return theTypes.isEmpty() && theGroups.isEmpty() && theState == null && theTemplatePath == null;
 		}
 	}
 
@@ -646,10 +645,13 @@ public class StyleSheetParser {
 		}
 
 		void addGroup(String groupName) throws MuisParseException {
-			for(int i = 0; i < theStack.size() - 1; i++)
+			for(int i = 0; i < theStack.size() - 1; i++) {
+				if(theStack.get(i).theTemplatePath != null)
+					break;
 				if(!theStack.get(i).theGroups.isEmpty())
 					throw new MuisParseException(
 						"Groups are not hierarchical--a category with a group cannot contain a category with a group");
+			}
 			top().theGroups.add(groupName);
 		}
 
@@ -680,13 +682,19 @@ public class StyleSheetParser {
 			MuisTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
 			if(ap == null)
 				throw new MuisParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
-			top().theTemplatePath = new TemplatePath(getTopTemplatePath(), ap);
+			ArrayList<String> parentGroups = new ArrayList<>();
+			for(int i = theStack.size() - 1; i >= 0; i--)
+				if(!theStack.get(i).theGroups.isEmpty()) {
+					parentGroups.addAll(theStack.get(i).theGroups);
+					break;
+				}
+			top().theTemplatePath = new TemplateRole(ap, parentGroups, (Class<? extends MuisTemplate>) type, getTopTemplateRole());
 			top().theTypes.add(ap.type);
 		}
 
 		Class<? extends MuisElement> [] getTopTypes() {
 			for(int i = theStack.size() - 1; i >= 0; i--) {
-				if(!theStack.get(i).theTemplatePath.isEmpty())
+				if(theStack.get(i).theTemplatePath != null)
 					return new Class[0];
 				if(!theStack.get(i).theTypes.isEmpty())
 					return theStack.get(i).theTypes.toArray(new Class[theStack.get(i).theTypes.size()]);
@@ -694,12 +702,12 @@ public class StyleSheetParser {
 			return new Class[0];
 		}
 
-		TemplatePath getTopTemplatePath() {
+		TemplateRole getTopTemplateRole() {
 			for(int i = theStack.size() - 1; i >= 0; i--) {
-				if(!theStack.get(i).theTemplatePath.isEmpty())
+				if(theStack.get(i).theTemplatePath != null)
 					return theStack.get(i).theTemplatePath;
 			}
-			return new TemplatePath();
+			return null;
 		}
 
 		@Override
@@ -728,7 +736,7 @@ public class StyleSheetParser {
 
 				private StateExpression theOverallState;
 
-				private TemplatePath theTemplatePath;
+				private TemplateRole theTemplatePath;
 
 				private int theTypeIdx;
 
@@ -738,9 +746,11 @@ public class StyleSheetParser {
 
 				{
 					theIterableTypes = getTopTypes();
-					theTemplatePath = getTopTemplatePath();
+					theTemplatePath = getTopTemplateRole();
 					theIterableGroups = new ArrayList<>();
 					for(int i = theStack.size() - 1; i >= 0; i--) {
+						if(theStack.get(i).theTemplatePath != null)
+							break;
 						if(theIterableGroups.isEmpty())
 							theIterableGroups.addAll(theStack.get(i).theGroups);
 					}

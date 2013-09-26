@@ -5,17 +5,17 @@ import org.muis.core.MuisConstants.Events;
 import org.muis.core.MuisTemplate.AttachPoint;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
-import org.muis.core.style.sheet.TemplatePath;
+import org.muis.core.style.sheet.TemplateRole;
 
 import prisms.util.ArrayUtils;
 
 public class TemplatePathListener {
 	public interface Listener {
-		void pathAdded(TemplatePath path);
+		void pathAdded(TemplateRole path);
 
-		void pathRemoved(TemplatePath path);
+		void pathRemoved(TemplateRole path);
 
-		void pathChanged(TemplatePath oldPath, TemplatePath newPath);
+		void pathChanged(TemplateRole oldPath, TemplateRole newPath);
 	}
 
 	private static class TemplateListenerValue {
@@ -25,7 +25,7 @@ public class TemplatePathListener {
 
 		TemplatePathListener parentListener;
 
-		TemplatePath [] paths = new TemplatePath[0];
+		TemplateRole [] paths = new TemplateRole[0];
 	}
 
 	private java.util.List<Listener> theListeners;
@@ -121,37 +121,37 @@ public class TemplatePathListener {
 			// Remove old listener and template paths
 			oldValue.parentListener.unlisten();
 			for(int i = oldValue.paths.length - 1; i >= 0; i++)
-				notifyPathRemoved(new TemplatePath(oldValue.paths[i], oldValue.role));
-			notifyPathRemoved(new TemplatePath(oldValue.role));
+				notifyPathRemoved(new TemplateRole(oldValue.role, null, null, oldValue.paths[i]));
+			notifyPathRemoved(new TemplateRole(oldValue.role, null, null, null));
 		}
 		if(newValue != null) {
 			// Add a template path listener to the new attach parent. Add template paths that the new parent contributes to. Fire listeners.
 			newValue.parentListener = new TemplatePathListener();
 			newValue.parentListener.addListener(new Listener() {
 				@Override
-				public void pathAdded(TemplatePath path) {
-					TemplatePath added = new TemplatePath(path, newValue.role);
+				public void pathAdded(TemplateRole path) {
+					TemplateRole added = new TemplateRole(newValue.role, null, null, path);
 					newValue.paths = ArrayUtils.add(newValue.paths, added);
 					notifyPathAdded(added);
 				}
 
 				@Override
-				public void pathRemoved(TemplatePath path) {
-					TemplatePath removed = new TemplatePath(path, newValue.role);
+				public void pathRemoved(TemplateRole path) {
+					TemplateRole removed = new TemplateRole(newValue.role, null, null, path);
 					newValue.paths = ArrayUtils.remove(newValue.paths, removed);
 					notifyPathRemoved(removed);
 				}
 
 				@Override
-				public void pathChanged(TemplatePath oldPath, TemplatePath newPath) {
-					TemplatePath removed = new TemplatePath(oldPath, newValue.role);
-					TemplatePath added = new TemplatePath(newPath, newValue.role);
+				public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
+					TemplateRole removed = new TemplateRole(newValue.role, null, null, oldPath);
+					TemplateRole added = new TemplateRole(newValue.role, null, null, newPath);
 					newValue.paths = ArrayUtils.add(newValue.paths, added);
 					newValue.paths = ArrayUtils.remove(newValue.paths, removed);
 					notifyPathReplaced(removed, added);
 				}
 			});
-			TemplatePath singlet = new TemplatePath(role);
+			TemplateRole singlet = new TemplateRole(role, null, null, null);
 			newValue.paths = ArrayUtils.add(newValue.paths, singlet);
 			notifyPathAdded(singlet);
 			newValue.parentListener.listen(newAttachParent);
@@ -166,17 +166,17 @@ public class TemplatePathListener {
 		return parent;
 	}
 
-	private void notifyPathAdded(TemplatePath path) {
+	private void notifyPathAdded(TemplateRole path) {
 		for(Listener listener : theListeners)
 			listener.pathAdded(path);
 	}
 
-	private void notifyPathRemoved(TemplatePath path) {
+	private void notifyPathRemoved(TemplateRole path) {
 		for(Listener listener : theListeners)
 			listener.pathRemoved(path);
 	}
 
-	private void notifyPathReplaced(TemplatePath oldPath, TemplatePath newPath) {
+	private void notifyPathReplaced(TemplateRole oldPath, TemplateRole newPath) {
 		for(Listener listener : theListeners)
 			listener.pathChanged(oldPath, newPath);
 	}

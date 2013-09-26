@@ -5,7 +5,7 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleListener;
 import org.muis.core.style.sheet.FilteredStyleSheet;
-import org.muis.core.style.sheet.TemplatePath;
+import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
@@ -29,17 +29,17 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 				TemplatePathListener tpl = new TemplatePathListener();
 				tpl.addListener(new TemplatePathListener.Listener() {
 					@Override
-					public void pathAdded(TemplatePath path) {
+					public void pathAdded(TemplateRole path) {
 						theStyleSheet.addTemplatePath(path);
 					}
 
 					@Override
-					public void pathRemoved(TemplatePath path) {
+					public void pathRemoved(TemplateRole path) {
 						theStyleSheet.removeTemplatePath(path);
 					}
 
 					@Override
-					public void pathChanged(TemplatePath oldPath, TemplatePath newPath) {
+					public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
 						theStyleSheet.replaceTemplatePath(oldPath, newPath);
 					}
 				});

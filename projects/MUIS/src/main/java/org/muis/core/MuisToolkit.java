@@ -22,11 +22,13 @@ public class MuisToolkit extends java.net.URLClassLoader {
 					for(org.muis.core.style.StyleExpressionValue<org.muis.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : depend
 						.getExpressions(attr)) {
 						boolean isSpecific = false;
-						for(MuisTemplate.AttachPoint ap : sev.getExpression().getTemplatePath()) {
-							if(ap.template.getDefiner().getClassLoader() == MuisToolkit.this) {
+						org.muis.core.style.sheet.TemplateRole role = sev.getExpression().getTemplateRole();
+						while(role != null) {
+							if(role.getRole().template.getDefiner().getClassLoader() == MuisToolkit.this) {
 								isSpecific = true;
 								break;
 							}
+							role = role.getParent();
 						}
 						if(!isSpecific
 							&& (sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != MuisToolkit.this)) {

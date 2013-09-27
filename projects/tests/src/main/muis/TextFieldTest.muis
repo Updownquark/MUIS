@@ -3,6 +3,7 @@
 <muis>
     <head>
         <title>Text Field Test</title>
+		<style-sheet ref="../styles/muis-tests.mss"></style-sheet>
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">
@@ -10,6 +11,7 @@
    			<border>
    				This text is in a normal border
    			</border>
+   			<text-field group="tfredborder">This text field's border should be red</text-field>
    		</block>
     </body>
 </muis>

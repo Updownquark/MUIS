@@ -20,6 +20,12 @@ public class TemplateRole {
 
 	private final TemplateRole theParentRole;
 
+	/**
+	 * @param role The attach point role for the base of this path
+	 * @param parentGroups The groups that the attach point parent belongs to
+	 * @param parentType The type of the attach point parent
+	 * @param parentRole The parent role for this path
+	 */
 	public TemplateRole(AttachPoint role, List<String> parentGroups, Class<? extends MuisTemplate> parentType, TemplateRole parentRole) {
 		if(parentType != null && !role.template.getDefiner().isAssignableFrom(parentType))
 			throw new IllegalStateException(parentType.getSimpleName() + " is not a subtype of "
@@ -30,22 +36,27 @@ public class TemplateRole {
 		theParentRole = parentRole;
 	}
 
+	/** @return The attach point role that is the base of this path */
 	public AttachPoint getRole() {
 		return theRole;
 	}
 
+	/** @return This role's parent role, may be null */
 	public TemplateRole getParent() {
 		return theParentRole;
 	}
 
+	/** @return The parent's type */
 	public Class<? extends MuisTemplate> getParentType() {
 		return theParentType;
 	}
 
+	/** @return The names of the groups this role's parent belongs to */
 	public List<String> getParentGroups() {
 		return theParentGroups;
 	}
 
+	/** @return The depth of this path */
 	public int getDepth() {
 		if(theParentRole == null)
 			return 1;

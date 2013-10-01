@@ -283,6 +283,12 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 				lineH = h;
 			pos += metric.length();
 		}
+		lineHeights.add(lineH);
+		totalH += lineH;
+		if(window != null && startLine < 0 && totalH > window.getMinY()) {
+			startLine = lineHeights.size() - 1;
+			startLinePos = linePos;
+		}
 		if(startLine < 0)
 			return; // No content to draw within window
 
@@ -298,8 +304,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		if(window != null)
 			graphics.setClip(window.x, window.y, window.width, window.height);
 		try {
+			boolean firstMetric = true;
 			for(StyledSequenceMetric metric : metrics(startLinePos, breakWidth)) {
-				if(metric.isNewLine()) {
+				metric.toString();
+				if(!firstMetric && metric.isNewLine()) {
 					totalH += lineH;
 					if(window != null && totalH > window.getMaxY())
 						break;
@@ -307,6 +315,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					lineNumber++;
 					lineW = 0;
 				}
+				firstMetric = false;
 				if(window == null
 					|| (lineW < window.getMaxX() && lineW + metric.getWidth() > window.getMinX() && totalH + lineH - metric.getHeight() < window
 						.getMaxY()))
@@ -363,6 +372,8 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 						theCurrentSequence = null;
 					} else if(gotLayout)
 						wasLineBreak = true;
+					else
+						gotLayout = true;
 				}
 			}
 			return theCurrentLayout != null;
@@ -374,9 +385,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 				throw new java.util.NoSuchElementException();
 			TextLayout layout = theCurrentLayout;
 			theCurrentLayout = null;
+			int offset = theSequenceOffset;
 			theSequenceOffset += layout.getCharacterCount();
 			theLineWidth += layout.getAdvance();
-			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, theSequenceOffset, wasLineBreak);
+			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, offset, wasLineBreak);
 		}
 
 		@Override
@@ -483,6 +495,11 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			@Override
 			public void draw(Graphics2D graphics, float x, float y) {
 				theLayout.draw(graphics, x, y);
+			}
+
+			@Override
+			public String toString() {
+				return "Metric for " + theSequence.subSequence(theOffset, theOffset + theLayout.getCharacterCount());
 			}
 		}
 	}

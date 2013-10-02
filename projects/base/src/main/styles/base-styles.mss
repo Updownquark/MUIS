@@ -10,6 +10,7 @@
 		color=blue
 		texture="raised-round"
 		corner-radius="10%"
+		cursor=hand
 	}
 	light={
 		color=white
@@ -46,6 +47,7 @@
 }
 
 [text-field]{
+	bg.cursor=text;
 	#border{
 		bg.corner-radius=0
 		bg.color=white

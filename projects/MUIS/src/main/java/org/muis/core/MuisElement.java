@@ -251,6 +251,13 @@ public abstract class MuisElement {
 				return true;
 			}
 		});
+		new CompoundStyleListener(this) {
+			@Override
+			public void styleChanged(MuisStyle style) {
+				if(theDocument != null)
+					theDocument.cursorChanged(MuisElement.this);
+			}
+		}.addAttribute(BackgroundStyle.cursor).add();
 		theLifeCycleManager.runWhen(new Runnable() {
 			@Override
 			public void run() {

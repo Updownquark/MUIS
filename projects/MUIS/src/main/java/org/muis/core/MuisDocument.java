@@ -41,6 +41,9 @@ public class MuisDocument {
 	public interface GraphicsGetter {
 		/** @return The graphics object that this document should use at the moment */
 		java.awt.Graphics2D getGraphics();
+
+		/** @param cursor The cursor to set over the document */
+		void setCursor(java.awt.Cursor cursor);
 	}
 
 	/** A listener to be notified when the rendering changes for a MUIS document */
@@ -431,6 +434,29 @@ public class MuisDocument {
 	}
 
 	/**
+	 * Called when an element detects that its cursor style may have changed
+	 *
+	 * @param element The element on which the change was detected
+	 */
+	public void cursorChanged(MuisElement element) {
+		if(theGraphics == null)
+			return;
+		MuisRendering rendering = theRendering;
+		if(rendering == null)
+			return;
+		MuisEventPositionCapture<?> capture = rendering.capture(theMouseX, theMouseY);
+		if(capture.find(element) == null)
+			return;
+		setCursor(capture.getTarget().getElement());
+	}
+
+	private void setCursor(MuisElement element) {
+		if(theGraphics == null)
+			return;
+		theGraphics.setCursor(element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cursor));
+	}
+
+	/**
 	 * Emulates a mouse event on the document
 	 *
 	 * @param x The x-coordinate where the event occurred
@@ -537,6 +563,7 @@ public class MuisDocument {
 				0, mec);
 			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(enter.getElement(), enter, false), true);
 		}
+		setCursor(newCapture.getTarget().getElement());
 	}
 
 	private void focusByMouse(MuisEventPositionCapture<?> capture, java.util.List<MuisEventQueue.Event> events) {

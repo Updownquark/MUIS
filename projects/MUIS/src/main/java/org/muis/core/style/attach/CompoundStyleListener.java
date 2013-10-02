@@ -58,15 +58,21 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 	/**
 	 * @param detailed Whether this listener should call the {@link #attributeChanged(StyleAttribute, Object)} method for each attribute
 	 *            changed when a group is added or removed. Leaving this as false will improve performance somewhat.
+	 * @return This listener, for chaining
 	 */
-	public void setDetailed(boolean detailed) {
+	public CompoundStyleListener setDetailed(boolean detailed) {
 		isDetailed = detailed;
+		return this;
 	}
 
-	/** @param domain The domain to listen for changes to */
-	public void addDomain(StyleDomain domain) {
+	/**
+	 * @param domain The domain to listen for changes to
+	 * @return This listener, for chaining
+	 */
+	public CompoundStyleListener addDomain(StyleDomain domain) {
 		if(domain != null && !ArrayUtils.contains(theDomains, domain))
 			theDomains = ArrayUtils.add(theDomains, domain);
+		return this;
 	}
 
 	/** @param domain The domain to cease listening for changes to */
@@ -74,10 +80,14 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 		theDomains = ArrayUtils.remove(theDomains, domain);
 	}
 
-	/** @param attr The attribute to listen for changes to */
-	public void addAttribute(StyleAttribute<?> attr) {
+	/**
+	 * @param attr The attribute to listen for changes to
+	 * @return This listener, for chaining
+	 */
+	public CompoundStyleListener addAttribute(StyleAttribute<?> attr) {
 		if(attr != null && !ArrayUtils.contains(theAttributes, attr))
 			theAttributes = ArrayUtils.add(theAttributes, attr);
+		return this;
 	}
 
 	/** @param attr The attribute to cease listening for changes to */

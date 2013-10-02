@@ -1,6 +1,7 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.muis.browser;
 
+import java.awt.Cursor;
 import java.awt.Graphics2D;
 
 import org.muis.core.MuisDocument;
@@ -84,12 +85,23 @@ public class MuisBrowser extends javax.swing.JPanel {
 				public Graphics2D getGraphics() {
 					return (Graphics2D) theContentPane.getGraphics();
 				}
+
+				@Override
+				public void setCursor(Cursor cursor) {
+					theContentPane.setCursor(cursor);
+				}
 			});
 			if(theDebugPanel != null)
 				muisDoc.setDebugGraphics(new MuisDocument.GraphicsGetter() {
 					@Override
 					public Graphics2D getGraphics() {
 						return theDebugPanel == null ? null : (Graphics2D) theDebugPanel.getGraphics();
+					}
+
+					@Override
+					public void setCursor(Cursor cursor) {
+						if(theDebugPanel == null)
+							theDebugPanel.setCursor(cursor);
 					}
 				});
 			env.getContentCreator().fillDocument(muisDoc, docStruct.getContent());

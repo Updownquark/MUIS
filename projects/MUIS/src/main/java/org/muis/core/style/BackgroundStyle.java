@@ -1,5 +1,7 @@
 package org.muis.core.style;
 
+import java.awt.Cursor;
+
 import org.muis.core.MuisProperty;
 
 /**
@@ -8,6 +10,76 @@ import org.muis.core.MuisProperty;
  * overridden in a way that ignores them.
  */
 public class BackgroundStyle implements StyleDomain {
+	/** Pre-defined cursor types */
+	public static enum PreDefinedCursor {
+		/** The default cursor */
+		def("default", Cursor.DEFAULT_CURSOR),
+		/** The wait cursor */
+		wait("wait", Cursor.WAIT_CURSOR),
+		/** The hand cursor */
+		hand("hand", Cursor.HAND_CURSOR),
+		/** The move cursor */
+		move("move", Cursor.MOVE_CURSOR),
+		/** The crosshair cursor */
+		crosshair("crosshair", Cursor.CROSSHAIR_CURSOR),
+		/** The text cursor */
+		text("text", Cursor.TEXT_CURSOR),
+		/** The north-resize cursor */
+		northResize("n-resize", Cursor.N_RESIZE_CURSOR),
+		/** The east-resize cursor */
+		eastResize("e-resize", Cursor.E_RESIZE_CURSOR),
+		/** The south-resize cursor */
+		southResize("s-resize", Cursor.S_RESIZE_CURSOR),
+		/** The west-resize cursor */
+		westResize("w-resize", Cursor.W_RESIZE_CURSOR),
+		/** The north-east-resize cursor */
+		northEastResize("ne-resize", Cursor.NE_RESIZE_CURSOR),
+		/** The south-east-resize cursor */
+		southEastResize("se-resize", Cursor.SE_RESIZE_CURSOR),
+		/** The south-west-resize cursor */
+		southWestResize("sw-resize", Cursor.SW_RESIZE_CURSOR),
+		/** The north-west-resize cursor */
+		northWestResize("nw-resize", Cursor.NW_RESIZE_CURSOR);
+
+		/** The value to display for this cursor and the value to parse to this cursor */
+		public final String display;
+
+		/** The cursor type to pass to {@link Cursor#getPredefinedCursor(int)} */
+		public final int type;
+
+		private PreDefinedCursor(String disp, int typ) {
+			display = disp;
+			type = typ;
+		}
+	}
+
+	/** The property type for cursor properties */
+	public static MuisProperty.PropertyType<Cursor> CURSOR_PROPERTY_TYPE = new MuisProperty.AbstractPropertyType<Cursor>() {
+		@Override
+		public Class<Cursor> getType() {
+			return Cursor.class;
+		}
+
+		@Override
+		public Cursor parse(org.muis.core.MuisClassView classView, String parseValue, org.muis.core.mgr.MuisMessageCenter msg)
+			throws org.muis.core.MuisException {
+			for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
+				if(preDef.display.equals(parseValue))
+					return Cursor.getPredefinedCursor(preDef.type);
+			}
+			// TODO Support custom cursors
+			throw new org.muis.core.MuisException("Custom cursors are not supported yet");
+		}
+
+		@Override
+		public Cursor cast(Object obj) {
+			if(obj instanceof Cursor)
+				return (Cursor) obj;
+			else
+				return null;
+		}
+	};
+
 	private StyleAttribute<?> [] theAttributes;
 
 	private BackgroundStyle() {
@@ -32,6 +104,9 @@ public class BackgroundStyle implements StyleDomain {
 	/** The radius of widget corners */
 	public static final StyleAttribute<Size> cornerRadius;
 
+	/** The cursor for the mouse to appear as when hovering over a widget */
+	public static final StyleAttribute<Cursor> cursor;
+
 	static {
 		instance = new BackgroundStyle();
 		texture = new StyleAttribute<>(instance, "texture", new MuisProperty.MuisTypeInstanceProperty<>(Texture.class), new BaseTexture());
@@ -44,6 +119,8 @@ public class BackgroundStyle implements StyleDomain {
 		cornerRadius = new StyleAttribute<>(instance, "corner-radius", SizePropertyType.instance, new Size(),
 			new MuisProperty.ComparableValidator<>(new Size(), null));
 		instance.register(cornerRadius);
+		cursor = new StyleAttribute<>(instance, "cursor", CURSOR_PROPERTY_TYPE, Cursor.getDefaultCursor());
+		instance.register(cursor);
 	}
 
 	/** @return The style domain for all background styles */

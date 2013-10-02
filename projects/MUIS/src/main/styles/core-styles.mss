@@ -6,4 +6,8 @@
 	}
 }
 
+[text]{
+	bg.cursor=text
+}
+
 bg.transparency=1

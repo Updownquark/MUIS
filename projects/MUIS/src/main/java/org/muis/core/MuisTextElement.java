@@ -24,22 +24,18 @@ public class MuisTextElement extends MuisLeaf {
 	public MuisTextElement(String text) {
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
 		theDocument = new org.muis.core.model.SimpleDocumentModel(getStyle().getSelf());
-		theDocument.getContent().append(text);
+		theDocument.append(text);
 	}
 
 	/** @param text The text content for this element */
 	public void setText(String text) {
-		int oldLen = theDocument.getContent().length();
-		theDocument.getContent().setLength(0);
-		theDocument.getContent().append(text);
-		if(oldLen - text.length() > 100 && oldLen - text.length() > text.length() / 2)
-			theDocument.getContent().trimToSize();
+		theDocument.setText(text);
 		fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
 	}
 
 	/** @return This element's text content */
 	public String getText() {
-		return theDocument.getContent().toString();
+		return theDocument.toString();
 	}
 
 	/** @return This element's text document */
@@ -183,7 +179,7 @@ public class MuisTextElement extends MuisLeaf {
 				}
 				return false;
 			}
-		}, "\n", theDocument.getContent().toString()));
+		}, "\n", theDocument.toString()));
 		if(getTagName() != null)
 			ret.append('<').append('/').append(getTagName()).append('>');
 		else

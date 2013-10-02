@@ -153,6 +153,9 @@ public final class MuisConstants {
 		/** The name of the state that is true when an element has the focus */
 		public static final String FOCUS_NAME = "focus";
 
+		/** The name of the state that is true for text when it is selected */
+		public static final String TEXT_SELECTION_NAME = "text-select";
+
 		/** The priority of the click state */
 		public static final int CLICK_PRIORITY = 100;
 
@@ -168,6 +171,9 @@ public final class MuisConstants {
 		/** The priority of the focus state */
 		public static final int FOCUS_PRIORITY = 2;
 
+		/** The priority of the text selection state */
+		public static final int TEXT_SELECTION_PRIORITY = 1000;
+
 		/** True whenever the left mouse button is pressed on top of an element */
 		public static final MuisState CLICK = new MuisState(CLICK_NAME, CLICK_PRIORITY);
 
@@ -182,5 +188,8 @@ public final class MuisConstants {
 
 		/** True when an element has the focus */
 		public static final MuisState FOCUS = new MuisState(FOCUS_NAME, FOCUS_PRIORITY);
+
+		/** True for text that is selected */
+		public static final MuisState TEXT_SELECTION = new MuisState(TEXT_SELECTION_NAME, TEXT_SELECTION_PRIORITY);
 	}
 }

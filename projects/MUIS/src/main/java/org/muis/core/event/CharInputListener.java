@@ -3,8 +3,7 @@ package org.muis.core.event;
 import org.muis.core.MuisElement;
 
 /** Listens for character input. */
-public abstract class CharInputListener implements MuisEventListener<Void>
-{
+public abstract class CharInputListener implements MuisEventListener<Void> {
 	private boolean isLocal;
 
 	/**
@@ -13,24 +12,20 @@ public abstract class CharInputListener implements MuisEventListener<Void>
 	 * @param local Whether the listener should be a local listener, listening only for events that occur on the element, or a subtree
 	 *            listener, listening for events that occur on the element's children also
 	 */
-	public CharInputListener(boolean local)
-	{
+	public CharInputListener(boolean local) {
 		isLocal = local;
 	}
 
 	@Override
-	public void eventOccurred(MuisEvent<Void> event, MuisElement element)
-	{
-		if(event instanceof CharInputEvent)
-		{
+	public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
+		if(event instanceof CharInputEvent) {
 			CharInputEvent cEvt = (CharInputEvent) event;
 			keyTyped(cEvt, element);
 		}
 	}
 
 	@Override
-	public boolean isLocal()
-	{
+	public boolean isLocal() {
 		return isLocal;
 	}
 
@@ -40,7 +35,5 @@ public abstract class CharInputListener implements MuisEventListener<Void>
 	 * @param evt The key event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void keyTyped(CharInputEvent evt, MuisElement element)
-	{
-	}
+	public abstract void keyTyped(CharInputEvent evt, MuisElement element);
 }

@@ -110,6 +110,15 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 								public MuisStyle getStyle() {
 									return theBackingSequence.getStyle();
 								}
+
+								@Override
+								public String toString() {
+									if(theOffset == 0)
+										return theBackingSequence.toString();
+									else
+										return theBackingSequence.subSequence(theOffset, theBackingSequence.length() - theOffset)
+											.toString();
+								}
 							};
 
 							private boolean hasReturnedBegin;
@@ -300,6 +309,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			startHeight += lineHeights.get(i);
 		int lineNumber = startLine;
 		totalH = startHeight;
+		lineH = lineHeights.get(startLine);
 		Rectangle oldClip = graphics.getClipBounds();
 		if(window != null)
 			graphics.setClip(window.x, window.y, window.width, window.height);
@@ -311,8 +321,8 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					totalH += lineH;
 					if(window != null && totalH > window.getMaxY())
 						break;
-					lineH += lineHeights.get(lineNumber);
 					lineNumber++;
+					lineH = lineHeights.get(lineNumber);
 					lineW = 0;
 				}
 				firstMetric = false;
@@ -494,12 +504,12 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 			@Override
 			public void draw(Graphics2D graphics, float x, float y) {
-				theLayout.draw(graphics, x, y);
+				theLayout.draw(graphics, x, y + getHeight());
 			}
 
 			@Override
 			public String toString() {
-				return "Metric for " + theSequence.subSequence(theOffset, theOffset + theLayout.getCharacterCount());
+				return theSequence.subSequence(theOffset, theOffset + theLayout.getCharacterCount()).toString();
 			}
 		}
 	}

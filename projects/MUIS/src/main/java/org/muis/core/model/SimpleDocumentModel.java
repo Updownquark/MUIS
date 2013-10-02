@@ -49,6 +49,28 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel {
 			public MuisStyle getStyle() {
 				return theStyle;
 			}
+
+			@Override
+			public String toString() {
+				return content.toString();
+			}
 		}}, true);
+	}
+
+	// These are overridden for performance
+
+	@Override
+	public int length() {
+		return theContent.length();
+	}
+
+	@Override
+	public char charAt(int index) {
+		return theContent.charAt(index);
+	}
+
+	@Override
+	public CharSequence subSequence(int start, int end) {
+		return theContent.subSequence(start, end);
 	}
 }

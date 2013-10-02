@@ -34,6 +34,11 @@ public class SimpleStyledSequence implements StyledSequence {
 	}
 
 	@Override
+	public String toString() {
+		return theValue;
+	}
+
+	@Override
 	public MuisStyle getStyle() {
 		return theStyle;
 	}

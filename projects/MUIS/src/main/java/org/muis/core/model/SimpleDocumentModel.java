@@ -25,6 +25,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		theNormalStyle = new SelectionStyle(parentStyle, false);
 		theSelectedStyle = new SelectionStyle(parentStyle, true);
 		theContent = new StringBuilder();
+		theLock = new java.util.concurrent.locks.ReentrantReadWriteLock();
 	}
 
 	/** @return This document's parent's style */

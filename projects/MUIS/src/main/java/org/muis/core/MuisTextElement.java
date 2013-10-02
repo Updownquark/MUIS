@@ -25,6 +25,12 @@ public class MuisTextElement extends MuisLeaf {
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
 		theDocument = new org.muis.core.model.SimpleDocumentModel(getStyle().getSelf());
 		theDocument.append(text);
+		life().runWhen(new Runnable() {
+			@Override
+			public void run() {
+				new org.muis.core.model.TextSelectionBehavior().install(MuisTextElement.this);
+			}
+		}, MuisConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
 	}
 
 	/** @param text The text content for this element */

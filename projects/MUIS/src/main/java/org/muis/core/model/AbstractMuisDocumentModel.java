@@ -469,7 +469,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 			@Override
 			public float getHeight() {
-				return theLayout.getAscent() + theLayout.getDescent();
+				return theLayout.getAscent() + theLayout.getDescent() + theLayout.getLeading();
 			}
 
 			@Override
@@ -504,7 +504,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 			@Override
 			public void draw(Graphics2D graphics, float x, float y) {
-				theLayout.draw(graphics, x, y + getHeight());
+				theLayout.draw(graphics, x, y + theLayout.getAscent());
 			}
 
 			@Override

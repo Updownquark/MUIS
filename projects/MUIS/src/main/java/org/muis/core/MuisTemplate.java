@@ -1,11 +1,13 @@
 package org.muis.core;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.model.MuisBehavior;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
@@ -151,6 +153,9 @@ public abstract class MuisTemplate extends MuisElement {
 		/** The attribute specifying that the element or elements occupying the attach point may be modified dynamically. Default is true. */
 		public static final String MUTABLE = TEMPLATE_PREFIX + "mutable";
 
+		/** Specifies behaviors for the templated element only */
+		public static final String BEHAVIOR = TEMPLATE_PREFIX + "behavior";
+
 		/**
 		 * The attribute specifying that the element occupying the attach point should expose its attributes through the template widget,
 		 * allowing them to be modified from application-level XML. This attribute may only be set on an {@link #MUTABLE immutable} attach
@@ -221,6 +226,8 @@ public abstract class MuisTemplate extends MuisElement {
 
 		private Class<? extends MuisLayout> theLayoutClass;
 
+		private Class<? extends MuisBehavior<?>> [] theBehaviors;
+
 		/**
 		 * @param definer The templated class that defines the template structure
 		 * @param superStructure The parent template structure
@@ -230,10 +237,11 @@ public abstract class MuisTemplate extends MuisElement {
 			theDefiner = definer;
 			theSuperStructure = superStructure;
 			theWidgetStructure = widgetStructure;
+			theBehaviors = new Class[0];
 		}
 
 		/** @param attaches The map of attach points to the widget structure where the attach points point to */
-		void addAttaches(Map<AttachPoint, WidgetStructure> attaches) {
+		private void addAttaches(Map<AttachPoint, WidgetStructure> attaches) {
 			Map<String, AttachPoint> attachPoints = new java.util.LinkedHashMap<>(attaches.size());
 			AttachPoint defAP = null;
 			for(AttachPoint ap : attaches.keySet()) {
@@ -244,6 +252,10 @@ public abstract class MuisTemplate extends MuisElement {
 			theDefaultAttachPoint = defAP;
 			theAttachPoints = java.util.Collections.unmodifiableMap(attachPoints);
 			theAttachPointWidgets = java.util.Collections.unmodifiableMap(attaches);
+		}
+
+		private void setBehaviors(Class<? extends MuisBehavior<?>> [] behaviors) {
+			theBehaviors = behaviors;
 		}
 
 		/** @return The templated class that defines this template structure */
@@ -289,6 +301,11 @@ public abstract class MuisTemplate extends MuisElement {
 		 */
 		public WidgetStructure getWidgetStructure(AttachPoint attachPoint) {
 			return theAttachPointWidgets.get(attachPoint);
+		}
+
+		/** @return The behaviors that will be installed to instances of this template */
+		public Class<? extends MuisBehavior<?>> [] getBehaviors() {
+			return theBehaviors.clone();
 		}
 
 		@Override
@@ -388,6 +405,36 @@ public abstract class MuisTemplate extends MuisElement {
 			WidgetStructure content = docStruct.getContent();
 			String layout = content.getAttributes().remove(LayoutContainer.LAYOUT_ATTR.getName());
 			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure, content);
+			String behaviorStr = content.getAttributes().remove(BEHAVIOR);
+			if(behaviorStr != null) {
+				String [] split = behaviorStr.split("\\s*,\\s*");
+				ArrayList<Class<? extends MuisBehavior<?>>> behaviors = new ArrayList<>();
+				for(String bStr : split) {
+					Class<? extends MuisBehavior<?>> bClass;
+					if(bStr.indexOf('.') >= 0)
+						try {
+							bClass = (Class<? extends MuisBehavior<?>>) MuisBehavior.class.asSubclass(templateType.getClassLoader()
+								.loadClass(bStr));
+						} catch(ClassNotFoundException e) {
+							throw new MuisException("Behavior class " + bStr + " not findable from class loader of template type "
+								+ templateType.getName());
+						}
+					else
+						try {
+							bClass = (Class<? extends MuisBehavior<?>>) docStruct.getContent().getClassView()
+								.loadMappedClass(bStr, MuisBehavior.class);
+						} catch(MuisException e) {
+							throw new MuisException("Behavior class " + bStr + " not found for template type " + templateType.getName(), e);
+						}
+					Class<?> behaviorTarget = getBehaviorTarget(bClass);
+					if(!behaviorTarget.isAssignableFrom(templateType)) {
+						throw new MuisException("Behavior " + bClass.getName() + " targets instances of " + behaviorTarget.getName()
+							+ ". It cannot be installed on " + templateType.getName() + " instances");
+					}
+					behaviors.add(bClass);
+				}
+				templateStruct.setBehaviors(behaviors.toArray(new Class[behaviors.size()]));
+			}
 			if(layout != null) {
 				MuisToolkit tk;
 				if(templateType.getClassLoader() instanceof MuisToolkit)
@@ -418,6 +465,34 @@ public abstract class MuisTemplate extends MuisElement {
 					+ template.location() + " for templated widget " + templateType.getName());
 			templateStruct.addAttaches(attaches);
 			return templateStruct;
+		}
+
+		private static Class<?> getBehaviorTarget(Class<? extends MuisBehavior<?>> behaviorClass) throws MuisException {
+			ParameterizedType targetType = getBehaviorTargetType(behaviorClass);
+			if(targetType.getActualTypeArguments()[0] instanceof Class)
+				return (Class<?>) targetType.getActualTypeArguments()[0];
+			else
+				throw new MuisException(MuisBehavior.class + " target type " + targetType.getActualTypeArguments()[0]
+					+ " cannot be resolved." + " Define the behavior's target explicitly.");
+		}
+
+		private static ParameterizedType getBehaviorTargetType(java.lang.reflect.Type type) {
+			if(type instanceof ParameterizedType && ((ParameterizedType) type).getRawType() instanceof Class
+				&& MuisBehavior.class.isAssignableFrom((Class<?>) ((ParameterizedType) type).getRawType()))
+				return (ParameterizedType) type;
+			Class<?> clazz;
+			if(type instanceof Class)
+				clazz = (Class<?>) type;
+			else if(type instanceof ParameterizedType && ((ParameterizedType) type).getRawType() instanceof Class)
+				clazz = (Class<?>) ((ParameterizedType) type).getRawType();
+			else
+				return null;
+			for(java.lang.reflect.Type intf : clazz.getGenericInterfaces()) {
+				ParameterizedType ret = getBehaviorTargetType(intf);
+				if(ret != null)
+					return ret;
+			}
+			return null;
 		}
 
 		private static void pullAttachPoints(TemplateStructure template, WidgetStructure structure,
@@ -627,6 +702,8 @@ public abstract class MuisTemplate extends MuisElement {
 
 	private MuisLayout theLayout;
 
+	private List<MuisBehavior<?>> theBehaviors;
+
 	/** Creates a templated widget */
 	public MuisTemplate() {
 		theRoleWanter = new Object();
@@ -634,6 +711,7 @@ public abstract class MuisTemplate extends MuisElement {
 		theStaticContent = new HashMap<>();
 		theAttachmentMappings = new HashMap<>();
 		theUninitialized = new HashSet<>();
+		theBehaviors = new ArrayList<>();
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
@@ -645,6 +723,28 @@ public abstract class MuisTemplate extends MuisElement {
 				}
 			}
 		}, MuisConstants.CoreStage.INIT_SELF.toString(), 1);
+		life().runWhen(new Runnable() {
+			@Override
+			public void run() {
+				for(Class<? extends MuisBehavior<?>> behaviorClass : theTemplateStructure.getBehaviors()) {
+					MuisBehavior<?> behavior;
+					try {
+						behavior = behaviorClass.newInstance();
+					} catch(InstantiationException | IllegalAccessException e) {
+						msg().error(
+							"Could not instantiate behavior " + behaviorClass.getName() + " for templated widget "
+								+ theTemplateStructure.getDefiner().getName(), e);
+						continue;
+					}
+					try{
+						addBehavior(behavior);
+					} catch(RuntimeException e){
+						msg().error(
+							"Failed to install behavior " + behaviorClass.getName() + " on templated widget " + getClass().getName(), e);
+					}
+				}
+			}
+		}, MuisConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 	}
 
 	/** @return This template widget's template structure */
@@ -709,6 +809,24 @@ public abstract class MuisTemplate extends MuisElement {
 		if(theLayout != null)
 			theLayout.layout(this, getChildren().toArray());
 		super.doLayout();
+	}
+
+	/** @param behavior The behavior to install in this widget */
+	protected <E> void addBehavior(MuisBehavior<E> behavior) {
+		behavior.install((E) this);
+		theBehaviors.add(behavior);
+	}
+
+	/** @param behavior The behavior to uninstall from this widget */
+	protected <E> void removeBehavior(MuisBehavior<E> behavior) {
+		if(!theBehaviors.remove(behavior))
+			throw new IllegalArgumentException("This behavior is not installed on this element");
+		behavior.uninstall((E) this);
+	}
+
+	/** @return All behaviors installed in this widget */
+	protected List<MuisBehavior<?>> getBehaviors() {
+		return Collections.unmodifiableList(theBehaviors);
 	}
 
 	@Override

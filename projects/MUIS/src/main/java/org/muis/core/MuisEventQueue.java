@@ -6,8 +6,13 @@ import java.awt.Rectangle;
 
 import org.muis.util.MuisUtils;
 
+import prisms.util.ArrayUtils;
+import prisms.util.ProgramTracker;
+
 /** The event queue in MUIS which makes sure elements's states stay up-to-date */
 public class MuisEventQueue {
+	private static long DEBUG_TRACKING = 0;
+
 	/** Represents an event that may be queued for handling by the MuisEventQueue */
 	public static interface Event {
 		/** @return The time at which this event was created */
@@ -232,10 +237,12 @@ public class MuisEventQueue {
 
 		@Override
 		public boolean isSupersededBy(Event evt) {
-			if(evt instanceof ReboundEvent && MuisUtils.isAncestor(((ReboundEvent) evt).getElement(), theElement))
-				return true;
-			if(evt instanceof LayoutEvent && MuisUtils.isAncestor(((LayoutEvent) evt).getElement(), theElement))
-				return true;
+			if(!isNow) {
+				if(evt instanceof ReboundEvent && MuisUtils.isAncestor(((ReboundEvent) evt).getElement(), theElement))
+					return true;
+				if(evt instanceof LayoutEvent && MuisUtils.isAncestor(((LayoutEvent) evt).getElement(), theElement))
+					return true;
+			}
 			if(!(evt instanceof PaintEvent))
 				return false;
 			PaintEvent paint = (PaintEvent) evt;
@@ -414,7 +421,6 @@ public class MuisEventQueue {
 
 		@Override
 		protected void doHandleAction() {
-			long start = System.nanoTime();
 			if(theEvent.getCapture() == null) // Non-positioned event
 			{
 				if(isDownward)
@@ -430,9 +436,6 @@ public class MuisEventQueue {
 			} else
 				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
 					el.getElement().fireEvent(theEvent, theEvent.isCanceled(), false);
-			if(theEvent instanceof org.muis.core.event.MouseEvent
-				&& ((org.muis.core.event.MouseEvent) theEvent).getMouseEventType() == org.muis.core.event.MouseEvent.MouseEventType.pressed)
-				System.out.println(System.nanoTime() - start);
 		}
 
 		@Override
@@ -497,6 +500,14 @@ public class MuisEventQueue {
 		return theInstance;
 	}
 
+	/** @return Whether the current thread is the MUIS event queue thread */
+	public static boolean isEventThread() {
+		MuisEventQueue inst = theInstance;
+		if(inst == null)
+			return false;
+		return Thread.currentThread() == inst.theThread;
+	}
+
 	private Event [] theEvents;
 
 	private java.util.Comparator<Event> theComparator;
@@ -554,44 +565,62 @@ public class MuisEventQueue {
 	 * @param now Whether to take action on the event immediately or allow it to execute when the queue gets to it
 	 */
 	public void scheduleEvent(Event event, boolean now) {
+		ProgramTracker.TrackNode schedule = null;
+		if(DEBUG_TRACKING > 0 && isEventThread())
+			schedule = theTracker.start("scheduleEvent");
 		Event [] events = theEvents;
 		for(Event evt : events) {
 			if(evt.isHandling() || evt.isFinished())
 				continue;
 			if(event.isSupersededBy(evt)) {
 				event.discard();
+				if(schedule != null)
+					theTracker.end(schedule);
 				return;
 			} else if(evt.isSupersededBy(event)) {
 				evt.discard();
-				remove(evt);
+				remove(evt, schedule != null);
 			}
 		}
 		addEvent(event, now);
+		if(schedule != null)
+			theTracker.end(schedule);
 	}
 
 	private void addEvent(Event event, boolean now) {
+		ProgramTracker.TrackNode add = null;
+		if(DEBUG_TRACKING > 0 && isEventThread())
+			add = theTracker.start("addEvent");
+		int spot;
 		synchronized(theLock) {
-			int spot;
 			if(isPrioritized) {
 				spot = java.util.Arrays.binarySearch(theEvents, event, theComparator);
 				if(spot < 0)
 					spot = -(spot + 1);
 			} else
 				spot = theEvents.length;
-			theEvents = prisms.util.ArrayUtils.add(theEvents, event, spot);
+			theEvents = ArrayUtils.add(theEvents, event, spot);
 		}
 		hasNewEvent = true;
 		start();
-		if(now)
+		if(now && spot == 0) {
 			isInterrupted = true;
+		}
 		if(theThread != null)
 			theThread.interrupt();
+		if(add != null)
+			theTracker.end(add);
 	}
 
-	void remove(Event event) {
+	void remove(Event event, boolean debug) {
+		ProgramTracker.TrackNode remove = null;
+		if(debug)
+			remove = theTracker.start("removeEvent");
 		synchronized(theLock) {
-			theEvents = prisms.util.ArrayUtils.remove(theEvents, event);
+			theEvents = ArrayUtils.remove(theEvents, event);
 		}
+		if(remove != null)
+			theTracker.end(remove);
 	}
 
 	Event [] getEvents() {
@@ -649,6 +678,8 @@ public class MuisEventQueue {
 	}
 
 	private class EventQueueThread extends Thread {
+		private long theTrackMark;
+
 		EventQueueThread() {
 			super("MUIS Event Queue");
 		}
@@ -666,32 +697,62 @@ public class MuisEventQueue {
 					return;
 				theThread = this;
 			}
+			if(DEBUG_TRACKING > 0)
+				theTrackMark = System.currentTimeMillis();
 			while(!isShuttingDown()) {
-				try {
-					isInterrupted = false;
-					Event [] events = getEvents();
-					hasNewEvent = false;
-					boolean acted = false;
+				processEvents();
+				if(DEBUG_TRACKING > 0) {
 					long now = System.currentTimeMillis();
-					for(Event evt : events) {
-						if(isInterrupted)
-							break;
-						if(evt.isFinished())
-							continue;
-						if(evt.shouldHandle(now)) {
-							acted = true;
-							remove(evt);
-							evt.handle();
-							now = System.currentTimeMillis(); // Update the time, since the action may have taken some
-						}
+					if(now - theTrackMark >= DEBUG_TRACKING) {
+						theTrackMark = now;
+						theTracker.printData(5);
+						theTracker.clear();
 					}
-					if(!acted && !hasNewEvent)
-						Thread.sleep(getFrequency());
-				} catch(InterruptedException e) {
 				}
 			}
 			theThread = null;
 			isShuttingDown = false;
+		}
+
+		private void processEvents() {
+			ProgramTracker.TrackNode processEvents = null;
+			if(DEBUG_TRACKING > 0)
+				processEvents = theTracker.start("processEvents");
+			try {
+				isInterrupted = false;
+				ProgramTracker.TrackNode getEvents = null;
+				if(DEBUG_TRACKING > 0)
+					getEvents = theTracker.start("getEvents");
+				Event [] events = getEvents();
+				if(getEvents != null)
+					theTracker.end(getEvents);
+				hasNewEvent = false;
+				boolean acted = false;
+				long now = System.currentTimeMillis();
+				for(Event evt : events) {
+					if(isInterrupted) {
+						break;
+					}
+					if(evt.isFinished())
+						continue;
+					if(evt.shouldHandle(now)) {
+						acted = true;
+						remove(evt, processEvents != null);
+						ProgramTracker.TrackNode handle = null;
+						if(DEBUG_TRACKING > 0)
+							handle = theTracker.start("handleEvent " + evt);
+						evt.handle();
+						if(handle != null)
+							theTracker.end(handle);
+						now = System.currentTimeMillis(); // Update the time, since the action may have taken some
+					}
+				}
+				if(processEvents != null)
+					theTracker.end(processEvents);
+				if(!acted && !hasNewEvent && !isInterrupted)
+					Thread.sleep(getFrequency());
+			} catch(InterruptedException e) {
+			}
 		}
 	}
 }

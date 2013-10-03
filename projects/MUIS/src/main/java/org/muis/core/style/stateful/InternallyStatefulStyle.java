@@ -1,5 +1,6 @@
 package org.muis.core.style.stateful;
 
+import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
 
 /**
@@ -7,4 +8,12 @@ import org.muis.core.style.MuisStyle;
  * evaluating its style expressions against its own state.
  */
 public interface InternallyStatefulStyle extends StatefulStyle, MuisStyle {
+	/** @return The current internal state of this style */
+	MuisState [] getState();
+
+	/** @param listener The listener to be notified when this style's state changes */
+	void addStateChangeListener(StateChangeListener listener);
+
+	/** @param listener The listener to stop notification for */
+	void removeStateChangeListener(StateChangeListener listener);
 }

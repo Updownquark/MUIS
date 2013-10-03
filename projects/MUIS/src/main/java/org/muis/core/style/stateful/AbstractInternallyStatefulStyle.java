@@ -14,12 +14,15 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	private final java.util.concurrent.ConcurrentLinkedQueue<StyleListener> theStyleListeners;
 
+	private final java.util.concurrent.ConcurrentLinkedQueue<StateChangeListener> theStateListeners;
+
 	private final StyleListener theDependencyStyleListener;
 
 	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
 		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theStateListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		addListener(new StyleExpressionListener<StatefulStyle, StateExpression>() {
 			@Override
 			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
@@ -45,6 +48,17 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 				styleChanged(event.getAttribute(), event.getNewValue(), event.getRootStyle());
 			}
 		};
+	}
+
+	@Override
+	public void addStateChangeListener(StateChangeListener listener) {
+		if(listener != null)
+			theStateListeners.add(listener);
+	}
+
+	@Override
+	public void removeStateChangeListener(StateChangeListener listener) {
+		theStateListeners.remove(listener);
 	}
 
 	@Override
@@ -75,6 +89,12 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			((InternallyStatefulStyle) toReplace).removeListener(theDependencyStyleListener);
 		if(depend instanceof InternallyStatefulStyle)
 			((InternallyStatefulStyle) depend).addListener(theDependencyStyleListener);
+	}
+
+	/** @return The current internal state of this style */
+	@Override
+	public MuisState [] getState() {
+		return theCurrentState.clone();
 	}
 
 	/**
@@ -134,6 +154,9 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			checkValues(dep, oldState, newState, forNewState, newValues);
 		for(Map.Entry<StyleAttribute<?>, Object> value : newValues.entrySet())
 			styleChanged(value.getKey(), value.getValue(), null);
+		StateChangedEvent evt = new StateChangedEvent(this, oldState, newState);
+		for(StateChangeListener listener : theStateListeners)
+			listener.stateChanged(evt);
 	}
 
 	private void checkValues(StatefulStyle dep, MuisState [] oldState, MuisState [] newState, MuisStyle forNewState,

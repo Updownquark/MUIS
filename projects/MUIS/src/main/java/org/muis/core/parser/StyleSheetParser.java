@@ -59,6 +59,11 @@ public class StyleSheetParser {
 		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
 			return null;
 		}
+
+		@Override
+		public String toString() {
+			return theName + ":=" + theLocation;
+		}
 	}
 
 	/** Represents a declared animation variable in a style file */
@@ -172,6 +177,20 @@ public class StyleSheetParser {
 					.getFullCommand(), initVal.getMatch().index);
 			return ((prisms.lang.types.ParsedNumber) initVal).getValue().doubleValue();
 		}
+
+		@Override
+		public String toString() {
+			String ret = ">>" + theVariableName + "=" + theInitialValue;
+			for(int i = 0; i < theNextValues.length; i++) {
+				ret += "->" + theNextValues[i];
+				if(theStepSizes[i] > 0)
+					ret += "(" + theStepSizes[i] + ")";
+				ret += "@" + theTimeSteps[i];
+			}
+			if(!isRepeating)
+				ret += "|";
+			return ret;
+		}
 	}
 
 	/** Represents a (potentially) namespace-qualified type */
@@ -261,6 +280,18 @@ public class StyleSheetParser {
 		public ParsedItem [] getDependents() {
 			return theTypes;
 		}
+
+		@Override
+		public String toString() {
+			String ret = "[";
+			for(int i = 0; i < theTypes.length; i++) {
+				if(i > 0)
+					ret += ", ";
+				ret += theTypes[i];
+			}
+			ret += "]";
+			return ret;
+		}
 	}
 
 	/** Represents a set of groups that a set of styles will be applied to */
@@ -287,6 +318,18 @@ public class StyleSheetParser {
 		public ParsedItem [] getDependents() {
 			return new ParsedItem[0];
 		}
+
+		@Override
+		public String toString() {
+			String ret = "(";
+			for(int i = 0; i < theGroupNames.length; i++) {
+				if(i > 0)
+					ret += ", ";
+				ret += theGroupNames[i];
+			}
+			ret += ")";
+			return ret;
+		}
 	}
 
 	/** Represents a state expression that a set of styles will be applied for */
@@ -308,6 +351,11 @@ public class StyleSheetParser {
 		public ParsedItem [] getDependents() {
 			return new ParsedItem[] {theState};
 		}
+
+		@Override
+		public String toString() {
+			return "." + theState;
+		}
 	}
 
 	/** Represents an attach point within a type of templated widget that a set of styles will be applied to */
@@ -328,6 +376,11 @@ public class StyleSheetParser {
 		@Override
 		public ParsedItem [] getDependents() {
 			return new ParsedItem[0];
+		}
+
+		@Override
+		public String toString() {
+			return "#" + theAttachPoint;
 		}
 	}
 
@@ -386,6 +439,15 @@ public class StyleSheetParser {
 		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
 			return null;
 		}
+
+		@Override
+		public String toString() {
+			StringBuilder ret = new StringBuilder();
+			for(ParsedStyleFilter filter : theFilters)
+				ret.append(filter);
+			ret.append(theContent);
+			return ret.toString();
+		}
 	}
 
 	/** Represents a simple "domain.attribute=value" assignment */
@@ -442,6 +504,11 @@ public class StyleSheetParser {
 		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
 			return null;
 		}
+
+		@Override
+		public String toString() {
+			return theDomain + "." + theAttrName + "=" + theValue;
+		}
 	}
 
 	/** Represents a bulk domain assignment like domain={attr1=value1; attr2=value2} */
@@ -494,6 +561,11 @@ public class StyleSheetParser {
 		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
 			return null;
 		}
+
+		@Override
+		public String toString() {
+			return theDomain + "=" + theValues;
+		}
 	}
 
 	/** Represents a set of assignments where the domain is already available in context and will not be specified */
@@ -538,6 +610,15 @@ public class StyleSheetParser {
 		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
 			return null;
 		}
+
+		@Override
+		public String toString() {
+			StringBuilder ret = new StringBuilder('{');
+			for(DomainScopedAssignment assn : theContents)
+				ret.append(assn).append('\n');
+			ret.append('}');
+			return ret.toString();
+		}
 	}
 
 	/** Represents a style attribute assignment where the domain is already available in context and will not be specified */
@@ -579,6 +660,11 @@ public class StyleSheetParser {
 		@Override
 		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
 			return null;
+		}
+
+		@Override
+		public String toString() {
+			return theAttrName + "=" + theValue;
 		}
 	}
 

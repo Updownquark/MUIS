@@ -1,11 +1,15 @@
 package org.muis.core;
 
+import static org.muis.core.style.FontStyle.*;
+
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 
 import org.muis.core.layout.AbstractSizeGuide;
 import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
+import org.muis.core.model.SimpleDocumentModel.ContentChangeEvent;
+import org.muis.core.model.SimpleDocumentModel.SelectionChangeEvent;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf {
@@ -25,6 +29,31 @@ public class MuisTextElement extends MuisLeaf {
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
 		theDocument = new org.muis.core.model.SimpleDocumentModel(getStyle().getSelf());
 		theDocument.append(text);
+		theDocument.addContentListener(new org.muis.core.model.SimpleDocumentModel.ContentListener() {
+			@Override
+			public void contentChanged(ContentChangeEvent evt) {
+				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+			}
+		});
+		theDocument.addSelectionListener(new org.muis.core.model.SimpleDocumentModel.SelectionListener() {
+			@Override
+			public void selectionChanged(SelectionChangeEvent evt) {
+				if(isFontDifferentSelected())
+					fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+				repaint(null, true);
+			}
+
+			private boolean isFontDifferentSelected() {
+				return isStyleDifferentSelected(size, family, slant, stretch, weight);
+			}
+
+			private boolean isStyleDifferentSelected(org.muis.core.style.StyleAttribute<?>... atts) {
+				for(org.muis.core.style.StyleAttribute<?> att : atts)
+					if(!theDocument.getNormalStyle().get(att).equals(theDocument.getSelectedStyle().get(att)))
+						return true;
+				return false;
+			}
+		});
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
@@ -36,7 +65,6 @@ public class MuisTextElement extends MuisLeaf {
 	/** @param text The text content for this element */
 	public void setText(String text) {
 		theDocument.setText(text);
-		fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
 	}
 
 	/** @return This element's text content */

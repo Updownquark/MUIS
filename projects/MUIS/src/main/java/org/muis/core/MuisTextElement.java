@@ -184,7 +184,7 @@ public class MuisTextElement extends MuisLeaf {
 			}
 
 			@Override
-			public int getBaseline(int size) {
+			public int getBaseline(int widgetSize) {
 				if(theCachedWidth < 0)
 					getSizes(Integer.MAX_VALUE);
 				return theCachedBaseline;

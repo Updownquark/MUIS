@@ -30,7 +30,8 @@ import prisms.util.ArrayUtils;
 		@State(name = States.RIGHT_CLICK_NAME, priority = States.RIGHT_CLICK_PRIORITY),
 		@State(name = States.MIDDLE_CLICK_NAME, priority = States.MIDDLE_CLICK_PRIORITY),
 		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
-		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY)})
+		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY),
+		@State(name = States.TEXT_SELECTION_NAME, priority = States.TEXT_SELECTION_PRIORITY)})
 public abstract class MuisElement {
 	/**
 	 * Used to lock this elements' child sets
@@ -170,15 +171,18 @@ public abstract class MuisElement {
 			}
 
 			private boolean isInPreferred(org.muis.core.layout.Orientation orient) {
+				MuisElement parent = getParent();
+				if(parent == null)
+					return true;
 				org.muis.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
 				int size = dim.getSize();
 				int cross = bounds().get(orient.opposite()).getSize();
 				int minPref = org.muis.core.layout.LayoutUtils.getSize(MuisElement.this, orient,
-					org.muis.core.layout.LayoutGuideType.minPref, getParent().bounds().get(orient).getSize(), cross, false, null);
+					org.muis.core.layout.LayoutGuideType.minPref, parent.bounds().get(orient).getSize(), cross, false, null);
 				if(size < minPref)
 					return false;
 				int maxPref = org.muis.core.layout.LayoutUtils.getSize(MuisElement.this, orient,
-					org.muis.core.layout.LayoutGuideType.maxPref, getParent().bounds().get(orient).getSize(), cross, false, null);
+					org.muis.core.layout.LayoutGuideType.maxPref, parent.bounds().get(orient).getSize(), cross, false, null);
 				if(size > maxPref)
 					return false;
 				return true;

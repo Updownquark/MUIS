@@ -33,7 +33,7 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 		StyledSequenceMetric subSequence(int start, int end);
 
 		/**
-		 * @param advance The x-coordinate, in pixels, relative to the beginning of this sequence
+		 * @param advance The x-coordinate, in pixels, relative to the left edge of this sequence
 		 * @return The position, in characters, along this sequence that the given advance hits
 		 */
 		float getHitPosition(float advance);

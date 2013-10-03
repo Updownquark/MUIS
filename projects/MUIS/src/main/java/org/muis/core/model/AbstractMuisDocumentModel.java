@@ -373,7 +373,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 						return false;
 				}
 				while(theCurrentLayout == null && theCurrentMeasurer != null) {
-					theCurrentLayout = theCurrentMeasurer.nextLayout(theBreakWidth - theLineWidth);
+					float width = theBreakWidth - theLineWidth;
+					if(width <= 0)
+						width = 1;
+					theCurrentLayout = theCurrentMeasurer.nextLayout(width);
 					if(theCurrentLayout == null) {
 						theSequenceOffset = 0;
 						theCurrentMeasurer = null;
@@ -408,12 +411,12 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 		private void setMeasurer(StyledSequence seq) {
 			theFont = org.muis.util.MuisUtils.getFont(seq.getStyle());
-			java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(theFont.getTransform(), seq.getStyle()
+			theContext = new java.awt.font.FontRenderContext(theFont.getTransform(), seq.getStyle()
 				.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
 			java.text.AttributedString attrStr = new java.text.AttributedString(seq.toString());
 			attrStr.addAttributes(theFont.getAttributes(), 0, seq.length());
 			theCurrentMeasurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(), java.text.BreakIterator.getWordInstance(),
-				context);
+				theContext);
 		}
 
 		private static class StyledSequenceMetricsImpl implements StyledSequenceMetric {
@@ -484,10 +487,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 			@Override
 			public float getHitPosition(float advance) {
-				int left = theLayout.getNextLeftHit(Math.round(advance)).getCharIndex();
+				int left = theLayout.hitTestChar(advance, 0).getCharIndex();
 				if(left == theSequence.length())
 					return left;
-				float leftW = subSequence(0, left).getWidth();
+				float leftW = left == 0 ? 0 : subSequence(0, left).getWidth();
 				float rightW = subSequence(0, left + 1).getWidth();
 				return left + ((advance - leftW) / (rightW - leftW));
 			}

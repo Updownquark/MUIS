@@ -1,9 +1,0 @@
-
-<registry>
-	<class-path>
-		<path>http://webapplicationmarkup.googlecode.com/svn/trunk/MUIS/classes</path>
-	</class-paths>
-	<class-mappings>
-		<map name="block">org.muis.content.Block</map>
-	</class-mappings>
-</registry>

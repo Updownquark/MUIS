@@ -23,6 +23,12 @@ public class MuisBrowser extends javax.swing.JPanel {
 
 	/** Creates a MUIS browser */
 	public MuisBrowser() {
+		try {
+			javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+		} catch(Exception e) {
+			System.err.println("Could not install system L&F");
+			e.printStackTrace();
+		}
 		setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 		theAddressBar = new javax.swing.JTextField(250);
 		add(theAddressBar);

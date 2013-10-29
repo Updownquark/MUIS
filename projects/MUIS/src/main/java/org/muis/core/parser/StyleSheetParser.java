@@ -22,6 +22,8 @@ import prisms.lang.types.ParsedStatementBlock;
 
 /** Parses MUIS style sheets using a custom format */
 public class StyleSheetParser {
+	private static boolean DEBUG = true;
+
 	/** Represents a namespace declaration in a style file */
 	public static class ParsedNamespaceDeclaration extends ParsedItem {
 		private String theName;
@@ -901,6 +903,13 @@ public class StyleSheetParser {
 			theParser.configure(getStyleSheetDefConfig());
 		} catch(java.io.IOException | MuisParseException e) {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
+		}
+		if(DEBUG) {
+			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
+			theParser.setDebugger(debugger);
+			javax.swing.JFrame frame = prisms.lang.debug.PrismsParserDebugGUI.getDebuggerFrame(debugger);
+			frame.pack();
+			frame.setLocationRelativeTo(null);
 		}
 		theEnv = new DefaultEvaluationEnvironment();
 

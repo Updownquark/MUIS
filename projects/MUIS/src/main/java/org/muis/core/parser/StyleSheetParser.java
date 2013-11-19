@@ -90,7 +90,7 @@ public class StyleSheetParser {
 			ArrayList<Double> values = new ArrayList<>();
 			ArrayList<Double> steps = new ArrayList<>();
 			ArrayList<Double> times = new ArrayList<>();
-			for(ParseMatch m : match.getParsed()) {
+			for(ParseMatch m : getAllStored("value", "step size", "time")) {
 				if("value".equals(m.config.get("storeAs")))
 					values.add(getNumber(m, "value"));
 				else if("step".equals(m.config.get("storeAs"))) {
@@ -265,12 +265,9 @@ public class StyleSheetParser {
 		@Override
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
-			ArrayList<ParsedType> types = new ArrayList<>();
-			for(ParseMatch m : match.getParsed()) {
-				if("type".equals(m.config.get("storeAs")))
-					types.add((ParsedType) parser.parseStructures(this, m)[0]);
-			}
-			theTypes = types.toArray(new ParsedType[types.size()]);
+			ParsedItem [] types = parser.parseStructures(this, getAllStored("type"));
+			theTypes = new ParsedType[types.length];
+			System.arraycopy(types, 0, theTypes, 0, types.length);
 		}
 
 		/** @return The types that this filter represents */
@@ -304,10 +301,8 @@ public class StyleSheetParser {
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
 			ArrayList<String> groupNames = new ArrayList<>();
-			for(ParseMatch m : match.getParsed()) {
-				if("group".equals(m.config.get("storeAs")))
-					groupNames.add(m.text);
-			}
+			for(ParseMatch m : getAllStored("group"))
+				groupNames.add(m.text);
 			theGroupNames = groupNames.toArray(new String[groupNames.size()]);
 		}
 
@@ -396,12 +391,9 @@ public class StyleSheetParser {
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
 			theContent = (ParsedStatementBlock) parser.parseStructures(this, getStored("content"))[0];
-			ArrayList<ParsedStyleFilter> filters = new ArrayList<>();
-			for(ParseMatch m : match.getParsed()) {
-				if("filter".equals(m.config.get("storeAs")))
-					filters.add((ParsedStyleFilter) parser.parseStructures(this, m)[0]);
-			}
-			theFilters = filters.toArray(new ParsedStyleFilter[filters.size()]);
+			ParsedItem [] filters = parser.parseStructures(this, getAllStored("filter"));
+			theFilters = new ParsedStyleFilter[filters.length];
+			System.arraycopy(filters, 0, theFilters, 0, filters.length);
 		}
 
 		/** @return The filters that determine the conditions under which the style assignments in the contents will be applied */
@@ -577,12 +569,9 @@ public class StyleSheetParser {
 		@Override
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
-			ArrayList<DomainScopedAssignment> values = new ArrayList<>();
-			for(ParseMatch m : match.getParsed()) {
-				if("content".equals(m.config.get("storeAs")))
-					values.add((DomainScopedAssignment) parser.parseStructures(this, m)[0]);
-			}
-			theContents = values.toArray(new DomainScopedAssignment[values.size()]);
+			ParsedItem [] contents = parser.parseStructures(this, getAllStored("content"));
+			theContents = new DomainScopedAssignment[contents.length];
+			System.arraycopy(contents, 0, theContents, 0, contents.length);
 		}
 
 		/** @return All domain-scoped assignments in this block */

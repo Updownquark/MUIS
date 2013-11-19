@@ -259,10 +259,10 @@
 		<op type="identifier" storeAs="name" />
 		<literal storeAs="method">(</literal>
 		<option>
-			<op />
+			<op storeAs="parameter" />
 			<option min="0">
 				<literal>,</literal>
-				<op />
+				<op storeAs="parameter" />
 			</option>
 		</option>
 		<literal>)</literal>

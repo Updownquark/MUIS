@@ -16,7 +16,7 @@ import org.muis.util.MuisUtils;
 public abstract class MuisProperty<T> {
 	/**
 	 * A property type understands how to produce items of a certain type from parseable strings and other types
-	 * 
+	 *
 	 * @param <T> The type of value that this property type produces TODO Get rid of all the V types
 	 */
 	public static interface PropertyType<T> {
@@ -219,6 +219,11 @@ public abstract class MuisProperty<T> {
 		public String toString(String value) {
 			return value;
 		}
+
+		@Override
+		public String toString() {
+			return "string";
+		}
 	};
 
 	/** A boolean property type--values must be either true or false */
@@ -247,6 +252,11 @@ public abstract class MuisProperty<T> {
 		public Class<Boolean> getType() {
 			return Boolean.class;
 		}
+
+		@Override
+		public String toString() {
+			return "boolean";
+		}
 	};
 
 	/** An integer property type--values must be valid integers */
@@ -274,6 +284,11 @@ public abstract class MuisProperty<T> {
 		public Class<Long> getType() {
 			return Long.class;
 		}
+
+		@Override
+		public String toString() {
+			return "int";
+		}
 	};
 
 	/** A floating-point property type--values must be valid real numbers */
@@ -300,6 +315,11 @@ public abstract class MuisProperty<T> {
 		@Override
 		public Class<Double> getType() {
 			return Double.class;
+		}
+
+		@Override
+		public String toString() {
+			return "float";
 		}
 	};
 
@@ -335,6 +355,11 @@ public abstract class MuisProperty<T> {
 		public Class<Double> getType() {
 			return Double.class;
 		}
+
+		@Override
+		public String toString() {
+			return "amount";
+		}
 	};
 
 	/** A color property type--values must be parse to colors via {@link org.muis.core.style.Colors#parseColor(String)} */
@@ -364,6 +389,11 @@ public abstract class MuisProperty<T> {
 		@Override
 		public String toString(Color value) {
 			return org.muis.core.style.Colors.toString(value);
+		}
+
+		@Override
+		public String toString() {
+			return "color";
 		}
 	};
 

@@ -100,6 +100,11 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 	}
 
 	@Override
+	public String toString() {
+		return ArrayUtils.toString(theValues);
+	}
+
+	@Override
 	protected StyleValueHolder<E, V> clone() {
 		StyleValueHolder<E, V> ret;
 		try {

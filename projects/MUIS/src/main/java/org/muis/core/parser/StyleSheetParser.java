@@ -893,13 +893,6 @@ public class StyleSheetParser {
 		} catch(java.io.IOException | MuisParseException e) {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}
-		if(DEBUG) {
-			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
-			theParser.setDebugger(debugger);
-			javax.swing.JFrame frame = prisms.lang.debug.PrismsParserDebugGUI.getDebuggerFrame(debugger);
-			frame.pack();
-			frame.setLocationRelativeTo(null);
-		}
 		theEnv = new DefaultEvaluationEnvironment();
 
 		// Use the default prisms.lang Grammar.xml to implement some setup declarations to prepare the environment
@@ -909,6 +902,15 @@ public class StyleSheetParser {
 		} catch(IOException | MuisParseException e) {
 			throw new IllegalStateException("Could not configure style sheet setup parser", e);
 		}
+		if(DEBUG) {
+			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
+			theParser.setDebugger(debugger);
+			setupParser.setDebugger(debugger);
+			javax.swing.JFrame frame = prisms.lang.debug.PrismsParserDebugGUI.getDebuggerFrame(debugger);
+			frame.pack();
+			frame.setLocationRelativeTo(null);
+		}
+
 		ArrayList<String> commands = new ArrayList<>();
 		// Add constants and functions like rgb(r, g, b) here
 		commands.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");

@@ -12,7 +12,7 @@ import org.muis.core.model.SimpleDocumentModel.ContentChangeEvent;
 import org.muis.core.model.SimpleDocumentModel.SelectionChangeEvent;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
-public class MuisTextElement extends MuisLeaf {
+public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
 	private org.muis.core.model.SimpleDocumentModel theDocument;
 
 	/** Creates a MUIS text element */
@@ -72,7 +72,7 @@ public class MuisTextElement extends MuisLeaf {
 		return theDocument.toString();
 	}
 
-	/** @return This element's text document */
+	@Override
 	public org.muis.core.model.SimpleDocumentModel getDocumentModel() {
 		return theDocument;
 	}

@@ -53,9 +53,5 @@
 		bg.color=white
 		bg.transparency=0
 		border-style.inset=0
-		
-		.click{
-			bg.color=red
-		}
 	}
 }

@@ -912,6 +912,11 @@ public abstract class MuisElement {
 
 	// Paint methods
 
+	/** @return Whether this element is at least partially transparent */
+	public boolean isTransparent() {
+		return getStyle().getSelf().get(BackgroundStyle.transparency) > 0;
+	}
+
 	/**
 	 * @return The bounds within which this element may draw and receive events, relative to the layout x,y position. This may extend
 	 *         outside the element's layout bounds (e.g. for a menu, which expands, but does not cause a relayout when it does so).

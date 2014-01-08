@@ -298,8 +298,12 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			startLine = lineHeights.size() - 1;
 			startLinePos = linePos;
 		}
-		if(startLine < 0)
+		if(window != null && startLine < 0)
 			return; // No content to draw within window
+		else {
+			startLine = 0;
+			startLinePos = 0;
+		}
 
 		totalH = 0;
 		lineH = 0;
@@ -352,6 +356,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		private TextLayout theCurrentLayout;
 
 		private float theLineWidth;
+		private float theTop;
 		private int theSequenceOffset;
 		private boolean wasLineBreak;
 		private boolean gotLayout;
@@ -383,9 +388,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 						if(theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n')
 							wasLineBreak = true;
 						theCurrentSequence = null;
-					} else if(gotLayout)
+					} else if(gotLayout) {
+						theTop += theCurrentLayout.getAscent() + theCurrentLayout.getDescent() + theCurrentLayout.getLeading();
 						wasLineBreak = true;
-					else
+					} else
 						gotLayout = true;
 				}
 			}
@@ -400,8 +406,9 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			theCurrentLayout = null;
 			int offset = theSequenceOffset;
 			theSequenceOffset += layout.getCharacterCount();
+			float left = theLineWidth;
 			theLineWidth += layout.getAdvance();
-			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, offset, wasLineBreak);
+			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, theTop, left, offset, wasLineBreak);
 		}
 
 		@Override
@@ -426,15 +433,19 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			private final Font theFont;
 
 			private final java.awt.font.FontRenderContext theContext;
+			private final float theTop;
+			private final float theLeft;
 			private final int theOffset;
 			private final boolean isNewLine;
 
 			StyledSequenceMetricsImpl(StyledSequence sequence, TextLayout layout, Font font, java.awt.font.FontRenderContext ctx,
-				int offset, boolean newLine) {
+				float top, float left, int offset, boolean newLine) {
 				theSequence = sequence;
 				theLayout = layout;
 				theFont = font;
 				theContext = ctx;
+				theTop = top;
+				theLeft = left;
 				theOffset = offset;
 				isNewLine = newLine;
 			}
@@ -462,7 +473,18 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					throw new IndexOutOfBoundsException(end + ">" + (theOffset + theLayout.getCharacterCount()));
 				String content = theSequence.subSequence(theOffset + start, theOffset + end).toString();
 				TextLayout layout = new TextLayout(content, theFont, theContext);
-				return new StyledSequenceMetricsImpl(theSequence, layout, theFont, theContext, theOffset + start, isNewLine && start == 0);
+				return new StyledSequenceMetricsImpl(theSequence, layout, theFont, theContext, theTop, theLeft + getLocation(start),
+					theOffset + start, isNewLine && start == 0);
+			}
+
+			@Override
+			public float getTop() {
+				return theTop;
+			}
+
+			@Override
+			public float getLeft() {
+				return theLeft;
 			}
 
 			@Override
@@ -472,7 +494,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 			@Override
 			public float getHeight() {
-				return theLayout.getAscent() + theLayout.getDescent() + theLayout.getLeading();
+				return theLayout.getAscent() + theLayout.getDescent();
 			}
 
 			@Override
@@ -497,7 +519,8 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 			@Override
 			public float getLocation(float position) {
-				float left = subSequence(0, (int) position).getWidth();
+				int pos=(int) position;
+				float left = pos==0 ? 0 : subSequence(0, pos).getWidth();
 				if(position - (int) position == 0) {
 					return left;
 				}

@@ -18,6 +18,7 @@
 		<type tag="layout">org.muis.core.style.LayoutStyle</type>
 		<type tag="layer">org.muis.core.LayerLayout</type>
 		<type tag="no-texture">org.muis.core.style.BaseTexture</type>
+		<type tag="doc-texture">org.muis.core.style.DocumentTexture</type>
 	</types>
 	<security />
 </registry>

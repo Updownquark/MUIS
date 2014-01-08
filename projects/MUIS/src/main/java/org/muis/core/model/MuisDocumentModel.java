@@ -32,6 +32,12 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 		@Override
 		StyledSequenceMetric subSequence(int start, int end);
 
+		/** @return The top position of this sequence in the document */
+		float getTop();
+
+		/** @return The left position of this sequence in the document */
+		float getLeft();
+
 		/**
 		 * @param advance The x-coordinate, in pixels, relative to the left edge of this sequence
 		 * @return The position, in characters, along this sequence that the given advance hits

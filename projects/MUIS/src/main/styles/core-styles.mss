@@ -7,6 +7,7 @@
 }
 
 [text]{
+	bg.texture=doc-texture
 	bg.cursor=text
 	.text-select{
 		bg.color=blue

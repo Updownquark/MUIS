@@ -189,30 +189,40 @@ public class MuisEventQueue {
 		@Override
 		protected void doHandleAction() {
 			MuisDocument doc = theElement.getDocument();
-			if(theElement == doc.getRoot()) {
-				MuisRendering render = new MuisRendering(theElement.bounds().getWidth(), theElement.bounds().getHeight());
+			MuisElement element = theElement;
+			Rectangle area = theArea;
+			if(element != doc.getRoot() && element.isTransparent()) {
+				Point docPos = element.getDocumentPosition();
+				if(area == null)
+					area = element.getBounds().getBounds();
+				area.x += docPos.x;
+				area.y += docPos.y;
+				element = doc.getRoot();
+			}
+			if(element == doc.getRoot()) {
+				MuisRendering render = new MuisRendering(element.bounds().getWidth(), element.bounds().getHeight());
 				Graphics2D graphics = (Graphics2D) render.getImage().getGraphics();
 				if(doc.getDebugGraphics() != null)
 					graphics = new org.muis.util.AggregateGraphics(graphics, doc.getDebugGraphics());
-				render.setRoot(theElement.paint(graphics, theArea));
+				render.setRoot(element.paint(graphics, theArea));
 				doc.setRender(render);
 				Graphics2D docGraphics = doc.getGraphics();
 				if(docGraphics != null)
 					docGraphics.drawImage(render.getImage(), null, 0, 0);
 				return;
 			}
-			MuisRendering render = theElement.getDocument().getRender();
+			MuisRendering render = element.getDocument().getRender();
 			if(render == null)
 				return;
 			@SuppressWarnings("rawtypes")
-			MuisElementCapture bound = render.getFor(theElement);
+			MuisElementCapture bound = render.getFor(element);
 			if(bound == null) {
 				// Hierarchy may have been restructured. Need to repaint everything.
-				theElement.getDocument().getRoot().repaint(null, false);
+				element.getDocument().getRoot().repaint(null, false);
 				return;
 			}
 			MuisRendering newRender = render.clone();
-			bound = newRender.getFor(theElement);
+			bound = newRender.getFor(element);
 			Point trans = bound.getDocLocation();
 			Graphics2D graphics = (Graphics2D) newRender.getImage().getGraphics();
 			if(doc.getDebugGraphics() != null)
@@ -220,7 +230,7 @@ public class MuisEventQueue {
 			MuisElementCapture<?> newBound;
 			graphics.translate(trans.x, trans.y);
 			try {
-				newBound = theElement.paint(graphics, theArea);
+				newBound = element.paint(graphics, theArea);
 			} finally {
 				graphics.translate(-trans.x, -trans.y);
 			}
@@ -232,7 +242,7 @@ public class MuisEventQueue {
 				bound.getParent().getChildren().set(bound.getParent().getChildren().indexOf(bound), newBound);
 			else
 				render.setRoot(newBound);
-			theElement.getDocument().setRender(newRender);
+			element.getDocument().setRender(newRender);
 		}
 
 		@Override

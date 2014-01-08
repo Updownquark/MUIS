@@ -8,30 +8,26 @@ import org.muis.core.MuisElement;
  *
  * @param <T> The type of the attribute
  */
-public abstract class AttributeChangedListener<T> implements MuisEventListener<Object>
-{
+public abstract class AttributeChangedListener<T> implements MuisEventListener<Object> {
 	private final MuisAttribute<T> theAttr;
 
 	/** @param attr The attribute to listen for */
-	public AttributeChangedListener(MuisAttribute<T> attr)
-	{
+	public AttributeChangedListener(MuisAttribute<T> attr) {
 		theAttr = attr;
 	}
 
 	@Override
-	public void eventOccurred(MuisEvent<Object> event, MuisElement element)
-	{
+	public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
 		if(!(event instanceof AttributeChangedEvent))
 			return;
 		AttributeChangedEvent<T> ace = (AttributeChangedEvent<T>) event;
-		if(!ace.getAttribute().equals(theAttr))
+		if(theAttr != null && !ace.getAttribute().equals(theAttr))
 			return;
 		attributeChanged(ace);
 	}
 
 	@Override
-	public boolean isLocal()
-	{
+	public boolean isLocal() {
 		return true;
 	}
 

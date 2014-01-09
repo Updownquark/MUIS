@@ -120,6 +120,8 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	 * @return The capture of the given element in this hierarchy, or null if the given element was not located in this capture
 	 */
 	public C find(MuisElement el) {
+		if(theParent != null)
+			return getRoot().find(el);
 		MuisElement [] path = MuisUtils.path(el);
 		C ret = (C) this;
 		int pathIdx;
@@ -163,6 +165,14 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	@Override
 	public boolean equals(Object obj) {
 		return obj instanceof MuisElementCapture && ((MuisElementCapture<?>) obj).getElement().equals(getElement());
+	}
+
+	/** @return The root of this capture */
+	public C getRoot() {
+		C parent = theParent;
+		while(parent.getParent() != null)
+			parent = parent.getParent();
+		return parent;
 	}
 
 	/** @return This capture element's parent in the hierarchy */

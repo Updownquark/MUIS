@@ -49,15 +49,15 @@ public class MouseEvent extends PositionedUserEvent {
 	 * @param doc The document that the mouse event occurred in
 	 * @param element The deepest-level element that the mouse event occurred over
 	 * @param type The type of event that this represents
-	 * @param docX The absolute x-coordinate of the event relative to the document's root element
-	 * @param docY The absolute y-coordinate of the event relative to the document's root element
 	 * @param buttonType The type of the button that caused this mouse event
 	 * @param clickCount The number of clicks in quick succession that caused this mouse event
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public MouseEvent(MuisDocument doc, MuisElement element, MouseEventType type, int docX, int docY, ButtonType buttonType,
-		int clickCount, org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(org.muis.core.MuisConstants.Events.MOUSE, doc, element, docX, docY, capture);
+	public MouseEvent(MuisDocument doc, MuisElement element, MouseEventType type, ButtonType buttonType, int clickCount,
+		org.muis.core.MuisEventPositionCapture<?> capture) {
+		super(org.muis.core.MuisConstants.Events.MOUSE, doc, element, capture);
+		if(capture == null)
+			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");
 		theTime = System.currentTimeMillis();
 		theType = type;
 		theButtonType = buttonType;
@@ -82,6 +82,14 @@ public class MouseEvent extends PositionedUserEvent {
 	/** @return The time that this event was created */
 	public long getTime() {
 		return theTime;
+	}
+
+	@Override
+	public MouseEvent copyFor(MuisElement element) {
+		org.muis.core.MuisEventPositionCapture<?> capture = getCapture().find(element);
+		if(capture == null)
+			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
+		return new MouseEvent(getDocument(), getElement(), getMouseEventType(), getButtonType(), getClickCount(), capture);
 	}
 
 	@Override

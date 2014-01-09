@@ -445,7 +445,7 @@ public class MuisEventQueue {
 				}
 			} else
 				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
-					el.getElement().fireEvent(theEvent, theEvent.isCanceled(), false);
+					el.getElement().fireEvent(theEvent.copyFor(el.getElement()), theEvent.isCanceled(), false);
 		}
 
 		@Override

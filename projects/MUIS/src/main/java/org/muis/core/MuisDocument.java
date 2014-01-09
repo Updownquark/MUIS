@@ -477,7 +477,7 @@ public class MuisDocument {
 			return;
 		MuisEventPositionCapture<?> newCapture = rendering.capture(x, y);
 		MuisEventPositionCapture<?> oldCapture = rendering.capture(oldX, oldY);
-		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, x, y, buttonType, clickCount, newCapture);
+		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, newCapture);
 
 		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
 
@@ -487,7 +487,7 @@ public class MuisDocument {
 			if(oldHasMouse)
 				mouseMove(oldCapture, newCapture, events);
 			else {
-				evt = new MouseEvent(this, newCapture.getTarget().getElement(), MouseEvent.MouseEventType.entered, x, y, buttonType, clickCount,
+				evt = new MouseEvent(this, newCapture.getTarget().getElement(), MouseEvent.MouseEventType.entered, buttonType, clickCount,
 					newCapture);
 				events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
 			}
@@ -509,8 +509,8 @@ public class MuisDocument {
 			break;
 		case clicked:
 		case exited:
-			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, new MouseEvent(this, oldCapture.getTarget().getElement(), type, oldX,
-				oldY, buttonType, clickCount, oldCapture), false));
+			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, new MouseEvent(this, oldCapture.getTarget().getElement(), type,
+				buttonType, clickCount, oldCapture), false));
 			break;
 		case entered:
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
@@ -548,19 +548,16 @@ public class MuisDocument {
 		}
 		// Fire exit events
 		for(MuisEventPositionCapture<?> mec : oldSet) {
-			MouseEvent exit = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.exited, theMouseX, theMouseY, null,
-				0, mec);
+			MouseEvent exit = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.exited, null, 0, mec);
 			events.add(new MuisEventQueue.PositionQueueEvent(exit.getElement(), exit, false));
 		}
 		for(MuisEventPositionCapture<?> mec : common) {
-			MouseEvent move = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.moved, theMouseX, theMouseY, null, 0,
-				mec);
+			MouseEvent move = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.moved, null, 0, mec);
 			events.add(new MuisEventQueue.PositionQueueEvent(move.getElement(), move, false));
 		}
 		// Fire enter events
 		for(MuisEventPositionCapture<?> mec : newSet) {
-			MouseEvent enter = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.entered, theMouseX, theMouseY, null,
-				0, mec);
+			MouseEvent enter = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.entered, null, 0, mec);
 			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(enter.getElement(), enter, false), true);
 		}
 		setCursor(newCapture.getTarget().getElement());
@@ -675,13 +672,13 @@ public class MuisDocument {
 		case MOUSE:
 		case MIXED:
 			MuisEventPositionCapture<?> capture = rendering.capture(x, y);
-			evt = new ScrollEvent(this, element, x, y, ScrollEvent.ScrollType.UNIT, true, amount, null, capture);
+			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, capture);
 			break;
 		case FOCUS:
 			element = theFocus;
 			if(element == null)
 				element = theRoot;
-			evt = new ScrollEvent(this, element, -1, -1, ScrollEvent.ScrollType.UNIT, true, amount, null, null);
+			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, null);
 			break;
 		}
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false), true);
@@ -713,14 +710,11 @@ public class MuisDocument {
 		MuisEventPositionCapture<?> capture = null;
 		if(!evt.isCanceled()) {
 			MuisElement scrollElement = null;
-			int x = 0, y = 0;
 			switch (theScrollPolicy) {
 			case MOUSE:
 				if(hasMouse && rendering != null) {
 					capture = rendering.capture(theMouseX, theMouseY);
 					scrollElement = capture.getTarget().getElement();
-					x = theMouseX;
-					y = theMouseY;
 				} else
 					scrollElement = null;
 				break;
@@ -730,8 +724,6 @@ public class MuisDocument {
 					scrollElement = theFocus;
 				else
 					scrollElement = theRoot;
-				x = -1;
-				y = -1;
 				break;
 			}
 			if(scrollElement != null) {
@@ -772,8 +764,7 @@ public class MuisDocument {
 					scrollType = null;
 				}
 				if(scrollType != null) {
-					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, x, y, scrollType, vertical, downOrRight ? 1 : -1, evt,
-						capture);
+					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, scrollType, vertical, downOrRight ? 1 : -1, evt, capture);
 					if(capture != null)
 						MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(scrollElement, scrollEvt, false), true);
 					else

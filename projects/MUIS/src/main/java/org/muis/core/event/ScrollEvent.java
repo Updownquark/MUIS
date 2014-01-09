@@ -30,17 +30,15 @@ public class ScrollEvent extends PositionedUserEvent {
 	 *
 	 * @param doc The document that event occurred in
 	 * @param element The element that is the target of the scroll event
-	 * @param docX The x-position at which the event originated
-	 * @param docY The y-position at which the event originated
 	 * @param scrollType The type of scroll that generated this event
 	 * @param vertical Whether this scroll event represents a vertical or a horizontal scrolling action
 	 * @param amount The amount of {@link ScrollType} units that caused this event
 	 * @param keyEvent The key event that caused this scroll event
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public ScrollEvent(org.muis.core.MuisDocument doc, org.muis.core.MuisElement element, int docX, int docY, ScrollType scrollType,
+	public ScrollEvent(org.muis.core.MuisDocument doc, org.muis.core.MuisElement element, ScrollType scrollType,
 		boolean vertical, int amount, KeyBoardEvent keyEvent, org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(org.muis.core.MuisConstants.Events.SCROLL, doc, element, docX, docY, capture);
+		super(org.muis.core.MuisConstants.Events.SCROLL, doc, element, capture);
 		theScrollType = scrollType;
 		isVertical = vertical;
 		theKeyEvent = keyEvent;
@@ -70,6 +68,16 @@ public class ScrollEvent extends PositionedUserEvent {
 	 */
 	public int getAmount() {
 		return theAmount;
+	}
+
+	@Override
+	public ScrollEvent copyFor(org.muis.core.MuisElement element) {
+		if(getCapture() == null)
+			return this;
+		org.muis.core.MuisEventPositionCapture<?> capture = getCapture().find(element);
+		if(capture == null)
+			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
+		return new ScrollEvent(getDocument(), getElement(), getScrollType(), isVertical(), getAmount(), getKeyEvent(), capture);
 	}
 
 	@Override

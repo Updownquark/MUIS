@@ -9,7 +9,9 @@ public class PositionedUserEvent extends UserEvent {
 
 	private final int theDocumentY;
 
-	private MuisEventPositionCapture<?> theCapture;
+	private final MuisEventPositionCapture<?> theCapture;
+
+	private final MuisEventPositionCapture<?> theTarget;
 
 	/**
 	 * Creates a positioned user event
@@ -29,21 +31,48 @@ public class PositionedUserEvent extends UserEvent {
 		theCapture = capture;
 		if(theCapture != null)
 			theCapture.seal();
+		theTarget = theCapture.getTarget();
 	}
 
 	/** @return The absolute x-coordinate of the event relative to the document's root element */
-	public int getX() {
+	public int getDocumentX() {
 		return theDocumentX;
 	}
 
 	/** @return The absolute y-coordinate of the event relative to the document's root element */
-	public int getY() {
+	public int getDocumentY() {
 		return theDocumentY;
+	}
+
+	/** @return The last leaf in the capture--the element that the user most likely intended to click on */
+	public MuisElement getTarget() {
+		return theTarget.getElement();
+	}
+
+	/**
+	 * @return The x-coordinate of the event relative to the last leaf in the capture (the element that the user most likely intended to
+	 *         click on)
+	 */
+	public int getX() {
+		return theTarget.getEventX();
+	}
+
+	/**
+	 * @return The y-coordinate of the event relative to the last leaf in the capture (the element that the user most likely intended to
+	 *         click on)
+	 */
+	public int getY() {
+		return theTarget.getEventY();
 	}
 
 	/** @return The capture of all elements that this event might be relevant to */
 	public MuisEventPositionCapture<?> getCapture() {
 		return theCapture;
+	}
+
+	/** @return The last leaf in the capture--the capture of the element that the user most likely intended to click on */
+	public MuisEventPositionCapture<?> getTargetCapture() {
+		return theTarget;
 	}
 
 	/**

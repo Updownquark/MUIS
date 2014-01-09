@@ -26,6 +26,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	 * @param text The text for the element
 	 */
 	public MuisTextElement(String text) {
+		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
 		theDocument = new org.muis.core.model.SimpleDocumentModel(getStyle().getSelf());
 		theDocument.append(text);
@@ -33,6 +34,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			@Override
 			public void contentChanged(ContentChangeEvent evt) {
 				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+				repaint(null, true);
 			}
 		});
 		theDocument.addSelectionListener(new org.muis.core.model.SimpleDocumentModel.SelectionListener() {

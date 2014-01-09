@@ -288,6 +288,32 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		}
 	}
 
+	/** @return The text selected in this document */
+	public String getSelectedText() {
+		int start = theSelectionAnchor;
+		int end = theCursor;
+		if(start == end)
+			return "";
+		if(start > end) {
+			int temp = start;
+			start = end;
+			end = temp;
+		}
+		Lock lock = theLock.readLock();
+		lock.lock();
+		try {
+			if(end < 0 || start >= theContent.length())
+				return "";
+			if(start < 0)
+				start = 0;
+			if(end > theContent.length())
+				end = theContent.length();
+			return theContent.substring(start, end);
+		} finally {
+			lock.unlock();
+		}
+	}
+
 	@Override
 	public SimpleDocumentModel append(CharSequence csq) {
 		String value;
@@ -443,11 +469,16 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 	/**
 	 * Deletes characters from this document
 	 *
-	 * @param start The index of the start of the sequence to remove
-	 * @param end The index of the end of the sequence to remove
+	 * @param start The index of the start of the sequence to remove, inclusive
+	 * @param end The index of the end of the sequence to remove, exclusive
 	 * @return This model, for chaining
 	 */
 	public SimpleDocumentModel delete(int start, int end) {
+		if(start > end) {
+			int temp = start;
+			start = end;
+			end = temp;
+		}
 		String value;
 		String change;
 		Lock lock = theLock.writeLock();

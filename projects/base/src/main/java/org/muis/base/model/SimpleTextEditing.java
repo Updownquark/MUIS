@@ -19,18 +19,32 @@ public class SimpleTextEditing implements MuisBehavior<SimpleTextWidget> {
 
 	@Override
 	public void install(SimpleTextWidget element) {
-		// TODO Auto-generated method stub
+		((MuisElement) element).addListener(org.muis.core.MuisConstants.Events.CHARACTER_INPUT, theInputListener);
 
 	}
 
 	@Override
 	public void uninstall(SimpleTextWidget element) {
-		// TODO Auto-generated method stub
+		((MuisElement) element).removeListener(theInputListener);
 
 	}
 
 	protected void charInput(SimpleTextWidget widget, char ch) {
-		// TODO Auto-generated method stub
-
+		if(ch < ' ' && ch != '\t' && ch != '\n' && ch != '\r')
+			return;
+		org.muis.core.model.SimpleDocumentModel doc = widget.getDocumentModel();
+		boolean batchDeleted = false;
+		if(doc.getSelectionAnchor() != doc.getCursor()) {
+			doc.delete(doc.getSelectionAnchor(), doc.getCursor());
+			batchDeleted = true;
+		}
+		if(ch == '\b') {
+			if(!batchDeleted && doc.getCursor() > 0)
+				doc.delete(doc.getCursor() - 1, doc.getCursor());
+		} else if(ch == java.awt.event.KeyEvent.VK_DELETE) {
+			if(!batchDeleted && doc.getCursor() < doc.length() - 1)
+				doc.delete(doc.getCursor(), doc.getCursor() + 1);
+		} else
+			doc.insert(ch);
 	}
 }

@@ -1,8 +1,5 @@
 package org.muis.core.model;
 
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.IOException;
-
 import org.muis.core.MuisElement;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.KeyBoardEvent;
@@ -61,13 +58,9 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			MuisTextElement text = (MuisTextElement) element;
 			switch (kEvt.getKeyCode()) {
 			case C:
+			case X:
 				if(element.getDocument().isControlPressed())
-					copyToClipboard(text);
-				kEvt.cancel();
-				break;
-			case V:
-				if(element.getDocument().isControlPressed())
-					pasteFromClipboard(text);
+					copyToClipboard(text, kEvt.getKeyCode() == KeyBoardEvent.KeyCode.X);
 				kEvt.cancel();
 				break;
 			case LEFT_ARROW:
@@ -103,26 +96,12 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		element.removeListener(org.muis.core.MuisConstants.Events.KEYBOARD, KeyListener.class);
 	}
 
-	private static void copyToClipboard(MuisTextElement element) {
+	private static void copyToClipboard(MuisTextElement element, boolean cut) {
+		SimpleDocumentModel doc = element.getDocumentModel();
 		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
-			.setContents(new java.awt.datatransfer.StringSelection(element.getDocumentModel().getSelectedText()), null);
-	}
-
-	private static void pasteFromClipboard(MuisTextElement element){
-		java.awt.datatransfer.Transferable contents=java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
-		if(contents==null || !contents.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.stringFlavor))
-			return;
-		String text;
-		try {
-			text = (String)contents.getTransferData(java.awt.datatransfer.DataFlavor.stringFlavor);
-		} catch(UnsupportedFlavorException e) {
-			element.msg().error("Badly supported String data flavor", e);
-			return;
-		} catch(IOException e) {
-			element.msg().error("I/O exception pasting text", e);
-			return;
-		}
-		element.getDocumentModel().insert(element.getDocumentModel().getCursor(), text);
+			.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
+		if(cut)
+			doc.delete(doc.getSelectionAnchor(), doc.getCursor());
 	}
 
 	private static void left(MuisTextElement element, boolean shift) {

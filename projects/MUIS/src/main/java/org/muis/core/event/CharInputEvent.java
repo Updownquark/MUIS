@@ -5,6 +5,9 @@ import org.muis.core.MuisElement;
 
 /** This event represents a character of textual input, typically as a result of a keystroke or combination of keystrokes */
 public class CharInputEvent extends UserEvent {
+	/** The control character representing a paste event (typically from the user pressing Ctrl+V) */
+	public static final char PASTE = 22;
+
 	private char theChar;
 
 	/**

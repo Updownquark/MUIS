@@ -63,6 +63,9 @@ public class MuisEventQueue {
 		 * @return The relative priority of this event compared to <code>o2</code>
 		 */
 		int comparePriority(Event evt);
+
+		/** @param err The error that was thrown by this event */
+		void handleError(Throwable err);
 	}
 
 	/** Implements the trivial parts of {@link Event} */
@@ -275,6 +278,11 @@ public class MuisEventQueue {
 		}
 
 		@Override
+		public void handleError(Throwable err) {
+			theElement.msg().error("Rendering error", err);
+		}
+
+		@Override
 		public String toString() {
 			return "Paint event for " + theElement;
 		}
@@ -336,6 +344,11 @@ public class MuisEventQueue {
 		}
 
 		@Override
+		public void handleError(Throwable err) {
+			theElement.msg().error("Layout error", err);
+		}
+
+		@Override
 		public String toString() {
 			return "Layout event for " + theElement;
 		}
@@ -383,6 +396,11 @@ public class MuisEventQueue {
 		@Override
 		public boolean shouldHandle(long time) {
 			return time - getTime() > 50;
+		}
+
+		@Override
+		public void handleError(Throwable err) {
+			theElement.msg().error("Rebound error", err);
 		}
 
 		@Override
@@ -449,6 +467,11 @@ public class MuisEventQueue {
 		}
 
 		@Override
+		public void handleError(Throwable err) {
+			theEvent.getElement().msg().error("User event error", err);
+		}
+
+		@Override
 		public String toString() {
 			return "User positioned event: " + theEvent;
 		}
@@ -495,6 +518,11 @@ public class MuisEventQueue {
 					el = el.getParent();
 				}
 			}
+		}
+
+		@Override
+		public void handleError(Throwable err) {
+			theEvent.getElement().msg().error("User event error", err);
 		}
 
 		@Override
@@ -751,7 +779,11 @@ public class MuisEventQueue {
 						ProgramTracker.TrackNode handle = null;
 						if(DEBUG_TRACKING > 0)
 							handle = theTracker.start("handleEvent " + evt);
-						evt.handle();
+						try{
+							evt.handle();
+						} catch(Throwable e){
+							evt.handleError(e);
+						}
 						if(handle != null)
 							theTracker.end(handle);
 						now = System.currentTimeMillis(); // Update the time, since the action may have taken some

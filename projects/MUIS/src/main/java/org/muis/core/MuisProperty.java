@@ -362,6 +362,65 @@ public abstract class MuisProperty<T> {
 		}
 	};
 
+	/** Represents a time amount. The value is interpreted in milliseconds. */
+	public static final AbstractPropertyType<Long> timeAttr = new AbstractPropertyType<Long>() {
+		@Override
+		public Class<Long> getType() {
+			return Long.class;
+		}
+
+		@Override
+		public Long parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+			long ret = 0;
+			for(String s : value.trim().split("\\s")) {
+				char unit = s.charAt(s.length() - 1);
+				if(unit >= '0' && unit <= '9') {
+					try {
+						ret += Long.parseLong(s);
+					} catch(NumberFormatException e) {
+						throw new MuisException("Illegal time value: " + value, e);
+					}
+				} else {
+					s = s.substring(0, s.length() - 1);
+					if(s.length() == 0)
+						throw new MuisException("No value in front of unit for time value: " + value);
+					long t;
+					try {
+						t = Long.parseLong(s) * 1000;
+					} catch(NumberFormatException e) {
+						throw new MuisException("Illegal time value: " + value, e);
+					}
+					if(unit == 's') {
+						ret += t * 1000;
+					} else if(unit == 'm') {
+						ret += t * 60000;
+					} else if(unit == 'h') {
+						ret += t * 60 * 60 * 1000;
+					} else if(unit == 'd') {
+						ret += t * 24 * 60 * 60 * 1000;
+					} else
+						throw new MuisException("Unrecognized unit '" + unit + "' in time value: " + value);
+				}
+			}
+			return ret;
+		}
+
+		@Override
+		public Long cast(Object value) {
+			if(value instanceof Long)
+				return (Long) value;
+			else if(value instanceof Double || value instanceof Float)
+				return (long) Math.round(((Number) value).floatValue() * 1000);
+			else
+				return null;
+		}
+
+		@Override
+		public String toString() {
+			return "time";
+		}
+	};
+
 	/** A color property type--values must be parse to colors via {@link org.muis.core.style.Colors#parseColor(String)} */
 	public static final AbstractPropertyType<Color> colorAttr = new AbstractPrintablePropertyType<Color>() {
 		@Override

@@ -112,7 +112,7 @@ public class AnimationManager {
 					long now = System.currentTimeMillis();
 					long next = now + 1000;
 					for(AnimationHolder anim : animations) {
-						if(anim.actualTimesRun != 0 && (now - anim.startTime) / anim.timesRun < anim.frequency) {
+						if(anim.actualTimesRun != 0 && (now - anim.startTime) / anim.actualTimesRun < anim.frequency) {
 							long animNext = anim.startTime + (anim.timesRun + 1) * anim.frequency;
 							if(animNext < next)
 								next = animNext;

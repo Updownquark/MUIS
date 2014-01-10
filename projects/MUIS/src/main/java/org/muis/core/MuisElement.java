@@ -940,7 +940,7 @@ public abstract class MuisElement {
 		Rectangle preClip = graphics.getClipBounds();
 		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
-			if((area != null && (area.width == 0 || area.height == 0)) || theBounds.getWidth() == 0 || theBounds.getHeight() == 0) {
+			if((area != null && (area.width <= 0 || area.height <= 0)) || theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0) {
 			} else
 				paintSelf(graphics, area);
 			@SuppressWarnings("rawtypes")
@@ -1002,23 +1002,14 @@ public abstract class MuisElement {
 		int translateX = 0;
 		int translateY = 0;
 		try {
-			Rectangle childArea = new Rectangle();
 			for(int c = 0; c < children.length; c++) {
 				MuisElement child = children[c];
-				int childX = child.theBounds.getX();
-				int childY = child.theBounds.getY();
-				childArea.x = area.x - childX;
-				childArea.y = area.y - childY;
-				if(childArea.x < 0)
-					childArea.x = 0;
-				if(childArea.y < 0)
-					childArea.y = 0;
-				childArea.width = area.width - childArea.x;
-				if(childArea.x + childArea.width > child.theBounds.getWidth())
-					childArea.width = child.theBounds.getWidth() - childArea.x;
-				childArea.height = area.height - childArea.y;
-				if(childArea.y + childArea.height > child.theBounds.getHeight())
-					childArea.height = child.theBounds.getHeight() - childArea.y;
+				Rectangle childArea = child.theBounds.getBounds();
+				int childX = childArea.x;
+				int childY = childArea.y;
+				childArea = childArea.intersection(area);
+				childArea.x -= childX;
+				childArea.y -= childY;
 				translateX += childX;
 				translateY += childY;
 				graphics.translate(translateX, translateY);

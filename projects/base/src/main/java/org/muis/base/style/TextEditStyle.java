@@ -17,13 +17,13 @@ public class TextEditStyle implements org.muis.core.style.StyleDomain {
 
 	private static final TextEditStyle instance;
 
-	/** The amount of time between cursor blinks */
+	/** The amount of time between cursor blinks, in milliseconds. 0 means always on, -1 means always off */
 	public static final StyleAttribute<Long> cursorBlink;
 
 	static {
 		instance = new TextEditStyle();
 		cursorBlink = new StyleAttribute<>(instance, "cursor-blink", MuisProperty.timeAttr, 500L, new MuisProperty.ComparableValidator<>(
-			0L, 60000L));
+			-1L, 60000L));
 		instance.register(cursorBlink);
 	}
 

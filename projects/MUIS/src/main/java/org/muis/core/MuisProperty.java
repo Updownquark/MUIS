@@ -407,8 +407,8 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public Long cast(Object value) {
-			if(value instanceof Long)
-				return (Long) value;
+			if(value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte)
+				return ((Number) value).longValue();
 			else if(value instanceof Double || value instanceof Float)
 				return (long) Math.round(((Number) value).floatValue() * 1000);
 			else

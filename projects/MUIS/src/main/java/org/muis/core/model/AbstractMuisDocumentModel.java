@@ -344,7 +344,6 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		try {
 			boolean firstMetric = true;
 			for(StyledSequenceMetric metric : metrics(startLinePos, breakWidth)) {
-				metric.toString();
 				if(!firstMetric && metric.isNewLine()) {
 					totalH += lineH;
 					if(window != null && totalH > window.getMaxY())

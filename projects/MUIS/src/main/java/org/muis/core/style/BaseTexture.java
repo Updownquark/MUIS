@@ -13,6 +13,8 @@ public class BaseTexture implements Texture {
 		java.awt.Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf());
 		if(bg.getAlpha() == 0)
 			return;
+		java.awt.Rectangle preClip = graphics.getClipBounds();
+		graphics.setClip(x, y, renderW, renderH);
 		graphics.setColor(bg);
 		Size cornerRad = element.getStyle().getSelf().get(BackgroundStyle.cornerRadius);
 		int wRad = cornerRad.evaluate(w);
@@ -80,5 +82,6 @@ public class BaseTexture implements Texture {
 				graphics.fillRect(w - wRad, hRad, wRad, h - hRad2);
 			}
 		}
+		graphics.setClip(preClip);
 	}
 }

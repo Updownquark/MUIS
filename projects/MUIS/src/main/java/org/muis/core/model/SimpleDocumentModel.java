@@ -534,12 +534,14 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 	}
 
 	private void fireSelectionEvent(int anchor, int cursor) {
+		clearCache();
 		SelectionChangeEvent evt = new SelectionChangeEvent(this, anchor, cursor);
 		for(SelectionListener listener : theSelectionListeners)
 			listener.selectionChanged(evt);
 	}
 
 	private void fireContentEvent(String value, String change, int index, boolean remove) {
+		clearCache();
 		ContentChangeEvent evt = new ContentChangeEvent(this, value, change, index, remove);
 		for(ContentListener listener : theContentListeners)
 			listener.contentChanged(evt);

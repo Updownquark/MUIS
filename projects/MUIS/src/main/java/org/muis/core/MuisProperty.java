@@ -751,6 +751,8 @@ public abstract class MuisProperty<T> {
 
 		private final Map<String, T> theNamedValues;
 
+		private final int theHashCode;
+
 		/**
 		 * @param wrap The property type to wrap
 		 * @param namedValues Name-value pairs of values that can be specified by name
@@ -768,6 +770,7 @@ public abstract class MuisProperty<T> {
 			checkTypes(namedValues, wrap.getType());
 			java.util.HashMap<String, T> copy = new java.util.HashMap<>(namedValues);
 			theNamedValues = java.util.Collections.unmodifiableMap(copy);
+			theHashCode = theNamedValues.hashCode();
 		}
 
 		private static <T> Map<String, T> compileNamedValues(Object [] nv, Class<T> type) {
@@ -823,7 +826,7 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public int hashCode() {
-			return theWrapped.hashCode() * 7 + theNamedValues.hashCode();
+			return theHashCode;
 		}
 	}
 
@@ -834,12 +837,12 @@ public abstract class MuisProperty<T> {
 	 */
 	public static class ComparableValidator<T> extends AbstractPropertyValidator<T> {
 		private final Comparator<T> theCompare;
-
 		private final Comparator<T> theInternalCompare;
 
 		private final T theMin;
-
 		private final T theMax;
+
+		private final int theHashCode;
 
 		/**
 		 * Shorter constructor for comparable types
@@ -874,6 +877,15 @@ public abstract class MuisProperty<T> {
 					}
 				};
 			}
+
+			int hc = 0;
+			if(theCompare != null)
+				hc += theCompare.getClass().hashCode();
+			if(theMin != null)
+				hc = hc * 7 + theMin.hashCode();
+			if(theMax != null)
+				hc = hc * 7 + theMax.hashCode();
+			theHashCode = hc;
 		}
 
 		/** @return The comparator that is used to validate values. May be null if the type is comparable. */
@@ -936,14 +948,7 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public int hashCode() {
-			int ret = 0;
-			if(theCompare != null)
-				ret += theCompare.getClass().hashCode();
-			if(theMin != null)
-				ret = ret * 7 + theMin.hashCode();
-			if(theMax != null)
-				ret = ret * 7 + theMax.hashCode();
-			return ret;
+			return theHashCode;
 		}
 	}
 }

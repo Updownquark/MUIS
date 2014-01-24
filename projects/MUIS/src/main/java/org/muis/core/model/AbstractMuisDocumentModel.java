@@ -15,6 +15,20 @@ import org.muis.core.style.MuisStyle;
  * {@link #iterator()}
  */
 public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
+	private prisms.util.DemandCache<Float, Iterable<StyledSequenceMetric>> theMetricsCache;
+
+	/** Creates the document */
+	public AbstractMuisDocumentModel() {
+		theMetricsCache = new prisms.util.DemandCache<>();
+		theMetricsCache.setPreferredSize(5);
+		theMetricsCache.setHalfLife(60000);
+	}
+
+	/** Clears this document's internal metrics cache. This call is needed whenever the document's content or style changes. */
+	protected void clearCache() {
+		theMetricsCache.clear();
+	}
+
 	@Override
 	public int length() {
 		int ret = 0;
@@ -174,12 +188,22 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 	@Override
 	public Iterable<StyledSequenceMetric> metrics(final int start, final float breakWidth) {
-		return new Iterable<StyledSequenceMetric>() {
-			@Override
-			public Iterator<StyledSequenceMetric> iterator() {
-				return new MetricsIterator(iterateFrom(start).iterator(), breakWidth);
+		Iterable<StyledSequenceMetric> ret;
+		if(start == 0) {
+			ret = theMetricsCache.get(breakWidth);
+			if(ret == null) {
+				ret = prisms.util.ArrayUtils.cachingIterable(new MetricsIterator(iterateFrom(start).iterator(), breakWidth));
+				theMetricsCache.put(breakWidth, ret);
 			}
-		};
+			return ret;
+		} else {
+			return new Iterable<StyledSequenceMetric>() {
+				@Override
+				public Iterator<StyledSequenceMetric> iterator() {
+					return new MetricsIterator(iterateFrom(start).iterator(), breakWidth);
+				}
+			};
+		}
 	}
 
 	@Override
@@ -342,7 +366,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		}
 	}
 
-	private static class MetricsIterator implements Iterator<StyledSequenceMetric> {
+	private class MetricsIterator implements Iterator<StyledSequenceMetric> {
 		private final Iterator<StyledSequence> theBackingIterator;
 
 		private final float theBreakWidth;
@@ -362,6 +386,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		private boolean gotLayout;
 
 		MetricsIterator(Iterator<StyledSequence> backing, float breakWidth) {
+			System.out.println("This=" + AbstractMuisDocumentModel.this + ", width=" + breakWidth);
 			theBackingIterator = backing;
 			theBreakWidth = breakWidth;
 		}
@@ -426,7 +451,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 				theContext);
 		}
 
-		private static class StyledSequenceMetricsImpl implements StyledSequenceMetric {
+		private class StyledSequenceMetricsImpl implements StyledSequenceMetric {
 			private final StyledSequence theSequence;
 			private final TextLayout theLayout;
 

@@ -10,12 +10,15 @@
 	<style-sheet ref="../src/main/styles/core-styles.mss" />
 	<types>
 		<type tag="body">org.muis.core.BodyElement</type>
+		<!-- The text type is mapped so as to be accessible for styles. The tag should not be used in MUIS files. -->
+		<type tag="text">org.muis.core.MuisTextElement</type>
 		<type tag="bg">org.muis.core.style.BackgroundStyle</type>
 		<type tag="font">org.muis.core.style.FontStyle</type>
 		<type tag="light">org.muis.core.style.LightedStyle</type>
 		<type tag="layout">org.muis.core.style.LayoutStyle</type>
 		<type tag="layer">org.muis.core.LayerLayout</type>
 		<type tag="no-texture">org.muis.core.style.BaseTexture</type>
+		<type tag="doc-texture">org.muis.core.style.DocumentTexture</type>
 	</types>
 	<security />
 </registry>

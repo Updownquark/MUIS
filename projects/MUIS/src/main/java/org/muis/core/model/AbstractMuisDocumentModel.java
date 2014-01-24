@@ -366,7 +366,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		}
 	}
 
-	private class MetricsIterator implements Iterator<StyledSequenceMetric> {
+	private static class MetricsIterator implements Iterator<StyledSequenceMetric> {
 		private final Iterator<StyledSequence> theBackingIterator;
 
 		private final float theBreakWidth;
@@ -386,7 +386,6 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		private boolean gotLayout;
 
 		MetricsIterator(Iterator<StyledSequence> backing, float breakWidth) {
-			System.out.println("This=" + AbstractMuisDocumentModel.this + ", width=" + breakWidth);
 			theBackingIterator = backing;
 			theBreakWidth = breakWidth;
 		}
@@ -451,7 +450,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 				theContext);
 		}
 
-		private class StyledSequenceMetricsImpl implements StyledSequenceMetric {
+		private static class StyledSequenceMetricsImpl implements StyledSequenceMetric {
 			private final StyledSequence theSequence;
 			private final TextLayout theLayout;
 

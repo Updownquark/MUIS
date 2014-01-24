@@ -207,7 +207,7 @@ public class MuisEventQueue {
 				Graphics2D graphics = (Graphics2D) render.getImage().getGraphics();
 				if(doc.getDebugGraphics() != null)
 					graphics = new org.muis.util.AggregateGraphics(graphics, doc.getDebugGraphics());
-				render.setRoot(element.paint(graphics, theArea));
+				render.setRoot(element.paint(graphics, area));
 				doc.setRender(render);
 				Graphics2D docGraphics = doc.getGraphics();
 				if(docGraphics != null)
@@ -233,7 +233,7 @@ public class MuisEventQueue {
 			MuisElementCapture<?> newBound;
 			graphics.translate(trans.x, trans.y);
 			try {
-				newBound = element.paint(graphics, theArea);
+				newBound = element.paint(graphics, area);
 			} finally {
 				graphics.translate(-trans.x, -trans.y);
 			}

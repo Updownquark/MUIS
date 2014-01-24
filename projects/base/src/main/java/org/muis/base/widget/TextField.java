@@ -109,15 +109,16 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
 		if(getValueElement().state().is(org.muis.core.MuisConstants.States.FOCUS) && isCursorOn()) {
-			System.out.println("Cursor on");
 			BufferedImage cursorImage = theCursorImage;
 			if(cursorImage == null)
 				theCursorImage = cursorImage = genCursorImage(graphics);
 			java.awt.geom.Point2D cursorLoc2D = getDocumentModel().getLocationAt(getDocumentModel().getCursor(),
 				getElement(getTemplate().getAttachPoint("value")).bounds().getWidth());
 			java.awt.Point cursorLoc = new java.awt.Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));
+			System.out.println("Cursor on: " + cursorLoc.x + ", " + cursorLoc.y + ", " + cursorImage.getWidth() + ", "
+				+ cursorImage.getHeight() + "; area=" + area);
 			if(area == null || area.intersects(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()))
-				graphics.drawImage(cursorImage, cursorLoc.x, cursorLoc.y, null);
+				graphics.drawImage(cursorImage, cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight(), null);
 		} else
 			System.out.println("Cursor off");
 	}

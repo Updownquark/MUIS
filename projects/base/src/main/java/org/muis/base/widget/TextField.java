@@ -37,12 +37,7 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 						public boolean update(long time) {
 							if(!getValueElement().state().is(FOCUS))
 								return true;
-							// BufferedImage cursorImage = theCursorImage;
-							// if(cursorImage != null) {
-							// Point cursorLoc = getCursorLocation();
-							// repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), true);
-							// } else
-								repaint(null, true);
+							repaintCursor();
 							return false;
 						}
 
@@ -55,6 +50,15 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 						}
 					};
 
+					private void repaintCursor() {
+						BufferedImage cursorImage = theCursorImage;
+						Point cursorLoc = theCursorLocation;
+						if(cursorImage != null && cursorLoc != null) {
+							repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), true);
+						} else
+							repaint(null, true);
+					}
+
 					@Override
 					public void entered(MuisState state, MuisEvent<?> cause) {
 						resetBlink();
@@ -63,6 +67,7 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 
 					@Override
 					public void exited(MuisState state, MuisEvent<?> cause) {
+						repaintCursor();
 					}
 				});
 				getDocumentModel().addContentListener(new SimpleDocumentModel.ContentListener() {
@@ -167,7 +172,6 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 		loc.y--;
 		loc = org.muis.util.MuisUtils.relative(loc, value, this);
 		theCursorLocation = loc;
-		System.out.println("I'm at " + getDocumentPosition() + ", value is at " + value.getDocumentPosition());
 
 		return ret;
 	}

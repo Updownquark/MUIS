@@ -940,8 +940,9 @@ public abstract class MuisElement {
 		Rectangle preClip = graphics.getClipBounds();
 		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
-			if((area != null && (area.width <= 0 || area.height <= 0)) || theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0) {
-			} else
+			boolean visible = !((area != null && (area.width <= 0 || area.height <= 0)) || theBounds.getWidth() <= 0 || theBounds
+				.getHeight() <= 0);
+			if(visible)
 				paintSelf(graphics, area);
 			@SuppressWarnings("rawtypes")
 			MuisElementCapture ret = new MuisElementCapture<>(null, this, cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height);
@@ -950,6 +951,8 @@ public abstract class MuisElement {
 				childBound.setParent(ret);
 				ret.addChild(childBound);
 			}
+			if(visible)
+				paintOverSelf(graphics, area);
 			return ret;
 		} finally {
 			graphics.setClip(preClip);
@@ -983,6 +986,15 @@ public abstract class MuisElement {
 		Texture tex = getStyle().getSelf().get(BackgroundStyle.texture);
 		if(tex != null)
 			tex.render(graphics, this, area);
+	}
+
+	/**
+	 * Allows a component to paint over its children
+	 *
+	 * @param graphics The graphics context to render this element in
+	 * @param area The area to draw
+	 */
+	public void paintOverSelf(java.awt.Graphics2D graphics, Rectangle area) {
 	}
 
 	/**

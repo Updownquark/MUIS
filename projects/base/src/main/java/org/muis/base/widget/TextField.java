@@ -1,9 +1,12 @@
 package org.muis.base.widget;
 
+import static org.muis.core.MuisConstants.States.FOCUS;
+
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
+import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.model.SimpleDocumentModel;
@@ -27,45 +30,44 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 			@Override
 			public void run() {
 				initDocument();
-				getValueElement().state().addListener(org.muis.core.MuisConstants.States.FOCUS,
-					new org.muis.core.mgr.StateEngine.StateListener() {
-						org.muis.motion.Animation theCursorBlinkAnimation = new org.muis.motion.Animation() {
-							@Override
-							public boolean update(long time) {
-								if(!getValueElement().state().is(org.muis.core.MuisConstants.States.FOCUS))
-									return true;
-								BufferedImage cursorImage = theCursorImage;
-								if(cursorImage != null) {
-									int cursor = getDocumentModel().getCursor();
-									java.awt.geom.Point2D cursorLoc2D = getDocumentModel().getLocationAt(cursor,
-										getElement(getTemplate().getAttachPoint("value")).bounds().getWidth());
-									int x = (int) Math.round(cursorLoc2D.getX());
-									int y = (int) Math.round(cursorLoc2D.getY());
-									repaint(new Rectangle(x, y, cursorImage.getWidth(), cursorImage.getHeight()), true);
-								} else
-									repaint(null, true);
-								return false;
-							}
-
-							@Override
-							public long getMaxFrequency() {
-								long blink = getStyle().getSelf().get(org.muis.base.style.TextEditStyle.cursorBlink);
-								if(blink <= 0)
-									return 100;
-								return blink/2;
-							}
-						};
-
+				getValueElement().state().addListener(FOCUS, new org.muis.core.mgr.StateEngine.StateListener() {
+					org.muis.motion.Animation theCursorBlinkAnimation = new org.muis.motion.Animation() {
 						@Override
-						public void entered(MuisState state, MuisEvent<?> cause) {
-							resetBlink();
-							org.muis.motion.AnimationManager.get().start(theCursorBlinkAnimation);
+						public boolean update(long time) {
+							if(!getValueElement().state().is(FOCUS))
+								return true;
+							MuisElement value = getElement(getTemplate().getAttachPoint("value"));
+							BufferedImage cursorImage = theCursorImage;
+							if(cursorImage != null) {
+								int cursor = getDocumentModel().getCursor();
+								java.awt.geom.Point2D cursorLoc2D = getDocumentModel().getLocationAt(cursor, value.bounds().getWidth());
+								int x = (int) Math.round(cursorLoc2D.getX());
+								int y = (int) Math.round(cursorLoc2D.getY());
+								value.repaint(new Rectangle(x, y, cursorImage.getWidth(), cursorImage.getHeight()), true);
+							} else
+								value.repaint(null, true);
+							return false;
 						}
 
 						@Override
-						public void exited(MuisState state, MuisEvent<?> cause) {
+						public long getMaxFrequency() {
+							long blink = getStyle().getSelf().get(org.muis.base.style.TextEditStyle.cursorBlink);
+							if(blink <= 0)
+								return 100;
+							return blink / 2;
 						}
-					});
+					};
+
+					@Override
+					public void entered(MuisState state, MuisEvent<?> cause) {
+						resetBlink();
+						org.muis.motion.AnimationManager.get().start(theCursorBlinkAnimation);
+					}
+
+					@Override
+					public void exited(MuisState state, MuisEvent<?> cause) {
+					}
+				});
 				getDocumentModel().addContentListener(new SimpleDocumentModel.ContentListener() {
 					@Override
 					public void contentChanged(ContentChangeEvent evt) {
@@ -108,15 +110,15 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		if(getValueElement().state().is(org.muis.core.MuisConstants.States.FOCUS) && isCursorOn()) {
+		if(getValueElement().state().is(FOCUS) && isCursorOn()) {
 			BufferedImage cursorImage = theCursorImage;
 			if(cursorImage == null)
 				theCursorImage = cursorImage = genCursorImage(graphics);
-			java.awt.geom.Point2D cursorLoc2D = getDocumentModel().getLocationAt(getDocumentModel().getCursor(),
-				getElement(getTemplate().getAttachPoint("value")).bounds().getWidth());
+			MuisElement value = getElement(getTemplate().getAttachPoint("value"));
+			java.awt.geom.Point2D cursorLoc2D = getDocumentModel().getLocationAt(getDocumentModel().getCursor(), value.bounds().getWidth());
 			java.awt.Point cursorLoc = new java.awt.Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));
-			System.out.println("Cursor on: " + cursorLoc.x + ", " + cursorLoc.y + ", " + cursorImage.getWidth() + ", "
-				+ cursorImage.getHeight() + "; area=" + area);
+			org.muis.util.MuisUtils.relative(cursorLoc, value, this);
+			System.out.println("Cursor on");
 			if(area == null || area.intersects(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()))
 				graphics.drawImage(cursorImage, cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight(), null);
 		} else
@@ -156,9 +158,9 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 		imgGraphics.setColor(org.muis.util.MuisUtils.getColor(cursorStyle.get(FontStyle.color), cursorStyle.get(FontStyle.transparency)));
 		imgGraphics.setStroke(new java.awt.BasicStroke(cursorStyle.get(FontStyle.weight).floatValue()));
 		if(cursorFont.getItalicAngle() > 0)
-			imgGraphics.drawLine(0, (int) ascent, (int) width, 0);
+			imgGraphics.drawLine(0, (int) ascent - 1, (int) width - 1, 0);
 		else
-			imgGraphics.drawLine(0, 0, (int) width, (int) ascent);
+			imgGraphics.drawLine(0, 0, (int) width - 1, (int) ascent - 1);
 		imgGraphics.dispose();
 		return ret;
 	}

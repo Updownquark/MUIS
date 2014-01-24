@@ -586,10 +586,12 @@ public class MuisDocument {
 	private void setFocus(MuisElement focus, java.util.List<MuisEventQueue.Event> events) {
 		MuisElement oldFocus = theFocus;
 		theFocus = focus;
-		if(oldFocus != null)
-			events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, oldFocus, false), false));
-		if(theFocus != null)
-			events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, theFocus, true), false));
+		if(oldFocus != theFocus) {
+			if(oldFocus != null)
+				events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, oldFocus, false), false));
+			if(theFocus != null)
+				events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, theFocus, true), false));
+		}
 	}
 
 	/** Moves this document's focus to the focusable widget previous to the currently focused widget */

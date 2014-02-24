@@ -37,7 +37,8 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 						public boolean update(long time) {
 							if(!getValueElement().state().is(FOCUS))
 								return true;
-							repaintCursor();
+							if(isBlinking())
+								repaintCursor();
 							return false;
 						}
 
@@ -134,6 +135,15 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 			return true;
 		long timeDiff = System.currentTimeMillis() - theLastCursorReset;
 		return (timeDiff * 2 / interval) % 2 == 0;
+	}
+
+	private boolean isBlinking() {
+		if(getDocumentModel().getSelectionAnchor() != getDocumentModel().getCursor())
+			return false;
+		long interval = getStyle().getSelf().get(org.muis.base.style.TextEditStyle.cursorBlink);
+		if(interval <= 0)
+			return false;
+		return true;
 	}
 
 	private void resetBlink() {

@@ -267,14 +267,9 @@ public class MuisEventQueue {
 
 			Rectangle area = MuisUtils.relative(paint.theArea, paint.theElement, theElement);
 			Rectangle area2 = theArea;
-			if(area2 != null) {
-				if(area.x <= area2.x && area.y <= area2.y && area.x + area.width >= area2.x + area2.width
-					&& area.y + area.height >= area2.y + area2.height)
-					return true; // Element's area will be repainted with its ancestor
-			} else if(area.x <= 0 && area.y <= 0 && area.x + area.width >= theElement.bounds().getWidth()
-				&& area.y + area.height >= theElement.bounds().getHeight())
-				return true; // Element will be repainted with its ancestor
-			return false;
+			if(area2 == null)
+				area2 = theElement.bounds().getBounds();
+			return area.contains(area2); // If area contains area 2, the element's area will be repainted with its ancestor
 		}
 
 		@Override
@@ -589,9 +584,9 @@ public class MuisEventQueue {
 			}
 		};
 		theLock = new Object();
-		theFrequency = 50;
-		thePaintDirtyTolerance = 10;
-		theLayoutDirtyTolerance = 10;
+		theFrequency = 25;
+		thePaintDirtyTolerance = 50;
+		theLayoutDirtyTolerance = 50;
 		isPrioritized = true;
 		theTracker = new prisms.util.ProgramTracker("MUIS Events");
 	}

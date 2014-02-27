@@ -341,7 +341,7 @@ public class MuisDomParser implements MuisParser {
 				// EventQueue somehow
 				ret.startAnimation();
 				return ret;
-			} catch(IOException | MuisParseException e) {
+			} catch(Exception e) {
 				msg.error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
 				return null;
 			}

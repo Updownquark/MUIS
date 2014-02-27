@@ -18,6 +18,7 @@
         <type tag="toggle-button">org.muis.base.widget.ToggleButton</type>
         <type tag="label">org.muis.base.widget.Label</type>
         <type tag="border">org.muis.base.widget.BorderPane</type>
+        <type tag="text-cursor-overlay">org.muis.base.widget.DocumentCursorOverlay</type>
         <type tag="text-field">org.muis.base.widget.TextField</type>
         
 		<!-- Layouts -->

@@ -214,6 +214,8 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 	 * @param cursor The new location for the cursor in this document
 	 */
 	public void setSelection(int anchor, int cursor) {
+		if(theSelectionAnchor == anchor && theCursor == cursor)
+			return;
 		theSelectionAnchor = anchor;
 		theCursor = cursor;
 		fireSelectionEvent(anchor, cursor);

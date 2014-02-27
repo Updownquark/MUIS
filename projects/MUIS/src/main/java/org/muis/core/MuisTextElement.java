@@ -34,7 +34,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			@Override
 			public void contentChanged(ContentChangeEvent evt) {
 				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
-				repaint(null, true);
+				repaint(null, false);
 			}
 		});
 		theDocument.addSelectionListener(new org.muis.core.model.SimpleDocumentModel.SelectionListener() {

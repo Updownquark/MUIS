@@ -151,7 +151,12 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 	}
 
 	private void resetCursorImage() {
+		BufferedImage cursorImage = theCursorImage;
+		Point cursorLoc = theCursorLocation;
 		theCursorImage = null;
+		if(cursorImage != null && cursorLoc != null) {
+			repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), false);
+		}
 	}
 
 	private BufferedImage genCursorImage(Graphics2D graphics) {

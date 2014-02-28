@@ -60,6 +60,30 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 		void draw(Graphics2D graphics, float x, float y);
 	}
 
+	/** Fired when a document model's content changes */
+	public static interface ContentChangeEvent {
+		/** @return The document model whose content changed */
+		MuisDocumentModel getModel();
+
+		/** @return The document model's content after the change */
+		String getValue();
+
+		/** @return The section of content that was added or removed */
+		String getChange();
+
+		/** @return The index of the addition or removal */
+		int getIndex();
+
+		/** @return Whether this change represents a removal or an addition */
+		boolean isRemove();
+	}
+
+	/** Listens for changes to a document's content */
+	public static interface ContentListener {
+		/** @param evt The event containing information about the content change */
+		void contentChanged(ContentChangeEvent evt);
+	}
+
 	/**
 	 * @param position The position to get the style for
 	 * @return The style at the given position
@@ -103,4 +127,10 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 	 * @param breakWidth The width, in pixels, to break lines off at in the document
 	 */
 	void draw(Graphics2D graphics, Rectangle window, int breakWidth);
+
+	/** @param listener The listener to be notified when this model's content changes */
+	void addContentListener(MuisDocumentModel.ContentListener listener);
+
+	/** @param listener The listener to stop notification for */
+	void removeContentListener(MuisDocumentModel.ContentListener listener);
 }

@@ -8,8 +8,9 @@ import java.awt.Rectangle;
 import org.muis.core.layout.AbstractSizeGuide;
 import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
-import org.muis.core.model.SimpleDocumentModel.ContentChangeEvent;
-import org.muis.core.model.SimpleDocumentModel.SelectionChangeEvent;
+import org.muis.core.model.MuisDocumentModel;
+import org.muis.core.model.SelectableDocumentModel;
+import org.muis.core.model.SimpleDocumentModel;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
@@ -28,18 +29,18 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	public MuisTextElement(String text) {
 		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
-		theDocument = new org.muis.core.model.SimpleDocumentModel(getStyle().getSelf());
+		theDocument = new SimpleDocumentModel(getStyle().getSelf());
 		theDocument.append(text);
-		theDocument.addContentListener(new org.muis.core.model.SimpleDocumentModel.ContentListener() {
+		theDocument.addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
-			public void contentChanged(ContentChangeEvent evt) {
+			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
 				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
 				repaint(null, false);
 			}
 		});
-		theDocument.addSelectionListener(new org.muis.core.model.SimpleDocumentModel.SelectionListener() {
+		theDocument.addSelectionListener(new SelectableDocumentModel.SelectionListener() {
 			@Override
-			public void selectionChanged(SelectionChangeEvent evt) {
+			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				if(isFontDifferentSelected())
 					fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
 				repaint(null, true);
@@ -83,7 +84,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	public SizeGuide getWSizer() {
 		float maxW = 0;
 		float lineW = 0;
-		for(org.muis.core.model.MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, Integer.MAX_VALUE)) {
+		for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, Integer.MAX_VALUE)) {
 			if(metric.isNewLine()) {
 				if(lineW > maxW)
 					maxW = lineW;
@@ -99,7 +100,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
 			maxW = 0;
 			lineW = 0;
-			for(org.muis.core.model.MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, 1)) {
+			for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, 1)) {
 				if(metric.isNewLine()) {
 					if(lineW > maxW)
 						maxW = lineW;

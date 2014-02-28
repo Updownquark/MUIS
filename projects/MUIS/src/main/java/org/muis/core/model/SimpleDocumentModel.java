@@ -13,107 +13,7 @@ import org.muis.core.style.stateful.StateChangedEvent;
 import org.muis.core.style.stateful.StatefulStyle;
 
 /** A very simple document model that uses a single style and keeps a single, mutable set of content and supports single interval selection */
-public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Appendable {
-	/** Fired when a document model's content changes */
-	public static class ContentChangeEvent {
-		private final SimpleDocumentModel theModel;
-
-		private final String theValue;
-
-		private final String theChange;
-
-		private final int theIndex;
-
-		private final boolean isRemove;
-
-		/**
-		 * @param model The document model whose content changed
-		 * @param value The document model's content after the change
-		 * @param change The section of content that was added or removed
-		 * @param index The index of the addition or removal
-		 * @param remove Whether this change represents a removal or an addition
-		 */
-		public ContentChangeEvent(SimpleDocumentModel model, String value, String change, int index, boolean remove) {
-			theModel = model;
-			theValue = value;
-			theChange = change;
-			theIndex = index;
-			isRemove = remove;
-		}
-
-		/** @return The document model whose content changed */
-		public SimpleDocumentModel getModel() {
-			return theModel;
-		}
-
-		/** @return The document model's content after the change */
-		public String getValue() {
-			return theValue;
-		}
-
-		/** @return The section of content that was added or removed */
-		public String getChange() {
-			return theChange;
-		}
-
-		/** @return The index of the addition or removal */
-		public int getIndex() {
-			return theIndex;
-		}
-
-		/** @return Whether this change represents a removal or an addition */
-		public boolean isRemove() {
-			return isRemove;
-		}
-	}
-
-	/** Listens for changes to a document's content */
-	public static interface ContentListener {
-		/** @param evt The event containing information about the content change */
-		void contentChanged(ContentChangeEvent evt);
-	}
-
-	/** Fired when a document model's selection changes */
-	public static class SelectionChangeEvent {
-		private final SimpleDocumentModel theModel;
-
-		private final int theSelectionAnchor;
-
-		private final int theCursor;
-
-		/**
-		 * @param model The document model whose selection changed
-		 * @param anchor The location of the model's selection anchor
-		 * @param cursor The location of the model's cursor
-		 */
-		public SelectionChangeEvent(SimpleDocumentModel model, int anchor, int cursor) {
-			theModel = model;
-			theSelectionAnchor = anchor;
-			theCursor = cursor;
-		}
-
-		/** @return The document model whose selection changed */
-		public SimpleDocumentModel getModel() {
-			return theModel;
-		}
-
-		/** @return The location of the model's selection anchor */
-		public int getSelectionAnchor() {
-			return theSelectionAnchor;
-		}
-
-		/** @return The location of the model's cursor */
-		public int getCursor() {
-			return theCursor;
-		}
-	}
-
-	/** Listens for changes to a document's selection */
-	public static interface SelectionListener {
-		/** @param evt The event containing information about the selection change */
-		void selectionChanged(SelectionChangeEvent evt);
-	}
-
+public class SimpleDocumentModel extends AbstractMuisDocumentModel implements SelectableDocumentModel, Appendable {
 	private final InternallyStatefulStyle theParentStyle;
 
 	private final MuisStyle theNormalStyle;
@@ -128,9 +28,9 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 
 	private java.util.concurrent.locks.ReentrantReadWriteLock theLock;
 
-	private Collection<ContentListener> theContentListeners;
+	private Collection<MuisDocumentModel.ContentListener> theContentListeners;
 
-	private Collection<SelectionListener> theSelectionListeners;
+	private Collection<SelectableDocumentModel.SelectionListener> theSelectionListeners;
 
 	/** @param parentStyle The parent style for this document */
 	public SimpleDocumentModel(final InternallyStatefulStyle parentStyle) {
@@ -158,40 +58,34 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		return theSelectedStyle;
 	}
 
-	/** @param listener The listener to be notified when this model's content changes */
-	public void addContentListener(ContentListener listener) {
+	@Override
+	public void addContentListener(MuisDocumentModel.ContentListener listener) {
 		if(listener != null)
 			theContentListeners.add(listener);
 	}
 
-	/** @param listener The listener to stop notification for */
-	public void removeContentListener(ContentListener listener) {
+	@Override
+	public void removeContentListener(MuisDocumentModel.ContentListener listener) {
 		theContentListeners.remove(listener);
 	}
 
-	/** @param listener The listener to be notified when this model's selection changes */
-	public void addSelectionListener(SelectionListener listener) {
+	@Override
+	public void addSelectionListener(SelectableDocumentModel.SelectionListener listener) {
 		if(listener != null)
 			theSelectionListeners.add(listener);
 	}
 
-	/** @param listener The listener to stop notification for */
-	public void removeSelectionListener(SelectionListener listener) {
+	@Override
+	public void removeSelectionListener(SelectableDocumentModel.SelectionListener listener) {
 		theSelectionListeners.remove(listener);
 	}
 
-	/**
-	 * @return The location of the cursor in this document--the location at which text will be added in response to non-positioned events
-	 *         (e.g. character input). If text is selected in this document then this position is also one end of the selection interval.
-	 */
+	@Override
 	public int getCursor() {
 		return theCursor;
 	}
 
-	/**
-	 * @return The other end of the selection interval (opposite cursor). If no text is selected in this document then this value will be
-	 *         the same as the {@link #getCursor() cursor}
-	 */
+	@Override
 	public int getSelectionAnchor() {
 		return theSelectionAnchor;
 	}
@@ -290,7 +184,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		}
 	}
 
-	/** @return The text selected in this document */
+	@Override
 	public String getSelectedText() {
 		int start = theSelectionAnchor;
 		int end = theCursor;
@@ -452,19 +346,27 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 	public SimpleDocumentModel insert(int offset, char c) {
 		String value;
 		String change = new String(new char[] {c});
+		boolean selChange = false;
 		Lock lock = theLock.writeLock();
 		lock.lock();
 		try {
-			if(theSelectionAnchor >= offset)
+			if(theSelectionAnchor >= offset) {
+				selChange = true;
 				theSelectionAnchor++;
-			if(theCursor >= offset)
+			}
+			if(theCursor >= offset) {
+				selChange = true;
 				theCursor++;
+			}
 			theContent.insert(offset, c);
 			value = theContent.toString();
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, c, false);
+		if(selChange)
+			fireContentEvent(value, change, c, false, theSelectionAnchor, theCursor);
+		else
+			fireContentEvent(value, change, c, false, -1, -1);
 		return this;
 	}
 
@@ -483,6 +385,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		}
 		String value;
 		String change;
+		boolean selChange = false;
 		Lock lock = theLock.writeLock();
 		lock.lock();
 		try {
@@ -491,12 +394,14 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 					theSelectionAnchor -= end - start;
 				else
 					theSelectionAnchor = start;
+				selChange = true;
 			}
 			if(theCursor >= start) {
 				if(theCursor >= end)
 					theCursor -= end - start;
 				else
 					theCursor = start;
+				selChange = true;
 			}
 			change = theContent.substring(start, end);
 			theContent.delete(start, end);
@@ -504,7 +409,10 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, start, true);
+		if(selChange)
+			fireContentEvent(value, change, start, true, theSelectionAnchor, theCursor);
+		else
+			fireContentEvent(value, change, start, true, -1, -1);
 		return this;
 	}
 
@@ -530,23 +438,145 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Ap
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent("", oldValue, 0, true);
-		fireContentEvent(text, text, 0, false);
+		fireContentEvent("", oldValue, 0, true, -1, -1);
+		fireContentEvent(text, text, 0, false, theSelectionAnchor, theCursor);
 		return this;
 	}
 
 	private void fireSelectionEvent(int anchor, int cursor) {
 		clearCache();
-		SelectionChangeEvent evt = new SelectionChangeEvent(this, anchor, cursor);
-		for(SelectionListener listener : theSelectionListeners)
+		SelectableDocumentModel.SelectionChangeEvent evt = new SelectionChangeEventImpl(this, anchor, cursor);
+		for(SelectableDocumentModel.SelectionListener listener : theSelectionListeners)
 			listener.selectionChanged(evt);
 	}
 
-	private void fireContentEvent(String value, String change, int index, boolean remove) {
+	private void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor) {
 		clearCache();
-		ContentChangeEvent evt = new ContentChangeEvent(this, value, change, index, remove);
-		for(ContentListener listener : theContentListeners)
+		MuisDocumentModel.ContentChangeEvent evt;
+		if(anchor < 0 && cursor < 0)
+			evt= new ContentChangeEventImpl(this, value, change, index, remove);
+		else
+			evt = new ContentAndSelectionChangeEventImpl(this, value, change, index, remove, anchor, cursor);
+		for(MuisDocumentModel.ContentListener listener : theContentListeners)
 			listener.contentChanged(evt);
+	}
+
+	private static class ContentChangeEventImpl implements ContentChangeEvent {
+		private final SimpleDocumentModel theModel;
+
+		private final String theValue;
+
+		private final String theChange;
+
+		private final int theIndex;
+
+		private final boolean isRemove;
+
+		/**
+		 * @param model The document model whose content changed
+		 * @param value The document model's content after the change
+		 * @param change The section of content that was added or removed
+		 * @param index The index of the addition or removal
+		 * @param remove Whether this change represents a removal or an addition
+		 */
+		ContentChangeEventImpl(SimpleDocumentModel model, String value, String change, int index, boolean remove) {
+			theModel = model;
+			theValue = value;
+			theChange = change;
+			theIndex = index;
+			isRemove = remove;
+		}
+
+		@Override
+		public SimpleDocumentModel getModel() {
+			return theModel;
+		}
+
+		@Override
+		public String getValue() {
+			return theValue;
+		}
+
+		@Override
+		public String getChange() {
+			return theChange;
+		}
+
+		@Override
+		public int getIndex() {
+			return theIndex;
+		}
+
+		@Override
+		public boolean isRemove() {
+			return isRemove;
+		}
+	}
+
+	private static class SelectionChangeEventImpl implements SelectionChangeEvent {
+		private final SimpleDocumentModel theModel;
+
+		private final int theSelectionAnchor;
+
+		private final int theCursor;
+
+		/**
+		 * @param model The document model whose selection changed
+		 * @param anchor The location of the model's selection anchor
+		 * @param cursor The location of the model's cursor
+		 */
+		SelectionChangeEventImpl(SimpleDocumentModel model, int anchor, int cursor) {
+			theModel = model;
+			theSelectionAnchor = anchor;
+			theCursor = cursor;
+		}
+
+		/** @return The document model whose selection changed */
+		@Override
+		public SimpleDocumentModel getModel() {
+			return theModel;
+		}
+
+		/** @return The location of the model's selection anchor */
+		@Override
+		public int getSelectionAnchor() {
+			return theSelectionAnchor;
+		}
+
+		/** @return The location of the model's cursor */
+		@Override
+		public int getCursor() {
+			return theCursor;
+		}
+	}
+
+	private static class ContentAndSelectionChangeEventImpl extends ContentChangeEventImpl implements SelectionChangeEvent {
+		private final int theAnchor;
+
+		private final int theCursor;
+
+		/**
+		 * @param model The document model whose content changed
+		 * @param value The document model's content after the change
+		 * @param change The section of content that was added or removed
+		 * @param index The index of the addition or removal
+		 * @param remove Whether this change represents a removal or an addition
+		 */
+		ContentAndSelectionChangeEventImpl(SimpleDocumentModel model, String value, String change, int index, boolean remove, int cursor, int anchor) {
+			super(model, value, change, index, remove);
+			theCursor=cursor;
+			theAnchor=anchor;
+		}
+
+		@Override
+		public int getSelectionAnchor() {
+			return theAnchor;
+		}
+
+		@Override
+		public int getCursor() {
+			return theCursor;
+		}
 	}
 
 	private class SelectionStyle extends org.muis.core.style.stateful.AbstractInternallyStatefulStyle {

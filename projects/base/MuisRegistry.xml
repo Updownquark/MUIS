@@ -26,6 +26,7 @@
         <type tag="flow">org.muis.base.layout.FlowLayout</type>
         <type tag="box">org.muis.base.layout.BoxLayout</type>
         <type tag="border-layout">org.muis.base.layout.BorderLayout</type>
+        <type tag="text-edit-layout">org.muis.base.layout.TextEditLayout</type>
         
 		<!-- Textures -->
         <type tag="raised-round">org.muis.base.style.RaisedRoundTexture</type>

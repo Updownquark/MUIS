@@ -11,9 +11,8 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
-import org.muis.core.model.SimpleDocumentModel;
-import org.muis.core.model.SimpleDocumentModel.ContentChangeEvent;
-import org.muis.core.model.SimpleDocumentModel.SelectionChangeEvent;
+import org.muis.core.model.MuisDocumentModel;
+import org.muis.core.model.SelectableDocumentModel;
 import org.muis.core.style.FontStyle;
 import org.muis.core.style.MuisStyle;
 
@@ -82,16 +81,16 @@ public class DocumentCursorOverlay extends MuisElement {
 				repaintCursor();
 			}
 		});
-		theTextElement.getDocumentModel().addContentListener(new SimpleDocumentModel.ContentListener() {
+		theTextElement.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
-			public void contentChanged(ContentChangeEvent evt) {
+			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
 				if(evt.getIndex() == theTextElement.getDocumentModel().getCursor())
 					resetCursorImage();
 			}
 		});
-		theTextElement.getDocumentModel().addSelectionListener(new SimpleDocumentModel.SelectionListener() {
+		theTextElement.getDocumentModel().addSelectionListener(new SelectableDocumentModel.SelectionListener() {
 			@Override
-			public void selectionChanged(SelectionChangeEvent evt) {
+			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				resetCursorImage();
 				resetBlink();
 			}

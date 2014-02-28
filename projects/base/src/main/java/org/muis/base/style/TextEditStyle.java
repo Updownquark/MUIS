@@ -22,7 +22,7 @@ public class TextEditStyle implements org.muis.core.style.StyleDomain {
 
 	static {
 		instance = new TextEditStyle();
-		cursorBlink = new StyleAttribute<>(instance, "cursor-blink", MuisProperty.timeAttr, 500L, new MuisProperty.ComparableValidator<>(
+		cursorBlink = new StyleAttribute<>(instance, "cursor-blink", MuisProperty.timeAttr, 1000L, new MuisProperty.ComparableValidator<>(
 			-1L, 60000L));
 		instance.register(cursorBlink);
 	}

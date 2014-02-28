@@ -18,7 +18,7 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 				cursor.setTextElement(getValueElement());
 				cursor.setStyleAnchor(getStyle().getSelf());
 			}
-		}, org.muis.core.MuisConstants.CoreStage.INIT_CHILDREN.toString(), 1);
+		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	/** @return The text element containing the text that is the value of this text field */

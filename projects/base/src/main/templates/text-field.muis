@@ -4,14 +4,12 @@
 	<head>
 	</head>
 	<body layout="layer">
-		<block layout="layer">
-			<border template-attach-point="border" template-external="false" template-mutable="false" layout="box">
-				<label template-attach-point="text" template-external="false" template-mutable="false">
-					<template-text template-attach-point="value" template-external="true" template-default="true"
-						template-implementation="true" template-multiple="false" />
-				</label>
-			</border>
-			<text-cursor-overlay template-attach-point="cursor-overlay" template-external="false" template-mutable="false" />
-		</block>
+		<border template-attach-point="border" template-external="false" template-mutable="false" layout="box">
+			<label template-attach-point="text" template-external="false" template-mutable="false">
+				<template-text template-attach-point="value" template-external="true" template-default="true"
+					template-implementation="true" template-multiple="false" />
+			</label>
+		</border>
+		<text-cursor-overlay template-attach-point="cursor-overlay" template-external="false" template-mutable="false" />
 	</body>
 </template>

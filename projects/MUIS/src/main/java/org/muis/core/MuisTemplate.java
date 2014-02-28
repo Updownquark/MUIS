@@ -395,12 +395,16 @@ public abstract class MuisTemplate extends MuisElement {
 			if(docStruct.getContent().getChildren().isEmpty())
 				throw new MuisException("No contents specified in body section of template XML \"" + location + "\" for template class "
 					+ templateType.getName());
+			/* This block enforced only one widget at the root of a templated element.  Don't remember why I thought this was a good idea.
 			if(docStruct.getContent().getChildren().size() > 1)
 				throw new MuisException("More than one content element (" + docStruct.getContent().getChildren().size()
 					+ ") specified in body section of template XML \"" + location + "\" for template class " + templateType.getName());
-			if(!(docStruct.getContent().getChildren().get(0) instanceof WidgetStructure))
-				throw new MuisException("Non-widget contents specified in body section of template XML \"" + location
-					+ "\" for template class " + templateType.getName());
+			*/
+			for(MuisContent content : docStruct.getContent().getChildren()) {
+				if(!(content instanceof WidgetStructure))
+					throw new MuisException("Non-widget contents specified in body section of template XML \"" + location
+						+ "\" for template class " + templateType.getName());
+			}
 
 			WidgetStructure content = docStruct.getContent();
 			String layout = content.getAttributes().remove(LayoutContainer.LAYOUT_ATTR.getName());
@@ -736,9 +740,9 @@ public abstract class MuisTemplate extends MuisElement {
 								+ theTemplateStructure.getDefiner().getName(), e);
 						continue;
 					}
-					try{
+					try {
 						addBehavior(behavior);
-					} catch(RuntimeException e){
+					} catch(RuntimeException e) {
 						msg().error(
 							"Failed to install behavior " + behaviorClass.getName() + " on templated widget " + getClass().getName(), e);
 					}
@@ -923,27 +927,27 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 		}
 
-		for(MuisContent content : structure.getWidgetStructure().getChildren()) {
+		for(MuisContent content : structure.getWidgetStructure().getChildren())
 			initChild(structure, content);
-		}
 	}
 
 	private void initChild(TemplateStructure structure, MuisContent content) throws MuisParseException {
 		MuisElement child = getChild(structure, this, content, getDocument().getEnvironment().getContentCreator());
-		if(child != null) {
-			if(!theStaticContent.containsKey(content)) {
-				theStaticContent.put(content, child);
-				if(content instanceof WidgetStructure)
-					for(MuisContent sub : ((WidgetStructure) content).getChildren())
-						initChild(structure, sub);
-			} else
-				addContent(child, structure.getSuperStructure());
+		if(child != null
+			&& (!(content instanceof WidgetStructure) || !((WidgetStructure) content).getAttributes().containsKey(
+				TemplateStructure.ATTACH_POINT)) && !theStaticContent.containsKey(content)) {
+			theStaticContent.put(content, child);
+			if(content instanceof WidgetStructure)
+				for(MuisContent sub : ((WidgetStructure) content).getChildren())
+					initChild(structure, sub);
+			addContent(child, structure);
 		}
 	}
 
 	private MuisElement getChild(TemplateStructure template, MuisElement parent, MuisContent child,
 		org.muis.core.parser.MuisContentCreator creator) throws MuisParseException {
-		if(child instanceof WidgetStructure && ((WidgetStructure) child).getNamespace() == null
+		if(child instanceof WidgetStructure
+			&& ((WidgetStructure) child).getNamespace() == null
 			&& (((WidgetStructure) child).getTagName().equals(TemplateStructure.GENERIC_ELEMENT) || ((WidgetStructure) child).getTagName()
 				.equals(TemplateStructure.GENERIC_TEXT)))
 			return null;

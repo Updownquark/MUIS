@@ -624,6 +624,8 @@ public abstract class MuisElement {
 	 * @param parent The new parent for this element
 	 */
 	protected final void setParent(MuisElement parent) {
+		if(theParent == parent)
+			return;
 		if(theParent != null) {
 			theParent.theChildren.remove(this);
 		}

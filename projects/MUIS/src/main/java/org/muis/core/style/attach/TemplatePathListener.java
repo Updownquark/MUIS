@@ -226,4 +226,9 @@ public class TemplatePathListener {
 		for(Listener listener : theListeners)
 			listener.pathChanged(oldPath, newPath);
 	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + " for " + theElement;
+	}
 }

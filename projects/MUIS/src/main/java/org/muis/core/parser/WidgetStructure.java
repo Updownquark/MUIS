@@ -89,4 +89,17 @@ public class WidgetStructure extends MuisContent implements prisms.util.Sealable
 		theAttributes = java.util.Collections.unmodifiableMap(theAttributes);
 		theChildren = java.util.Collections.unmodifiableList(theChildren);
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		ret.append('<');
+		if(theNamespace != null)
+			ret.append(theNamespace).append(':');
+		ret.append(theTagName);
+		for(Map.Entry<String, String> attr : theAttributes.entrySet())
+			ret.append(' ').append(attr.getKey()).append("=\"").append(attr.getValue()).append('"');
+		ret.append('>');
+		return ret.toString();
+	}
 }

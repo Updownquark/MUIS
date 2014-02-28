@@ -658,7 +658,7 @@ public abstract class CompoundListener<T> {
 		public CompoundListener<?> onChange(Runnable run) {
 			synchronized(theAnonymousChains) {
 				if(theLastChain == null)
-					throw new IllegalStateException("No attributes to listen to");
+					return null;
 				return theLastChain.onChange(run);
 			}
 		}
@@ -667,7 +667,7 @@ public abstract class CompoundListener<T> {
 		public CompoundListener<?> onChange(ChangeListener listener) {
 			synchronized(theAnonymousChains) {
 				if(theLastChain == null)
-					throw new IllegalStateException("No attributes to listen to");
+					return null;
 				return theLastChain.onChange(listener);
 			}
 		}

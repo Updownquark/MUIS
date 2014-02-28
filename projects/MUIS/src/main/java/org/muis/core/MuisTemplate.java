@@ -1387,9 +1387,9 @@ public abstract class MuisTemplate extends MuisElement {
 
 			private MuisElement theAPElement;
 
-			private boolean calledHasNext = true;
+			private boolean calledHasNext = false;
 
-			private boolean calledHasPrevious = true;
+			private boolean calledHasPrevious = false;
 
 			private int theDirection;
 

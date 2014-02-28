@@ -3,15 +3,13 @@ package org.muis.base.widget;
 import org.muis.core.MuisConstants;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.model.ModelAttributes;
-import org.muis.core.model.MuisModelValue;
-import org.muis.core.model.MuisModelValueEvent;
+import org.muis.core.model.*;
 
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
  * different (flow by default) and its style sheet attributes may be different (margin and padding are typically 0)
  */
-public class Label extends org.muis.core.LayoutContainer {
+public class Label extends org.muis.core.LayoutContainer implements org.muis.core.model.DocumentedElement {
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
 	private org.muis.core.model.MuisModelValueListener<Object> theValueListener;
@@ -70,6 +68,15 @@ public class Label extends org.muis.core.LayoutContainer {
 				msg().warn("Label: Replacing content widgets with text");
 			((MuisTextElement) getChildren().get(0)).setText(text);
 		}
+	}
+
+	@Override
+	public MuisDocumentModel getDocumentModel() {
+		if(getChildren().isEmpty())
+			return null;
+		if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
+			return null;
+		return ((MuisTextElement) getChildren().get(0)).getDocumentModel();
 	}
 
 	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {

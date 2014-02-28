@@ -109,20 +109,19 @@ public class BoxLayout implements MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
-				if(!Alignment.justify.equals(parent.atts().get(alignment)))
-					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.maxPref, crossSize, csMax);
 			}
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
-				if(!Alignment.justify.equals(parent.atts().get(alignment)))
-					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.max, crossSize, csMax);
 			}
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+				if((type == LayoutGuideType.max || type == LayoutGuideType.maxPref)
+					&& !Alignment.justify.equals(parent.atts().get(alignment)))
+					return Integer.MAX_VALUE;
 				return BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, margin, margin, padding, padding);
 			}
 

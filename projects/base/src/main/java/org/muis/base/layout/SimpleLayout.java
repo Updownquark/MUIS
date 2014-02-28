@@ -89,6 +89,8 @@ public class SimpleLayout implements MuisLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+				if((type == LayoutGuideType.max || type == LayoutGuideType.maxPref))
+					return Integer.MAX_VALUE; // Don't try to limit the container size due to the contents
 				int maximum = 0;
 				boolean maxChange = true;
 				int iterations = 5;

@@ -66,21 +66,22 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 				public int getPreferred(int crossSize, boolean csMax) {
 					int minPref = 0;
 					int maxPref = Integer.MAX_VALUE;
-					float sumPref = 0;
+					int maxOfPreferred = 0;
 					for(MuisElement child : children) {
 						SizeGuide cp = child.getWSizer();
 						int cpRes = cp.getMinPreferred(crossSize, csMax);
 						if(cpRes > minPref)
 							minPref = cpRes;
 						cpRes = cp.getMaxPreferred(crossSize, csMax);
-						if(cpRes > maxPref)
+						if(cpRes < maxPref)
 							maxPref = cpRes;
-						sumPref = cp.getPreferred(crossSize, csMax);
+						cpRes = cp.getPreferred(crossSize, csMax);
+						if(cpRes > maxOfPreferred)
+							maxOfPreferred = cpRes;
 					}
-					sumPref /= children.length;
-					if(sumPref >= minPref && sumPref <= maxPref)
-						return Math.round(sumPref);
-					else if(sumPref < minPref)
+					if(maxOfPreferred >= minPref && maxOfPreferred <= maxPref)
+						return maxOfPreferred;
+					else if(maxOfPreferred < minPref)
 						return minPref;
 					else
 						return maxPref;

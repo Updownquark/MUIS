@@ -77,12 +77,14 @@ public class SimpleLayout implements MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+				return Integer.MAX_VALUE; // Don't try to limit the container size due to the contents
+				// return get(LayoutGuideType.maxPref, crossSize, csMax);
 			}
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
+				return Integer.MAX_VALUE; // Don't try to limit the container size due to the contents
+				// return get(LayoutGuideType.max, crossSize, csMax);
 			}
 
 			@Override

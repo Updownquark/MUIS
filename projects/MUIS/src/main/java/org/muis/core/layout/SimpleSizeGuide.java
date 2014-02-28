@@ -20,7 +20,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 		theMax = Integer.MAX_VALUE;
 		thePref = 0;
 		theMinPref = 0;
-		theMaxPref = 0;
+		theMaxPref = Integer.MAX_VALUE;
 		theBaseline = 0;
 	}
 

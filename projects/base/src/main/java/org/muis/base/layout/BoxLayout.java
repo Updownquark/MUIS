@@ -54,10 +54,10 @@ public class BoxLayout implements MuisLayout {
 		switch (dir) {
 		case UP:
 		case DOWN:
-			return getCrossSizer(children, dir.getOrientation(), margin);
+			return getCrossSizer(parent, children, dir.getOrientation(), margin);
 		case LEFT:
 		case RIGHT:
-			return getMainSizer(children, dir.getOrientation(), margin, padding);
+			return getMainSizer(parent, children, dir.getOrientation(), margin, padding);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
@@ -70,10 +70,10 @@ public class BoxLayout implements MuisLayout {
 		switch (dir) {
 		case UP:
 		case DOWN:
-			return getMainSizer(children, dir.getOrientation(), margin, padding);
+			return getMainSizer(parent, children, dir.getOrientation(), margin, padding);
 		case LEFT:
 		case RIGHT:
-			return getCrossSizer(children, dir.getOrientation(), margin);
+			return getCrossSizer(parent, children, dir.getOrientation(), margin);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
@@ -81,13 +81,16 @@ public class BoxLayout implements MuisLayout {
 	/**
 	 * Gets the size policy in the main direction of the container
 	 *
+	 * @param parent The parent to get the sizer for
+	 *
 	 * @param children The children to get the sizer for
 	 * @param orient The orientation for the layout
 	 * @param margin The margin size for the parent
 	 * @param padding The padding size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizeGuide getMainSizer(final MuisElement [] children, final Orientation orient, final Size margin, final Size padding) {
+	protected SizeGuide getMainSizer(final MuisElement parent, final MuisElement [] children, final Orientation orient, final Size margin,
+		final Size padding) {
 		return new SizeGuide() {
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -106,11 +109,15 @@ public class BoxLayout implements MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
+				if(!Alignment.justify.equals(parent.atts().get(alignment)))
+					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.maxPref, crossSize, csMax);
 			}
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
+				if(!Alignment.justify.equals(parent.atts().get(alignment)))
+					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.max, crossSize, csMax);
 			}
 
@@ -129,12 +136,13 @@ public class BoxLayout implements MuisLayout {
 	/**
 	 * Gets the size policy in the non-main direction of the container
 	 *
+	 * @param parent The parent to get the sizer for
 	 * @param children The children to get the sizer for
 	 * @param orient The orientation for the layout (not the cross direction of the layout)
 	 * @param margin The margin size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizeGuide getCrossSizer(final MuisElement [] children, final Orientation orient, final Size margin) {
+	protected SizeGuide getCrossSizer(final MuisElement parent, final MuisElement [] children, final Orientation orient, final Size margin) {
 		return new SizeGuide() {
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -153,11 +161,15 @@ public class BoxLayout implements MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
+				if(!Alignment.justify.equals(parent.atts().get(crossAlignment)))
+					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.maxPref, crossSize, csMax);
 			}
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
+				if(!Alignment.justify.equals(parent.atts().get(crossAlignment)))
+					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.max, crossSize, csMax);
 			}
 
@@ -211,7 +223,7 @@ public class BoxLayout implements MuisLayout {
 				}
 				return ret.getTotal(parallelSize);
 			}
-		}, parallelSize, true, align == Alignment.justify);
+		}, parallelSize, LayoutGuideType.min, align == Alignment.justify ? LayoutGuideType.max : LayoutGuideType.pref);
 
 		Rectangle [] bounds = new Rectangle[children.length];
 		for(int c = 0; c < children.length; c++) {

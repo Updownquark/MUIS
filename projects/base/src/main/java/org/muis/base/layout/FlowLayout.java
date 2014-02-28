@@ -56,7 +56,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		boolean fill = parent.atts().get(fillContainer, false);
 		boolean major = dir.getOrientation() == Orientation.horizontal;
 
-		return getSizer(dir, marginSz, paddingSz, fill, major, children);
+		return getSizer(dir, marginSz, paddingSz, fill, major, parent, children);
 	}
 
 	@Override
@@ -67,11 +67,11 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 		boolean fill = parent.atts().get(fillContainer, false);
 		boolean major = dir.getOrientation() == vertical;
 
-		return getSizer(dir, marginSz, paddingSz, fill, major, children);
+		return getSizer(dir, marginSz, paddingSz, fill, major, parent, children);
 	}
 
 	private SizeGuide getSizer(final Direction dir, final Size marginSz, final Size paddingSz, final boolean fill, final boolean major,
-		final MuisElement [] children) {
+		final MuisElement parent, final MuisElement [] children) {
 		SizeGuide ret = theSizerCache.get(dir, marginSz, paddingSz, fill, major, children);
 		if(ret != null)
 			return ret;
@@ -141,6 +141,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
+				if(!Alignment.justify.equals(parent.atts().get(major ? alignment : crossAlignment)))
+					return Integer.MAX_VALUE;
 				if(children.length == 0)
 					return 0;
 				if(major)
@@ -158,7 +160,7 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
-				if(fill)
+				if(fill || !Alignment.justify.equals(parent.atts().get(major ? alignment : crossAlignment)))
 					return Integer.MAX_VALUE;
 				else if(children.length == 0)
 					return 0;

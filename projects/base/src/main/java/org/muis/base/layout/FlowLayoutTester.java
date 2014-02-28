@@ -348,7 +348,7 @@ public class FlowLayoutTester {
 					total.add(lv);
 				return total.getTotal(crossSize);
 			}
-		}, crossSize, true, isFillContainer);
+		}, crossSize, LayoutGuideType.min, isFillContainer ? LayoutGuideType.max : LayoutGuideType.maxPref);
 		int [] pixRowHeights = new int[result.lowerValue.length];
 		for(int i = 0; i < pixRowHeights.length; i++) {
 			pixRowHeights[i] = result.lowerValue[i].getTotal(crossSize);
@@ -540,7 +540,7 @@ public class FlowLayoutTester {
 					ret += lv;
 				return ret;
 			}
-		}, size, true, isFillContainer);
+		}, size, LayoutGuideType.min, isFillContainer ? LayoutGuideType.max : LayoutGuideType.maxPref);
 		if(result.proportion > 0)
 			for(int i = 0; i < result.lowerValue.length; i++)
 				result.lowerValue[i] += Math.round(result.proportion * (result.upperValue[i] - result.lowerValue[i]));

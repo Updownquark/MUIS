@@ -242,7 +242,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 					return ret;
 				}
 			}
-		}, parent.bounds().getWidth(), true, true);
+		}, parent.bounds().getWidth(), LayoutGuideType.min, LayoutGuideType.max);
 
 		final Rectangle [] bounds = new Rectangle[children.length];
 		for(int c = 0; c < bounds.length; c++) {
@@ -314,7 +314,7 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 					return ret;
 				}
 			}
-		}, parent.bounds().getHeight(), true, true);
+		}, parent.bounds().getHeight(), LayoutGuideType.min, LayoutGuideType.max);
 
 		for(int c = 0; c < bounds.length; c++) {
 			bounds[c].height = hResult.lowerValue[c];

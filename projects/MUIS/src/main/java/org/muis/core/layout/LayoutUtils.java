@@ -9,8 +9,8 @@ import org.muis.core.style.Size;
 /** A set of utilities for layouts */
 public class LayoutUtils {
 	/**
-	 * The result of an {@link LayoutUtils#interpolate(LayoutChecker, int, boolean, boolean) interpolate} operation
-	 *
+	 * The result of an {@link LayoutUtils#interpolate(LayoutChecker, int, LayoutGuideType, LayoutGuideType) interpolate} operation
+	 * 
 	 * @param <T> The type of value used in the operation
 	 */
 	public static class LayoutInterpolation<T> {
@@ -41,8 +41,8 @@ public class LayoutUtils {
 	}
 
 	/**
-	 * Calling-code feedback to {@link LayoutUtils#interpolate(LayoutChecker, int, boolean, boolean) interpolate}
-	 *
+	 * Calling-code feedback to {@link LayoutUtils#interpolate(LayoutChecker, int, LayoutGuideType, LayoutGuideType) interpolate}
+	 * 
 	 * @param <T> The type of the value to use in the interpolation
 	 */
 	public static interface LayoutChecker<T> {
@@ -202,15 +202,27 @@ public class LayoutUtils {
 	 * @param <T> The type of the layout value to use
 	 * @param checker The calling-code feedback to the interpolator
 	 * @param size The constraint size
-	 * @param useMin Whether to use minimum sizes (potentially) or stop at min-pref
-	 * @param useMax Whether to use maximum sizes (potentially) or stop at max-pref
+	 * @param minType The minimum size type to use
+	 * @param maxType The maximum size type to use
 	 * @return The interpolation result
 	 */
-	public static <T> LayoutInterpolation<T> interpolate(LayoutChecker<T> checker, int size, boolean useMin, boolean useMax) {
+	public static <T> LayoutInterpolation<T> interpolate(LayoutChecker<T> checker, int size, LayoutGuideType minType,
+		LayoutGuideType maxType) {
+		if(minType == null)
+			minType = LayoutGuideType.min;
+		if(maxType == null)
+			maxType = LayoutGuideType.max;
+		if(minType.compareTo(LayoutGuideType.pref) > 0)
+			throw new IllegalArgumentException("minType may be " + LayoutGuideType.pref + ", " + LayoutGuideType.minPref + ", or "
+				+ LayoutGuideType.min);
+		if(maxType.compareTo(LayoutGuideType.pref) < 0)
+			throw new IllegalArgumentException("maxType may be " + LayoutGuideType.pref + ", " + LayoutGuideType.maxPref + ", or "
+				+ LayoutGuideType.max);
 		T prefValue = checker.getLayoutValue(LayoutGuideType.pref);
 		int prefSize = checker.getSize(prefValue);
 		if(prefSize > size) {
-			if(useMin) {
+			switch (minType) {
+			case min:
 				T minValue = checker.getLayoutValue(LayoutGuideType.min);
 				int minSize = checker.getSize(minValue);
 				if(minSize == prefSize)
@@ -231,7 +243,7 @@ public class LayoutUtils {
 					} else
 						return new LayoutInterpolation<>(LayoutGuideType.minPref, 0, minPrefValue, minPrefValue);
 				}
-			} else {
+			case minPref:
 				T minPrefValue = checker.getLayoutValue(LayoutGuideType.minPref);
 				int minPrefSize = checker.getSize(minPrefValue);
 				if(minPrefSize > size)
@@ -244,9 +256,12 @@ public class LayoutUtils {
 					return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);
 				else
 					return new LayoutInterpolation<>(LayoutGuideType.minPref, 0, minPrefValue, minPrefValue);
+			default:
+				return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);
 			}
 		} else if(prefSize < size) {
-			if(useMax) {
+			switch (maxType) {
+			case max:
 				T maxValue = checker.getLayoutValue(LayoutGuideType.max);
 				int maxSize = checker.getSize(maxValue);
 				if(maxSize > size) {
@@ -264,7 +279,7 @@ public class LayoutUtils {
 						return new LayoutInterpolation<>(LayoutGuideType.maxPref, 0, maxPrefValue, maxPrefValue);
 				} else
 					return new LayoutInterpolation<>(LayoutGuideType.max, 0, maxValue, maxValue);
-			} else {
+			case maxPref:
 				T maxPrefValue = checker.getLayoutValue(LayoutGuideType.maxPref);
 				int maxPrefSize = checker.getSize(maxPrefValue);
 				if(maxPrefSize > size) {
@@ -273,6 +288,8 @@ public class LayoutUtils {
 					return new LayoutInterpolation<>(LayoutGuideType.pref, prop, prefValue, maxPrefValue);
 				} else
 					return new LayoutInterpolation<>(LayoutGuideType.maxPref, 0, maxPrefValue, maxPrefValue);
+			default:
+				return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);
 			}
 		} else
 			return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);

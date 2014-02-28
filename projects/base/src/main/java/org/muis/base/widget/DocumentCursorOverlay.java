@@ -15,10 +15,13 @@ import org.muis.core.model.SimpleDocumentModel;
 import org.muis.core.model.SimpleDocumentModel.ContentChangeEvent;
 import org.muis.core.model.SimpleDocumentModel.SelectionChangeEvent;
 import org.muis.core.style.FontStyle;
+import org.muis.core.style.MuisStyle;
 
 /** An overlay for a text editor that flashes a cursor above a document */
 public class DocumentCursorOverlay extends MuisElement {
 	private MuisTextElement theTextElement;
+
+	private MuisStyle theStyleAnchor;
 
 	private volatile BufferedImage theCursorImage;
 
@@ -28,7 +31,7 @@ public class DocumentCursorOverlay extends MuisElement {
 
 	/**
 	 * This method must be called by the owning text editor
-	 * 
+	 *
 	 * @param text The text element that the cursor is to be displayed over
 	 */
 	public void setTextElement(MuisTextElement text) {
@@ -48,7 +51,11 @@ public class DocumentCursorOverlay extends MuisElement {
 
 				@Override
 				public long getMaxFrequency() {
-					long blink = getStyle().getSelf().get(org.muis.base.style.TextEditStyle.cursorBlink);
+					long blink;
+					if(theStyleAnchor != null)
+						blink = theStyleAnchor.get(org.muis.base.style.TextEditStyle.cursorBlink);
+					else
+						blink = org.muis.base.style.TextEditStyle.cursorBlink.getDefault();
 					if(blink <= 0)
 						return 100;
 					return blink / 2;
@@ -91,6 +98,16 @@ public class DocumentCursorOverlay extends MuisElement {
 		});
 	}
 
+	/** @param style The style to get the text edit properties for the cursor from */
+	public void setStyleAnchor(MuisStyle style) {
+		theStyleAnchor = style;
+	}
+
+	@Override
+	public boolean isClickThrough(int x, int y) {
+		return true;
+	}
+
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
@@ -109,7 +126,11 @@ public class DocumentCursorOverlay extends MuisElement {
 	}
 
 	private boolean isCursorOn() {
-		long interval = getStyle().getSelf().get(org.muis.base.style.TextEditStyle.cursorBlink);
+		long interval;
+		if(theStyleAnchor != null)
+			interval = theStyleAnchor.get(org.muis.base.style.TextEditStyle.cursorBlink);
+		else
+			interval = org.muis.base.style.TextEditStyle.cursorBlink.getDefault();
 		if(interval == 0)
 			return true;
 		if(interval < 0)
@@ -123,7 +144,11 @@ public class DocumentCursorOverlay extends MuisElement {
 	private boolean isBlinking() {
 		if(theTextElement.getDocumentModel().getSelectionAnchor() != theTextElement.getDocumentModel().getCursor())
 			return false;
-		long interval = getStyle().getSelf().get(org.muis.base.style.TextEditStyle.cursorBlink);
+		long interval;
+		if(theStyleAnchor != null)
+			interval = theStyleAnchor.get(org.muis.base.style.TextEditStyle.cursorBlink);
+		else
+			interval = org.muis.base.style.TextEditStyle.cursorBlink.getDefault();
 		if(interval <= 0)
 			return false;
 		return true;
@@ -143,7 +168,7 @@ public class DocumentCursorOverlay extends MuisElement {
 	}
 
 	private BufferedImage genCursorImage(Graphics2D graphics) {
-		org.muis.core.style.MuisStyle cursorStyle = theTextElement.getDocumentModel().getStyleAt(
+		MuisStyle cursorStyle = theTextElement.getDocumentModel().getStyleAt(
 			theTextElement.getDocumentModel().getCursor());
 		java.awt.Font cursorFont = org.muis.util.MuisUtils.getFont(cursorStyle);
 		java.awt.font.LineMetrics metrics = cursorFont.getLineMetrics("I", graphics.getFontRenderContext());

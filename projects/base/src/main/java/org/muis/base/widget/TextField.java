@@ -14,7 +14,9 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 			@Override
 			public void run() {
 				initDocument();
-				// ((DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"))).setTextElement(getValueElement());
+				DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
+				cursor.setTextElement(getValueElement());
+				cursor.setStyleAnchor(getStyle().getSelf());
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 	}

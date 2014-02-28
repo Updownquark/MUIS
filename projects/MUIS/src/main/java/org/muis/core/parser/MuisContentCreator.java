@@ -8,7 +8,7 @@ import org.muis.core.*;
 public class MuisContentCreator {
 	/**
 	 * Fills in a document with widget structure
-	 * 
+	 *
 	 * @param doc The document to fill
 	 * @param content The parsed content to fill the document with
 	 * @throws MuisParseException If an unrecoverable error occurs
@@ -47,7 +47,7 @@ public class MuisContentCreator {
 	public MuisElement createFromStructure(MuisDocument doc, MuisElement parent, WidgetStructure structure, boolean withChildren)
 		throws MuisParseException {
 		// Create the element
-		MuisElement ret = createElement(doc, null, structure);
+		MuisElement ret = createElement(doc, parent, structure);
 		// Add the attributes
 		for(java.util.Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
 			try {

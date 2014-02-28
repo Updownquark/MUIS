@@ -924,13 +924,20 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		for(MuisContent content : structure.getWidgetStructure().getChildren()) {
-			MuisElement child = getChild(structure, this, content, getDocument().getEnvironment().getContentCreator());
-			if(child != null) {
-				if(structure.getSuperStructure() == null)
-					theStaticContent.put(content, child);
-				else
-					addContent(child, structure.getSuperStructure());
-			}
+			initChild(structure, content);
+		}
+	}
+
+	private void initChild(TemplateStructure structure, MuisContent content) throws MuisParseException {
+		MuisElement child = getChild(structure, this, content, getDocument().getEnvironment().getContentCreator());
+		if(child != null) {
+			if(!theStaticContent.containsKey(content)) {
+				theStaticContent.put(content, child);
+				if(content instanceof WidgetStructure)
+					for(MuisContent sub : ((WidgetStructure) content).getChildren())
+						initChild(structure, sub);
+			} else
+				addContent(child, structure.getSuperStructure());
 		}
 	}
 

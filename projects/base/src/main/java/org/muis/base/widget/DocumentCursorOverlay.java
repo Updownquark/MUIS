@@ -188,8 +188,9 @@ public class DocumentCursorOverlay extends MuisElement {
 			imgGraphics.drawLine(0, 0, (int) width - 1, (int) ascent - 1);
 		imgGraphics.dispose();
 
+		boolean wordWrap = theTextElement.getStyle().getSelf().get(FontStyle.wordWrap);
 		java.awt.geom.Point2D cursorLoc2D = theTextElement.getDocumentModel().getLocationAt(theTextElement.getDocumentModel().getCursor(),
-			theTextElement.bounds().getWidth());
+			wordWrap ? theTextElement.bounds().getWidth() : Integer.MAX_VALUE);
 		Point loc = new Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));
 		loc.y += metrics.getLeading();
 		loc.y--;

@@ -31,17 +31,17 @@ public class TextEditLayout implements MuisLayout {
 	public TextEditLayout() {
 		theListener = CompoundListener.create(this);
 		theListener.acceptAll(charLengthAtt, charRowsAtt).onChange(CompoundListener.sizeNeedsChanged);
-		theListener.child().watchAll(org.muis.core.style.FontStyle.getDomainInstance()).onChange(CompoundListener.sizeNeedsChanged);
+		theListener.child().watchAll(org.muis.core.style.FontStyle.getDomainInstance()).onChange(CompoundListener.layout);
 		theContentListener = new MuisDocumentModel.ContentListener() {
 			@Override
 			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-				CompoundListener.sizeNeedsChanged.changed(theParent);
+				theParent.relayout(false);
 			}
 		};
 		theSelectionListener = new SelectableDocumentModel.SelectionListener() {
 			@Override
 			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
-				CompoundListener.sizeNeedsChanged.changed(theParent);
+				theParent.relayout(false);
 			}
 		};
 	}
@@ -240,7 +240,7 @@ public class TextEditLayout implements MuisLayout {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		boolean wrap = children[0].getStyle().get(org.muis.core.style.FontStyle.wordWrap);
+		boolean wrap = children[0].getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap);
 		int w = wrap ? parent.bounds().getWidth() : children[0].bounds().getHorizontal().getGuide().getPreferred(Integer.MAX_VALUE, true);
 		int h = children[0].bounds().getVertical().getGuide().getPreferred(w, !wrap);
 
@@ -252,19 +252,38 @@ public class TextEditLayout implements MuisLayout {
 		SelectableDocumentModel doc = (SelectableDocumentModel) child.getDocumentModel();
 		java.awt.geom.Point2D loc = doc.getLocationAt(doc.getCursor(), Integer.MAX_VALUE);
 		int x = children[0].bounds().getX();
-		if(loc.getX() < -x)
-			x = -(int) Math.ceil(loc.getX());
-		else if(loc.getX() > x + parent.bounds().getWidth())
-			x = -(int) Math.ceil(loc.getX()) + parent.bounds().getWidth();
-		if(x > 0)
+		if(w <= parent.bounds().getWidth())
 			x = 0;
+		else {
+			if(loc.getX() < -x)
+				x = -(int) Math.ceil(loc.getX());
+			else if(loc.getX() > -x + parent.bounds().getWidth())
+				x = -(int) Math.ceil(loc.getX()) + parent.bounds().getWidth();
+			if(x > 0)
+				x = 0;
+			else if(x + w < parent.bounds().getWidth())
+				x = parent.bounds().getWidth() - w;
+		}
+
 		int y = children[0].bounds().getY();
-		if(loc.getY() < -y)
-			y = -(int) Math.ceil(loc.getY());
-		else if(loc.getY() > y + parent.bounds().getHeight())
-			y = -(int) Math.ceil(loc.getY()) + parent.bounds().getHeight();
-		if(y > 0)
+		if(h <= parent.bounds().getHeight())
 			y = 0;
+		else {
+			if(loc.getY() < -y)
+				y = -(int) Math.ceil(loc.getY());
+			else if(loc.getY() > -y + parent.bounds().getHeight())
+				y = -(int) Math.ceil(loc.getY()) + parent.bounds().getHeight();
+			if(y > 0)
+				y = 0;
+			else if(y + h < parent.bounds().getHeight())
+				y = parent.bounds().getHeight() - h;
+		}
+
+		if(w < parent.bounds().getWidth())
+			w = parent.bounds().getWidth();
+		if(h < parent.bounds().getHeight())
+			h = parent.bounds().getHeight();
+
 		children[0].bounds().setBounds(x, y, w, h);
 	}
 }

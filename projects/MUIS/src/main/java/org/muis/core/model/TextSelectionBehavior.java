@@ -79,6 +79,22 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 				down(text, element.getDocument().isShiftPressed());
 				kEvt.cancel();
 				break;
+			case HOME:
+				home(text, element.getDocument().isShiftPressed());
+				kEvt.cancel();
+				break;
+			case END:
+				end(text, element.getDocument().isShiftPressed());
+				kEvt.cancel();
+				break;
+			case PAGE_UP:
+				pageUp(text, element.getDocument().isShiftPressed());
+				kEvt.cancel();
+				break;
+			case PAGE_DOWN:
+				pageDown(text, element.getDocument().isShiftPressed());
+				kEvt.cancel();
+				break;
 			default:
 			}
 		}
@@ -132,5 +148,21 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	private static void down(MuisTextElement element, boolean shift) {
 		// TODO Should really inspect for newlines after the current cursor and figure it out from there
+	}
+
+	private static void home(MuisTextElement text, boolean shiftPressed) {
+		// TODO Auto-generated method stub
+	}
+
+	private static void end(MuisTextElement text, boolean shiftPressed) {
+		// TODO Auto-generated method stub
+	}
+
+	private static void pageUp(MuisTextElement text, boolean shiftPressed) {
+		// TODO Auto-generated method stub
+	}
+
+	private static void pageDown(MuisTextElement text, boolean shiftPressed) {
+		// TODO Auto-generated method stub
 	}
 }

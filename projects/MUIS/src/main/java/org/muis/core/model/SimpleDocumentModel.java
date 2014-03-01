@@ -215,20 +215,28 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		String value;
 		int index;
 		String change = csq.toString();
+		boolean selChange = false;
 		Lock lock = theLock.writeLock();
 		lock.lock();
 		try {
-			if(theSelectionAnchor == theContent.length())
+			if(theSelectionAnchor == theContent.length()) {
+				selChange = true;
 				theSelectionAnchor += change.length();
-			if(theCursor == theContent.length())
+			}
+			if(theCursor == theContent.length()) {
+				selChange = true;
 				theCursor += change.length();
+			}
 			index = theContent.length();
 			theContent.append(change);
 			value = theContent.toString();
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, index, false);
+		if(selChange)
+			fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor);
+		else
+			fireContentEvent(value, change, index, false, -1, -1);
 		return this;
 	}
 
@@ -243,20 +251,28 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		String value;
 		int index;
 		String change = new String(new char[] {c});
+		boolean selChange = false;
 		Lock lock = theLock.writeLock();
 		lock.lock();
 		try {
-			if(theSelectionAnchor == theContent.length())
+			if(theSelectionAnchor == theContent.length()) {
+				selChange = true;
 				theSelectionAnchor++;
-			if(theCursor == theContent.length())
+			}
+			if(theCursor == theContent.length()) {
+				selChange = true;
 				theCursor++;
+			}
 			index = theContent.length();
 			theContent.append(c);
 			value = theContent.toString();
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, index, false);
+		if(selChange)
+			fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor);
+		else
+			fireContentEvent(value, change, index, false, -1, -1);
 		return this;
 	}
 
@@ -281,7 +297,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, index, false);
+		fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor);
 		return this;
 	}
 
@@ -306,7 +322,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, index, false);
+		fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor);
 		return this;
 	}
 
@@ -320,19 +336,27 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 	public SimpleDocumentModel insert(int offset, CharSequence csq) {
 		String value;
 		String change = csq.toString();
+		boolean selChange = false;
 		Lock lock = theLock.writeLock();
 		lock.lock();
 		try {
-			if(theSelectionAnchor >= offset)
+			if(theSelectionAnchor >= offset) {
+				selChange = true;
 				theSelectionAnchor += csq.length();
-			if(theCursor >= offset)
+			}
+			if(theCursor >= offset) {
+				selChange = true;
 				theCursor += csq.length();
+			}
 			theContent.insert(offset, csq);
 			value = theContent.toString();
 		} finally {
 			lock.unlock();
 		}
-		fireContentEvent(value, change, offset, false);
+		if(selChange)
+			fireContentEvent(value, change, offset, false, theSelectionAnchor, theCursor);
+		else
+			fireContentEvent(value, change, offset, false, -1, -1);
 		return this;
 	}
 

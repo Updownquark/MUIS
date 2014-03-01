@@ -84,8 +84,9 @@ public class DocumentCursorOverlay extends MuisElement {
 		theTextElement.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
 			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-				if(evt.getIndex() == theTextElement.getDocumentModel().getCursor())
-					resetCursorImage();
+				resetCursorImage();
+				if(evt instanceof SelectableDocumentModel.SelectionChangeEvent)
+					resetBlink();
 			}
 		});
 		theTextElement.getDocumentModel().addSelectionListener(new SelectableDocumentModel.SelectionListener() {

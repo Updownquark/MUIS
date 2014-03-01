@@ -1,6 +1,16 @@
 package org.muis.core.model;
 
-/** A document with a cursor and selection anchor */
+/**
+ * <p>
+ * A document with a cursor and selection anchor.
+ * </p>
+ * <p>
+ * Important Note: In order to reduce unnecessary repaints {@link SelectionChangeEvent} may not be fired if the selection changes as a
+ * result of a content change (e.g. inserting characters before the cursor is a single operation that affects both content and selection).
+ * In these cases, a single event which implements both {@link MuisDocumentModel.ContentChangeEvent} and {@link SelectionChangeEvent} will
+ * be fired through registered {@link MuisDocumentModel.ContentListener}s.
+ * </p>
+ */
 public interface SelectableDocumentModel extends MuisDocumentModel {
 	/** Fired when a document model's selection changes */
 	public static interface SelectionChangeEvent {

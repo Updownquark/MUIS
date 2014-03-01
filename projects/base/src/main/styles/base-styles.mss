@@ -54,5 +54,8 @@
 		bg.transparency=0
 		border-style.inset=0
 	}
+	#value{
+		font.word-wrap=false
+	}
 	text-edit-style.cursor-blink=1000
 }

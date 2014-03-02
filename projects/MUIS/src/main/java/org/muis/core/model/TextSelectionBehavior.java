@@ -1,5 +1,7 @@
 package org.muis.core.model;
 
+import java.awt.geom.Point2D;
+
 import org.muis.core.MuisElement;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.KeyBoardEvent;
@@ -7,7 +9,7 @@ import org.muis.core.event.MouseEvent;
 
 /** Implements the text-selecting feature as a user drags over a text element. Also implements keyboard copying (Ctrl+C or Ctrl+X). */
 public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
-	private static class MouseListener extends org.muis.core.event.MouseListener {
+	private class MouseListener extends org.muis.core.event.MouseListener {
 		MouseListener() {
 			super(true);
 		}
@@ -48,7 +50,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		}
 	}
 
-	private static class KeyListener extends org.muis.core.event.KeyBoardListener {
+	private class KeyListener extends org.muis.core.event.KeyBoardListener {
 		public KeyListener() {
 			super(true);
 		}
@@ -100,19 +102,40 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		}
 	}
 
+	private MuisTextElement theElement;
+
+	private int theCursorXLoc = -1;
+
 	@Override
 	public void install(MuisTextElement element) {
+		if(theElement != null)
+			throw new IllegalStateException(getClass().getSimpleName() + " may only be used with a single element");
+		theElement = element;
 		element.addListener(org.muis.core.MuisConstants.Events.MOUSE, new MouseListener());
 		element.addListener(org.muis.core.MuisConstants.Events.KEYBOARD, new KeyListener());
+		element.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
+			@Override
+			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
+				theCursorXLoc = -1;
+			}
+		});
+		element.getDocumentModel().addSelectionListener(new SelectableDocumentModel.SelectionListener() {
+			@Override
+			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
+				theCursorXLoc = -1;
+			}
+		});
 	}
 
 	@Override
 	public void uninstall(MuisTextElement element) {
 		element.removeListener(org.muis.core.MuisConstants.Events.MOUSE, MouseListener.class);
 		element.removeListener(org.muis.core.MuisConstants.Events.KEYBOARD, KeyListener.class);
+		if(theElement == element)
+			theElement = null;
 	}
 
-	private static void copyToClipboard(MuisTextElement element, boolean cut) {
+	private void copyToClipboard(MuisTextElement element, boolean cut) {
 		SimpleDocumentModel doc = element.getDocumentModel();
 		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
 			.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
@@ -120,7 +143,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			doc.delete(doc.getSelectionAnchor(), doc.getCursor());
 	}
 
-	private static void left(MuisTextElement element, boolean shift) {
+	private void left(MuisTextElement element, boolean shift) {
 		SimpleDocumentModel model = element.getDocumentModel();
 		int cursor = model.getCursor() - 1;
 		if(cursor < 0)
@@ -131,7 +154,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			model.setCursor(cursor);
 	}
 
-	private static void right(MuisTextElement element, boolean shift) {
+	private void right(MuisTextElement element, boolean shift) {
 		SimpleDocumentModel model = element.getDocumentModel();
 		int cursor = model.getCursor() + 1;
 		if(cursor > model.length())
@@ -142,27 +165,91 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			model.setCursor(cursor);
 	}
 
-	private static void up(MuisTextElement element, boolean shift) {
-		// TODO Should really inspect for newlines before the current cursor and figure it out from there
+	private void up(MuisTextElement element, boolean shift) {
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+			return;
+		SimpleDocumentModel model = element.getDocumentModel();
+		Point2D loc = model.getLocationAt(model.getCursor(), element.bounds().getWidth());
+		if(loc.getY() == 0)
+			return; // Can't go up from here.
+		int cursorXLoc = theCursorXLoc;
+		if(cursorXLoc < 0)
+			cursorXLoc = (int) loc.getX();
+		int newCursor = Math.round(model
+			.getPositionAt(cursorXLoc, (float) loc.getY() - 1, element.bounds().getWidth()));
+
+		if(shift)
+			model.setSelection(model.getSelectionAnchor(), newCursor);
+		else
+			model.setCursor(newCursor);
+		theCursorXLoc = cursorXLoc;
 	}
 
-	private static void down(MuisTextElement element, boolean shift) {
-		// TODO Should really inspect for newlines after the current cursor and figure it out from there
+	private void down(MuisTextElement element, boolean shift) {
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+			return;
+		SimpleDocumentModel model = element.getDocumentModel();
+		int cursor = element.getDocumentModel().getCursor();
+		int cursorXLoc = theCursorXLoc;
+		if(cursorXLoc < 0) {
+			Point2D loc = model.getLocationAt(cursor, element.bounds().getWidth());
+			cursorXLoc = (int) loc.getX();
+		}
+		int y = -1;
+		for(MuisDocumentModel.StyledSequenceMetric metric : model.metrics(cursor, element.bounds().getWidth())) {
+			if(metric.isNewLine()) {
+				y = (int) metric.getTop();
+				break;
+			}
+		}
+		if(y < 0)
+			return; // No newline after cursor. Can't go down.
+
+		int newCursor = Math.round(model.getPositionAt(cursorXLoc, y, element.bounds().getWidth()));
+
+		if(shift)
+			model.setSelection(model.getSelectionAnchor(), newCursor);
+		else
+			model.setCursor(newCursor);
+		theCursorXLoc = cursorXLoc;
 	}
 
-	private static void home(MuisTextElement text, boolean shiftPressed) {
+	private void home(MuisTextElement element, boolean shift) {
+		SimpleDocumentModel model = element.getDocumentModel();
+		int newCursor;
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+			newCursor = 0;
+		else {
+			Point2D loc = model.getLocationAt(model.getCursor(), element.bounds().getWidth());
+			newCursor = (int) model.getPositionAt(0, (float) loc.getY(), element.bounds().getWidth());
+		}
+		if(shift)
+			model.setSelection(model.getSelectionAnchor(), newCursor);
+		else
+			model.setCursor(newCursor);
+	}
+
+	private void end(MuisTextElement element, boolean shift) {
+		SimpleDocumentModel model = element.getDocumentModel();
+		int newCursor;
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+			newCursor = model.length();
+		else {
+			Point2D loc = model.getLocationAt(model.getCursor(), element.bounds().getWidth());
+			newCursor = (int) model.getPositionAt(element.bounds().getWidth(), (float) loc.getY(),
+				element.bounds().getWidth());
+		}
+		if(shift)
+			model.setSelection(model.getSelectionAnchor(), newCursor);
+		else
+			model.setCursor(newCursor);
+	}
+
+	private void pageUp(MuisTextElement element, boolean shift) {
 		// TODO Auto-generated method stub
 	}
 
-	private static void end(MuisTextElement text, boolean shiftPressed) {
-		// TODO Auto-generated method stub
-	}
-
-	private static void pageUp(MuisTextElement text, boolean shiftPressed) {
-		// TODO Auto-generated method stub
-	}
-
-	private static void pageDown(MuisTextElement text, boolean shiftPressed) {
+	private void pageDown(MuisTextElement element, boolean shift) {
 		// TODO Auto-generated method stub
 	}
 }

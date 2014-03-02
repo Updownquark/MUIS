@@ -198,8 +198,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		theDocument.draw(graphics, area, getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap) ? bounds().getWidth()
-			: Integer.MAX_VALUE);
+		theDocument.draw(graphics, area, bounds().getWidth());
 	}
 
 	@Override

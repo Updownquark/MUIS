@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
 import org.muis.core.event.MuisEvent;
+import org.muis.core.model.MuisModelValueEvent;
 
 /** Manages attribute information for an element */
 public class AttributeManager {
@@ -15,6 +16,26 @@ public class AttributeManager {
 	 * @param <T> The type of the attribute to hold
 	 */
 	public class AttributeHolder<T> {
+		private class AttributeModelWatcher<T2> {
+			private org.muis.core.model.MuisModelValue<T2> theModelValue;
+			private org.muis.core.model.MuisModelValueListener<T2> theListener;
+
+			AttributeModelWatcher(org.muis.core.model.MuisModelValue<T2> value) {
+				theModelValue = value;
+				theListener = new org.muis.core.model.MuisModelValueListener<T2>() {
+					@Override
+					public void valueChanged(MuisModelValueEvent<? extends T2> evt) {
+						try {
+							AttributeManager.this.set(theAttr, theUnparsedValue);
+						} catch(MuisException e) {
+							theElement.msg().error("Failed to re-parse attribute on model change", e, "attribute", theAttr, "value",
+								theUnparsedValue);
+						}
+					}
+				};
+			}
+		}
+
 		private AttributeHolder<T> theParent;
 
 		private final MuisAttribute<T> theAttr;
@@ -26,6 +47,8 @@ public class AttributeManager {
 		private boolean wasWanted;
 
 		private T theValue;
+
+		private String theUnparsedValue;
 
 		AttributeHolder(MuisAttribute<T> attr) {
 			theAttr = attr;
@@ -74,7 +97,7 @@ public class AttributeManager {
 		 * @throws MuisException If the value cannot be parsed or cannot be set for the attribute
 		 */
 		public final T set(String valueStr) throws MuisException {
-			T value=theAttr.getType().parse(theElement, valueStr);
+			T value = theAttr.getType().parse(theElement, valueStr);
 			set(value);
 			return value;
 		}

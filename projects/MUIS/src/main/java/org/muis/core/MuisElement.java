@@ -15,6 +15,7 @@ import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
+import org.muis.core.model.ModelValueReferenceParser;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.Texture;
@@ -617,6 +618,11 @@ public abstract class MuisElement implements MuisParseEnv {
 	}
 
 	// End messaging methods
+
+	@Override
+	public final ModelValueReferenceParser getModelParser() {
+		return new org.muis.core.model.DefaultModelValueReferenceParser(theDocument, theMessageCenter);
+	}
 
 	// Hierarchy methods
 

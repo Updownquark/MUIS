@@ -11,7 +11,9 @@ import org.jdom2.Text;
 import org.muis.core.*;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.DefaultMuisModel;
+import org.muis.core.model.ModelValueReferenceParser;
 import org.muis.core.model.MuisAppModel;
+import org.muis.core.model.MuisModelValue;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 import org.muis.util.MuisUtils;
 
@@ -559,6 +561,26 @@ public class MuisDomParser implements MuisParser {
 		@Override
 		public MuisMessageCenter msg() {
 			return theMsg;
+		}
+
+		@Override
+		public ModelValueReferenceParser getModelParser() {
+			return new ModelValueReferenceParser() {
+				@Override
+				public int getNextMVR(String value, int start) {
+					return -1;
+				}
+
+				@Override
+				public String extractMVR(String value, int start) throws MuisParseException {
+					throw new MuisParseException("Models cannot be referenced from style sheets");
+				}
+
+				@Override
+				public MuisModelValue<?> parseMVR(String mvr) throws MuisParseException {
+					throw new MuisParseException("Models cannot be referenced from style sheets");
+				}
+			};
 		}
 	}
 }

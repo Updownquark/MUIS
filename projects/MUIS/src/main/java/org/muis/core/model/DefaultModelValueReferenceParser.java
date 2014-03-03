@@ -3,16 +3,18 @@ package org.muis.core.model;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.muis.core.parser.MuisParseException;
+
+/** The default implementation of {@link ModelValueReferenceParser} */
 public class DefaultModelValueReferenceParser implements ModelValueReferenceParser {
 	private static final Pattern MVR_PATTERN = Pattern
 		.compile("$\\{(([a-zA-Z_\\-][0-9a-zA-Z_\\-]*)(\\.([a-zA-Z_\\\\-][0-9a-zA-Z_\\\\-]*))*\\})");
 
 	private org.muis.core.MuisDocument theDocument;
-	private org.muis.core.mgr.MuisMessageCenter theMsg;
 
-	public DefaultModelValueReferenceParser(org.muis.core.MuisDocument doc, org.muis.core.mgr.MuisMessageCenter msg) {
+	/** @param doc The document to get models from */
+	public DefaultModelValueReferenceParser(org.muis.core.MuisDocument doc) {
 		theDocument = doc;
-		theMsg = msg;
 	}
 
 	@Override
@@ -21,15 +23,20 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 	}
 
 	@Override
-	public String extractMVR(String value, int start) {
+	public String extractMVR(String value, int start) throws MuisParseException {
 		return extractModelValueReference(value, start);
 	}
 
 	@Override
-	public MuisModelValue<?> parseMVR(String mvr) {
-		return parseModelValueReference(mvr, theDocument, theMsg);
+	public MuisModelValue<?> parseMVR(String mvr) throws MuisParseException {
+		return parseModelValueReference(mvr, theDocument);
 	}
 
+	/**
+	 * @param value The value to inspect
+	 * @param start The starting index to search
+	 * @return The index in the value of the start of the next model value reference
+	 */
 	public static int getNextModelValueReference(String value, int start) {
 		Matcher matcher = MVR_PATTERN.matcher(value);
 		if(!matcher.find(start))
@@ -37,18 +44,29 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 		return matcher.start();
 	}
 
-	public static String extractModelValueReference(String value, int start) {
+	/**
+	 * @param value The value to parse
+	 * @param start The location of the start of a model value reference
+	 * @return The extracted model value reference
+	 * @throws MuisParseException If an error occurs extracting the reference
+	 */
+	public static String extractModelValueReference(String value, int start) throws MuisParseException {
 		Matcher matcher = MVR_PATTERN.matcher(value);
 		if(!matcher.find(start) || matcher.start() != start)
-			return null;
+			throw new MuisParseException("No MUIS model detected: " + value.substring(start));
 		return matcher.group();
 	}
 
-	public static MuisModelValue<?> parseModelValueReference(String mvr, org.muis.core.MuisDocument doc,
-		org.muis.core.mgr.MuisMessageCenter msg) throws IllegalArgumentException {
+	/**
+	 * @param mvr The value to parse
+	 * @param doc The document to get models from
+	 * @return The parsed model value reference
+	 * @throws MuisParseException If an error occurs parsing the reference
+	 */
+	public static MuisModelValue<?> parseModelValueReference(String mvr, org.muis.core.MuisDocument doc) throws MuisParseException {
 		Matcher matcher = MVR_PATTERN.matcher(mvr);
 		if(!matcher.matches())
-			throw new IllegalArgumentException(mvr + " is not a recognized model value reference");
-		return ModelAttributes.getModelValue(doc, matcher.group(1), msg);
+			throw new MuisParseException(mvr + " is not a recognized model value reference");
+		return ModelAttributes.getModelValue(doc, matcher.group(1));
 	}
 }

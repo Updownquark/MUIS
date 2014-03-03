@@ -621,7 +621,7 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	@Override
 	public final ModelValueReferenceParser getModelParser() {
-		return new org.muis.core.model.DefaultModelValueReferenceParser(theDocument, theMessageCenter);
+		return new org.muis.core.model.DefaultModelValueReferenceParser(theDocument);
 	}
 
 	// Hierarchy methods

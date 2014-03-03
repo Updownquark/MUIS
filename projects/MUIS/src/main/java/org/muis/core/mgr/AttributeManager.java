@@ -5,8 +5,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
-import org.muis.core.event.MuisEvent;
-import org.muis.core.model.MuisModelValueEvent;
+import org.muis.core.model.MuisModelValue;
 
 /** Manages attribute information for an element */
 public class AttributeManager {
@@ -16,26 +15,6 @@ public class AttributeManager {
 	 * @param <T> The type of the attribute to hold
 	 */
 	public class AttributeHolder<T> {
-		private class AttributeModelWatcher<T2> {
-			private org.muis.core.model.MuisModelValue<T2> theModelValue;
-			private org.muis.core.model.MuisModelValueListener<T2> theListener;
-
-			AttributeModelWatcher(org.muis.core.model.MuisModelValue<T2> value) {
-				theModelValue = value;
-				theListener = new org.muis.core.model.MuisModelValueListener<T2>() {
-					@Override
-					public void valueChanged(MuisModelValueEvent<? extends T2> evt) {
-						try {
-							AttributeManager.this.set(theAttr, theUnparsedValue);
-						} catch(MuisException e) {
-							theElement.msg().error("Failed to re-parse attribute on model change", e, "attribute", theAttr, "value",
-								theUnparsedValue);
-						}
-					}
-				};
-			}
-		}
-
 		private AttributeHolder<T> theParent;
 
 		private final MuisAttribute<T> theAttr;
@@ -48,7 +27,9 @@ public class AttributeManager {
 
 		private T theValue;
 
-		private String theUnparsedValue;
+		private String theFormattedValue;
+		private AttributeModelWatcher [] theModelWatchers = new AttributeModelWatcher[0];
+		private final Object theModelWatcherLock = new Object();
 
 		AttributeHolder(MuisAttribute<T> attr) {
 			theAttr = attr;
@@ -70,10 +51,41 @@ public class AttributeManager {
 		}
 
 		/**
+		 * @param valueStr The formatted value to set for the attribute
+		 * @return The parsed value
+		 * @throws MuisException If the value cannot be parsed or cannot be set for the attribute
+		 */
+		public final T set(String valueStr) throws MuisException {
+			T value = theAttr.getType().parse(theElement, valueStr);
+			resetModelWatchers(valueStr);
+			setInternal(value);
+			return value;
+		}
+
+		/**
 		 * @param value The value to set for the attribute
 		 * @throws MuisException If the value cannot be set for the attribute
 		 */
 		public final void set(T value) throws MuisException {
+			resetModelWatchers(null);
+			setInternal(value);
+		}
+
+		/** @return All model values that this attribute currently depends on */
+		public MuisModelValue<?> [] getModelDependencies() {
+			AttributeModelWatcher [] watchers = theModelWatchers;
+			MuisModelValue<?> [] ret = new MuisModelValue[watchers.length];
+			for(int i = 0; i < watchers.length; i++) {
+				ret[i] = watchers[i].getModelValue();
+			}
+			return ret;
+		}
+
+		void valueModelChanged() throws MuisException {
+			set(theFormattedValue);
+		}
+
+		private final void setInternal(T value) throws MuisException {
 			if(value == null && isRequired())
 				throw new MuisException("Attribute " + theAttr + " is required--cannot be set to null");
 			if(value != null) {
@@ -86,20 +98,58 @@ public class AttributeManager {
 			}
 			Object old = theValue;
 			theValue = value;
-			theElement.fireEvent(new MuisEvent<MuisAttribute<?>>(MuisConstants.Events.ATTRIBUTE_SET, theAttr), false, false);
+			theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisAttribute<?>>(MuisConstants.Events.ATTRIBUTE_SET, theAttr), false,
+				false);
 			theElement
 				.fireEvent(new org.muis.core.event.AttributeChangedEvent<>(theAttr, theAttr.getType().cast(old), value), false, false);
 		}
 
-		/**
-		 * @param valueStr The formatted value to set for the attribute
-		 * @return The parsed value
-		 * @throws MuisException If the value cannot be parsed or cannot be set for the attribute
-		 */
-		public final T set(String valueStr) throws MuisException {
-			T value = theAttr.getType().parse(theElement, valueStr);
-			set(value);
-			return value;
+		private final void resetModelWatchers(String formattedValue) throws org.muis.core.parser.MuisParseException {
+			if(java.util.Objects.equals(theFormattedValue, formattedValue))
+				return;
+			MuisModelValue<?> [] values = getModelValues(formattedValue);
+			synchronized(theModelWatcherLock) {
+				theModelWatchers = prisms.util.ArrayUtils.adjust(theModelWatchers, values,
+					new prisms.util.ArrayUtils.DifferenceListener<AttributeModelWatcher, MuisModelValue<?>>() {
+						@Override
+						public boolean identity(AttributeModelWatcher o1, MuisModelValue<?> o2) {
+							return o1.getModelValue() == o2;
+						}
+
+						@Override
+						public AttributeModelWatcher added(MuisModelValue<?> o, int mIdx, int retIdx) {
+							return new AttributeModelWatcher(AttributeHolder.this, o);
+						}
+
+						@Override
+						public AttributeModelWatcher removed(AttributeModelWatcher o, int oIdx, int incMod, int retIdx) {
+							o.remove();
+							return null;
+						}
+
+						@Override
+						public AttributeModelWatcher set(AttributeModelWatcher o1, int idx1, int incMod, MuisModelValue<?> o2, int idx2,
+							int retIdx) {
+							return o1;
+						}
+					});
+			}
+		}
+
+		private final MuisModelValue<?> [] getModelValues(String value) throws org.muis.core.parser.MuisParseException {
+			java.util.ArrayList<MuisModelValue<?>> ret = new java.util.ArrayList<>();
+			int next = 0;
+			while(next >= 0) {
+				next = theElement.getModelParser().getNextMVR(value, next);
+				if(next >= 0) {
+					String extracted = theElement.getModelParser().extractMVR(value, next);
+					MuisModelValue<?> modelValue = theElement.getModelParser().parseMVR(extracted);
+					if(!ret.contains(modelValue))
+						ret.add(modelValue);
+					next += extracted.length();
+				}
+			}
+			return ret.toArray(new MuisModelValue[ret.size()]);
 		}
 
 		synchronized void addWanter(Object wanter, boolean isNeeder) {
@@ -162,6 +212,37 @@ public class AttributeManager {
 		@Override
 		public String toString() {
 			return theAttr.toString() + (isRequired() ? " (required)" : " (optional)");
+		}
+	}
+
+	class AttributeModelWatcher {
+		private AttributeHolder<?> theAttribute;
+		private MuisModelValue<?> theModelValue;
+		private org.muis.core.model.MuisModelValueListener<Object> theListener;
+
+		AttributeModelWatcher(AttributeHolder<?> att, MuisModelValue<?> value) {
+			theAttribute = att;
+			theModelValue = value;
+			theListener = new org.muis.core.model.MuisModelValueListener<Object>() {
+				@Override
+				public void valueChanged(org.muis.core.model.MuisModelValueEvent<?> evt) {
+					try {
+						theAttribute.valueModelChanged();
+					} catch(MuisException e) {
+						theElement.msg().error("Failed to re-parse or set attribute on model change", e, "attribute",
+							theAttribute.getAttribute());
+					}
+				}
+			};
+			theModelValue.addListener(theListener);
+		}
+
+		MuisModelValue<?> getModelValue() {
+			return theModelValue;
+		}
+
+		void remove() {
+			theModelValue.removeListener(theListener);
 		}
 	}
 

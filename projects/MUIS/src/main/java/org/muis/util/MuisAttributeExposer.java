@@ -78,7 +78,7 @@ public class MuisAttributeExposer implements AutoCloseable {
 			}
 		};
 		theDest.addListener(Events.ATTRIBUTE_ACCEPTED, theListeners[0]);
-		for(org.muis.core.mgr.AttributeManager.AttributeHolder holder : theDest.atts().holders()) {
+		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders()) {
 			MuisAttribute<?> att = holder.getAttribute();
 			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)) {
 				try {
@@ -120,7 +120,7 @@ public class MuisAttributeExposer implements AutoCloseable {
 			return;
 		theDest.removeListener(theListeners[0]);
 		theSource.removeListener(theListeners[1]);
-		for(org.muis.core.mgr.AttributeManager.AttributeHolder holder : theDest.atts().holders())
+		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders())
 			theSource.atts().reject(this, holder.getAttribute());
 		isActive = false;
 	}

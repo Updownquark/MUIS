@@ -6,7 +6,6 @@ import java.util.*;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
-import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisBehavior;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
@@ -194,7 +193,7 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 
 			@Override
-			public <V extends AttachPoint> V parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+			public <V extends AttachPoint> V parse(MuisParseEnv env, String value) throws MuisException {
 				AttachPoint ret = theTemplate.getAttachPoint(value);
 				if(ret == null)
 					throw new MuisException("No such attach point \"" + value + "\" in template " + theTemplate.getDefiner().getName());
@@ -909,7 +908,7 @@ public abstract class MuisTemplate extends MuisElement {
 				org.muis.core.style.SealableStyle newStyle = new org.muis.core.style.SealableStyle();
 				boolean mod = false;
 				try {
-					templateStyle = StyleAttributeType.parseStyle(getClassView(), att.getValue(), getMessageCenter());
+					templateStyle = StyleAttributeType.parseStyle(this, att.getValue());
 					for(StyleAttribute<?> styleAtt : templateStyle) {
 						if(!elStyle.isSet(styleAtt)) {
 							mod = true;

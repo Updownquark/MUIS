@@ -2,11 +2,13 @@ package org.muis.core.style.attach;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisException;
+import org.muis.core.MuisParseEnv;
+import org.muis.core.MuisProperty;
 import org.muis.core.style.*;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPropertyType<MuisStyle> implements
-	org.muis.core.MuisProperty.PrintablePropertyType<MuisStyle> {
+public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisStyle> implements
+	MuisProperty.PrintablePropertyType<MuisStyle> {
 	/** The instance to use for the element style */
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
@@ -23,22 +25,19 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	}
 
 	@Override
-	public MuisStyle parse(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
-		throws MuisException {
-		return parseStyle(classView, value, msg);
+	public MuisStyle parse(MuisParseEnv env, String value) throws MuisException {
+		return parseStyle(env, value);
 	}
 
 	/**
 	 * Parses a style
 	 *
-	 * @param classView The class view to parse the style in view of
+	 * @param env The parsing environment
 	 * @param value The string to parse
-	 * @param msg The message center to report errors to
 	 * @return The parsed style
 	 * @throws MuisException If an unrecoverable error occurs
 	 */
-	public static MuisStyle parseStyle(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
-		throws MuisException {
+	public static MuisStyle parseStyle(MuisParseEnv env, String value) throws MuisException {
 		SealableStyle ret = new SealableStyle();
 		String [] styles = StyleParsingUtils.splitStyles(value);
 		if(styles == null) {
@@ -48,7 +47,7 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 		for(String style : styles) {
 			int equalIdx = style.indexOf("=");
 			if(equalIdx < 0) {
-				msg.error("Invalid style: " + style + ".  No '='");
+				env.msg().error("Invalid style: " + style + ".  No '='");
 				continue;
 			}
 			String attr = style.substring(0, equalIdx).trim();
@@ -70,12 +69,12 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 			} else
 				attrName = null;
 
-			StyleDomain domain = StyleParsingUtils.getStyleDomain(ns, domainName, classView);
+			StyleDomain domain = StyleParsingUtils.getStyleDomain(ns, domainName, env.cv());
 
 			if(attrName != null)
-				applyStyleAttribute(ret, domain, attrName, valueStr, msg, classView);
+				applyStyleAttribute(env, ret, domain, attrName, valueStr);
 			else
-				applyStyleSet(ret, domain, valueStr, msg, classView);
+				applyStyleSet(env, ret, domain, valueStr);
 		}
 		ret.seal();
 		return ret;
@@ -84,30 +83,27 @@ public class StyleAttributeType extends org.muis.core.MuisProperty.AbstractPrope
 	/**
 	 * Applies a single style attribute to a style
 	 *
+	 * @param env The parsing environment
 	 * @param style The style to apply the attribute to
 	 * @param domain The domain of the style
 	 * @param attrName The name of the attribute
 	 * @param valueStr The serialized value for the attribute
-	 * @param messager The message center to issue warnings to if there is an error with the style
-	 * @param classView The class view to use for parsing if needed
 	 */
-	protected static void applyStyleAttribute(MutableStyle style, StyleDomain domain, String attrName, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
-		StyleParsingUtils.applyStyleAttribute(style, domain, attrName, valueStr, messager, classView);
+	protected static void applyStyleAttribute(MuisParseEnv env, MutableStyle style, StyleDomain domain, String attrName,
+		String valueStr) {
+		StyleParsingUtils.applyStyleAttribute(env, style, domain, attrName, valueStr);
 	}
 
 	/**
 	 * Applies a bulk style setting to a style
 	 *
+	 * @param env The parsing environment
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
-	 * @param messager The message center to issue warnings to if there are errors with the styles
-	 * @param classView The class view to use for parsing if needed
 	 */
-	protected static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr,
-		org.muis.core.mgr.MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
-		StyleParsingUtils.applyStyleSet(style, domain, valueStr, messager, classView);
+	protected static void applyStyleSet(MuisParseEnv env, MutableStyle style, StyleDomain domain, String valueStr) {
+		StyleParsingUtils.applyStyleSet(env, style, domain, valueStr);
 	}
 
 	@Override

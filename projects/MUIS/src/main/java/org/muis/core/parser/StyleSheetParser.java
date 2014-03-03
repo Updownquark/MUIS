@@ -6,7 +6,6 @@ import java.util.ArrayList;
 
 import org.jdom2.Element;
 import org.muis.core.*;
-import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleDomain;
@@ -972,15 +971,14 @@ public class StyleSheetParser {
 	/**
 	 * Parses a style sheet from an XML document
 	 *
+	 * @param parseEnv The parsing environment
 	 * @param location The location to get the document from
 	 * @param env The MUIS environment that the style sheet is being loaded for
-	 * @param classView The initial classView for loading style sheet types
-	 * @param msg The message center to report non-fatal errors to
 	 * @return The style sheet parsed from the XML resource
 	 * @throws java.io.IOException If an error occurs reading the resource
 	 * @throws MuisParseException If an error occurs parsing the XML or interpreting it as a style sheet
 	 */
-	public ParsedStyleSheet parse(URL location, MuisEnvironment env, MuisClassView classView, MuisMessageCenter msg)
+	public ParsedStyleSheet parse(MuisParseEnv parseEnv, URL location, MuisEnvironment env)
 		throws java.io.IOException, MuisParseException {
 		StringBuilder text = new StringBuilder();
 		try (java.io.Reader reader = new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream()))) {
@@ -1012,7 +1010,8 @@ public class StyleSheetParser {
 
 				ParsedNamespaceDeclaration ns = (ParsedNamespaceDeclaration) item;
 				try {
-					classView.addNamespace(ns.getName(), env.getToolkit(org.muis.util.MuisUtils.resolveURL(location, ns.getLocation())));
+					parseEnv.cv()
+						.addNamespace(ns.getName(), env.getToolkit(org.muis.util.MuisUtils.resolveURL(location, ns.getLocation())));
 				} catch(MuisException e) {
 					throw new MuisParseException("Could not resolve toolkit for namespace \"" + ns.getName() + "\", location "
 						+ ns.getLocation(), e);
@@ -1038,19 +1037,20 @@ public class StyleSheetParser {
 				}
 			} else if(item instanceof ParsedSection) {
 				hadValues = true;
-				applySection(ret, stack, (ParsedSection) item, classView, msg, location);
+				applySection(parseEnv, ret, stack, (ParsedSection) item, location);
 			} else if(item instanceof ParsedStatementBlock) {
 				hadValues = true;
-				applyBlock(ret, stack, (ParsedStatementBlock) item, classView, msg, location);
+				applyBlock(parseEnv, ret, stack, (ParsedStatementBlock) item, location);
 			} else if(item instanceof ParsedAssignment) {
 				hadValues = true;
-				applyAssignment(ret, stack, (ParsedAssignment) item, classView, msg, location);
+				applyAssignment(parseEnv, ret, stack, (ParsedAssignment) item, location);
 			} else if(item instanceof ParsedDomainAssignment) {
 				hadValues = true;
-				applyDomainAssignment(ret, stack, (ParsedDomainAssignment) item, classView, msg, location);
+				applyDomainAssignment(parseEnv, ret, stack, (ParsedDomainAssignment) item, location);
 			} else {
 				int [] lc = getLineChar(text.toString(), item.getMatch().index);
-				msg.error("Unrecognized content in style sheet " + location + ": \"" + item.getMatch().text + "\" at line " + (lc[0] + 1)
+				parseEnv.msg().error(
+					"Unrecognized content in style sheet " + location + ": \"" + item.getMatch().text + "\" at line " + (lc[0] + 1)
 					+ ", char " + (lc[1] + 1));
 			}
 		}
@@ -1069,8 +1069,7 @@ public class StyleSheetParser {
 		return new int[] {line, ch};
 	}
 
-	private void applySection(ParsedStyleSheet style, ExpressionContextStack stack, ParsedSection section, MuisClassView classView,
-		MuisMessageCenter msg, URL location) {
+	private void applySection(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack, ParsedSection section, URL location) {
 		stack.push();
 		try {
 			// Stack filters for coming block
@@ -1078,10 +1077,11 @@ public class StyleSheetParser {
 				if(filter instanceof ParsedTypeSet) {
 					for(ParsedType type : ((ParsedTypeSet) filter).getTypes()) {
 						try {
-							stack.addType(classView.loadMappedClass(type.getNamespace(), type.getName(), MuisElement.class));
+							stack.addType(env.cv().loadMappedClass(type.getNamespace(), type.getName(), MuisElement.class));
 						} catch(MuisException e) {
 							int [] lc = getLineChar(section.getRoot().getFullCommand(), filter.getMatch().index);
-							msg.error("Could not load element type " + type + ": " + location + " at line " + (lc[0] + 1) + ", char "
+							env.msg().error(
+								"Could not load element type " + type + ": " + location + " at line " + (lc[0] + 1) + ", char "
 								+ (lc[1] + 1), e);
 							return;
 						}
@@ -1092,7 +1092,7 @@ public class StyleSheetParser {
 							stack.addGroup(groupName);
 						} catch(MuisParseException e) {
 							int [] lc = getLineChar(section.getRoot().getFullCommand(), filter.getMatch().index);
-							msg.error(e.getMessage() + ": " + location + " at line " + (lc[0] + 1) + ", char " + (lc[1] + 1), e);
+							env.msg().error(e.getMessage() + ": " + location + " at line " + (lc[0] + 1) + ", char " + (lc[1] + 1), e);
 							return;
 						}
 				} else if(filter instanceof ParsedState) {
@@ -1100,22 +1100,22 @@ public class StyleSheetParser {
 					try {
 						stack.setState(evaluateState(state, stack, location));
 					} catch(MuisParseException e) {
-						msg.error(e.getMessage(), e);
+						env.msg().error(e.getMessage(), e);
 						return;
 					}
 				} else if(filter instanceof ParsedAttachPoint) {
 					String attachPoint = ((ParsedAttachPoint) filter).getAttachPoint();
 					try {
-						stack.addAttachPoint(attachPoint, classView.getEnvironment());
+						stack.addAttachPoint(attachPoint, env.cv().getEnvironment());
 					} catch(MuisParseException e) {
-						msg.error(e.getMessage(), e);
+						env.msg().error(e.getMessage(), e);
 					}
 				} else {
-					msg.error("Unrecognized style filter type: " + filter.getClass().getName());
+					env.msg().error("Unrecognized style filter type: " + filter.getClass().getName());
 					return;
 				}
 			}
-			applyBlock(style, stack, section.getContent(), classView, msg, location);
+			applyBlock(env, style, stack, section.getContent(), location);
 		} finally {
 			stack.pop();
 		}
@@ -1183,46 +1183,47 @@ public class StyleSheetParser {
 		return ret;
 	}
 
-	private void applyBlock(ParsedStyleSheet style, ExpressionContextStack stack, ParsedStatementBlock block, MuisClassView classView,
-		MuisMessageCenter msg, URL location) {
+	private void applyBlock(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack, ParsedStatementBlock block, URL location) {
 		for(ParsedItem content : block.getContents()) {
 			if(content instanceof ParsedSection) {
-				applySection(style, stack, (ParsedSection) content, classView, msg, location);
+				applySection(env, style, stack, (ParsedSection) content, location);
 			} else if(content instanceof ParsedStatementBlock) {
-				applyBlock(style, stack, (ParsedStatementBlock) content, classView, msg, location);
+				applyBlock(env, style, stack, (ParsedStatementBlock) content, location);
 			} else if(content instanceof ParsedAssignment) {
-				applyAssignment(style, stack, (ParsedAssignment) content, classView, msg, location);
+				applyAssignment(env, style, stack, (ParsedAssignment) content, location);
 			} else if(content instanceof ParsedDomainAssignment) {
-				applyDomainAssignment(style, stack, (ParsedDomainAssignment) content, classView, msg, location);
+				applyDomainAssignment(env, style, stack, (ParsedDomainAssignment) content, location);
 			} else {
 				int [] lc = getLineChar(block.getRoot().getFullCommand(), content.getMatch().index);
-				msg.error("Unrecognized content in block of style sheet " + location + ": \"" + content.getMatch().text + "\" at line "
-					+ (lc[0] + 1) + ", char " + (lc[1] + 1));
+				env.msg().error(
+					"Unrecognized content in block of style sheet " + location + ": \"" + content.getMatch().text + "\" at line "
+						+ (lc[0] + 1) + ", char " + (lc[1] + 1));
 			}
 		}
 	}
 
-	private void applyAssignment(ParsedStyleSheet style, ExpressionContextStack stack, ParsedAssignment assign, MuisClassView classView,
-		MuisMessageCenter msg, URL location) {
+	private void applyAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack, ParsedAssignment assign,
+		URL location) {
 		StyleDomain domain;
 		try {
 			domain = org.muis.core.style.StyleParsingUtils.getStyleDomain(assign.getDomain().getNamespace(), assign.getDomain().getName(),
-				classView);
+				env.cv());
 		} catch(MuisException e) {
-			msg.error(e.getMessage(), e);
+			env.msg().error(e.getMessage(), e);
 			return;
 		}
 		for(StyleAttribute<?> attr : domain) {
 			if(attr.getName().equals(assign.getAttrName())) {
 				ParsedItem value;
 				try {
-					value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, classView, msg);
+					value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, env);
 				} catch(MuisException e) {
-					msg.error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr, "value",
+					env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr,
+						"value",
 						assign.getValue());
 					return;
 				}
-				if(!checkValidity(style, attr, value, classView, msg, location))
+				if(!checkValidity(style, attr, value, env, location))
 					break;
 				if(stack.size() > 0)
 					for(StateGroupTypeExpression<?> expr : stack)
@@ -1232,18 +1233,20 @@ public class StyleSheetParser {
 				return;
 			}
 		}
-		msg.error("No attribute " + assign.getAttrName() + " in domain "
+		env.msg()
+			.error(
+				"No attribute " + assign.getAttrName() + " in domain "
 			+ (assign.getDomain().getNamespace() == null ? "" : assign.getDomain().getNamespace() + ":") + assign.getDomain().getName());
 	}
 
-	private void applyDomainAssignment(ParsedStyleSheet style, ExpressionContextStack stack, ParsedDomainAssignment domainAssign,
-		MuisClassView classView, MuisMessageCenter msg, URL location) {
+	private void applyDomainAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack,
+		ParsedDomainAssignment domainAssign, URL location) {
 		StyleDomain domain;
 		try {
 			domain = org.muis.core.style.StyleParsingUtils.getStyleDomain(domainAssign.getDomain().getNamespace(), domainAssign.getDomain()
-				.getName(), classView);
+				.getName(), env.cv());
 		} catch(MuisException e) {
-			msg.error(e.getMessage(), e);
+			env.msg().error(e.getMessage(), e);
 			return;
 		}
 		for(DomainScopedAssignment assign : domainAssign.getValues().getContents()) {
@@ -1253,13 +1256,13 @@ public class StyleSheetParser {
 					found = true;
 					ParsedItem value;
 					try {
-						value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, classView, msg);
+						value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, env);
 					} catch(MuisException e) {
-						msg.error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr,
+						env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr,
 							"value", assign.getValue());
 						break;
 					}
-					if(!checkValidity(style, attr, value, classView, msg, location))
+					if(!checkValidity(style, attr, value, env, location))
 						break;
 					if(stack.size() > 0)
 						for(StateGroupTypeExpression<?> expr : stack)
@@ -1270,50 +1273,51 @@ public class StyleSheetParser {
 				}
 			}
 			if(!found)
-				msg.error("No attribute " + assign.getAttrName() + " in domain "
+				env.msg().error(
+					"No attribute " + assign.getAttrName() + " in domain "
 					+ (domainAssign.getDomain().getNamespace() == null ? "" : domainAssign.getDomain().getNamespace() + ":")
 					+ domainAssign.getDomain().getName());
 		}
 	}
 
-	private boolean checkValidity(ParsedStyleSheet style, StyleAttribute<?> attr, ParsedItem value, MuisClassView classView,
-		MuisMessageCenter msg, URL location) {
-		EvaluationEnvironment env = theEnv.scope(true);
+	private boolean checkValidity(ParsedStyleSheet style, StyleAttribute<?> attr, ParsedItem value, MuisParseEnv env, URL location) {
+		EvaluationEnvironment evEnv = theEnv.scope(true);
 		// EvaluationResult typeRes;
 		try {
 			for(AnimatedStyleSheet.AnimatedVariable var : style) {
-				env.declareVariable(var.getName(), new Type(Double.TYPE), false, value, 0);
+				evEnv.declareVariable(var.getName(), new Type(Double.TYPE), false, value, 0);
 			}
-			// typeRes = value.evaluate(env, false, false);
+			// typeRes = value.evaluate(evEnv, false, false);
 		} catch(EvaluationException e) {
-			msg.error("Could not evaluate value " + value + " for attribute " + attr, e, "attribute", attr, "value", value);
+			env.msg().error("Could not evaluate value " + value + " for attribute " + attr, e, "attribute", attr, "value", value);
 			return false;
 		}
 		// This type checking is flawed because of the conversion ability in MUIS properties
-		// Type attrType = new Type(attr.getType().getType());
-		// if(!attrType.isAssignable(typeRes.getType())) {
-		// msg.error("Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
-		// + ", type " + attrType);
-		// return false;
-		// }
+		/*Type attrType = new Type(attr.getType().getType());
+		if(!attrType.isAssignable(typeRes.getType())) {
+			env.msg().error(
+				"Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
+					+ ", type " + attrType);
+			return false;
+		}*/
 		return true;
 	}
 
-	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisClassView classView,
-		MuisMessageCenter msg) throws MuisException {
+	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisParseEnv env)
+		throws MuisException {
 		if(value instanceof prisms.lang.types.ParsedIdentifier) {
 			String text = ((prisms.lang.types.ParsedIdentifier) value).getName();
 			for(AnimatedStyleSheet.AnimatedVariable var : style) {
 				if(var.getName().equals(text))
 					return value;
 			}
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text, msg));
+			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text));
 		} else if(value instanceof prisms.lang.types.ParsedString) {
 			String text = ((prisms.lang.types.ParsedString) value).getValue();
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(classView, text, msg));
+			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text));
 		} else {
 			for(ParsedItem depend : value.getDependents()) {
-				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, classView, msg);
+				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, env);
 				if(replace != depend)
 					value.replace(depend, replace);
 			}

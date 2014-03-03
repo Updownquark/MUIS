@@ -11,7 +11,7 @@ import org.muis.core.event.MuisEvent;
 public class AttributeManager {
 	/**
 	 * Wraps an attribute and its metadata for this manager
-	 * 
+	 *
 	 * @param <T> The type of the attribute to hold
 	 */
 	public class AttributeHolder<T> {
@@ -182,7 +182,7 @@ public class AttributeManager {
 	 *             element has already been initialized and the value is not valid for the given attribute
 	 */
 	public final <T> T set(MuisAttribute<T> attr, String value) throws MuisException {
-		T ret = attr.getType().parse(theElement.getClassView(), value, theElement.msg());
+		T ret = attr.getType().parse(theElement, value);
 		set(attr, ret);
 		return ret;
 	}
@@ -404,7 +404,7 @@ public class AttributeManager {
 			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
-					set((MuisAttribute<Object>) attr, attr.getType().parse(theElement.getClassView(), strVal, theElement.msg()));
+					set((MuisAttribute<Object>) attr, attr.getType().parse(theElement, strVal));
 				} catch(MuisException e) {
 					theElement.msg().error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.getName(), e,
 						"attribute", attr);

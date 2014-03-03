@@ -1,7 +1,7 @@
 package org.muis.core.style;
 
 import org.muis.core.MuisException;
-import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.MuisParseEnv;
 
 /** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {
@@ -85,15 +85,13 @@ public class StyleParsingUtils {
 	/**
 	 * Applies a single style attribute to a style
 	 *
+	 * @param env The parsing environment
 	 * @param style The style to apply the attribute to
 	 * @param domain The domain of the style
 	 * @param attrName The name of the attribute
 	 * @param valueStr The serialized value for the attribute
-	 * @param messager The message center to issue warnings to if there is an error with the style
-	 * @param classView The class view to use for parsing if needed
 	 */
-	public static void applyStyleAttribute(MutableStyle style, StyleDomain domain, String attrName, String valueStr,
-		MuisMessageCenter messager, org.muis.core.MuisClassView classView) {
+	public static void applyStyleAttribute(MuisParseEnv env, MutableStyle style, StyleDomain domain, String attrName, String valueStr) {
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
 			if(attrib.getName().equals(attrName)) {
@@ -102,23 +100,23 @@ public class StyleParsingUtils {
 			}
 
 		if(styleAttr == null) {
-			messager.warn("No such attribute " + attrName + " in domain " + domain.getName());
+			env.msg().warn("No such attribute " + attrName + " in domain " + domain.getName());
 			return;
 		}
 
 		Object value;
 		try {
-			value = styleAttr.getType().parse(classView, valueStr, messager);
+			value = styleAttr.getType().parse(env, valueStr);
 		} catch(org.muis.core.MuisException e) {
-			messager
-				.warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(), e);
+			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(),
+				e);
 			return;
 		}
 		if(styleAttr.getValidator() != null)
 			try {
 				((StyleAttribute<Object>) styleAttr).getValidator().assertValid(value);
 			} catch(org.muis.core.MuisException e) {
-				messager.warn(e.getMessage());
+				env.msg().warn(e.getMessage());
 				return;
 			}
 		style.set((StyleAttribute<Object>) styleAttr, value);
@@ -127,28 +125,27 @@ public class StyleParsingUtils {
 	/**
 	 * Applies a bulk style setting to a style
 	 *
+	 * @param env The parsing environment
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
-	 * @param messager The message center to issue warnings to if there are errors with the styles
-	 * @param classView The class view to use for parsing if needed
 	 */
-	public static void applyStyleSet(MutableStyle style, StyleDomain domain, String valueStr, MuisMessageCenter messager,
-		org.muis.core.MuisClassView classView) { // Setting domain attributes in bulk
+	public static void applyStyleSet(MuisParseEnv env, MutableStyle style, StyleDomain domain, String valueStr) {
+		// Setting domain attributes in bulk
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(valueStr.length() - 1) != '}') {
-			messager.warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
+			env.msg().warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
 			return;
 		}
 		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(";");
 		for(String propEntry : propEntries) {
 			int idx = propEntry.indexOf('=');
 			if(idx < 0) {
-				messager.warn("Bulk style setting " + propEntry.trim() + " is missing an equals sign");
+				env.msg().warn("Bulk style setting " + propEntry.trim() + " is missing an equals sign");
 				continue;
 			}
 			String attrName = propEntry.substring(0, idx).trim();
 			String propVal = propEntry.substring(idx + 1).trim();
-			applyStyleAttribute(style, domain, attrName, propVal, messager, classView);
+			applyStyleAttribute(env, style, domain, attrName, propVal);
 		}
 	}
 }

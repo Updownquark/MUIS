@@ -32,7 +32,7 @@ import prisms.util.ArrayUtils;
 		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
 		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY),
 		@State(name = States.TEXT_SELECTION_NAME, priority = States.TEXT_SELECTION_PRIORITY)})
-public abstract class MuisElement {
+public abstract class MuisElement implements MuisParseEnv {
 	/**
 	 * Used to lock this elements' child sets
 	 *
@@ -430,6 +430,12 @@ public abstract class MuisElement {
 		return theClassView;
 	}
 
+	/** @return The MUIS class view that allows for instantiation of child elements */
+	@Override
+	public final MuisClassView cv() {
+		return theClassView;
+	}
+
 	/** @return The namespace that this tag was instantiated in */
 	public final String getNamespace() {
 		return theNamespace;
@@ -585,6 +591,7 @@ public abstract class MuisElement {
 	 *
 	 * @return This element's message center
 	 */
+	@Override
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
 	}

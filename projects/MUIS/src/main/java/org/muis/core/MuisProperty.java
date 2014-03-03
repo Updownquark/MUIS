@@ -5,7 +5,6 @@ import java.net.URL;
 import java.util.Comparator;
 import java.util.Map;
 
-import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.util.MuisUtils;
 
 /**
@@ -28,15 +27,14 @@ public abstract class MuisProperty<T> {
 
 		/**
 		 * Parses an property value from a string representation
-		 *
+		 * 
 		 * @param <V> The type of value parsed by this property type
-		 * @param classView The class view to use in parsing, if needed
+		 * @param env The parsing environment
 		 * @param value The string representation to parse
-		 * @param msg The message center to report non-fatal parsing errors to
 		 * @return The parsed property value
 		 * @throws MuisException If a fatal parsing error occurs
 		 */
-		<V extends T> V parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException;
+		<V extends T> V parse(MuisParseEnv env, String value) throws MuisException;
 
 		/**
 		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
@@ -198,7 +196,7 @@ public abstract class MuisProperty<T> {
 	/** A string property type--this type validates anything */
 	public static final AbstractPropertyType<String> stringAttr = new AbstractPrintablePropertyType<String>() {
 		@Override
-		public String parse(MuisClassView classView, String value, MuisMessageCenter msg) {
+		public String parse(MuisParseEnv env, String value) {
 			return value;
 		}
 
@@ -229,7 +227,7 @@ public abstract class MuisProperty<T> {
 	/** A boolean property type--values must be either true or false */
 	public static final AbstractPropertyType<Boolean> boolAttr = new AbstractPropertyType<Boolean>() {
 		@Override
-		public Boolean parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Boolean parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
 			else if("true".equals(value))
@@ -262,7 +260,7 @@ public abstract class MuisProperty<T> {
 	/** An integer property type--values must be valid integers */
 	public static final AbstractPropertyType<Long> intAttr = new AbstractPropertyType<Long>() {
 		@Override
-		public Long parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Long parse(MuisParseEnv env, String value) throws MuisException {
 			try {
 				return Long.valueOf(value);
 			} catch(NumberFormatException e) {
@@ -294,7 +292,7 @@ public abstract class MuisProperty<T> {
 	/** A floating-point property type--values must be valid real numbers */
 	public static final AbstractPropertyType<Double> floatAttr = new AbstractPropertyType<Double>() {
 		@Override
-		public Double parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Double parse(MuisParseEnv env, String value) throws MuisException {
 			try {
 				return Double.valueOf(value);
 			} catch(NumberFormatException e) {
@@ -326,7 +324,7 @@ public abstract class MuisProperty<T> {
 	/** Represents an amount, typically from 0 to 1. May also be given in percent. */
 	public static final AbstractPropertyType<Double> amountAttr = new AbstractPropertyType<Double>() {
 		@Override
-		public Double parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Double parse(MuisParseEnv env, String value) throws MuisException {
 			boolean percent = value.endsWith("%");
 			if(percent)
 				value = value.substring(0, value.length() - 1);
@@ -370,7 +368,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public Long parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Long parse(MuisParseEnv env, String value) throws MuisException {
 			long ret = 0;
 			for(String s : value.trim().split("\\s")) {
 				char unit = s.charAt(s.length() - 1);
@@ -424,7 +422,7 @@ public abstract class MuisProperty<T> {
 	/** A color property type--values must be parse to colors via {@link org.muis.core.style.Colors#parseColor(String)} */
 	public static final AbstractPropertyType<Color> colorAttr = new AbstractPrintablePropertyType<Color>() {
 		@Override
-		public Color parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Color parse(MuisParseEnv env, String value) throws MuisException {
 			try {
 				return org.muis.core.style.Colors.parseColor(value);
 			} catch(MuisException e) {
@@ -467,11 +465,11 @@ public abstract class MuisProperty<T> {
 	 */
 	public static final AbstractPropertyType<URL> resourceAttr = new AbstractPropertyType<java.net.URL>() {
 		@Override
-		public URL parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public URL parse(MuisParseEnv env, String value) throws MuisException {
 			int sepIdx = value.indexOf(':');
 			String namespace = sepIdx < 0 ? null : value.substring(0, sepIdx);
 			String content = sepIdx < 0 ? value : value.substring(sepIdx + 1);
-			MuisToolkit toolkit = classView.getToolkit(namespace);
+			MuisToolkit toolkit = env.cv().getToolkit(namespace);
 			if(toolkit == null)
 				try {
 					return new URL(value);
@@ -536,7 +534,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public Class<? extends T> parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public Class<? extends T> parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
 			int sep = value.indexOf(':');
@@ -551,7 +549,7 @@ public abstract class MuisProperty<T> {
 			MuisToolkit toolkit = null;
 			String className = null;
 			if(ns != null) {
-				toolkit = classView.getToolkit(ns);
+				toolkit = env.cv().getToolkit(ns);
 				if(toolkit == null)
 					throw new MuisException(propName() + ": Value " + value + " refers to a toolkit \"" + ns
 						+ "\" that is inaccessible from its element");
@@ -560,7 +558,7 @@ public abstract class MuisProperty<T> {
 					throw new MuisException(propName() + ": Value " + value + " refers to a type \"" + tag
 						+ "\" that is not mapped within toolkit " + toolkit.getName());
 			} else {
-				for(MuisToolkit tk : classView.getScopedToolkits()) {
+				for(MuisToolkit tk : env.cv().getScopedToolkits()) {
 					className = tk.getMappedClass(tag);
 					if(className != null) {
 						toolkit = tk;
@@ -629,10 +627,10 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public <V extends T> V parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public <V extends T> V parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
-			Class<V> valueClass = (Class<V>) theTypeProperty.parse(classView, value, msg);
+			Class<V> valueClass = (Class<V>) theTypeProperty.parse(env, value);
 			try {
 				return valueClass.newInstance();
 			} catch(InstantiationException e) {
@@ -703,7 +701,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public T parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public T parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
 			T [] consts = enumType.getEnumConstants();
@@ -805,10 +803,10 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public <V extends T> V parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+		public <V extends T> V parse(MuisParseEnv env, String value) throws MuisException {
 			if(theNamedValues.containsKey(value))
 				return (V) theNamedValues.get(value);
-			return theWrapped.parse(classView, value, msg);
+			return theWrapped.parse(env, value);
 		}
 
 		@Override

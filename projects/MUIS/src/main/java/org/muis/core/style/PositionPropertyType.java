@@ -1,16 +1,17 @@
 package org.muis.core.style;
 
+import org.muis.core.MuisParseEnv;
+import org.muis.core.MuisProperty;
 
 /** An attribute type that validates and parses instances of {@link Position} from an attribute value */
-public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Position> implements
-	org.muis.core.MuisProperty.PrintablePropertyType<Position>
+public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Position> implements
+	MuisProperty.PrintablePropertyType<Position>
 {
 	/** An instance of this class--prevents having to create multiple instances for no reason */
 	public static final PositionPropertyType instance = new PositionPropertyType();
 
 	@Override
-	public Position parse(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
-	{
+	public Position parse(MuisParseEnv env, String value) {
 		String number = value;
 		number = number.replaceAll("\\s", "");
 		int c = 0;
@@ -36,8 +37,7 @@ public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPro
 	}
 
 	@Override
-	public Position cast(Object value)
-	{
+	public Position cast(Object value) {
 		if(value instanceof Position)
 			return (Position) value;
 		else if(value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Byte)
@@ -48,8 +48,7 @@ public class PositionPropertyType extends org.muis.core.MuisProperty.AbstractPro
 	}
 
 	@Override
-	public Class<Position> getType()
-	{
+	public Class<Position> getType() {
 		return Position.class;
 	}
 

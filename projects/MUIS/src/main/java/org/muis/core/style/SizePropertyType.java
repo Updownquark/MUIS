@@ -1,16 +1,16 @@
 package org.muis.core.style;
 
+import org.muis.core.MuisParseEnv;
+import org.muis.core.MuisProperty;
 
 /** An attribute type that validates and parses instances of {@link Size} from an attribute value */
-public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropertyType<Size> implements
-	org.muis.core.MuisProperty.PrintablePropertyType<Size>
+public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> implements MuisProperty.PrintablePropertyType<Size>
 {
 	/** An instance of this class--prevents having to create multiple instances for no reason */
 	public static final SizePropertyType instance = new SizePropertyType();
 
 	@Override
-	public Size parse(org.muis.core.MuisClassView classView, String value, org.muis.core.mgr.MuisMessageCenter msg)
-	{
+	public Size parse(MuisParseEnv env, String value) {
 		String number = value;
 		number = number.replaceAll("\\s", "");
 		int c = 0;
@@ -36,8 +36,7 @@ public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropert
 	}
 
 	@Override
-	public Size cast(Object value)
-	{
+	public Size cast(Object value) {
 		if(value instanceof Size)
 			return (Size) value;
 		else if(value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Byte)
@@ -48,8 +47,7 @@ public class SizePropertyType extends org.muis.core.MuisProperty.AbstractPropert
 	}
 
 	@Override
-	public Class<Size> getType()
-	{
+	public Class<Size> getType() {
 		return Size.class;
 	}
 

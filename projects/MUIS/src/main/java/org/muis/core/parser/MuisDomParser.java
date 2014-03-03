@@ -334,8 +334,8 @@ public class MuisDomParser implements MuisParser {
 				return null;
 			}
 			try {
-				ParsedStyleSheet ret = theStyleSheetParser.parse(ssLoc, theEnvironment, new MuisClassView(theEnvironment, classView, null),
-					msg);
+				ParsedStyleSheet ret = theStyleSheetParser.parse(
+					new SimpleParseEnv(new MuisClassView(theEnvironment, classView, null), msg), ssLoc, theEnvironment);
 				ret.setLocation(ssLoc);
 				// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to the
 				// EventQueue somehow
@@ -540,5 +540,25 @@ public class MuisDomParser implements MuisParser {
 				ret.addChild(new MuisText(ret, text, content instanceof CDATA));
 			}
 		return ret;
+	}
+
+	private static class SimpleParseEnv implements MuisParseEnv {
+		private final MuisClassView theClassView;
+		private final MuisMessageCenter theMsg;
+
+		SimpleParseEnv(MuisClassView cv, MuisMessageCenter msg) {
+			theClassView = cv;
+			theMsg = msg;
+		}
+
+		@Override
+		public MuisClassView cv() {
+			return theClassView;
+		}
+
+		@Override
+		public MuisMessageCenter msg() {
+			return theMsg;
+		}
 	}
 }

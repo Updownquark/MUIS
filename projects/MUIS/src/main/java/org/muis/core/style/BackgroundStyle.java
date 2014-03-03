@@ -2,6 +2,7 @@ package org.muis.core.style;
 
 import java.awt.Cursor;
 
+import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
 
 /**
@@ -61,8 +62,7 @@ public class BackgroundStyle implements StyleDomain {
 		}
 
 		@Override
-		public Cursor parse(org.muis.core.MuisClassView classView, String parseValue, org.muis.core.mgr.MuisMessageCenter msg)
-			throws org.muis.core.MuisException {
+		public Cursor parse(MuisParseEnv env, String parseValue) throws org.muis.core.MuisException {
 			for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
 				if(preDef.display.equals(parseValue))
 					return Cursor.getPredefinedCursor(preDef.type);

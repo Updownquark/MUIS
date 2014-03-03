@@ -1,10 +1,9 @@
 package org.muis.core.style.attach;
 
 import org.muis.core.MuisAttribute;
-import org.muis.core.MuisClassView;
 import org.muis.core.MuisException;
+import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
-import org.muis.core.mgr.MuisMessageCenter;
 
 /** Parses an attribute as a comma-separated list of strings to be applied as named style groups on an element */
 public class GroupPropertyType implements MuisProperty.PrintablePropertyType<String []> {
@@ -29,7 +28,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 	}
 
 	@Override
-	public String [] parse(MuisClassView classView, String value, MuisMessageCenter msg) throws MuisException {
+	public String [] parse(MuisParseEnv env, String value) throws MuisException {
 		String [] ret = value.split(",");
 		for(int i = 0; i < ret.length; i++)
 			ret[i] = ret[i].trim();

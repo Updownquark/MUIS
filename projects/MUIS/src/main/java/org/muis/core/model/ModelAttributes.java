@@ -1,7 +1,7 @@
 package org.muis.core.model;
 
-import org.muis.core.MuisClassView;
 import org.muis.core.MuisException;
+import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
 import org.muis.core.mgr.MuisMessageCenter;
 
@@ -27,20 +27,19 @@ public class ModelAttributes {
 			}
 
 			@Override
-			public <V extends MuisActionListener> V parse(MuisClassView classView, String attValue, MuisMessageCenter msg)
-				throws MuisException {
-				org.muis.core.MuisDocument doc = msg.getDocument();
+			public <V extends MuisActionListener> V parse(MuisParseEnv env, String attValue) throws MuisException {
+				org.muis.core.MuisDocument doc = env.msg().getDocument();
 				if(doc == null)
 					throw new IllegalArgumentException("Cannot get actions without document context");
 				String [] entries = attValue.split(",");
 				if(entries.length == 0)
 					return null;
 				if(entries.length == 1)
-					return (V) getActionListener(doc, entries[0].trim(), msg);
+					return (V) getActionListener(doc, entries[0].trim(), env.msg());
 				else {
 					AggregateActionListener agg = new AggregateActionListener();
 					for(String entry : entries)
-						agg.addListener(getActionListener(doc, entry.trim(), msg));
+						agg.addListener(getActionListener(doc, entry.trim(), env.msg()));
 					return (V) agg;
 				}
 			}
@@ -75,19 +74,18 @@ public class ModelAttributes {
 			}
 
 			@Override
-			public <V extends MuisModelValue<?>> V parse(MuisClassView classView, String attValue, MuisMessageCenter msg)
-				throws MuisException {
-				org.muis.core.MuisDocument doc = msg.getDocument();
+			public <V extends MuisModelValue<?>> V parse(MuisParseEnv env, String attValue) throws MuisException {
+				org.muis.core.MuisDocument doc = env.msg().getDocument();
 				if(doc == null)
 					throw new IllegalArgumentException("Cannot get model values without document context");
 				String [] name = new String[1];
-				MuisAppModel model = getModel(doc, attValue, msg, "value", name);
+				MuisAppModel model = getModel(doc, attValue, env.msg(), "value", name);
 				if(model == null)
 					return null;
 				String [] div = attValue.split("\\.");
 				MuisModelValue<?> ret = model.getValue(div[div.length - 1], Object.class);
 				if(ret == null) {
-					msg.error("Value \"" + div[div.length - 1] + "\" does not exist in model \"" + name[0] + "\".");
+					env.msg().error("Value \"" + div[div.length - 1] + "\" does not exist in model \"" + name[0] + "\".");
 					return null;
 				}
 				return (V) ret;

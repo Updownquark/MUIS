@@ -44,14 +44,14 @@ public interface SelectableDocumentModel extends MuisDocumentModel {
 
 	/**
 	 * Sets the cursor in this document and cancels any existing selection interval
-	 * 
+	 *
 	 * @param cursor The new location for the cursor in this document
 	 */
 	void setCursor(int cursor);
 
 	/**
 	 * Changes the selection interval (and with it, the cursor) in this document
-	 * 
+	 *
 	 * @param anchor The new anchor for the selection in this document
 	 * @param cursor The new location for the cursor in this document
 	 */
@@ -61,8 +61,8 @@ public interface SelectableDocumentModel extends MuisDocumentModel {
 	String getSelectedText();
 
 	/** @param listener The listener to be notified when this model's selection changes */
-	void addSelectionListener(SelectableDocumentModel.SelectionListener listener);
+	void addSelectionListener(SelectionListener listener);
 
 	/** @param listener The listener to stop notification for */
-	void removeSelectionListener(SelectableDocumentModel.SelectionListener listener);
+	void removeSelectionListener(SelectionListener listener);
 }

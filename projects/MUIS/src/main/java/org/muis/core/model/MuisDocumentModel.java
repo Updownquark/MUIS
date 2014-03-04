@@ -129,8 +129,8 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 	void draw(Graphics2D graphics, Rectangle window, int breakWidth);
 
 	/** @param listener The listener to be notified when this model's content changes */
-	void addContentListener(MuisDocumentModel.ContentListener listener);
+	void addContentListener(ContentListener listener);
 
 	/** @param listener The listener to stop notification for */
-	void removeContentListener(MuisDocumentModel.ContentListener listener);
+	void removeContentListener(ContentListener listener);
 }

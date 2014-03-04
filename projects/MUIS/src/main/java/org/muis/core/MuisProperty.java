@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.Comparator;
 import java.util.Map;
 
+import org.muis.core.model.MuisModelValue;
 import org.muis.util.MuisUtils;
 
 /**
@@ -27,7 +28,7 @@ public abstract class MuisProperty<T> {
 
 		/**
 		 * Parses an property value from a string representation
-		 * 
+		 *
 		 * @param <V> The type of value parsed by this property type
 		 * @param env The parsing environment
 		 * @param value The string representation to parse
@@ -196,7 +197,15 @@ public abstract class MuisProperty<T> {
 	/** A string property type--this type validates anything */
 	public static final AbstractPropertyType<String> stringAttr = new AbstractPrintablePropertyType<String>() {
 		@Override
-		public String parse(MuisParseEnv env, String value) {
+		public String parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<? extends CharSequence> modelValue = (org.muis.core.model.MuisModelValue<? extends CharSequence>) env
+					.getModelParser().parseMVR(value);
+				if(CharSequence.class.isAssignableFrom(modelValue.getType()))
+					return modelValue.get().toString();
+				else
+					throw new MuisException("Model value " + value + " is not of type string");
+			}
 			return value;
 		}
 
@@ -230,6 +239,14 @@ public abstract class MuisProperty<T> {
 		public Boolean parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<Boolean> modelValue = (org.muis.core.model.MuisModelValue<Boolean>) env.getModelParser()
+					.parseMVR(value);
+				if(Boolean.class.equals(modelValue.getType()) || Boolean.TYPE.equals(modelValue.getType()))
+					return modelValue.get();
+				else
+					throw new MuisException("Model value " + value + " is not compatible with float");
+			}
 			else if("true".equals(value))
 				return Boolean.TRUE;
 			else if("false".equals(value))
@@ -261,6 +278,17 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<Long> intAttr = new AbstractPropertyType<Long>() {
 		@Override
 		public Long parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<Number> modelValue = (org.muis.core.model.MuisModelValue<Number>) env.getModelParser()
+					.parseMVR(value);
+				if(Long.class.equals(modelValue.getType()) || Long.TYPE.equals(modelValue.getType())
+					|| Integer.class.equals(modelValue.getType()) || Integer.TYPE.equals(modelValue.getType())
+					|| Short.class.equals(modelValue.getType()) || Short.TYPE.equals(modelValue.getType())
+					|| Byte.class.equals(modelValue.getType()) || Byte.TYPE.equals(modelValue.getType()))
+					return modelValue.get().longValue();
+				else
+					throw new MuisException("Model value " + value + " is not compatible with int");
+			}
 			try {
 				return Long.valueOf(value);
 			} catch(NumberFormatException e) {
@@ -293,6 +321,15 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<Double> floatAttr = new AbstractPropertyType<Double>() {
 		@Override
 		public Double parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<Number> modelValue = (org.muis.core.model.MuisModelValue<Number>) env.getModelParser()
+					.parseMVR(value);
+				if(Double.class.equals(modelValue.getType()) || Double.TYPE.equals(modelValue.getType())
+					|| Float.class.equals(modelValue.getType()) || Float.TYPE.equals(modelValue.getType()))
+					return modelValue.get().doubleValue();
+				else
+					throw new MuisException("Model value " + value + " is not compatible with float");
+			}
 			try {
 				return Double.valueOf(value);
 			} catch(NumberFormatException e) {
@@ -325,6 +362,15 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<Double> amountAttr = new AbstractPropertyType<Double>() {
 		@Override
 		public Double parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<Number> modelValue = (org.muis.core.model.MuisModelValue<Number>) env.getModelParser()
+					.parseMVR(value);
+				if(Double.class.equals(modelValue.getType()) || Double.TYPE.equals(modelValue.getType())
+					|| Float.class.equals(modelValue.getType()) || Float.TYPE.equals(modelValue.getType()))
+					return modelValue.get().doubleValue();
+				else
+					throw new MuisException("Model value " + value + " is not compatible with amount");
+			}
 			boolean percent = value.endsWith("%");
 			if(percent)
 				value = value.substring(0, value.length() - 1);
@@ -369,6 +415,14 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public Long parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<Long> modelValue = (org.muis.core.model.MuisModelValue<Long>) env.getModelParser()
+					.parseMVR(value);
+				if(Long.class.equals(modelValue.getType()) || Long.TYPE.equals(modelValue.getType()))
+					return modelValue.get();
+				else
+					throw new MuisException("Model value " + value + " is not compatible with time");
+			}
 			long ret = 0;
 			for(String s : value.trim().split("\\s")) {
 				char unit = s.charAt(s.length() - 1);
@@ -423,6 +477,14 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<Color> colorAttr = new AbstractPrintablePropertyType<Color>() {
 		@Override
 		public Color parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<Color> modelValue = (org.muis.core.model.MuisModelValue<Color>) env.getModelParser()
+					.parseMVR(value);
+				if(Color.class.isAssignableFrom(modelValue.getType()))
+					return modelValue.get();
+				else
+					throw new MuisException("Model value " + value + " is not of type color");
+			}
 			try {
 				return org.muis.core.style.Colors.parseColor(value);
 			} catch(MuisException e) {
@@ -466,6 +528,19 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<URL> resourceAttr = new AbstractPropertyType<java.net.URL>() {
 		@Override
 		public URL parse(MuisParseEnv env, String value) throws MuisException {
+			int next = 0;
+			while(next >= 0) {
+				next = env.getModelParser().getNextMVR(value, next);
+				if(next >= 0) {
+					String extracted = env.getModelParser().extractMVR(value, next);
+					org.muis.core.model.MuisModelValue<String> mv = (MuisModelValue<String>) env.getModelParser().parseMVR(extracted);
+					if(!String.class.equals(mv.getType()))
+						throw new MuisException("Resource attributes accept properties of type String only");
+					String v = mv.get();
+					value = value.substring(0, next) + mv.get() + value.substring(next + extracted.length());
+					next += v.length();
+				}
+			}
 			int sepIdx = value.indexOf(':');
 			String namespace = sepIdx < 0 ? null : value.substring(0, sepIdx);
 			String content = sepIdx < 0 ? value : value.substring(sepIdx + 1);
@@ -630,6 +705,14 @@ public abstract class MuisProperty<T> {
 		public <V extends T> V parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<V> modelValue = (org.muis.core.model.MuisModelValue<V>) env.getModelParser().parseMVR(
+					value);
+				if(theTypeProperty.type.isAssignableFrom(modelValue.getType()))
+					return modelValue.get();
+				else
+					throw new MuisException("Model value " + value + " is not of type " + theTypeProperty.type.getSimpleName());
+			}
 			Class<V> valueClass = (Class<V>) theTypeProperty.parse(env, value);
 			try {
 				return valueClass.newInstance();
@@ -704,6 +787,14 @@ public abstract class MuisProperty<T> {
 		public T parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<T> modelValue = (org.muis.core.model.MuisModelValue<T>) env.getModelParser().parseMVR(
+					value);
+				if(enumType.isAssignableFrom(modelValue.getType()))
+					return modelValue.get();
+				else
+					throw new MuisException("Model value " + value + " is not of type " + enumType.getSimpleName());
+			}
 			T [] consts = enumType.getEnumConstants();
 			for(T e : consts)
 				if(ciUnique) {
@@ -804,6 +895,19 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public <V extends T> V parse(MuisParseEnv env, String value) throws MuisException {
+			if(env.getModelParser().getNextMVR(value, 0) == 0) {
+				org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(value);
+				if(String.class.isAssignableFrom(modelValue.getType())) {
+					String mv = (String) modelValue.get();
+					if(theNamedValues.containsKey(mv))
+						return (V) theNamedValues.get(mv);
+					else
+						throw new MuisException("Model value " + value + " does not match a predefined value.");
+				} else if(theWrapped.getType().isAssignableFrom(modelValue.getType())) {
+					return (V) modelValue.get();
+				} else
+					throw new MuisException("Model value " + value + " is not of type " + theWrapped.getType().getSimpleName());
+			}
 			if(theNamedValues.containsKey(value))
 				return (V) theNamedValues.get(value);
 			return theWrapped.parse(env, value);

@@ -1,5 +1,6 @@
 package org.muis.core.style;
 
+import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
 
@@ -11,7 +12,16 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 	public static final PositionPropertyType instance = new PositionPropertyType();
 
 	@Override
-	public Position parse(MuisParseEnv env, String value) {
+	public Position parse(MuisParseEnv env, String value) throws MuisException {
+		if(env.getModelParser().getNextMVR(value, 0) == 0) {
+			org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(value);
+			if(Position.class.isAssignableFrom(modelValue.getType()))
+				return (Position) modelValue.get();
+			else if(Number.class.isAssignableFrom(modelValue.getType()))
+				return new Position(((Number) modelValue.get()).floatValue(), LengthUnit.pixels);
+			else
+				throw new MuisException("Model value " + value + ", type " + modelValue.getType() + " is not compatible with position.");
+		}
 		String number = value;
 		number = number.replaceAll("\\s", "");
 		int c = 0;

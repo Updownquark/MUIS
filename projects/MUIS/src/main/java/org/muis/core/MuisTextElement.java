@@ -9,12 +9,13 @@ import org.muis.core.layout.AbstractSizeGuide;
 import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.model.MuisDocumentModel;
+import org.muis.core.model.MutableSelectableDocumentModel;
 import org.muis.core.model.SelectableDocumentModel;
 import org.muis.core.model.SimpleDocumentModel;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
-	private org.muis.core.model.MutableSelectableDocumentModel theDocument;
+	private MutableSelectableDocumentModel theDocument;
 
 	/** Creates a MUIS text element */
 	public MuisTextElement() {
@@ -79,9 +80,14 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	}
 
 	@Override
-	public org.muis.core.model.MutableSelectableDocumentModel getDocumentModel() {
+	public MutableSelectableDocumentModel getDocumentModel() {
 		return theDocument;
 	}
+
+	// /** @param docModel The new document model for this text element */
+	// public void setDocumentModel(MutableSelectableDocumentModel docModel) {
+	// theDocument = docModel;
+	// }
 
 	@Override
 	public SizeGuide getWSizer() {

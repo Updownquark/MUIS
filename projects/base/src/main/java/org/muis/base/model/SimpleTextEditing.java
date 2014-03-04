@@ -38,7 +38,7 @@ public class SimpleTextEditing implements MuisBehavior<SimpleTextWidget> {
 	protected void charInput(SimpleTextWidget widget, char ch) {
 		if(ch < ' ' && ch != '\t' && ch != '\n' && ch != '\r' && ch != '\b' && ch != CharInputEvent.PASTE)
 			return;
-		org.muis.core.model.SimpleDocumentModel doc = widget.getDocumentModel();
+		org.muis.core.model.MutableSelectableDocumentModel doc = widget.getDocumentModel();
 		boolean batchDeleted = false;
 		if(doc.getSelectionAnchor() != doc.getCursor()) {
 			doc.delete(doc.getSelectionAnchor(), doc.getCursor());

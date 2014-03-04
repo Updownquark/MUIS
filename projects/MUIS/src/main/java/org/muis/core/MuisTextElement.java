@@ -14,7 +14,7 @@ import org.muis.core.model.SimpleDocumentModel;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
-	private org.muis.core.model.SimpleDocumentModel theDocument;
+	private org.muis.core.model.MutableSelectableDocumentModel theDocument;
 
 	/** Creates a MUIS text element */
 	public MuisTextElement() {
@@ -47,12 +47,15 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			}
 
 			private boolean isFontDifferentSelected() {
-				return isStyleDifferentSelected(size, family, slant, stretch, weight);
+				return mayStyleDifferentSelected(size, family, slant, stretch, weight);
 			}
 
-			private boolean isStyleDifferentSelected(org.muis.core.style.StyleAttribute<?>... atts) {
+			private boolean mayStyleDifferentSelected(org.muis.core.style.StyleAttribute<?>... atts) {
+				if(!(theDocument instanceof SimpleDocumentModel))
+					return true;
+				SimpleDocumentModel sdm = (SimpleDocumentModel) theDocument;
 				for(org.muis.core.style.StyleAttribute<?> att : atts)
-					if(!theDocument.getNormalStyle().get(att).equals(theDocument.getSelectedStyle().get(att)))
+					if(!sdm.getNormalStyle().get(att).equals(sdm.getSelectedStyle().get(att)))
 						return true;
 				return false;
 			}
@@ -76,7 +79,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	}
 
 	@Override
-	public org.muis.core.model.SimpleDocumentModel getDocumentModel() {
+	public org.muis.core.model.MutableSelectableDocumentModel getDocumentModel() {
 		return theDocument;
 	}
 

@@ -4,13 +4,13 @@ import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.model.SimpleDocumentModel;
+import org.muis.core.model.MutableSelectableDocumentModel;
 import org.muis.core.tags.Template;
 
 /** A simple widget that takes and displays text input from the user */
 @Template(location = "../../../../text-field.muis")
 public class TextField extends org.muis.core.MuisTemplate implements SimpleTextWidget {
-	private SimpleDocumentModel theDocument;
+	private MutableSelectableDocumentModel theDocument;
 
 	/** Creates a text field */
 	public TextField() {
@@ -78,7 +78,7 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 	}
 
 	@Override
-	public SimpleDocumentModel getDocumentModel() {
+	public MutableSelectableDocumentModel getDocumentModel() {
 		return theDocument;
 	}
 }

@@ -13,7 +13,7 @@ import org.muis.core.style.stateful.StateChangedEvent;
 import org.muis.core.style.stateful.StatefulStyle;
 
 /** A very simple document model that uses a single style and keeps a single, mutable set of content and supports single interval selection */
-public class SimpleDocumentModel extends AbstractMuisDocumentModel implements SelectableDocumentModel, Appendable {
+public class SimpleDocumentModel extends AbstractMuisDocumentModel implements MutableSelectableDocumentModel, Appendable {
 	private final InternallyStatefulStyle theParentStyle;
 
 	private final MuisStyle theNormalStyle;
@@ -90,23 +90,14 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return theSelectionAnchor;
 	}
 
-	/**
-	 * Sets the cursor in this document and cancels any existing selection interval
-	 *
-	 * @param cursor The new location for the cursor in this document
-	 */
+	@Override
 	public void setCursor(int cursor) {
 		theCursor = cursor;
 		theSelectionAnchor = cursor;
 		fireSelectionEvent(cursor, cursor);
 	}
 
-	/**
-	 * Changes the selection interval (and with it, the cursor) in this document
-	 *
-	 * @param anchor The new anchor for the selection in this document
-	 * @param cursor The new location for the cursor in this document
-	 */
+	@Override
 	public void setSelection(int anchor, int cursor) {
 		if(theSelectionAnchor == anchor && theCursor == cursor)
 			return;
@@ -276,12 +267,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return this;
 	}
 
-	/**
-	 * Inserts a character sequence at this model's cursor
-	 *
-	 * @param csq The character sequence to insert
-	 * @return This model, for chaining
-	 */
+	@Override
 	public SimpleDocumentModel insert(CharSequence csq) {
 		String value;
 		int index = theCursor;
@@ -301,12 +287,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return this;
 	}
 
-	/**
-	 * Inserts a character at this model's cursor
-	 *
-	 * @param c The character to insert
-	 * @return This model, for chaining
-	 */
+	@Override
 	public SimpleDocumentModel insert(char c) {
 		String value;
 		int index = theCursor;
@@ -326,13 +307,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return this;
 	}
 
-	/**
-	 * Inserts a character sequence
-	 *
-	 * @param offset The index at which to insert the character sequence
-	 * @param csq The character sequence to insert
-	 * @return This model, for chaining
-	 */
+	@Override
 	public SimpleDocumentModel insert(int offset, CharSequence csq) {
 		String value;
 		String change = csq.toString();
@@ -360,13 +335,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return this;
 	}
 
-	/**
-	 * Inserts a character
-	 *
-	 * @param offset The index at which to insert the character
-	 * @param c The character to insert
-	 * @return This model, for chaining
-	 */
+	@Override
 	public SimpleDocumentModel insert(int offset, char c) {
 		String value;
 		String change = new String(new char[] {c});
@@ -394,13 +363,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return this;
 	}
 
-	/**
-	 * Deletes characters from this document
-	 *
-	 * @param start The index of the start of the sequence to remove, inclusive
-	 * @param end The index of the end of the sequence to remove, exclusive
-	 * @return This model, for chaining
-	 */
+	@Override
 	public SimpleDocumentModel delete(int start, int end) {
 		if(start > end) {
 			int temp = start;
@@ -440,12 +403,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Se
 		return this;
 	}
 
-	/**
-	 * Sets the content for this model
-	 *
-	 * @param text The text to set
-	 * @return This model, for chaining
-	 */
+	@Override
 	public SimpleDocumentModel setText(String text) {
 		String oldValue;
 		Lock lock = theLock.writeLock();

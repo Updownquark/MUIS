@@ -42,6 +42,21 @@ public interface SelectableDocumentModel extends MuisDocumentModel {
 	 */
 	int getSelectionAnchor();
 
+	/**
+	 * Sets the cursor in this document and cancels any existing selection interval
+	 * 
+	 * @param cursor The new location for the cursor in this document
+	 */
+	void setCursor(int cursor);
+
+	/**
+	 * Changes the selection interval (and with it, the cursor) in this document
+	 * 
+	 * @param anchor The new anchor for the selection in this document
+	 * @param cursor The new location for the cursor in this document
+	 */
+	void setSelection(int anchor, int cursor);
+
 	/** @return The text selected in this document */
 	String getSelectedText();
 

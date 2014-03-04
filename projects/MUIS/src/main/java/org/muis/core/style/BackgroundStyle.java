@@ -2,6 +2,7 @@ package org.muis.core.style;
 
 import java.awt.Cursor;
 
+import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
 
@@ -62,7 +63,21 @@ public class BackgroundStyle implements StyleDomain {
 		}
 
 		@Override
-		public Cursor parse(MuisParseEnv env, String parseValue) throws org.muis.core.MuisException {
+		public Cursor parse(MuisParseEnv env, String parseValue) throws MuisException {
+			if(env.getModelParser().getNextMVR(parseValue, 0) == 0) {
+				org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(parseValue);
+				if(Cursor.class.isAssignableFrom(modelValue.getType()))
+					return (Cursor) modelValue.get();
+				else if(String.class.isAssignableFrom(modelValue.getType())) {
+					String mv = (String) modelValue.get();
+					for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
+						if(preDef.display.equals(mv))
+							return Cursor.getPredefinedCursor(preDef.type);
+					}
+					throw new MuisException("No predefined cursor named " + mv);
+				} else
+					throw new MuisException("Model value " + parseValue + " is not of type cursor");
+			}
 			for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
 				if(preDef.display.equals(parseValue))
 					return Cursor.getPredefinedCursor(preDef.type);

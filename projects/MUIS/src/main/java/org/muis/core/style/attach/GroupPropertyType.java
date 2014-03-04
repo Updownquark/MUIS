@@ -30,8 +30,17 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 	@Override
 	public String [] parse(MuisParseEnv env, String value) throws MuisException {
 		String [] ret = value.split(",");
-		for(int i = 0; i < ret.length; i++)
+		for(int i = 0; i < ret.length; i++) {
 			ret[i] = ret[i].trim();
+			if(env.getModelParser().getNextMVR(ret[i], 0) == 0) {
+				org.muis.core.model.MuisModelValue<String> modelValue = (org.muis.core.model.MuisModelValue<String>) env.getModelParser()
+					.parseMVR(ret[i]);
+				if(String.class.equals(modelValue.getType()))
+					ret[i] = modelValue.get();
+				else
+					throw new MuisException("Model value " + ret[i] + " is not compatible with float");
+			}
+		}
 		return ret;
 	}
 

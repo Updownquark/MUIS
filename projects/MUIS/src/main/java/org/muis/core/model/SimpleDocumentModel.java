@@ -32,8 +32,17 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 
 	private Collection<SelectableDocumentModel.SelectionListener> theSelectionListeners;
 
+	/**
+	 * @param parentStyle The parent style for this document
+	 * @param text The initial text for this field
+	 */
+	public SimpleDocumentModel(InternallyStatefulStyle parentStyle, String text) {
+		this(parentStyle);
+		theContent.append(text);
+	}
+
 	/** @param parentStyle The parent style for this document */
-	public SimpleDocumentModel(final InternallyStatefulStyle parentStyle) {
+	public SimpleDocumentModel(InternallyStatefulStyle parentStyle) {
 		theParentStyle = parentStyle;
 		theNormalStyle = new SelectionStyle(parentStyle, false);
 		theSelectedStyle = new SelectionStyle(parentStyle, true);

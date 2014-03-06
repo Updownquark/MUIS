@@ -60,8 +60,8 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 	 */
 	public void setText(String text) {
 		if(text == null)
-			getChildManager().clear();
-		else if(getChildren().isEmpty())
+			text = "";
+		if(getChildren().isEmpty())
 			getChildManager().add(new MuisTextElement(text));
 		else {
 			if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
@@ -79,14 +79,30 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 		return ((MuisTextElement) getChildren().get(0)).getDocumentModel();
 	}
 
+	/** @param doc The document model for this label */
+	public void setDocumentModel(MuisDocumentModel doc) {
+		if(getChildren().isEmpty())
+			getChildManager().add(new MuisTextElement(doc));
+		else {
+			if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
+				msg().warn("Label: Replacing content widgets with text");
+			((MuisTextElement) getChildren().get(0)).setDocumentModel(doc);
+		}
+	}
+
 	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
 		if(theRegistration != null)
 			theRegistration.unregister();
-		if(oldValue != null)
+		if(oldValue instanceof MuisDocumentModel) {
+			if(!(newValue instanceof MuisDocumentModel))
+				setDocumentModel(null);
+		} else if(oldValue != null)
 			oldValue.removeListener(theValueListener);
 		if(newValue instanceof org.muis.core.model.WidgetRegister)
 			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(Label.this);
-		if(newValue != null) {
+		if(newValue instanceof MuisDocumentModel)
+			setDocumentModel((MuisDocumentModel) newValue);
+		else if(newValue != null) {
 			newValue.addListener(theValueListener);
 			setText(getTextFor(newValue.get()));
 		}

@@ -8,14 +8,22 @@ import java.awt.Rectangle;
 import org.muis.core.layout.AbstractSizeGuide;
 import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
-import org.muis.core.model.MuisDocumentModel;
-import org.muis.core.model.MutableSelectableDocumentModel;
-import org.muis.core.model.SelectableDocumentModel;
-import org.muis.core.model.SimpleDocumentModel;
+import org.muis.core.model.*;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
-	private MutableSelectableDocumentModel theDocument;
+	private static final class InternalWrappingDocumentModel extends WrappingDocumentModel {
+		InternalWrappingDocumentModel(MuisDocumentModel model) {
+			super(model);
+		}
+
+		@Override
+		protected void setWrapped(MuisDocumentModel model) {
+			super.setWrapped(model);
+		}
+	}
+
+	private final InternalWrappingDocumentModel theDocument;
 
 	/** Creates a MUIS text element */
 	public MuisTextElement() {
@@ -28,18 +36,29 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	 * @param text The text for the element
 	 */
 	public MuisTextElement(String text) {
+		this((MuisDocumentModel) null);
+		setText(text);
+	}
+
+	/**
+	 * Creates a MUIS text element with a document
+	 *
+	 * @param doc The document for this element
+	 */
+	public MuisTextElement(MuisDocumentModel doc) {
+		if(doc == null)
+			doc = new SimpleDocumentModel(getStyle().getSelf());
 		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
-		theDocument = new SimpleDocumentModel(getStyle().getSelf());
-		theDocument.append(text);
-		theDocument.addContentListener(new MuisDocumentModel.ContentListener() {
+		theDocument = new InternalWrappingDocumentModel(doc);
+		theDocument.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
 			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
 				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
 				repaint(null, false);
 			}
 		});
-		theDocument.addSelectionListener(new SelectableDocumentModel.SelectionListener() {
+		((SimpleDocumentModel) theDocument.getDocumentModel()).addSelectionListener(new SelectableDocumentModel.SelectionListener() {
 			@Override
 			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				if(isFontDifferentSelected())
@@ -52,9 +71,9 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			}
 
 			private boolean mayStyleDifferentSelected(org.muis.core.style.StyleAttribute<?>... atts) {
-				if(!(theDocument instanceof SimpleDocumentModel))
+				if(!(theDocument.getWrapped() instanceof SimpleDocumentModel))
 					return true;
-				SimpleDocumentModel sdm = (SimpleDocumentModel) theDocument;
+				SimpleDocumentModel sdm = (SimpleDocumentModel) theDocument.getWrapped();
 				for(org.muis.core.style.StyleAttribute<?> att : atts)
 					if(!sdm.getNormalStyle().get(att).equals(sdm.getSelectedStyle().get(att)))
 						return true;
@@ -69,9 +88,16 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		}, MuisConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
 	}
 
-	/** @param text The text content for this element */
+	/**
+	 * @param text The text content for this element
+	 * @throws UnsupportedOperationException If this element's document is not {@link MutableDocumentModel mutable}
+	 */
 	public void setText(String text) {
-		theDocument.setText(text);
+		MuisDocumentModel doc = theDocument.getDocumentModel();
+		if(doc instanceof MutableDocumentModel)
+			((MutableDocumentModel) doc).setText(text);
+		else
+			throw new UnsupportedOperationException("This text element's document is not mutable");
 	}
 
 	/** @return This element's text content */
@@ -80,20 +106,22 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	}
 
 	@Override
-	public MutableSelectableDocumentModel getDocumentModel() {
-		return theDocument;
+	public MuisDocumentModel getDocumentModel() {
+		return theDocument.getDocumentModel();
 	}
 
-	// /** @param docModel The new document model for this text element */
-	// public void setDocumentModel(MutableSelectableDocumentModel docModel) {
-	// theDocument = docModel;
-	// }
+	/** @param docModel The new document model for this text element */
+	public void setDocumentModel(MuisDocumentModel docModel) {
+		if(docModel == null)
+			docModel = new SimpleDocumentModel(getStyle().getSelf());
+		theDocument.setWrapped(docModel);
+	}
 
 	@Override
 	public SizeGuide getWSizer() {
 		float maxW = 0;
 		float lineW = 0;
-		for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, Integer.MAX_VALUE)) {
+		for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.getDocumentModel().metrics(0, Integer.MAX_VALUE)) {
 			if(metric.isNewLine()) {
 				if(lineW > maxW)
 					maxW = lineW;
@@ -109,7 +137,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
 			maxW = 0;
 			lineW = 0;
-			for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, 1)) {
+			for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.getDocumentModel().metrics(0, 1)) {
 				if(metric.isNewLine()) {
 					if(lineW > maxW)
 						maxW = lineW;
@@ -146,7 +174,8 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 				float lineH = 0;
 				float baselineOffset = -1;
 				float baseline = -1;
-				for(org.muis.core.model.MuisDocumentModel.StyledSequenceMetric metric : theDocument.metrics(0, crossSize)) {
+				for(org.muis.core.model.MuisDocumentModel.StyledSequenceMetric metric : theDocument.getDocumentModel()
+					.metrics(0, crossSize)) {
 					if(metric.isNewLine()) {
 						totalH += lineH;
 						if(baseline < 0 && baselineOffset >= 0)
@@ -207,7 +236,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		theDocument.draw(graphics, area, bounds().getWidth());
+		theDocument.getDocumentModel().draw(graphics, area, bounds().getWidth());
 	}
 
 	@Override

@@ -71,6 +71,20 @@ public class WrappingDocumentModel {
 		}
 	}
 
+	/** @param listener The listener to listen for selection changes in this wrapper's document */
+	public void addSelectionListener(SelectableDocumentModel.SelectionListener listener) {
+		theSelectionListeners.add(listener);
+		if(theWrapped instanceof SelectableDocumentModel)
+			((SelectableDocumentModel) theWrapped).addSelectionListener(listener);
+	}
+
+	/** @param listener The listener to stop listening for selection changes in this wrapper's document */
+	public void removeSelectionListener(SelectableDocumentModel.SelectionListener listener) {
+		theSelectionListeners.remove(listener);
+		if(theWrapped instanceof SelectableDocumentModel)
+			((SelectableDocumentModel) theWrapped).removeSelectionListener(listener);
+	}
+
 	private class InternalSimpleDocumentModel implements MuisDocumentModel {
 		private final MuisDocumentModel theInternalWrapped;
 
@@ -170,6 +184,12 @@ public class WrappingDocumentModel {
 		@Override
 		public MutableDocumentModel append(char c) {
 			doc().append(c);
+			return this;
+		}
+
+		@Override
+		public MutableDocumentModel delete(int start, int end) {
+			doc().delete(start, end);
 			return this;
 		}
 
@@ -296,12 +316,6 @@ public class WrappingDocumentModel {
 		@Override
 		public MutableSelectableDocumentModel insert(int offset, char c) {
 			doc().insert(offset, c);
-			return this;
-		}
-
-		@Override
-		public MutableSelectableDocumentModel delete(int start, int end) {
-			doc().delete(start, end);
 			return this;
 		}
 	}

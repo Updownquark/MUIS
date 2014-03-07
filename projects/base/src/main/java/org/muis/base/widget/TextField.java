@@ -3,8 +3,9 @@ package org.muis.base.widget;
 import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 
+import org.muis.core.MuisConstants;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.model.MutableSelectableDocumentModel;
+import org.muis.core.model.*;
 import org.muis.core.tags.Template;
 
 /** A simple widget that takes and displays text input from the user */
@@ -12,8 +13,18 @@ import org.muis.core.tags.Template;
 public class TextField extends org.muis.core.MuisTemplate implements SimpleTextWidget {
 	private MutableSelectableDocumentModel theDocument;
 
+	private org.muis.core.model.WidgetRegistration theRegistration;
+
+	private org.muis.core.model.MuisModelValueListener<Object> theValueListener;
+
 	/** Creates a text field */
 	public TextField() {
+		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
+			@Override
+			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
+				getDocumentModel().setText(getTextFor(evt.getNewValue()));
+			}
+		};
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
@@ -57,6 +68,15 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 						}
 					}
 				});
+				atts().accept(new Object(), ModelAttributes.value);
+				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<MuisModelValue<?>>(
+					ModelAttributes.value) {
+					@Override
+					public void attributeChanged(AttributeChangedEvent<MuisModelValue<?>> event) {
+						modelValueChanged(event.getOldValue(), event.getValue());
+					}
+				});
+				modelValueChanged(null, atts().get(ModelAttributes.value));
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
@@ -73,12 +93,44 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 	protected void initDocument() {
 		if(theDocument != null)
 			throw new IllegalStateException("Document model is already initialized");
-		theDocument = getValueElement().getDocumentModel();
+		theDocument = (MutableSelectableDocumentModel) getValueElement().getDocumentModel();
 		new org.muis.base.model.SimpleTextEditing().install(this);
 	}
 
 	@Override
 	public MutableSelectableDocumentModel getDocumentModel() {
 		return theDocument;
+	}
+
+	/** @param model The document model for this text field */
+	public void setDocumentModel(MutableSelectableDocumentModel model) {
+		theDocument = model;
+		getValueElement().setDocumentModel(model);
+	}
+
+	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
+		if(theRegistration != null)
+			theRegistration.unregister();
+		if(oldValue instanceof MutableSelectableDocumentModel) {
+			if(!(newValue instanceof MuisDocumentModel))
+				setDocumentModel(null);
+		} else if(oldValue != null)
+			oldValue.removeListener(theValueListener);
+		if(newValue instanceof org.muis.core.model.WidgetRegister)
+			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(TextField.this);
+		if(newValue instanceof MuisDocumentModel) {
+			if(newValue instanceof MutableSelectableDocumentModel)
+				setDocumentModel((MutableSelectableDocumentModel) newValue);
+			else
+				throw new IllegalArgumentException("Document model for a text field must be a "
+					+ MutableSelectableDocumentModel.class.getName());
+		} else if(newValue != null) {
+			newValue.addListener(theValueListener);
+			getDocumentModel().setText(getTextFor(newValue.get()));
+		}
+	}
+
+	private static String getTextFor(Object value) {
+		return value == null ? null : value.toString();
 	}
 }

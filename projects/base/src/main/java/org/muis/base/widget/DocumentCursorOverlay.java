@@ -89,7 +89,7 @@ public class DocumentCursorOverlay extends MuisElement {
 					resetBlink();
 			}
 		});
-		theTextElement.getDocumentModel().addSelectionListener(new SelectableDocumentModel.SelectionListener() {
+		theTextElement.addTextSelectionListener(new SelectableDocumentModel.SelectionListener() {
 			@Override
 			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				resetCursorImage();
@@ -135,14 +135,20 @@ public class DocumentCursorOverlay extends MuisElement {
 			return true;
 		if(interval < 0)
 			return false;
-		if(theTextElement.getDocumentModel().getSelectionAnchor() != theTextElement.getDocumentModel().getCursor())
+		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
+			return false;
+		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
+		if(doc.getSelectionAnchor() != doc.getCursor())
 			return true;
 		long timeDiff = System.currentTimeMillis() - theLastCursorReset;
 		return (timeDiff * 2 / interval) % 2 == 0;
 	}
 
 	private boolean isBlinking() {
-		if(theTextElement.getDocumentModel().getSelectionAnchor() != theTextElement.getDocumentModel().getCursor())
+		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
+			return false;
+		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
+		if(doc.getSelectionAnchor() != doc.getCursor())
 			return false;
 		long interval;
 		if(theStyleAnchor != null)
@@ -168,8 +174,10 @@ public class DocumentCursorOverlay extends MuisElement {
 	}
 
 	private BufferedImage genCursorImage(Graphics2D graphics) {
-		MuisStyle cursorStyle = theTextElement.getDocumentModel().getStyleAt(
-			theTextElement.getDocumentModel().getCursor());
+		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
+			return new BufferedImage(1, 1, BufferedImage.TYPE_4BYTE_ABGR);
+		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
+		MuisStyle cursorStyle = doc.getStyleAt(doc.getCursor());
 		java.awt.Font cursorFont = org.muis.util.MuisUtils.getFont(cursorStyle);
 		java.awt.font.LineMetrics metrics = cursorFont.getLineMetrics("I", graphics.getFontRenderContext());
 		float ascent = metrics.getAscent();
@@ -189,7 +197,7 @@ public class DocumentCursorOverlay extends MuisElement {
 		imgGraphics.dispose();
 
 		boolean wordWrap = theTextElement.getStyle().getSelf().get(FontStyle.wordWrap);
-		java.awt.geom.Point2D cursorLoc2D = theTextElement.getDocumentModel().getLocationAt(theTextElement.getDocumentModel().getCursor(),
+		java.awt.geom.Point2D cursorLoc2D = theTextElement.getDocumentModel().getLocationAt(doc.getCursor(),
 			wordWrap ? theTextElement.bounds().getWidth() : Integer.MAX_VALUE);
 		Point loc = new Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));
 		loc.y += metrics.getLeading();

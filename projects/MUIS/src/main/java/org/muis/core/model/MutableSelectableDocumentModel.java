@@ -35,13 +35,4 @@ public interface MutableSelectableDocumentModel extends MutableDocumentModel, Se
 	 * @return This model, for chaining
 	 */
 	MutableSelectableDocumentModel insert(int offset, char c);
-
-	/**
-	 * Deletes characters from this document
-	 *
-	 * @param start The index of the start of the sequence to remove, inclusive
-	 * @param end The index of the end of the sequence to remove, exclusive
-	 * @return This model, for chaining
-	 */
-	MutableSelectableDocumentModel delete(int start, int end);
 }

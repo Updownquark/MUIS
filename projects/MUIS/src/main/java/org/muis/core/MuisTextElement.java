@@ -117,6 +117,16 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		theDocument.setWrapped(docModel);
 	}
 
+	/** @param listener The listener to listen for selection changes in this text element's document */
+	public void addTextSelectionListener(SelectableDocumentModel.SelectionListener listener) {
+		theDocument.addSelectionListener(listener);
+	}
+
+	/** @param listener The listener to stop listening for selection changes in this text element's document */
+	public void removeTextSelectionListener(SelectableDocumentModel.SelectionListener listener) {
+		theDocument.removeSelectionListener(listener);
+	}
+
 	@Override
 	public SizeGuide getWSizer() {
 		float maxW = 0;

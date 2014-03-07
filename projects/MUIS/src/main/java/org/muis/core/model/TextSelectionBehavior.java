@@ -18,10 +18,12 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 		@Override
 		public void mouseDown(MouseEvent mEvt, MuisElement element) {
+			if(!(element instanceof SelectableDocumentModel))
+				return;
 			if(mEvt.getButtonType() == MouseEvent.ButtonType.LEFT) {
 				int position = Math.round(((MuisTextElement) element).getDocumentModel().getPositionAt(mEvt.getX(), mEvt.getY(),
 					element.bounds().getWidth()));
-				MutableSelectableDocumentModel doc = ((MuisTextElement) element).getDocumentModel();
+				SelectableDocumentModel doc = (SelectableDocumentModel) ((MuisTextElement) element).getDocumentModel();
 				if(element.getDocument().isShiftPressed()) {
 					theAnchor = doc.getSelectionAnchor();
 				} else
@@ -38,6 +40,8 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 		@Override
 		public void mouseMoved(MouseEvent mEvt, MuisElement element) {
+			if(!(element instanceof SelectableDocumentModel))
+				return;
 			if(theAnchor < 0)
 				return;
 			if(!element.getDocument().isButtonPressed(MouseEvent.ButtonType.LEFT)) {
@@ -46,7 +50,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			}
 			int cursor = Math.round(((MuisTextElement) element).getDocumentModel().getPositionAt(mEvt.getX(), mEvt.getY(),
 				element.bounds().getWidth()));
-			((MuisTextElement) element).getDocumentModel().setSelection(theAnchor, cursor);
+			((SelectableDocumentModel) ((MuisTextElement) element).getDocumentModel()).setSelection(theAnchor, cursor);
 		}
 	}
 
@@ -119,7 +123,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 				theCursorXLoc = -1;
 			}
 		});
-		element.getDocumentModel().addSelectionListener(new SelectableDocumentModel.SelectionListener() {
+		element.addTextSelectionListener(new SelectableDocumentModel.SelectionListener() {
 			@Override
 			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				theCursorXLoc = -1;
@@ -136,67 +140,76 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 	}
 
 	private void copyToClipboard(MuisTextElement element, boolean cut) {
-		MutableSelectableDocumentModel doc = element.getDocumentModel();
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
 			.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
-		if(cut)
-			doc.delete(doc.getSelectionAnchor(), doc.getCursor());
+		if(cut && element.getDocumentModel() instanceof MutableDocumentModel)
+			((MutableDocumentModel) doc).delete(doc.getSelectionAnchor(), doc.getCursor());
 	}
 
 	private void left(MuisTextElement element, boolean shift) {
-		MutableSelectableDocumentModel model = element.getDocumentModel();
-		int cursor = model.getCursor() - 1;
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		int cursor = doc.getCursor() - 1;
 		if(cursor < 0)
 			cursor = 0;
 		if(shift)
-			model.setSelection(model.getSelectionAnchor(), cursor);
+			doc.setSelection(doc.getSelectionAnchor(), cursor);
 		else
-			model.setCursor(cursor);
+			doc.setCursor(cursor);
 	}
 
 	private void right(MuisTextElement element, boolean shift) {
-		MutableSelectableDocumentModel model = element.getDocumentModel();
-		int cursor = model.getCursor() + 1;
-		if(cursor > model.length())
-			cursor = model.length();
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		int cursor = doc.getCursor() + 1;
+		if(cursor > doc.length())
+			cursor = doc.length();
 		if(shift)
-			model.setSelection(model.getSelectionAnchor(), cursor);
+			doc.setSelection(doc.getSelectionAnchor(), cursor);
 		else
-			model.setCursor(cursor);
+			doc.setCursor(cursor);
 	}
 
 	private void up(MuisTextElement element, boolean shift) {
 		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
 			return;
-		MutableSelectableDocumentModel model = element.getDocumentModel();
-		Point2D loc = model.getLocationAt(model.getCursor(), element.bounds().getWidth());
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
 		if(loc.getY() == 0)
 			return; // Can't go up from here.
 		int cursorXLoc = theCursorXLoc;
 		if(cursorXLoc < 0)
 			cursorXLoc = (int) loc.getX();
-		int newCursor = Math.round(model
-			.getPositionAt(cursorXLoc, (float) loc.getY() - 1, element.bounds().getWidth()));
+		int newCursor = Math.round(doc.getPositionAt(cursorXLoc, (float) loc.getY() - 1, element.bounds().getWidth()));
 
 		if(shift)
-			model.setSelection(model.getSelectionAnchor(), newCursor);
+			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
-			model.setCursor(newCursor);
+			doc.setCursor(newCursor);
 		theCursorXLoc = cursorXLoc;
 	}
 
 	private void down(MuisTextElement element, boolean shift) {
 		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
 			return;
-		MutableSelectableDocumentModel model = element.getDocumentModel();
-		int cursor = element.getDocumentModel().getCursor();
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		int cursor = doc.getCursor();
 		int cursorXLoc = theCursorXLoc;
 		if(cursorXLoc < 0) {
-			Point2D loc = model.getLocationAt(cursor, element.bounds().getWidth());
+			Point2D loc = doc.getLocationAt(cursor, element.bounds().getWidth());
 			cursorXLoc = (int) loc.getX();
 		}
 		int y = -1;
-		for(MuisDocumentModel.StyledSequenceMetric metric : model.metrics(cursor, element.bounds().getWidth())) {
+		for(MuisDocumentModel.StyledSequenceMetric metric : doc.metrics(cursor, element.bounds().getWidth())) {
 			if(metric.isNewLine()) {
 				y = (int) metric.getTop();
 				break;
@@ -205,44 +218,48 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		if(y < 0)
 			return; // No newline after cursor. Can't go down.
 
-		int newCursor = Math.round(model.getPositionAt(cursorXLoc, y, element.bounds().getWidth()));
+		int newCursor = Math.round(doc.getPositionAt(cursorXLoc, y, element.bounds().getWidth()));
 
 		if(shift)
-			model.setSelection(model.getSelectionAnchor(), newCursor);
+			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
-			model.setCursor(newCursor);
+			doc.setCursor(newCursor);
 		theCursorXLoc = cursorXLoc;
 	}
 
 	private void home(MuisTextElement element, boolean shift) {
-		MutableSelectableDocumentModel model = element.getDocumentModel();
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		int newCursor;
 		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
 			newCursor = 0;
 		else {
-			Point2D loc = model.getLocationAt(model.getCursor(), element.bounds().getWidth());
-			newCursor = (int) model.getPositionAt(0, (float) loc.getY(), element.bounds().getWidth());
+			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
+			newCursor = (int) doc.getPositionAt(0, (float) loc.getY(), element.bounds().getWidth());
 		}
 		if(shift)
-			model.setSelection(model.getSelectionAnchor(), newCursor);
+			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
-			model.setCursor(newCursor);
+			doc.setCursor(newCursor);
 	}
 
 	private void end(MuisTextElement element, boolean shift) {
-		MutableSelectableDocumentModel model = element.getDocumentModel();
+		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			return;
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		int newCursor;
 		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
-			newCursor = model.length();
+			newCursor = doc.length();
 		else {
-			Point2D loc = model.getLocationAt(model.getCursor(), element.bounds().getWidth());
-			newCursor = (int) model.getPositionAt(element.bounds().getWidth(), (float) loc.getY(),
+			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
+			newCursor = (int) doc.getPositionAt(element.bounds().getWidth(), (float) loc.getY(),
 				element.bounds().getWidth());
 		}
 		if(shift)
-			model.setSelection(model.getSelectionAnchor(), newCursor);
+			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
-			model.setCursor(newCursor);
+			doc.setCursor(newCursor);
 	}
 
 	private void pageUp(MuisTextElement element, boolean shift) {

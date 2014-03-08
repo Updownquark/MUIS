@@ -10,9 +10,7 @@ import org.muis.core.tags.Template;
 
 /** A simple widget that takes and displays text input from the user */
 @Template(location = "../../../../text-field.muis")
-public class TextField extends org.muis.core.MuisTemplate implements SimpleTextWidget {
-	private MutableSelectableDocumentModel theDocument;
-
+public class TextField extends org.muis.core.MuisTemplate implements DocumentedElement {
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
 	private org.muis.core.model.MuisModelValueListener<Object> theValueListener;
@@ -22,7 +20,8 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
 			@Override
 			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
-				getDocumentModel().setText(getTextFor(evt.getNewValue()));
+				if(getDocumentModel() instanceof MutableDocumentModel)
+					((MutableDocumentModel) getDocumentModel()).setText(getTextFor(evt.getNewValue()));
 			}
 		};
 		life().runWhen(new Runnable() {
@@ -77,6 +76,14 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 					}
 				});
 				modelValueChanged(null, atts().get(ModelAttributes.value));
+				getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
+					@Override
+					public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
+						MuisModelValue<?> modelValue = atts().get(ModelAttributes.value);
+						if(modelValue != null && modelValue.getType() == String.class)
+							((MuisModelValue<String>) modelValue).set(getDocumentModel().toString(), null);
+					}
+				});
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
@@ -91,20 +98,16 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 	 * except as the super call from the extending method.
 	 */
 	protected void initDocument() {
-		if(theDocument != null)
-			throw new IllegalStateException("Document model is already initialized");
-		theDocument = (MutableSelectableDocumentModel) getValueElement().getDocumentModel();
 		new org.muis.base.model.SimpleTextEditing().install(this);
 	}
 
 	@Override
-	public MutableSelectableDocumentModel getDocumentModel() {
-		return theDocument;
+	public MuisDocumentModel getDocumentModel() {
+		return getValueElement().getDocumentModel();
 	}
 
 	/** @param model The document model for this text field */
 	public void setDocumentModel(MutableSelectableDocumentModel model) {
-		theDocument = model;
 		getValueElement().setDocumentModel(model);
 	}
 
@@ -126,7 +129,8 @@ public class TextField extends org.muis.core.MuisTemplate implements SimpleTextW
 					+ MutableSelectableDocumentModel.class.getName());
 		} else if(newValue != null) {
 			newValue.addListener(theValueListener);
-			getDocumentModel().setText(getTextFor(newValue.get()));
+			if(getDocumentModel() instanceof MutableDocumentModel)
+				((MutableDocumentModel) getDocumentModel()).setText(getTextFor(newValue.get()));
 		}
 	}
 

@@ -1,12 +1,13 @@
 package org.muis.base.model;
 
-import org.muis.base.widget.SimpleTextWidget;
 import org.muis.core.MuisElement;
 import org.muis.core.event.CharInputEvent;
+import org.muis.core.model.DocumentedElement;
 import org.muis.core.model.MuisBehavior;
+import org.muis.core.model.MutableSelectableDocumentModel;
 
 /** Behavior allowing keyboard input */
-public class SimpleTextEditing implements MuisBehavior<SimpleTextWidget> {
+public class SimpleTextEditing implements MuisBehavior<DocumentedElement> {
 	private org.muis.core.event.CharInputListener theInputListener;
 
 	/** Creates the behavior */
@@ -14,31 +15,32 @@ public class SimpleTextEditing implements MuisBehavior<SimpleTextWidget> {
 		theInputListener = new org.muis.core.event.CharInputListener(false) {
 			@Override
 			public void keyTyped(CharInputEvent evt, MuisElement element) {
-				charInput((SimpleTextWidget) element, evt.getChar());
+				charInput((DocumentedElement) element, evt.getChar());
 			}
 		};
 	}
 
 	@Override
-	public void install(SimpleTextWidget element) {
+	public void install(DocumentedElement element) {
 		((MuisElement) element).addListener(org.muis.core.MuisConstants.Events.CHARACTER_INPUT, theInputListener);
 
 	}
 
 	@Override
-	public void uninstall(SimpleTextWidget element) {
+	public void uninstall(DocumentedElement element) {
 		((MuisElement) element).removeListener(theInputListener);
-
 	}
 
 	/**
 	 * @param widget The widget that the character is being given to
 	 * @param ch The input character
 	 */
-	protected void charInput(SimpleTextWidget widget, char ch) {
+	protected void charInput(DocumentedElement widget, char ch) {
 		if(ch < ' ' && ch != '\t' && ch != '\n' && ch != '\r' && ch != '\b' && ch != CharInputEvent.PASTE)
 			return;
-		org.muis.core.model.MutableSelectableDocumentModel doc = widget.getDocumentModel();
+		if(!(widget.getDocumentModel() instanceof MutableSelectableDocumentModel))
+			return;
+		MutableSelectableDocumentModel doc = (MutableSelectableDocumentModel) widget.getDocumentModel();
 		boolean batchDeleted = false;
 		if(doc.getSelectionAnchor() != doc.getCursor()) {
 			doc.delete(doc.getSelectionAnchor(), doc.getCursor());
@@ -56,7 +58,9 @@ public class SimpleTextEditing implements MuisBehavior<SimpleTextWidget> {
 			doc.insert(ch);
 	}
 
-	private static void pasteFromClipboard(SimpleTextWidget element) {
+	private static void pasteFromClipboard(DocumentedElement element) {
+		if(!(element.getDocumentModel() instanceof MutableSelectableDocumentModel))
+			return;
 		java.awt.datatransfer.Transferable contents = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
 		if(contents == null || !contents.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.stringFlavor))
 			return;
@@ -70,6 +74,7 @@ public class SimpleTextEditing implements MuisBehavior<SimpleTextWidget> {
 			((MuisElement) element).msg().error("I/O exception pasting text", e);
 			return;
 		}
-		element.getDocumentModel().insert(element.getDocumentModel().getCursor(), text);
+		MutableSelectableDocumentModel doc = (MutableSelectableDocumentModel) element.getDocumentModel();
+		doc.insert(doc.getCursor(), text);
 	}
 }

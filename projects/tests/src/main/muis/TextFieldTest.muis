@@ -5,7 +5,7 @@
         <title>Text Field Test</title>
 		<style-sheet ref="../styles/muis-tests.mss"></style-sheet>
     </head>
-    <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
+    <body xmlns:base="../../../../base/MuisRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">
    			<text-field length="30">This is a text field</text-field>
    			<border>

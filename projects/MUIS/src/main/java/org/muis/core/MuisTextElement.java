@@ -12,18 +12,7 @@ import org.muis.core.model.*;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
-	private static final class InternalWrappingDocumentModel extends WrappingDocumentModel {
-		InternalWrappingDocumentModel(MuisDocumentModel model) {
-			super(model);
-		}
-
-		@Override
-		protected void setWrapped(MuisDocumentModel model) {
-			super.setWrapped(model);
-		}
-	}
-
-	private final InternalWrappingDocumentModel theDocument;
+	private final WrappingDocumentModel theDocument;
 
 	/** Creates a MUIS text element */
 	public MuisTextElement() {
@@ -50,7 +39,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			doc = new SimpleDocumentModel(getStyle().getSelf());
 		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
-		theDocument = new InternalWrappingDocumentModel(doc);
+		theDocument = new WrappingDocumentModel(doc);
 		theDocument.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
 			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
@@ -58,7 +47,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 				repaint(null, false);
 			}
 		});
-		((SimpleDocumentModel) theDocument.getDocumentModel()).addSelectionListener(new SelectableDocumentModel.SelectionListener() {
+		theDocument.addSelectionListener(new SelectableDocumentModel.SelectionListener() {
 			@Override
 			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				if(isFontDifferentSelected())

@@ -20,9 +20,9 @@ public class WrappingDocumentModel {
 
 	/** @param model The initial document model to wrap */
 	public WrappingDocumentModel(MuisDocumentModel model) {
-		theWrapped = model;
 		theContentListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theSelectionListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		setWrapped(model);
 	}
 
 	/** @return The wrapped document */
@@ -45,7 +45,7 @@ public class WrappingDocumentModel {
 	 *
 	 * @param model The new document model to wrap
 	 */
-	protected void setWrapped(MuisDocumentModel model) {
+	public void setWrapped(MuisDocumentModel model) {
 		MuisDocumentModel oldModel = model;
 		ArrayList<MuisDocumentModel.ContentListener> cls = new ArrayList<>(theContentListeners);
 		ArrayList<SelectableDocumentModel.SelectionListener> sls = new ArrayList<>(theSelectionListeners);

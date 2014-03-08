@@ -52,4 +52,17 @@ public class AggregateActionListener implements MuisActionListener, prisms.util.
 	public void seal() {
 		isSealed = true;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder ret = new StringBuilder();
+		ret.append('{');
+		for(int i = 0; i < theListeners.size(); i++) {
+			ret.append(theListeners.get(i));
+			if(i > 0)
+				ret.append(", ");
+		}
+		ret.append('}');
+		return ret.toString();
+	}
 }

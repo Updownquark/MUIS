@@ -238,9 +238,15 @@ public class MuisEventQueue {
 				graphics.translate(-trans.x, -trans.y);
 			}
 			Graphics2D docGraphics = doc.getGraphics();
-			if(docGraphics != null)
-				docGraphics.drawImage(newRender.getImage().getSubimage(trans.x, trans.y, newBound.getWidth(), newBound.getHeight()),
-					trans.x, trans.y, null);
+			if(docGraphics != null) {
+				int w = newBound.getWidth();
+				if(trans.x + w > newRender.getImage().getWidth())
+					w = newRender.getImage().getWidth() - trans.x;
+				int h = newBound.getHeight();
+				if(trans.y + h > newRender.getImage().getHeight())
+					h = newRender.getImage().getHeight() - trans.y;
+				docGraphics.drawImage(newRender.getImage().getSubimage(trans.x, trans.y, w, h), trans.x, trans.y, null);
+			}
 			if(bound.getParent() != null)
 				bound.getParent().getChildren().set(bound.getParent().getChildren().indexOf(bound), newBound);
 			else

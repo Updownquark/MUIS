@@ -197,7 +197,7 @@ public class MuisEventQueue {
 			if(element != doc.getRoot() && element.isTransparent()) {
 				Point docPos = element.getDocumentPosition();
 				if(area == null)
-					area = element.getBounds().getBounds();
+					area = new Rectangle(element.getBounds().getSize());
 				area.x += docPos.x;
 				area.y += docPos.y;
 				element = doc.getRoot();
@@ -239,13 +239,19 @@ public class MuisEventQueue {
 			}
 			Graphics2D docGraphics = doc.getGraphics();
 			if(docGraphics != null) {
+				int x = trans.x;
+				if(x < 0)
+					x = 0;
+				int y = trans.y;
+				if(y < 0)
+					y = 0;
 				int w = newBound.getWidth();
-				if(trans.x + w > newRender.getImage().getWidth())
+				if(x + w > newRender.getImage().getWidth())
 					w = newRender.getImage().getWidth() - trans.x;
 				int h = newBound.getHeight();
-				if(trans.y + h > newRender.getImage().getHeight())
+				if(y + h > newRender.getImage().getHeight())
 					h = newRender.getImage().getHeight() - trans.y;
-				docGraphics.drawImage(newRender.getImage().getSubimage(trans.x, trans.y, w, h), trans.x, trans.y, null);
+				docGraphics.drawImage(newRender.getImage().getSubimage(x, y, w, h), x, y, null);
 			}
 			if(bound.getParent() != null)
 				bound.getParent().getChildren().set(bound.getParent().getChildren().indexOf(bound), newBound);

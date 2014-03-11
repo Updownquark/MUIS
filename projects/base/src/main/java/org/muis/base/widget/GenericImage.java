@@ -429,6 +429,14 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 			return theImage;
 	}
 
+	@Override
+	public boolean isTransparent() {
+		if(!super.isTransparent())
+			return false;
+		ImageData img = getDisplayedImage();
+		return img == null || img.hasTransparency();
+	}
+
 	/** @param index The index of the frame in the animated image to display */
 	public void setImageIndex(int index) {
 		ImageData img = getDisplayedImage();

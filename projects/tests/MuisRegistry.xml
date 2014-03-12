@@ -16,6 +16,9 @@
 	<resources>
 		<resource tag="hello-world">src/main/resources/helloWorld.jpg</resource>
 		<resource tag="big-animation">src/main/resources/BigAnimation.gif</resource>
+		<resource tag="fire">src/main/resources/fire.gif</resource>
+		<resource tag="waterfall">src/main/resources/waterfall.gif</resource>
+		<resource tag="plant">src/main/resources/plant.gif</resource>
 	</resources>
 	<security />
 </registry>

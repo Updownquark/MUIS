@@ -7,8 +7,18 @@ import org.muis.core.parser.MuisParseException;
 
 /** The default implementation of {@link ModelValueReferenceParser} */
 public class DefaultModelValueReferenceParser implements ModelValueReferenceParser {
-	private static final Pattern MVR_PATTERN = Pattern
-		.compile("$\\{(([a-zA-Z_\\-][0-9a-zA-Z_\\-]*)(\\.([a-zA-Z_\\\\-][0-9a-zA-Z_\\\\-]*))*\\})");
+	private static final Pattern MVR_PATTERN;
+
+	static {
+		Pattern p;
+		try {
+			p = Pattern.compile("\\$\\{(([a-zA-Z_\\-][0-9a-zA-Z_\\-]*)(\\.([a-zA-Z_\\-][0-9a-zA-Z_\\-]*))*)\\}");
+		} catch(RuntimeException e) {
+			e.printStackTrace();
+			p = null;
+		}
+		MVR_PATTERN = p;
+	}
 
 	private org.muis.core.MuisDocument theDocument;
 

@@ -532,9 +532,22 @@ public abstract class MuisTemplate extends MuisElement {
 			if(structure.getTagName().equals(TemplateStructure.GENERIC_TEXT)) {
 				if(!structure.getChildren().isEmpty())
 					throw new MuisException(structure.getTagName() + " elements may not contain children");
+				for(Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
+					String attName = att.getKey();
+					if(!attName.startsWith(TEMPLATE_PREFIX))
+						throw new MuisException(structure.getTagName() + " elements may not have non-template attributes");
+				}
+
 				return new org.muis.core.parser.MuisText(parent, "", false);
-			} else
+			} else {
 				ret = new WidgetStructure(parent, structure.getClassView(), structure.getNamespace(), structure.getTagName());
+				for(Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
+					String attName = att.getKey();
+					if(!attName.startsWith(TEMPLATE_PREFIX))
+						ret.addAttribute(attName, att.getValue());
+				}
+
+			}
 			for(MuisContent content : structure.getChildren()) {
 				if(!(content instanceof WidgetStructure))
 					continue;
@@ -559,6 +572,14 @@ public abstract class MuisTemplate extends MuisElement {
 							+ (child.getNamespace() == null ? "" : (child.getNamespace() + ":")) + child.getTagName()
 							+ "\" for attach point \"" + name + "\": " + e.getMessage(), e);
 					}
+
+				for(String attName : child.getAttributes().keySet()) {
+					if(attName.startsWith(TEMPLATE_PREFIX) && !attName.equals(ATTACH_POINT) && !attName.equals(EXTERNAL)
+						&& !attName.equals(IMPLEMENTATION) && !attName.equals(REQUIRED) && !attName.equals(MULTIPLE)
+						&& !attName.equals(DEFAULT) && !attName.equals(MUTABLE) && !attName.equals(EXPOSE_ATTRIBUTES))
+						throw new MuisException("Template attribute " + attName + " not recognized");
+				}
+
 				boolean external = getBoolean(child, EXTERNAL, true, name); // Externally-specifiable by default
 				boolean implementation = getBoolean(child, IMPLEMENTATION, !external, name);
 				boolean multiple = getBoolean(child, MULTIPLE, false, name);
@@ -586,19 +607,6 @@ public abstract class MuisTemplate extends MuisElement {
 				Map<AttachPoint, MuisContent> check = new HashMap<>();
 				MuisContent replacement = pullAttachPoints(template, child, ret, check);
 				ret.addChild(replacement);
-
-				for(Map.Entry<String, String> att : child.getAttributes().entrySet()) {
-					String attName = att.getKey();
-					if(!attName.startsWith(TEMPLATE_PREFIX)) {
-						if(replacement instanceof WidgetStructure)
-							ret.addAttribute(attName, att.getValue());
-						else
-							throw new MuisException(child.getTagName() + " elements may not have non-template attributes");
-					} else if(!attName.equals(ATTACH_POINT) && !attName.equals(EXTERNAL) && !attName.equals(IMPLEMENTATION)
-						&& !attName.equals(REQUIRED) && !attName.equals(MULTIPLE) && !attName.equals(DEFAULT) && !attName.equals(MUTABLE)
-						&& !attName.equals(EXPOSE_ATTRIBUTES))
-						throw new MuisException("Template attribute " + attName + " not recognized");
-				}
 
 				if(external) {
 					if(!check.isEmpty())

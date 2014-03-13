@@ -114,4 +114,9 @@ public class ModelValueLinker<T1, T2> {
 		theLeft.removeListener(theLeftListener);
 		theRight.removeListener(theRightListener);
 	}
+
+	@Override
+	public String toString() {
+		return theLeft + "<-->" + theRight;
+	}
 }

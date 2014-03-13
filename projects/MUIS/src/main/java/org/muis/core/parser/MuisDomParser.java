@@ -256,9 +256,8 @@ public class MuisDomParser implements MuisParser {
 				continue;
 			msg.error("Extra element " + el.getName() + " in document XML");
 		}
-		WidgetStructure content = parseContent(
-			new WidgetStructure(null, theEnvironment, classView, rootEl.getNamespacePrefix(), rootEl.getName()), classView, body[0], msg,
-			location);
+		WidgetStructure content = parseContent(new WidgetStructure(null, classView, rootEl.getNamespacePrefix(), rootEl.getName()),
+			classView, body[0], msg, location);
 		return new MuisDocumentStructure(location, head, content);
 	}
 
@@ -523,7 +522,7 @@ public class MuisDomParser implements MuisParser {
 		if(ns.length() == 0)
 			ns = null;
 		MuisClassView classView = getClassView(parent == null ? rootClassView : parent.getClassView(), xml, msg, location);
-		WidgetStructure ret = new WidgetStructure(parent, theEnvironment, classView, ns, xml.getName());
+		WidgetStructure ret = new WidgetStructure(parent, classView, ns, xml.getName());
 
 		for(org.jdom2.Attribute att : xml.getAttributes())
 			ret.addAttribute(att.getName(), att.getValue());

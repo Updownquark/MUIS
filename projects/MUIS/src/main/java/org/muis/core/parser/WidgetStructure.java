@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.muis.core.MuisClassView;
-import org.muis.core.MuisEnvironment;
 
 /** Represents the structure of a widget as defined in XML */
 public class WidgetStructure extends MuisContent implements prisms.util.Sealable {
@@ -22,12 +21,11 @@ public class WidgetStructure extends MuisContent implements prisms.util.Sealable
 
 	/**
 	 * @param parent This structure's parent
-	 * @param env The environment this structure was parsed in
 	 * @param classView The class view for this widget
 	 * @param ns The namespace for this widget
 	 * @param tag The tag name for this widget
 	 */
-	public WidgetStructure(WidgetStructure parent, MuisEnvironment env, MuisClassView classView, String ns, String tag) {
+	public WidgetStructure(WidgetStructure parent, MuisClassView classView, String ns, String tag) {
 		super(parent);
 		theNamespace = ns;
 		theTagName = tag;

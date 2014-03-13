@@ -130,7 +130,8 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 						return get(type, crossSize, csMax, startIndex + 1, padding, center);
 					else {
 						LayoutSize ret = new LayoutSize();
-						LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
+						if(center != null)
+							LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
 						return ret;
 					}
 				} else if(childRegion.getOrientation() == orient) {

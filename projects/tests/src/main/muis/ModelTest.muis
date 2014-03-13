@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<muis>
+<muis xmlns:test="../../../MuisRegistry.xml">
     <head>
         <title>Model Test</title>
 		<style-sheet ref="../styles/muis-tests.mss"></style-sheet>
         <model name="model" class="org.muis.test.model.ModelTestModel" />
     </head>
-    <body xmlns:base="../../../../base/MuisRegistry.xml" xmlns:test="../../../MuisRegistry.xml">
-   		<block layout="base:border">
-   			<label region="top" style="font.size=x-large">Model Test</label>
-   			<block region="left" layout="box" direction="down">
-   				<label style="font.size=large">Choose Background</label>
-	    		<toggle-button left="10" top="20px" height="30px" value="model.bg.buttons.red">Red</toggle-button>
-	    		<toggle-button left="10" top="50px" height="30px" value="model.bg.buttons.blue">Blue</toggle-button>
-	    		<toggle-button left="10" top="80px" height="30px" value="model.bg.buttons.green">Green</toggle-button>
+    <body xmlns:base="../../../../base/MuisRegistry.xml">
+   		<block layout="base:border-layout">
+   			<label region="top" style="font.size=24">Model Test</label>
+   			<block region="left" layout="box" direction="down" cross-align="justify">
+   				<label style="font.size=16">Choose Background</label>
+	    		<toggle-button value="model.bg.buttons.red">Red</toggle-button>
+	    		<toggle-button value="model.bg.buttons.blue">Blue</toggle-button>
+	    		<toggle-button value="model.bg.buttons.green">Green</toggle-button>
 	    		<image src="test:${model.bg.image}" />
    			</block>
    			<block region="right" layout="box" direction="down">
 	   			<text-field model="model.fg.text" length="30"></text-field>
    			</block>
-   			<border group="${model.bg.groupName}" style="font.color=${model.fg.value}">
+   			<border group="${model.bg.group-name}" style="font.color=${model.fg.value}">
    				This text's background should match the selected button at left.
    				Its font color should match the value at right.
    			</border>

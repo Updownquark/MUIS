@@ -12,21 +12,24 @@ import org.muis.core.style.Colors;
 /** The model backing the ModelTest.muis */
 public class ModelTestModel extends DefaultMuisModel {
 	private DefaultMuisModel theBgModel;
-	private org.muis.base.model.MuisButtonGroup theBgGroup;
+
 	private DefaultMuisModelValue<Color> theBgValue;
+	private org.muis.base.model.MuisButtonGroup theBgGroup;
+
+	private DefaultMuisModelValue<String> theBgGroupName;
 
 	private DefaultMuisModelValue<String> theBgImage;
 
 	private DefaultMuisModel theFgModel;
 	private DefaultMuisModelValue<Color> theFgValue;
-
 	private DefaultMuisModelValue<String> theFgText;
 
 	/** Creates the model */
 	public ModelTestModel() {
 		theBgModel = new DefaultMuisModel();
-		theBgGroup = new org.muis.base.model.MuisButtonGroup();
 		theBgValue = new DefaultMuisModelValue<>(Color.class);
+		theBgGroup = new org.muis.base.model.MuisButtonGroup();
+		theBgGroupName = new DefaultMuisModelValue<>(String.class);
 		theBgImage = new DefaultMuisModelValue<>(String.class);
 
 		theFgModel = new DefaultMuisModel();
@@ -36,6 +39,7 @@ public class ModelTestModel extends DefaultMuisModel {
 		subModels().put("bg", theBgModel);
 		theBgModel.subModels().put("buttons", theBgGroup);
 		theBgModel.values().put("value", theBgValue);
+		theBgModel.values().put("group-name", theBgGroupName);
 		theBgModel.values().put("image", theBgImage);
 		theBgModel.seal();
 
@@ -65,6 +69,17 @@ public class ModelTestModel extends DefaultMuisModel {
 				return Colors.toString(value);
 			}
 		}).link();
+		new ModelValueLinker<>(null, theBgGroup, theBgGroupName).setLeftToRight(new ValueConverter<String, String>() {
+			@Override
+			public String convert(String value) {
+				return "bg-" + value;
+			}
+		}).setRightToLeft(new ValueConverter<String, String>() {
+			@Override
+			public String convert(String value) {
+				throw new IllegalStateException("Should never get called");
+			}
+		}).link();
 		new ModelValueLinker<>(null, theBgGroup, theBgImage).setLeftToRight(new ValueConverter<String, String>() {
 			@Override
 			public String convert(String value) {
@@ -76,7 +91,7 @@ public class ModelTestModel extends DefaultMuisModel {
 				case "green":
 					return "plant";
 				default:
-					return null;
+					return "fire";
 				}
 			}
 		}).setRightToLeft(new ValueConverter<String, String>() {
@@ -102,5 +117,8 @@ public class ModelTestModel extends DefaultMuisModel {
 				}
 			}
 		}).link();
+
+		theBgValue.set(Color.blue, null);
+		theFgValue.set(Color.black, null);
 	}
 }

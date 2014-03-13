@@ -6,8 +6,7 @@ import java.lang.reflect.Modifier;
 import org.muis.core.MuisException;
 
 /** A utility class for dealing with colors */
-public class Colors
-{
+public class Colors {
 	/** Not available via {@link #parseColor(String)}, this is a code utility constant representing a completely transparent color */
 	public static final transient Color transparent = new Color(0, 0, 0, 0);
 
@@ -435,38 +434,31 @@ public class Colors
 
 	private static final java.util.IdentityHashMap<Color, String> theColorNames;
 
-	static
-	{
+	static {
 		theNamedColors = new java.util.HashMap<>();
 		theColorNames = new java.util.IdentityHashMap<>();
 		java.lang.reflect.Field[] colorFields = Colors.class.getDeclaredFields();
-		for(java.lang.reflect.Field field : colorFields)
-		{
+		for(java.lang.reflect.Field field : colorFields) {
 			int mods = field.getModifiers();
 			if(!Modifier.isPublic(mods) || !Modifier.isStatic(mods) || Modifier.isTransient(mods))
 				continue;
 			if(field.getType() != Color.class)
 				continue;
-			try
-			{
+			try {
 				Color value = (Color) field.get(null);
 				theNamedColors.put(field.getName().toLowerCase(), value);
 				theColorNames.put(value, field.getName());
-			} catch(IllegalAccessException e)
-			{
+			} catch(IllegalAccessException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
 	/** An internal method to swallow the exception from {@link #parseColor(String)} */
-	private static Color _parseColor(String str)
-	{
-		try
-		{
+	private static Color _parseColor(String str) {
+		try {
 			return parseColor(str);
-		} catch(MuisException e)
-		{
+		} catch(MuisException e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -487,83 +479,72 @@ public class Colors
 	 * @return The color corresponding to the string
 	 * @throws MuisException If the color is unrecognized or cannot be parsed
 	 */
-	public static Color parseColor(String str) throws MuisException
-	{
+	public static Color parseColor(String str) throws MuisException {
+		final String original = str;
 		str = str.toLowerCase();
-		if(str.startsWith("#"))
-		{
+		if(str.startsWith("#")) {
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
-				throw new MuisException("RGB colors must be in the form of #XXXXXX where X is 0-9 or a-f");
+				throw new MuisException("RGB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
 			return rgb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
-		}
-		else if(str.startsWith("$"))
-		{
+		} else if(str.startsWith("$")) {
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
-				throw new MuisException("HSB colors must be in the form of #XXXXXX where X is 0-9 or a-f");
+				throw new MuisException("HSB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
 			return hsb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
-		}
-		else if(str.startsWith("rgb("))
-		{
-			String orig = str;
+		} else if(str.startsWith("rgb(")) {
 			if(str.charAt(str.length() - 1) != ')')
-				throw new MuisException("Colors that start with 'rgb(' must end with ')': " + orig);
+				throw new MuisException("Colors that start with 'rgb(' must end with ')': \"" + original + "\"");
 			str = str.substring(4, str.length() - 1);
 			int r, g, b;
-			try
-			{
+			try {
 				int idx = str.indexOf(',');
 				if(idx < 0)
-					throw new MuisException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: " + orig);
+					throw new MuisException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
+						+ "\"");
 				r = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				idx = str.indexOf(',');
 				if(idx < 0)
-					throw new MuisException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: " + orig);
-				g = Integer.parseInt(orig.substring(0, idx));
+					throw new MuisException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
+						+ "\"");
+				g = Integer.parseInt(original.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				b = Integer.parseInt(str);
-			} catch(NumberFormatException e)
-			{
-				throw new MuisException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: " + orig);
+			} catch(NumberFormatException e) {
+				throw new MuisException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original + "\"");
 			}
 			if(r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255)
 				throw new MuisException("Colors that start with 'rgb('"
-					+ " must have three integers between 0 and 255 separated by commas: " + orig);
+					+ " must have three integers between 0 and 255 separated by commas: \"" + original + "\"");
 			return rgb(r, g, b);
-		}
-		else if(str.startsWith("hsb("))
-		{
-			String orig = str;
+		} else if(str.startsWith("hsb(")) {
 			if(str.charAt(str.length() - 1) != ')')
-				throw new MuisException("Colors that start with 'hsb(' must end with ')': " + orig);
+				throw new MuisException("Colors that start with 'hsb(' must end with ')': \"" + original + "\"");
 			str = str.substring(4, str.length() - 1);
 			int h, s, b;
-			try
-			{
+			try {
 				int idx = str.indexOf(',');
 				if(idx < 0)
-					throw new MuisException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: " + orig);
+					throw new MuisException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
+						+ "\"");
 				h = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				idx = str.indexOf(',');
 				if(idx < 0)
-					throw new MuisException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: " + orig);
+					throw new MuisException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
+						+ "\"");
 				s = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				b = Integer.parseInt(str);
-			} catch(NumberFormatException e)
-			{
-				throw new MuisException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: " + orig);
+			} catch(NumberFormatException e) {
+				throw new MuisException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original + "\"");
 			}
 			if(h < 0 || h > 255 || s < 0 || s > 255 || b < 0 || b > 255)
 				throw new MuisException("Colors that start with 'hsb('"
-					+ " must have three integers between 0 and 255 separated by commas: " + orig);
+					+ " must have three integers between 0 and 255 separated by commas: \"" + original + "\"");
 			return hsb(h, s, b);
-		}
-		else
-		{
+		} else {
 			Color ret = theNamedColors.get(str);
 			if(ret == null)
 				throw new MuisException("No color named " + str);
@@ -593,8 +574,7 @@ public class Colors
 
 	private static final String hexDigits = "0123456789abcdef";
 
-	private static int hexInt(String str, int start)
-	{
+	private static int hexInt(String str, int start) {
 		int ret = hexDigits.indexOf(str.charAt(start));
 		ret *= 16;
 		ret += hexDigits.indexOf(str.charAt(start + 1));

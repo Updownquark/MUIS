@@ -32,9 +32,13 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 
 	@Override
 	public <T> MuisModelValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
-		if(name.equals("value"))
+		if(name.equals("value")) {
+			if(!type.isAssignableFrom(String.class))
+				throw new IllegalArgumentException("This value is of type String--not " + type.getName());
 			return (MuisModelValue<T>) this;
-		else {
+		} else {
+			if(!type.isAssignableFrom(Boolean.class) && !type.isAssignableFrom(Boolean.TYPE))
+				throw new IllegalArgumentException("This value is of type Boolean--not " + type.getName());
 			CaseModelValue btnValue = theButtonValues.get(name);
 			if(btnValue == null) {
 				btnValue = new CaseModelValue(name);

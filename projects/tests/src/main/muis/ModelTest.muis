@@ -11,15 +11,15 @@
    			<label region="top" style="font.size=x-large">Model Test</label>
    			<block region="left" layout="box" direction="down">
    				<label style="font.size=large">Choose Background</label>
-	    		<toggle-button left="10" top="20px" height="30px" value="model.bgColor.red">Red</toggle-button>
-	    		<toggle-button left="10" top="50px" height="30px" value="model.bgColor.blue">Blue</toggle-button>
-	    		<toggle-button left="10" top="80px" height="30px" value="model.bgColor.green">Green</toggle-button>
-	    		<image src="test:${model.image}" />
+	    		<toggle-button left="10" top="20px" height="30px" value="model.bg.buttons.red">Red</toggle-button>
+	    		<toggle-button left="10" top="50px" height="30px" value="model.bg.buttons.blue">Blue</toggle-button>
+	    		<toggle-button left="10" top="80px" height="30px" value="model.bg.buttons.green">Green</toggle-button>
+	    		<image src="test:${model.bg.image}" />
    			</block>
    			<block region="right" layout="box" direction="down">
-	   			<text-field model="model.fgColor.text" length="30"></text-field>
+	   			<text-field model="model.fg.text" length="30"></text-field>
    			</block>
-   			<border group="${model.bgColor.group}" style="font.color=${model.fgColor.value}">
+   			<border group="${model.bg.groupName}" style="font.color=${model.fg.value}">
    				This text's background should match the selected button at left.
    				Its font color should match the value at right.
    			</border>

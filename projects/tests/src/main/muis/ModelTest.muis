@@ -8,18 +8,18 @@
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml">
    		<block layout="base:border-layout">
-   			<label region="top" style="font.size=24">Model Test</label>
-   			<block region="left" layout="box" direction="down" cross-align="justify">
+   			<label region="top" height="30" style="font.size=24">Model Test</label>
+   			<block region="left" width="120" layout="box" direction="down" cross-align="justify">
    				<label style="font.size=16">Choose Background</label>
 	    		<toggle-button value="model.bg.buttons.red">Red</toggle-button>
 	    		<toggle-button value="model.bg.buttons.blue">Blue</toggle-button>
 	    		<toggle-button value="model.bg.buttons.green">Green</toggle-button>
-	    		<image src="test:${model.bg.image}" />
+	    		<image src="test:${model.bg.image}" prop-locked="true" resize="resize" width="100%"/>
    			</block>
-   			<block region="right" layout="box" direction="down">
-	   			<text-field model="model.fg.text" length="30"></text-field>
+   			<block region="right" width="200" layout="box" direction="down">
+	   			<text-field value="model.fg.text" length="30"></text-field>
    			</block>
-   			<border group="${model.bg.group-name}" style="font.color=${model.fg.value}">
+   			<border region="center" group="${model.bg.group-name}" style="font.color=${model.fg.value}">
    				This text's background should match the selected button at left.
    				Its font color should match the value at right.
    			</border>

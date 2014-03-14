@@ -113,7 +113,7 @@ public class ModelTestModel extends DefaultMuisModel {
 					return Colors.parseColor(value);
 				} catch(MuisException e) {
 					e.printStackTrace();
-					return Color.white;
+					return Color.black;
 				}
 			}
 		}).link();

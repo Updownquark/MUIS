@@ -91,7 +91,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 
 	/** @return This element's text content */
 	public String getText() {
-		return theDocument.toString();
+		return getDocumentModel().toString();
 	}
 
 	@Override

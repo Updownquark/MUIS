@@ -8,6 +8,8 @@ import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 
 import org.muis.core.style.MuisStyle;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleListener;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.core.style.stateful.StateChangedEvent;
 import org.muis.core.style.stateful.StatefulStyle;
@@ -50,6 +52,32 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 		theLock = new java.util.concurrent.locks.ReentrantReadWriteLock();
 		theContentListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theSelectionListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
+		 * correctly because the cache may have the old color/size/etc */
+		theNormalStyle.addListener(new StyleListener() {
+			@Override
+			public void eventOccurred(StyleAttributeEvent<?> event) {
+				int minSel = theCursor;
+				int maxSel = theCursor;
+				if(theSelectionAnchor < minSel)
+					minSel = theSelectionAnchor;
+				if(theSelectionAnchor > maxSel)
+					maxSel = theSelectionAnchor;
+				if(minSel == 0 && maxSel == length()) {
+					return; // No unselected text
+				}
+				clearCache();
+			}
+		});
+		theSelectedStyle.addListener(new StyleListener() {
+			@Override
+			public void eventOccurred(StyleAttributeEvent<?> event) {
+				if(theCursor == theSelectionAnchor) {
+					return; // No selected text
+				}
+				clearCache();
+			}
+		});
 	}
 
 	/** @return This document's parent's style */

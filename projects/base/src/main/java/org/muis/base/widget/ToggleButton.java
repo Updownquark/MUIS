@@ -79,6 +79,7 @@ public class ToggleButton extends Button {
 			if(newValue instanceof org.muis.core.model.WidgetRegister)
 				theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(this);
 			setEnabled(newValue.isMutable(), null);
+			theSelectedController.setActive((Boolean) newValue.get(), null);
 		} else {
 			setEnabled(true, null);
 		}

@@ -18,7 +18,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 		@Override
 		public void mouseDown(MouseEvent mEvt, MuisElement element) {
-			if(!(element instanceof SelectableDocumentModel))
+			if(!(((MuisTextElement) element).getDocumentModel() instanceof SelectableDocumentModel))
 				return;
 			if(mEvt.getButtonType() == MouseEvent.ButtonType.LEFT) {
 				int position = Math.round(((MuisTextElement) element).getDocumentModel().getPositionAt(mEvt.getX(), mEvt.getY(),
@@ -40,7 +40,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 		@Override
 		public void mouseMoved(MouseEvent mEvt, MuisElement element) {
-			if(!(element instanceof SelectableDocumentModel))
+			if(!(((MuisTextElement) element).getDocumentModel() instanceof SelectableDocumentModel))
 				return;
 			if(theAnchor < 0)
 				return;

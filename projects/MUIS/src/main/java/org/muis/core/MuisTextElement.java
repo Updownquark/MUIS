@@ -253,7 +253,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 				}
 				return false;
 			}
-		}, "\n", theDocument.toString()));
+		}, "\n", theDocument.getDocumentModel().toString()));
 		if(getTagName() != null)
 			ret.append('<').append('/').append(getTagName()).append('>');
 		else

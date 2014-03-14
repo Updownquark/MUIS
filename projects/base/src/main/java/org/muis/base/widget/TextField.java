@@ -5,6 +5,7 @@ import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 
 import org.muis.core.MuisConstants;
 import org.muis.core.event.AttributeChangedEvent;
+import org.muis.core.event.AttributeChangedListener;
 import org.muis.core.model.*;
 import org.muis.core.tags.Template;
 
@@ -18,10 +19,18 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	/** Creates a text field */
 	public TextField() {
 		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
+			private boolean theEventLock;
+
 			@Override
 			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
-				if(getDocumentModel() instanceof MutableDocumentModel)
-					((MutableDocumentModel) getDocumentModel()).setText(getTextFor(evt.getNewValue()));
+				if(!theEventLock && getDocumentModel() instanceof MutableDocumentModel) {
+					theEventLock = true;
+					try {
+						((MutableDocumentModel) getDocumentModel()).setText(getTextFor(evt.getNewValue()));
+					} finally {
+						theEventLock = false;
+					}
+				}
 			}
 		};
 		life().runWhen(new Runnable() {
@@ -29,6 +38,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			public void run() {
 				atts().accept(this, charLengthAtt);
 				atts().accept(this, charRowsAtt);
+				atts().accept(this, ModelAttributes.value);
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(new Runnable() {
@@ -45,8 +55,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				} catch(org.muis.core.MuisException e) {
 					msg().error("Could not initialize text layout attributes", e);
 				}
-				addListener(org.muis.core.MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<Long>(
-					charLengthAtt) {
+				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<Long>(charLengthAtt) {
 					@Override
 					public void attributeChanged(AttributeChangedEvent<Long> event) {
 						try {
@@ -56,8 +65,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 						}
 					}
 				});
-				addListener(org.muis.core.MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<Long>(
-					charRowsAtt) {
+				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<Long>(charRowsAtt) {
 					@Override
 					public void attributeChanged(AttributeChangedEvent<Long> event) {
 						try {
@@ -67,9 +75,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 						}
 					}
 				});
-				atts().accept(new Object(), ModelAttributes.value);
-				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<MuisModelValue<?>>(
-					ModelAttributes.value) {
+				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<MuisModelValue<?>>(ModelAttributes.value) {
 					@Override
 					public void attributeChanged(AttributeChangedEvent<MuisModelValue<?>> event) {
 						modelValueChanged(event.getOldValue(), event.getValue());

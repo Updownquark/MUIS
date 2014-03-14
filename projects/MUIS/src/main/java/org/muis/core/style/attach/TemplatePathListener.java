@@ -192,7 +192,7 @@ public class TemplatePathListener {
 				public void attributeChanged(AttributeChangedEvent<String []> event) {
 					List<String> oldGroups = newValue.parentGroups;
 					newValue.parentGroups = Arrays.asList(event.getValue());
-					for(int i = newValue.paths.length - 1; i >= 0; i++) {
+					for(int i = newValue.paths.length - 1; i >= 0; i--) {
 						notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), newValue.paths[i]),
 							new TemplateRole(newValue.role, newValue.parentGroups, newValue.parent.getClass(), newValue.paths[i]));
 					}

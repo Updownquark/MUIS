@@ -81,8 +81,8 @@ public abstract class MuisTemplate extends MuisElement {
 		/** Whether the immutable implementation in this attach point exposes its attributes through the template widget */
 		public final boolean exposeAtts;
 
-		AttachPoint(TemplateStructure temp, MuisContent src, String aName, Class<? extends MuisElement> aType, boolean ext,
-			boolean req, boolean mult, boolean def, boolean impl, boolean isMutable, boolean attsExposed) {
+		AttachPoint(TemplateStructure temp, MuisContent src, String aName, Class<? extends MuisElement> aType, boolean ext, boolean req,
+			boolean mult, boolean def, boolean impl, boolean isMutable, boolean attsExposed) {
 			template = temp;
 			source = src;
 			name = aName;
@@ -865,13 +865,19 @@ public abstract class MuisTemplate extends MuisElement {
 		super.doLayout();
 	}
 
-	/** @param behavior The behavior to install in this widget */
+	/**
+	 * @param <E> The type of element the behavior applies to
+	 * @param behavior The behavior to install in this widget
+	 */
 	protected <E> void addBehavior(MuisBehavior<E> behavior) {
 		behavior.install((E) this);
 		theBehaviors.add(behavior);
 	}
 
-	/** @param behavior The behavior to uninstall from this widget */
+	/**
+	 * @param <E> The type of element the behavior applies to
+	 * @param behavior The behavior to uninstall from this widget
+	 */
 	protected <E> void removeBehavior(MuisBehavior<E> behavior) {
 		if(!theBehaviors.remove(behavior))
 			throw new IllegalArgumentException("This behavior is not installed on this element");
@@ -913,8 +919,7 @@ public abstract class MuisTemplate extends MuisElement {
 			return getChildManager();
 		}
 
-		for(MuisElement child : children)
-			addContent(child, theTemplateStructure);
+		initExternalChildren(children, theTemplateStructure);
 
 		// Verify we've got all required attach points satisfied, etc.
 		if(!verifyTemplateStructure(theTemplateStructure))
@@ -1036,16 +1041,42 @@ public abstract class MuisTemplate extends MuisElement {
 		return ret;
 	}
 
-	private void addContent(final MuisElement child, final TemplateStructure template) {
-		child.atts().accept(theRoleWanter, template.role);
-		AttachPoint role = child.atts().get(template.role);
-		if(role == null) {
-			role = template.getDefaultAttachPoint();
-			try {
-				child.atts().set(template.role, role);
-			} catch(MuisException e) {
-				throw new IllegalArgumentException("Should not get error here", e);
+	private void initExternalChildren(MuisElement [] children, TemplateStructure template) {
+		AttachPoint [] roles = new AttachPoint[children.length];
+		for(int c = 0; c < children.length; c++) {
+			children[c].atts().accept(theRoleWanter, template.role);
+			roles[c] = children[c].atts().get(template.role);
+			if(roles[c] == null) {
+				roles[c] = template.getDefaultAttachPoint();
+				try {
+					children[c].atts().set(template.role, roles[c]);
+				} catch(MuisException e) {
+					throw new IllegalArgumentException("Should not get error here", e);
+				}
 			}
+			if(roles[c] == null) {
+				msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", children[c]);
+				return;
+			}
+			if(!roles[c].external) {
+				msg().error(
+					"Role \"" + roles[c] + "\" is not specifiable externally for templated widget " + template.getDefiner().getName(),
+					"child", children[c]);
+				return;
+			}
+			if(!roles[c].type.isInstance(children[c])) {
+				msg()
+					.error(
+						"Children fulfilling role \"" + roles[c] + "\" in templated widget " + template.getDefiner().getName()
+							+ " must be of type " + roles[c].type.getName() + ", not " + children[c].getClass().getName(), "child",
+						children[c]);
+				return;
+			}
+			List<MuisElement> attaches = theAttachmentMappings.get(roles[c]);
+			if(attaches == null)
+				throw new IllegalStateException(MuisTemplate.class.getSimpleName() + " implementation error: No attachment mappings for "
+					+ template.getDefiner().getSimpleName() + "." + roles[c]);
+			attaches.clear(); // The given children should replace in-place implementations
 		}
 		/*child.addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<AttachPoint>(
 			template.role) {
@@ -1068,48 +1099,29 @@ public abstract class MuisTemplate extends MuisElement {
 				}
 			}
 		});*/
-		if(role == null)
-			role = template.getDefaultAttachPoint();
-		if(role == null) {
-			msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", child);
-			return;
-		}
-		if(!role.external) {
-			msg().error("Role \"" + role + "\" is not specifiable externally for templated widget " + template.getDefiner().getName(),
-				"child", child);
-			return;
-		}
-		if(!role.type.isInstance(child)) {
-			msg().error(
-				"Children fulfilling role \"" + role + "\" in templated widget " + template.getDefiner().getName() + " must be of type "
-					+ role.type.getName() + ", not " + child.getClass().getName(), "child", child);
-			return;
-		}
-		List<MuisElement> attaches = theAttachmentMappings.get(role);
-		if(attaches == null)
-			throw new IllegalStateException(MuisTemplate.class.getSimpleName() + " implementation error: No attachment mappings for "
-				+ template.getDefiner().getSimpleName() + "." + role);
-		if(role.implementation && attaches.size() == 1 && attaches.get(0).atts().get(TemplateStructure.IMPLEMENTATION) != null)
-			attaches.clear(); // Override the provided implementation
-		if(!role.multiple && !attaches.isEmpty()) {
-			msg().error("Multiple children fulfilling role \"" + role + "\" in templated widget " + template.getDefiner().getName(),
-				"child", child);
-			return;
-		}
-		MuisContent widgetStruct = template.getWidgetStructure(role);
-		if(widgetStruct instanceof WidgetStructure) {
-			for(Map.Entry<String, String> attr : ((WidgetStructure) widgetStruct).getAttributes().entrySet()) {
-				if(attr.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
-					continue;
-				try {
-					child.atts().set(attr.getKey(), attr.getValue());
-				} catch(MuisException e) {
-					child.msg().error(
-						"Template-specified attribute " + attr.getKey() + "=" + attr.getValue() + " is not supported by content", e);
+		for(int c = 0; c < children.length; c++) {
+			List<MuisElement> attaches = theAttachmentMappings.get(roles[c]);
+			if(!roles[c].multiple && !attaches.isEmpty()) {
+				msg().error(
+					"Multiple children fulfilling role \"" + roles[c] + "\" in templated widget " + template.getDefiner().getName(),
+					"child", children[c]);
+				return;
+			}
+			MuisContent widgetStruct = template.getWidgetStructure(roles[c]);
+			if(widgetStruct instanceof WidgetStructure) {
+				for(Map.Entry<String, String> attr : ((WidgetStructure) widgetStruct).getAttributes().entrySet()) {
+					if(attr.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
+						continue;
+					try {
+						children[c].atts().set(attr.getKey(), attr.getValue());
+					} catch(MuisException e) {
+						children[c].msg().error(
+							"Template-specified attribute " + attr.getKey() + "=" + attr.getValue() + " is not supported by content", e);
+					}
 				}
 			}
+			attaches.add(children[c]);
 		}
-		attaches.add(child);
 	}
 
 	private boolean verifyTemplateStructure(TemplateStructure struct) {

@@ -412,7 +412,8 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					}
 
 					if(wasLineBreak) {
-						theTop += theOldLayout.getAscent() + theOldLayout.getDescent() + theOldLayout.getLeading();
+						if(theOldLayout != null)
+							theTop += theOldLayout.getAscent() + theOldLayout.getDescent() + theOldLayout.getLeading();
 						theLineOffset = 0;
 					} else if(theOldLayout != null) {
 						theLineOffset += theOldLayout.getAdvance();

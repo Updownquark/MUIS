@@ -149,6 +149,8 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			min = Math.round(maxW);
 		} else
 			min = max;
+		min += 3; // Not quite sure why these padding values need to be here, but the text wraps unnecessarily if they're not
+		max += 3;
 		return new SimpleSizeGuide(min, min, max, max, max);
 	}
 

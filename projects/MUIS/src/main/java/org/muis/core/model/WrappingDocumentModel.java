@@ -157,6 +157,11 @@ public class WrappingDocumentModel {
 		public Iterator<StyledSequence> iterator() {
 			return theInternalWrapped.iterator();
 		}
+
+		@Override
+		public String toString() {
+			return theInternalWrapped.toString();
+		}
 	}
 
 	private class InternalMutableDocumentModel extends InternalSimpleDocumentModel implements MutableDocumentModel {

@@ -112,12 +112,12 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 								@Override
 								public char charAt(int index) {
-									return theBackingSequence.charAt(index - theOffset);
+									return theBackingSequence.charAt(index + theOffset);
 								}
 
 								@Override
 								public CharSequence subSequence(int start, int end) {
-									return theBackingSequence.subSequence(start - theOffset, end - theOffset);
+									return theBackingSequence.subSequence(start + theOffset, end + theOffset);
 								}
 
 								@Override
@@ -130,8 +130,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 									if(theOffset == 0)
 										return theBackingSequence.toString();
 									else
-										return theBackingSequence.subSequence(theOffset, theBackingSequence.length() - theOffset)
-											.toString();
+										return theBackingSequence.subSequence(theOffset, theBackingSequence.length()).toString();
 								}
 							};
 
@@ -164,6 +163,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					}
 				};
 			}
+			pos += seqLen;
 		}
 		if(pos == position)
 			return java.util.Collections.EMPTY_SET;
@@ -377,12 +377,14 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 		private java.awt.font.FontRenderContext theContext;
 		private TextLayout theCurrentLayout;
+		private TextLayout theOldLayout;
 
-		private float theLineWidth;
+		private float theLineOffset;
 		private float theTop;
 		private int theSequenceOffset;
+		private boolean oldSequenceWasLineBreak;
 		private boolean wasLineBreak;
-		private boolean gotLayout;
+		private boolean newLayout;
 
 		MetricsIterator(Iterator<StyledSequence> backing, float breakWidth) {
 			theBackingIterator = backing;
@@ -396,26 +398,37 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					if(theBackingIterator.hasNext()) {
 						theCurrentSequence = theBackingIterator.next();
 						setMeasurer(theCurrentSequence);
-						gotLayout = false;
+						newLayout = true;
 					} else
 						return false;
 				}
 				while(theCurrentLayout == null && theCurrentMeasurer != null) {
-					float width = theBreakWidth - theLineWidth;
+					// Determine whether the next sequence should be on a new line
+					if(newLayout) {
+						wasLineBreak = oldSequenceWasLineBreak;
+						newLayout = false;
+					} else {
+						wasLineBreak = true;
+					}
+
+					if(wasLineBreak) {
+						theTop += theOldLayout.getAscent() + theOldLayout.getDescent() + theOldLayout.getLeading();
+						theLineOffset = 0;
+					} else if(theOldLayout != null) {
+						theLineOffset += theOldLayout.getAdvance();
+					}
+					theOldLayout = null;
+
+					float width = theBreakWidth - theLineOffset;
 					if(width <= 0)
 						width = 1;
 					theCurrentLayout = theCurrentMeasurer.nextLayout(width);
 					if(theCurrentLayout == null) {
 						theSequenceOffset = 0;
 						theCurrentMeasurer = null;
-						if(theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n')
-							wasLineBreak = true;
+						oldSequenceWasLineBreak = wasLineBreak || theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n';
 						theCurrentSequence = null;
-					} else if(gotLayout) {
-						theTop += theCurrentLayout.getAscent() + theCurrentLayout.getDescent() + theCurrentLayout.getLeading();
-						wasLineBreak = true;
-					} else
-						gotLayout = true;
+					}
 				}
 			}
 			return theCurrentLayout != null;
@@ -427,11 +440,11 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 				throw new java.util.NoSuchElementException();
 			TextLayout layout = theCurrentLayout;
 			theCurrentLayout = null;
-			int offset = theSequenceOffset;
+			theOldLayout = layout;
+			int seqOffset = theSequenceOffset;
 			theSequenceOffset += layout.getCharacterCount();
-			float left = theLineWidth;
-			theLineWidth += layout.getAdvance();
-			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, theTop, left, offset, wasLineBreak);
+			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, theTop, theLineOffset, seqOffset,
+				wasLineBreak);
 		}
 
 		@Override

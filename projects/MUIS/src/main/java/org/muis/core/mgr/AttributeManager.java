@@ -107,6 +107,7 @@ public class AttributeManager {
 		private final void resetModelWatchers(String formattedValue) throws org.muis.core.parser.MuisParseException {
 			if(java.util.Objects.equals(theFormattedValue, formattedValue))
 				return;
+			theFormattedValue = formattedValue;
 			MuisModelValue<?> [] values = getModelValues(formattedValue);
 			synchronized(theModelWatcherLock) {
 				theModelWatchers = prisms.util.ArrayUtils.adjust(theModelWatchers, values,
@@ -137,6 +138,8 @@ public class AttributeManager {
 		}
 
 		private final MuisModelValue<?> [] getModelValues(String value) throws org.muis.core.parser.MuisParseException {
+			if(value == null)
+				return new MuisModelValue[0];
 			java.util.ArrayList<MuisModelValue<?>> ret = new java.util.ArrayList<>();
 			int next = 0;
 			while(next >= 0) {
@@ -499,7 +502,7 @@ public class AttributeManager {
 	}
 
 	/**
-	 * Sepcifies an optional or required attribute for this element
+	 * Specifies an optional or required attribute for this element
 	 *
 	 * @param <T> The type of the attribute to accept
 	 * @param <V> The type of the value for the attribute
@@ -527,7 +530,7 @@ public class AttributeManager {
 			String strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
-					set((MuisAttribute<Object>) attr, attr.getType().parse(theElement, strVal));
+					holder.set(strVal);
 				} catch(MuisException e) {
 					theElement.msg().error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.getName(), e,
 						"attribute", attr);

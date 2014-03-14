@@ -133,7 +133,15 @@ public class ImageData implements Iterable<Image> {
 	/** @return Whether this image has transparency */
 	public boolean hasTransparency() {
 		if(hasTransparency == null) {
+			hasTransparency = Boolean.FALSE;
+			int w = getWidth();
+			int h = getHeight();
 			for(Image img : theImages) {
+				if(img.getWidth(null) != w || img.getHeight(null) != h) {
+					hasTransparency = Boolean.TRUE; // If this animation's images are not all the same size, its background will need to
+					// be rendered under it as if it had transparent pixels
+					break;
+				}
 				if(img instanceof BufferedImage) {
 					BufferedImage bImg = (BufferedImage) img;
 					if(bImg.getColorModel().hasAlpha()) {

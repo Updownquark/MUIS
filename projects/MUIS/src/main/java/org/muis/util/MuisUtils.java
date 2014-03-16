@@ -152,6 +152,22 @@ public class MuisUtils {
 	}
 
 	/**
+	 * @param element The element to get the position of
+	 * @return The position of the top-left corner of the element relative to the document root
+	 */
+	public static Point getDocumentPosition(MuisElement element) {
+		int x = 0;
+		int y = 0;
+		MuisElement el = element;
+		while(el.getParent() != null) {
+			x += el.bounds().getX();
+			y += el.bounds().getY();
+			el = el.getParent();
+		}
+		return new Point(x, y);
+	}
+
+	/**
 	 * @param reference The URL to be the reference of the relative path
 	 * @param relativePath The path relative to the reference URL to resolve
 	 * @return A URL that is equivalent to <code>relativePath</code> resolved with reference to <code>reference</code>

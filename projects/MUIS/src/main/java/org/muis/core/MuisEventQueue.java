@@ -195,7 +195,7 @@ public class MuisEventQueue {
 			MuisElement element = theElement;
 			Rectangle area = theArea;
 			if(element != doc.getRoot() && element.isTransparent()) {
-				Point docPos = element.getDocumentPosition();
+				Point docPos = MuisUtils.getDocumentPosition(element);
 				if(area == null)
 					area = new Rectangle(element.getBounds().getSize());
 				area.x += docPos.x;

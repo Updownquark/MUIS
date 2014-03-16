@@ -3,7 +3,6 @@ package org.muis.core;
 
 import static org.muis.core.MuisConstants.Events.*;
 
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
@@ -665,41 +664,6 @@ public abstract class MuisElement implements MuisParseEnv {
 		return theChildren;
 	}
 
-	/**
-	 * Checks to see if this element is in the subtree rooted at the given element
-	 *
-	 * @param ancestor The element whose subtree to check
-	 * @return Whether this element is in the ancestor's subtree
-	 */
-	public final boolean isAncestor(MuisElement ancestor) {
-		if(ancestor == this)
-			return true;
-		MuisElement parent = theParent;
-		while(parent != null) {
-			if(parent == ancestor)
-				return true;
-			parent = parent.theParent;
-		}
-		return false;
-	}
-
-	/**
-	 * @param x The x-coordinate of a point relative to this element's upper left corner
-	 * @param y The y-coordinate of a point relative to this element's upper left corner
-	 * @return The deepest (and largest-Z) descendant of this element whose bounds contain the given point
-	 */
-	public final MuisElement deepestChildAt(int x, int y) {
-		MuisElement current = this;
-		MuisElement [] children = current.theChildren.at(x, y);
-		while(children.length > 0) {
-			x -= current.theBounds.getX();
-			y -= current.theBounds.getY();
-			current = children[0];
-			children = current.theChildren.at(x, y);
-		}
-		return current;
-	}
-
 	// End hierarchy methods
 
 	/**
@@ -748,19 +712,6 @@ public abstract class MuisElement implements MuisParseEnv {
 		if(theVSizer == null)
 			theVSizer = new SimpleSizeGuide();
 		return theVSizer;
-	}
-
-	/** @return This element's position relative to the document's root */
-	public final Point getDocumentPosition() {
-		int x = 0;
-		int y = 0;
-		MuisElement el = this;
-		while(el.theParent != null) {
-			x += el.theBounds.getX();
-			y += el.theBounds.getY();
-			el = el.theParent;
-		}
-		return new Point(x, y);
 	}
 
 	// End bounds methods
@@ -966,8 +917,6 @@ public abstract class MuisElement implements MuisParseEnv {
 				childBound.setParent(ret);
 				ret.addChild(childBound);
 			}
-			if(visible)
-				paintOverSelf(graphics, area);
 			return ret;
 		} finally {
 			graphics.setClip(preClip);
@@ -1001,15 +950,6 @@ public abstract class MuisElement implements MuisParseEnv {
 		Texture tex = getStyle().getSelf().get(BackgroundStyle.texture);
 		if(tex != null)
 			tex.render(graphics, this, area);
-	}
-
-	/**
-	 * Allows a component to paint over its children
-	 *
-	 * @param graphics The graphics context to render this element in
-	 * @param area The area to draw
-	 */
-	public void paintOverSelf(java.awt.Graphics2D graphics, Rectangle area) {
 	}
 
 	/**

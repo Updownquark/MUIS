@@ -34,12 +34,12 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) {
+	public <T> SealableStyle set(StyleAttribute<T> attr, T value) {
 		if(isSealed)
 			throw new SealedException(this);
 		if(value == null) {
 			clear(attr);
-			return;
+			return this;
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
@@ -55,13 +55,15 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 				throw new IllegalArgumentException(e.getMessage());
 			}
 		theValues.put(attr, value);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr) {
+	public SealableStyle clear(StyleAttribute<?> attr) {
 		if(isSealed)
 			throw new SealedException(this);
 		theValues.remove(attr);
+		return this;
 	}
 
 	@Override

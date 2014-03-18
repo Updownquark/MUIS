@@ -74,16 +74,22 @@ public class MuisEventQueue {
 
 		private final int thePriority;
 
+		private final Runnable [] thePostActions;
+
 		private volatile boolean isHandling;
 
 		private volatile boolean isHandled;
 
 		private volatile boolean isDiscarded;
 
-		/** @param priority The priority of this event */
-		public AbstractEvent(int priority) {
+		/**
+		 * @param priority The priority of this event
+		 * @param postActions The actions to be performed after the event is handled successfully
+		 */
+		public AbstractEvent(int priority, Runnable... postActions) {
 			theTime = System.currentTimeMillis();
 			thePriority = priority;
+			thePostActions = postActions;
 		}
 
 		@Override
@@ -105,6 +111,8 @@ public class MuisEventQueue {
 				isHandled = true;
 				isHandling = false;
 			}
+			for(Runnable action : thePostActions)
+				action.run();
 		}
 
 		/** Executes this event's action */
@@ -161,9 +169,10 @@ public class MuisEventQueue {
 		 * @param element The element that needs to be repainted
 		 * @param area The area in the element that needs to be repainted, or null if the element needs to be repainted entirely
 		 * @param now Whether the repaint should happen quickly or be processed in normal time
+		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public PaintEvent(MuisElement element, Rectangle area, boolean now) {
-			super(PRIORITY);
+		public PaintEvent(MuisElement element, Rectangle area, boolean now, Runnable... postActions) {
+			super(PRIORITY, postActions);
 			theElement = element;
 			theArea = area;
 			isNow = now;
@@ -307,9 +316,10 @@ public class MuisEventQueue {
 		/**
 		 * @param element The element that needs to be layed out
 		 * @param now Whether the layout should happen quickly or be processed in normal time
+		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public LayoutEvent(MuisElement element, boolean now) {
-			super(PRIORITY);
+		public LayoutEvent(MuisElement element, boolean now, Runnable... postActions) {
+			super(PRIORITY, postActions);
 			theElement = element;
 			isNow = now;
 		}
@@ -373,9 +383,10 @@ public class MuisEventQueue {
 		/**
 		 * @param element The element to set the bounds of
 		 * @param bounds The bounds to set on the element
+		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public ReboundEvent(MuisElement element, Rectangle bounds) {
-			super(PRIORITY);
+		public ReboundEvent(MuisElement element, Rectangle bounds, Runnable... postActions) {
+			super(PRIORITY, postActions);
 			theElement = element;
 			theBounds = bounds;
 		}
@@ -431,9 +442,10 @@ public class MuisEventQueue {
 		 * @param root The root from which this event fires downward or to which it fires upward
 		 * @param evt The position event to propagate
 		 * @param downward Whether this event fires downward from the root to the deepest level or the reverse
+		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public PositionQueueEvent(MuisElement root, org.muis.core.event.PositionedUserEvent evt, boolean downward) {
-			super(PRIORITY);
+		public PositionQueueEvent(MuisElement root, org.muis.core.event.PositionedUserEvent evt, boolean downward, Runnable... postActions) {
+			super(PRIORITY, postActions);
 			theRoot = root;
 			theEvent = evt;
 			isDownward = downward;
@@ -460,17 +472,20 @@ public class MuisEventQueue {
 			{
 				if(isDownward)
 					for(MuisElement pathEl : MuisUtils.path(theEvent.getElement()))
-						pathEl.fireEvent(theEvent, pathEl != theEvent.getElement(), false);
+						pathEl.fireEvent(theEvent);
 				else {
 					MuisElement el = theEvent.getElement();
-					while(el != null) {
-						el.fireEvent(theEvent, el != theEvent.getElement(), false);
+					while(el != null && !theEvent.isCanceled()) {
+						el.fireEvent(theEvent);
 						el = el.getParent();
 					}
 				}
 			} else
-				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
-					el.getElement().fireEvent(theEvent.copyFor(el.getElement()), theEvent.isCanceled(), false);
+				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward)) {
+					el.getElement().fireEvent(theEvent.copyFor(el.getElement()));
+					if(theEvent.isCanceled())
+						break;
+				}
 		}
 
 		@Override
@@ -496,9 +511,10 @@ public class MuisEventQueue {
 		/**
 		 * @param evt The event to fire
 		 * @param downward Whether the event should fire from root to deepest element or the reverse
+		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public UserQueueEvent(org.muis.core.event.UserEvent evt, boolean downward) {
-			super(PRIORITY);
+		public UserQueueEvent(org.muis.core.event.UserEvent evt, boolean downward, Runnable... postActions) {
+			super(PRIORITY, postActions);
 			theEvent = evt;
 			isDownward = downward;
 		}
@@ -516,12 +532,15 @@ public class MuisEventQueue {
 		@Override
 		protected void doHandleAction() {
 			if(isDownward)
-				for(MuisElement pathEl : MuisUtils.path(theEvent.getElement()))
-					pathEl.fireEvent(theEvent, pathEl != theEvent.getElement(), false);
+				for(MuisElement pathEl : MuisUtils.path(theEvent.getElement())) {
+					pathEl.fireEvent(theEvent);
+					if(theEvent.isCanceled())
+						break;
+				}
 			else {
 				MuisElement el = theEvent.getElement();
-				while(el != null) {
-					el.fireEvent(theEvent, el != theEvent.getElement(), false);
+				while(el != null && !theEvent.isCanceled()) {
+					el.fireEvent(theEvent);
 					el = el.getParent();
 				}
 			}
@@ -702,16 +721,16 @@ public class MuisEventQueue {
 	}
 
 	/**
-	 * @return The amount of time for which this queue will let paint events rest until {@link MuisElement#repaint(Rectangle, boolean)}
-	 *         stops being called repeatedly
+	 * @return The amount of time for which this queue will let paint events rest until
+	 *         {@link MuisElement#repaint(Rectangle, boolean, Runnable...)} stops being called repeatedly
 	 */
 	public long getPaintDirtyTolerance() {
 		return thePaintDirtyTolerance;
 	}
 
 	/**
-	 * @return The amount of time for which this queue will let layout events rest until {@link MuisElement#relayout(boolean)} stops being
-	 *         called repeatedly
+	 * @return The amount of time for which this queue will let layout events rest until {@link MuisElement#relayout(boolean, Runnable...)}
+	 *         stops being called repeatedly
 	 */
 	public long getLayoutDirtyTolerance() {
 		return theLayoutDirtyTolerance;

@@ -100,9 +100,4 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		for(StyleAttribute<?> styleAtt : clearStyleAtts)
 			target.clear(styleAtt, expr);
 	}
-
-	@Override
-	public boolean isLocal() {
-		return true;
-	}
 }

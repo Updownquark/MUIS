@@ -87,7 +87,7 @@ public class Button extends org.muis.core.MuisTemplate {
 						action((MouseEvent) cause);
 					}
 				});
-				addListener(MuisConstants.Events.KEYBOARD, new org.muis.core.event.KeyBoardListener(false) {
+				addListener(MuisConstants.Events.KEYBOARD, new org.muis.core.event.KeyBoardListener() {
 					@Override
 					public void keyPressed(KeyBoardEvent kEvt, MuisElement element) {
 						super.keyPressed(kEvt, element);

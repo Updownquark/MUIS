@@ -35,6 +35,8 @@ public class MouseEvent extends PositionedUserEvent {
 		exited;
 	}
 
+	private final MouseEvent theBacking;
+
 	private final MouseEventType theType;
 
 	private final ButtonType theButtonType;
@@ -58,10 +60,22 @@ public class MouseEvent extends PositionedUserEvent {
 		super(org.muis.core.MuisConstants.Events.MOUSE, doc, element, capture);
 		if(capture == null)
 			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");
+		theBacking = null;
 		theTime = System.currentTimeMillis();
 		theType = type;
 		theButtonType = buttonType;
 		theClickCount = clickCount;
+	}
+
+	private MouseEvent(MouseEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
+		super(org.muis.core.MuisConstants.Events.MOUSE, backing.getDocument(), backing.getElement(), capture);
+		if(capture == null)
+			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");
+		theBacking = backing;
+		theTime = backing.theTime;
+		theType = backing.theType;
+		theButtonType = backing.theButtonType;
+		theClickCount = backing.theClickCount;
 	}
 
 	/** @return The type of this mouse event */
@@ -89,7 +103,39 @@ public class MouseEvent extends PositionedUserEvent {
 		org.muis.core.MuisEventPositionCapture<?> capture = getCapture().find(element);
 		if(capture == null)
 			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
-		return new MouseEvent(getDocument(), getElement(), getMouseEventType(), getButtonType(), getClickCount(), capture);
+		return new MouseEvent(this, capture);
+	}
+
+	@Override
+	public boolean isUsed() {
+		if(theBacking != null)
+			return theBacking.isUsed();
+		else
+			return super.isUsed();
+	}
+
+	@Override
+	public void use() {
+		if(theBacking != null)
+			theBacking.use();
+		else
+			super.use();
+	}
+
+	@Override
+	public boolean isCanceled() {
+		if(theBacking != null)
+			return theBacking.isCanceled();
+		else
+			return super.isCanceled();
+	}
+
+	@Override
+	public void cancel() {
+		if(theBacking != null)
+			theBacking.cancel();
+		else
+			super.cancel();
 	}
 
 	@Override

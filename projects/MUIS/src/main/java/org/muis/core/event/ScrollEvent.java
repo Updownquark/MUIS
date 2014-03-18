@@ -17,6 +17,8 @@ public class ScrollEvent extends PositionedUserEvent {
 		BLOCK;
 	}
 
+	private final ScrollEvent theBacking;
+
 	private final ScrollType theScrollType;
 
 	private final boolean isVertical;
@@ -39,10 +41,20 @@ public class ScrollEvent extends PositionedUserEvent {
 	public ScrollEvent(org.muis.core.MuisDocument doc, org.muis.core.MuisElement element, ScrollType scrollType,
 		boolean vertical, int amount, KeyBoardEvent keyEvent, org.muis.core.MuisEventPositionCapture<?> capture) {
 		super(org.muis.core.MuisConstants.Events.SCROLL, doc, element, capture);
+		theBacking = null;
 		theScrollType = scrollType;
 		isVertical = vertical;
 		theKeyEvent = keyEvent;
 		theAmount = amount;
+	}
+
+	private ScrollEvent(ScrollEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
+		super(org.muis.core.MuisConstants.Events.SCROLL, backing.getDocument(), backing.getElement(), capture);
+		theBacking = backing;
+		theScrollType = backing.theScrollType;
+		isVertical = backing.isVertical;
+		theKeyEvent = backing.theKeyEvent;
+		theAmount = backing.theAmount;
 	}
 
 	/** @return The type of scrolling that generated this event */
@@ -77,7 +89,39 @@ public class ScrollEvent extends PositionedUserEvent {
 		org.muis.core.MuisEventPositionCapture<?> capture = getCapture().find(element);
 		if(capture == null)
 			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
-		return new ScrollEvent(getDocument(), getElement(), getScrollType(), isVertical(), getAmount(), getKeyEvent(), capture);
+		return new ScrollEvent(this, capture);
+	}
+
+	@Override
+	public boolean isUsed() {
+		if(theBacking != null)
+			return theBacking.isUsed();
+		else
+			return super.isUsed();
+	}
+
+	@Override
+	public void use() {
+		if(theBacking != null)
+			theBacking.use();
+		else
+			super.use();
+	}
+
+	@Override
+	public boolean isCanceled() {
+		if(theBacking != null)
+			return theBacking.isCanceled();
+		else
+			return super.isCanceled();
+	}
+
+	@Override
+	public void cancel() {
+		if(theBacking != null)
+			theBacking.cancel();
+		else
+			super.cancel();
 	}
 
 	@Override

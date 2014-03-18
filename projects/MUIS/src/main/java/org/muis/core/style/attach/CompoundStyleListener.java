@@ -96,11 +96,6 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 	}
 
 	@Override
-	public boolean isLocal() {
-		return false;
-	}
-
-	@Override
 	public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
 		MuisEvent<?> evt = event;
 		if(evt instanceof GroupMemberEvent)

@@ -25,13 +25,8 @@ public class PaintWidget extends org.muis.base.widget.Block {
 			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
 				resized();
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
-		addListener(Events.MOUSE, new org.muis.core.event.MouseListener(true) {
+		addListener(Events.MOUSE, new org.muis.core.event.MouseListener() {
 			private boolean isMouseDown;
 
 			@Override
@@ -77,7 +72,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 				}
 			}
 		});
-		addListener(Events.KEYBOARD, new org.muis.core.event.KeyBoardListener(true) {
+		addListener(Events.KEYBOARD, new org.muis.core.event.KeyBoardListener() {
 			@Override
 			public void keyPressed(KeyBoardEvent kEvt, MuisElement element) {
 				if(kEvt.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {

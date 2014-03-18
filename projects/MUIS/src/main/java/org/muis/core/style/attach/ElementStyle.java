@@ -47,11 +47,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		}
 		theElement.addListener(org.muis.core.MuisConstants.Events.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
 			@Override
-			public boolean isLocal() {
-				return true;
-			}
-
-			@Override
 			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el) {
 				ElementStyle oldParentStyle = theParentStyle;
 				if(oldParentStyle != null) {
@@ -142,7 +137,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		addDependency(typedGroup, after);
 		if(!prisms.util.ArrayUtils.contains(theStyleGroups, typedGroup))
 			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, typedGroup);
-		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1), false, false);
+		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1));
 	}
 
 	/** @param group The named style group to remove from this element style */
@@ -154,7 +149,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		if(index < 0)
 			return;
 		theStyleGroups = prisms.util.ArrayUtils.remove(theStyleGroups, typedGroup);
-		theElement.fireEvent(new GroupMemberEvent(theElement, group, index), false, false);
+		theElement.fireEvent(new GroupMemberEvent(theElement, group, index));
 	}
 
 	/**

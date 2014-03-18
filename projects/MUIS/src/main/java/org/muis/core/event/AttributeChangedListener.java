@@ -26,11 +26,6 @@ public abstract class AttributeChangedListener<T> implements MuisEventListener<O
 		attributeChanged(ace);
 	}
 
-	@Override
-	public boolean isLocal() {
-		return true;
-	}
-
 	/**
 	 * Called when the value for this listener's attribute changes
 	 *

@@ -11,11 +11,6 @@ public abstract class StyleListener implements org.muis.core.event.MuisEventList
 			eventOccurred((StyleAttributeEvent<?>) event);
 	}
 
-	@Override
-	public boolean isLocal() {
-		return true;
-	}
-
 	/** @param event The event representing the style attribute change */
 	public abstract void eventOccurred(StyleAttributeEvent<?> event);
 }

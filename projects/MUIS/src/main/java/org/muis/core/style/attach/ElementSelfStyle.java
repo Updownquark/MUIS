@@ -49,7 +49,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 				addListener(new StyleListener() {
 					@Override
 					public void eventOccurred(StyleAttributeEvent<?> event) {
-						theElStyle.getElement().fireEvent(event, false, false);
+						theElStyle.getElement().fireEvent(event);
 					}
 				});
 			}

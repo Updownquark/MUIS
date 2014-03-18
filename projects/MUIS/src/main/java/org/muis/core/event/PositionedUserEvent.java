@@ -41,7 +41,9 @@ public abstract class PositionedUserEvent extends UserEvent {
 	/**
 	 * @param element The element to return an event relative to
 	 * @return This event relative to the given element. The given element will not be the element returned by {@link #getElement()}, but
-	 *         the positions returned by this event's methods will be relative to the given element's position.
+	 *         the positions returned by this event's methods will be relative to the given element's position. The event's stateful
+	 *         properties ({@link UserEvent#isCanceled() canceled} and {@link UserEvent#isUsed() used}) will be backed by this event's
+	 *         properties.
 	 */
 	public abstract PositionedUserEvent copyFor(MuisElement element);
 

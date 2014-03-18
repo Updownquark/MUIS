@@ -32,11 +32,6 @@ public class LayoutContainer extends MuisElement {
 				MuisLayout layout = atts().get(LAYOUT_ATTR);
 				setLayout(layout);
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
 		setLayout(atts().get(LAYOUT_ATTR));
 		return ret;

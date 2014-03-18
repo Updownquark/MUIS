@@ -124,7 +124,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
-				fireEvent(new SizeNeedsChangedEvent(null), false, false);
+				fireEvent(new SizeNeedsChangedEvent(null));
 				if(event.getType() == CHILD_REMOVED) {
 					// Need to repaint where the element left even if nothing changes as a result of the layout
 					unregisterChild(event.getValue());
@@ -132,11 +132,6 @@ public abstract class MuisElement implements MuisParseEnv {
 				} else if(event.getType() == CHILD_ADDED) {
 					registerChild(event.getValue());
 				}
-			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
 			}
 		};
 		addListener(CHILD_ADDED, childListener);
@@ -147,11 +142,6 @@ public abstract class MuisElement implements MuisParseEnv {
 				Rectangle paintRect = event.getValue().union(((MuisPropertyEvent<Rectangle>) event).getOldValue());
 				repaint(paintRect, false);
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
 		theChildren.addChildListener(SIZE_NEEDS_CHANGED, new MuisEventListener<Void>() {
 			@Override
@@ -159,7 +149,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				SizeNeedsChangedEvent snce = (SizeNeedsChangedEvent) event;
 				if(!isInPreferred(org.muis.core.layout.Orientation.horizontal) || !isInPreferred(org.muis.core.layout.Orientation.vertical)) {
 					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(snce);
-					fireEvent(newEvent, true, false);
+					fireEvent(newEvent);
 					if(!newEvent.isHandled()) {
 						newEvent.handle();
 						relayout(false);
@@ -186,11 +176,6 @@ public abstract class MuisElement implements MuisParseEnv {
 				if(size > maxPref)
 					return false;
 				return true;
-			}
-
-			@Override
-			public boolean isLocal() {
-				return false;
 			}
 		});
 		Object styleWanter = new Object();
@@ -236,11 +221,6 @@ public abstract class MuisElement implements MuisParseEnv {
 					groupCallbackLock[0] = false;
 				}
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
 		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
 			@Override
@@ -248,11 +228,6 @@ public abstract class MuisElement implements MuisParseEnv {
 				Rectangle old = ((MuisPropertyEvent<Rectangle>) event).getOldValue();
 				if(event.getValue().width != old.width || event.getValue().height != old.height)
 					relayout(false);
-			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
 			}
 		});
 		new CompoundStyleListener(this) {
@@ -361,22 +336,12 @@ public abstract class MuisElement implements MuisParseEnv {
 					break;
 				}
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
 		addListener(FOCUS, new MuisEventListener<Void>() {
 			@Override
 			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
 				org.muis.core.event.FocusEvent focus = (org.muis.core.event.FocusEvent) event;
 				theStateControllers.focused.setActive(focus.isFocus(), focus);
-			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
 			}
 		});
 	}
@@ -417,6 +382,12 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	/** @return The document that this element belongs to */
 	public final MuisDocument getDocument() {
+		return theDocument;
+	}
+
+	/** @return The document that this element belongs to */
+	@Override
+	public final MuisDocument doc() {
 		return theDocument;
 	}
 
@@ -575,8 +546,6 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	// End life cycle methods
 
-	// Messaging methods
-
 	/**
 	 * Returns a message center that allows messaging on this element
 	 *
@@ -595,28 +564,6 @@ public abstract class MuisElement implements MuisParseEnv {
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
 	}
-
-	/** @return The worst type of messages in this element and its children */
-	public MuisMessage.Type getWorstMessageType() {
-		MuisMessage.Type ret = theMessageCenter.getWorstMessageType();
-		for(MuisElement child : theChildren) {
-			MuisMessage.Type childType = child.theMessageCenter.getWorstMessageType();
-			if(ret == null || ret.compareTo(childType) < 0)
-				ret = childType;
-		}
-		return ret;
-	}
-
-	/** @return All messages in this element or any of its children */
-	public Iterable<MuisMessage> allMessages() {
-		ArrayList<Iterable<MuisMessage>> centers = new ArrayList<>();
-		centers.add(theMessageCenter);
-		for(MuisElement child : theChildren)
-			centers.add(child.allMessages());
-		return ArrayUtils.iterable(centers.toArray(new Iterable[centers.size()]));
-	}
-
-	// End messaging methods
 
 	@Override
 	public final ModelValueReferenceParser getModelParser() {
@@ -642,7 +589,7 @@ public abstract class MuisElement implements MuisParseEnv {
 			theParent.theChildren.remove(this);
 		}
 		theParent = parent;
-		fireEvent(new MuisEvent<>(ELEMENT_MOVED, theParent), false, false);
+		fireEvent(new MuisEvent<>(ELEMENT_MOVED, theParent));
 	}
 
 	/** @return An unmodifiable list of this element's children */
@@ -773,16 +720,11 @@ public abstract class MuisElement implements MuisParseEnv {
 	 *
 	 * @param <T> The type of the event's property
 	 * @param event The event to fire
-	 * @param fromDescendant Whether the event was fired on one of this element's descendants or on this element specifically
-	 * @param propagateUp Whether the event should be fired on this element's ancestors as well
 	 */
-	public final <T> void fireEvent(MuisEvent<T> event, boolean fromDescendant, boolean propagateUp) {
+	public final <T> void fireEvent(MuisEvent<T> event) {
 		MuisEventListener<T> [] listeners = theListeners.getListeners(event.getType());
 		for(MuisEventListener<T> listener : listeners)
-			if(!fromDescendant || !listener.isLocal())
-				listener.eventOccurred(event, this);
-		if(propagateUp && theParent != null)
-			theParent.fireEvent(event, true, true);
+			listener.eventOccurred(event, this);
 	}
 
 	// End event methods
@@ -861,12 +803,13 @@ public abstract class MuisElement implements MuisParseEnv {
 	 * Causes a call to {@link #doLayout()}
 	 *
 	 * @param now Whether to perform the layout action now or allow it to be performed asynchronously
+	 * @param postActions Actions to perform after the layout action completes
 	 */
-	public final void relayout(boolean now) {
+	public final void relayout(boolean now, Runnable... postActions) {
 		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point laying out if there's nothing to show
 		theLayoutDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.LayoutEvent(this, now, postActions), now);
 	}
 
 	/** @return The last time a layout event was scheduled for this element */
@@ -931,12 +874,13 @@ public abstract class MuisElement implements MuisParseEnv {
 	 *            a result of a user operation such as a mouse or keyboard event because this allows all necessary paint events to be
 	 *            performed at one time with no duplication after the event is finished. This parameter may be true if this is called from
 	 *            an independent thread.
+	 * @param postActions The actions to be performed after the event is handled successfully
 	 */
-	public final void repaint(Rectangle area, boolean now) {
+	public final void repaint(Rectangle area, boolean now, Runnable... postActions) {
 		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point painting if there's nothing to show
 		thePaintDirtyTime = System.currentTimeMillis();
-		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area, now), now);
+		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PaintEvent(this, area, now, postActions), now);
 	}
 
 	/**

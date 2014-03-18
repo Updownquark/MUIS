@@ -77,11 +77,6 @@ public class Image extends GenericImage {
 					setProportionLocked(locked == null ? false : locked.booleanValue());
 				}
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
 	}
 }

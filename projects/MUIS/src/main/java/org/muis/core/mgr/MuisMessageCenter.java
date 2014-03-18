@@ -1,5 +1,6 @@
 package org.muis.core.mgr;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.muis.core.MuisDocument;
@@ -7,17 +8,26 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisEnvironment;
 import org.muis.core.mgr.MuisMessage.Type;
 
+import prisms.util.ArrayUtils;
+
 /** Defines a center that can store MUIS messages */
 public class MuisMessageCenter implements Iterable<MuisMessage> {
-	private java.util.concurrent.ConcurrentLinkedQueue<MuisMessage> theMessages;
+	/** Receives notifications new messages to a message center or one of its children */
+	public static interface MuisMessageListener {
+		/** @param msg The message received */
+		void messageReceived(MuisMessage msg);
+	}
+
+	private final MuisEnvironment theEnvironment;
+
+	private final MuisDocument theDocument;
+
+	private final MuisElement theElement;
+
+	private final java.util.concurrent.ConcurrentLinkedQueue<MuisMessage> theMessages;
+	private java.util.concurrent.CopyOnWriteArrayList<MuisMessageListener> theListeners;
 
 	private MuisMessage.Type theWorstMessageType;
-
-	private MuisEnvironment theEnvironment;
-
-	private MuisDocument theDocument;
-
-	private MuisElement theElement;
 
 	/**
 	 * Creates a message center
@@ -27,10 +37,11 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 * @param element The element that this message center is for (may be null if this message center is document- or environment-level)
 	 */
 	public MuisMessageCenter(MuisEnvironment env, MuisDocument doc, MuisElement element) {
-		theMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theEnvironment = env;
 		theDocument = doc;
 		theElement = element;
+		theMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 	}
 
 	/** @return This message center's environment */
@@ -75,9 +86,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		theMessages.add(message);
 		if(theWorstMessageType == null || type.compareTo(theWorstMessageType) > 0)
 			theWorstMessageType = type;
-		if(theElement != null)
-			theElement.fireEvent(new org.muis.core.event.MuisEvent<>(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, message), false,
-				true);
+		fireListeners(message);
 	}
 
 	/**
@@ -165,6 +174,52 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		return theMessages.size();
 	}
 
+	/** @return The worst type of messages in this element and its children */
+	public MuisMessage.Type getDeepWorstMessageType() {
+		MuisMessage.Type ret = getWorstMessageType();
+		if(theElement == null)
+			return ret;
+		for(MuisElement child : theElement.getChildren()) {
+			MuisMessage.Type childType = child.msg().getWorstMessageType();
+			if(ret == null || ret.compareTo(childType) < 0)
+				ret = childType;
+		}
+		return ret;
+	}
+
+	/** @return All messages in this element or any of its children */
+	public Iterable<MuisMessage> allMessages() {
+		if(theElement == null)
+			return this;
+		ArrayList<Iterable<MuisMessage>> centers = new ArrayList<>();
+		centers.add(this);
+		for(MuisElement child : theElement.getChildren())
+			centers.add(child.msg().allMessages());
+		return ArrayUtils.iterable(centers.toArray(new Iterable[centers.size()]));
+	}
+
+	/** @param listener The listener to be notified when a new message is received by this message center or one of its children */
+	public void addListener(MuisMessageListener listener) {
+		theListeners.add(listener);
+	}
+
+	/** @param listener The listener to stop receiving message notifications */
+	public void removeListener(MuisMessageListener listener) {
+		theListeners.remove(listener);
+	}
+
+	private void fireListeners(MuisMessage msg) {
+		for(MuisMessageListener listener : theListeners)
+			listener.messageReceived(msg);
+		if(theElement != null) {
+			if(theElement.getParent() != null)
+				theElement.getParent().msg().fireListeners(msg);
+			else
+				theDocument.msg().fireListeners(msg);
+		} else if(theDocument != null)
+			theEnvironment.msg().fireListeners(msg);
+	}
+
 	private void reEvalWorstMessage() {
 		MuisMessage.Type type = null;
 		for(MuisMessage message : theMessages)
@@ -203,7 +258,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 					reEvalWorstMessage();
 				if(theElement != null)
 					theElement.fireEvent(new org.muis.core.event.MuisEvent<>(org.muis.core.MuisConstants.Events.MESSAGE_REMOVED,
-						theLastMessage), false, true);
+						theLastMessage));
 			}
 		};
 	}

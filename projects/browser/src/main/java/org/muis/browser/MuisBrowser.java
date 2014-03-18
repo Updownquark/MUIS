@@ -5,8 +5,6 @@ import java.awt.Cursor;
 import java.awt.Graphics2D;
 
 import org.muis.core.MuisDocument;
-import org.muis.core.MuisElement;
-import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage;
 
 /** A browser that renders MUIS documents */
@@ -19,7 +17,7 @@ public class MuisBrowser extends javax.swing.JPanel {
 
 	private boolean theDataLock;
 
-	private org.muis.core.event.MuisEventListener<MuisMessage> theMessageListener;
+	private org.muis.core.mgr.MuisMessageCenter.MuisMessageListener theMessageListener;
 
 	/** Creates a MUIS browser */
 	public MuisBrowser() {
@@ -44,15 +42,10 @@ public class MuisBrowser extends javax.swing.JPanel {
 				goToAddress(theAddressBar.getText());
 			}
 		});
-		theMessageListener = new org.muis.core.event.MuisEventListener<MuisMessage>() {
+		theMessageListener = new org.muis.core.mgr.MuisMessageCenter.MuisMessageListener() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisMessage> event, MuisElement element) {
-				printMessage(event.getValue());
-			}
-
-			@Override
-			public boolean isLocal() {
-				return false;
+			public void messageReceived(MuisMessage msg) {
+				printMessage(msg);
 			}
 		};
 	}
@@ -127,10 +120,10 @@ public class MuisBrowser extends javax.swing.JPanel {
 		} catch(RuntimeException e) {
 			e.printStackTrace();
 		}
-		muisDoc.getRoot().addListener(org.muis.core.MuisConstants.Events.MESSAGE_ADDED, theMessageListener);
+		muisDoc.msg().addListener(theMessageListener);
 		for(MuisMessage msg : env.msg())
 			printMessage(msg);
-		for(MuisMessage msg : muisDoc.allMessages())
+		for(MuisMessage msg : muisDoc.msg().allMessages())
 			printMessage(msg);
 	}
 

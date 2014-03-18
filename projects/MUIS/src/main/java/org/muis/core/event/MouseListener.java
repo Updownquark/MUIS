@@ -14,30 +14,17 @@ import org.muis.core.MuisElement;
  * <li>{@link #mouseExited(MouseEvent, MuisElement)}</li>
  * </ul>
  */
-public abstract class MouseListener implements MuisEventListener<Void>
-{
-	private boolean isLocal;
-
-	/**
-	 * Creates a mouse listener
-	 *
-	 * @param local Whether the listener should be a local listener, listening only for events that occur on the element, or a subtree
-	 *            listener, listening for events that occur on the element's children also
-	 */
-	public MouseListener(boolean local)
-	{
-		isLocal = local;
+public abstract class MouseListener implements MuisEventListener<Void> {
+	/** Creates a mouse listener */
+	public MouseListener() {
 	}
 
 	@Override
-	public void eventOccurred(MuisEvent<Void> event, MuisElement element)
-	{
-		if(event instanceof MouseEvent)
-		{
+	public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
+		if(event instanceof MouseEvent) {
 			MouseEvent mEvt = (MouseEvent) event;
 			boolean switchHit = false;
-			switch (mEvt.getMouseEventType())
-			{
+			switch (mEvt.getMouseEventType()) {
 			case pressed:
 				switchHit = true;
 				mouseDown(mEvt, element);
@@ -68,20 +55,13 @@ public abstract class MouseListener implements MuisEventListener<Void>
 		}
 	}
 
-	@Override
-	public boolean isLocal()
-	{
-		return isLocal;
-	}
-
 	/**
 	 * Called when the user presses a mouse button over a MUIS element
 	 *
 	 * @param mEvt The mouse event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void mouseDown(MouseEvent mEvt, MuisElement element)
-	{
+	public void mouseDown(MouseEvent mEvt, MuisElement element) {
 	}
 
 	/**
@@ -90,8 +70,7 @@ public abstract class MouseListener implements MuisEventListener<Void>
 	 * @param mEvt The mouse event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void mouseUp(MouseEvent mEvt, MuisElement element)
-	{
+	public void mouseUp(MouseEvent mEvt, MuisElement element) {
 	}
 
 	/**
@@ -100,8 +79,7 @@ public abstract class MouseListener implements MuisEventListener<Void>
 	 * @param mEvt The mouse event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void mouseClicked(MouseEvent mEvt, MuisElement element)
-	{
+	public void mouseClicked(MouseEvent mEvt, MuisElement element) {
 	}
 
 	/**
@@ -110,8 +88,7 @@ public abstract class MouseListener implements MuisEventListener<Void>
 	 * @param mEvt The mouse event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void mouseMoved(MouseEvent mEvt, MuisElement element)
-	{
+	public void mouseMoved(MouseEvent mEvt, MuisElement element) {
 	}
 
 	/**
@@ -120,8 +97,7 @@ public abstract class MouseListener implements MuisEventListener<Void>
 	 * @param mEvt The mouse event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void mouseEntered(MouseEvent mEvt, MuisElement element)
-	{
+	public void mouseEntered(MouseEvent mEvt, MuisElement element) {
 	}
 
 	/**
@@ -130,7 +106,6 @@ public abstract class MouseListener implements MuisEventListener<Void>
 	 * @param mEvt The mouse event representing the user's action
 	 * @param element The element for which this listener was registered
 	 */
-	public void mouseExited(MouseEvent mEvt, MuisElement element)
-	{
+	public void mouseExited(MouseEvent mEvt, MuisElement element) {
 	}
 }

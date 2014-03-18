@@ -52,11 +52,6 @@ public class MuisAttributeExposer implements AutoCloseable {
 				else if(!theDest.atts().isAccepted(aae.getValue()))
 					theSource.atts().reject(this, aae.getValue());
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		};
 		theListeners[1] = new MuisEventListener<MuisAttribute<?>>() {
 			@Override
@@ -70,11 +65,6 @@ public class MuisAttributeExposer implements AutoCloseable {
 						theMessageCenter.error("Attribute synchronization failed: Destination " + theDest + " cannot accept value "
 							+ theSource.atts().get(att) + " for attribute " + att, e);
 					}
-			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
 			}
 		};
 		theDest.addListener(Events.ATTRIBUTE_ACCEPTED, theListeners[0]);

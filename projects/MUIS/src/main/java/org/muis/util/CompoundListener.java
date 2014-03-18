@@ -139,7 +139,7 @@ public abstract class CompoundListener<T> {
 	public static final ChangeListener sizeNeedsChanged = new ChangeListener() {
 		@Override
 		public void changed(MuisElement element) {
-			element.fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+			element.fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null));
 		}
 	};
 
@@ -426,11 +426,6 @@ public abstract class CompoundListener<T> {
 							listener.individual(event.getValue(), childListener);
 					}
 				}
-
-				@Override
-				public boolean isLocal() {
-					return true;
-				}
 			};
 			theRemovedListener = new MuisEventListener<MuisElement>() {
 				@Override
@@ -445,11 +440,6 @@ public abstract class CompoundListener<T> {
 							childListener.drop();
 						}
 					}
-				}
-
-				@Override
-				public boolean isLocal() {
-					return true;
 				}
 			};
 			theElListener.getElement().addListener(Events.CHILD_ADDED, theAddedListener);
@@ -523,11 +513,6 @@ public abstract class CompoundListener<T> {
 				chain.eventOccurred(event, element);
 			for(String name : getChainNames())
 				((ChildChainedCompoundListener<?>) chain(name)).eventOccurred(event, element);
-		}
-
-		@Override
-		public boolean isLocal() {
-			return true;
 		}
 	}
 
@@ -817,11 +802,6 @@ public abstract class CompoundListener<T> {
 						listener.styleChanged(element, (StyleAttributeEvent<Object>) sae,
 							element.getStyle().getSelf().get(sae.getAttribute()));
 			}
-		}
-
-		@Override
-		public boolean isLocal() {
-			return true;
 		}
 
 		AttributeHolder [] getAllAttrProps() {

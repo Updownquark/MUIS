@@ -74,7 +74,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 			return;
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 		theHorizontalBounds.setPosition(x);
 	}
 
@@ -89,7 +89,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 			return;
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theY = y;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 	}
 
 	/** @return The element's 2-dimensional position */
@@ -107,7 +107,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theX = x;
 		theY = y;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 	}
 
 	/** @return {@link #getHorizontal()}.{@link org.muis.core.layout.BoundsDimension#getSize() getSize()} */
@@ -121,7 +121,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 			return;
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theW = width;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 	}
 
 	/** @return {@link #getVertical()}.{@link org.muis.core.layout.BoundsDimension#getSize() getSize()} */
@@ -135,7 +135,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 			return;
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theH = height;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 	}
 
 	/** @return The element's 2-dimensional size */
@@ -153,7 +153,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
 		theW = width;
 		theH = height;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 	}
 
 	/** @return The element's rectangle bounds */
@@ -176,7 +176,7 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 		theY = y;
 		theW = width;
 		theH = height;
-		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)), false, false);
+		theElement.fireEvent(new MuisPropertyEvent<>(BOUNDS_CHANGED, preBounds, new Rectangle(theX, theY, theW, theH)));
 	}
 
 	@Override

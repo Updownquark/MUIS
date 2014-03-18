@@ -25,11 +25,6 @@ public abstract class StyleAttributeListener<T> implements MuisEventListener<Voi
 		}
 	}
 
-	@Override
-	public boolean isLocal() {
-		return true;
-	}
-
 	/**
 	 * Called when the target attribute's value changes
 	 * 

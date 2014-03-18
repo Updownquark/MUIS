@@ -12,7 +12,7 @@ public class SimpleTextEditing implements MuisBehavior<DocumentedElement> {
 
 	/** Creates the behavior */
 	public SimpleTextEditing() {
-		theInputListener = new org.muis.core.event.CharInputListener(false) {
+		theInputListener = new org.muis.core.event.CharInputListener() {
 			@Override
 			public void keyTyped(CharInputEvent evt, MuisElement element) {
 				charInput((DocumentedElement) element, evt.getChar());

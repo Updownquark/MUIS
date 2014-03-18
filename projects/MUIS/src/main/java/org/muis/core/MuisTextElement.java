@@ -43,7 +43,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		theDocument.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
 			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+				fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null));
 				repaint(null, false);
 			}
 		});
@@ -51,7 +51,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			@Override
 			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
 				if(isFontDifferentSelected())
-					fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null), false, false);
+					fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null));
 				repaint(null, true);
 			}
 

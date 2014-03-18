@@ -4,16 +4,8 @@ import org.muis.core.MuisElement;
 
 /** Listens for character input. */
 public abstract class CharInputListener implements MuisEventListener<Void> {
-	private boolean isLocal;
-
-	/**
-	 * Creates a mouse listener
-	 *
-	 * @param local Whether the listener should be a local listener, listening only for events that occur on the element, or a subtree
-	 *            listener, listening for events that occur on the element's children also
-	 */
-	public CharInputListener(boolean local) {
-		isLocal = local;
+	/** Creates a character input listener */
+	public CharInputListener() {
 	}
 
 	@Override
@@ -22,11 +14,6 @@ public abstract class CharInputListener implements MuisEventListener<Void> {
 			CharInputEvent cEvt = (CharInputEvent) event;
 			keyTyped(cEvt, element);
 		}
-	}
-
-	@Override
-	public boolean isLocal() {
-		return isLocal;
 	}
 
 	/**

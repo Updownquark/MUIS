@@ -9,7 +9,6 @@ import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
 import org.muis.core.event.ScrollEvent;
 import org.muis.core.mgr.MuisLocker;
-import org.muis.core.mgr.MuisMessage;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.style.attach.DocumentStyleSheet;
 import org.muis.core.style.attach.NamedStyleGroup;
@@ -293,20 +292,6 @@ public class MuisDocument {
 	 */
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
-	}
-
-	/** @return The worst message type of this document or any element in its root's hierarchy */
-	public MuisMessage.Type getWorstMessageType() {
-		MuisMessage.Type ret = theMessageCenter.getWorstMessageType();
-		MuisMessage.Type rootType = theRoot.msg().getWorstMessageType();
-		if(ret == null || ret.compareTo(rootType) < 0)
-			ret = rootType;
-		return ret;
-	}
-
-	/** @return All messages in this document or its root's hierarchy */
-	public Iterable<MuisMessage> allMessages() {
-		return ArrayUtils.iterable(theMessageCenter, theRoot.allMessages());
 	}
 
 	/** @return The policy that this document uses to dispatch scroll events */
@@ -693,12 +678,12 @@ public class MuisDocument {
 	 * @param pressed Whether the key was pressed or released
 	 */
 	public void keyed(KeyBoardEvent.KeyCode code, boolean pressed) {
-		org.muis.core.event.KeyBoardEvent evt = null;
+		final KeyBoardEvent evt;
 		if(theFocus != null)
 			evt = new KeyBoardEvent(this, theFocus, code, pressed);
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, pressed);
-		MuisRendering rendering = theRendering;
+		final MuisRendering rendering = theRendering;
 
 		synchronized(theKeysLock) {
 			if(pressed) {
@@ -708,7 +693,18 @@ public class MuisDocument {
 				thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
 		}
 		if(theFocus != null)
-			theFocus.fireEvent(evt, false, true);
+			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false, new Runnable() {
+				@Override
+				public void run() {
+					if(!evt.isCanceled())
+						scroll(evt, rendering);
+				}
+			}), true);
+		else
+			scroll(evt, rendering);
+	}
+
+	private void scroll(KeyBoardEvent evt, MuisRendering rendering) {
 		MuisEventPositionCapture<?> capture = null;
 		if(!evt.isCanceled()) {
 			MuisElement scrollElement = null;
@@ -731,7 +727,7 @@ public class MuisDocument {
 			if(scrollElement != null) {
 				ScrollEvent.ScrollType scrollType = null;
 				boolean vertical = true, downOrRight = true;
-				switch (code) {
+				switch (evt.getKeyCode()) {
 				case LEFT_ARROW:
 					scrollType = ScrollEvent.ScrollType.UNIT;
 					vertical = false;
@@ -774,7 +770,7 @@ public class MuisDocument {
 				}
 			}
 
-			if(code == KeyBoardEvent.KeyCode.TAB)
+			if(evt.getKeyCode() == KeyBoardEvent.KeyCode.TAB)
 				if(isShiftPressed())
 					backupFocus();
 				else

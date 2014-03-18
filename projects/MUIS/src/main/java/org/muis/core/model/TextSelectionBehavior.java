@@ -11,7 +11,7 @@ import org.muis.core.event.MouseEvent;
 public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 	private class MouseListener extends org.muis.core.event.MouseListener {
 		MouseListener() {
-			super(true);
+			super();
 		}
 
 		private int theAnchor = -1;
@@ -56,7 +56,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	private class KeyListener extends org.muis.core.event.KeyBoardListener {
 		public KeyListener() {
-			super(true);
+			super();
 		}
 
 		@Override
@@ -67,39 +67,39 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			case X:
 				if(element.getDocument().isControlPressed())
 					copyToClipboard(text, kEvt.getKeyCode() == KeyBoardEvent.KeyCode.X);
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case LEFT_ARROW:
 				left(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case RIGHT_ARROW:
 				right(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case UP_ARROW:
 				up(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case DOWN_ARROW:
 				down(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case HOME:
 				home(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case END:
 				end(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case PAGE_UP:
 				pageUp(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			case PAGE_DOWN:
 				pageDown(text, element.getDocument().isShiftPressed());
-				kEvt.cancel();
+				kEvt.use();
 				break;
 			default:
 			}

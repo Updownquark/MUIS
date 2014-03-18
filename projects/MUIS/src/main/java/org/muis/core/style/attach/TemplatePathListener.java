@@ -74,11 +74,6 @@ public class TemplatePathListener {
 				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getValue();
 				roleChanged(roleAttr, theElement.atts().get(roleAttr));
 			}
-
-			@Override
-			public boolean isLocal() {
-				return true;
-			}
 		});
 		if(theElement.getParent() != null)
 			checkCurrent();
@@ -88,11 +83,6 @@ public class TemplatePathListener {
 				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement el) {
 					theElement.removeListener(this);
 					checkCurrent();
-				}
-
-				@Override
-				public boolean isLocal() {
-					return true;
 				}
 			});
 	}

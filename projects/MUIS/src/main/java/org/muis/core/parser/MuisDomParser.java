@@ -563,6 +563,11 @@ public class MuisDomParser implements MuisParser {
 		}
 
 		@Override
+		public MuisDocument doc() {
+			return null;
+		}
+
+		@Override
 		public ModelValueReferenceParser getModelParser() {
 			return new ModelValueReferenceParser() {
 				@Override

@@ -1,27 +1,38 @@
 package org.muis.core.event.boole;
 
-public class TPAnd<F, M, T> implements IntersectTypedPredicate<F, M, T> {
-	private final TypedPredicate<F, M> theFirst;
-	private final TypedPredicate<M, T> theSecond;
+public class TPAnd<F, MT extends MF, MF, T> implements IntersectTypedPredicate<F, MT, MF, T> {
+	private final TypedPredicate<F, MT> theFirst;
+	private final TypedPredicate<MF, T> theSecond;
 
-	public TPAnd(TypedPredicate<F, M> first, TypedPredicate<M, T> second) {
+	public TPAnd(TypedPredicate<F, MT> first, TypedPredicate<MF, T> second) {
 		theFirst = first;
 		theSecond = second;
 	}
 
-	public TypedPredicate<F, M> getFirst() {
+	@Override
+	public TypedPredicate<F, MT> getFirst() {
 		return theFirst;
 	}
 
-	public TypedPredicate<M, T> getSecond() {
+	@Override
+	public TypedPredicate<MF, T> getSecond() {
 		return theSecond;
 	}
 
 	@Override
 	public T cast(F value) {
-		M middle = theFirst.cast(value);
+		MT middle = theFirst.cast(value);
 		if(middle == null)
 			return null;
 		return theSecond.cast(middle);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj == this)
+			return true;
+		if(!(obj instanceof TPAnd))
+			return false;
+		return theFirst.equals(((TPAnd<?, ?, ?, ?>) obj).theFirst) && theSecond.equals(((TPAnd<?, ?, ?, ?>) obj).theSecond);
 	}
 }

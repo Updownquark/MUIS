@@ -468,24 +468,20 @@ public class MuisEventQueue {
 
 		@Override
 		protected void doHandleAction() {
-			if(theEvent.getCapture() == null) // Non-positioned event
-			{
+			if(theEvent.getCapture() == null) { // Non-positioned event
 				if(isDownward)
 					for(MuisElement pathEl : MuisUtils.path(theEvent.getElement()))
-						pathEl.fireEvent(theEvent);
+						pathEl.events().fire(theEvent.copyFor(pathEl));
 				else {
 					MuisElement el = theEvent.getElement();
-					while(el != null && !theEvent.isCanceled()) {
-						el.fireEvent(theEvent);
+					while(el != null) {
+						el.events().fire(theEvent.copyFor(el));
 						el = el.getParent();
 					}
 				}
 			} else
-				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward)) {
-					el.getElement().fireEvent(theEvent.copyFor(el.getElement()));
-					if(theEvent.isCanceled())
-						break;
-				}
+				for(MuisEventPositionCapture<?> el : theEvent.getCapture().iterate(!isDownward))
+					el.getElement().events().fire(theEvent.copyFor(el.getElement()));
 		}
 
 		@Override
@@ -532,15 +528,12 @@ public class MuisEventQueue {
 		@Override
 		protected void doHandleAction() {
 			if(isDownward)
-				for(MuisElement pathEl : MuisUtils.path(theEvent.getElement())) {
-					pathEl.fireEvent(theEvent);
-					if(theEvent.isCanceled())
-						break;
-				}
+				for(MuisElement pathEl : MuisUtils.path(theEvent.getElement()))
+					pathEl.events().fire(theEvent.copyFor(pathEl));
 			else {
 				MuisElement el = theEvent.getElement();
-				while(el != null && !theEvent.isCanceled()) {
-					el.fireEvent(theEvent);
+				while(el != null) {
+					el.events().fire(theEvent.copyFor(el));
 					el = el.getParent();
 				}
 			}

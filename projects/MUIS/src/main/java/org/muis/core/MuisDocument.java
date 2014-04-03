@@ -696,7 +696,7 @@ public class MuisDocument {
 			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false, new Runnable() {
 				@Override
 				public void run() {
-					if(!evt.isCanceled())
+					if(!evt.isUsed())
 						scroll(evt, rendering);
 				}
 			}), true);
@@ -706,7 +706,7 @@ public class MuisDocument {
 
 	private void scroll(KeyBoardEvent evt, MuisRendering rendering) {
 		MuisEventPositionCapture<?> capture = null;
-		if(!evt.isCanceled()) {
+		if(!evt.isUsed()) {
 			MuisElement scrollElement = null;
 			switch (theScrollPolicy) {
 			case MOUSE:

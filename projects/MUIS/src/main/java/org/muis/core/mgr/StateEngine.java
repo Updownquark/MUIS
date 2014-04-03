@@ -26,7 +26,7 @@ public class StateEngine implements StateSet {
 		 * @param active Whether this controller's state should be active in the engine now
 		 * @param cause The event that caused the change--may be null, but should be provided if possible
 		 */
-		void setActive(boolean active, MuisEvent<?> cause);
+		void setActive(boolean active, MuisEvent cause);
 	}
 
 	/** Allows notification when states change in an engine */
@@ -35,13 +35,13 @@ public class StateEngine implements StateSet {
 		 * @param state The state just entered
 		 * @param cause The event that caused the change--may be null
 		 */
-		void entered(MuisState state, MuisEvent<?> cause);
+		void entered(MuisState state, MuisEvent cause);
 
 		/**
 		 * @param state The state just exited
 		 * @param cause The event that caused the change--may be null
 		 */
-		void exited(MuisState state, MuisEvent<?> cause);
+		void exited(MuisState state, MuisEvent cause);
 	}
 
 	private static class StateValue {
@@ -229,7 +229,7 @@ public class StateEngine implements StateSet {
 		return ret;
 	}
 
-	private void stateChanged(MuisState state, final boolean active, MuisEvent<?> event) {
+	private void stateChanged(MuisState state, final boolean active, MuisEvent event) {
 		StateValue newState = new StateValue(active);
 		StateValue old = theStates.put(state, newState);
 		newState.setStackChecker(old.getStackChecker());
@@ -283,7 +283,7 @@ public class StateEngine implements StateSet {
 		}
 
 		@Override
-		public void setActive(boolean active, MuisEvent<?> cause) {
+		public void setActive(boolean active, MuisEvent cause) {
 			stateChanged(theState, active, cause);
 		}
 	}

@@ -19,7 +19,7 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 		}
 	};
 
-	/** Matches all events of type {@link MouseEvent} */
+	/** Filters mouse events that have not been {@link UserEvent#use() used} */
 	public static final MouseEventCondition mouse = new MouseEventCondition();
 
 	public static class MouseEventTypedPredicate implements TypedPredicate<MouseEvent, MouseEvent> {

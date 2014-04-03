@@ -4,25 +4,30 @@ import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
 /** An event caused by user interaction */
-public class UserEvent extends MuisEvent<Void> {
+public abstract class UserEvent implements MuisEvent {
 	private final MuisDocument theDocument;
+
+	private final MuisElement theTarget;
 
 	private final MuisElement theElement;
 
+	private final long theTime;
+
 	private boolean isUsed;
-	private boolean isCanceled;
 
 	/**
 	 * Creates a user event
-	 *
-	 * @param type The event type that this event is an instance of
+	 * 
 	 * @param doc The document that the event occurred in
-	 * @param element The deepest-level element that the event occurred in
+	 * @param target The deepest-level element that the event occurred in
+	 * @param element The element that this event is being fired on
+	 * @param time The time at which user performed this action
 	 */
-	public UserEvent(MuisEventType<Void> type, MuisDocument doc, MuisElement element) {
-		super(type, null);
+	public UserEvent(MuisDocument doc, MuisElement target, MuisElement element, long time) {
 		theDocument = doc;
+		theTarget = element;
 		theElement = element;
+		theTime = time;
 	}
 
 	/** @return The document in which this event occurred */
@@ -31,8 +36,18 @@ public class UserEvent extends MuisEvent<Void> {
 	}
 
 	/** @return The deepest-level element that the event occurred in */
+	public MuisElement getTarget() {
+		return theTarget;
+	}
+
+	@Override
 	public MuisElement getElement() {
 		return theElement;
+	}
+
+	/** @return The time at which the user performed this action */
+	public long getTime() {
+		return theTime;
 	}
 
 	/** @return Whether this event has been acted upon */
@@ -49,16 +64,11 @@ public class UserEvent extends MuisEvent<Void> {
 		isUsed = true;
 	}
 
-	/** @return Whether this event has been canceled */
-	public boolean isCanceled() {
-		return isCanceled;
-	}
-
 	/**
-	 * Cancels this event so that it will not be propagated to any more elements. This method should not be called in general. If a listener
-	 * believes that the purpose behind an event has been fulfilled, {@link #use()} should be called.
+	 * @param element The element to return an event relative to
+	 * @return This event relative to the given element. The given element will not be the element returned by {@link #getElement()}, but
+	 *         the positions returned by this event's methods will be relative to the given element's position. The event's stateful
+	 *         properties (e.g. {@link UserEvent#isUsed() used}) will be backed by this event's properties.
 	 */
-	public void cancel() {
-		isCanceled = true;
-	}
+	public abstract UserEvent copyFor(MuisElement element);
 }

@@ -3,14 +3,14 @@ package org.muis.core.style.attach;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEvent;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 
 /** Accepts paths for the style attribute */
-public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, org.muis.core.event.MuisEventListener<Object> {
+public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter,
+	org.muis.core.event.MuisEventListener<AttributeChangedEvent<MuisStyle>> {
 	/** The attribute path name for an element's self-style */
 	public static final String SELF_STYLE = "self";
 
@@ -35,13 +35,9 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 	}
 
 	@Override
-	public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
-		if(!(event instanceof AttributeChangedEvent))
-			return;
-		AttributeChangedEvent<MuisStyle> ace = (AttributeChangedEvent<MuisStyle>) (MuisEvent<?>) event;
-		if(ace.getAttribute().getType() != StyleAttributeType.ELEMENT_TYPE)
-			return;
-		MuisAttribute<MuisStyle> attr = ace.getAttribute();
+	public void eventOccurred(AttributeChangedEvent<MuisStyle> event) {
+		MuisAttribute<MuisStyle> attr = event.getAttribute();
+		MuisElement element = event.getElement();
 		MutableStatefulStyle target;
 		StateExpression expr = null;
 		if(!(attr instanceof org.muis.core.MuisPathedAttribute)) {
@@ -89,13 +85,13 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 			}
 		}
 		java.util.HashSet<StyleAttribute<?>> clearStyleAtts = new java.util.HashSet<>();
-		if(ace.getOldValue() != null)
-			for(StyleAttribute<?> styleAtt : ace.getOldValue())
+		if(event.getOldValue() != null)
+			for(StyleAttribute<?> styleAtt : event.getOldValue())
 				clearStyleAtts.add(styleAtt);
-		if(ace.getValue() != null)
-			for(StyleAttribute<?> styleAtt : ace.getValue()) {
+		if(event.getValue() != null)
+			for(StyleAttribute<?> styleAtt : event.getValue()) {
 				clearStyleAtts.remove(styleAtt);
-				target.set((StyleAttribute<Object>) styleAtt, expr, ace.getValue().get(styleAtt));
+				target.set((StyleAttribute<Object>) styleAtt, expr, event.getValue().get(styleAtt));
 			}
 		for(StyleAttribute<?> styleAtt : clearStyleAtts)
 			target.clear(styleAtt, expr);

@@ -1,7 +1,8 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.muis.core;
 
-import static org.muis.core.MuisConstants.Events.*;
+import static org.muis.core.MuisConstants.Events.CHILD_ADDED;
+import static org.muis.core.MuisConstants.Events.CHILD_REMOVED;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -22,7 +23,6 @@ import org.muis.core.style.attach.*;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 
-import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
@@ -48,6 +48,8 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	private final MuisMessageCenter theMessageCenter;
 
+	private final MuisEventManager theEvents;
+
 	private MuisDocument theDocument;
 
 	private MuisToolkit theToolkit;
@@ -70,9 +72,6 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	private final CompoundStyleListener theDefaultStyleListener;
 
-	@SuppressWarnings({"rawtypes"})
-	private final ListenerManager<MuisEventListener> theListeners;
-
 	private final CoreStateControllers theStateControllers;
 
 	private int theZ;
@@ -91,7 +90,6 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	/** Creates a MUIS element */
 	public MuisElement() {
-		theListeners = new ListenerManager<>(MuisEventListener.class);
 		theMessageCenter = new MuisMessageCenter(null, null, this);
 		theLifeCycleManager = new MuisLifeCycleManager(this, new MuisLifeCycleManager.ControlAcceptor() {
 			@Override
@@ -100,6 +98,7 @@ public abstract class MuisElement implements MuisParseEnv {
 			}
 		}, CoreStage.READY.toString());
 		theStateEngine = new StateEngine();
+		theEvents = new MuisEventManager(this);
 		theStateControllers = new CoreStateControllers();
 		String lastStage = null;
 		for(CoreStage stage : CoreStage.values())
@@ -124,7 +123,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
-				fireEvent(new SizeNeedsChangedEvent(null));
+				events().fire(new SizeNeedsChangedEvent(null));
 				if(event.getType() == CHILD_REMOVED) {
 					// Need to repaint where the element left even if nothing changes as a result of the layout
 					unregisterChild(event.getValue());
@@ -134,28 +133,27 @@ public abstract class MuisElement implements MuisParseEnv {
 				}
 			}
 		};
-		addListener(CHILD_ADDED, childListener);
-		addListener(CHILD_REMOVED, childListener);
-		theChildren.addChildListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
+		events().listen(CHILD_ADDED, childListener);
+		events().listen(CHILD_REMOVED, childListener);
+		theChildren.addChildListener(BoundsChangedEvent.bounds, new MuisEventListener<BoundsChangedEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
-				Rectangle paintRect = event.getValue().union(((MuisPropertyEvent<Rectangle>) event).getOldValue());
+			public void eventOccurred(BoundsChangedEvent event) {
+				Rectangle paintRect = event.getValue().union(event.getOldValue());
 				repaint(paintRect, false);
 			}
 		});
-		theChildren.addChildListener(SIZE_NEEDS_CHANGED, new MuisEventListener<Void>() {
+		theChildren.addChildListener(SizeNeedsChangedEvent.sizeNeeds, new MuisEventListener<SizeNeedsChangedEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
-				SizeNeedsChangedEvent snce = (SizeNeedsChangedEvent) event;
+			public void eventOccurred(SizeNeedsChangedEvent event) {
 				if(!isInPreferred(org.muis.core.layout.Orientation.horizontal) || !isInPreferred(org.muis.core.layout.Orientation.vertical)) {
-					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(snce);
-					fireEvent(newEvent);
+					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(MuisElement.this, event);
+					events().fire(newEvent);
 					if(!newEvent.isHandled()) {
 						newEvent.handle();
 						relayout(false);
 					}
 				} else {
-					snce.handle();
+					event.handle();
 					relayout(false);
 				}
 			}
@@ -181,13 +179,12 @@ public abstract class MuisElement implements MuisParseEnv {
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE);
 		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute);
-		addListener(ATTRIBUTE_CHANGED,
-			(MuisEventListener<Object>) org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+		events().listen(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE),
+			(StylePathAccepter) org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		final boolean [] groupCallbackLock = new boolean[1];
-		addListener(ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<String []>(
-			org.muis.core.style.attach.GroupPropertyType.attribute) {
+		events().listen(AttributeChangedEvent.att(GroupPropertyType.attribute), new MuisEventListener<AttributeChangedEvent<String []>>() {
 			@Override
-			public void attributeChanged(AttributeChangedEvent<String []> event) {
+			public void eventOccurred(AttributeChangedEvent<String []> event) {
 				if(groupCallbackLock[0])
 					return;
 				groupCallbackLock[0] = true;
@@ -198,14 +195,13 @@ public abstract class MuisElement implements MuisParseEnv {
 				}
 			}
 		});
-		addListener(GroupMemberEvent.TYPE, new MuisEventListener<NamedStyleGroup>() {
+		events().listen(GroupMemberEvent.groups, new MuisEventListener<GroupMemberEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<NamedStyleGroup> event, MuisElement element) {
+			public void eventOccurred(GroupMemberEvent event) {
 				if(groupCallbackLock[0])
 					return;
 				groupCallbackLock[0] = true;
 				try {
-					GroupMemberEvent gme = (GroupMemberEvent) event;
 					ArrayList<String> groupList = new ArrayList<>();
 					for(TypedStyleGroup<?> group : getStyle().groups(true))
 						groupList.add(group.getRoot().getName());
@@ -215,17 +211,17 @@ public abstract class MuisElement implements MuisParseEnv {
 							atts().set(GroupPropertyType.attribute, groups);
 						} catch(MuisException e) {
 							msg().warn("Error reconciling " + GroupPropertyType.attribute + " attribute with group membership change", e,
-								"group", gme.getValue());
+								"group", event.getGroup());
 						}
 				} finally {
 					groupCallbackLock[0] = false;
 				}
 			}
 		});
-		addListener(BOUNDS_CHANGED, new MuisEventListener<Rectangle>() {
+		events().listen(BoundsChangedEvent.bounds, new MuisEventListener<BoundsChangedEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
-				Rectangle old = ((MuisPropertyEvent<Rectangle>) event).getOldValue();
+			public void eventOccurred(BoundsChangedEvent event) {
+				Rectangle old = event.getOldValue();
 				if(event.getValue().width != old.width || event.getValue().height != old.height)
 					relayout(false);
 			}
@@ -271,36 +267,35 @@ public abstract class MuisElement implements MuisParseEnv {
 		theStateControllers.middleClicked = theStateEngine.control(States.MIDDLE_CLICK);
 		theStateControllers.hovered = theStateEngine.control(States.HOVER);
 		theStateControllers.focused = theStateEngine.control(States.FOCUS);
-		addListener(MOUSE, new MuisEventListener<Void>() {
+		events().listen(MouseEvent.mouse, new MuisEventListener<MouseEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
-				org.muis.core.event.MouseEvent mouse = (org.muis.core.event.MouseEvent) event;
-				switch (mouse.getMouseEventType()) {
+			public void eventOccurred(MouseEvent event) {
+				switch (event.getMouseEventType()) {
 				case pressed:
-					switch (mouse.getButtonType()) {
+					switch (event.getButtonType()) {
 					case LEFT:
-						theStateControllers.clicked.setActive(true, mouse);
+						theStateControllers.clicked.setActive(true, event);
 						break;
 					case RIGHT:
-						theStateControllers.rightClicked.setActive(true, mouse);
+						theStateControllers.rightClicked.setActive(true, event);
 						break;
 					case MIDDLE:
-						theStateControllers.middleClicked.setActive(true, mouse);
+						theStateControllers.middleClicked.setActive(true, event);
 						break;
 					default:
 						break;
 					}
 					break;
 				case released:
-					switch (mouse.getButtonType()) {
+					switch (event.getButtonType()) {
 					case LEFT:
-						theStateControllers.clicked.setActive(false, mouse);
+						theStateControllers.clicked.setActive(false, event);
 						break;
 					case RIGHT:
-						theStateControllers.rightClicked.setActive(false, mouse);
+						theStateControllers.rightClicked.setActive(false, event);
 						break;
 					case MIDDLE:
-						theStateControllers.middleClicked.setActive(false, mouse);
+						theStateControllers.middleClicked.setActive(false, event);
 						break;
 					default:
 						break;
@@ -311,17 +306,17 @@ public abstract class MuisElement implements MuisParseEnv {
 				case moved:
 					break;
 				case entered:
-					theStateControllers.hovered.setActive(true, mouse);
+					theStateControllers.hovered.setActive(true, event);
 					for(org.muis.core.event.MouseEvent.ButtonType button : theDocument.getPressedButtons()) {
 						switch (button) {
 						case LEFT:
-							theStateControllers.clicked.setActive(true, mouse);
+							theStateControllers.clicked.setActive(true, event);
 							break;
 						case RIGHT:
-							theStateControllers.rightClicked.setActive(true, mouse);
+							theStateControllers.rightClicked.setActive(true, event);
 							break;
 						case MIDDLE:
-							theStateControllers.middleClicked.setActive(true, mouse);
+							theStateControllers.middleClicked.setActive(true, event);
 							break;
 						default:
 							break;
@@ -329,19 +324,18 @@ public abstract class MuisElement implements MuisParseEnv {
 					}
 					break;
 				case exited:
-					theStateControllers.clicked.setActive(false, mouse);
-					theStateControllers.rightClicked.setActive(false, mouse);
-					theStateControllers.middleClicked.setActive(false, mouse);
-					theStateControllers.hovered.setActive(false, mouse);
+					theStateControllers.clicked.setActive(false, event);
+					theStateControllers.rightClicked.setActive(false, event);
+					theStateControllers.middleClicked.setActive(false, event);
+					theStateControllers.hovered.setActive(false, event);
 					break;
 				}
 			}
 		});
-		addListener(FOCUS, new MuisEventListener<Void>() {
+		events().listen(FocusEvent.focusEvent, new MuisEventListener<FocusEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<Void> event, MuisElement element) {
-				org.muis.core.event.FocusEvent focus = (org.muis.core.event.FocusEvent) event;
-				theStateControllers.focused.setActive(focus.isFocus(), focus);
+			public void eventOccurred(FocusEvent event) {
+				theStateControllers.focused.setActive(event.isFocus(), event);
 			}
 		});
 	}
@@ -443,6 +437,20 @@ public abstract class MuisElement implements MuisParseEnv {
 	 */
 	public AttributeManager atts() {
 		return getAttributeManager();
+	}
+
+	/** @return The manager of this element's events */
+	public MuisEventManager getEventManager() {
+		return theEvents;
+	}
+
+	/**
+	 * Short-hand for {@link #getEventManager()}
+	 *
+	 * @return The manager of this element's events
+	 */
+	public MuisEventManager events() {
+		return theEvents;
 	}
 
 	/** @return The style that modifies this element's appearance */
@@ -585,11 +593,12 @@ public abstract class MuisElement implements MuisParseEnv {
 	protected final void setParent(MuisElement parent) {
 		if(theParent == parent)
 			return;
+		MuisElement oldParent = theParent;
 		if(theParent != null) {
 			theParent.theChildren.remove(this);
 		}
 		theParent = parent;
-		fireEvent(new MuisEvent<>(ELEMENT_MOVED, theParent));
+		events().fire(new org.muis.core.event.ElementMovedEvent(this, oldParent, parent));
 	}
 
 	/** @return An unmodifiable list of this element's children */
@@ -683,51 +692,6 @@ public abstract class MuisElement implements MuisParseEnv {
 	protected final void setFocusable(boolean focusable) {
 		isFocusable = focusable;
 	}
-
-	// Event methods
-
-	/**
-	 * Adds a listener for an event type to this element
-	 *
-	 * @param <T> The type of the property that the event type represents
-	 * @param type The event type to listen for
-	 * @param listener The listener to notify when an event of the given type occurs
-	 */
-	public final <T> void addListener(MuisEventType<T> type, MuisEventListener<? super T> listener) {
-		theListeners.addListener(type, listener);
-	}
-
-	/** @param listener The listener to remove from this element */
-	public final void removeListener(MuisEventListener<?> listener) {
-		theListeners.removeListener(listener);
-	}
-
-	/**
-	 * Removes all listeners for the given event type whose class is exactly equal (not an extension of) the given listener type
-	 *
-	 * @param <T> The type of the property that the event type represents
-	 * @param type The type of event to stop listening for
-	 * @param listenerType The listener type to remove
-	 */
-	public final <T> void removeListener(MuisEventType<T> type, Class<? extends MuisEventListener<? super T>> listenerType) {
-		for(MuisEventListener<?> listener : theListeners.getListeners(type))
-			if(listener.getClass() == listenerType)
-				theListeners.removeListener(listener);
-	}
-
-	/**
-	 * Fires an event on this element
-	 *
-	 * @param <T> The type of the event's property
-	 * @param event The event to fire
-	 */
-	public final <T> void fireEvent(MuisEvent<T> event) {
-		MuisEventListener<T> [] listeners = theListeners.getListeners(event.getType());
-		for(MuisEventListener<T> listener : listeners)
-			listener.eventOccurred(event, this);
-	}
-
-	// End event methods
 
 	/**
 	 * Generates an XML-representation of this element's content

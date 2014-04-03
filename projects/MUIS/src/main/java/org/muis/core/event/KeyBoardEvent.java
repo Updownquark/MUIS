@@ -258,6 +258,8 @@ public class KeyBoardEvent extends UserEvent {
 		HELP;
 	}
 
+	private final KeyBoardEvent theBacking;
+
 	private final KeyCode theKeyCode;
 
 	private final boolean wasPressed;
@@ -266,14 +268,22 @@ public class KeyBoardEvent extends UserEvent {
 	 * Creates a KeyEvent
 	 *
 	 * @param doc The document that this event was generated for
-	 * @param element The focused element that received this key event first
+	 * @param target The focused element that received this key event first
 	 * @param keyCode The key that caused this event
 	 * @param pressed Whether the key was pressed or released
 	 */
-	public KeyBoardEvent(MuisDocument doc, MuisElement element, KeyCode keyCode, boolean pressed) {
-		super(org.muis.core.MuisConstants.Events.KEYBOARD, doc, element);
+	public KeyBoardEvent(MuisDocument doc, MuisElement target, KeyCode keyCode, boolean pressed) {
+		super(doc, target, target, System.currentTimeMillis());
+		theBacking = null;
 		theKeyCode = keyCode;
 		wasPressed = pressed;
+	}
+
+	private KeyBoardEvent(KeyBoardEvent backing, MuisElement element) {
+		super(backing.getDocument(), backing.getTarget(), element, backing.getTime());
+		theBacking = backing;
+		theKeyCode = backing.theKeyCode;
+		wasPressed = backing.wasPressed;
 	}
 
 	/** @return The key that caused this event */
@@ -286,14 +296,27 @@ public class KeyBoardEvent extends UserEvent {
 		return wasPressed;
 	}
 
-	/**
-	 * @param keyCode The keyboard key that was typed
-	 * @param doc The document to get which other keys (e.g. shift) might be pressed
-	 * @return The character that the key code represents, or (char) -1 if this event does not represent a character
-	 */
-	public static char getKeyChar(KeyCode keyCode, MuisDocument doc) {
-		// TODO
-		return 'a';
+	@Override
+	public KeyBoardEvent copyFor(MuisElement element) {
+		if(!org.muis.util.MuisUtils.isAncestor(element, getTarget()))
+			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
+		return new KeyBoardEvent(this, element);
+	}
+
+	@Override
+	public boolean isUsed() {
+		if(theBacking != null)
+			return theBacking.isUsed();
+		else
+			return super.isUsed();
+	}
+
+	@Override
+	public void use() {
+		if(theBacking != null)
+			theBacking.use();
+		else
+			super.use();
 	}
 
 	@Override

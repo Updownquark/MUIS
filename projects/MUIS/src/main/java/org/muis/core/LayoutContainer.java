@@ -1,6 +1,6 @@
 package org.muis.core;
 
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.layout.SizeGuide;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
@@ -24,13 +24,11 @@ public class LayoutContainer extends MuisElement {
 	@Override
 	public org.muis.core.mgr.ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		org.muis.core.mgr.ElementList<? extends MuisElement> ret = super.initChildren(children);
-		addListener(MuisConstants.Events.ATTRIBUTE_SET, new org.muis.core.event.MuisEventListener<MuisAttribute<?>>() {
+		events().listen(AttributeChangedEvent.att(LAYOUT_ATTR),
+			new org.muis.core.event.MuisEventListener<AttributeChangedEvent<MuisLayout>>() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
-				if(event.getValue() != LAYOUT_ATTR)
-					return;
-				MuisLayout layout = atts().get(LAYOUT_ATTR);
-				setLayout(layout);
+				public void eventOccurred(AttributeChangedEvent<MuisLayout> event) {
+					setLayout(event.getValue());
 			}
 		});
 		setLayout(atts().get(LAYOUT_ATTR));

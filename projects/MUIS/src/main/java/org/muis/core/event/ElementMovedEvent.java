@@ -26,4 +26,12 @@ public class ElementMovedEvent implements MuisEvent {
 	public MuisElement getElement() {
 		return theElement;
 	}
+
+	public MuisElement getOldParent() {
+		return theOldParent;
+	}
+
+	public MuisElement getNewParent() {
+		return theNewParent;
+	}
 }

@@ -98,9 +98,8 @@ public class AttributeManager {
 			}
 			Object old = theValue;
 			theValue = value;
-			theElement.fireEvent(new org.muis.core.event.MuisEvent<MuisAttribute<?>>(MuisConstants.Events.ATTRIBUTE_SET, theAttr));
-			theElement
-				.fireEvent(new org.muis.core.event.AttributeChangedEvent<>(theAttr, theAttr.getType().cast(old), value));
+			theElement.events().fire(
+				new org.muis.core.event.AttributeChangedEvent<>(theElement, theAttr, theAttr.getType().cast(old), value));
 		}
 
 		private final void resetModelWatchers(String formattedValue) throws org.muis.core.parser.MuisParseException {
@@ -541,7 +540,7 @@ public class AttributeManager {
 	}
 
 	private void fireAccepted(boolean require, MuisAttribute<?> attr, Object value) {
-		theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, true, require, value));
+		theElement.events().fire(new org.muis.core.event.AttributeAcceptedEvent(theElement, attr, true, require, value));
 	}
 
 	/**
@@ -561,7 +560,7 @@ public class AttributeManager {
 				theAcceptedAttrs.remove(attr);
 				namedAttrRemoved(attr);
 			}
-			theElement.fireEvent(new org.muis.core.event.AttributeAcceptedEvent(attr, false, false, null));
+			theElement.events().fire(new org.muis.core.event.AttributeAcceptedEvent(theElement, attr, false, false, null));
 		}
 	}
 

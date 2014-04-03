@@ -1,7 +1,7 @@
 package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.MuisEventListener;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
@@ -11,8 +11,11 @@ import org.muis.core.style.stateful.StatefulStyleSample;
 import prisms.util.ArrayUtils;
 
 /** Listens for changes to the style of an element */
-public class CompoundStyleListener implements org.muis.core.event.MuisEventListener<Object> {
+public class CompoundStyleListener {
 	private final MuisElement theElement;
+
+	private MuisEventListener<StyleAttributeEvent<?>> theStyleListener;
+	private MuisEventListener<GroupMemberEvent> theGroupListener;
 
 	private StyleDomain [] theDomains;
 
@@ -31,6 +34,18 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 		theElement = element;
 		theDomains = new StyleDomain[0];
 		theAttributes = new StyleAttribute[0];
+		theStyleListener = new MuisEventListener<StyleAttributeEvent<?>>() {
+			@Override
+			public void eventOccurred(StyleAttributeEvent<?> event) {
+				CompoundStyleListener.this.eventOccurred(event);
+			}
+		};
+		theGroupListener = new MuisEventListener<GroupMemberEvent>() {
+			@Override
+			public void eventOccurred(GroupMemberEvent event) {
+				CompoundStyleListener.this.eventOccurred(event);
+			}
+		};
 	}
 
 	/** Adds this listener to the element */
@@ -38,13 +53,14 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 		if(isAdded)
 			return;
 		isAdded = true;
-		theElement.addListener(StyleAttributeEvent.TYPE, this);
-		theElement.addListener(GroupMemberEvent.TYPE, this);
+		theElement.events().listen(StyleAttributeEvent.base, theStyleListener);
+		theElement.events().listen(GroupMemberEvent.groups, theGroupListener);
 	}
 
 	/** Removes this listener from the element. */
 	public void remove() {
-		theElement.removeListener(this);
+		theElement.events().remove(StyleAttributeEvent.base, theStyleListener);
+		theElement.events().remove(GroupMemberEvent.groups, theGroupListener);
 	}
 
 	/**
@@ -95,26 +111,15 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 		theAttributes = ArrayUtils.remove(theAttributes, attr);
 	}
 
-	@Override
-	public void eventOccurred(MuisEvent<Object> event, MuisElement element) {
-		MuisEvent<?> evt = event;
-		if(evt instanceof GroupMemberEvent)
-			eventOccurred((GroupMemberEvent) evt);
-		else if(evt instanceof StyleAttributeEvent<?>)
-			eventOccurred((StyleAttributeEvent<?>) evt);
-		else
-			return;
-	}
-
 	/**
 	 * Called when a group is added to or removed from an element style
 	 *
 	 * @param event The group member event representing the change
 	 */
-	public void eventOccurred(GroupMemberEvent event) {
+	private void eventOccurred(GroupMemberEvent event) {
 		java.util.HashSet<StyleAttribute<?>> groupAttrs = new java.util.HashSet<>();
 		org.muis.core.mgr.MuisState[] state = theElement.getStateEngine().toArray();
-		for(StyleAttribute<?> attr : new StatefulStyleSample(event.getValue().getGroupForType(theElement.getClass()), state))
+		for(StyleAttribute<?> attr : new StatefulStyleSample(event.getGroup().getGroupForType(theElement.getClass()), state))
 			if(ArrayUtils.contains(theDomains, attr.getDomain()) || ArrayUtils.contains(theAttributes, attr))
 				groupAttrs.add(attr);
 		if(groupAttrs.isEmpty())
@@ -124,7 +129,7 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 			groupAttrs.remove(attr);
 		if(event.getRemoveIndex() < 0)
 			for(TypedStyleGroup<?> g : theElement.getStyle().groups(false)) {
-				if(g == event.getValue())
+				if(g == event.getGroup())
 					break;
 				for(StyleAttribute<?> attr : new StatefulStyleSample(g, state))
 					groupAttrs.remove(attr);
@@ -142,7 +147,7 @@ public class CompoundStyleListener implements org.muis.core.event.MuisEventListe
 		if(groupAttrs.isEmpty())
 			return; // Any interesting attributes are eclipsed by closer styles
 
-		styleChanged(new StatefulStyleSample(event.getValue(), state));
+		styleChanged(new StatefulStyleSample(event.getGroup(), state));
 		if(isDetailed)
 			for(StyleAttribute<?> attr : groupAttrs) {
 				Object val = theElement.getStyle().get(attr);

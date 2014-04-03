@@ -1,14 +1,12 @@
 package org.muis.core.mgr;
 
-import static org.muis.core.MuisConstants.Events.CHILD_ADDED;
-import static org.muis.core.MuisConstants.Events.CHILD_REMOVED;
-
 import java.util.*;
 
 import org.muis.core.MuisConstants.CoreStage;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisToolkit;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.ChildEvent;
+import org.muis.util.SimpleElementList;
 
 import prisms.util.ArrayUtils;
 
@@ -80,69 +78,119 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		return getParent().getDocument().getLocker().lock(MuisElement.CHILDREN_LOCK_TYPE, getParent(), true);
 	}
 
+	/**
+	 * If {@code child} already exists in this list, then it will be moved to the new index and other elements will be moved to make room.
+	 * Otherwise, the child at {@code index} will be removed and {@code child} added there.
+	 *
+	 * @see java.util.List#set(int, java.lang.Object)
+	 */
 	@Override
 	public MuisElement set(int index, MuisElement child) {
-		MuisElement oldChild;
+		MuisElement [] oldChildren;
+		MuisElement [] newChildren;
+		int oldIndex;
 		try (MuisLock lock = lock()) {
-			MuisElement [] children = theChildren;
-			oldChild = children[index];
+			oldChildren = theChildren;
+			MuisElement oldChild = oldChildren[index];
 			if(oldChild == child)
 				return child;
-			children = children.clone();
-			children[index] = child;
-			theChildren = children;
+			newChildren = oldChildren.clone();
+			oldIndex = ArrayUtils.indexOf(newChildren, child);
+			if(oldIndex >= 0) {
+				int tempIdx = oldIndex;
+				for(; tempIdx < index; tempIdx++)
+					newChildren[tempIdx] = newChildren[tempIdx + 1];
+				for(; tempIdx > index; tempIdx--)
+					newChildren[tempIdx] = newChildren[tempIdx - 1];
+			} else {
+			}
+			newChildren[index] = child;
+			theChildren = newChildren;
 			checkChildState(child);
 		}
-		childRemoved(oldChild);
-		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild));
-		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child));
-		childAdded(child);
-		return oldChild;
+		ImmutableChildList<MuisElement> oldList = list(oldChildren);
+		ImmutableChildList<MuisElement> newList = list(newChildren);
+		if(oldIndex >= 0)
+			fireEvent(new ChildEvent(getParent(), child, index, oldIndex, ChildEvent.ChildEventType.MOVE, oldList, newList));
+		else {
+			ImmutableChildList<MuisElement> middleList = list(ArrayUtils.remove(oldChildren, index));
+			childRemoved(oldChildren[index]);
+			fireEvent(new ChildEvent(getParent(), oldChildren[index], index, index, ChildEvent.ChildEventType.REMOVE, oldList, middleList));
+			fireEvent(new ChildEvent(getParent(), child, index, index, ChildEvent.ChildEventType.ADD, middleList, newList));
+			childAdded(child);
+		}
+		return oldChildren[index];
+	}
+
+	private ImmutableChildList<MuisElement> list(MuisElement [] children) {
+		return new ImmutableChildList<>(new SimpleElementList<>(getParent(), children));
 	}
 
 	@Override
 	public boolean add(MuisElement child) {
 		if(child == null)
 			return false;
+		MuisElement [] oldChildren;
+		MuisElement [] newChildren;
+		int index;
 		try (MuisLock lock = lock()) {
-			MuisElement [] children = theChildren;
-			if(ArrayUtils.contains(children, child))
+			oldChildren = theChildren;
+			if(ArrayUtils.contains(oldChildren, child))
 				return false;
-			theChildren = ArrayUtils.add(children, child);
+			index = oldChildren.length;
+			newChildren = ArrayUtils.add(oldChildren, child);
+			theChildren = newChildren;
 			checkChildState(child);
 		}
-		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child));
+		ImmutableChildList<MuisElement> oldList = list(oldChildren);
+		ImmutableChildList<MuisElement> newList = list(newChildren);
+		fireEvent(new ChildEvent(getParent(), child, index, index, ChildEvent.ChildEventType.ADD, oldList, newList));
 		childAdded(child);
 		return true;
 	}
 
+	/**
+	 * This method does nothing if {@code child} is already a child under this element.
+	 *
+	 * @see java.util.List#add(int, java.lang.Object)
+	 */
 	@Override
 	public void add(int index, MuisElement child) {
 		if(child == null)
 			throw new NullPointerException();
-		try (MuisLock lock = getParent().getDocument().getLocker().lock(MuisElement.CHILDREN_LOCK_TYPE, getParent(), true)) {
-			if(ArrayUtils.contains(theChildren, child))
+		MuisElement [] oldChildren;
+		MuisElement [] newChildren;
+		try (MuisLock lock = lock()) {
+			oldChildren = theChildren;
+			if(ArrayUtils.contains(oldChildren, child))
 				return;
 			if(index < 0)
-				index = theChildren.length;
-			theChildren = ArrayUtils.add(theChildren, child, index);
+				index = oldChildren.length;
+			newChildren = ArrayUtils.add(oldChildren, child, index);
+			theChildren = newChildren;
 			checkChildState(child);
 		}
-		getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child));
+		ImmutableChildList<MuisElement> oldList = list(oldChildren);
+		ImmutableChildList<MuisElement> newList = list(newChildren);
+		fireEvent(new ChildEvent(getParent(), child, index, index, ChildEvent.ChildEventType.ADD, oldList, newList));
 		childAdded(child);
 	}
 
 	@Override
 	public MuisElement remove(int index) {
+		MuisElement [] oldChildren;
+		MuisElement [] newChildren;
 		MuisElement oldChild;
 		try (MuisLock lock = lock()) {
-			MuisElement [] children = theChildren;
-			oldChild = children[index];
-			children = ArrayUtils.remove(theChildren, index);
-			theChildren = children;
+			oldChildren = theChildren;
+			oldChild = oldChildren[index];
+			newChildren = ArrayUtils.remove(oldChildren, index);
+			theChildren = newChildren;
 		}
+		ImmutableChildList<MuisElement> oldList = list(oldChildren);
+		ImmutableChildList<MuisElement> newList = list(newChildren);
 		childRemoved(oldChild);
-		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild));
+		fireEvent(new ChildEvent(getParent(), oldChild, index, index, ChildEvent.ChildEventType.REMOVE, oldList, newList));
 		return oldChild;
 	}
 
@@ -150,59 +198,86 @@ public class ChildList extends AbstractElementList<MuisElement> {
 	public boolean remove(Object o) {
 		if(!(o instanceof MuisElement))
 			return false;
-		MuisElement oldChild;
+		MuisElement [] oldChildren;
+		MuisElement [] newChildren;
+		MuisElement oldChild = (MuisElement) o;
+		int index;
 		try (MuisLock lock = lock()) {
-			MuisElement [] children = theChildren;
-			int index = ArrayUtils.indexOf(children, (MuisElement) o);
+			oldChildren = theChildren;
+			index = ArrayUtils.indexOf(oldChildren, (MuisElement) o);
 			if(index < 0)
 				return false;
-			oldChild = children[index];
-			children = ArrayUtils.remove(theChildren, index);
-			theChildren = children;
+			newChildren = ArrayUtils.remove(theChildren, index);
+			theChildren = newChildren;
 		}
+		ImmutableChildList<MuisElement> oldList = list(oldChildren);
+		ImmutableChildList<MuisElement> newList = list(newChildren);
 		childRemoved(oldChild);
-		getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, oldChild));
+		fireEvent(new ChildEvent(getParent(), oldChild, index, index, ChildEvent.ChildEventType.REMOVE, oldList, newList));
 		return true;
 	}
 
 	@Override
 	public void clear() {
-		MuisElement [] children;
+		MuisElement [] oldChildren;
 		try (MuisLock lock = lock()) {
 			if(theChildren.length == 0)
 				return;
-			children = theChildren;
+			oldChildren = theChildren;
 			theChildren = new MuisElement[0];
 		}
-		for(MuisElement child : children) {
-			childRemoved(child);
-			getParent().fireEvent(new MuisEvent<>(CHILD_REMOVED, child));
+		SimpleElementList<MuisElement> tempOldChildren = new SimpleElementList<>(getParent(), oldChildren);
+		SimpleElementList<MuisElement> tempNewChildren = new SimpleElementList<>(getParent(), ArrayUtils.remove(oldChildren,
+			oldChildren.length - 1));
+		ImmutableChildList<MuisElement> immOld = new ImmutableChildList<>(tempOldChildren);
+		ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
+		for(int c = oldChildren.length - 1; c >= 0; c--) {
+			childRemoved(oldChildren[c]);
+			fireEvent(new ChildEvent(getParent(), oldChildren[c], c, c, ChildEvent.ChildEventType.REMOVE, immOld, immNew));
+			tempOldChildren.remove(c);
+			if(c > 0)
+				tempNewChildren.remove(c - 1);
 		}
 	}
 
+	/**
+	 * This method skips over elements of the collection which are already in this child list
+	 *
+	 * @see java.util.List#addAll(java.util.Collection)
+	 */
 	@Override
 	public boolean addAll(Collection<? extends MuisElement> children) {
+		MuisElement [] oldChildren;
 		ArrayList<MuisElement> toAdd = new ArrayList<>();
+		int index;
 		try (MuisLock lock = lock()) {
-			MuisElement [] newChildren = theChildren;
+			oldChildren = theChildren;
 			for(MuisElement child : children) {
 				if(child == null)
 					continue;
-				if(ArrayUtils.contains(newChildren, child) || toAdd.contains(child))
+				if(ArrayUtils.contains(oldChildren, child) || toAdd.contains(child))
 					continue;
 				toAdd.add(child);
 			}
+			index = oldChildren.length;
+			MuisElement [] newChildren;
 			if(!toAdd.isEmpty()) {
-				newChildren = ArrayUtils.addAll(newChildren, toAdd.toArray(new MuisElement[toAdd.size()]));
+				newChildren = ArrayUtils.addAll(oldChildren, toAdd.toArray(new MuisElement[toAdd.size()]));
 				theChildren = newChildren;
 				for(MuisElement child : toAdd)
 					checkChildState(child);
 			}
 		}
 
-		for(MuisElement child : toAdd) {
-			getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child));
-			childAdded(child);
+		SimpleElementList<MuisElement> tempOldChildren = new SimpleElementList<>(getParent(), oldChildren);
+		SimpleElementList<MuisElement> tempNewChildren = new SimpleElementList<>(getParent(), oldChildren);
+		ImmutableChildList<MuisElement> immOld = new ImmutableChildList<>(tempOldChildren);
+		ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
+		for(int c = 0; c < toAdd.size(); c++) {
+			tempNewChildren.add(toAdd.get(c));
+			fireEvent(new ChildEvent(getParent(), toAdd.get(c), index + c, index + c, ChildEvent.ChildEventType.ADD, immOld, immNew));
+			childAdded(toAdd.get(c));
+			tempOldChildren.add(toAdd.get(c));
 		}
 		return !toAdd.isEmpty();
 	}
@@ -214,30 +289,37 @@ public class ChildList extends AbstractElementList<MuisElement> {
 
 	@Override
 	public boolean addAll(int index, Collection<? extends MuisElement> children) {
+		MuisElement [] oldChildren;
 		ArrayList<MuisElement> toAdd = new ArrayList<>();
 		try (MuisLock lock = lock()) {
-			MuisElement [] cacheChildren = theChildren;
+			oldChildren = theChildren;
 			for(MuisElement child : children) {
 				if(child == null)
 					continue;
-				if(ArrayUtils.contains(cacheChildren, child) || toAdd.contains(child))
+				if(ArrayUtils.contains(oldChildren, child) || toAdd.contains(child))
 					continue;
 				toAdd.add(child);
 			}
 			if(!toAdd.isEmpty()) {
-				MuisElement [] newChildren2 = new MuisElement[cacheChildren.length + toAdd.size()];
-				System.arraycopy(cacheChildren, 0, newChildren2, 0, index);
-				System.arraycopy(cacheChildren, index, toAdd.toArray(new MuisElement[toAdd.size()]), 0, toAdd.size());
-				System.arraycopy(cacheChildren, index, newChildren2, index + toAdd.size(), cacheChildren.length - index);
+				MuisElement [] newChildren2 = new MuisElement[oldChildren.length + toAdd.size()];
+				System.arraycopy(oldChildren, 0, newChildren2, 0, index);
+				System.arraycopy(oldChildren, index, toAdd.toArray(new MuisElement[toAdd.size()]), 0, toAdd.size());
+				System.arraycopy(oldChildren, index, newChildren2, index + toAdd.size(), oldChildren.length - index);
 				theChildren = newChildren2;
 				for(MuisElement child : toAdd)
 					checkChildState(child);
 			}
 		}
 
-		for(MuisElement child : toAdd) {
-			getParent().fireEvent(new MuisEvent<>(CHILD_ADDED, child));
-			childAdded(child);
+		SimpleElementList<MuisElement> tempOldChildren = new SimpleElementList<>(getParent(), oldChildren);
+		SimpleElementList<MuisElement> tempNewChildren = new SimpleElementList<>(getParent(), oldChildren);
+		ImmutableChildList<MuisElement> immOld = new ImmutableChildList<>(tempOldChildren);
+		ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
+		for(int c = 0; c < toAdd.size(); c++) {
+			tempNewChildren.add(toAdd.get(c));
+			fireEvent(new ChildEvent(getParent(), toAdd.get(c), index + c, index + c, ChildEvent.ChildEventType.ADD, immOld, immNew));
+			childAdded(toAdd.get(c));
+			tempOldChildren.add(toAdd.get(c));
 		}
 		return !toAdd.isEmpty();
 	}
@@ -249,23 +331,35 @@ public class ChildList extends AbstractElementList<MuisElement> {
 
 	@Override
 	public boolean removeAll(Collection<?> children) {
-		HashSet<Integer> toRemove = new HashSet<>();
+		LinkedHashSet<Integer> toRemove = new LinkedHashSet<>();
+		MuisElement [] oldChildren = null;
 		try (MuisLock lock = lock()) {
-			MuisElement [] cacheChildren = theChildren;
+			oldChildren = theChildren;
 			for(Object o : children) {
-				int index = ArrayUtils.indexOf(cacheChildren, o);
+				int index = ArrayUtils.indexOf(oldChildren, o);
 				if(index >= 0)
 					toRemove.add(index);
 			}
 			if(!toRemove.isEmpty()) {
-				MuisElement [] newChildren = new MuisElement[cacheChildren.length - toRemove.size()];
+				MuisElement [] newChildren = new MuisElement[oldChildren.length - toRemove.size()];
 				int i, j;
-				for(i = 0, j = 0; i < cacheChildren.length; i++) {
+				for(i = 0, j = 0; i < oldChildren.length; i++) {
 					if(!toRemove.contains(i))
-						newChildren[j++] = cacheChildren[i];
+						newChildren[j++] = oldChildren[i];
 				}
 				theChildren = newChildren;
 			}
+		}
+
+		SimpleElementList<MuisElement> tempOldChildren = new SimpleElementList<>(getParent(), oldChildren);
+		SimpleElementList<MuisElement> tempNewChildren = new SimpleElementList<>(getParent(), oldChildren);
+		ImmutableChildList<MuisElement> immOld = new ImmutableChildList<>(tempOldChildren);
+		ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
+		for(Integer index : toRemove) {
+			tempNewChildren.remove(index);
+			childRemoved(oldChildren[index]);
+			fireEvent(new ChildEvent(getParent(), oldChildren[index], index, index, ChildEvent.ChildEventType.REMOVE, immOld, immNew));
+			tempOldChildren.remove(index);
 		}
 		return !toRemove.isEmpty();
 	}
@@ -273,26 +367,47 @@ public class ChildList extends AbstractElementList<MuisElement> {
 	@Override
 	public boolean retainAll(Collection<?> children) {
 		HashSet<Integer> toRetain = new HashSet<>();
+		MuisElement [] oldChildren;
 		boolean changed = false;
 		try (MuisLock lock = lock()) {
-			MuisElement [] cacheChildren = theChildren;
+			oldChildren = theChildren;
 			for(Object o : children) {
-				int index = ArrayUtils.indexOf(cacheChildren, o);
+				int index = ArrayUtils.indexOf(oldChildren, o);
 				if(index >= 0)
 					toRetain.add(index);
 			}
-			if(toRetain.size() < cacheChildren.length) {
+			if(toRetain.size() < oldChildren.length) {
 				changed = true;
 				MuisElement [] newChildren = new MuisElement[toRetain.size()];
 				int i, j;
-				for(i = 0, j = 0; i < cacheChildren.length; i++) {
+				for(i = 0, j = 0; i < oldChildren.length; i++) {
 					if(toRetain.contains(i))
-						newChildren[j++] = cacheChildren[i];
+						newChildren[j++] = oldChildren[i];
 				}
 				theChildren = newChildren;
 			}
 		}
+		if(changed) {
+			SimpleElementList<MuisElement> tempOldChildren = new SimpleElementList<>(getParent(), oldChildren);
+			SimpleElementList<MuisElement> tempNewChildren = new SimpleElementList<>(getParent(), oldChildren);
+			ImmutableChildList<MuisElement> immOld = new ImmutableChildList<>(tempOldChildren);
+			ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
+			for(int i = oldChildren.length - 1; i >= 0; i--) {
+				if(toRetain.contains(i))
+					continue;
+				tempNewChildren.remove(i);
+				childRemoved(oldChildren[i]);
+				fireEvent(new ChildEvent(getParent(), oldChildren[i], i, i, ChildEvent.ChildEventType.REMOVE, immOld, immNew));
+				tempOldChildren.remove(i);
+			}
+		}
 		return changed;
+	}
+
+	@Override
+	protected void fireEvent(ChildEvent evt) {
+		super.fireEvent(evt);
+		getParent().events().fire(evt);
 	}
 
 	private void checkChildState(MuisElement child) {

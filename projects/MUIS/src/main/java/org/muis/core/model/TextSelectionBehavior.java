@@ -2,14 +2,14 @@ package org.muis.core.model;
 
 import java.awt.geom.Point2D;
 
-import org.muis.core.MuisElement;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
+import org.muis.core.event.MuisEventListener;
 
 /** Implements the text-selecting feature as a user drags over a text element. Also implements keyboard copying (Ctrl+C or Ctrl+X). */
 public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
-	private class MouseListener extends org.muis.core.event.MouseListener {
+	private class MouseListener implements MuisEventListener<MouseEvent> {
 		MouseListener() {
 			super();
 		}
@@ -17,89 +17,84 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		private int theAnchor = -1;
 
 		@Override
-		public void mouseDown(MouseEvent mEvt, MuisElement element) {
-			if(!(((MuisTextElement) element).getDocumentModel() instanceof SelectableDocumentModel))
+		public void eventOccurred(MouseEvent event) {
+			MuisTextElement element = (MuisTextElement) event.getElement();
+			if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 				return;
-			if(mEvt.getButtonType() == MouseEvent.ButtonType.LEFT) {
-				int position = Math.round(((MuisTextElement) element).getDocumentModel().getPositionAt(mEvt.getX(), mEvt.getY(),
-					element.bounds().getWidth()));
-				SelectableDocumentModel doc = (SelectableDocumentModel) ((MuisTextElement) element).getDocumentModel();
-				if(element.getDocument().isShiftPressed()) {
-					theAnchor = doc.getSelectionAnchor();
-				} else
-					theAnchor = position;
-				doc.setSelection(theAnchor, position);
+			switch (event.getMouseEventType()) {
+			case pressed:
+				if(event.getButtonType() == MouseEvent.ButtonType.LEFT) {
+					int position = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
+						element.bounds().getWidth()));
+					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+					if(element.getDocument().isShiftPressed()) {
+						theAnchor = doc.getSelectionAnchor();
+					} else
+						theAnchor = position;
+					doc.setSelection(theAnchor, position);
+				}
+				break;
+			case released:
+				if(event.getButtonType() == MouseEvent.ButtonType.LEFT)
+					theAnchor = -1;
+				break;
+			case moved:
+				if(theAnchor < 0)
+					return;
+				if(!element.getDocument().isButtonPressed(MouseEvent.ButtonType.LEFT)) {
+					theAnchor = -1;
+					return;
+				}
+				int cursor = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+				((SelectableDocumentModel) element.getDocumentModel()).setSelection(theAnchor, cursor);
+				break;
+			default:
 			}
-		}
-
-		@Override
-		public void mouseUp(MouseEvent mEvt, MuisElement element) {
-			if(mEvt.getButtonType() == MouseEvent.ButtonType.LEFT)
-				theAnchor = -1;
-		}
-
-		@Override
-		public void mouseMoved(MouseEvent mEvt, MuisElement element) {
-			if(!(((MuisTextElement) element).getDocumentModel() instanceof SelectableDocumentModel))
-				return;
-			if(theAnchor < 0)
-				return;
-			if(!element.getDocument().isButtonPressed(MouseEvent.ButtonType.LEFT)) {
-				theAnchor = -1;
-				return;
-			}
-			int cursor = Math.round(((MuisTextElement) element).getDocumentModel().getPositionAt(mEvt.getX(), mEvt.getY(),
-				element.bounds().getWidth()));
-			((SelectableDocumentModel) ((MuisTextElement) element).getDocumentModel()).setSelection(theAnchor, cursor);
 		}
 	}
 
-	private class KeyListener extends org.muis.core.event.KeyBoardListener {
-		public KeyListener() {
-			super();
-		}
-
+	private class KeyListener implements MuisEventListener<KeyBoardEvent> {
 		@Override
-		public void keyPressed(KeyBoardEvent kEvt, MuisElement element) {
-			MuisTextElement text = (MuisTextElement) element;
-			switch (kEvt.getKeyCode()) {
+		public void eventOccurred(KeyBoardEvent event) {
+			MuisTextElement text = (MuisTextElement) event.getElement();
+			switch (event.getKeyCode()) {
 			case C:
 			case X:
-				if(element.getDocument().isControlPressed())
-					copyToClipboard(text, kEvt.getKeyCode() == KeyBoardEvent.KeyCode.X);
-				kEvt.use();
+				if(text.getDocument().isControlPressed())
+					copyToClipboard(text, event.getKeyCode() == KeyBoardEvent.KeyCode.X);
+				event.use();
 				break;
 			case LEFT_ARROW:
-				left(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				left(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case RIGHT_ARROW:
-				right(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				right(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case UP_ARROW:
-				up(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				up(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case DOWN_ARROW:
-				down(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				down(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case HOME:
-				home(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				home(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case END:
-				end(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				end(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case PAGE_UP:
-				pageUp(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				pageUp(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			case PAGE_DOWN:
-				pageDown(text, element.getDocument().isShiftPressed());
-				kEvt.use();
+				pageDown(text, text.getDocument().isShiftPressed());
+				event.use();
 				break;
 			default:
 			}
@@ -108,6 +103,9 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	private MuisTextElement theElement;
 
+	private MouseListener theMouseListener = new MouseListener();
+	private KeyListener theKeyListener = new KeyListener();
+
 	private int theCursorXLoc = -1;
 
 	@Override
@@ -115,8 +113,8 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		if(theElement != null)
 			throw new IllegalStateException(getClass().getSimpleName() + " may only be used with a single element");
 		theElement = element;
-		element.addListener(org.muis.core.MuisConstants.Events.MOUSE, new MouseListener());
-		element.addListener(org.muis.core.MuisConstants.Events.KEYBOARD, new KeyListener());
+		element.events().listen(MouseEvent.mouse, theMouseListener);
+		element.events().listen(KeyBoardEvent.key.press(), theKeyListener);
 		element.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 			@Override
 			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
@@ -133,8 +131,8 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	@Override
 	public void uninstall(MuisTextElement element) {
-		element.removeListener(org.muis.core.MuisConstants.Events.MOUSE, MouseListener.class);
-		element.removeListener(org.muis.core.MuisConstants.Events.KEYBOARD, KeyListener.class);
+		element.events().remove(MouseEvent.mouse, theMouseListener);
+		element.events().remove(KeyBoardEvent.key.press(), theKeyListener);
 		if(theElement == element)
 			theElement = null;
 	}
@@ -253,8 +251,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			newCursor = doc.length();
 		else {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
-			newCursor = (int) doc.getPositionAt(element.bounds().getWidth(), (float) loc.getY(),
-				element.bounds().getWidth());
+			newCursor = (int) doc.getPositionAt(element.bounds().getWidth(), (float) loc.getY(), element.bounds().getWidth());
 		}
 		if(shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);

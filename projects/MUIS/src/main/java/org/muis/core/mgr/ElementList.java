@@ -3,6 +3,8 @@ package org.muis.core.mgr;
 import java.util.List;
 
 import org.muis.core.MuisElement;
+import org.muis.core.event.ChildEvent;
+import org.muis.core.event.MuisEventListener;
 
 /**
  * A list of elements (potentially a particular type of element) with a few extra operations available
@@ -10,6 +12,12 @@ import org.muis.core.MuisElement;
  * @param <E> The type of element
  */
 public interface ElementList<E extends MuisElement> extends List<E> {
+	/** @param listener The listener to be notified when this child list's content changes */
+	void addListener(MuisEventListener<ChildEvent> listener);
+
+	/** @param listener The listener to stop notifying */
+	void removeListener(MuisEventListener<ChildEvent> listener);
+
 	/** @return The parent whose children this list manages */
 	MuisElement getParent();
 

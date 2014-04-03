@@ -1,6 +1,7 @@
 package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
+import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
@@ -45,20 +46,20 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
 		}
-		theElement.addListener(org.muis.core.MuisConstants.Events.ELEMENT_MOVED, new org.muis.core.event.MuisEventListener<MuisElement>() {
+		theElement.events().listen(ElementMovedEvent.moved, new org.muis.core.event.MuisEventListener<ElementMovedEvent>() {
 			@Override
-			public void eventOccurred(org.muis.core.event.MuisEvent<MuisElement> event, MuisElement el) {
+			public void eventOccurred(ElementMovedEvent event) {
 				ElementStyle oldParentStyle = theParentStyle;
 				if(oldParentStyle != null) {
-					if(event.getValue() != null) {
-						theParentStyle = event.getValue().getStyle();
+					if(event.getNewParent() != null) {
+						theParentStyle = event.getNewParent().getStyle();
 						replaceDependency(oldParentStyle.getHeir(), theParentStyle.getHeir());
 					} else {
 						theParentStyle = null;
 						removeDependency(oldParentStyle.getHeir());
 					}
-				} else if(event.getValue() != null) {
-					theParentStyle = event.getValue().getStyle();
+				} else if(event.getNewParent() != null) {
+					theParentStyle = event.getNewParent().getStyle();
 					addDependency(theParentStyle.getHeir(), null);
 				}
 			}
@@ -69,14 +70,14 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		theHeirStyle.setState(currentState);
 		theElement.state().addListener(null, new org.muis.core.mgr.StateEngine.StateListener() {
 			@Override
-			public void entered(MuisState state, MuisEvent<?> cause) {
+			public void entered(MuisState state, MuisEvent cause) {
 				addState(state);
 				theSelfStyle.addState(state);
 				theHeirStyle.addState(state);
 			}
 
 			@Override
-			public void exited(MuisState state, MuisEvent<?> cause) {
+			public void exited(MuisState state, MuisEvent cause) {
 				removeState(state);
 				theSelfStyle.removeState(state);
 				theHeirStyle.removeState(state);
@@ -137,7 +138,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		addDependency(typedGroup, after);
 		if(!prisms.util.ArrayUtils.contains(theStyleGroups, typedGroup))
 			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, typedGroup);
-		theElement.fireEvent(new GroupMemberEvent(theElement, group, -1));
+		theElement.events().fire(new GroupMemberEvent(theElement, group, -1));
 	}
 
 	/** @param group The named style group to remove from this element style */
@@ -149,7 +150,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		if(index < 0)
 			return;
 		theStyleGroups = prisms.util.ArrayUtils.remove(theStyleGroups, typedGroup);
-		theElement.fireEvent(new GroupMemberEvent(theElement, group, index));
+		theElement.events().fire(new GroupMemberEvent(theElement, group, index));
 	}
 
 	/**

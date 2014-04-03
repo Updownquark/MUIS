@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.muis.core.MuisElement;
+import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
 
@@ -16,6 +17,7 @@ import prisms.util.ArrayUtils;
  * @param <E> The type of elements in the list
  */
 public abstract class AbstractElementList<E extends MuisElement> implements ElementList<E> {
+	private java.util.concurrent.CopyOnWriteArrayList<MuisEventListener<ChildEvent>> theListeners;
 	@SuppressWarnings("rawtypes")
 	private final ListenerManager<MuisEventListener> theChildListeners;
 
@@ -23,8 +25,19 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 
 	/** @param parent The parent to manage the children of */
 	public AbstractElementList(MuisElement parent) {
+		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 		theChildListeners = new ListenerManager<>(MuisEventListener.class);
 		theParent = parent;
+	}
+
+	@Override
+	public void addListener(MuisEventListener<ChildEvent> listener) {
+		theListeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(MuisEventListener<ChildEvent> listener) {
+		theListeners.remove(listener);
 	}
 
 	@Override
@@ -163,5 +176,11 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 			});
 		}
 		return children;
+	}
+
+	/** @param evt The ChildEvent to fire */
+	protected void fireEvent(ChildEvent evt) {
+		for(MuisEventListener<ChildEvent> listener : theListeners)
+			listener.eventOccurred(evt);
 	}
 }

@@ -290,7 +290,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	}
 
 	void styleChanged(StyleAttribute<?> attr, Object value, MuisStyle root) {
-		StyleAttributeEvent<?> evt = new StyleAttributeEvent<>(root, this, (StyleAttribute<Object>) attr, value);
+		StyleAttributeEvent<?> evt = new StyleAttributeEvent<>(null, root, this, (StyleAttribute<Object>) attr, value);
 		for(StyleListener listener : theStyleListeners) {
 			listener.eventOccurred(evt);
 		}

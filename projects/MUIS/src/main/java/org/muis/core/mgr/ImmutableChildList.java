@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.muis.core.MuisElement;
+import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.MuisEventType;
 
@@ -20,6 +21,16 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 	/** @param contents The list to wrap */
 	public ImmutableChildList(ElementList<E> contents) {
 		theContents = contents;
+	}
+
+	@Override
+	public void addListener(MuisEventListener<ChildEvent> listener) {
+		theContents.addListener(listener);
+	}
+
+	@Override
+	public void removeListener(MuisEventListener<ChildEvent> listener) {
+		theContents.removeListener(listener);
 	}
 
 	@Override

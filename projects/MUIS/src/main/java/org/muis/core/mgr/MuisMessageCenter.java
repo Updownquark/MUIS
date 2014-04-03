@@ -12,6 +12,34 @@ import prisms.util.ArrayUtils;
 
 /** Defines a center that can store MUIS messages */
 public class MuisMessageCenter implements Iterable<MuisMessage> {
+	/** A message fired in an element when a message is added to or removed from it */
+	public static class MuisMessageEvent implements org.muis.core.event.MuisEvent {
+		private final MuisElement theElement;
+		private final MuisMessage theMessage;
+		private final boolean isRemove;
+
+		MuisMessageEvent(MuisElement element, MuisMessage message, boolean remove) {
+			theElement = element;
+			theMessage = message;
+			isRemove = remove;
+		}
+
+		@Override
+		public MuisElement getElement() {
+			return theElement;
+		}
+
+		/** @return The message that was added or removed */
+		public MuisMessage getMessage() {
+			return theMessage;
+		}
+
+		/** @return Whether the message was added or removed */
+		public boolean isRemove() {
+			return isRemove;
+		}
+	}
+
 	/** Receives notifications new messages to a message center or one of its children */
 	public static interface MuisMessageListener {
 		/** @param msg The message received */
@@ -212,6 +240,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		for(MuisMessageListener listener : theListeners)
 			listener.messageReceived(msg);
 		if(theElement != null) {
+			theElement.events().fire(new MuisMessageEvent(theElement, msg, false));
 			if(theElement.getParent() != null)
 				theElement.getParent().msg().fireListeners(msg);
 			else
@@ -257,8 +286,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 				if(theLastMessage.type == theWorstMessageType)
 					reEvalWorstMessage();
 				if(theElement != null)
-					theElement.fireEvent(new org.muis.core.event.MuisEvent<>(org.muis.core.MuisConstants.Events.MESSAGE_REMOVED,
-						theLastMessage));
+					theElement.events().fire(new MuisMessageEvent(theElement, theLastMessage, true));
 			}
 		};
 	}

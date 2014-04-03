@@ -7,12 +7,11 @@ import org.muis.core.MuisAttribute;
 import org.muis.core.MuisConstants.Events;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
-import org.muis.core.event.AttributeChangedListener;
+import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
-import org.muis.core.style.StyleAttributeListener;
 import org.muis.core.style.StyleDomain;
 
 /**
@@ -139,7 +138,7 @@ public abstract class CompoundListener<T> {
 	public static final ChangeListener sizeNeedsChanged = new ChangeListener() {
 		@Override
 		public void changed(MuisElement element) {
-			element.fireEvent(new org.muis.core.event.SizeNeedsChangedEvent(null));
+			element.events().fire(new org.muis.core.event.SizeNeedsChangedEvent(element, null));
 		}
 	};
 
@@ -277,13 +276,13 @@ public abstract class CompoundListener<T> {
 	 * @param listener The listener to execute when the last attribute in the current chain changes
 	 * @return The listener for chaining
 	 */
-	public abstract CompoundListener<T> onChange(AttributeChangedListener<? super T> listener);
+	public abstract CompoundListener<T> onAttChange(MuisEventListener<AttributeChangedEvent<? super T>> listener);
 
 	/**
 	 * @param listener The listener to execute when the last style attribute in the current chain changes
 	 * @return The listener for chaining
 	 */
-	public abstract CompoundListener<T> onChange(StyleAttributeListener<? super T> listener);
+	public abstract CompoundListener<T> onStyleChange(MuisEventListener<StyleAttributeEvent<? super T>> listener);
 
 	/**
 	 * @param wanter The object that cares about the attributes that will be listened for on the elements
@@ -366,7 +365,7 @@ public abstract class CompoundListener<T> {
 		@Override
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<>(this);
-			theElement.addListener(Events.ATTRIBUTE_CHANGED, ret);
+			theElement.events().listen(AttributeChangedEvent.base, ret.attListener);
 			theElement.getStyle().getSelf().addListener(ret.getStyleListener());
 			return ret;
 		}
@@ -693,27 +692,29 @@ public abstract class CompoundListener<T> {
 		}
 	}
 
-	private static abstract class ChainedCompoundListener<T> extends CompoundListener<T> implements
-		org.muis.core.event.MuisEventListener<Object> {
+	private static abstract class ChainedCompoundListener<T> extends CompoundListener<T> {
 		private java.util.Map<MuisAttribute<?>, AttributeHolder> theChained;
 
 		private java.util.concurrent.CopyOnWriteArrayList<ChangeListener> theListeners;
 
 		private MuisAttribute<?> theLastAttr;
 
-		private HashMap<MuisAttribute<?>, AttributeChangedListener<?> []> theSpecificListeners;
+		private HashMap<MuisAttribute<?>, MuisEventListener<AttributeChangedEvent<?>> []> theSpecificListeners;
 
 		private java.util.Set<StyleAttribute<?>> theStyleAttributes;
 
 		private java.util.Set<StyleDomain> theStyleDomains;
 
-		private HashMap<StyleAttribute<?>, StyleAttributeListener<?> []> theSpecificStyleListeners;
+		private HashMap<StyleAttribute<?>, MuisEventListener<StyleAttributeEvent<?>> []> theSpecificStyleListeners;
 
 		private StyleAttribute<?> theLastStyleAttr;
 
 		private boolean isActive;
 
 		private boolean isDropped;
+
+		MuisEventListener<AttributeChangedEvent<?>> attListener;
+		MuisEventListener<StyleAttributeEvent<?>> styleListener;
 
 		ChainedCompoundListener() {
 			theChained = new java.util.LinkedHashMap<>();
@@ -723,6 +724,51 @@ public abstract class CompoundListener<T> {
 			theStyleAttributes = new java.util.HashSet<>();
 			theStyleDomains = new java.util.HashSet<>();
 			isActive = true;
+
+			attListener=new MuisEventListener<AttributeChangedEvent<?>>(){
+				@Override
+				public void eventOccurred(AttributeChangedEvent<?> event) {
+					MuisEventListener<AttributeChangedEvent<Object>> [] listeners;
+					boolean contains;
+					synchronized(theChained) {
+						contains = theChained.containsKey(event.getAttribute());
+					}
+					synchronized(theSpecificListeners) {
+						listeners = (MuisEventListener<AttributeChangedEvent<Object>> []) theSpecificListeners.get(event.getAttribute());
+					}
+					if(contains) {
+						for(ChangeListener run : theListeners)
+							run.changed(getElement());
+					}
+					if(listeners != null)
+						for(MuisEventListener<AttributeChangedEvent<Object>> listener : listeners)
+							listener.eventOccurred((org.muis.core.event.AttributeChangedEvent<Object>) event);
+				}
+			};
+			styleListener=new MuisEventListener<StyleAttributeEvent<?>>(){
+				@Override
+				public void eventOccurred(StyleAttributeEvent<?> event) {
+					boolean contains;
+					MuisEventListener<StyleAttributeEvent<Object>> [] listeners;
+					synchronized(theStyleDomains) {
+						contains = theStyleDomains.contains(event.getAttribute().getDomain());
+					}
+					if(!contains)
+						synchronized(theStyleAttributes) {
+							contains = theStyleAttributes.contains(event.getAttribute());
+						}
+					synchronized(theSpecificStyleListeners) {
+						listeners = (MuisEventListener<StyleAttributeEvent<Object>> []) theSpecificStyleListeners.get(event.getAttribute());
+					}
+					if(contains) {
+						for(ChangeListener run : theListeners)
+							run.changed(getElement());
+					}
+					if(listeners != null)
+						for(MuisEventListener<StyleAttributeEvent<Object>> listener : listeners)
+							listener.eventOccurred((StyleAttributeEvent<Object>) event));
+				}
+			};
 		}
 
 		void drop() {

@@ -123,7 +123,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
 			@Override
 			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
-				events().fire(new SizeNeedsChangedEvent(null));
+				events().fire(new SizeNeedsChangedEvent(MuisElement.this, null));
 				if(event.getType() == CHILD_REMOVED) {
 					// Need to repaint where the element left even if nothing changes as a result of the layout
 					unregisterChild(event.getValue());

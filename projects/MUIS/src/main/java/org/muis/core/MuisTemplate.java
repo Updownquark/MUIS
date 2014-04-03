@@ -3,6 +3,8 @@ package org.muis.core;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
+import org.muis.core.event.ChildEvent;
+import org.muis.core.event.MuisEventListener;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
@@ -1199,6 +1201,12 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		@Override
+		public void addListener(MuisEventListener<ChildEvent> listener) {
+			// TODO
+			throw new UnsupportedOperationException("Child listeners not implemented on MuisTemplate.children yet");
+		}
+
+		@Override
 		public int size() {
 			int ret = 0;
 			for(@SuppressWarnings("unused")
@@ -1601,75 +1609,28 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 	}
 
-	private static class AttachPointInstanceElementList extends AbstractElementList<MuisElement> {
-		private AttachPoint theAttach;
-
-		private ElementList<?> theParentChildren;
+	private static class AttachPointInstanceElementList extends org.muis.util.FilteredElementList<MuisElement> {
+		private final AttachPoint theAttach;
 
 		AttachPointInstanceElementList(AttachPoint ap, MuisTemplate template, ElementList<?> parentChildren) {
-			super(template);
+			super(template, parentChildren);
 			theAttach = ap;
-			theParentChildren = parentChildren;
 		}
 
 		@Override
-		public int size() {
-			int ret = 0;
-			for(MuisElement child : theParentChildren) {
-				if(child.atts().get(theAttach.template.role) == theAttach)
-					ret++;
-			}
-			return ret;
+		protected boolean filter(MuisElement element) {
+			return theAttach.template.getRole(element) == theAttach;
 		}
 
 		@Override
-		public Iterator<MuisElement> iterator() {
-			return new Iterator<MuisElement>() {
-				private final Iterator<? extends MuisElement> theBacking = theParentChildren.iterator();
-
-				private MuisElement theNext;
-
-				private boolean isRemovable;
-
-				@Override
-				public boolean hasNext() {
-					isRemovable = false;
-					while(theNext == null && theBacking.hasNext()) {
-						MuisElement next = theBacking.next();
-						if(theAttach.template.getRole(next) == theAttach)
-							theNext = next;
-					}
-					return theNext != null;
-				}
-
-				@Override
-				public MuisElement next() {
-					if(theNext == null && !hasNext())
-						throw new java.util.NoSuchElementException();
-					MuisElement ret = theNext;
-					theNext = null;
-					isRemovable = true;
-					return ret;
-				}
-
-				@Override
-				public void remove() {
-					if(!isRemovable)
-						throw new IllegalStateException("next() must be called before remove()");
-					isRemovable = false;
-					assertMutable();
-					theBacking.remove();
-				}
-			};
-		}
-
-		void assertMutable() {
+		protected void assertMutable() {
 			if(!theAttach.mutable)
 				throw new UnsupportedOperationException("Attach point " + theAttach + " of template "
 					+ theAttach.template.getDefiner().getName() + " is not mutable");
 		}
 
-		void assertFits(MuisElement e) {
+		@Override
+		protected void assertFits(MuisElement e) {
 			if(e == null)
 				throw new IllegalArgumentException("Cannot add null elements to an element container");
 			MuisTemplate.assertFits(theAttach, e);
@@ -1678,304 +1639,8 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		@Override
-		public boolean add(MuisElement e) {
-			assertMutable();
-			assertFits(e);
-			ListIterator<MuisElement> iter = listIterator();
-			while(iter.hasNext())
-				iter.next();
-			iter.add(e);
-			return true;
-		}
-
-		@Override
-		public boolean remove(Object o) {
-			assertMutable();
-			Iterator<MuisElement> iter = iterator();
-			boolean found = false;
-			while(iter.hasNext()) {
-				if(iter.next() == o) {
-					iter.remove();
-					found = true;
-					break;
-				}
-			}
-			return found;
-		}
-
-		@Override
-		public boolean containsAll(Collection<?> c) {
-			Collection<?> copy = new HashSet<>(c);
-			for(MuisElement el : this) {
-				copy.remove(el);
-				if(copy.isEmpty())
-					break;
-			}
-			return copy.isEmpty();
-		}
-
-		@Override
-		public boolean addAll(Collection<? extends MuisElement> c) {
-			assertMutable();
-			for(MuisElement e : c)
-				assertFits(e);
-			ListIterator<MuisElement> iter = listIterator();
-			while(iter.hasNext())
-				iter.next();
-			for(MuisElement e : c)
-				iter.add(e);
-			return true;
-		}
-
-		@Override
-		public boolean addAll(int index, Collection<? extends MuisElement> c) {
-			assertMutable();
-			for(MuisElement e : c)
-				assertFits(e);
-			ListIterator<MuisElement> iter = listIterator(index);
-			for(MuisElement e : c)
-				iter.add(e);
-			return true;
-		}
-
-		@Override
-		public boolean removeAll(Collection<?> c) {
-			assertMutable();
-			Iterator<MuisElement> iter = iterator();
-			boolean found = false;
-			while(iter.hasNext()) {
-				if(c.contains(iter.next())) {
-					iter.remove();
-					found = true;
-				}
-			}
-			return found;
-		}
-
-		@Override
-		public boolean retainAll(Collection<?> c) {
-			assertMutable();
-			Iterator<MuisElement> iter = iterator();
-			boolean found = false;
-			while(iter.hasNext()) {
-				if(!c.contains(iter.next())) {
-					iter.remove();
-					found = true;
-				}
-			}
-			return found;
-		}
-
-		@Override
-		public void clear() {
-			assertMutable();
-			Iterator<MuisElement> iter = iterator();
-			while(iter.hasNext()) {
-				iter.remove();
-			}
-		}
-
-		@Override
-		public MuisElement get(int index) {
-			for(MuisElement el : this) {
-				if(index == 0)
-					return el;
-				index--;
-			}
-			throw new IndexOutOfBoundsException();
-		}
-
-		@Override
-		public MuisElement set(int index, MuisElement element) {
-			assertMutable();
-			assertFits(element);
-			ListIterator<MuisElement> iter = listIterator(index);
-			if(!iter.hasNext())
-				throw new IndexOutOfBoundsException("" + index);
-			MuisElement ret = iter.next();
-			iter.set(element);
-			return ret;
-		}
-
-		@Override
-		public void add(int index, MuisElement element) {
-			assertMutable();
-			assertFits(element);
-			ListIterator<MuisElement> iter = listIterator(index);
-			iter.add(element);
-		}
-
-		@Override
-		public MuisElement remove(int index) {
-			assertMutable();
-			Iterator<MuisElement> iter = iterator();
-			int idx = index;
-			MuisElement ret = null;
-			while(idx >= 0 && iter.hasNext()) {
-				ret = iter.next();
-			}
-			if(idx >= 0)
-				throw new IndexOutOfBoundsException(index + " of " + (index - idx));
-			iter.remove();
-			return ret;
-		}
-
-		@Override
-		public int indexOf(Object o) {
-			int index = 0;
-			for(MuisElement el : this) {
-				if(el == o)
-					return index;
-				index++;
-			}
-			return -1;
-		}
-
-		@Override
-		public ListIterator<MuisElement> listIterator() {
-			return new ListIterator<MuisElement>() {
-				private final ListIterator<? extends MuisElement> theBacking = theParentChildren.listIterator();
-
-				private MuisElement theNext;
-
-				private MuisElement thePrev;
-
-				private int theIndex;
-
-				private boolean isRemovable;
-
-				@Override
-				public boolean hasNext() {
-					isRemovable = false;
-					while(theNext == null && theBacking.hasNext()) {
-						MuisElement next = theBacking.next();
-						if(theAttach.template.getRole(next) == theAttach)
-							theNext = next;
-					}
-					return theNext != null;
-				}
-
-				@Override
-				public MuisElement next() {
-					if(theNext == null && !hasNext())
-						throw new java.util.NoSuchElementException();
-					MuisElement ret = theNext;
-					theNext = null;
-					isRemovable = true;
-					theIndex++;
-					return ret;
-				}
-
-				@Override
-				public boolean hasPrevious() {
-					isRemovable = false;
-					while(thePrev == null && theBacking.hasPrevious()) {
-						MuisElement prev = theBacking.previous();
-						if(theAttach.template.getRole(prev) == theAttach)
-							thePrev = prev;
-					}
-					return thePrev != null;
-				}
-
-				@Override
-				public MuisElement previous() {
-					if(thePrev == null && !hasPrevious())
-						throw new java.util.NoSuchElementException();
-					MuisElement ret = thePrev;
-					thePrev = null;
-					isRemovable = true;
-					theIndex--;
-					return ret;
-				}
-
-				@Override
-				public int nextIndex() {
-					return theIndex;
-				}
-
-				@Override
-				public int previousIndex() {
-					return theIndex - 1;
-				}
-
-				@Override
-				public void remove() {
-					if(!isRemovable)
-						throw new IllegalStateException("next() or previous() must be called before remove()");
-					assertMutable();
-					isRemovable = false;
-					theIndex--;
-					theBacking.remove();
-				}
-
-				@Override
-				public void set(MuisElement e) {
-					if(!isRemovable)
-						throw new IllegalStateException("next() or previous() must be called before set()");
-					assertMutable();
-					assertFits(e);
-					((ListIterator<MuisElement>) theBacking).set(e);
-				}
-
-				@Override
-				public void add(MuisElement e) {
-					assertMutable();
-					assertFits(e);
-					isRemovable = false;
-					theIndex++;
-					((ListIterator<MuisElement>) theBacking).add(e);
-				}
-			};
-		}
-
-		@Override
-		public ListIterator<MuisElement> listIterator(int index) {
-			ListIterator<MuisElement> ret = listIterator();
-			int idx = index;
-			while(idx > 0 && ret.hasNext()) {
-				idx--;
-				ret.next();
-			}
-			if(idx > 0)
-				throw new IndexOutOfBoundsException(index + " of " + (index - idx));
-			return ret;
-		}
-
-		@Override
-		public List<MuisElement> subList(int fromIndex, int toIndex) {
-			return new org.muis.core.mgr.SubList<>(this, fromIndex, toIndex);
-		}
-
-		@Override
-		public MuisElement [] toArray() {
-			ArrayList<MuisElement> ret = new ArrayList<>();
-			for(MuisElement el : this)
-				ret.add(el);
-			return ret.toArray(new MuisElement[ret.size()]);
-		}
-
-		@Override
-		public boolean addAll(MuisElement [] children) {
-			assertMutable();
-			for(MuisElement child : children)
-				assertFits(child);
-			ListIterator<MuisElement> iter = listIterator();
-			while(iter.hasNext())
-				iter.next();
-			for(MuisElement child : children)
-				iter.add(child);
-			return children.length > 0;
-		}
-
-		@Override
-		public boolean addAll(int index, MuisElement [] children) {
-			assertMutable();
-			for(MuisElement child : children)
-				assertFits(child);
-			ListIterator<MuisElement> iter = listIterator(index);
-			for(MuisElement child : children)
-				iter.add(child);
-			return children.length > 0;
+		protected MuisElement [] newArray(int size) {
+			return new MuisElement[size];
 		}
 	}
 }

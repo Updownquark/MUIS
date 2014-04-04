@@ -10,6 +10,7 @@ import org.muis.core.event.boole.TypedPredicate;
  * @param <T> The type of attribute that was changed
  */
 public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
+	/** Filters events of this type */
 	public static final TypedPredicate<MuisEvent, StyleAttributeEvent<?>> base = new TypedPredicate<MuisEvent, StyleAttributeEvent<?>>() {
 		@Override
 		public StyleAttributeEvent<?> cast(MuisEvent value) {
@@ -17,6 +18,11 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 		}
 	};
 
+	/**
+	 * A filter for style attribute events on a particular attribute
+	 * 
+	 * @param <T> The type of the attribute
+	 */
 	public static class StyleAttributeTypedPredicate<T> implements TypedPredicate<StyleAttributeEvent<?>, StyleAttributeEvent<T>> {
 		private final StyleAttribute<T> theAttribute;
 
@@ -24,6 +30,7 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 			theAttribute = att;
 		}
 
+		/** @return The attribute that this filter accepts events for */
 		public StyleAttribute<T> getAttribute() {
 			return theAttribute;
 		}
@@ -37,13 +44,13 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 		}
 	}
 
+	/**
+	 * @param attr The attribute to listen for
+	 * @return A filter for change events to the given attribute
+	 */
 	public static <T> TypedPredicate<MuisEvent, StyleAttributeEvent<T>> style(StyleAttribute<T> attr) {
 		return new org.muis.core.event.boole.TPAnd<>(base, new StyleAttributeTypedPredicate<>(attr));
 	}
-
-	/** The event type that this event is */
-	public static final org.muis.core.event.MuisEventType<Void> TYPE = new org.muis.core.event.MuisEventType<>("Style Attribute Event",
-		null);
 
 	private final MuisElement theElement;
 

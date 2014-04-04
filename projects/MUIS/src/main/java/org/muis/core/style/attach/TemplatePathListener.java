@@ -3,11 +3,12 @@ package org.muis.core.style.attach;
 import java.util.Arrays;
 import java.util.List;
 
-import org.muis.core.*;
-import org.muis.core.MuisConstants.Events;
+import org.muis.core.MuisAttribute;
+import org.muis.core.MuisElement;
+import org.muis.core.MuisTemplate;
 import org.muis.core.MuisTemplate.AttachPoint;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.style.sheet.TemplateRole;
 
@@ -37,7 +38,7 @@ public class TemplatePathListener {
 
 		TemplatePathListener parentListener;
 
-		org.muis.core.event.AttributeChangedListener<String []> parentGroupListener;
+		MuisEventListener<AttributeChangedEvent<String []>> parentGroupListener;
 
 		TemplateRole [] paths = new TemplateRole[0];
 
@@ -66,10 +67,10 @@ public class TemplatePathListener {
 			throw new IllegalStateException("This " + getClass().getSimpleName() + " is already listening to "
 				+ (element == theElement ? "this" : "a different") + " element.");
 		theElement = element;
-		theElement.addListener(Events.ATTRIBUTE_SET, new MuisEventListener<MuisAttribute<?>>() {
+		theElement.events().listen(AttributeChangedEvent.base, new MuisEventListener<AttributeChangedEvent<?>>() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement evtElement) {
-				if(!(event.getValue().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType))
+			public void eventOccurred(AttributeChangedEvent<?> event) {
+				if(!(event.getAttribute().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType))
 					return;
 				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getValue();
 				roleChanged(roleAttr, theElement.atts().get(roleAttr));
@@ -78,10 +79,10 @@ public class TemplatePathListener {
 		if(theElement.getParent() != null)
 			checkCurrent();
 		else
-			theElement.addListener(MuisConstants.Events.ELEMENT_MOVED, new MuisEventListener<MuisElement>() {
+			theElement.events().listen(ElementMovedEvent.moved, new MuisEventListener<ElementMovedEvent>() {
 				@Override
-				public void eventOccurred(MuisEvent<MuisElement> event, MuisElement el) {
-					theElement.removeListener(this);
+				public void eventOccurred(ElementMovedEvent event) {
+					theElement.events().remove(ElementMovedEvent.moved, this);
 					checkCurrent();
 				}
 			});
@@ -139,7 +140,7 @@ public class TemplatePathListener {
 			return;
 		if(oldValue != null) {
 			// Remove old listener and template paths
-			oldValue.parent.removeListener(oldValue.parentGroupListener);
+			oldValue.parent.events().remove(AttributeChangedEvent.att(GroupPropertyType.attribute), oldValue.parentGroupListener);
 			oldValue.parentListener.unlisten();
 			for(int i = oldValue.paths.length - 1; i >= 0; i++)
 				notifyPathRemoved(new TemplateRole(oldValue.role, oldValue.parentGroups, oldValue.parent.getClass(), oldValue.paths[i]));
@@ -176,10 +177,9 @@ public class TemplatePathListener {
 			newValue.paths = ArrayUtils.add(newValue.paths, singlet);
 			notifyPathAdded(singlet);
 			newValue.parentListener.listen(newAttachParent);
-			newValue.parentGroupListener = new org.muis.core.event.AttributeChangedListener<String []>(
-				org.muis.core.style.attach.GroupPropertyType.attribute) {
+			newValue.parentGroupListener = new MuisEventListener<AttributeChangedEvent<String []>>() {
 				@Override
-				public void attributeChanged(AttributeChangedEvent<String []> event) {
+				public void eventOccurred(AttributeChangedEvent<String []> event) {
 					List<String> oldGroups = newValue.parentGroups;
 					newValue.parentGroups = Arrays.asList(event.getValue());
 					for(int i = newValue.paths.length - 1; i >= 0; i--) {
@@ -190,7 +190,7 @@ public class TemplatePathListener {
 						newValue.role, newValue.parentGroups, newValue.parent.getClass(), null));
 				}
 			};
-			newValue.parent.addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, newValue.parentGroupListener);
+			newValue.parent.events().listen(AttributeChangedEvent.att(GroupPropertyType.attribute), newValue.parentGroupListener);
 		}
 	}
 

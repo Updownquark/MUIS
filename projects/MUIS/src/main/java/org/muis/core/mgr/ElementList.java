@@ -41,17 +41,8 @@ public interface ElementList<E extends MuisElement> extends List<E> {
 	 */
 	MuisElement [] sortByZ();
 
-	/**
-	 * Adds a listener for an event type to this element's direct children
-	 *
-	 * @param <T> The type of the property that the event represents
-	 * @param type The event type to listen for
-	 * @param listener The listener to notify when an event of the given type occurs
-	 */
-	<T> void addChildListener(org.muis.core.event.MuisEventType<T> type, org.muis.core.event.MuisEventListener<? super T> listener);
-
-	/** @param listener The listener to remove from this element's children */
-	void removeChildListener(org.muis.core.event.MuisEventListener<?> listener);
+	/** @return An event listener manager to allow the addition of listeners on every element in this list */
+	EventListenerManager events();
 
 	@Override
 	public E [] toArray();

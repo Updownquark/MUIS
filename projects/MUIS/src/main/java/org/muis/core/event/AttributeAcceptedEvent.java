@@ -8,7 +8,11 @@ import org.muis.core.MuisElement;
  * {@link org.muis.core.mgr.AttributeManager#reject(Object, MuisAttribute) rejected} on an element.
  */
 public class AttributeAcceptedEvent implements MuisEvent {
+	/** Filters events of this type */
+	public static final AttributeAcceptedEventCondition attAccept = AttributeAcceptedEventCondition.attAccept;
+
 	private final MuisElement theElement;
+	private final MuisAttribute<?> theAttribute;
 	private final boolean isAccepted;
 	private final boolean isRequired;
 	private final Object theInitialValue;
@@ -22,6 +26,7 @@ public class AttributeAcceptedEvent implements MuisEvent {
 	 */
 	public AttributeAcceptedEvent(MuisElement element, MuisAttribute<?> attr, boolean accepted, boolean required, Object initVal) {
 		theElement = element;
+		theAttribute = attr;
 		isAccepted = accepted;
 		isRequired = required;
 		theInitialValue = initVal;
@@ -30,6 +35,11 @@ public class AttributeAcceptedEvent implements MuisEvent {
 	@Override
 	public MuisElement getElement() {
 		return theElement;
+	}
+
+	/** @return The attribute that was accepted or rejected on the element */
+	public MuisAttribute<?> getAttribute() {
+		return theAttribute;
 	}
 
 	/** @return Whether the attribute was accepted or rejected */

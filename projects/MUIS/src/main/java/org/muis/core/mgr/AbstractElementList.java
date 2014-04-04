@@ -46,17 +46,7 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 	}
 
 	@Override
-	public final <T> void addChildListener(MuisEventType<T> type, MuisEventListener<? super T> listener) {
-		theChildListeners.addListener(type, listener);
-		for(MuisElement child : toArray())
-			child.addListener(type, listener);
-	}
-
-	@Override
-	public final void removeChildListener(MuisEventListener<?> listener) {
-		theChildListeners.removeListener(listener);
-		for(MuisElement child : toArray())
-			child.removeListener(listener);
+	public final EventListenerManager events() {
 	}
 
 	/**

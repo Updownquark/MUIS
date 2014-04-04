@@ -1,18 +1,12 @@
 package org.muis.core.event;
 
 import org.muis.core.MuisElement;
-import org.muis.core.event.boole.TypedPredicate;
 import org.muis.core.mgr.ImmutableChildList;
 
 /** Represents the change of an element's list of children */
 public class ChildEvent implements MuisEvent {
-	/** Filters events of this type */
-	public static final TypedPredicate<MuisEvent, ChildEvent> child = new TypedPredicate<MuisEvent, ChildEvent>() {
-		@Override
-		public ChildEvent cast(MuisEvent value) {
-			return value instanceof ChildEvent ? (ChildEvent) value : null;
-		}
-	};
+	/** Filters child events */
+	public static final ChildEventCondition child = ChildEventCondition.child;
 
 	/** The type of a {@link ChildEvent} */
 	public static enum ChildEventType {
@@ -52,7 +46,7 @@ public class ChildEvent implements MuisEvent {
 
 	/**
 	 * @param parent The parent on which the change occurred
-	 * @param child The child that was added, removed, or moved
+	 * @param ch The child that was added, removed, or moved
 	 * @param index The index that the child was added to, removed from, or moved to
 	 * @param moveFromIndex The index that the child was moved to. Same as {@code index} if this event is not of type
 	 *            {@link ChildEventType#MOVE}.
@@ -60,10 +54,10 @@ public class ChildEvent implements MuisEvent {
 	 * @param preChange The elements in the list immediately before the change
 	 * @param postChange The elements in the list immediately after the change
 	 */
-	public ChildEvent(MuisElement parent, MuisElement child, int index, int moveFromIndex, ChildEvent.ChildEventType type,
+	public ChildEvent(MuisElement parent, MuisElement ch, int index, int moveFromIndex, ChildEvent.ChildEventType type,
 		ImmutableChildList<MuisElement> preChange, ImmutableChildList<MuisElement> postChange) {
 		theParent = parent;
-		theChild = child;
+		theChild = ch;
 		theIndex = index;
 		theMoveFromIndex = moveFromIndex;
 		theType = type;

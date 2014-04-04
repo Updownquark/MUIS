@@ -10,6 +10,8 @@ import org.muis.core.event.boole.TypedPredicate;
  * @param <T> The type of the attribute
  */
 public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
+	/** Filters events of this type */
+	@SuppressWarnings("hiding")
 	public static final TypedPredicate<MuisEvent, AttributeChangedEvent<?>> base = new TypedPredicate<MuisEvent, AttributeChangedEvent<?>>() {
 		@Override
 		public AttributeChangedEvent<?> cast(MuisEvent value) {
@@ -17,6 +19,11 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 		}
 	};
 
+	/**
+	 * A filter for attribute change events on a particular attribute
+	 *
+	 * @param <T> The type of the attribute
+	 */
 	public static class AttributeTypedPredicate<T> implements TypedPredicate<AttributeChangedEvent<?>, AttributeChangedEvent<T>> {
 		private final MuisAttribute<T> theAttribute;
 
@@ -24,6 +31,7 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 			theAttribute = att;
 		}
 
+		/** @return The attribute that this filter accepts events for */
 		public MuisAttribute<T> getAttribute() {
 			return theAttribute;
 		}
@@ -37,6 +45,10 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 		}
 	}
 
+	/**
+	 * @param attr The attribute to listen for
+	 * @return A filter for change events to the given attribute
+	 */
 	public static <T> TypedPredicate<MuisEvent, AttributeChangedEvent<T>> att(MuisAttribute<T> attr) {
 		return new org.muis.core.event.boole.TPAnd<>(base, new AttributeTypedPredicate<>(attr));
 	}

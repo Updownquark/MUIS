@@ -1,10 +1,10 @@
 package org.muis.util;
 
 import org.muis.core.MuisAttribute;
-import org.muis.core.MuisConstants.Events;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.AttributeAcceptedEvent;
+import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.MuisEventListener;
 
 /** Synchronizes attributes from a source to a destination */
@@ -27,7 +27,8 @@ public class MuisAttributeExposer implements AutoCloseable {
 
 	private boolean isActive;
 
-	private MuisEventListener<MuisAttribute<?>> [] theListeners;
+	private MuisEventListener<AttributeAcceptedEvent> theAttAcceptListener;
+	private MuisEventListener<AttributeChangedEvent<?>> theAttChangeListener;
 
 	/**
 	 * @param source The element whose attributes to synchronize to another element
@@ -37,37 +38,36 @@ public class MuisAttributeExposer implements AutoCloseable {
 	public MuisAttributeExposer(MuisElement source, MuisElement dest, org.muis.core.mgr.MuisMessageCenter msg) {
 		theSource = source;
 		theDest = dest;
-		theListeners = new MuisEventListener[2];
-		theListeners[0] = new MuisEventListener<MuisAttribute<?>>() {
+		theAttAcceptListener = new MuisEventListener<AttributeAcceptedEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
-				org.muis.core.event.AttributeAcceptedEvent aae = (org.muis.core.event.AttributeAcceptedEvent) event;
-				if(aae.isAccepted())
+			public void eventOccurred(AttributeAcceptedEvent event) {
+				if(event.isAccepted())
 					try {
-						theSource.atts().accept(this, aae.isRequired(), (MuisAttribute<Object>) aae.getValue(), aae.getInitialValue());
+						theSource.atts().accept(this, event.isRequired(), (MuisAttribute<Object>) event.getAttribute(),
+							event.getInitialValue());
 					} catch(MuisException e) {
-						theMessageCenter.error(
-							"Attribute synchronization failed: Source " + theSource + " cannot accept attribute " + aae.getValue(), e);
+						theMessageCenter.error("Attribute synchronization failed: Source " + theSource + " cannot accept attribute "
+							+ event.getAttribute(), e);
 					}
-				else if(!theDest.atts().isAccepted(aae.getValue()))
-					theSource.atts().reject(this, aae.getValue());
+				else if(!theDest.atts().isAccepted(event.getAttribute()))
+					theSource.atts().reject(this, event.getAttribute());
 			}
 		};
-		theListeners[1] = new MuisEventListener<MuisAttribute<?>>() {
+		theAttChangeListener = new MuisEventListener<AttributeChangedEvent<?>>() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisAttribute<?>> event, MuisElement element) {
-				MuisAttribute<?> att = event.getValue();
+			public void eventOccurred(AttributeChangedEvent<?> event) {
+				MuisAttribute<?> att = event.getAttribute();
 				if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)
 					&& theDest.atts().isAccepted(att))
 					try {
-						theDest.atts().set((MuisAttribute<Object>) att, theSource.atts().get(att));
+						theDest.atts().set((MuisAttribute<Object>) att, event.getValue());
 					} catch(MuisException e) {
 						theMessageCenter.error("Attribute synchronization failed: Destination " + theDest + " cannot accept value "
 							+ theSource.atts().get(att) + " for attribute " + att, e);
 					}
 			}
 		};
-		theDest.addListener(Events.ATTRIBUTE_ACCEPTED, theListeners[0]);
+		theDest.events().listen(AttributeAcceptedEvent.attAccept, theAttAcceptListener);
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders()) {
 			MuisAttribute<?> att = holder.getAttribute();
 			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)) {
@@ -86,7 +86,7 @@ public class MuisAttributeExposer implements AutoCloseable {
 					}
 			}
 		}
-		theSource.addListener(Events.ATTRIBUTE_SET, theListeners[1]);
+		theSource.events().listen(AttributeChangedEvent.base, theAttChangeListener);
 	}
 
 	/** @return The element that is the source of the attributes being synchronized */
@@ -108,8 +108,8 @@ public class MuisAttributeExposer implements AutoCloseable {
 	public void close() {
 		if(!isActive)
 			return;
-		theDest.removeListener(theListeners[0]);
-		theSource.removeListener(theListeners[1]);
+		theDest.events().remove(AttributeAcceptedEvent.attAccept, theAttAcceptListener);
+		theSource.events().remove(AttributeChangedEvent.base, theAttChangeListener);
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders())
 			theSource.atts().reject(this, holder.getAttribute());
 		isActive = false;

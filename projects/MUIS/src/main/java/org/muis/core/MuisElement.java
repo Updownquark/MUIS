@@ -1,9 +1,6 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.muis.core;
 
-import static org.muis.core.MuisConstants.Events.CHILD_ADDED;
-import static org.muis.core.MuisConstants.Events.CHILD_REMOVED;
-
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,29 +117,35 @@ public abstract class MuisElement implements MuisParseEnv {
 		theDefaultStyleListener.addDomain(BackgroundStyle.getDomainInstance());
 		theDefaultStyleListener.addDomain(org.muis.core.style.LightedStyle.getDomainInstance());
 		theDefaultStyleListener.add();
-		MuisEventListener<MuisElement> childListener = new MuisEventListener<MuisElement>() {
+		MuisEventListener<ChildEvent> childListener = new MuisEventListener<ChildEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<MuisElement> event, MuisElement element) {
+			public void eventOccurred(ChildEvent event) {
 				events().fire(new SizeNeedsChangedEvent(MuisElement.this, null));
-				if(event.getType() == CHILD_REMOVED) {
+				switch (event.getType()) {
+				case ADD:
+					registerChild(event.getChild());
+					break;
+				case REMOVE:
 					// Need to repaint where the element left even if nothing changes as a result of the layout
-					unregisterChild(event.getValue());
-					repaint(element.theBounds.getBounds(), false);
-				} else if(event.getType() == CHILD_ADDED) {
-					registerChild(event.getValue());
+					unregisterChild(event.getChild());
+					repaint(event.getChild().theBounds.getBounds(), false);
+					break;
+				case MOVE:
+					// The child has changed indexes which may have affected its z-order, so we need to repaint over its bounds.
+					repaint(event.getChild().theBounds.getBounds(), false);
+					break;
 				}
 			}
 		};
-		events().listen(CHILD_ADDED, childListener);
-		events().listen(CHILD_REMOVED, childListener);
-		theChildren.addChildListener(BoundsChangedEvent.bounds, new MuisEventListener<BoundsChangedEvent>() {
+		events().listen(ChildEvent.child, childListener);
+		theChildren.events().listen(BoundsChangedEvent.bounds, new MuisEventListener<BoundsChangedEvent>() {
 			@Override
 			public void eventOccurred(BoundsChangedEvent event) {
 				Rectangle paintRect = event.getValue().union(event.getOldValue());
 				repaint(paintRect, false);
 			}
 		});
-		theChildren.addChildListener(SizeNeedsChangedEvent.sizeNeeds, new MuisEventListener<SizeNeedsChangedEvent>() {
+		theChildren.events().listen(SizeNeedsChangedEvent.sizeNeeds, new MuisEventListener<SizeNeedsChangedEvent>() {
 			@Override
 			public void eventOccurred(SizeNeedsChangedEvent event) {
 				if(!isInPreferred(org.muis.core.layout.Orientation.horizontal) || !isInPreferred(org.muis.core.layout.Orientation.vertical)) {

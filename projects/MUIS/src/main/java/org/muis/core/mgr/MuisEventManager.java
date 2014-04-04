@@ -11,11 +11,13 @@ import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.boole.ConditionTree;
 import org.muis.core.event.boole.TypedPredicate;
 
+/** Manages events for an element */
 public class MuisEventManager implements EventListenerManager {
 	private final MuisElement theElement;
 	private final ConditionTree<MuisEvent, MuisEventListener<?>> theTree;
 	private final ReentrantReadWriteLock theTreeLock;
 
+	/** @param element The element that events are being managed for */
 	public MuisEventManager(MuisElement element) {
 		theElement = element;
 		theTree = new ConditionTree<>();
@@ -54,6 +56,7 @@ public class MuisEventManager implements EventListenerManager {
 		}
 	}
 
+	/** @param event The event to fire for the element */
 	public <E extends MuisEvent> void fire(E event) {
 		if(event.getElement() != theElement) {
 			theElement.msg().error("The event[" + event + "] does not apply to this element");

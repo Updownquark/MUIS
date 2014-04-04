@@ -25,17 +25,19 @@ public class MuisEventManager implements EventListenerManager {
 	}
 
 	@Override
-	public <T extends MuisEvent> void listen(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
+	public <T extends MuisEvent> MuisEventManager listen(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
 		listen(condition.getTester(), listeners);
+		return this;
 	}
 
 	@Override
-	public <T extends MuisEvent> void remove(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
+	public <T extends MuisEvent> MuisEventManager remove(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
 		remove(condition.getTester(), listeners);
+		return this;
 	}
 
 	@Override
-	public <T extends MuisEvent> void listen(TypedPredicate<MuisEvent, T> condition, MuisEventListener<T>... listeners) {
+	public <T extends MuisEvent> MuisEventManager listen(TypedPredicate<MuisEvent, T> condition, MuisEventListener<T>... listeners) {
 		Lock lock = theTreeLock.writeLock();
 		lock.lock();
 		try {
@@ -43,10 +45,11 @@ public class MuisEventManager implements EventListenerManager {
 		} finally {
 			lock.unlock();
 		}
+		return this;
 	}
 
 	@Override
-	public <T extends MuisEvent> void remove(TypedPredicate<MuisEvent, T> condition, MuisEventListener<T>... listeners) {
+	public <T extends MuisEvent> MuisEventManager remove(TypedPredicate<MuisEvent, T> condition, MuisEventListener<T>... listeners) {
 		Lock lock = theTreeLock.writeLock();
 		lock.lock();
 		try {
@@ -54,13 +57,17 @@ public class MuisEventManager implements EventListenerManager {
 		} finally {
 			lock.unlock();
 		}
+		return this;
 	}
 
-	/** @param event The event to fire for the element */
-	public <E extends MuisEvent> void fire(E event) {
+	/**
+	 * @param event The event to fire for the element
+	 * @return This manager, for chaining
+	 */
+	public <E extends MuisEvent> MuisEventManager fire(E event) {
 		if(event.getElement() != theElement) {
 			theElement.msg().error("The event[" + event + "] does not apply to this element");
-			return;
+			return this;
 		}
 		List<MuisEventListener<? super E>> listeners;
 		Lock lock = theTreeLock.readLock();
@@ -73,5 +80,6 @@ public class MuisEventManager implements EventListenerManager {
 
 		for(MuisEventListener<? super E> listener : listeners)
 			listener.eventOccurred(event);
+		return this;
 	}
 }

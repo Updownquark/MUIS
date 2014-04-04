@@ -3,7 +3,13 @@ package org.muis.core.event;
 import org.muis.core.event.boole.TPAnd;
 import org.muis.core.event.boole.TypedPredicate;
 
+/**
+ * Allows advanced filtering on {@link UserEvent}s
+ *
+ * @param <E> The sub-type of events to filter
+ */
 public class UserEventCondition<E extends UserEvent> implements MuisEventCondition<E>, Cloneable {
+	/** Filters all {@link UserEvent}s */
 	public static TypedPredicate<MuisEvent, UserEvent> base = new TypedPredicate<MuisEvent, UserEvent>() {
 		@Override
 		public UserEvent cast(MuisEvent value) {
@@ -11,6 +17,7 @@ public class UserEventCondition<E extends UserEvent> implements MuisEventConditi
 		}
 	};
 
+	/** Filters {@link UserEvent#isUsed() unused} {@link UserEvent}s */
 	public static TypedPredicate<UserEvent, UserEvent> notWithUsed = new TypedPredicate<UserEvent, UserEvent>() {
 		@Override
 		public UserEvent cast(UserEvent value) {
@@ -18,14 +25,17 @@ public class UserEventCondition<E extends UserEvent> implements MuisEventConditi
 		}
 	};
 
-	public static final UserEventCondition<UserEvent> user = new UserEventCondition();
+	/** Filters {@link UserEvent#isUsed() unused} {@link UserEvent}s */
+	public static final UserEventCondition<UserEvent> user = new UserEventCondition<UserEvent>();
 
 	private boolean isWithUsed;
 
+	/** Constructor for subclasses */
 	protected UserEventCondition() {
 		isWithUsed = false;
 	}
 
+	/** @return The superclass filter, to be AND-ed by subclasses */
 	protected TypedPredicate<MuisEvent, UserEvent> getUserTester() {
 		TypedPredicate<MuisEvent, UserEvent> ret = base;
 		if(!isWithUsed)
@@ -39,6 +49,7 @@ public class UserEventCondition<E extends UserEvent> implements MuisEventConditi
 		return (TypedPredicate<MuisEvent, E>) getUserTester();
 	}
 
+	/** @return A filter that accepts events that are {@link UserEvent#isUsed() used} as well as unused. */
 	public UserEventCondition<E> withUsed() {
 		if(isWithUsed)
 			return this;

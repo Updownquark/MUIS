@@ -9,6 +9,7 @@ import org.muis.core.event.boole.TypedPredicate;
  * @param <T> The type of the property that was changed
  */
 public class MuisPropertyEvent<T> implements MuisEvent {
+	/** Filters for property events */
 	public static final TypedPredicate<MuisEvent, MuisPropertyEvent<?>> base = new TypedPredicate<MuisEvent, MuisPropertyEvent<?>>() {
 		@Override
 		public MuisPropertyEvent<?> cast(MuisEvent value) {

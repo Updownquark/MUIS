@@ -2,13 +2,16 @@ package org.muis.core.mgr;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
+import org.muis.core.event.MuisEvent;
+import org.muis.core.event.MuisEventCondition;
 import org.muis.core.event.MuisEventListener;
-import org.muis.core.event.MuisEventType;
+import org.muis.core.event.boole.ConditionTree;
+import org.muis.core.event.boole.TypedPredicate;
 
-import prisms.arch.event.ListenerManager;
 import prisms.util.ArrayUtils;
 
 /**
@@ -18,16 +21,45 @@ import prisms.util.ArrayUtils;
  */
 public abstract class AbstractElementList<E extends MuisElement> implements ElementList<E> {
 	private java.util.concurrent.CopyOnWriteArrayList<MuisEventListener<ChildEvent>> theListeners;
-	@SuppressWarnings("rawtypes")
-	private final ListenerManager<MuisEventListener> theChildListeners;
+	private final ConditionTree<MuisEvent, MuisEventListener<?>> theChildListeners;
+	private final EventListenerManager theEvents;
 
 	private final MuisElement theParent;
 
 	/** @param parent The parent to manage the children of */
 	public AbstractElementList(MuisElement parent) {
 		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
-		theChildListeners = new ListenerManager<>(MuisEventListener.class);
+		theChildListeners = new ConditionTree<>();
 		theParent = parent;
+		theEvents = new EventListenerManager() {
+			@Override
+			public <T extends MuisEvent> EventListenerManager listen(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
+				return listen(condition.getTester(), listeners);
+			}
+
+			@Override
+			public <T extends MuisEvent> EventListenerManager remove(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
+				return remove(condition.getTester(), listeners);
+			}
+
+			@Override
+			public <T extends MuisEvent> EventListenerManager listen(TypedPredicate<MuisEvent, T> condition,
+				MuisEventListener<T>... listeners) {
+				theChildListeners.add(condition, listeners);
+				for(E child : AbstractElementList.this)
+					child.events().listen(condition, listeners);
+				return this;
+			}
+
+			@Override
+			public <T extends MuisEvent> EventListenerManager remove(TypedPredicate<MuisEvent, T> condition,
+				MuisEventListener<T>... listeners) {
+				theChildListeners.remove(condition, listeners);
+				for(E child : AbstractElementList.this)
+					child.events().remove(condition, listeners);
+				return this;
+			}
+		};
 	}
 
 	@Override
@@ -47,6 +79,7 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 
 	@Override
 	public final EventListenerManager events() {
+		return theEvents;
 	}
 
 	/**
@@ -55,9 +88,9 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 	 * @param child The child that was added to the list
 	 */
 	protected void childAdded(MuisElement child) {
-		for(Object type : theChildListeners.getAllProperties())
-			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
-				child.addListener((MuisEventType<Object>) type, listener);
+		for(Entry<? extends TypedPredicate<? extends MuisEvent, ?>, List<MuisEventListener<?>>> entry : theChildListeners.entries())
+			for(MuisEventListener<?> listener : entry.getValue())
+				child.events().listen((TypedPredicate<MuisEvent, MuisEvent>) entry.getKey(), (MuisEventListener<MuisEvent>) listener);
 	}
 
 	/**
@@ -66,9 +99,9 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 	 * @param child The child that was added to the list
 	 */
 	protected void childRemoved(MuisElement child) {
-		for(Object type : theChildListeners.getAllProperties())
-			for(MuisEventListener<Object> listener : theChildListeners.getRegisteredListeners(type))
-				child.removeListener(listener);
+		for(Entry<? extends TypedPredicate<? extends MuisEvent, ?>, List<MuisEventListener<?>>> entry : theChildListeners.entries())
+			for(MuisEventListener<?> listener : entry.getValue())
+				child.events().remove((TypedPredicate<MuisEvent, MuisEvent>) entry.getKey(), (MuisEventListener<MuisEvent>) listener);
 	}
 
 	@Override

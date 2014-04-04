@@ -8,6 +8,7 @@ import org.muis.core.MuisElement;
  * does NOT always represent an event that can be directly used to enter text. Use {@link CharInputEvent} for that purpose.
  */
 public class KeyBoardEvent extends UserEvent {
+	/** Filters events of this type */
 	public static final KeyBoardEventCondition key = KeyBoardEventCondition.key;
 
 	/** Keyboard keys that may be represented by key events */

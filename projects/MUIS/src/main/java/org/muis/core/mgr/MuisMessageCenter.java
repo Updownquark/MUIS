@@ -244,7 +244,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 			if(theElement.getParent() != null)
 				theElement.getParent().msg().fireListeners(msg);
 			else
-				theDocument.msg().fireListeners(msg);
+				theElement.getDocument().msg().fireListeners(msg);
 		} else if(theDocument != null)
 			theEnvironment.msg().fireListeners(msg);
 	}

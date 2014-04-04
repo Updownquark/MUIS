@@ -61,10 +61,14 @@ public class ConditionTree<T, V> {
 						theValues.add(value);
 				return true;
 			}
-			if(!(condition instanceof IntersectTypedPredicate && ((IntersectTypedPredicate<T1, ?, ?, T2>) condition).getFirst().equals(
-				theCondition)))
+			if(theCondition != null
+				&& !(condition instanceof IntersectTypedPredicate && ((IntersectTypedPredicate<T1, ?, ?, T2>) condition).getFirst().equals(
+					theCondition)))
 				return false;
-			addToChildren(((IntersectTypedPredicate<T1, T2, T2, T2>) condition).getSecond(), values);
+			if(theCondition == null)
+				addToChildren((TypedPredicate<T2, T2>) condition, values);
+			else
+				addToChildren(((IntersectTypedPredicate<T1, T2, T2, T2>) condition).getSecond(), values);
 			return true;
 		}
 
@@ -79,10 +83,14 @@ public class ConditionTree<T, V> {
 					theValues.remove(value);
 				return true;
 			}
-			if(!(condition instanceof IntersectTypedPredicate && ((IntersectTypedPredicate<T1, ?, ?, T2>) condition).getFirst().equals(
-				theCondition)))
+			if(theCondition == null
+				&& !(condition instanceof IntersectTypedPredicate && ((IntersectTypedPredicate<T1, ?, ?, T2>) condition).getFirst().equals(
+					theCondition)))
 				return false;
-			removeFromChildren(((IntersectTypedPredicate<T1, T2, T2, T2>) condition).getSecond(), values);
+			if(theCondition == null)
+				removeFromChildren((TypedPredicate<T2, T2>) condition, values);
+			else
+				removeFromChildren(((IntersectTypedPredicate<T1, T2, T2, T2>) condition).getSecond(), values);
 			return true;
 		}
 
@@ -129,12 +137,7 @@ public class ConditionTree<T, V> {
 
 	/** Creates a ConditionTree */
 	public ConditionTree() {
-		theRoot = new ConditionTreeNode<>(new TypedPredicate<T, T>() {
-			@Override
-			public T cast(T value) {
-				return value;
-			}
-		});
+		theRoot = new ConditionTreeNode<>(null);
 	}
 
 	/**

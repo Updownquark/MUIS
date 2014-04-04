@@ -68,9 +68,7 @@ public class MouseEvent extends PositionedUserEvent {
 	}
 
 	private MouseEvent(MouseEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(backing.getDocument(), backing.getTarget(), backing.getElement(), backing.getTime(), capture);
-		if(capture == null)
-			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");
+		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getTime(), capture);
 		theBacking = backing;
 		theType = backing.theType;
 		theButton = backing.theButton;

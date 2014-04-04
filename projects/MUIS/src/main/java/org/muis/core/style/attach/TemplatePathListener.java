@@ -72,8 +72,8 @@ public class TemplatePathListener {
 			public void eventOccurred(AttributeChangedEvent<?> event) {
 				if(!(event.getAttribute().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType))
 					return;
-				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getValue();
-				roleChanged(roleAttr, theElement.atts().get(roleAttr));
+				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getAttribute();
+				roleChanged(roleAttr, (AttachPoint) event.getValue());
 			}
 		});
 		if(theElement.getParent() != null)

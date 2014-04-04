@@ -10,6 +10,7 @@ import org.muis.core.event.boole.TPAnd;
 import org.muis.core.event.boole.TPOr;
 import org.muis.core.event.boole.TypedPredicate;
 
+/** Allows advanced filtering on {@link ChildEvent}s */
 public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Cloneable {
 	/** Filters events of this type */
 	public static final TypedPredicate<MuisEvent, ChildEvent> base = new TypedPredicate<MuisEvent, ChildEvent>() {
@@ -19,6 +20,7 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		}
 	};
 
+	/** Filters {@link ChildEvent}s based on their {@link ChildEvent#getType() type} */
 	public static class ChildEventTypePredicate implements TypedPredicate<ChildEvent, ChildEvent> {
 		private final ChildEventType theType;
 
@@ -32,6 +34,7 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		}
 	}
 
+	/** A map of all {@link ChildEventType}s to {@link ChildEventTypePredicate}s that filter on that type */
 	public static final Map<ChildEventType, ChildEventTypePredicate> types;
 
 	static {
@@ -41,6 +44,10 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		types = Collections.unmodifiableMap(t);
 	}
 
+	/**
+	 * @param eventTypes The child event types to filter on
+	 * @return A filter that filters events for any of the given types
+	 */
 	public static TPOr<ChildEvent> or(ChildEventType... eventTypes) {
 		List<ChildEventTypePredicate> preds = new ArrayList<>();
 		for(ChildEventType type : eventTypes)
@@ -48,6 +55,10 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		return new TPOr<ChildEvent>(preds);
 	}
 
+	/**
+	 * @param eventTypes The child event types to filter on
+	 * @return A filter that filters events for any of the given types
+	 */
 	public static TPOr<ChildEvent> orTypes(Iterable<ChildEventType> eventTypes) {
 		List<ChildEventTypePredicate> preds = new ArrayList<>();
 		for(ChildEventType type : eventTypes)
@@ -76,6 +87,10 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		return ret;
 	}
 
+	/**
+	 * @param eventTypes The event types to add
+	 * @return A filter that has the same parameters as this condition but with the given event types
+	 */
 	public ChildEventCondition addTypes(ChildEventType... eventTypes) {
 		if(theTypes != null) {
 			boolean hasAll = true;
@@ -96,14 +111,17 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		return ret;
 	}
 
+	/** @return A new condition that accepts add-typed child events */
 	public ChildEventCondition add() {
 		return addTypes(ChildEventType.ADD);
 	}
 
+	/** @return A new condition that accepts remove-typed child events */
 	public ChildEventCondition remove() {
 		return addTypes(ChildEventType.REMOVE);
 	}
 
+	/** @return A new condition that accepts move-typed child events */
 	public ChildEventCondition move() {
 		return addTypes(ChildEventType.MOVE);
 	}

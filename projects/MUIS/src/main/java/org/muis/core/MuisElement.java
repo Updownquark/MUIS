@@ -273,16 +273,16 @@ public abstract class MuisElement implements MuisParseEnv {
 		events().listen(MouseEvent.mouse, new MuisEventListener<MouseEvent>() {
 			@Override
 			public void eventOccurred(MouseEvent event) {
-				switch (event.getMouseEventType()) {
+				switch (event.getType()) {
 				case pressed:
-					switch (event.getButtonType()) {
-					case LEFT:
+					switch (event.getButton()) {
+					case left:
 						theStateControllers.clicked.setActive(true, event);
 						break;
-					case RIGHT:
+					case right:
 						theStateControllers.rightClicked.setActive(true, event);
 						break;
-					case MIDDLE:
+					case middle:
 						theStateControllers.middleClicked.setActive(true, event);
 						break;
 					default:
@@ -290,14 +290,14 @@ public abstract class MuisElement implements MuisParseEnv {
 					}
 					break;
 				case released:
-					switch (event.getButtonType()) {
-					case LEFT:
+					switch (event.getButton()) {
+					case left:
 						theStateControllers.clicked.setActive(false, event);
 						break;
-					case RIGHT:
+					case right:
 						theStateControllers.rightClicked.setActive(false, event);
 						break;
-					case MIDDLE:
+					case middle:
 						theStateControllers.middleClicked.setActive(false, event);
 						break;
 					default:
@@ -312,13 +312,13 @@ public abstract class MuisElement implements MuisParseEnv {
 					theStateControllers.hovered.setActive(true, event);
 					for(org.muis.core.event.MouseEvent.ButtonType button : theDocument.getPressedButtons()) {
 						switch (button) {
-						case LEFT:
+						case left:
 							theStateControllers.clicked.setActive(true, event);
 							break;
-						case RIGHT:
+						case right:
 							theStateControllers.rightClicked.setActive(true, event);
 							break;
-						case MIDDLE:
+						case middle:
 							theStateControllers.middleClicked.setActive(true, event);
 							break;
 						default:

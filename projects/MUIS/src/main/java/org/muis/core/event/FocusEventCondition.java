@@ -2,7 +2,10 @@ package org.muis.core.event;
 
 import org.muis.core.event.boole.TypedPredicate;
 
+/** Allows advanced filtering on {@link FocusEvent}s */
 public class FocusEventCondition extends UserEventCondition<FocusEvent> {
+	/** Filters all {@link FocusEvent}s */
+	@SuppressWarnings("hiding")
 	public static TypedPredicate<MuisEvent, FocusEvent> base = new TypedPredicate<MuisEvent, FocusEvent>() {
 		@Override
 		public FocusEvent cast(MuisEvent value) {
@@ -10,11 +13,12 @@ public class FocusEventCondition extends UserEventCondition<FocusEvent> {
 		}
 	};
 
+	/** Filters a {@link FocusEvent} based on its {@link FocusEvent#isFocus() focus} attribute */
 	public static class FocusPredicate implements TypedPredicate<FocusEvent, FocusEvent> {
 		private final boolean isFocus;
 
-		private FocusPredicate(boolean focus) {
-			isFocus = focus;
+		private FocusPredicate(boolean f) {
+			isFocus = f;
 		}
 
 		@Override
@@ -23,7 +27,9 @@ public class FocusEventCondition extends UserEventCondition<FocusEvent> {
 		}
 	}
 
+	/** Filters focus gained events */
 	public static final FocusPredicate predicateFocus = new FocusPredicate(true);
+	/** Filters focus lost events */
 	public static final FocusPredicate predicateBlur = new FocusPredicate(false);
 
 	/** Filters focus events that have not been {@link UserEvent#use() used} */
@@ -37,8 +43,8 @@ public class FocusEventCondition extends UserEventCondition<FocusEvent> {
 
 	private final Boolean isFocus;
 
-	private FocusEventCondition(Boolean focus) {
-		isFocus = focus;
+	private FocusEventCondition(Boolean f) {
+		isFocus = f;
 	}
 
 	@Override

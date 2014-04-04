@@ -21,9 +21,9 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			MuisTextElement element = (MuisTextElement) event.getElement();
 			if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 				return;
-			switch (event.getMouseEventType()) {
+			switch (event.getType()) {
 			case pressed:
-				if(event.getButtonType() == MouseEvent.ButtonType.LEFT) {
+				if(event.getButton() == MouseEvent.ButtonType.left) {
 					int position = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
 						element.bounds().getWidth()));
 					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
@@ -35,13 +35,13 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 				}
 				break;
 			case released:
-				if(event.getButtonType() == MouseEvent.ButtonType.LEFT)
+				if(event.getButton() == MouseEvent.ButtonType.left)
 					theAnchor = -1;
 				break;
 			case moved:
 				if(theAnchor < 0)
 					return;
-				if(!element.getDocument().isButtonPressed(MouseEvent.ButtonType.LEFT)) {
+				if(!element.getDocument().isButtonPressed(MouseEvent.ButtonType.left)) {
 					theAnchor = -1;
 					return;
 				}

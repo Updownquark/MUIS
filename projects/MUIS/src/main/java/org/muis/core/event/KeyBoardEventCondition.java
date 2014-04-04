@@ -3,7 +3,10 @@ package org.muis.core.event;
 import org.muis.core.event.boole.TPAnd;
 import org.muis.core.event.boole.TypedPredicate;
 
+/** Allows advanced filtering on {@link KeyBoardEvent}s */
 public class KeyBoardEventCondition extends UserEventCondition<KeyBoardEvent> {
+	/** Filters all {@link KeyBoardEvent}s */
+	@SuppressWarnings("hiding")
 	public static TypedPredicate<MuisEvent, KeyBoardEvent> base = new TypedPredicate<MuisEvent, KeyBoardEvent>() {
 		@Override
 		public KeyBoardEvent cast(MuisEvent value) {
@@ -11,6 +14,7 @@ public class KeyBoardEventCondition extends UserEventCondition<KeyBoardEvent> {
 		}
 	};
 
+	/** Filters {@link KeyBoardEvent}s based on their {@link KeyBoardEvent#wasPressed() pressed} attribute */
 	public static class PressPredicate implements TypedPredicate<KeyBoardEvent, KeyBoardEvent> {
 		private final boolean isPress;
 
@@ -24,7 +28,9 @@ public class KeyBoardEventCondition extends UserEventCondition<KeyBoardEvent> {
 		}
 	}
 
+	/** Filters key pressed events */
 	public static final PressPredicate predicatePress = new PressPredicate(true);
+	/** Filters key released events */
 	public static final PressPredicate predicateRelease = new PressPredicate(false);
 
 	/** Filters key events that have not been {@link UserEvent#use() used} */
@@ -54,6 +60,7 @@ public class KeyBoardEventCondition extends UserEventCondition<KeyBoardEvent> {
 		return (KeyBoardEventCondition) super.clone();
 	}
 
+	/** @return A new condition the same as this one that accepts key pressed events */
 	public KeyBoardEventCondition press() {
 		if(Boolean.TRUE.equals(isPress))
 			return this;
@@ -62,6 +69,7 @@ public class KeyBoardEventCondition extends UserEventCondition<KeyBoardEvent> {
 		return ret;
 	}
 
+	/** @return A new condition the same as this one that accepts key released events */
 	public KeyBoardEventCondition release() {
 		if(Boolean.FALSE.equals(isPress))
 			return this;

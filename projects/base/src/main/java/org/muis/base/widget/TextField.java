@@ -3,9 +3,8 @@ package org.muis.base.widget;
 import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 
-import org.muis.core.MuisConstants;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.AttributeChangedListener;
+import org.muis.core.event.MuisEventListener;
 import org.muis.core.model.*;
 import org.muis.core.tags.Template;
 
@@ -55,29 +54,29 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				} catch(org.muis.core.MuisException e) {
 					msg().error("Could not initialize text layout attributes", e);
 				}
-				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<Long>(charLengthAtt) {
+				events().listen(AttributeChangedEvent.att(charLengthAtt), new MuisEventListener<AttributeChangedEvent<Long>>() {
 					@Override
-					public void attributeChanged(AttributeChangedEvent<Long> event) {
+					public void eventOccurred(AttributeChangedEvent<Long> event) {
 						try {
 							getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
 						} catch(org.muis.core.MuisException e) {
 							msg().error("Could not pass on " + event.getAttribute(), e);
 						}
 					}
-				});
-				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<Long>(charRowsAtt) {
+				}).listen(AttributeChangedEvent.att(charRowsAtt), new MuisEventListener<AttributeChangedEvent<Long>>(){
 					@Override
-					public void attributeChanged(AttributeChangedEvent<Long> event) {
+					public void eventOccurred(AttributeChangedEvent<Long> event) {
 						try {
 							getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
 						} catch(org.muis.core.MuisException e) {
 							msg().error("Could not pass on " + event.getAttribute(), e);
 						}
 					}
-				});
-				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new AttributeChangedListener<MuisModelValue<?>>(ModelAttributes.value) {
+					})
+					.listen(AttributeChangedEvent.att(ModelAttributes.value),
+						new MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
 					@Override
-					public void attributeChanged(AttributeChangedEvent<MuisModelValue<?>> event) {
+					public void eventOccurred(AttributeChangedEvent<MuisModelValue<?>> event) {
 						modelValueChanged(event.getOldValue(), event.getValue());
 					}
 				});

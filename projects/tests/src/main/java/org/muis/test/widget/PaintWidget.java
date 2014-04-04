@@ -4,11 +4,10 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 
-import org.muis.core.MuisConstants.Events;
-import org.muis.core.MuisElement;
+import org.muis.core.event.BoundsChangedEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.MuisEventListener;
 
 /**
  * Provides testing feedback for mouse events--paints the font color over pixels where the mouse passed over while the left button was
@@ -20,44 +19,37 @@ public class PaintWidget extends org.muis.base.widget.Block {
 	/** Creates a PaintWidget */
 	public PaintWidget() {
 		setFocusable(true);
-		addListener(Events.BOUNDS_CHANGED, new org.muis.core.event.MuisEventListener<Rectangle>() {
+		events().listen(BoundsChangedEvent.bounds, new MuisEventListener<BoundsChangedEvent>() {
 			@Override
-			public void eventOccurred(MuisEvent<Rectangle> event, MuisElement element) {
+			public void eventOccurred(BoundsChangedEvent event) {
 				resized();
 			}
-		});
-		addListener(Events.MOUSE, new org.muis.core.event.MouseListener() {
+		}).listen(MouseEvent.mouse, new MuisEventListener<MouseEvent>() {
 			private boolean isMouseDown;
 
 			@Override
-			public void mouseDown(MouseEvent mEvt, MuisElement element) {
-				if(mEvt.getButtonType() == MouseEvent.ButtonType.LEFT) {
-					isMouseDown = true;
-					drawPoint(mEvt);
+			public void eventOccurred(MouseEvent event) {
+				switch (event.getType()) {
+				case entered:
+					isMouseDown = getDocument().isButtonPressed(MouseEvent.ButtonType.left);
+					break;
+				case exited:
+					drawPoint(event);
+					break;
+				case pressed:
+					if(event.getButton() == MouseEvent.ButtonType.left) {
+						isMouseDown = true;
+						drawPoint(event);
+					}
+					break;
+				case released:
+					if(event.getButton() == MouseEvent.ButtonType.left) {
+						drawPoint(event);
+						isMouseDown = false;
+					}
+					break;
+				default:
 				}
-			}
-
-			@Override
-			public void mouseUp(MouseEvent mEvt, MuisElement element) {
-				if(mEvt.getButtonType() == MouseEvent.ButtonType.LEFT) {
-					drawPoint(mEvt);
-					isMouseDown = false;
-				}
-			}
-
-			@Override
-			public void mouseMoved(MouseEvent mEvt, MuisElement element) {
-				drawPoint(mEvt);
-			}
-
-			@Override
-			public void mouseEntered(MouseEvent mEvt, MuisElement element) {
-				isMouseDown = getDocument().isButtonPressed(MouseEvent.ButtonType.LEFT);
-			}
-
-			@Override
-			public void mouseExited(MouseEvent mEvt, MuisElement element) {
-				drawPoint(mEvt);
 			}
 
 			void drawPoint(MouseEvent mEvt) {
@@ -71,11 +63,10 @@ public class PaintWidget extends org.muis.base.widget.Block {
 					repaint(new Rectangle(pos.x, pos.y, 1, 1), true);
 				}
 			}
-		});
-		addListener(Events.KEYBOARD, new org.muis.core.event.KeyBoardListener() {
+		}).listen(KeyBoardEvent.key.press(), new MuisEventListener<KeyBoardEvent>() {
 			@Override
-			public void keyPressed(KeyBoardEvent kEvt, MuisElement element) {
-				if(kEvt.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {
+			public void eventOccurred(KeyBoardEvent event) {
+				if(event.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {
 					for(int x = 0; x < theImage.getWidth(); x++) {
 						for(int y = 0; y < theImage.getHeight(); y++) {
 							theImage.setRGB(x, y, 0);

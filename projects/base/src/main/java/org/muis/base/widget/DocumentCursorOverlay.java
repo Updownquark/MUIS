@@ -71,13 +71,13 @@ public class DocumentCursorOverlay extends MuisElement {
 			}
 
 			@Override
-			public void entered(MuisState state, MuisEvent<?> cause) {
+			public void entered(MuisState state, MuisEvent cause) {
 				resetBlink();
 				org.muis.motion.AnimationManager.get().start(theCursorBlinkAnimation);
 			}
 
 			@Override
-			public void exited(MuisState state, MuisEvent<?> cause) {
+			public void exited(MuisState state, MuisEvent cause) {
 				repaintCursor();
 			}
 		});

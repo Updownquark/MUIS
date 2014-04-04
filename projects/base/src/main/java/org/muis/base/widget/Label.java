@@ -3,6 +3,7 @@ package org.muis.base.widget;
 import org.muis.core.MuisConstants;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.AttributeChangedEvent;
+import org.muis.core.event.MuisEventListener;
 import org.muis.core.model.*;
 
 /**
@@ -26,13 +27,13 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 			@Override
 			public void run() {
 				atts().accept(new Object(), ModelAttributes.value);
-				addListener(MuisConstants.Events.ATTRIBUTE_CHANGED, new org.muis.core.event.AttributeChangedListener<MuisModelValue<?>>(
-					ModelAttributes.value) {
-					@Override
-					public void attributeChanged(AttributeChangedEvent<MuisModelValue<?>> event) {
-						modelValueChanged(event.getOldValue(), event.getValue());
-					}
-				});
+				events().listen(AttributeChangedEvent.att(ModelAttributes.value),
+					new MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
+						@Override
+						public void eventOccurred(AttributeChangedEvent<MuisModelValue<?>> event) {
+							modelValueChanged(event.getOldValue(), event.getValue());
+						}
+					});
 				modelValueChanged(null, atts().get(ModelAttributes.value));
 			}
 		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);

@@ -2,9 +2,18 @@ package org.muis.core.event;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.event.boole.TypedPredicate;
 
 /** This event represents a character of textual input, typically as a result of a keystroke or combination of keystrokes */
 public class CharInputEvent extends UserEvent {
+	/** Filters events of this type */
+	public static final TypedPredicate<MuisEvent, CharInputEvent> charInput = new TypedPredicate<MuisEvent, CharInputEvent>() {
+		@Override
+		public CharInputEvent cast(MuisEvent value) {
+			return value instanceof CharInputEvent ? (CharInputEvent) value : null;
+		}
+	};
+
 	/** The control character representing a paste event (typically from the user pressing Ctrl+V) */
 	public static final char PASTE = 22;
 

@@ -161,19 +161,19 @@ public class MuisContentPane extends java.awt.Component
 		switch (evt.getButton())
 		{
 		case MouseEvent.NOBUTTON:
-			buttonType = org.muis.core.event.MouseEvent.ButtonType.NONE;
+			buttonType = org.muis.core.event.MouseEvent.ButtonType.none;
 			break;
 		case MouseEvent.BUTTON1:
-			buttonType = org.muis.core.event.MouseEvent.ButtonType.LEFT;
+			buttonType = org.muis.core.event.MouseEvent.ButtonType.left;
 			break;
 		case MouseEvent.BUTTON2:
-			buttonType = org.muis.core.event.MouseEvent.ButtonType.MIDDLE;
+			buttonType = org.muis.core.event.MouseEvent.ButtonType.middle;
 			break;
 		case MouseEvent.BUTTON3:
-			buttonType = org.muis.core.event.MouseEvent.ButtonType.RIGHT;
+			buttonType = org.muis.core.event.MouseEvent.ButtonType.right;
 			break;
 		default:
-			buttonType = org.muis.core.event.MouseEvent.ButtonType.OTHER;
+			buttonType = org.muis.core.event.MouseEvent.ButtonType.other;
 			break;
 		}
 		theContent.mouse(evt.getX(), evt.getY(), type, buttonType, evt.getClickCount());

@@ -8,27 +8,27 @@ import org.muis.core.model.MutableSelectableDocumentModel;
 
 /** Behavior allowing keyboard input */
 public class SimpleTextEditing implements MuisBehavior<DocumentedElement> {
-	private org.muis.core.event.CharInputListener theInputListener;
+	private org.muis.core.event.MuisEventListener<CharInputEvent> theInputListener;
 
 	/** Creates the behavior */
 	public SimpleTextEditing() {
-		theInputListener = new org.muis.core.event.CharInputListener() {
+		theInputListener = new org.muis.core.event.MuisEventListener<CharInputEvent>() {
 			@Override
-			public void keyTyped(CharInputEvent evt, MuisElement element) {
-				charInput((DocumentedElement) element, evt.getChar());
+			public void eventOccurred(CharInputEvent evt) {
+				charInput((DocumentedElement) evt.getElement(), evt.getChar());
 			}
 		};
 	}
 
 	@Override
 	public void install(DocumentedElement element) {
-		((MuisElement) element).addListener(org.muis.core.MuisConstants.Events.CHARACTER_INPUT, theInputListener);
+		((MuisElement) element).events().listen(CharInputEvent.charInput, theInputListener);
 
 	}
 
 	@Override
 	public void uninstall(DocumentedElement element) {
-		((MuisElement) element).removeListener(theInputListener);
+		((MuisElement) element).events().remove(CharInputEvent.charInput, theInputListener);
 	}
 
 	/**

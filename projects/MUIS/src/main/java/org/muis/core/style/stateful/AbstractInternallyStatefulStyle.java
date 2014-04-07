@@ -45,7 +45,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		theDependencyStyleListener = new StyleListener() {
 			@Override
 			public void eventOccurred(StyleAttributeEvent<?> event) {
-				styleChanged(event.getAttribute(), event.getNewValue(), event.getRootStyle());
+				styleChanged(event.getAttribute(), event.getValue(), event.getRootStyle());
 			}
 		};
 	}

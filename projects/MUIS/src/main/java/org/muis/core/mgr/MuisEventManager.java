@@ -79,8 +79,11 @@ public class MuisEventManager implements EventListenerManager {
 			lock.unlock();
 		}
 
-		for(MuisEventListener<? super E> listener : listeners)
-			listener.eventOccurred(event);
+		for(int i = 0; i < listeners.size(); i++) {
+			listeners.get(i).eventOccurred(event);
+			if(i < listeners.size() - 1 && event.isOverridden()) // Call isOverridden() as few times as possible
+				break;
+		}
 		return this;
 	}
 }

@@ -30,6 +30,7 @@ public class AttributeManager {
 		private String theFormattedValue;
 		private AttributeModelWatcher [] theModelWatchers = new AttributeModelWatcher[0];
 		private final Object theModelWatcherLock = new Object();
+		private volatile int theStackChecker;
 
 		AttributeHolder(MuisAttribute<T> attr) {
 			theAttr = attr;
@@ -98,8 +99,15 @@ public class AttributeManager {
 			}
 			Object old = theValue;
 			theValue = value;
+			final int stackCheck = theStackChecker;
+			theStackChecker++;
 			theElement.events().fire(
-				new org.muis.core.event.AttributeChangedEvent<>(theElement, theAttr, theAttr.getType().cast(old), value));
+				new org.muis.core.event.AttributeChangedEvent<T>(theElement, theAttr, theAttr.getType().cast(old), value) {
+					@Override
+					public boolean isOverridden() {
+						return stackCheck != theStackChecker;
+					}
+				});
 		}
 
 		private final void resetModelWatchers(String formattedValue) throws org.muis.core.parser.MuisParseException {

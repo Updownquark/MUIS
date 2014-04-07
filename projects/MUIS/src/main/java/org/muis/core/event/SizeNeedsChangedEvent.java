@@ -58,4 +58,9 @@ public class SizeNeedsChangedEvent implements MuisEvent {
 		if(theCause != null)
 			theCause.handle();
 	}
+
+	@Override
+	public boolean isOverridden() {
+		return isHandled;
+	}
 }

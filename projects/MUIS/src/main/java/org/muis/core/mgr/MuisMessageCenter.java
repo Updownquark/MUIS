@@ -38,6 +38,11 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		public boolean isRemove() {
 			return isRemove;
 		}
+
+		@Override
+		public boolean isOverridden() {
+			return false;
+		}
 	}
 
 	/** Receives notifications new messages to a message center or one of its children */

@@ -9,13 +9,14 @@ import org.muis.core.event.boole.TypedPredicate;
  *
  * @param <T> The type of the attribute
  */
-public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
+public abstract class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	/** Filters events of this type */
 	@SuppressWarnings("hiding")
 	public static final TypedPredicate<MuisEvent, AttributeChangedEvent<?>> base = new TypedPredicate<MuisEvent, AttributeChangedEvent<?>>() {
 		@Override
 		public AttributeChangedEvent<?> cast(MuisEvent value) {
-			return value instanceof AttributeChangedEvent ? (AttributeChangedEvent<?>) value : null;
+			return value instanceof AttributeChangedEvent && !((AttributeChangedEvent<?>) value).isOverridden() ? (AttributeChangedEvent<?>) value
+				: null;
 		}
 	};
 
@@ -55,6 +56,7 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	}
 
 	private final MuisAttribute<T> theAttr;
+	private final T theOldValue;
 
 	/**
 	 * @param element The element whose attribute changed
@@ -63,12 +65,18 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	 * @param newValue The attribute's value after it was changed
 	 */
 	public AttributeChangedEvent(MuisElement element, MuisAttribute<T> attr, T oldValue, T newValue) {
-		super(element, oldValue, newValue);
+		super(element, newValue);
 		theAttr = attr;
+		theOldValue = oldValue;
 	}
 
 	/** @return The attribute whose value changed */
 	public MuisAttribute<T> getAttribute() {
 		return theAttr;
+	}
+
+	/** @return The value of the attribute before it was changed */
+	public T getOldValue() {
+		return theOldValue;
 	}
 }

@@ -103,4 +103,9 @@ public class ChildEvent implements MuisEvent {
 	public ImmutableChildList<MuisElement> getPostChangeContent() {
 		return thePostChange;
 	}
+
+	@Override
+	public boolean isOverridden() {
+		return false;
+	}
 }

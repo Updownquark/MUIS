@@ -47,4 +47,9 @@ public class GroupMemberEvent implements MuisEvent {
 	public int getRemoveIndex() {
 		return theRemoveIndex;
 	}
+
+	@Override
+	public boolean isOverridden() {
+		return false;
+	}
 }

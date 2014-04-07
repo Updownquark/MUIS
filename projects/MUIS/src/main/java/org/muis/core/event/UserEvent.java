@@ -17,7 +17,7 @@ public abstract class UserEvent implements MuisEvent {
 
 	/**
 	 * Creates a user event
-	 * 
+	 *
 	 * @param doc The document that the event occurred in
 	 * @param target The deepest-level element that the event occurred in
 	 * @param element The element that this event is being fired on
@@ -71,4 +71,9 @@ public abstract class UserEvent implements MuisEvent {
 	 *         properties (e.g. {@link UserEvent#isUsed() used}) will be backed by this event's properties.
 	 */
 	public abstract UserEvent copyFor(MuisElement element);
+
+	@Override
+	public boolean isOverridden() {
+		return false;
+	}
 }

@@ -8,33 +8,26 @@ import org.muis.core.event.boole.TypedPredicate;
  *
  * @param <T> The type of the property that was changed
  */
-public class MuisPropertyEvent<T> implements MuisEvent {
+public abstract class MuisPropertyEvent<T> implements MuisEvent {
 	/** Filters for property events */
 	public static final TypedPredicate<MuisEvent, MuisPropertyEvent<?>> base = new TypedPredicate<MuisEvent, MuisPropertyEvent<?>>() {
 		@Override
 		public MuisPropertyEvent<?> cast(MuisEvent value) {
-			return value instanceof MuisPropertyEvent ? (MuisPropertyEvent<?>) value : null;
+			return value instanceof MuisPropertyEvent && !((MuisPropertyEvent<?>) value).isOverridden() ? (MuisPropertyEvent<?>) value
+				: null;
 		}
 	};
 
 	private final MuisElement theElement;
-	private final T theOldValue;
 	private final T theNewValue;
 
 	/**
 	 * @param element The element that this event is being fired in
-	 * @param oldValue The value of the property before it was changed
 	 * @param newValue The current value of the property after it has been changed
 	 */
-	public MuisPropertyEvent(MuisElement element, T oldValue, T newValue) {
+	public MuisPropertyEvent(MuisElement element, T newValue) {
 		theElement = element;
-		theOldValue = oldValue;
 		theNewValue = newValue;
-	}
-
-	/** @return The value of the property before it was changed */
-	public T getOldValue() {
-		return theOldValue;
 	}
 
 	/** @return The new value of the property */
@@ -46,4 +39,14 @@ public class MuisPropertyEvent<T> implements MuisEvent {
 	public MuisElement getElement() {
 		return theElement;
 	}
+
+	/**
+	 * A property event is overridden when the value of the property on the same property center is changed again while the event from the
+	 * old change is still being fired. Overridden property events should stop being propagated to listeners because listeners using the
+	 * {@link #getValue() value} on the event will be using outdated information.
+	 *
+	 * @return Whether this event is overridden.
+	 */
+	@Override
+	public abstract boolean isOverridden();
 }

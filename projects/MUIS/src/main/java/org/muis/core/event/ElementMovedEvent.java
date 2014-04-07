@@ -43,4 +43,9 @@ public class ElementMovedEvent implements MuisEvent {
 	public MuisElement getNewParent() {
 		return theNewParent;
 	}
+
+	@Override
+	public boolean isOverridden() {
+		return theElement.getParent() != theNewParent;
+	}
 }

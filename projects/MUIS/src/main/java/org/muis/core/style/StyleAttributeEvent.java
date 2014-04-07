@@ -9,12 +9,14 @@ import org.muis.core.event.boole.TypedPredicate;
  *
  * @param <T> The type of attribute that was changed
  */
-public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
+public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEvent<T> {
 	/** Filters events of this type */
+	@SuppressWarnings("hiding")
 	public static final TypedPredicate<MuisEvent, StyleAttributeEvent<?>> base = new TypedPredicate<MuisEvent, StyleAttributeEvent<?>>() {
 		@Override
 		public StyleAttributeEvent<?> cast(MuisEvent value) {
-			return value instanceof StyleAttributeEvent ? (StyleAttributeEvent<?>) value : null;
+			return value instanceof StyleAttributeEvent && !((StyleAttributeEvent<?>) value).isOverridden() ? (StyleAttributeEvent<?>) value
+				: null;
 		}
 	};
 
@@ -53,15 +55,11 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 		return new org.muis.core.event.boole.TPAnd<>(base, new StyleAttributeTypedPredicate<>(attr));
 	}
 
-	private final MuisElement theElement;
-
 	private MuisStyle theRootStyle;
 
 	private MuisStyle theLocalStyle;
 
 	private final StyleAttribute<T> theAttribute;
-
-	private final T theValue;
 
 	/**
 	 * Creates a style attribute event
@@ -73,16 +71,10 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 	 * @param value The new value of the attribute in the style
 	 */
 	public StyleAttributeEvent(MuisElement element, MuisStyle root, MuisStyle local, StyleAttribute<T> attr, T value) {
-		theElement = element;
+		super(element, value);
 		theRootStyle = root;
 		theLocalStyle = local;
 		theAttribute = attr;
-		theValue = value;
-	}
-
-	@Override
-	public MuisElement getElement() {
-		return theElement;
 	}
 
 	/** @return The style that the attribute was changed in */
@@ -100,8 +92,10 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 		return theAttribute;
 	}
 
-	/** @return The new value of the attribute in the style */
-	public T getNewValue() {
-		return theValue;
+	@Override
+	public boolean isOverridden() {
+		/* TODO This may or may not cause performance problems later.  I think it's better to put it here than overriding getValue() to
+		 * query the style every time it's called since this is only called once per listener. */
+		return theLocalStyle.get(theAttribute) == getValue();
 	}
 }

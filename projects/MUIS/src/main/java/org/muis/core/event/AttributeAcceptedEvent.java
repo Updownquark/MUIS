@@ -56,4 +56,9 @@ public class AttributeAcceptedEvent implements MuisEvent {
 	public Object getInitialValue() {
 		return theInitialValue;
 	}
+
+	@Override
+	public boolean isOverridden() {
+		return false;
+	}
 }

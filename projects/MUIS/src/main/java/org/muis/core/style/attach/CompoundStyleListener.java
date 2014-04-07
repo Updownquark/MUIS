@@ -183,7 +183,7 @@ public class CompoundStyleListener {
 			}
 		}
 		styleChanged(event.getRootStyle());
-		attributeChanged(event.getAttribute(), event.getNewValue());
+		attributeChanged(event.getAttribute(), event.getValue());
 	}
 
 	/**

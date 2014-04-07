@@ -52,7 +52,7 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		List<ChildEventTypePredicate> preds = new ArrayList<>();
 		for(ChildEventType type : eventTypes)
 			preds.add(types.get(type));
-		return new TPOr<ChildEvent>(preds);
+		return new TPOr<>(preds);
 	}
 
 	/**
@@ -63,7 +63,7 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		List<ChildEventTypePredicate> preds = new ArrayList<>();
 		for(ChildEventType type : eventTypes)
 			preds.add(types.get(type));
-		return new TPOr<ChildEvent>(preds);
+		return new TPOr<>(preds);
 	}
 
 	/** Filters child events */

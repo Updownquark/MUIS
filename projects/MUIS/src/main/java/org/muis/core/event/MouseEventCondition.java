@@ -87,9 +87,9 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 	public static final Map<MouseEventType, MouseEventTypedPredicate> types;
 	/** A map of all mouse buttons to predicates that filter on them */
 	public static final Map<ButtonType, ButtonTypedPredicate> buttons;
-	/** Fitlers single clicks */
+	/** Filters single clicks */
 	public static final ClickCountPredicate singleClick = new ClickCountPredicate(1);
-	/** Fitlers double clicks */
+	/** Filters double clicks */
 	public static final ClickCountPredicate doubleClick = new ClickCountPredicate(2);
 
 	static {
@@ -112,7 +112,7 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 		List<MouseEventTypedPredicate> preds = new ArrayList<>();
 		for(MouseEventType type : eventTypes)
 			preds.add(types.get(type));
-		return new TPOr<MouseEvent>(preds);
+		return new TPOr<>(preds);
 	}
 
 	/**
@@ -123,7 +123,7 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 		List<MouseEventTypedPredicate> preds = new ArrayList<>();
 		for(MouseEventType type : eventTypes)
 			preds.add(types.get(type));
-		return new TPOr<MouseEvent>(preds);
+		return new TPOr<>(preds);
 	}
 
 	/**
@@ -134,7 +134,7 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 		List<ButtonTypedPredicate> preds = new ArrayList<>();
 		for(ButtonType type : buttonTypes)
 			preds.add(buttons.get(type));
-		return new TPOr<MouseEvent>(preds);
+		return new TPOr<>(preds);
 	}
 
 	/**
@@ -145,7 +145,7 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 		List<ButtonTypedPredicate> preds = new ArrayList<>();
 		for(ButtonType type : buttonTypes)
 			preds.add(buttons.get(type));
-		return new TPOr<MouseEvent>(preds);
+		return new TPOr<>(preds);
 	}
 
 	private List<MouseEventType> theTypes;

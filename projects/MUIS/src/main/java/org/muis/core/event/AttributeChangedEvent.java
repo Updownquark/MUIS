@@ -46,6 +46,7 @@ public class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	}
 
 	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to listen for
 	 * @return A filter for change events to the given attribute
 	 */

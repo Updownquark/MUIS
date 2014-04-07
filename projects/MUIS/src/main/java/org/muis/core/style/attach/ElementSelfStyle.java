@@ -50,7 +50,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 					@Override
 					public void eventOccurred(StyleAttributeEvent<?> event) {
 						StyleAttributeEvent<Object> evt = (StyleAttributeEvent<Object>) event;
-						evt = new StyleAttributeEvent<Object>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(),
+						evt = new StyleAttributeEvent<>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(),
 							evt.getAttribute(), evt.getNewValue());
 						theElStyle.getElement().events().fire(evt);
 					}

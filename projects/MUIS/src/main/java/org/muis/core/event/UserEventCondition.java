@@ -26,7 +26,7 @@ public class UserEventCondition<E extends UserEvent> implements MuisEventConditi
 	};
 
 	/** Filters {@link UserEvent#isUsed() unused} {@link UserEvent}s */
-	public static final UserEventCondition<UserEvent> user = new UserEventCondition<UserEvent>();
+	public static final UserEventCondition<UserEvent> user = new UserEventCondition<>();
 
 	private boolean isWithUsed;
 

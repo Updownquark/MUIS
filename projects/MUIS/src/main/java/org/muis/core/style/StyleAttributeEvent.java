@@ -20,7 +20,7 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 
 	/**
 	 * A filter for style attribute events on a particular attribute
-	 * 
+	 *
 	 * @param <T> The type of the attribute
 	 */
 	public static class StyleAttributeTypedPredicate<T> implements TypedPredicate<StyleAttributeEvent<?>, StyleAttributeEvent<T>> {
@@ -45,6 +45,7 @@ public class StyleAttributeEvent<T> implements org.muis.core.event.MuisEvent {
 	}
 
 	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to listen for
 	 * @return A filter for change events to the given attribute
 	 */

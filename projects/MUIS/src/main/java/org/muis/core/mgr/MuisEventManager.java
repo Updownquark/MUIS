@@ -61,6 +61,7 @@ public class MuisEventManager implements EventListenerManager {
 	}
 
 	/**
+	 * @param <E> The type of the event
 	 * @param event The event to fire for the element
 	 * @return This manager, for chaining
 	 */

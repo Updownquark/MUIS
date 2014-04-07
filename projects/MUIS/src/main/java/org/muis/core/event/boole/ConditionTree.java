@@ -50,6 +50,8 @@ public class ConditionTree<T, V> {
 		}
 
 		/**
+		 * @param <T1> The evaluation type of the condition
+		 * @param <T2> The production type of the condition
 		 * @param condition The condition to store the values for
 		 * @param values The values to store
 		 * @return Whether the condition could be found under this subtree, i.e. whether the values could be stored in this subtree
@@ -73,6 +75,8 @@ public class ConditionTree<T, V> {
 		}
 
 		/**
+		 * @param <T1> The evaluation type of the condition
+		 * @param <T2> The production type of the condition
 		 * @param condition The condition to remove the values for
 		 * @param values The values to remove
 		 * @return Whether the condition could be found under this subtree
@@ -141,6 +145,8 @@ public class ConditionTree<T, V> {
 	}
 
 	/**
+	 * @param <T1> The evaluation type of the condition
+	 * @param <T2> The production type of the condition
 	 * @param condition The condition to store the values under
 	 * @param values The values to store
 	 */
@@ -149,6 +155,8 @@ public class ConditionTree<T, V> {
 	}
 
 	/**
+	 * @param <T1> The evaluation type of the condition
+	 * @param <T2> The production type of the condition
 	 * @param condition The condition to remove values from
 	 * @param values The values to remove
 	 */
@@ -157,6 +165,8 @@ public class ConditionTree<T, V> {
 	}
 
 	/**
+	 * @param <T1> The evaluation type of the condition
+	 * @param <T2> The production type of the condition
 	 * @param value The value to test against and get values for conditions that match
 	 * @return All values stored in this tree for conditions that match the given value
 	 */

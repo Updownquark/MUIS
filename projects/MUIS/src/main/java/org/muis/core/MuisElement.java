@@ -94,7 +94,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				theLifeCycleController = controller;
 			}
 		}, CoreStage.READY.toString());
-		theStateEngine = new StateEngine();
+		theStateEngine = new StateEngine(this);
 		theEvents = new MuisEventManager(this);
 		theStateControllers = new CoreStateControllers();
 		String lastStage = null;

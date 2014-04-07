@@ -2,7 +2,8 @@ package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
-import org.muis.core.event.MuisEvent;
+import org.muis.core.event.MuisEventListener;
+import org.muis.core.event.StateChangedEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
@@ -46,7 +47,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
 		}
-		theElement.events().listen(ElementMovedEvent.moved, new org.muis.core.event.MuisEventListener<ElementMovedEvent>() {
+		theElement.events().listen(ElementMovedEvent.moved, new MuisEventListener<ElementMovedEvent>() {
 			@Override
 			public void eventOccurred(ElementMovedEvent event) {
 				ElementStyle oldParentStyle = theParentStyle;
@@ -68,19 +69,19 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		setState(currentState);
 		theSelfStyle.setState(currentState);
 		theHeirStyle.setState(currentState);
-		theElement.state().addListener(null, new org.muis.core.mgr.StateEngine.StateListener() {
+		theElement.events().listen(org.muis.core.event.StateChangedEvent.base, new MuisEventListener<StateChangedEvent>() {
 			@Override
-			public void entered(MuisState state, MuisEvent cause) {
-				addState(state);
-				theSelfStyle.addState(state);
-				theHeirStyle.addState(state);
-			}
-
-			@Override
-			public void exited(MuisState state, MuisEvent cause) {
-				removeState(state);
-				theSelfStyle.removeState(state);
-				theHeirStyle.removeState(state);
+			public void eventOccurred(StateChangedEvent event) {
+				MuisState state = event.getState();
+				if(event.getValue()) {
+					addState(state);
+					theSelfStyle.addState(state);
+					theHeirStyle.addState(state);
+				} else {
+					removeState(state);
+					theSelfStyle.removeState(state);
+					theHeirStyle.removeState(state);
+				}
 			}
 		});
 	}

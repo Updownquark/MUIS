@@ -6,7 +6,6 @@ import org.muis.base.BaseConstants;
 import org.muis.core.MuisConstants;
 import org.muis.core.event.*;
 import org.muis.core.layout.SizeGuide;
-import org.muis.core.mgr.MuisState;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionEvent;
 import org.muis.core.model.MuisActionListener;
@@ -39,7 +38,7 @@ public class Button extends org.muis.core.MuisTemplate {
 				if(isActionable) {
 					atts().accept(new Object(), ModelAttributes.action);
 					events().listen(AttributeChangedEvent.att(ModelAttributes.action),
-						new org.muis.core.event.MuisEventListener<AttributeChangedEvent<MuisActionListener>>() {
+						new MuisEventListener<AttributeChangedEvent<MuisActionListener>>() {
 							@Override
 							public void eventOccurred(AttributeChangedEvent<MuisActionListener> event) {
 								listenerChanged(event.getOldValue(), event.getValue());
@@ -47,46 +46,44 @@ public class Button extends org.muis.core.MuisTemplate {
 						});
 					listenerChanged(null, atts().get(ModelAttributes.action));
 				}
-				state().addListener(MuisConstants.States.CLICK, new org.muis.core.mgr.StateEngine.StateListener() {
+				events().listen(StateChangedEvent.state(MuisConstants.States.CLICK), new MuisEventListener<StateChangedEvent>() {
 					private Point theClickLocation;
 
 					@Override
-					public void entered(MuisState state, MuisEvent cause) {
+					public void eventOccurred(StateChangedEvent event) {
 						if(!state().is(BaseConstants.States.ENABLED))
 							return;
-						if(cause instanceof MouseEvent) {
-							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
-							theDepressedController.setActive(true, cause);
-						} else
+						MuisEvent cause = event.getCause();
+						if(event.getValue()) {
+							if(cause instanceof MouseEvent) {
+								theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
+								theDepressedController.setActive(true, cause);
+							} else
+								theClickLocation = null;
+						} else {
+							Point click = theClickLocation;
 							theClickLocation = null;
-					}
-
-					@Override
-					public void exited(MuisState state, MuisEvent cause) {
-						if(!state().is(BaseConstants.States.ENABLED))
-							return;
-						Point click = theClickLocation;
-						theClickLocation = null;
-						checkDepressed(cause);
-						if(click == null || !(cause instanceof MouseEvent)
-							|| ((MouseEvent) cause).getType() != MouseEvent.MouseEventType.released) {
-							return;
+							checkDepressed(cause);
+							if(click == null || !(cause instanceof MouseEvent)
+								|| ((MouseEvent) cause).getType() != MouseEvent.MouseEventType.released) {
+								return;
+							}
+							if(state().is(BaseConstants.States.DEPRESSED))
+								return;
+							Point unclick = ((MouseEvent) cause).getPosition(Button.this);
+							int dx = click.x - unclick.x;
+							int dy = click.y - unclick.y;
+							double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyle.clickTolerance);
+							if(dx > tol || dy > tol)
+								return;
+							double dist2 = dx * dx + dy * dy;
+							if(dist2 > tol * tol)
+								return;
+							action((MouseEvent) cause);
 						}
-						if(state().is(BaseConstants.States.DEPRESSED))
-							return;
-						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
-						int dx = click.x - unclick.x;
-						int dy = click.y - unclick.y;
-						double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyle.clickTolerance);
-						if(dx > tol || dy > tol)
-							return;
-						double dist2 = dx * dx + dy * dy;
-						if(dist2 > tol * tol)
-							return;
-						action((MouseEvent) cause);
 					}
 				});
-				events().listen(KeyBoardEvent.key, new org.muis.core.event.MuisEventListener<KeyBoardEvent>() {
+				events().listen(KeyBoardEvent.key, new MuisEventListener<KeyBoardEvent>() {
 					@Override
 					public void eventOccurred(KeyBoardEvent event) {
 						if(event.wasPressed()) {

@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 
 import prisms.util.ArrayUtils;
@@ -27,21 +28,6 @@ public class StateEngine implements StateSet {
 		 * @param cause The event that caused the change--may be null, but should be provided if possible
 		 */
 		void setActive(boolean active, MuisEvent cause);
-	}
-
-	/** Allows notification when states change in an engine */
-	public interface StateListener {
-		/**
-		 * @param state The state just entered
-		 * @param cause The event that caused the change--may be null
-		 */
-		void entered(MuisState state, MuisEvent cause);
-
-		/**
-		 * @param state The state just exited
-		 * @param cause The event that caused the change--may be null
-		 */
-		void exited(MuisState state, MuisEvent cause);
 	}
 
 	private static class StateValue {
@@ -73,20 +59,23 @@ public class StateEngine implements StateSet {
 		}
 	}
 
+	private final MuisElement theElement;
 	private final ConcurrentHashMap<MuisState, StateValue> theStates;
 
 	private StateControllerImpl [] theStateControllers;
 
 	private Object theStateControllerLock;
 
-	private final prisms.arch.event.ListenerManager<StateListener> theListeners;
-
-	/** Creates a state engine */
-	public StateEngine() {
+	/**
+	 * Creates a state engine
+	 *
+	 * @param element The element that this engine keeps state for
+	 */
+	public StateEngine(MuisElement element) {
+		theElement = element;
 		theStates = new ConcurrentHashMap<>();
 		theStateControllers = new StateControllerImpl[0];
 		theStateControllerLock = new Object();
-		theListeners = new prisms.arch.event.ListenerManager<>(StateListener.class);
 	}
 
 	@Override
@@ -173,30 +162,6 @@ public class StateEngine implements StateSet {
 	}
 
 	/**
-	 * @param state The state to listen for, or null to receive notification when any state changes
-	 * @param listener The listener to notify when the given state (or any state if {@code state} is null) changes
-	 */
-	public void addListener(MuisState state, StateListener listener) {
-		if(state == null)
-			theListeners.addListener(listener);
-		else
-			theListeners.addListener(state, listener);
-	}
-
-	/**
-	 * @param state The state to remove the listener for
-	 * @param listener The listener to remove from listening for changes to the given state
-	 */
-	public void removeListener(MuisState state, StateListener listener) {
-		theListeners.removeListener(state, listener);
-	}
-
-	/** @param listener The listener to stop listening with */
-	public void removeListener(StateListener listener) {
-		theListeners.removeListener(listener);
-	}
-
-	/**
 	 * @param state The state to add to this engine
 	 * @throws IllegalArgumentException If the given state is already recognized in this engine
 	 */
@@ -230,21 +195,19 @@ public class StateEngine implements StateSet {
 	}
 
 	private void stateChanged(MuisState state, final boolean active, MuisEvent event) {
-		StateValue newState = new StateValue(active);
+		final StateValue newState = new StateValue(active);
 		StateValue old = theStates.put(state, newState);
 		newState.setStackChecker(old.getStackChecker());
-		int stack = newState.getStackChecker().incrementAndGet();
+		final int stack = newState.getStackChecker().incrementAndGet();
 		if(old.isActive() == active)
 			return;
-		StateListener [] listeners = theListeners.getListeners(state);
-		for(StateListener listener : listeners) {
-			if(stack != newState.getStackChecker().get())
-				break;
-			if(active)
-				listener.entered(state, event);
-			else
-				listener.exited(state, event);
-		}
+
+		theElement.events().fire(new org.muis.core.event.StateChangedEvent(theElement, state, active, event) {
+			@Override
+			public boolean isOverridden() {
+				return stack != newState.getStackChecker().get();
+			}
+		});
 	}
 
 	@Override

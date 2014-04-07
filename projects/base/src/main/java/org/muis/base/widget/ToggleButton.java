@@ -1,10 +1,7 @@
 package org.muis.base.widget;
 
 import org.muis.base.BaseConstants;
-import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEvent;
-import org.muis.core.event.UserEvent;
-import org.muis.core.mgr.MuisState;
+import org.muis.core.event.*;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisModelValue;
 import org.muis.core.model.MuisModelValueEvent;
@@ -36,7 +33,7 @@ public class ToggleButton extends Button {
 		};
 		atts().accept(new Object(), ModelAttributes.value);
 		events().listen(AttributeChangedEvent.att(ModelAttributes.value),
-			new org.muis.core.event.MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
+			new MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
 				@Override
 				public void eventOccurred(AttributeChangedEvent<MuisModelValue<?>> event) {
 					setModelValue(event.getOldValue(), event.getValue());
@@ -44,15 +41,14 @@ public class ToggleButton extends Button {
 			});
 		setModelValue(null, atts().get(ModelAttributes.value));
 		theSelectedController = state().control(BaseConstants.States.SELECTED);
-		state().addListener(BaseConstants.States.SELECTED, new org.muis.core.mgr.StateEngine.StateListener() {
+		events().listen(StateChangedEvent.state(BaseConstants.States.SELECTED), new MuisEventListener<StateChangedEvent>() {
 			@Override
-			public void entered(MuisState state, MuisEvent cause) {
-				valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
-			}
-
-			@Override
-			public void exited(MuisState state, MuisEvent cause) {
-				valueChanged(false, cause instanceof UserEvent ? (UserEvent) cause : null);
+			public void eventOccurred(StateChangedEvent event) {
+				MuisEvent cause = event.getCause();
+				if(event.getValue())
+					valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
+				else
+					valueChanged(false, cause instanceof UserEvent ? (UserEvent) cause : null);
 			}
 		});
 	}

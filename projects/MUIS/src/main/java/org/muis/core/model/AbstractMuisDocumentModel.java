@@ -384,7 +384,7 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		private int theSequenceOffset;
 		private boolean oldSequenceWasLineBreak;
 		private boolean wasLineBreak;
-		private boolean newLayout;
+		private boolean newMeasurer;
 
 		MetricsIterator(Iterator<StyledSequence> backing, float breakWidth) {
 			theBackingIterator = backing;
@@ -394,43 +394,42 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		@Override
 		public boolean hasNext() {
 			while(theCurrentLayout == null) {
+				if(theCurrentMeasurer != null && theCurrentSequence != null
+					&& theCurrentMeasurer.getPosition() == theCurrentSequence.length()) {
+					oldSequenceWasLineBreak = theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n';
+					theCurrentSequence = null;
+					theCurrentMeasurer = null;
+					theSequenceOffset = 0;
+				}
 				if(theCurrentSequence == null) {
 					if(theBackingIterator.hasNext()) {
 						theCurrentSequence = theBackingIterator.next();
 						setMeasurer(theCurrentSequence);
-						newLayout = true;
+						newMeasurer = true;
 					} else
 						return false;
 				}
-				while(theCurrentLayout == null && theCurrentMeasurer != null) {
-					// Determine whether the next sequence should be on a new line
-					if(newLayout) {
-						wasLineBreak = oldSequenceWasLineBreak;
-						newLayout = false;
-					} else {
-						wasLineBreak = true;
-					}
-
-					if(wasLineBreak) {
-						if(theOldLayout != null)
-							theTop += theOldLayout.getAscent() + theOldLayout.getDescent() + theOldLayout.getLeading();
-						theLineOffset = 0;
-					} else if(theOldLayout != null) {
-						theLineOffset += theOldLayout.getAdvance();
-					}
-					theOldLayout = null;
-
-					float width = theBreakWidth - theLineOffset;
-					if(width <= 0)
-						width = 1;
-					theCurrentLayout = theCurrentMeasurer.nextLayout(width);
-					if(theCurrentLayout == null) {
-						theSequenceOffset = 0;
-						theCurrentMeasurer = null;
-						oldSequenceWasLineBreak = wasLineBreak || theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n';
-						theCurrentSequence = null;
-					}
+				// Determine whether the next sequence should be on a new line
+				if(newMeasurer) {
+					wasLineBreak = oldSequenceWasLineBreak;
+					newMeasurer = false;
+				} else {
+					wasLineBreak = true;
 				}
+
+				if(wasLineBreak) {
+					if(theOldLayout != null)
+						theTop += theOldLayout.getAscent() + theOldLayout.getDescent() + theOldLayout.getLeading();
+					theLineOffset = 0;
+				} else if(theOldLayout != null) {
+					theLineOffset += theOldLayout.getAdvance();
+				}
+				theOldLayout = null;
+
+				float width = theBreakWidth - theLineOffset;
+				if(width <= 0)
+					width = 1;
+				theCurrentLayout = theCurrentMeasurer.nextLayout(width);
 			}
 			return theCurrentLayout != null;
 		}

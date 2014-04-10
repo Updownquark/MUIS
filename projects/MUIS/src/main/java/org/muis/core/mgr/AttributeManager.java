@@ -99,8 +99,8 @@ public class AttributeManager {
 			}
 			Object old = theValue;
 			theValue = value;
-			final int stackCheck = theStackChecker;
 			theStackChecker++;
+			final int stackCheck = theStackChecker;
 			theElement.events().fire(
 				new org.muis.core.event.AttributeChangedEvent<T>(theElement, theAttr, theAttr.getType().cast(old), value) {
 					@Override

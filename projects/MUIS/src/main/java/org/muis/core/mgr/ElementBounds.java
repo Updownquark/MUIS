@@ -186,8 +186,8 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 	}
 
 	private final void fire(Rectangle preBounds, Rectangle newBounds) {
-		final int stackCheck = theStackChecker;
 		theStackChecker++;
+		final int stackCheck = theStackChecker;
 		theElement.events().fire(new BoundsChangedEvent(theElement, preBounds, newBounds) {
 			@Override
 			public boolean isOverridden() {

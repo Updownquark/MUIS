@@ -1,16 +1,12 @@
 package org.muis.base.model;
 
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.geom.Point2D;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.muis.core.model.MutableDocumentModel;
-import org.muis.core.style.MuisStyle;
-import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleListener;
+import org.muis.core.style.*;
 
 import prisms.util.ArrayUtils;
 
@@ -133,7 +129,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 
 	private MuisStyle theParentStyle;
 
-	private java.util.List<RichStyleSequence> theSequences;
+	private List<RichStyleSequence> theSequences;
 
 	private ReentrantReadWriteLock theLock;
 
@@ -144,81 +140,20 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 	}
 
 	@Override
-	public MuisStyle getStyleAt(int position) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Iterable<StyledSequence> iterateFrom(int position) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Iterable<StyledSequenceMetric> metrics(int start, float breakWidth) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public float getPositionAt(float x, float y, int breakWidth) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public Point2D getLocationAt(float position, int breakWidth) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void draw(Graphics2D graphics, Rectangle window, int breakWidth) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void addContentListener(ContentListener listener) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void removeContentListener(ContentListener listener) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public int length() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public char charAt(int index) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public CharSequence subSequence(int start, int end) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Iterator<StyledSequence> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+		return java.util.Collections.unmodifiableList((List<StyledSequence>)(List<?>)theSequences).iterator();
 	}
 
 	@Override
 	public MutableDocumentModel append(CharSequence csq) {
-		// TODO Auto-generated method stub
-		return null;
+		Lock lock=theLock.writeLock();
+		lock.lock();
+		try{
+			theSequences.get(theSequences.size()-1).
+		} finally{
+			lock.unlock();
+		}
+		return this;
 	}
 
 	@Override
@@ -245,4 +180,95 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 		return null;
 	}
 
+	@Override
+	public void addContentListener(ContentListener listener) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void removeContentListener(ContentListener listener) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public MutableStyle getSegmentStyle(int start, int end) {
+		return new RichSegmentStyle(start, end);
+	}
+
+	private class RichSegmentStyle implements MutableStyle {
+		private final int theStart;
+		private final int theEnd;
+
+		RichSegmentStyle(int start, int end) {
+			theStart = start;
+			theEnd = end;
+		}
+
+		@Override
+		public MuisStyle [] getDependencies() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public boolean isSet(StyleAttribute<?> attr) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean isSetDeep(StyleAttribute<?> attr) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public <T> T getLocal(StyleAttribute<T> attr) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Iterable<StyleAttribute<?>> localAttributes() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public <T> T get(StyleAttribute<T> attr) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public void addListener(StyleListener listener) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void removeListener(StyleListener listener) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public Iterator<StyleAttribute<?>> iterator() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public <T> MutableStyle set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public MutableStyle clear(StyleAttribute<?> attr) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+	}
 }

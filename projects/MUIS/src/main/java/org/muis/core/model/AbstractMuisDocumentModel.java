@@ -89,52 +89,25 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 
 	@Override
 	public Iterable<StyledSequence> iterateFrom(final int position) {
+		return iterateFrom(position, Integer.MAX_VALUE);
+	}
+
+	@Override
+	public Iterable<StyledSequence> iterateFrom(final int start, final int end) {
 		final Iterator<StyledSequence> iterator = iterator();
 		int pos = 0;
 		while(iterator.hasNext()) {
 			final StyledSequence seq = iterator.next();
 			int seqLen = seq.length();
-			if(pos + seqLen > position) {
+			if(pos + seqLen > start) {
 				final int fPos = pos;
 				return new Iterable<StyledSequence>() {
 					@Override
 					public Iterator<StyledSequence> iterator() {
 						return new Iterator<StyledSequence>() {
-							private final StyledSequence theBegin = new StyledSequence() {
-								private StyledSequence theBackingSequence = seq;
-
-								private int theOffset = position - fPos;
-
-								@Override
-								public int length() {
-									return theBackingSequence.length() - theOffset;
-								}
-
-								@Override
-								public char charAt(int index) {
-									return theBackingSequence.charAt(index + theOffset);
-								}
-
-								@Override
-								public CharSequence subSequence(int start, int end) {
-									return theBackingSequence.subSequence(start + theOffset, end + theOffset);
-								}
-
-								@Override
-								public MuisStyle getStyle() {
-									return theBackingSequence.getStyle();
-								}
-
-								@Override
-								public String toString() {
-									if(theOffset == 0)
-										return theBackingSequence.toString();
-									else
-										return theBackingSequence.subSequence(theOffset, theBackingSequence.length()).toString();
-								}
-							};
-
 							private boolean hasReturnedBegin;
+
+							private int thePos = fPos;
 
 							private Iterator<StyledSequence> theBackingIterator = iterator;
 
@@ -142,17 +115,24 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 							public boolean hasNext() {
 								if(!hasReturnedBegin)
 									return true;
+								else if(thePos >= end)
+									return false;
 								else
 									return theBackingIterator.hasNext();
 							}
 
 							@Override
 							public StyledSequence next() {
+								StyledSequence ret;
 								if(!hasReturnedBegin) {
 									hasReturnedBegin = true;
-									return theBegin;
+									ret = new StyledSubSequence(seq, start - thePos, end - thePos);
 								} else
-									return theBackingIterator.next();
+									ret = theBackingIterator.next();
+								if(thePos + ret.length() > end)
+									ret = new StyledSubSequence(ret, 0, end - thePos);
+								thePos += ret.length();
+								return ret;
 							}
 
 							@Override
@@ -165,10 +145,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			}
 			pos += seqLen;
 		}
-		if(pos == position)
+		if(pos == start)
 			return java.util.Collections.EMPTY_SET;
 		else
-			throw new IndexOutOfBoundsException(position + ">" + pos);
+			throw new IndexOutOfBoundsException(start + ">" + pos);
 	}
 
 	@Override
@@ -362,6 +342,55 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		} finally {
 			if(window != null)
 				graphics.setClip(oldClip);
+		}
+	}
+
+	private static class StyledSubSequence implements StyledSequence {
+		private final StyledSequence theBacking;
+		private final int theStart;
+		private final int theEnd;
+
+		StyledSubSequence(StyledSequence backing, int start, int end) {
+			theBacking = backing;
+			theStart = start;
+			theEnd = end;
+		}
+
+		@Override
+		public int length() {
+			int end = theEnd;
+			if(theBacking.length() < end)
+				end = theBacking.length();
+			return end - theStart;
+		}
+
+		@Override
+		public char charAt(int index) {
+			return theBacking.charAt(index + theStart);
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			return theBacking.subSequence(start + theStart, end + theStart);
+		}
+
+		@Override
+		public MuisStyle getStyle() {
+			return theBacking.getStyle();
+		}
+
+		@Override
+		public String toString() {
+			int end = theEnd;
+			boolean unlimitedEnd = false;
+			if(theBacking.length() < end) {
+				unlimitedEnd = true;
+				end = theBacking.length();
+			}
+			if(theStart == 0 && unlimitedEnd)
+				return theBacking.toString();
+			else
+				return theBacking.subSequence(theStart, end).toString();
 		}
 	}
 

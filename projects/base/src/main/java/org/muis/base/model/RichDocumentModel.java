@@ -221,6 +221,54 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 	}
 
 	@Override
+	public MutableDocumentModel insert(int offset, CharSequence csq) {
+		try (Transaction t = holdForWrite()) {
+			int pos = 0;
+			boolean inserted = false;
+			for(RichStyleSequence seq : theSequences) {
+				int nextPos = pos + seq.length();
+				if(nextPos > offset) {
+					inserted = true;
+					seq.theContent.insert(offset - pos, csq);
+					break;
+				}
+				pos = nextPos;
+			}
+			if(!inserted) {
+				if(pos == length())
+					append(csq);
+				else
+					throw new IndexOutOfBoundsException(offset + ">" + length());
+			}
+		}
+		return this;
+	}
+
+	@Override
+	public MutableDocumentModel insert(int offset, char c) {
+		try (Transaction t = holdForWrite()) {
+			int pos = 0;
+			boolean inserted = false;
+			for(RichStyleSequence seq : theSequences) {
+				int nextPos = pos + seq.length();
+				if(nextPos > offset) {
+					inserted = true;
+					seq.theContent.insert(offset - pos, c);
+					break;
+				}
+				pos = nextPos;
+			}
+			if(!inserted) {
+				if(pos == length())
+					append(c);
+				else
+					throw new IndexOutOfBoundsException(offset + ">" + length());
+			}
+		}
+		return this;
+	}
+
+	@Override
 	public MutableDocumentModel delete(int start, int end) {
 		try (Transaction t = holdForWrite()) {
 			int pos = 0;
@@ -228,7 +276,8 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 			while(seqs.hasNext()) {
 				RichStyleSequence seq = seqs.next();
 				int nextPos = pos + seq.length();
-				if(pos > end) {
+				if(pos >= end) {
+					break;
 				} else if(pos >= start) {
 					if(nextPos <= end)
 						seqs.remove();
@@ -274,8 +323,8 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 	 * iterator}.
 	 * </p>
 	 * <p>
-	 * The returned style will never contain "local" attributes. Attributes set in the style will be set in the underlying model and
-	 * reflected through the style as deeply set attributes.
+	 * The returned style will reflect its sequences directly--"local" values from the sequences will become the style's loal attributes.
+	 * The returned style will not support listeners.
 	 * </p>
 	 * <p>
 	 * Note that using the setter methods of the returned style may give inconsistent or unexpected results or exceptions if this document
@@ -302,13 +351,21 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 
 		@Override
 		public MuisStyle [] getDependencies() {
-			// TODO Auto-generated method stub
-			return null;
+			ArrayList<MuisStyle> ret = new ArrayList<>();
+			try (Transaction t = holdForRead()) {
+				for(StyledSequence seq : iterateFrom(theStart, theEnd))
+					ret.add(seq.getStyle());
+			}
+			return ret.toArray(new MuisStyle[ret.size()]);
 		}
 
 		@Override
 		public boolean isSet(StyleAttribute<?> attr) {
-			// TODO Auto-generated method stub
+			try (Transaction t = holdForRead()) {
+				for(StyledSequence seq : iterateFrom(theStart, theEnd))
+					if(seq.getStyle().isSet(attr))
+						return true;
+			}
 			return false;
 		}
 
@@ -319,48 +376,124 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 
 		@Override
 		public <T> T getLocal(StyleAttribute<T> attr) {
+			try (Transaction t = holdForRead()) {
+				for(StyledSequence seq : iterateFrom(theStart, theEnd))
+					if(seq.getStyle().isSet(attr))
+						return seq.getStyle().get(attr);
+			}
 			return null;
 		}
 
 		@Override
 		public Iterable<StyleAttribute<?>> localAttributes() {
-			return java.util.Collections.EMPTY_LIST;
+			ArrayList<Iterable<StyleAttribute<?>>> ret = new ArrayList<>();
+			try (Transaction t = holdForRead()) {
+				for(StyledSequence seq : iterateFrom(theStart, theEnd))
+					ret.add(seq.getStyle().localAttributes());
+			}
+			return ArrayUtils.iterable(ret.toArray(new Iterable[ret.size()]));
 		}
 
 		@Override
 		public <T> T get(StyleAttribute<T> attr) {
-			// TODO Auto-generated method stub
-			return null;
+			StyledSequence first = null;
+			try (Transaction t = holdForRead()) {
+				for(StyledSequence seq : iterateFrom(theStart, theEnd)) {
+					if(first == null)
+						first = seq;
+					if(seq.getStyle().isSet(attr))
+						return seq.getStyle().get(attr);
+				}
+			}
+			return first == null ? attr.getDefault() : first.getStyle().get(attr);
 		}
 
 		@Override
 		public void addListener(StyleListener listener) {
-			// TODO Auto-generated method stub
-
+			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public void removeListener(StyleListener listener) {
-			// TODO Auto-generated method stub
-
+			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public Iterator<StyleAttribute<?>> iterator() {
-			// TODO Auto-generated method stub
-			return null;
+			ArrayList<Iterator<StyleAttribute<?>>> ret = new ArrayList<>();
+			try (Transaction t = holdForRead()) {
+				for(StyledSequence seq : iterateFrom(theStart, theEnd))
+					ret.add(seq.getStyle().iterator());
+			}
+			return ArrayUtils.iterator(ret.toArray(new Iterator[ret.size()]));
 		}
 
 		@Override
 		public <T> MutableStyle set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
-			// TODO Auto-generated method stub
-			return null;
+			int pos = 0;
+			try (Transaction t = holdForWrite()) {
+				for(int i = 0; i < theSequences.size(); i++) {
+					if(pos >= theEnd)
+						break;
+					RichStyleSequence seq = theSequences.get(i);
+					int nextPos = pos + seq.length();
+					if(nextPos < theStart) {
+					} else if(value.equals(seq.theStyles.get(attr))) {
+					} else if(pos >= theStart && nextPos <= theEnd) {
+						seq.theStyles.put(attr, value);
+					} else if(pos >= theStart) {
+						RichStyleSequence newSeq = new RichStyleSequence();
+						newSeq.theContent.append(seq.theContent.substring(pos - theStart));
+						seq.theContent.delete(pos - theStart, seq.theContent.length() - theStart);
+						newSeq.theStyles.putAll(seq.theStyles);
+						newSeq.theStyles.put(attr, value);
+						theSequences.add(i + 1, newSeq);
+					} else if(nextPos <= theEnd) {
+						RichStyleSequence newSeq = new RichStyleSequence();
+						newSeq.theContent.append(seq.theContent.substring(0, theEnd - pos));
+						seq.theContent.delete(0, theEnd - pos);
+						newSeq.theStyles.putAll(seq.theStyles);
+						newSeq.theStyles.put(attr, value);
+						theSequences.add(i, newSeq);
+					}
+					pos = nextPos;
+				}
+			}
+			return this;
 		}
 
 		@Override
 		public MutableStyle clear(StyleAttribute<?> attr) {
-			// TODO Auto-generated method stub
-			return null;
+			int pos = 0;
+			try (Transaction t = holdForWrite()) {
+				for(int i = 0; i < theSequences.size(); i++) {
+					if(pos >= theEnd)
+						break;
+					RichStyleSequence seq = theSequences.get(i);
+					int nextPos = pos + seq.length();
+					if(nextPos < theStart) {
+					} else if(seq.theStyles.get(attr) == null) {
+					} else if(pos >= theStart && nextPos <= theEnd) {
+						seq.theStyles.remove(attr);
+					} else if(pos >= theStart) {
+						RichStyleSequence newSeq = new RichStyleSequence();
+						newSeq.theContent.append(seq.theContent.substring(pos - theStart));
+						seq.theContent.delete(pos - theStart, seq.theContent.length() - theStart);
+						newSeq.theStyles.putAll(seq.theStyles);
+						newSeq.theStyles.remove(attr);
+						theSequences.add(i + 1, newSeq);
+					} else if(nextPos <= theEnd) {
+						RichStyleSequence newSeq = new RichStyleSequence();
+						newSeq.theContent.append(seq.theContent.substring(0, theEnd - pos));
+						seq.theContent.delete(0, theEnd - pos);
+						newSeq.theStyles.putAll(seq.theStyles);
+						newSeq.theStyles.remove(attr);
+						theSequences.add(i, newSeq);
+					}
+					pos = nextPos;
+				}
+			}
+			return this;
 		}
 	}
 }

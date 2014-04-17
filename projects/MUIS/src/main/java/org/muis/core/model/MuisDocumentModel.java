@@ -97,6 +97,13 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 	Iterable<StyledSequence> iterateFrom(int position);
 
 	/**
+	 * @param start The position to begin iteration from
+	 * @param end The position to end iteration at
+	 * @return This document's content starting from the given position
+	 */
+	Iterable<StyledSequence> iterateFrom(int start, int end);
+
+	/**
 	 * @param start The starting position within the document
 	 * @param breakWidth The width, in pixels, to break lines off at in the document
 	 * @return The metrics for this document. The first metric's {@link StyledSequenceMetric#isNewLine() newLine} attribute may be false

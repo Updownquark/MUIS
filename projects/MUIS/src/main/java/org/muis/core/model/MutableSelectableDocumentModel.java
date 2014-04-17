@@ -17,22 +17,4 @@ public interface MutableSelectableDocumentModel extends MutableDocumentModel, Se
 	 * @return This model, for chaining
 	 */
 	MutableSelectableDocumentModel insert(char c);
-
-	/**
-	 * Inserts a character sequence
-	 *
-	 * @param offset The index at which to insert the character sequence
-	 * @param csq The character sequence to insert
-	 * @return This model, for chaining
-	 */
-	MutableSelectableDocumentModel insert(int offset, CharSequence csq);
-
-	/**
-	 * Inserts a character
-	 *
-	 * @param offset The index at which to insert the character
-	 * @param c The character to insert
-	 * @return This model, for chaining
-	 */
-	MutableSelectableDocumentModel insert(int offset, char c);
 }

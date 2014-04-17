@@ -107,6 +107,11 @@ public class WrappingDocumentModel {
 		}
 
 		@Override
+		public Iterable<StyledSequence> iterateFrom(int start, int end) {
+			return theInternalWrapped.iterateFrom(start, end);
+		}
+
+		@Override
 		public Iterable<StyledSequenceMetric> metrics(int start, float breakWidth) {
 			return theInternalWrapped.metrics(start, breakWidth);
 		}
@@ -189,6 +194,18 @@ public class WrappingDocumentModel {
 		@Override
 		public MutableDocumentModel append(char c) {
 			doc().append(c);
+			return this;
+		}
+
+		@Override
+		public MutableDocumentModel insert(int offset, CharSequence csq) {
+			doc().insert(offset, csq);
+			return this;
+		}
+
+		@Override
+		public MutableDocumentModel insert(int offset, char c) {
+			doc().insert(offset, c);
 			return this;
 		}
 

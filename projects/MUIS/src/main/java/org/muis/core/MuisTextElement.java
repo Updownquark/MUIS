@@ -4,6 +4,7 @@ import static org.muis.core.style.FontStyle.*;
 
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.util.Iterator;
 
 import org.muis.core.layout.AbstractSizeGuide;
 import org.muis.core.layout.SimpleSizeGuide;
@@ -47,19 +48,29 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 				repaint(null, false);
 			}
 		});
-		theDocument.addSelectionListener(new SelectableDocumentModel.SelectionListener() {
+		theDocument.getDocumentModel().addStyleListener(new MuisDocumentModel.StyleListener() {
 			@Override
-			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
-				if(isFontDifferentSelected())
+			public void styleChanged(MuisDocumentModel.StyleChangeEvent evt) {
+				if(isFontDifferent(evt))
 					events().fire(new org.muis.core.event.SizeNeedsChangedEvent(MuisTextElement.this, null));
 				repaint(null, true);
 			}
 
-			private boolean isFontDifferentSelected() {
-				return mayStyleDifferentSelected(size, family, slant, stretch, weight);
+			private boolean isFontDifferent(MuisDocumentModel.StyleChangeEvent evt) {
+				return mayStyleDifferent(evt, size, family, slant, stretch, weight);
 			}
 
-			private boolean mayStyleDifferentSelected(org.muis.core.style.StyleAttribute<?>... atts) {
+			private boolean mayStyleDifferent(MuisDocumentModel.StyleChangeEvent evt, org.muis.core.style.StyleAttribute<?>... atts) {
+				int index = 0;
+				Iterator<MuisDocumentModel.StyledSequence> oldStyles = evt.styleBefore().iterator();
+				Iterator<MuisDocumentModel.StyledSequence> newStyles = evt.styleAfter().iterator();
+				if(!oldStyles.hasNext() || newStyles.hasNext())
+					return false;
+				MuisDocumentModel.StyledSequence oldStyle = null;
+				MuisDocumentModel.StyledSequence newStyle = null;
+				while(index < evt.getStart()) {
+					// TODO
+				}
 				if(!(theDocument.getWrapped() instanceof SimpleDocumentModel))
 					return true;
 				SimpleDocumentModel sdm = (SimpleDocumentModel) theDocument.getWrapped();

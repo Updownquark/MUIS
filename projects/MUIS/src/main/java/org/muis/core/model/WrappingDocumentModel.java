@@ -15,12 +15,14 @@ public class WrappingDocumentModel {
 	private volatile MuisDocumentModel theWrapper;
 
 	private final Collection<MuisDocumentModel.ContentListener> theContentListeners;
+	private final Collection<MuisDocumentModel.StyleListener> theStyleListeners;
 
 	private final Collection<SelectableDocumentModel.SelectionListener> theSelectionListeners;
 
 	/** @param model The initial document model to wrap */
 	public WrappingDocumentModel(MuisDocumentModel model) {
 		theContentListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theSelectionListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		setWrapped(model);
 	}
@@ -48,6 +50,7 @@ public class WrappingDocumentModel {
 	public void setWrapped(MuisDocumentModel model) {
 		MuisDocumentModel oldModel = model;
 		ArrayList<MuisDocumentModel.ContentListener> cls = new ArrayList<>(theContentListeners);
+		ArrayList<MuisDocumentModel.StyleListener> styleLs = new ArrayList<>(theStyleListeners);
 		ArrayList<SelectableDocumentModel.SelectionListener> sls = new ArrayList<>(theSelectionListeners);
 		if(model instanceof MutableDocumentModel) {
 			if(model instanceof SelectableDocumentModel)
@@ -62,6 +65,10 @@ public class WrappingDocumentModel {
 		for(MuisDocumentModel.ContentListener cl : cls) {
 			oldModel.removeContentListener(cl);
 			model.addContentListener(cl);
+		}
+		for(MuisDocumentModel.StyleListener styleL : styleLs) {
+			oldModel.removeStyleListener(styleL);
+			model.addStyleListener(styleL);
 		}
 		for(SelectableDocumentModel.SelectionListener sl : sls) {
 			if(oldModel instanceof SelectableDocumentModel)
@@ -141,6 +148,18 @@ public class WrappingDocumentModel {
 		public void removeContentListener(ContentListener listener) {
 			theContentListeners.remove(listener);
 			theInternalWrapped.removeContentListener(listener);
+		}
+
+		@Override
+		public void addStyleListener(StyleListener listener) {
+			theStyleListeners.add(listener);
+			theInternalWrapped.addStyleListener(listener);
+		}
+
+		@Override
+		public void removeStyleListener(StyleListener listener) {
+			theStyleListeners.remove(listener);
+			theInternalWrapped.removeStyleListener(listener);
 		}
 
 		@Override

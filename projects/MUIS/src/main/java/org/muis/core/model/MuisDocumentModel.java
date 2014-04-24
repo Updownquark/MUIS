@@ -78,10 +78,34 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 		boolean isRemove();
 	}
 
+	/** Fired when a document model's style changes for any portion of its content */
+	public static interface StyleChangeEvent {
+		/** @return The document model whose style changed */
+		MuisDocumentModel getModel();
+
+		/** @return The start index (inclusive) of the interval for which the style changed */
+		int getStart();
+
+		/** @return The end index (exclusive) of the interval for which the style changed */
+		int getEnd();
+
+		/** @return The styles of the document before the style change */
+		Iterable<StyledSequence> styleBefore();
+
+		/** @return The styles of the document after the style change */
+		Iterable<StyledSequence> styleAfter();
+	}
+
 	/** Listens for changes to a document's content */
 	public static interface ContentListener {
 		/** @param evt The event containing information about the content change */
 		void contentChanged(ContentChangeEvent evt);
+	}
+
+	/** Listens for changes to a document's style */
+	public static interface StyleListener {
+		/** @param evt The event containing information about the style change */
+		void styleChanged(StyleChangeEvent evt);
 	}
 
 	/**
@@ -140,4 +164,10 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 
 	/** @param listener The listener to stop notification for */
 	void removeContentListener(ContentListener listener);
+
+	/** @param listener The listener to be notified when this model's style changes */
+	void addStyleListener(StyleListener listener);
+
+	/** @param listener The listener to stop notification for */
+	void removeStyleListener(StyleListener listener);
 }

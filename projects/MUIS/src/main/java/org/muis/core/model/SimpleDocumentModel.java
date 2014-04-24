@@ -9,7 +9,6 @@ import java.util.concurrent.locks.Lock;
 
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttributeEvent;
-import org.muis.core.style.StyleListener;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.core.style.stateful.StateChangedEvent;
 import org.muis.core.style.stateful.StatefulStyle;
@@ -31,6 +30,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 	private java.util.concurrent.locks.ReentrantReadWriteLock theLock;
 
 	private Collection<MuisDocumentModel.ContentListener> theContentListeners;
+	private Collection<MuisDocumentModel.StyleListener> theStyleListeners;
 
 	private Collection<SelectableDocumentModel.SelectionListener> theSelectionListeners;
 
@@ -51,10 +51,11 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 		theContent = new StringBuilder();
 		theLock = new java.util.concurrent.locks.ReentrantReadWriteLock();
 		theContentListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theSelectionListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
 		 * correctly because the cache may have the old color/size/etc */
-		theNormalStyle.addListener(new StyleListener() {
+		theNormalStyle.addListener(new org.muis.core.style.StyleListener() {
 			@Override
 			public void eventOccurred(StyleAttributeEvent<?> event) {
 				int minSel = theCursor;
@@ -69,7 +70,7 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 				clearCache();
 			}
 		});
-		theSelectedStyle.addListener(new StyleListener() {
+		theSelectedStyle.addListener(new org.muis.core.style.StyleListener() {
 			@Override
 			public void eventOccurred(StyleAttributeEvent<?> event) {
 				if(theCursor == theSelectionAnchor) {
@@ -107,6 +108,17 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 	}
 
 	@Override
+	public void addStyleListener(StyleListener listener) {
+		if(listener != null)
+			theStyleListeners.add(listener);
+	}
+
+	@Override
+	public void removeStyleListener(StyleListener listener) {
+		theStyleListeners.remove(listener);
+	}
+
+	@Override
 	public void addSelectionListener(SelectableDocumentModel.SelectionListener listener) {
 		if(listener != null)
 			theSelectionListeners.add(listener);
@@ -129,18 +141,34 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 
 	@Override
 	public void setCursor(int cursor) {
+		ArrayList<StyledSequence> before = new ArrayList<>();
+		for(StyledSequence seq : this)
+			before.add(seq);
+		int oldAnchor = theSelectionAnchor;
+		int oldCursor = theCursor;
 		theCursor = cursor;
 		theSelectionAnchor = cursor;
-		fireSelectionEvent(cursor, cursor);
+		ArrayList<StyledSequence> after = new ArrayList<>();
+		for(StyledSequence seq : this)
+			after.add(seq);
+		fireSelectionEvent(oldAnchor, oldCursor, cursor, cursor, before, after);
 	}
 
 	@Override
 	public void setSelection(int anchor, int cursor) {
 		if(theSelectionAnchor == anchor && theCursor == cursor)
 			return;
+		ArrayList<StyledSequence> before = new ArrayList<>();
+		for(StyledSequence seq : this)
+			before.add(seq);
+		int oldAnchor = theSelectionAnchor;
+		int oldCursor = theCursor;
 		theSelectionAnchor = anchor;
 		theCursor = cursor;
-		fireSelectionEvent(anchor, cursor);
+		ArrayList<StyledSequence> after = new ArrayList<>();
+		for(StyledSequence seq : this)
+			after.add(seq);
+		fireSelectionEvent(oldAnchor, oldCursor, anchor, cursor, before, after);
 	}
 
 	@Override
@@ -462,11 +490,51 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 		return this;
 	}
 
-	private void fireSelectionEvent(int anchor, int cursor) {
+	private void fireSelectionEvent(int oldAnchor, int oldCursor, int newAnchor, int newCursor, java.util.List<StyledSequence> before,
+		java.util.List<StyledSequence> after) {
 		clearCache();
-		SelectableDocumentModel.SelectionChangeEvent evt = new SelectionChangeEventImpl(this, anchor, cursor);
+		SelectableDocumentModel.SelectionChangeEvent contentEvt = new SelectionChangeEventImpl(this, newAnchor, newCursor);
+		int oldMin = oldAnchor;
+		int oldMax = oldCursor;
+		if(oldMin > oldMax) {
+			int temp = oldMin;
+			oldMin = oldMax;
+			oldMax = temp;
+		}
+		int newMin = newAnchor;
+		int newMax = newCursor;
+		if(newMin > newMax) {
+			int temp = newMin;
+			newMin = newMax;
+			newMax = temp;
+		}
+		int start;
+		int end;
+		if(oldMin == oldMax) {
+			start = newMin;
+			end = newMax;
+		} else if(newMin == newMax) {
+			start = oldMin;
+			end = oldMax;
+		} else if(oldMax < newMin) {
+			start = oldMin;
+			end = newMax;
+		} else if(newMax < oldMin) {
+			start = newMin;
+			end = oldMax;
+		} else {
+			start = Math.min(oldMin, newMin);
+			end = Math.max(oldMax, newMax);
+		}
+
+		if(start < end) {
+			MuisDocumentModel.StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after);
+			for(MuisDocumentModel.StyleListener listener : theStyleListeners)
+				listener.styleChanged(styleEvt);
+		}
+
 		for(SelectableDocumentModel.SelectionListener listener : theSelectionListeners)
-			listener.selectionChanged(evt);
+			listener.selectionChanged(contentEvt);
 	}
 
 	private void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor) {
@@ -529,6 +597,51 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 		@Override
 		public boolean isRemove() {
 			return isRemove;
+		}
+	}
+
+	private static class StyleChangeEventImpl implements StyleChangeEvent {
+		private final SelectableDocumentModel theDocument;
+
+		private final int theStart;
+		private final int theEnd;
+
+		private final Iterable<StyledSequence> theBeforeStyles;
+		private final Iterable<StyledSequence> theAfterStyles;
+
+		StyleChangeEventImpl(SelectableDocumentModel document, int start, int end, Iterable<StyledSequence> beforeStyles,
+			Iterable<StyledSequence> afterStyles) {
+			super();
+			theDocument = document;
+			theStart = start;
+			theEnd = end;
+			theBeforeStyles = prisms.util.ArrayUtils.immutableIterable(beforeStyles);
+			theAfterStyles = prisms.util.ArrayUtils.immutableIterable(afterStyles);
+		}
+
+		@Override
+		public MuisDocumentModel getModel() {
+			return theDocument;
+		}
+
+		@Override
+		public int getStart() {
+			return theStart;
+		}
+
+		@Override
+		public int getEnd() {
+			return theEnd;
+		}
+
+		@Override
+		public Iterable<StyledSequence> styleBefore() {
+			return theBeforeStyles;
+		}
+
+		@Override
+		public Iterable<StyledSequence> styleAfter() {
+			return theAfterStyles;
 		}
 	}
 

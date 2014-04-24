@@ -23,7 +23,7 @@ public class TextEditLayout implements MuisLayout {
 
 	private final MuisDocumentModel.ContentListener theContentListener;
 
-	private final SelectableDocumentModel.SelectionListener theSelectionListener;
+	private final MuisDocumentModel.StyleListener theStyleListener;
 
 	private MuisElement theParent;
 
@@ -38,9 +38,9 @@ public class TextEditLayout implements MuisLayout {
 				theParent.relayout(false);
 			}
 		};
-		theSelectionListener = new SelectableDocumentModel.SelectionListener() {
+		theStyleListener = new MuisDocumentModel.StyleListener() {
 			@Override
-			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
+			public void styleChanged(MuisDocumentModel.StyleChangeEvent evt) {
 				theParent.relayout(false);
 			}
 		};
@@ -66,8 +66,7 @@ public class TextEditLayout implements MuisLayout {
 		theListener.listenerFor(parent);
 		MuisDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel();
 		doc.addContentListener(theContentListener);
-		if(doc instanceof SelectableDocumentModel)
-			((SelectableDocumentModel) doc).addSelectionListener(theSelectionListener);
+		doc.addStyleListener(theStyleListener);
 	}
 
 	@Override
@@ -78,8 +77,7 @@ public class TextEditLayout implements MuisLayout {
 		}
 		MuisDocumentModel doc = ((DocumentedElement) child).getDocumentModel();
 		doc.addContentListener(theContentListener);
-		if(doc instanceof SelectableDocumentModel)
-			((SelectableDocumentModel) doc).addSelectionListener(theSelectionListener);
+		doc.addStyleListener(theStyleListener);
 	}
 
 	@Override
@@ -89,8 +87,7 @@ public class TextEditLayout implements MuisLayout {
 		}
 		MuisDocumentModel doc = ((DocumentedElement) child).getDocumentModel();
 		doc.removeContentListener(theContentListener);
-		if(doc instanceof SelectableDocumentModel)
-			((SelectableDocumentModel) doc).removeSelectionListener(theSelectionListener);
+		doc.addStyleListener(theStyleListener);
 	}
 
 	@Override

@@ -61,22 +61,62 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			}
 
 			private boolean mayStyleDifferent(MuisDocumentModel.StyleChangeEvent evt, org.muis.core.style.StyleAttribute<?>... atts) {
-				int index = 0;
+				if(evt.styleBefore() == null || evt.styleAfter() == null)
+					return true; // Can't know for sure so gotta rerender
 				Iterator<MuisDocumentModel.StyledSequence> oldStyles = evt.styleBefore().iterator();
 				Iterator<MuisDocumentModel.StyledSequence> newStyles = evt.styleAfter().iterator();
 				if(!oldStyles.hasNext() || newStyles.hasNext())
 					return false;
-				MuisDocumentModel.StyledSequence oldStyle = null;
-				MuisDocumentModel.StyledSequence newStyle = null;
-				while(index < evt.getStart()) {
-					// TODO
+				MuisDocumentModel.StyledSequence oldStyle = oldStyles.next();
+				MuisDocumentModel.StyledSequence newStyle = newStyles.next();
+				int oldPos = 0;
+				int newPos = 0;
+				int index;
+				for(index = 0; index < evt.getStart(); index++) {
+					if(oldPos + oldStyle.length() <= index) {
+						oldPos += oldStyle.length();
+						if(oldStyles.hasNext())
+							oldStyle = oldStyles.next();
+						else {
+							oldStyle = null;
+							break;
+						}
+					}
+					if(newPos + newStyle.length() <= index) {
+						newPos += newStyle.length();
+						if(newStyles.hasNext())
+							newStyle = newStyles.next();
+						else {
+							newStyle = null;
+							break;
+						}
+					}
 				}
-				if(!(theDocument.getWrapped() instanceof SimpleDocumentModel))
-					return true;
-				SimpleDocumentModel sdm = (SimpleDocumentModel) theDocument.getWrapped();
-				for(org.muis.core.style.StyleAttribute<?> att : atts)
-					if(!sdm.getNormalStyle().get(att).equals(sdm.getSelectedStyle().get(att)))
-						return true;
+				if(oldStyle == null || newStyle == null)
+					return false;
+				for(; index < evt.getEnd(); index++) {
+					if(oldPos + oldStyle.length() <= index) {
+						oldPos += oldStyle.length();
+						if(oldStyles.hasNext())
+							oldStyle = oldStyles.next();
+						else {
+							oldStyle = null;
+							break;
+						}
+					}
+					if(newPos + newStyle.length() <= index) {
+						newPos += newStyle.length();
+						if(newStyles.hasNext())
+							newStyle = newStyles.next();
+						else {
+							newStyle = null;
+							break;
+						}
+					}
+					for(org.muis.core.style.StyleAttribute<?> att : atts)
+						if(!oldStyle.getStyle().get(att).equals(newStyle.getStyle().get(att)))
+							return true;
+				}
 				return false;
 			}
 		});

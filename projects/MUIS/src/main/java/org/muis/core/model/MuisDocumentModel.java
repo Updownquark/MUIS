@@ -89,10 +89,10 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 		/** @return The end index (exclusive) of the interval for which the style changed */
 		int getEnd();
 
-		/** @return The styles of the document before the style change */
+		/** @return The styles of the document before the style change. This may be null if the information is not available. */
 		Iterable<StyledSequence> styleBefore();
 
-		/** @return The styles of the document after the style change */
+		/** @return The styles of the document after the style change. This may be null if the information is not available. */
 		Iterable<StyledSequence> styleAfter();
 	}
 

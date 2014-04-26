@@ -68,6 +68,9 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 					return; // No unselected text
 				}
 				clearCache();
+				int evtStart = minSel == 0 ? maxSel : 0;
+				int evtEnd = maxSel == length() ? minSel : length();
+				fireStyleEvent(evtStart, evtEnd);
 			}
 		});
 		theSelectedStyle.addListener(new org.muis.core.style.StyleListener() {
@@ -77,6 +80,14 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 					return; // No selected text
 				}
 				clearCache();
+				int evtStart = theSelectionAnchor;
+				int evtEnd = theCursor;
+				if(evtStart > evtEnd) {
+					int temp = evtStart;
+					evtStart = evtEnd;
+					evtEnd = temp;
+				}
+				fireStyleEvent(evtStart, evtEnd);
 			}
 		});
 	}
@@ -493,7 +504,6 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 	private void fireSelectionEvent(int oldAnchor, int oldCursor, int newAnchor, int newCursor, java.util.List<StyledSequence> before,
 		java.util.List<StyledSequence> after) {
 		clearCache();
-		SelectableDocumentModel.SelectionChangeEvent contentEvt = new SelectionChangeEventImpl(this, newAnchor, newCursor);
 		int oldMin = oldAnchor;
 		int oldMax = oldCursor;
 		if(oldMin > oldMax) {
@@ -533,8 +543,15 @@ public class SimpleDocumentModel extends AbstractMuisDocumentModel implements Mu
 				listener.styleChanged(styleEvt);
 		}
 
+		SelectableDocumentModel.SelectionChangeEvent selEvt = new SelectionChangeEventImpl(this, newAnchor, newCursor);
 		for(SelectableDocumentModel.SelectionListener listener : theSelectionListeners)
-			listener.selectionChanged(contentEvt);
+			listener.selectionChanged(selEvt);
+	}
+
+	private void fireStyleEvent(int start, int end) {
+		MuisDocumentModel.StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, null, null);
+		for(MuisDocumentModel.StyleListener listener : theStyleListeners)
+			listener.styleChanged(styleEvt);
 	}
 
 	private void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor) {

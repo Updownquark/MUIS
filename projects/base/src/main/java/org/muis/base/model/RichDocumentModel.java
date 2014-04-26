@@ -7,7 +7,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.muis.core.model.MutableDocumentModel;
-import org.muis.core.style.*;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.MutableStyle;
+import org.muis.core.style.StyleAttribute;
 import org.muis.util.Transaction;
 
 import prisms.util.ArrayUtils;
@@ -120,12 +122,12 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 		}
 
 		@Override
-		public void addListener(StyleListener listener) {
+		public void addListener(org.muis.core.style.StyleListener listener) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void removeListener(StyleListener listener) {
+		public void removeListener(org.muis.core.style.StyleListener listener) {
 			throw new UnsupportedOperationException();
 		}
 	}
@@ -315,6 +317,18 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 
 	}
 
+	@Override
+	public void addStyleListener(StyleListener listener) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void removeStyleListener(StyleListener listener) {
+		// TODO Auto-generated method stub
+
+	}
+
 	/**
 	 * <p>
 	 * Creates a setter for styles on a subsequence in this model. The returned style does attempt to return intelligent values from the
@@ -409,12 +423,12 @@ public class RichDocumentModel extends org.muis.core.model.AbstractMuisDocumentM
 		}
 
 		@Override
-		public void addListener(StyleListener listener) {
+		public void addListener(org.muis.core.style.StyleListener listener) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void removeListener(StyleListener listener) {
+		public void removeListener(org.muis.core.style.StyleListener listener) {
 			throw new UnsupportedOperationException();
 		}
 

@@ -545,7 +545,17 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		theSelectionListeners.remove(listener);
 	}
 
-	private void fireSelectionEvent(int oldAnchor, int oldCursor, int newAnchor, int newCursor, java.util.List<StyledSequence> before,
+	/**
+	 * Fires a selection event representing an operation that affected this document's selection interval
+	 *
+	 * @param oldAnchor The selection anchor prior to the operation
+	 * @param oldCursor The cursor prior to the operation
+	 * @param newAnchor The selection anchor after the operation
+	 * @param newCursor The cursor after the operation
+	 * @param before This document's style sequences before the operation. May be null if this information is not available.
+	 * @param after This document's style sequences after the operation. May be null if this information is not available.
+	 */
+	protected void fireSelectionEvent(int oldAnchor, int oldCursor, int newAnchor, int newCursor, java.util.List<StyledSequence> before,
 		java.util.List<StyledSequence> after) {
 		clearCache();
 		int oldMin = oldAnchor;
@@ -592,13 +602,29 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 			listener.selectionChanged(selEvt);
 	}
 
-	private void fireStyleEvent(int start, int end) {
+	/**
+	 * Fires an event representing an operation that affected the style on all or a portion of this document
+	 * 
+	 * @param start The starting index of the subsequence affected
+	 * @param end The ending index of the subsequence affected
+	 */
+	protected void fireStyleEvent(int start, int end) {
 		StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, null, null);
 		for(StyleListener listener : theStyleListeners)
 			listener.styleChanged(styleEvt);
 	}
 
-	private void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor) {
+	/**
+	 * Fires an event representing an operation that affected this document's content
+	 * 
+	 * @param value The new value for this document's content
+	 * @param change The content change
+	 * @param index The starting index at which the change occurred
+	 * @param remove Whether the operation was a deletion
+	 * @param anchor The selection anchor after the operation
+	 * @param cursor The cursor after the operation
+	 */
+	protected void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor) {
 		clearCache();
 		ContentChangeEvent evt;
 		if(anchor < 0 && cursor < 0)

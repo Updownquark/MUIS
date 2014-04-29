@@ -117,6 +117,38 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 	}
 
 	/**
+	 * Sets a style attribute at the end of this document. This operation will not affect the style of any existing content.
+	 * 
+	 * @param <T> The type of the attribute
+	 * @param attr The attribute to set at the end of this document
+	 * @param value The value to set for the attribute at the end of this document
+	 * @return This document, for chaining
+	 */
+	public <T> RichDocumentModel set(StyleAttribute<T> attr, T value) {
+		try (Transaction t = holdForRead()) {
+			RichStyleSequence seq = null;
+			if(theSequences.size() > 0) {
+				seq = theSequences.get(theSequences.size() - 1);
+				if(seq.theContent.length() > 0)
+					seq = null;
+			}
+			if(seq == null) {
+				seq = new RichStyleSequence();
+				theSequences.add(seq);
+			}
+			value = attr.getType().cast(value);
+			if(attr.getValidator() != null)
+				try {
+					attr.getValidator().assertValid(value);
+				} catch(org.muis.core.MuisException e) {
+					throw new IllegalArgumentException(e.getMessage());
+				}
+			seq.theStyles.put(attr, value);
+		}
+		return this;
+	}
+
+	/**
 	 * It should be noted that this iterator is not entirely thread safe by itself. It will never throw concurrency exceptions, but if this
 	 * document is modified by other threads the content returned by the iterator's methods may not accurately reflect the current contents
 	 * of the document. Use {@link #holdForRead()} in a try around the usage of the iterator to secure against this.
@@ -139,8 +171,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		if(style != null) {
 			RichStyleSequence newSeq = new RichStyleSequence();
 			RichStyleSequence last = theSequences.get(theSequences.size() - 1);
-			for(StyleAttribute<?> att : last.localAttributes())
-				newSeq.theStyles.put(att, last.get(att));
+			newSeq.theStyles.putAll(last.theStyles);
 			for(StyleAttribute<?> att : style)
 				newSeq.theStyles.put(att, style.get(att));
 			newSeq.theContent.append(csq);
@@ -169,8 +200,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 					if(split)
 						splitSequence(i, offset - pos);
 					RichStyleSequence newSeq = new RichStyleSequence();
-					for(StyleAttribute<?> att : seq.localAttributes())
-						newSeq.theStyles.put(att, seq.get(att));
+					newSeq.theStyles.putAll(seq.theStyles);
 					for(StyleAttribute<?> att : style)
 						newSeq.theStyles.put(att, style.get(att));
 					newSeq.theContent.append(csq);
@@ -223,8 +253,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		String postSplit = seq.theContent.substring(pos);
 		seq.theContent.delete(pos, seq.theContent.length());
 		RichStyleSequence newSeq = new RichStyleSequence();
-		for(StyleAttribute<?> att : seq.localAttributes())
-			newSeq.theStyles.put(att, seq.get(att));
+		newSeq.theStyles.putAll(seq.theStyles);
 		newSeq.theContent.append(postSplit);
 		theSequences.add(i + 1, newSeq);
 	}
@@ -399,70 +428,49 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 		@Override
 		public <T> MutableStyle set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
-			int pos = 0;
 			try (Transaction t = holdForWrite()) {
-				for(int i = 0; i < theSequences.size(); i++) {
-					if(pos >= theEnd)
-						break;
-					RichStyleSequence seq = theSequences.get(i);
-					int nextPos = pos + seq.length();
-					if(nextPos < theStart) {
-					} else if(value.equals(seq.theStyles.get(attr))) {
-					} else if(pos >= theStart && nextPos <= theEnd) {
-						seq.theStyles.put(attr, value);
-					} else if(pos >= theStart) {
-						RichStyleSequence newSeq = new RichStyleSequence();
-						newSeq.theContent.append(seq.theContent.substring(pos - theStart));
-						seq.theContent.delete(pos - theStart, seq.theContent.length() - theStart);
-						newSeq.theStyles.putAll(seq.theStyles);
-						newSeq.theStyles.put(attr, value);
-						theSequences.add(i + 1, newSeq);
-					} else if(nextPos <= theEnd) {
-						RichStyleSequence newSeq = new RichStyleSequence();
-						newSeq.theContent.append(seq.theContent.substring(0, theEnd - pos));
-						seq.theContent.delete(0, theEnd - pos);
-						newSeq.theStyles.putAll(seq.theStyles);
-						newSeq.theStyles.put(attr, value);
-						theSequences.add(i, newSeq);
-					}
-					pos = nextPos;
-				}
+				for(RichStyleSequence seq : getSeqsForMod(attr, value))
+					seq.theStyles.put(attr, value);
 			}
+
+			fireStyleEvent(theStart, theEnd);
 			return this;
 		}
 
 		@Override
 		public MutableStyle clear(StyleAttribute<?> attr) {
-			int pos = 0;
 			try (Transaction t = holdForWrite()) {
-				for(int i = 0; i < theSequences.size(); i++) {
-					if(pos >= theEnd)
-						break;
-					RichStyleSequence seq = theSequences.get(i);
-					int nextPos = pos + seq.length();
-					if(nextPos < theStart) {
-					} else if(seq.theStyles.get(attr) == null) {
-					} else if(pos >= theStart && nextPos <= theEnd) {
-						seq.theStyles.remove(attr);
-					} else if(pos >= theStart) {
-						RichStyleSequence newSeq = new RichStyleSequence();
-						newSeq.theContent.append(seq.theContent.substring(pos - theStart));
-						seq.theContent.delete(pos - theStart, seq.theContent.length() - theStart);
-						newSeq.theStyles.putAll(seq.theStyles);
-						newSeq.theStyles.remove(attr);
-						theSequences.add(i + 1, newSeq);
-					} else if(nextPos <= theEnd) {
-						RichStyleSequence newSeq = new RichStyleSequence();
-						newSeq.theContent.append(seq.theContent.substring(0, theEnd - pos));
-						seq.theContent.delete(0, theEnd - pos);
-						newSeq.theStyles.putAll(seq.theStyles);
-						newSeq.theStyles.remove(attr);
-						theSequences.add(i, newSeq);
-					}
-					pos = nextPos;
+				for(RichStyleSequence seq : getSeqsForMod(attr, null)) {
+					seq.theStyles.remove(attr);
 				}
 			}
+
+			fireStyleEvent(theStart, theEnd);
 			return this;
+		}
+
+		List<RichStyleSequence> getSeqsForMod(StyleAttribute<?> attr, Object value) {
+			ArrayList<RichStyleSequence> ret = new ArrayList<>();
+			int pos = 0;
+			for(int i = 0; i < theSequences.size(); i++) {
+				if(pos >= theEnd)
+					break;
+				RichStyleSequence seq = theSequences.get(i);
+				int nextPos = pos + seq.length();
+				if(nextPos < theStart) {
+				} else if(seq.theStyles.get(attr) == value) {
+				} else if(pos >= theStart && nextPos <= theEnd) {
+					ret.add(seq);
+				} else if(pos >= theStart) {
+					splitSequence(i, pos - theStart);
+					ret.add(seq);
+				} else if(nextPos <= theEnd) {
+					splitSequence(i, theEnd - pos);
+					ret.add(theSequences.get(i + 1));
+				}
+				pos = nextPos;
+			}
+			return ret;
 		}
 	}
 }

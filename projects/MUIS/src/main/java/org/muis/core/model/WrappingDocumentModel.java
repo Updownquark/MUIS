@@ -262,13 +262,15 @@ public class WrappingDocumentModel {
 		}
 
 		@Override
-		public void setCursor(int cursor) {
+		public SelectableDocumentModel setCursor(int cursor) {
 			doc().setCursor(cursor);
+			return this;
 		}
 
 		@Override
-		public void setSelection(int anchor, int cursor) {
+		public SelectableDocumentModel setSelection(int anchor, int cursor) {
 			doc().setSelection(anchor, cursor);
+			return this;
 		}
 
 		@Override
@@ -310,13 +312,15 @@ public class WrappingDocumentModel {
 		}
 
 		@Override
-		public void setCursor(int cursor) {
+		public MutableSelectableDocumentModel setCursor(int cursor) {
 			doc().setCursor(cursor);
+			return this;
 		}
 
 		@Override
-		public void setSelection(int anchor, int cursor) {
+		public MutableSelectableDocumentModel setSelection(int anchor, int cursor) {
 			doc().setSelection(anchor, cursor);
+			return this;
 		}
 
 		@Override

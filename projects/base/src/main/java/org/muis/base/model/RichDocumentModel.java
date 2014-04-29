@@ -135,11 +135,15 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 			style = (MuisStyle) csq;
 		else if(csq instanceof StyledSequence)
 			style = ((StyledSequence) csq).getStyle();
+
 		if(style != null) {
 			RichStyleSequence newSeq = new RichStyleSequence();
-			for(StyleAttribute<?> att : style) {
-				newSeq.theStyles.put(att, ((MuisStyle) csq).get(att));
-			}
+			RichStyleSequence last = theSequences.get(theSequences.size() - 1);
+			for(StyleAttribute<?> att : last.localAttributes())
+				newSeq.theStyles.put(att, last.get(att));
+			for(StyleAttribute<?> att : style)
+				newSeq.theStyles.put(att, style.get(att));
+			newSeq.theContent.append(csq);
 			theSequences.add(newSeq);
 		}
 		theSequences.get(theSequences.size() - 1).theContent.append(csq, start, end);
@@ -147,14 +151,32 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 	@Override
 	protected void internalInsert(int offset, CharSequence csq) {
+		MuisStyle style = null;
+		if(csq instanceof MuisStyle)
+			style = (MuisStyle) csq;
+		else if(csq instanceof StyledSequence)
+			style = ((StyledSequence) csq).getStyle();
+
 		int pos = 0;
 		boolean inserted = false;
-		for(RichStyleSequence seq : theSequences) {
-			// TODO Handle the case where csq is a style or a styled sequence
+		for(int i = 0; i < theSequences.size(); i++) {
+			RichStyleSequence seq = theSequences.get(i);
 			int nextPos = pos + seq.length();
 			if(nextPos > offset) {
 				inserted = true;
-				seq.theContent.insert(offset - pos, csq);
+				if(style != null) {
+					boolean split = offset != pos;
+					if(split)
+						splitSequence(i, offset - pos);
+					RichStyleSequence newSeq = new RichStyleSequence();
+					for(StyleAttribute<?> att : seq.localAttributes())
+						newSeq.theStyles.put(att, seq.get(att));
+					for(StyleAttribute<?> att : style)
+						newSeq.theStyles.put(att, style.get(att));
+					newSeq.theContent.append(csq);
+					theSequences.add(split ? i + 1 : 1, newSeq);
+				} else
+					seq.theContent.insert(offset - pos, csq);
 				break;
 			}
 			pos = nextPos;
@@ -194,6 +216,17 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 			theSequences.remove(theSequences.size() - 1);
 		theSequences.get(0).theContent.delete(0, theSequences.get(0).theContent.length());
 		theSequences.get(0).theContent.append(text);
+	}
+
+	private void splitSequence(int i, int pos) {
+		RichStyleSequence seq = theSequences.get(i);
+		String postSplit = seq.theContent.substring(pos);
+		seq.theContent.delete(pos, seq.theContent.length());
+		RichStyleSequence newSeq = new RichStyleSequence();
+		for(StyleAttribute<?> att : seq.localAttributes())
+			newSeq.theStyles.put(att, seq.get(att));
+		newSeq.theContent.append(postSplit);
+		theSequences.add(i + 1, newSeq);
 	}
 
 	/**

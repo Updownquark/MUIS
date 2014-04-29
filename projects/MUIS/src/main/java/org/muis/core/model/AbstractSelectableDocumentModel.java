@@ -8,10 +8,13 @@ import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.muis.core.style.MuisStyle;
+import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.core.style.stateful.StateChangedEvent;
 import org.muis.util.Transaction;
+
+import prisms.util.ArrayUtils;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocumentModel implements SelectableDocumentModel {
@@ -133,7 +136,108 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 	@Override
 	public Iterator<StyledSequence> iterator() {
 		try (Transaction t = holdForRead()) {
-			// TODO
+			final int min = Math.min(theCursor, theSelectionAnchor);
+			final int max = Math.max(theCursor, theSelectionAnchor);
+			final Iterator<StyledSequence> internal = internalIterator();
+			return new Iterator<StyledSequence>() {
+				private int thePosition;
+
+				private StyledSequence theCurrent;
+				private int theCurrentSubReturned;
+
+				@Override
+				public boolean hasNext() {
+					if(theCurrent != null) {
+						if(thePosition < min) {
+							if(thePosition + theCurrent.length() > max)
+								return theCurrentSubReturned < 3;
+							else if(thePosition + theCurrent.length() > min)
+								return theCurrentSubReturned < 2;
+						} else if(thePosition < min) {
+							if(thePosition + theCurrent.length() > max)
+								return theCurrentSubReturned < 2;
+						}
+					}
+					return internal.hasNext();
+				}
+
+				@Override
+				public StyledSequence next() {
+					if(theCurrent == null)
+						theCurrent = internal.next();
+					StyledSequence ret;
+					if(thePosition < min) {
+						if(thePosition + theCurrent.length() > max) {
+							switch (theCurrentSubReturned) {
+							case 0:
+								// Return deselected subsequence from pos to min
+								ret = wrap(theCurrent, false, 0, min - thePosition);
+								theCurrentSubReturned++;
+								break;
+							case 2:
+								// Return selected subsequence from min to max
+								ret = wrap(theCurrent, true, min - thePosition, max - thePosition);
+								theCurrentSubReturned++;
+								break;
+							default:
+								// Return deselected subsequence from max to pos+length
+								ret = wrap(theCurrent, false, max - thePosition, theCurrent.length());
+								theCurrent = null;
+								theCurrentSubReturned = 0;
+								break;
+							}
+						} else if(thePosition + theCurrent.length() > min) {
+							switch (theCurrentSubReturned) {
+							case 0:
+								// Return deselected subsequence from pos to max
+								ret = wrap(theCurrent, false, 0, max - thePosition);
+								theCurrentSubReturned++;
+								break;
+							default:
+								// Return selected subsequence from max to pos+length
+								ret = wrap(theCurrent, true, max - thePosition, theCurrent.length());
+								theCurrent = null;
+								theCurrentSubReturned = 0;
+								break;
+							}
+						}
+					} else if(thePosition < max) {
+						if(thePosition + theCurrent.length() > max) {
+							switch (theCurrentSubReturned) {
+							case 0:
+								// Return selected subsequence from pos to max
+								ret = wrap(theCurrent, true, 0, max - thePosition);
+								theCurrentSubReturned++;
+								break;
+							default:
+								// Return deselected subsequence from max to pos+length
+								ret = wrap(theCurrent, false, max - thePosition, theCurrent.length());
+								theCurrent = null;
+								theCurrentSubReturned = 0;
+							}
+						}
+					}
+					if(thePosition >= min && thePosition < max) {
+						// Return selected sequence
+						ret = wrap(theCurrent, true, 0, theCurrent.length());
+						theCurrent = null;
+					} else {
+						// Return deselected sequence
+						ret = wrap(theCurrent, false, 0, theCurrent.length());
+						theCurrent = null;
+					}
+					return ret;
+				}
+
+				private StyledSequence wrap(StyledSequence toWrap, boolean selected, int start, int end) {
+					return new StyledSequenceWrapper(toWrap, selected ? theSelectedStyle : theNormalStyle, start, end);
+				}
+
+				@Override
+				public void remove() {
+					throw new UnsupportedOperationException();
+				}
+			};
 		}
 	}
 
@@ -688,6 +792,88 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 				}
 			});
 			setState(selected ? prisms.util.ArrayUtils.add(parent.getState(), TEXT_SELECTION) : parent.getState());
+		}
+	}
+
+	private static class StyledSequenceWrapper implements StyledSequence {
+		private final StyledSequence theWrapped;
+		private final MuisStyle theBackup;
+		private final int theStart;
+		private final int theEnd;
+
+		StyledSequenceWrapper(StyledSequence toWrap, MuisStyle backup, int start, int end) {
+			theWrapped = toWrap;
+			theBackup = backup;
+			theStart = start;
+			theEnd = end;
+		}
+
+		@Override
+		public int length() {
+			return theEnd - theStart;
+		}
+
+		@Override
+		public char charAt(int index) {
+			return theWrapped.charAt(index - theStart);
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			return new StyledSequenceWrapper(theWrapped, theBackup, theStart + start, theStart + end);
+		}
+
+		@Override
+		public MuisStyle getStyle() {
+			return new MuisStyle() {
+				@Override
+				public Iterator<StyleAttribute<?>> iterator() {
+					return ArrayUtils.iterator(theWrapped.getStyle().iterator(), theBackup.iterator());
+				}
+
+				@Override
+				public MuisStyle [] getDependencies() {
+					return ArrayUtils.add(theWrapped.getStyle().getDependencies(), theBackup);
+				}
+
+				@Override
+				public boolean isSet(StyleAttribute<?> attr) {
+					return theWrapped.getStyle().isSet(attr);
+				}
+
+				@Override
+				public boolean isSetDeep(StyleAttribute<?> attr) {
+					return theWrapped.getStyle().isSetDeep(attr) || theBackup.isSet(attr);
+				}
+
+				@Override
+				public <T> T getLocal(StyleAttribute<T> attr) {
+					return theWrapped.getStyle().getLocal(attr);
+				}
+
+				@Override
+				public Iterable<StyleAttribute<?>> localAttributes() {
+					return theWrapped.getStyle().localAttributes();
+				}
+
+				@Override
+				public <T> T get(StyleAttribute<T> attr) {
+					if(theWrapped.getStyle().isSetDeep(attr))
+						return theWrapped.getStyle().get(attr);
+					else
+						return theBackup.get(attr);
+				}
+
+				@Override
+				public void addListener(org.muis.core.style.StyleListener listener) {
+					throw new UnsupportedOperationException();
+				}
+
+				@Override
+				public void removeListener(org.muis.core.style.StyleListener listener) {
+					throw new UnsupportedOperationException();
+				}
+			};
 		}
 	}
 }

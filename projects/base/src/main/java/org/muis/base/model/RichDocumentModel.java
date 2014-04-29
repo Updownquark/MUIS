@@ -59,7 +59,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 		@Override
 		public MuisStyle [] getDependencies() {
-			return new MuisStyle[] {getParentStyle()};
+			return new MuisStyle[0];
 		}
 
 		@Override
@@ -71,7 +71,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 		@Override
 		public boolean isSetDeep(StyleAttribute<?> attr) {
-			return isSet(attr) || getParentStyle().isSet(attr);
+			return isSet(attr);
 		}
 
 		@Override
@@ -94,7 +94,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 			T ret = getLocal(attr);
 			if(ret != null)
 				return ret;
-			return getParentStyle().get(attr);
+			return attr.getDefault();
 		}
 
 		@Override
@@ -130,9 +130,14 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 	@Override
 	protected void internalAppend(CharSequence csq, int start, int end) {
-		if(csq instanceof MuisStyle) {
+		MuisStyle style = null;
+		if(csq instanceof MuisStyle)
+			style = (MuisStyle) csq;
+		else if(csq instanceof StyledSequence)
+			style = ((StyledSequence) csq).getStyle();
+		if(style != null) {
 			RichStyleSequence newSeq = new RichStyleSequence();
-			for(StyleAttribute<?> att : (MuisStyle) csq) {
+			for(StyleAttribute<?> att : style) {
 				newSeq.theStyles.put(att, ((MuisStyle) csq).get(att));
 			}
 			theSequences.add(newSeq);
@@ -145,6 +150,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		int pos = 0;
 		boolean inserted = false;
 		for(RichStyleSequence seq : theSequences) {
+			// TODO Handle the case where csq is a style or a styled sequence
 			int nextPos = pos + seq.length();
 			if(nextPos > offset) {
 				inserted = true;
@@ -205,7 +211,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 	 * Note that using the setter methods of the returned style may give inconsistent or unexpected results or exceptions if this document
 	 * is modified by another thread while the returned style is still in use. Use {@link #holdForWrite()} to prevent this.
 	 * </p>
-	 * 
+	 *
 	 * @param start The start of the sequence to the style-setter for
 	 * @param end The end of the sequence to get the style-setter for
 	 * @return A style that represents and allows setting of styles for the given subsequence in this document.

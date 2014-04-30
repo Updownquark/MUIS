@@ -150,6 +150,11 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		return theDocument.getDocumentModel();
 	}
 
+	/** @return The actual document model backing this element */
+	public MuisDocumentModel getWrappedModel() {
+		return theDocument.getWrapped();
+	}
+
 	/** @param docModel The new document model for this text element */
 	public void setDocumentModel(MuisDocumentModel docModel) {
 		if(docModel == null)

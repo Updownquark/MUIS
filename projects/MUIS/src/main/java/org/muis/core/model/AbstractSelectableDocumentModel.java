@@ -185,6 +185,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 							default:
 								// Return deselected subsequence from max to pos+length
 								ret = wrap(theCurrent, false, max - thePosition, theCurrent.length());
+								thePosition += theCurrent.length();
 								theCurrent = null;
 								theCurrentSubReturned = 0;
 								break;
@@ -193,12 +194,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 							switch (theCurrentSubReturned) {
 							case 0:
 								// Return deselected subsequence from pos to max
-								ret = wrap(theCurrent, false, 0, max - thePosition);
+								ret = wrap(theCurrent, false, 0, min - thePosition);
 								theCurrentSubReturned++;
 								break;
 							default:
 								// Return selected subsequence from max to pos+length
-								ret = wrap(theCurrent, true, max - thePosition, theCurrent.length());
+								ret = wrap(theCurrent, true, min - thePosition, theCurrent.length());
+								thePosition += theCurrent.length();
 								theCurrent = null;
 								theCurrentSubReturned = 0;
 								break;
@@ -215,6 +217,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 							default:
 								// Return deselected subsequence from max to pos+length
 								ret = wrap(theCurrent, false, max - thePosition, theCurrent.length());
+								thePosition += theCurrent.length();
 								theCurrent = null;
 								theCurrentSubReturned = 0;
 							}
@@ -224,10 +227,12 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 						if(thePosition >= min && thePosition < max) {
 							// Return selected sequence
 							ret = wrap(theCurrent, true, 0, theCurrent.length());
+							thePosition += theCurrent.length();
 							theCurrent = null;
 						} else {
 							// Return deselected sequence
 							ret = wrap(theCurrent, false, 0, theCurrent.length());
+							thePosition += theCurrent.length();
 							theCurrent = null;
 						}
 					}
@@ -604,7 +609,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 		if(start < end) {
 			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after);
-			System.out.println(styleEvt);
+			// System.out.println(styleEvt + ": " + oldAnchor + "->" + oldCursor + " to " + newAnchor + "->" + newCursor);
 			for(StyleListener listener : theStyleListeners)
 				listener.styleChanged(styleEvt);
 		}
@@ -858,37 +863,19 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		private final MuisStyle theBackup;
 		private final int theStart;
 		private final int theEnd;
+		private final MuisStyle theStyle;
 
 		StyledSequenceWrapper(StyledSequence toWrap, MuisStyle backup, int start, int end) {
 			theWrapped = toWrap;
 			theBackup = backup;
 			theStart = start;
 			theEnd = end;
-		}
+			if(start < 0 || start > toWrap.length())
+				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
+			if(end < start || end > toWrap.length())
+				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
 
-		@Override
-		public int length() {
-			return theEnd - theStart;
-		}
-
-		@Override
-		public char charAt(int index) {
-			return theWrapped.charAt(theStart + index);
-		}
-
-		@Override
-		public CharSequence subSequence(int start, int end) {
-			return new StyledSequenceWrapper(theWrapped, theBackup, theStart + start, theStart + end);
-		}
-
-		@Override
-		public String toString() {
-			return theWrapped.toString().substring(theStart, theEnd);
-		}
-
-		@Override
-		public MuisStyle getStyle() {
-			return new MuisStyle() {
+			theStyle = new MuisStyle() {
 				@Override
 				public Iterator<StyleAttribute<?>> iterator() {
 					if(theWrapped.getStyle() != null)
@@ -946,6 +933,31 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 					throw new UnsupportedOperationException();
 				}
 			};
+		}
+
+		@Override
+		public int length() {
+			return theEnd - theStart;
+		}
+
+		@Override
+		public char charAt(int index) {
+			return theWrapped.charAt(theStart + index);
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			return new StyledSequenceWrapper(theWrapped, theBackup, theStart + start, theStart + end);
+		}
+
+		@Override
+		public String toString() {
+			return theWrapped.toString().substring(theStart, theEnd);
+		}
+
+		@Override
+		public MuisStyle getStyle() {
+			return theStyle;
 		}
 	}
 }

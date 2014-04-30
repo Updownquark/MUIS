@@ -135,6 +135,11 @@ public class ConditionTree<T, V> {
 			for(ConditionTreeNode<? super NT, ?> child : theChildren)
 				((ConditionTreeNode) child).addEntries(entries);
 		}
+
+		@Override
+		public String toString() {
+			return "Node for " + theCondition;
+		}
 	}
 
 	private ConditionTreeNode<T, T> theRoot;

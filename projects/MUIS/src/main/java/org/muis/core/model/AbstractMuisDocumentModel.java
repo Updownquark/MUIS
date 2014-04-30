@@ -431,12 +431,15 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 					theSequenceOffset = 0;
 				}
 				if(theCurrentSequence == null) {
-					if(theBackingIterator.hasNext()) {
-						theCurrentSequence = theBackingIterator.next();
-						setMeasurer(theCurrentSequence);
-						newMeasurer = true;
-					} else
+					do {
+						theCurrentSequence = null;
+						if(theBackingIterator.hasNext())
+							theCurrentSequence = theBackingIterator.next();
+					} while(theCurrentSequence != null && theCurrentSequence.length() == 0);
+					if(theCurrentSequence == null)
 						return false;
+					setMeasurer(theCurrentSequence);
+					newMeasurer = true;
 				}
 				// Determine whether the next sequence should be on a new line
 				if(newMeasurer) {

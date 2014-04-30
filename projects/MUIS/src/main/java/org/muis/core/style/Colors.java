@@ -466,7 +466,7 @@ public class Colors {
 
 	/**
 	 * Parses a color from a string
-	 *
+	 * 
 	 * @param str The string representation of the color. This value may be in any of 5 forms:
 	 *            <ul>
 	 *            <li>Hexadecimal RGB: Looks like #XXXXXX where each 'X' is a hexadecimal digit (0-9 or a-f)</li>
@@ -476,10 +476,10 @@ public class Colors {
 	 *            <li>A named color matching the name of one of this class's static color constant fields</li>
 	 *            </ul>
 	 *            The value is not case-sensitive.
-	 * @return The color corresponding to the string
-	 * @throws MuisException If the color is unrecognized or cannot be parsed
+	 * @return The color corresponding to the string, or null if the given string is not formatted as a color
+	 * @throws MuisException If the color cannot be parsed
 	 */
-	public static Color parseColor(String str) throws MuisException {
+	public static Color parseIfColor(String str) throws MuisException {
 		final String original = str;
 		str = str.toLowerCase();
 		if(str.startsWith("#")) {
@@ -544,12 +544,23 @@ public class Colors {
 				throw new MuisException("Colors that start with 'hsb('"
 					+ " must have three integers between 0 and 255 separated by commas: \"" + original + "\"");
 			return hsb(h, s, b);
-		} else {
-			Color ret = theNamedColors.get(str);
-			if(ret == null)
-				throw new MuisException("No color named " + str);
-			return ret;
-		}
+		} else
+			return theNamedColors.get(str);
+	}
+
+	/**
+	 * Parses a color from a string, not tolerating unrecognized values
+	 *
+	 * @param str The string representation of the color.
+	 * @return The color corresponding to the string
+	 * @throws MuisException If the color is unrecognized or cannot be parsed
+	 * @see #parseIfColor(String)
+	 */
+	public static Color parseColor(String str) throws MuisException {
+		Color ret = parseIfColor(str);
+		if(ret == null)
+			throw new MuisException("No color named " + str);
+		return ret;
 	}
 
 	/**

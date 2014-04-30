@@ -48,6 +48,11 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		}
 
 		@Override
+		public String toString() {
+			return theContent.toString();
+		}
+
+		@Override
 		public MuisStyle getStyle() {
 			return this;
 		}
@@ -118,24 +123,18 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 	/**
 	 * Sets a style attribute at the end of this document. This operation will not affect the style of any existing content.
-	 * 
+	 *
 	 * @param <T> The type of the attribute
 	 * @param attr The attribute to set at the end of this document
 	 * @param value The value to set for the attribute at the end of this document
 	 * @return This document, for chaining
 	 */
 	public <T> RichDocumentModel set(StyleAttribute<T> attr, T value) {
-		try (Transaction t = holdForRead()) {
-			RichStyleSequence seq = null;
-			if(theSequences.size() > 0) {
-				seq = theSequences.get(theSequences.size() - 1);
-				if(seq.theContent.length() > 0)
-					seq = null;
-			}
-			if(seq == null) {
-				seq = new RichStyleSequence();
-				theSequences.add(seq);
-			}
+		try (Transaction t = holdForWrite()) {
+			if(last().getStyle().get(attr) == value)
+				return this;
+
+			RichStyleSequence seq = getEmptyLast();
 			value = attr.getType().cast(value);
 			if(attr.getValidator() != null)
 				try {
@@ -146,6 +145,58 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 			seq.theStyles.put(attr, value);
 		}
 		return this;
+	}
+
+	private RichStyleSequence getEmptyLast() {
+		RichStyleSequence seq = null;
+		if(theSequences.size() > 0) {
+			seq = theSequences.get(theSequences.size() - 1);
+			if(seq.theContent.length() > 0)
+				seq = null;
+		}
+		if(seq == null) {
+			seq = new RichStyleSequence();
+			if(!theSequences.isEmpty())
+				seq.theStyles.putAll(theSequences.get(theSequences.size() - 1).theStyles);
+			theSequences.add(seq);
+		}
+		return seq;
+	}
+
+	/**
+	 * Clears a style attribute at the end of this document. This operation will not affect the style of any existing content.
+	 *
+	 * @param attr The attribute to clear at the end of this document
+	 * @return This document, for chaining
+	 */
+	public RichDocumentModel clear(StyleAttribute<?> attr) {
+		try (Transaction t = holdForWrite()) {
+			if(last().getStyle().get(attr) == null)
+				return this;
+
+			RichStyleSequence seq = getEmptyLast();
+			seq.theStyles.remove(attr);
+		}
+		return this;
+	}
+
+	/** @return The last sequence in this model */
+	public StyledSequence last() {
+		try (Transaction t = holdForRead()) {
+			if(theSequences.size() > 0)
+				return theSequences.get(theSequences.size() - 1);
+		}
+		try (Transaction t = holdForWrite()) {
+			RichStyleSequence seq = null;
+			if(theSequences.size() > 0) {
+				seq = theSequences.get(theSequences.size() - 1);
+			}
+			if(seq == null) {
+				seq = new RichStyleSequence();
+				theSequences.add(seq);
+			}
+			return seq;
+		}
 	}
 
 	/**
@@ -244,6 +295,8 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 	protected void internalSetText(String text) {
 		while(theSequences.size() > 1)
 			theSequences.remove(theSequences.size() - 1);
+		if(theSequences.isEmpty())
+			theSequences.add(new RichStyleSequence());
 		theSequences.get(0).theContent.delete(0, theSequences.get(0).theContent.length());
 		theSequences.get(0).theContent.append(text);
 	}

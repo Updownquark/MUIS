@@ -116,10 +116,22 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 			message = new MuisMessage(theDocument, type, theDocument.getRoot().life().getStage(), text, exception, params);
 		else
 			message = new MuisMessage(theEnvironment, type, org.muis.core.MuisConstants.CoreStage.READY.name(), text, exception, params);
+		message(message);
+	}
+
+	private void message(MuisMessage message) {
 		theMessages.add(message);
-		if(theWorstMessageType == null || type.compareTo(theWorstMessageType) > 0)
-			theWorstMessageType = type;
+		if(theWorstMessageType == null || message.type.compareTo(theWorstMessageType) > 0)
+			theWorstMessageType = message.type;
 		fireListeners(message);
+
+		if(theElement != null) {
+			if(theElement.getParent() != null)
+				theElement.getParent().msg().message(message);
+			else
+				theElement.getDocument().msg().message(message);
+		} else if(theDocument != null)
+			theEnvironment.msg().message(message);
 	}
 
 	/**
@@ -244,14 +256,8 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	private void fireListeners(MuisMessage msg) {
 		for(MuisMessageListener listener : theListeners)
 			listener.messageReceived(msg);
-		if(theElement != null) {
+		if(theElement != null)
 			theElement.events().fire(new MuisMessageEvent(theElement, msg, false));
-			if(theElement.getParent() != null)
-				theElement.getParent().msg().fireListeners(msg);
-			else
-				theElement.getDocument().msg().fireListeners(msg);
-		} else if(theDocument != null)
-			theEnvironment.msg().fireListeners(msg);
 	}
 
 	private void reEvalWorstMessage() {

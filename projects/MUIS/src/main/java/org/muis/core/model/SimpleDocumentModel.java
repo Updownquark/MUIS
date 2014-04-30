@@ -106,6 +106,11 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 	// Publicize and override the return types for the modification methods
 
 	@Override
+	public Transaction holdForWrite() {
+		return super.holdForWrite();
+	}
+
+	@Override
 	public SimpleDocumentModel setCursor(int cursor) {
 		return (SimpleDocumentModel) super.setCursor(cursor);
 	}

@@ -336,6 +336,11 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 	}
 
 	@Override
+	public Transaction holdForWrite() {
+		return super.holdForWrite();
+	}
+
+	@Override
 	public RichDocumentModel setCursor(int cursor) {
 		return (RichDocumentModel) super.setCursor(cursor);
 	}

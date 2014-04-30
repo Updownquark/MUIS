@@ -1,5 +1,7 @@
 package org.muis.core.model;
 
+import org.muis.util.Transaction;
+
 /** A modifiable document model */
 public interface MutableDocumentModel extends MuisDocumentModel, Appendable {
 	@Override
@@ -45,4 +47,7 @@ public interface MutableDocumentModel extends MuisDocumentModel, Appendable {
 	 * @return This model, for chaining
 	 */
 	MutableDocumentModel insert(int offset, char c);
+
+	/** @return A transaction that prevents any other threads from modifying or accessing this document model until the transaction is closed */
+	Transaction holdForWrite();
 }

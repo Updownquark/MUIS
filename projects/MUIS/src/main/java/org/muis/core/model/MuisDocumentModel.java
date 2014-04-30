@@ -6,6 +6,7 @@ import java.awt.geom.Point2D;
 
 import org.muis.core.model.MuisDocumentModel.StyledSequence;
 import org.muis.core.style.MuisStyle;
+import org.muis.util.Transaction;
 
 /** Stores and displays text in MUIS */
 public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence> {
@@ -173,4 +174,7 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 
 	/** @param listener The listener to stop notification for */
 	void removeStyleListener(StyleListener listener);
+
+	/** @return A transaction that prevents any other threads from modifying this document model until the transaction is closed */
+	Transaction holdForRead();
 }

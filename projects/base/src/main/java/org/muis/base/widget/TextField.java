@@ -3,10 +3,10 @@ package org.muis.base.widget;
 import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 
-import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.event.*;
 import org.muis.core.model.*;
 import org.muis.core.tags.Template;
+import org.muis.util.Transaction;
 
 /** A simple widget that takes and displays text input from the user */
 @Template(location = "../../../../text-field.muis")
@@ -15,6 +15,8 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 	private org.muis.core.model.MuisModelValueListener<Object> theValueListener;
 
+	private WrappingDocumentModel theDocumentWrapper;
+
 	/** Creates a text field */
 	public TextField() {
 		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
@@ -22,10 +24,10 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 			@Override
 			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
-				if(!theEventLock && getDocumentModel() instanceof MutableDocumentModel) {
+				if(!theEventLock) {
 					theEventLock = true;
 					try {
-						((MutableDocumentModel) getDocumentModel()).setText(getTextFor(evt.getNewValue()));
+						getContentModel().setText(getTextFor(evt.getNewValue()));
 					} finally {
 						theEventLock = false;
 					}
@@ -81,14 +83,34 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					}
 				});
 				modelValueChanged(null, atts().get(ModelAttributes.value));
-				getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
+				getContentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 					@Override
 					public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
+						pushToEdit();
 						MuisModelValue<?> modelValue = atts().get(ModelAttributes.value);
 						if(modelValue != null && modelValue.getType() == String.class)
-							((MuisModelValue<String>) modelValue).set(getDocumentModel().toString(), null);
+							((MuisModelValue<String>) modelValue).set(getContentModel().toString(), null);
 					}
 				});
+
+				events().listen(FocusEvent.blur, new MuisEventListener<FocusEvent>() {
+					@Override
+					public void eventOccurred(FocusEvent event) {
+						pushToModel();
+					}
+				});
+				events().listen(KeyBoardEvent.key.press(), new MuisEventListener<KeyBoardEvent>() {
+					@Override
+					public void eventOccurred(KeyBoardEvent event) {
+						if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
+							// TODO Uncomment these when multi-line is supported
+							// if(isMultiLine() && !getDocument().isControlPressed())
+							// return;
+							pushToModel();
+						}
+					}
+				});
+				pushToEdit();
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
@@ -103,17 +125,56 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	 * except as the super call from the extending method.
 	 */
 	protected void initDocument() {
+		theDocumentWrapper = new WrappingDocumentModel(new org.muis.core.model.SimpleDocumentModel(getValueElement().getStyle().getSelf()));
 		new org.muis.base.model.SimpleTextEditing().install(this);
 	}
 
+	/** @return The wrapping document model that backs this text field's model */
+	public MutableDocumentModel getContentModel() {
+		return (MutableDocumentModel) theDocumentWrapper.getDocumentModel();
+	}
+
+	/** @return The document model that backs this text field's model */
+	public MutableDocumentModel getWrappedContentModel() {
+		return (MutableDocumentModel) theDocumentWrapper.getWrapped();
+	}
+
+	/** @return The document model that is edited directly by the user */
 	@Override
-	public MuisDocumentModel getDocumentModel() {
-		return getValueElement().getDocumentModel();
+	public MutableSelectableDocumentModel getDocumentModel() {
+		return (MutableSelectableDocumentModel) getValueElement().getDocumentModel();
 	}
 
 	/** @param model The document model for this text field */
-	public void setDocumentModel(MutableSelectableDocumentModel model) {
+	public void setDocumentModel(MutableDocumentModel model) {
+		theDocumentWrapper.setWrapped(model);
+	}
+
+	/** @param model The document model that will be edited directly by the user */
+	public void setEditModel(MutableSelectableDocumentModel model) {
 		getValueElement().setDocumentModel(model);
+	}
+
+	/** Pushes content from the content model to the edit model */
+	private void pushToEdit() {
+		MutableDocumentModel contentModel = getContentModel();
+		MutableDocumentModel editModel = getDocumentModel();
+		try (Transaction w = editModel.holdForWrite(); Transaction r = contentModel.holdForRead()) {
+			editModel.setText("");
+			for(org.muis.core.model.MuisDocumentModel.StyledSequence seq : contentModel)
+				editModel.append(seq);
+		}
+	}
+
+	/** Pushes content from the edit model to the content model */
+	private void pushToModel() {
+		MutableDocumentModel contentModel = getContentModel();
+		MutableDocumentModel editModel = getDocumentModel();
+		try (Transaction w = contentModel.holdForWrite(); Transaction r = editModel.holdForRead()) {
+			editModel.setText("");
+			for(org.muis.core.model.MuisDocumentModel.StyledSequence seq : editModel)
+				contentModel.append(seq);
+		}
 	}
 
 	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
@@ -134,8 +195,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					+ MutableSelectableDocumentModel.class.getName());
 		} else if(newValue != null) {
 			newValue.addListener(theValueListener);
-			if(getDocumentModel() instanceof MutableDocumentModel)
-				((MutableDocumentModel) getDocumentModel()).setText(getTextFor(newValue.get()));
+			getContentModel().setText(getTextFor(newValue.get()));
 		}
 	}
 

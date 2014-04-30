@@ -96,7 +96,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		return theSelectedStyle;
 	}
 
-	/** @return A transaction that prevents any other threads from modifying this document model until the transaction is closed */
+	@Override
 	public Transaction holdForRead() {
 		final java.util.concurrent.locks.Lock lock = theLock.readLock();
 		lock.lock();
@@ -114,8 +114,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		};
 	}
 
-	/** @return A transaction that prevents any other threads from modifying or accessing this document model until the transaction is closed */
-	public Transaction holdForWrite() {
+	/**
+	 * @return A transaction that prevents any other threads from modifying or accessing this document model until the transaction is closed
+	 * @see MutableDocumentModel#holdForWrite()
+	 */
+	protected Transaction holdForWrite() {
 		if(theLock.getReadHoldCount() > 0)
 			throw new IllegalStateException("A write lock cannot be acquired for this document model while a read lock is held."
 				+ "  The read lock must be released before attempting to acquire a write lock.");

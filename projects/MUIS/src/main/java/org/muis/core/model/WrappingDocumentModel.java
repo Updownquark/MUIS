@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import org.muis.core.style.MuisStyle;
+import org.muis.util.Transaction;
 
 /** Wraps a document, allowing swapping out documents while preserving added listeners */
 public class WrappingDocumentModel {
@@ -104,6 +105,11 @@ public class WrappingDocumentModel {
 		}
 
 		@Override
+		public Transaction holdForRead() {
+			return theInternalWrapped.holdForRead();
+		}
+
+		@Override
 		public MuisStyle getStyleAt(int position) {
 			return theInternalWrapped.getStyleAt(position);
 		}
@@ -196,6 +202,11 @@ public class WrappingDocumentModel {
 		@Override
 		MutableDocumentModel doc() {
 			return (MutableDocumentModel) super.doc();
+		}
+
+		@Override
+		public Transaction holdForWrite() {
+			return doc().holdForWrite();
 		}
 
 		@Override

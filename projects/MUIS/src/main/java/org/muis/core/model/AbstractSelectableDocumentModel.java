@@ -99,6 +99,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 	/** @return A transaction that prevents any other threads from modifying this document model until the transaction is closed */
 	public Transaction holdForRead() {
 		final java.util.concurrent.locks.Lock lock = theLock.readLock();
+		lock.lock();
 		return new Transaction() {
 			@Override
 			public void close() {
@@ -119,6 +120,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 			throw new IllegalStateException("A write lock cannot be acquired for this document model while a read lock is held."
 				+ "  The read lock must be released before attempting to acquire a write lock.");
 		final java.util.concurrent.locks.Lock lock = theLock.writeLock();
+		lock.lock();
 		return new Transaction() {
 			@Override
 			public void close() {
@@ -165,8 +167,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 				public StyledSequence next() {
 					if(theCurrent == null)
 						theCurrent = internal.next();
-					StyledSequence ret;
-					if(thePosition < min) {
+					StyledSequence ret = null;
+					if(min == max) {
+					} else if(thePosition < min) {
 						if(thePosition + theCurrent.length() > max) {
 							switch (theCurrentSubReturned) {
 							case 0:
@@ -174,7 +177,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 								ret = wrap(theCurrent, false, 0, min - thePosition);
 								theCurrentSubReturned++;
 								break;
-							case 2:
+							case 1:
 								// Return selected subsequence from min to max
 								ret = wrap(theCurrent, true, min - thePosition, max - thePosition);
 								theCurrentSubReturned++;
@@ -217,14 +220,16 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 							}
 						}
 					}
-					if(thePosition >= min && thePosition < max) {
-						// Return selected sequence
-						ret = wrap(theCurrent, true, 0, theCurrent.length());
-						theCurrent = null;
-					} else {
-						// Return deselected sequence
-						ret = wrap(theCurrent, false, 0, theCurrent.length());
-						theCurrent = null;
+					if(ret == null) {
+						if(thePosition >= min && thePosition < max) {
+							// Return selected sequence
+							ret = wrap(theCurrent, true, 0, theCurrent.length());
+							theCurrent = null;
+						} else {
+							// Return deselected sequence
+							ret = wrap(theCurrent, false, 0, theCurrent.length());
+							theCurrent = null;
+						}
 					}
 					return ret;
 				}
@@ -586,6 +591,12 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		} else if(newMax < oldMin) {
 			start = newMin;
 			end = oldMax;
+		} else if(oldMin == newMin) {
+			start = Math.min(oldMax, newMax);
+			end = Math.max(oldMax, newMax);
+		} else if(oldMax == newMax) {
+			start = Math.min(oldMin, newMin);
+			end = Math.max(oldMin, newMin);
 		} else {
 			start = Math.min(oldMin, newMin);
 			end = Math.max(oldMax, newMax);
@@ -593,6 +604,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 		if(start < end) {
 			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after);
+			System.out.println(styleEvt);
 			for(StyleListener listener : theStyleListeners)
 				listener.styleChanged(styleEvt);
 		}
@@ -604,7 +616,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 	/**
 	 * Fires an event representing an operation that affected the style on all or a portion of this document
-	 * 
+	 *
 	 * @param start The starting index of the subsequence affected
 	 * @param end The ending index of the subsequence affected
 	 */
@@ -616,7 +628,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 	/**
 	 * Fires an event representing an operation that affected this document's content
-	 * 
+	 *
 	 * @param value The new value for this document's content
 	 * @param change The content change
 	 * @param index The starting index at which the change occurred
@@ -685,6 +697,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		public boolean isRemove() {
 			return isRemove;
 		}
+
+		@Override
+		public String toString() {
+			return theChange + " chars " + (isRemove ? "removed" : "added") + " at index " + theIndex;
+		}
 	}
 
 	private static class StyleChangeEventImpl implements StyleChangeEvent {
@@ -704,8 +721,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 			theDocument = document;
 			theStart = start;
 			theEnd = end;
-			theBeforeStyles = prisms.util.ArrayUtils.immutableIterable(beforeStyles);
-			theAfterStyles = prisms.util.ArrayUtils.immutableIterable(afterStyles);
+			theBeforeStyles = beforeStyles == null ? null : prisms.util.ArrayUtils.immutableIterable(beforeStyles);
+			theAfterStyles = afterStyles == null ? null : prisms.util.ArrayUtils.immutableIterable(afterStyles);
 		}
 
 		@Override
@@ -731,6 +748,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		@Override
 		public Iterable<StyledSequence> styleAfter() {
 			return theAfterStyles;
+		}
+
+		@Override
+		public String toString() {
+			return "Style change from " + theStart + " to " + theEnd;
 		}
 	}
 
@@ -769,6 +791,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		public int getCursor() {
 			return theCursor;
 		}
+
+		@Override
+		public String toString() {
+			return "Selection=" + (theCursor == theSelectionAnchor ? "" + theCursor : theSelectionAnchor + "->" + theCursor);
+		}
 	}
 
 	private static class ContentAndSelectionChangeEventImpl extends ContentChangeEventImpl implements SelectionChangeEvent {
@@ -799,6 +826,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		@Override
 		public int getCursor() {
 			return theCursor;
+		}
+
+		@Override
+		public String toString() {
+			return super.toString() + " and Selection=" + (theCursor == theAnchor ? "" + theCursor : theAnchor + "->" + theCursor);
 		}
 	}
 
@@ -841,7 +873,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 		@Override
 		public char charAt(int index) {
-			return theWrapped.charAt(index - theStart);
+			return theWrapped.charAt(theStart + index);
 		}
 
 		@Override
@@ -850,41 +882,55 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		}
 
 		@Override
+		public String toString() {
+			return theWrapped.toString().substring(theStart, theEnd);
+		}
+
+		@Override
 		public MuisStyle getStyle() {
 			return new MuisStyle() {
 				@Override
 				public Iterator<StyleAttribute<?>> iterator() {
-					return ArrayUtils.iterator(theWrapped.getStyle().iterator(), theBackup.iterator());
+					if(theWrapped.getStyle() != null)
+						return ArrayUtils.iterator(theWrapped.getStyle().iterator(), theBackup.iterator());
+					else
+						return theBackup.iterator();
 				}
 
 				@Override
 				public MuisStyle [] getDependencies() {
-					return ArrayUtils.add(theWrapped.getStyle().getDependencies(), theBackup);
+					if(theWrapped.getStyle() != null)
+						return ArrayUtils.add(theWrapped.getStyle().getDependencies(), theBackup);
+					else
+						return new MuisStyle[] {theBackup};
 				}
 
 				@Override
 				public boolean isSet(StyleAttribute<?> attr) {
-					return theWrapped.getStyle().isSet(attr);
+					return theWrapped.getStyle() != null && theWrapped.getStyle().isSet(attr);
 				}
 
 				@Override
 				public boolean isSetDeep(StyleAttribute<?> attr) {
-					return theWrapped.getStyle().isSetDeep(attr) || theBackup.isSet(attr);
+					return (theWrapped.getStyle() != null && theWrapped.getStyle().isSetDeep(attr)) || theBackup.isSetDeep(attr);
 				}
 
 				@Override
 				public <T> T getLocal(StyleAttribute<T> attr) {
-					return theWrapped.getStyle().getLocal(attr);
+					return theWrapped.getStyle() == null ? null : theWrapped.getStyle().getLocal(attr);
 				}
 
 				@Override
 				public Iterable<StyleAttribute<?>> localAttributes() {
-					return theWrapped.getStyle().localAttributes();
+					if(theWrapped.getStyle() != null)
+						return theWrapped.getStyle().localAttributes();
+					else
+						return java.util.Collections.EMPTY_LIST;
 				}
 
 				@Override
 				public <T> T get(StyleAttribute<T> attr) {
-					if(theWrapped.getStyle().isSetDeep(attr))
+					if(theWrapped.getStyle() != null && theWrapped.getStyle().isSetDeep(attr))
 						return theWrapped.getStyle().get(attr);
 					else
 						return theBackup.get(attr);

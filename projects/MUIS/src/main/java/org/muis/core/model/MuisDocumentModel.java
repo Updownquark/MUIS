@@ -9,7 +9,10 @@ import org.muis.core.style.MuisStyle;
 
 /** Stores and displays text in MUIS */
 public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence> {
-	/** A piece of text with style attributes */
+	/**
+	 * A piece of text with style attributes. It is important that every implementation of this interface implement {@link #toString()} as
+	 * specified by {@link CharSequence#toString()}.
+	 */
 	public static interface StyledSequence extends CharSequence {
 		/** @return The style for this sequence */
 		MuisStyle getStyle();

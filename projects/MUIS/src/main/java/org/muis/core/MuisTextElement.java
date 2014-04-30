@@ -57,10 +57,10 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			}
 
 			private boolean isFontDifferent(MuisDocumentModel.StyleChangeEvent evt) {
-				return mayStyleDifferent(evt, size, family, slant, stretch, weight);
+				return mayStyleDiffer(evt, size, family, slant, stretch, weight);
 			}
 
-			private boolean mayStyleDifferent(MuisDocumentModel.StyleChangeEvent evt, org.muis.core.style.StyleAttribute<?>... atts) {
+			private boolean mayStyleDiffer(MuisDocumentModel.StyleChangeEvent evt, org.muis.core.style.StyleAttribute<?>... atts) {
 				if(evt.styleBefore() == null || evt.styleAfter() == null)
 					return true; // Can't know for sure so gotta rerender
 				Iterator<MuisDocumentModel.StyledSequence> oldStyles = evt.styleBefore().iterator();

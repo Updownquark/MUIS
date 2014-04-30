@@ -466,7 +466,7 @@ public class Colors {
 
 	/**
 	 * Parses a color from a string
-	 * 
+	 *
 	 * @param str The string representation of the color. This value may be in any of 5 forms:
 	 *            <ul>
 	 *            <li>Hexadecimal RGB: Looks like #XXXXXX where each 'X' is a hexadecimal digit (0-9 or a-f)</li>
@@ -590,6 +590,14 @@ public class Colors {
 		ret *= 16;
 		ret += hexDigits.indexOf(str.charAt(start + 1));
 		return ret;
+	}
+
+	/**
+	 * @param c The color to get the name of
+	 * @return The name of the given color, or null if the color is not named
+	 */
+	public static String getColorName(Color c) {
+		return theColorNames.get(c);
 	}
 
 	/**

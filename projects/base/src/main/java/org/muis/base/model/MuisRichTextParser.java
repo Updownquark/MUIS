@@ -1,12 +1,15 @@
 package org.muis.base.model;
 
+import java.awt.Color;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.Set;
 
 import org.muis.core.*;
 import org.muis.core.mgr.MuisMessage.Type;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.ModelValueReferenceParser;
+import org.muis.core.model.MuisDocumentModel.StyledSequence;
 import org.muis.core.model.MuisModelValue;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.style.*;
@@ -236,7 +239,7 @@ public class MuisRichTextParser {
 			if(sv != null)
 				set(model, sv);
 			else {
-				java.awt.Color color = org.muis.core.style.Colors.parseIfColor(tagContent.toString());
+				Color color = org.muis.core.style.Colors.parseIfColor(tagContent.toString());
 				if(color != null)
 					model.set(FontStyle.color, color);
 				else {
@@ -277,8 +280,119 @@ public class MuisRichTextParser {
 	 * @return Rich-formatted text that would parse to give the same style and content as the given model
 	 */
 	public String format(RichDocumentModel model) {
-		int todo;// TODO
-		throw new UnsupportedOperationException("Rich formatting is not yet supported");
+		StringBuilder ret = new StringBuilder();
+		MuisStyle lastStyle = null;
+		for(StyledSequence seq : model) {
+			Map<StyleDomain, Set<StyleAttribute<?>>> genericAtts = new java.util.HashMap<>();
+			if(lastStyle != null) {
+				for(StyleAttribute<?> att : lastStyle.localAttributes()) {
+					if(seq.getStyle().isSet(att))
+						continue;
+
+					Object value = lastStyle.get(att);
+					if(att == FontStyle.color)
+						ret.append('{').append('/').append(Colors.toString((Color) value)).append('}');
+					else {
+						boolean found = false;
+						for(Map.Entry<String, StyleValue<?>> tag : tags.entrySet()) {
+							if(tag.getValue().attr == att && tag.getValue().value.equals(value)) {
+								found = true;
+								ret.append('{').append('/').append(tag.getKey()).append('}');
+								break;
+							}
+						}
+						if(!found) {
+							Set<StyleAttribute<?>> atts = genericAtts.get(att.getDomain());
+							if(atts == null) {
+								atts = new java.util.LinkedHashSet<>();
+								genericAtts.put(att.getDomain(), atts);
+							}
+							atts.add(att);
+						}
+					}
+				}
+				if(!genericAtts.isEmpty()) {
+					ret.append('{').append('/');
+					for(Map.Entry<StyleDomain, Set<StyleAttribute<?>>> entry : genericAtts.entrySet()) {
+						Set<StyleAttribute<?>> atts = entry.getValue();
+						if(atts.size() > 1) {
+							ret.append(entry.getKey().getName()).append('=').append('{');
+							boolean first = true;
+							for(StyleAttribute<?> att : atts) {
+								if(first)
+									first = false;
+								else
+									ret.append(';');
+								ret.append(att.getName());
+							}
+							ret.append('}');
+						} else
+							ret.append(entry.getKey().getName()).append('.').append(atts.iterator().next().getName());
+					}
+					ret.append('}');
+				}
+				genericAtts.clear();
+			}
+			for(StyleAttribute<?> att : seq.getStyle().localAttributes()) {
+				Object value = seq.getStyle().get(att);
+				if(lastStyle != null && lastStyle.get(att) == value)
+					continue;
+				if(att == FontStyle.color)
+					ret.append('{').append(Colors.toString((Color) value)).append('}');
+				else {
+					boolean found = false;
+					for(Map.Entry<String, StyleValue<?>> tag : tags.entrySet()) {
+						if(tag.getValue().attr == att && tag.getValue().value.equals(value)) {
+							found = true;
+							ret.append('{').append(tag.getKey()).append('}');
+							break;
+						}
+					}
+					if(!found) {
+						Set<StyleAttribute<?>> atts = genericAtts.get(att.getDomain());
+						if(atts == null) {
+							atts = new java.util.LinkedHashSet<>();
+							genericAtts.put(att.getDomain(), atts);
+						}
+						atts.add(att);
+					}
+				}
+			}
+			if(!genericAtts.isEmpty()) {
+				ret.append('{');
+				for(Map.Entry<StyleDomain, Set<StyleAttribute<?>>> entry : genericAtts.entrySet()) {
+					Set<StyleAttribute<?>> atts = entry.getValue();
+					if(atts.size() > 1) {
+						ret.append(entry.getKey().getName()).append('=').append('{');
+						boolean first = true;
+						for(StyleAttribute<?> att : atts) {
+							if(first)
+								first = false;
+							else
+								ret.append(';');
+							ret.append(att.getName()).append('=').append(seq.getStyle().get(att));
+						}
+						ret.append('}');
+					} else
+						ret.append(entry.getKey().getName()).append('.').append(atts.iterator().next().getName()).append('=')
+							.append(seq.getStyle().get(atts.iterator().next()));
+				}
+				ret.append('}');
+			}
+			for(int i = 0; i < seq.length(); i++) {
+				char ch = seq.charAt(i);
+				switch (ch) {
+				case '\\':
+				case '{':
+				case '}':
+					ret.append('\\');
+					//$FALL-THROUGH$
+				default:
+					ret.append(ch);
+				}
+			}
+		}
+		return ret.toString();
 	}
 
 	private static class NoMVParseEnv implements MuisParseEnv {

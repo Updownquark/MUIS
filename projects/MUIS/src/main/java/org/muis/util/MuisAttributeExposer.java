@@ -7,8 +7,10 @@ import org.muis.core.event.AttributeAcceptedEvent;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.MuisEventListener;
 
+import prisms.util.ArrayUtils;
+
 /** Synchronizes attributes from a source to a destination */
-public class MuisAttributeExposer implements AutoCloseable {
+public class MuisAttributeExposer {
 	/** The set of attributes that are never exposed by this class */
 	public static final java.util.Set<MuisAttribute<?>> EXCLUDED;
 
@@ -23,6 +25,8 @@ public class MuisAttributeExposer implements AutoCloseable {
 
 	private MuisElement theDest;
 
+	private MuisAttribute<?> [] theAttributes;
+
 	private org.muis.core.mgr.MuisMessageCenter theMessageCenter;
 
 	private boolean isActive;
@@ -34,17 +38,22 @@ public class MuisAttributeExposer implements AutoCloseable {
 	 * @param source The element whose attributes to synchronize to another element
 	 * @param dest The element to synchronize the source's attributes into
 	 * @param msg The message center to record errors setting attributes in the destination
+	 * @param atts The attributes to expose. If empty, this utility will expose all attributes except style and group.
 	 */
-	public MuisAttributeExposer(MuisElement source, MuisElement dest, org.muis.core.mgr.MuisMessageCenter msg) {
+	public MuisAttributeExposer(MuisElement source, MuisElement dest, org.muis.core.mgr.MuisMessageCenter msg, MuisAttribute<?>... atts) {
 		theSource = source;
 		theDest = dest;
+		theAttributes = atts;
 		theAttAcceptListener = new MuisEventListener<AttributeAcceptedEvent>() {
 			@Override
 			public void eventOccurred(AttributeAcceptedEvent event) {
+				if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
+					return;
 				if(event.isAccepted())
 					try {
-						theSource.atts().accept(this, event.isRequired(), (MuisAttribute<Object>) event.getAttribute(),
-							event.getInitialValue());
+						if(!theSource.atts().isAccepted(event.getAttribute()))
+							theSource.atts().accept(this, event.isRequired(), (MuisAttribute<Object>) event.getAttribute(),
+								event.getInitialValue());
 					} catch(MuisException e) {
 						theMessageCenter.error("Attribute synchronization failed: Source " + theSource + " cannot accept attribute "
 							+ event.getAttribute(), e);
@@ -56,6 +65,8 @@ public class MuisAttributeExposer implements AutoCloseable {
 		theAttChangeListener = new MuisEventListener<AttributeChangedEvent<?>>() {
 			@Override
 			public void eventOccurred(AttributeChangedEvent<?> event) {
+				if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
+					return;
 				MuisAttribute<?> att = event.getAttribute();
 				if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)
 					&& theDest.atts().isAccepted(att))
@@ -70,9 +81,12 @@ public class MuisAttributeExposer implements AutoCloseable {
 		theDest.events().listen(AttributeAcceptedEvent.attAccept, theAttAcceptListener);
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders()) {
 			MuisAttribute<?> att = holder.getAttribute();
+			if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, att))
+				continue;
 			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)) {
 				try {
-					theSource.atts().accept(this, holder.isRequired(), (MuisAttribute<Object>) att, holder.getValue());
+					if(!theSource.atts().isAccepted(att))
+						theSource.atts().accept(this, holder.isRequired(), (MuisAttribute<Object>) att, holder.getValue());
 				} catch(MuisException e) {
 					theMessageCenter.error("Attribute synchronization failed: Source " + theSource + " cannot accept attribute " + att, e);
 				}
@@ -104,7 +118,7 @@ public class MuisAttributeExposer implements AutoCloseable {
 		return isActive;
 	}
 
-	@Override
+	/** Undoes the exposure of this utility's attributes */
 	public void close() {
 		if(!isActive)
 			return;

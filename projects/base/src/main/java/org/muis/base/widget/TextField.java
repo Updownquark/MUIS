@@ -42,12 +42,14 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				atts().accept(this, charLengthAtt);
 				atts().accept(this, charRowsAtt);
 				atts().accept(this, ModelAttributes.value);
+				atts().accept(this, org.muis.core.MuisTextElement.multiLine);
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
 				initDocument();
+				new org.muis.util.MuisAttributeExposer(TextField.this, getValueElement(), msg(), org.muis.core.MuisTextElement.multiLine);
 				DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
 				cursor.setTextElement(getValueElement());
 				cursor.setStyleAnchor(getStyle().getSelf());

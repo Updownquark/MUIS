@@ -17,6 +17,8 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 	private WrappingDocumentModel theDocumentWrapper;
 
+	private int theCallbackLock = 0;
+
 	/** Creates a text field */
 	public TextField() {
 		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
@@ -86,10 +88,10 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				getContentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 					@Override
 					public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
+						if(theCallbackLock > 0)
+							return;
 						pushToEdit();
-						MuisModelValue<?> modelValue = atts().get(ModelAttributes.value);
-						if(modelValue != null && modelValue.getType() == String.class)
-							((MuisModelValue<String>) modelValue).set(getContentModel().toString(), null);
+						fireModelChange();
 					}
 				});
 
@@ -159,10 +161,13 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	private void pushToEdit() {
 		MutableDocumentModel contentModel = getContentModel();
 		MutableDocumentModel editModel = getDocumentModel();
+		theCallbackLock++;
 		try (Transaction w = editModel.holdForWrite(); Transaction r = contentModel.holdForRead()) {
 			editModel.setText("");
 			for(org.muis.core.model.MuisDocumentModel.StyledSequence seq : contentModel)
 				editModel.append(seq);
+		} finally {
+			theCallbackLock--;
 		}
 	}
 
@@ -170,11 +175,21 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	private void pushToModel() {
 		MutableDocumentModel contentModel = getContentModel();
 		MutableDocumentModel editModel = getDocumentModel();
+		theCallbackLock++;
 		try (Transaction w = contentModel.holdForWrite(); Transaction r = editModel.holdForRead()) {
-			editModel.setText("");
+			contentModel.setText("");
 			for(org.muis.core.model.MuisDocumentModel.StyledSequence seq : editModel)
 				contentModel.append(seq);
+		} finally {
+			theCallbackLock--;
 		}
+		fireModelChange();
+	}
+
+	private void fireModelChange() {
+		MuisModelValue<?> modelValue = atts().get(ModelAttributes.value);
+		if(modelValue != null && modelValue.getType() == String.class)
+			((MuisModelValue<String>) modelValue).set(getContentModel().toString(), null);
 	}
 
 	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {

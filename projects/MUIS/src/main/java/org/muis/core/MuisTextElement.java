@@ -13,11 +13,15 @@ import org.muis.core.model.*;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class MuisTextElement extends MuisLeaf implements org.muis.core.model.DocumentedElement {
+	/** Whether a text element's document supports multiple lines */
+	public static final MuisAttribute<Boolean> multiLine = new MuisAttribute<>("multi-line", MuisProperty.boolAttr);
+
 	private final WrappingDocumentModel theDocument;
 
 	/** Creates a MUIS text element */
 	public MuisTextElement() {
 		this("");
+		atts().accept(new Object(), multiLine);
 	}
 
 	/**

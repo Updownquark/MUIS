@@ -30,7 +30,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 	private Collection<StyleListener> theStyleListeners;
 	private Collection<SelectionListener> theSelectionListeners;
 
-	private ReentrantReadWriteLock theLock;
+	private final ReentrantReadWriteLock theLock;
 
 	/** @param parentStyle The parent style to use for backup styles if this document's content is missing attributes directly */
 	public AbstractSelectableDocumentModel(InternallyStatefulStyle parentStyle) {
@@ -119,7 +119,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 	 * @see MutableDocumentModel#holdForWrite()
 	 */
 	protected Transaction holdForWrite() {
-		if(theLock.getReadHoldCount() > 0)
+		if(theLock.getWriteHoldCount() == 0 && theLock.getReadHoldCount() > 0)
 			throw new IllegalStateException("A write lock cannot be acquired for this document model while a read lock is held."
 				+ "  The read lock must be released before attempting to acquire a write lock.");
 		final java.util.concurrent.locks.Lock lock = theLock.writeLock();

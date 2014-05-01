@@ -52,9 +52,11 @@ public class SimpleTextEditing implements MuisBehavior<DocumentedElement> {
 		} else if(ch == java.awt.event.KeyEvent.VK_DELETE) {
 			if(!batchDeleted && doc.getCursor() < doc.length() - 1)
 				doc.delete(doc.getCursor(), doc.getCursor() + 1);
-		} else if(ch == CharInputEvent.PASTE) {
+		} else if(ch == CharInputEvent.PASTE)
 			pasteFromClipboard(widget);
-		} else
+		else if(ch == '\n' && !Boolean.TRUE.equals(((MuisElement) widget).atts().get(org.muis.core.MuisTextElement.multiLine)))
+			return;
+		else
 			doc.insert(ch);
 	}
 

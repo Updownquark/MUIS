@@ -12,9 +12,8 @@
    				This text is in a normal border
    			</border>
    			<text-field group="tfredborder" length="50">This text field's border should be red</text-field>
-   			<text-field multi-line="true" length="100" rows="4">This text field has
-   				multiple
-   				lines.
+   			<text-field multi-line="true" length="100" rows="4">This text field can have multiple lines.
+   				Can't put multi-lines in MUIS files though.  Gotta be typed by the user currently.
    			</text-field>
    		</block>
     </body>

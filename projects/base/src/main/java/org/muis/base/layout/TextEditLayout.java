@@ -214,7 +214,7 @@ public class TextEditLayout implements MuisLayout {
 						java.awt.Font font = org.muis.util.MuisUtils.getFont(style);
 						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style.get(
 							org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
-						return (int) (rows * font.getStringBounds("00", ctx).getHeight() / 2);
+						return (int) (rows * font.getStringBounds("00", ctx).getHeight());
 					}
 				}
 				return children[0].bounds().getVertical().getGuide().get(type, crossSize, csMax);

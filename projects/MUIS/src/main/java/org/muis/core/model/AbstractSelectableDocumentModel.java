@@ -148,98 +148,47 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 				private int thePosition;
 
 				private StyledSequence theCurrent;
+				private prisms.util.IntList theDivisions = new prisms.util.IntList(true, true);
 				private int theCurrentSubReturned;
 
 				@Override
 				public boolean hasNext() {
-					if(theCurrent != null) {
-						if(thePosition < min) {
-							if(thePosition + theCurrent.length() > max)
-								return theCurrentSubReturned < 3;
-							else if(thePosition + theCurrent.length() > min)
-								return theCurrentSubReturned < 2;
-						} else if(thePosition < min) {
-							if(thePosition + theCurrent.length() > max)
-								return theCurrentSubReturned < 2;
-						}
-					}
-					return internal.hasNext();
+					return theCurrent != null || internal.hasNext();
 				}
 
 				@Override
 				public StyledSequence next() {
-					if(theCurrent == null)
+					if(!hasNext())
+						throw new java.util.NoSuchElementException();
+					if(theCurrent == null) {
 						theCurrent = internal.next();
-					StyledSequence ret = null;
-					if(min == max) {
-					} else if(thePosition < min) {
-						if(thePosition + theCurrent.length() > max) {
-							switch (theCurrentSubReturned) {
-							case 0:
-								// Return deselected subsequence from pos to min
-								ret = wrap(theCurrent, false, 0, min - thePosition);
-								theCurrentSubReturned++;
-								break;
-							case 1:
-								// Return selected subsequence from min to max
-								ret = wrap(theCurrent, true, min - thePosition, max - thePosition);
-								theCurrentSubReturned++;
-								break;
-							default:
-								// Return deselected subsequence from max to pos+length
-								ret = wrap(theCurrent, false, max - thePosition, theCurrent.length());
-								thePosition += theCurrent.length();
-								theCurrent = null;
-								theCurrentSubReturned = 0;
-								break;
-							}
-						} else if(thePosition + theCurrent.length() > min) {
-							switch (theCurrentSubReturned) {
-							case 0:
-								// Return deselected subsequence from pos to max
-								ret = wrap(theCurrent, false, 0, min - thePosition);
-								theCurrentSubReturned++;
-								break;
-							default:
-								// Return selected subsequence from max to pos+length
-								ret = wrap(theCurrent, true, min - thePosition, theCurrent.length());
-								thePosition += theCurrent.length();
-								theCurrent = null;
-								theCurrentSubReturned = 0;
-								break;
-							}
-						}
-					} else if(thePosition < max) {
-						if(thePosition + theCurrent.length() > max) {
-							switch (theCurrentSubReturned) {
-							case 0:
-								// Return selected subsequence from pos to max
-								ret = wrap(theCurrent, true, 0, max - thePosition);
-								theCurrentSubReturned++;
-								break;
-							default:
-								// Return deselected subsequence from max to pos+length
-								ret = wrap(theCurrent, false, max - thePosition, theCurrent.length());
-								thePosition += theCurrent.length();
-								theCurrent = null;
-								theCurrentSubReturned = 0;
-							}
-						}
+						divideCurrent();
 					}
-					if(ret == null) {
-						if(thePosition >= min && thePosition < max) {
-							// Return selected sequence
-							ret = wrap(theCurrent, true, 0, theCurrent.length());
-							thePosition += theCurrent.length();
-							theCurrent = null;
-						} else {
-							// Return deselected sequence
-							ret = wrap(theCurrent, false, 0, theCurrent.length());
-							thePosition += theCurrent.length();
-							theCurrent = null;
-						}
-					}
+
+					int start = theCurrentSubReturned == 0 ? 0 : theDivisions.get(theCurrentSubReturned - 1);
+					int end = theCurrentSubReturned == theDivisions.size() ? theCurrent.length() : theDivisions.get(theCurrentSubReturned);
+					boolean selected = start >= min && start < max;
+					StyledSequence ret = wrap(theCurrent, selected, start, end);
+					if(theCurrentSubReturned == theDivisions.size()) {
+						theCurrent = null;
+						theCurrentSubReturned = 0;
+						theDivisions.clear();
+					} else
+						theCurrentSubReturned++;
 					return ret;
+				}
+
+				private void divideCurrent() {
+					theDivisions.clear();
+					if(min != max) {
+						if(min > thePosition && min < thePosition + theCurrent.length())
+							theDivisions.add(min - thePosition);
+						if(max > thePosition && max < thePosition + theCurrent.length())
+							theDivisions.add(max - thePosition);
+					}
+					for(int i = 0; i < theCurrent.length() - 1; i++)
+						if(theCurrent.charAt(i) == '\n')
+							theDivisions.add(i + 1);// Include the line break in the sequence before it
 				}
 
 				private StyledSequence wrap(StyledSequence toWrap, boolean selected, int start, int end) {

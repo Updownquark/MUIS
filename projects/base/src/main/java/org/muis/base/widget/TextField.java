@@ -2,6 +2,7 @@ package org.muis.base.widget;
 
 import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
+import static org.muis.core.MuisTextElement.multiLine;
 
 import org.muis.core.event.*;
 import org.muis.core.model.*;
@@ -42,14 +43,14 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				atts().accept(this, charLengthAtt);
 				atts().accept(this, charRowsAtt);
 				atts().accept(this, ModelAttributes.value);
-				atts().accept(this, org.muis.core.MuisTextElement.multiLine);
+				atts().accept(this, multiLine);
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(new Runnable() {
 			@Override
 			public void run() {
 				initDocument();
-				new org.muis.util.MuisAttributeExposer(TextField.this, getValueElement(), msg(), org.muis.core.MuisTextElement.multiLine);
+				new org.muis.util.MuisAttributeExposer(TextField.this, getValueElement(), msg(), multiLine);
 				DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
 				cursor.setTextElement(getValueElement());
 				cursor.setStyleAnchor(getStyle().getSelf());
@@ -86,7 +87,6 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 						modelValueChanged(event.getOldValue(), event.getValue());
 					}
 				});
-				modelValueChanged(null, atts().get(ModelAttributes.value));
 				getContentModel().addContentListener(new MuisDocumentModel.ContentListener() {
 					@Override
 					public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
@@ -96,6 +96,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 						fireModelChange();
 					}
 				});
+				modelValueChanged(null, atts().get(ModelAttributes.value));
 
 				events().listen(FocusEvent.blur, new MuisEventListener<FocusEvent>() {
 					@Override
@@ -107,14 +108,12 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					@Override
 					public void eventOccurred(KeyBoardEvent event) {
 						if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
-							// TODO Uncomment these when multi-line is supported
-							// if(isMultiLine() && !getDocument().isControlPressed())
-							// return;
+							if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
+								return;
 							pushToModel();
 						}
 					}
 				});
-				pushToEdit();
 			}
 		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
@@ -150,7 +149,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	}
 
 	/** @param model The document model for this text field */
-	public void setDocumentModel(MutableDocumentModel model) {
+	public void setContentModel(MutableDocumentModel model) {
 		theDocumentWrapper.setWrapped(model);
 	}
 
@@ -199,21 +198,22 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			theRegistration.unregister();
 		if(oldValue instanceof MutableSelectableDocumentModel) {
 			if(!(newValue instanceof MuisDocumentModel))
-				setDocumentModel(null);
+				setContentModel(null);
 		} else if(oldValue != null)
 			oldValue.removeListener(theValueListener);
 		if(newValue instanceof org.muis.core.model.WidgetRegister)
 			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(TextField.this);
 		if(newValue instanceof MuisDocumentModel) {
 			if(newValue instanceof MutableSelectableDocumentModel)
-				setDocumentModel((MutableSelectableDocumentModel) newValue);
+				setContentModel((MutableSelectableDocumentModel) newValue);
 			else
 				throw new IllegalArgumentException("Document model for a text field must be a "
 					+ MutableSelectableDocumentModel.class.getName());
 		} else if(newValue != null) {
 			newValue.addListener(theValueListener);
 			getContentModel().setText(getTextFor(newValue.get()));
-		}
+		} else
+			pushToModel();
 	}
 
 	private static String getTextFor(Object value) {

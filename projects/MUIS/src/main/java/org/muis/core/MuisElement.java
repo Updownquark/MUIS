@@ -756,10 +756,8 @@ public abstract class MuisElement implements MuisParseEnv {
 	/**
 	 * Causes this element to adjust the position and size of its children in a way defined in this element type's implementation. By
 	 * default this does nothing.
-	 *
-	 * TODO This should probably not be public, as it should only be called by the paint event from the MUIS event queue. Right?
 	 */
-	public void doLayout() {
+	protected void doLayout() {
 		theLayoutDirtyTime = 0;
 		for(MuisElement child : getChildren())
 			child.doLayout();
@@ -808,7 +806,7 @@ public abstract class MuisElement implements MuisParseEnv {
 	 * @param area The area to draw
 	 * @return The cached bounds used to draw the element
 	 */
-	public final MuisElementCapture<?> paint(java.awt.Graphics2D graphics, Rectangle area) {
+	public MuisElementCapture paint(java.awt.Graphics2D graphics, Rectangle area) {
 		Rectangle paintBounds = getPaintBounds();
 		int cacheX = paintBounds.x + theBounds.getX();
 		int cacheY = paintBounds.y + theBounds.getY();
@@ -820,10 +818,8 @@ public abstract class MuisElement implements MuisParseEnv {
 				.getHeight() <= 0);
 			if(visible)
 				paintSelf(graphics, area);
-			@SuppressWarnings("rawtypes")
-			MuisElementCapture ret = new MuisElementCapture<>(null, this, cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height);
-			for(@SuppressWarnings("rawtypes")
-			MuisElementCapture childBound : paintChildren(graphics, area)) {
+			MuisElementCapture ret = createCapture(cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height);
+			for(MuisElementCapture childBound : paintChildren(graphics, area)) {
 				childBound.setParent(ret);
 				ret.addChild(childBound);
 			}
@@ -831,6 +827,18 @@ public abstract class MuisElement implements MuisParseEnv {
 		} finally {
 			graphics.setClip(preClip);
 		}
+	}
+
+	/**
+	 * @param x The x-coordinate of the capture
+	 * @param y The y-coordinate of the capture
+	 * @param z The z-index of the capture
+	 * @param w The width of the capture
+	 * @param h The height of the capture
+	 * @return A capture for this element
+	 */
+	protected MuisElementCapture createCapture(int x, int y, int z, int w, int h) {
+		return new MuisElementCapture(null, this, x, y, z, w, h);
 	}
 
 	/**
@@ -870,9 +878,9 @@ public abstract class MuisElement implements MuisParseEnv {
 	 * @param area The area in this element's coordinates to repaint
 	 * @return The cached bounds used to draw each of the element's children
 	 */
-	public final MuisElementCapture<?> [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
+	public MuisElementCapture [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
 		MuisElement [] children = ch().sortByZ();
-		MuisElementCapture<?> [] childBounds = new MuisElementCapture[children.length];
+		MuisElementCapture [] childBounds = new MuisElementCapture[children.length];
 		if(children.length == 0)
 			return childBounds;
 		if(area == null)

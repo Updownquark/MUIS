@@ -8,7 +8,7 @@ import org.muis.core.MuisEventPositionCapture;
 
 /** An event caused by user interaction for which an x,y point location is relevant */
 public abstract class PositionedUserEvent extends UserEvent {
-	private final MuisEventPositionCapture<?> theCapture;
+	private final MuisEventPositionCapture theCapture;
 
 	/**
 	 * Creates a positioned user event
@@ -22,7 +22,7 @@ public abstract class PositionedUserEvent extends UserEvent {
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public PositionedUserEvent(MuisDocument doc, MuisElement target, MuisElement element, List<MouseEvent.ButtonType> pressedButtons,
-		List<KeyBoardEvent.KeyCode> pressedKeys, long time, MuisEventPositionCapture<?> capture) {
+		List<KeyBoardEvent.KeyCode> pressedKeys, long time, MuisEventPositionCapture capture) {
 		super(doc, target, element, pressedButtons, pressedKeys, time);
 		theCapture = capture;
 		if(theCapture != null)
@@ -40,7 +40,7 @@ public abstract class PositionedUserEvent extends UserEvent {
 	}
 
 	/** @return The capture of the target element */
-	public MuisEventPositionCapture<?> getCapture() {
+	public MuisEventPositionCapture getCapture() {
 		return theCapture;
 	}
 
@@ -51,9 +51,9 @@ public abstract class PositionedUserEvent extends UserEvent {
 	public java.awt.Point getPosition(MuisElement element) {
 		if(theCapture == null)
 			return null;
-		MuisEventPositionCapture<?> capture = theCapture.find(element);
+		MuisEventPositionCapture capture = theCapture.find(element);
 		if(capture == null)
-			for(MuisEventPositionCapture<?> mec : theCapture.iterate(false))
+			for(MuisEventPositionCapture mec : theCapture.iterate(false))
 				if(mec.getElement() == element) {
 					capture = mec;
 					break;

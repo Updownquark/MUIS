@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisEventPositionCapture;
 
 /**
  * Represents a scrolling action by the user. The position and element fields may depend on the value of
@@ -34,7 +35,7 @@ public class ScrollEvent extends PositionedUserEvent {
 
 	/**
 	 * Creates a scroll event
-	 * 
+	 *
 	 * @param doc The document that event occurred in
 	 * @param target The element that is the target of the scroll event
 	 * @param scrollType The type of scroll that generated this event
@@ -46,8 +47,7 @@ public class ScrollEvent extends PositionedUserEvent {
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public ScrollEvent(MuisDocument doc, MuisElement target, ScrollType scrollType, boolean vertical, int amount, KeyBoardEvent keyEvent,
-		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys,
-		org.muis.core.MuisEventPositionCapture<?> capture) {
+		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys, MuisEventPositionCapture capture) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
 		theBacking = null;
 		theScrollType = scrollType;
@@ -56,7 +56,7 @@ public class ScrollEvent extends PositionedUserEvent {
 		theAmount = amount;
 	}
 
-	private ScrollEvent(ScrollEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
+	private ScrollEvent(ScrollEvent backing, MuisEventPositionCapture capture) {
 		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getPressedButtons(), backing.getPressedKeys(),
 			backing.getTime(), capture);
 		theBacking = backing;
@@ -95,7 +95,7 @@ public class ScrollEvent extends PositionedUserEvent {
 	public ScrollEvent copyFor(org.muis.core.MuisElement element) {
 		if(getCapture() == null)
 			return this;
-		org.muis.core.MuisEventPositionCapture<?> capture = getCapture().find(element);
+		MuisEventPositionCapture capture = getCapture().find(element);
 		if(capture == null)
 			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
 		return new ScrollEvent(this, capture);

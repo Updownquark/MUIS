@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.MuisEventPositionCapture;
 
 /** An event that occurs when the user performs an action with the mouse over a MUIS element */
 public class MouseEvent extends PositionedUserEvent {
@@ -50,7 +51,7 @@ public class MouseEvent extends PositionedUserEvent {
 
 	/**
 	 * Creates a mouse event
-	 * 
+	 *
 	 * @param doc The document that the mouse event occurred in
 	 * @param target The deepest-level element that the mouse event occurred over
 	 * @param type The type of event that this represents
@@ -61,8 +62,7 @@ public class MouseEvent extends PositionedUserEvent {
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public MouseEvent(MuisDocument doc, MuisElement target, MouseEventType type, ButtonType button, int clickCount,
-		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys,
-		org.muis.core.MuisEventPositionCapture<?> capture) {
+		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys, MuisEventPositionCapture capture) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
 		if(capture == null)
 			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");
@@ -72,7 +72,7 @@ public class MouseEvent extends PositionedUserEvent {
 		theClickCount = clickCount;
 	}
 
-	private MouseEvent(MouseEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
+	private MouseEvent(MouseEvent backing, MuisEventPositionCapture capture) {
 		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getPressedButtons(), backing.getPressedKeys(),
 			backing.getTime(), capture);
 		theBacking = backing;
@@ -98,7 +98,7 @@ public class MouseEvent extends PositionedUserEvent {
 
 	@Override
 	public MouseEvent copyFor(MuisElement element) {
-		org.muis.core.MuisEventPositionCapture<?> capture = getCapture().find(element);
+		MuisEventPositionCapture capture = getCapture().find(element);
 		if(capture == null)
 			throw new IllegalArgumentException("This event (" + this + ") is not relevant to the given element (" + element + ")");
 		return new MouseEvent(this, capture);

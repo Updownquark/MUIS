@@ -1,16 +1,13 @@
 package org.muis.core;
 
+import java.awt.Point;
 import java.util.Iterator;
 
 import org.muis.util.MuisUtils;
 
-/**
- * Represents a capture of an element's bounds and hierarchy at a point in time
- *
- * @param <C> The sub-type of the capture. Used to make subclasses go a little nicer.
- */
-public class MuisElementCapture<C extends MuisElementCapture<C>> implements Cloneable, prisms.util.Sealable, Iterable<C> {
-	private C theParent;
+/** Represents a capture of an element's bounds and hierarchy at a point in time */
+public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
+	private MuisElementCapture theParent;
 
 	private final MuisElement theElement;
 
@@ -26,7 +23,7 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 
 	private final int theHeight;
 
-	private java.util.List<C> theChildren;
+	private java.util.List<MuisElementCapture> theChildren;
 
 	private boolean isSealed;
 
@@ -39,7 +36,7 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	 * @param w The width of the element
 	 * @param h The height of the element
 	 */
-	public MuisElementCapture(C p, MuisElement el, int xPos, int yPos, int zIndex, int w, int h) {
+	public MuisElementCapture(MuisElementCapture p, MuisElement el, int xPos, int yPos, int zIndex, int w, int h) {
 		theParent = p;
 		theElement = el;
 		theX = xPos;
@@ -54,7 +51,7 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	 * @param child The child to add to this capture
 	 * @throws SealedException If this capture has been sealed
 	 */
-	public void addChild(C child) throws SealedException {
+	public void addChild(MuisElementCapture child) throws SealedException {
 		if(isSealed)
 			throw new SealedException(this);
 		theChildren.add(child);
@@ -69,47 +66,41 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	 * @param index The index of the child to get
 	 * @return This capture's child at the given index
 	 */
-	public C getChild(int index) {
+	public MuisElementCapture getChild(int index) {
 		return theChildren.get(index);
 	}
 
 	/** @return An iterator over this capture's immediate children */
-	public java.util.List<C> getChildren() {
+	public java.util.List<? extends MuisElementCapture> getChildren() {
 		return theChildren;
 	}
 
 	/** @return An iterator of each end point (leaf node) in this hierarchy */
-	public Iterable<C> getTargets() {
+	public Iterable<? extends MuisElementCapture> getTargets() {
 		if(theChildren.isEmpty())
-			return new Iterable<C>() {
+			return new Iterable<MuisElementCapture>() {
 				@Override
-				public Iterator<C> iterator() {
+				public Iterator<MuisElementCapture> iterator() {
 					return new SelfIterator();
 				}
 			};
 		else
-			return new Iterable<C>() {
+			return new Iterable<MuisElementCapture>() {
 				@Override
-				public Iterator<C> iterator() {
+				public Iterator<MuisElementCapture> iterator() {
 					return new MuisCaptureIterator(false, true);
 				}
 			};
-	}
-
-	/** Performs a depth-first iteration of this capture structure */
-	@Override
-	public Iterator<C> iterator() {
-		return new MuisCaptureIterator(true, true);
 	}
 
 	/**
 	 * @param depthFirst Whether to iterate depth-first or breadth-first
 	 * @return An iterable to iterate over every element in this hierarchy
 	 */
-	public Iterable<C> iterate(final boolean depthFirst) {
-		return new Iterable<C>() {
+	public Iterable<? extends MuisElementCapture> iterate(final boolean depthFirst) {
+		return new Iterable<MuisElementCapture>() {
 			@Override
-			public Iterator<C> iterator() {
+			public Iterator<MuisElementCapture> iterator() {
 				return new MuisCaptureIterator(true, depthFirst);
 			}
 		};
@@ -119,18 +110,18 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	 * @param el The element to search for
 	 * @return The capture of the given element in this hierarchy, or null if the given element was not located in this capture
 	 */
-	public C find(MuisElement el) {
+	public MuisElementCapture find(MuisElement el) {
 		if(theParent != null)
 			return getRoot().find(el);
 		MuisElement [] path = MuisUtils.path(el);
-		C ret = (C) this;
+		MuisElementCapture ret = this;
 		int pathIdx;
 		for(pathIdx = 1; pathIdx < path.length; pathIdx++) {
 			boolean found = false;
-			for(MuisElementCapture<?> child : ((MuisElementCapture<?>) ret).theChildren)
+			for(MuisElementCapture child : ret.theChildren)
 				if(child.getElement() == path[pathIdx]) {
 					found = true;
-					ret = (C) child;
+					ret = child;
 					break;
 				}
 			if(!found)
@@ -140,9 +131,9 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	}
 
 	/** @return The last end point (leaf node) in this hierarchy */
-	public C getTarget() {
+	public MuisElementCapture getTarget() {
 		if(theChildren.isEmpty())
-			return (C) this;
+			return this;
 		return theChildren.get(theChildren.size() - 1).getTarget();
 	}
 
@@ -158,30 +149,30 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	}
 
 	@Override
-	public int hashCode() {
+	public final int hashCode() {
 		return getElement().hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		return obj instanceof MuisElementCapture && ((MuisElementCapture<?>) obj).getElement().equals(getElement());
+	public final boolean equals(Object obj) {
+		return obj instanceof MuisElementCapture && ((MuisElementCapture) obj).getElement().equals(getElement());
 	}
 
 	/** @return The root of this capture */
-	public C getRoot() {
-		C parent = theParent;
+	public MuisElementCapture getRoot() {
+		MuisElementCapture parent = theParent;
 		while(parent.getParent() != null)
 			parent = parent.getParent();
 		return parent;
 	}
 
 	/** @return This capture element's parent in the hierarchy */
-	public C getParent() {
+	public MuisElementCapture getParent() {
 		return theParent;
 	}
 
 	/** @param parent The parent element's capture */
-	public void setParent(C parent) {
+	public void setParent(MuisElementCapture parent) {
 		if(isSealed)
 			throw new SealedException(this);
 		theParent = parent;
@@ -220,7 +211,7 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 	/** @return The location of the top left corner of this element relative to the document's top left corner */
 	public java.awt.Point getDocLocation() {
 		java.awt.Point ret = new java.awt.Point(theX, theY);
-		MuisElementCapture<C> parent = theParent;
+		MuisElementCapture parent = theParent;
 		while(parent != null) {
 			ret.x += parent.theX;
 			ret.y += parent.theY;
@@ -229,25 +220,81 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 		return ret;
 	}
 
+	/**
+	 * Sinks into the element hierarchy by position using the cached bounds of the elements
+	 *
+	 * @param pos The position of the positioned event within the document
+	 * @return The capture of each element in the hierarchy of the document that the event occurred over
+	 */
+	public MuisEventPositionCapture getPositionCapture(MuisEventPositionCapture parent, Point pos) {
+		MuisEventPositionCapture epc = createCapture(parent, pos);
+		for(MuisElementCapture child : getChildrenAt(pos)) {
+			MuisEventPositionCapture childCapture = child.getPositionCapture(epc, pos);
+			epc.addChild(childCapture);
+			if(!childCapture.isClickThrough(pos))
+				break; // Don't add more siblings if one sibling covers the position
+		}
+		epc.seal();
+		return epc;
+	}
+
+	public Iterable<? extends MuisElementCapture> getChildrenAt(final Point pos) {
+		return new Iterable<MuisElementCapture>() {
+			@Override
+			public Iterator<MuisElementCapture> iterator() {
+				return prisms.util.ArrayUtils.conditionalIterator(sortByReverseZ(getChildren()).iterator(),
+					new prisms.util.ArrayUtils.Accepter<MuisElementCapture, MuisElementCapture>() {
+						@Override
+						public MuisElementCapture accept(MuisElementCapture value) {
+							return getChildIntersection(value, pos) != null ? value : null;
+						}
+					}, false);
+			}
+		};
+	}
+
+	protected java.awt.Point getChildIntersection(MuisElementCapture child, Point pos) {
+		int relX = pos.x - child.getX();
+		int relY = pos.y - child.getY();
+		if(relX >= 0 && relY >= 0 && relX < child.getWidth() && relY < child.getHeight())
+			return new Point(pos);
+		return null;
+	}
+
+	protected MuisEventPositionCapture createCapture(MuisEventPositionCapture parent, Point pos) {
+		return new MuisEventPositionCapture(parent, getElement(), theX, theY, theZ, theWidth, theHeight, pos.x, pos.y);
+	}
+
+	private static java.util.List<MuisElementCapture> sortByReverseZ(java.util.List<? extends MuisElementCapture> children) {
+		java.util.ArrayList<MuisElementCapture> ret = new java.util.ArrayList<>(children);
+		java.util.Collections.sort(ret, new java.util.Comparator<MuisElementCapture>() {
+			@Override
+			public int compare(MuisElementCapture o1, MuisElementCapture o2) {
+				return o2.getZ() - o2.getZ();
+			}
+		});
+		return ret;
+	}
+
 	@Override
-	protected MuisElementCapture<C> clone() {
-		MuisElementCapture<C> ret;
+	protected MuisElementCapture clone() {
+		MuisElementCapture ret;
 		try {
-			ret = (MuisElementCapture<C>) super.clone();
+			ret = (MuisElementCapture) super.clone();
 		} catch(CloneNotSupportedException e) {
 			throw new IllegalStateException(e);
 		}
 		ret.theChildren = new java.util.ArrayList<>();
-		for(C child : theChildren) {
-			C newChild = (C) child.clone();
-			((MuisElementCapture<C>) newChild).theParent = (C) ret;
+		for(MuisElementCapture child : theChildren) {
+			MuisElementCapture newChild = child.clone();
+			newChild.theParent = ret;
 			ret.theChildren.add(newChild);
 		}
 		ret.isSealed = false;
 		return ret;
 	}
 
-	private class SelfIterator implements Iterator<C> {
+	private class SelfIterator implements Iterator<MuisElementCapture> {
 		private boolean hasReturned;
 
 		SelfIterator() {
@@ -259,9 +306,9 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 		}
 
 		@Override
-		public C next() {
+		public MuisElementCapture next() {
 			hasReturned = true;
-			return (C) MuisElementCapture.this;
+			return MuisElementCapture.this;
 		}
 
 		@Override
@@ -270,10 +317,10 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 		}
 	}
 
-	private class MuisCaptureIterator implements Iterator<C> {
+	private class MuisCaptureIterator implements Iterator<MuisElementCapture> {
 		private int theIndex;
 
-		private Iterator<C> theChildIter;
+		private Iterator<? extends MuisElementCapture> theChildIter;
 
 		private boolean isReturningSelf;
 
@@ -292,7 +339,7 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 				return true;
 			while(theIndex < getChildCount()) {
 				if(theChildIter == null)
-					theChildIter = getChild(theIndex).iterator();
+					theChildIter = getChild(theIndex).iterate(isDepthFirst).iterator();
 				if(theChildIter.hasNext())
 					return true;
 				else
@@ -303,16 +350,16 @@ public class MuisElementCapture<C extends MuisElementCapture<C>> implements Clon
 		}
 
 		@Override
-		public C next() {
+		public MuisElementCapture next() {
 			if(isReturningSelf && !isDepthFirst && !hasReturnedSelf) {
 				hasReturnedSelf = true;
-				return (C) MuisElementCapture.this;
+				return MuisElementCapture.this;
 			}
 			if(theChildIter != null)
 				return theChildIter.next();
 			if(isReturningSelf && isDepthFirst && !hasReturnedSelf) {
 				hasReturnedSelf = true;
-				return (C) MuisElementCapture.this;
+				return MuisElementCapture.this;
 			}
 			return null;
 		}

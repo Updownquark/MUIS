@@ -286,12 +286,16 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 	private int selectWord(SelectableDocumentModel doc, int position) {
 		int anchor;
 		int cursor;
-		for(anchor = position; anchor > 0 && isWordChar(doc.charAt(anchor)); anchor--);
-		if(anchor < position && !isWordChar(doc.charAt(anchor)))
-			anchor++;
-		for(cursor = position; cursor < doc.length() && isWordChar(doc.charAt(cursor)); cursor++);
-		if(cursor > position && cursor < doc.length() && !isWordChar(doc.charAt(cursor)))
-			cursor--;
+		if(position == doc.length())
+			anchor = cursor = position;
+		else {
+			for(anchor = position; anchor > 0 && isWordChar(doc.charAt(anchor)); anchor--);
+			if(anchor < position && !isWordChar(doc.charAt(anchor)))
+				anchor++;
+			for(cursor = position; cursor < doc.length() && isWordChar(doc.charAt(cursor)); cursor++);
+			if(cursor > position && cursor < doc.length() && !isWordChar(doc.charAt(cursor)))
+				cursor--;
+		}
 		doc.setSelection(anchor, cursor);
 		return anchor;
 	}

@@ -193,10 +193,15 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		int max = Math.round(maxW);
 
 		int min;
-		if(getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap)) {
+		boolean isWordWrap = getStyle().getSelf().get(wordWrap);
+		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine));
+		if(isWordWrap || isMultiLine) {
 			maxW = 0;
 			lineW = 0;
 			for(MuisDocumentModel.StyledSequenceMetric metric : theDocument.getDocumentModel().metrics(0, 1)) {
+				boolean newLine = isWordWrap && metric.isNewLine();
+				if(!newLine)
+					newLine = isMultiLine && metric.charAt(metric.length() - 1) == '\n';
 				if(metric.isNewLine()) {
 					if(lineW > maxW)
 						maxW = lineW;
@@ -216,6 +221,14 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 
 	@Override
 	public SizeGuide getHSizer() {
+		if(theDocument.getDocumentModel().length() == 0) {
+			java.awt.Font font = org.muis.util.MuisUtils.getFont(getStyle().getSelf());
+			java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
+				.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+			java.awt.font.LineMetrics metrics = font.getLineMetrics("Iq", context);
+			int height = Math.round(metrics.getAscent() + metrics.getDescent());
+			return new SimpleSizeGuide(height, height, height, height, height);
+		}
 		return new AbstractSizeGuide() {
 			private int theCachedWidth;
 

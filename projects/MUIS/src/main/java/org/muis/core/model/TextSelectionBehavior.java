@@ -305,14 +305,20 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 	}
 
 	private int selectLine(SelectableDocumentModel doc, int position) {
-		int anchor;
+		int anchor = position;
 		int cursor;
-		for(anchor = position; anchor > 0 && !isLineBreakChar(doc.charAt(anchor)); anchor--);
-		if(anchor < position && isLineBreakChar(doc.charAt(anchor)))
-			anchor++;
-		for(cursor = position; cursor < doc.length() && !isLineBreakChar(doc.charAt(cursor)); cursor++);
-		while(cursor < doc.length() && isLineBreakChar(doc.charAt(cursor + 1)))
-			cursor++;
+		if(doc.length() == 0)
+			anchor = cursor = 0;
+		else {
+			if(position == doc.length())
+				anchor--;
+			for(; anchor > 0 && !isLineBreakChar(doc.charAt(anchor)); anchor--);
+			if(anchor < position && isLineBreakChar(doc.charAt(anchor)))
+				anchor++;
+			for(cursor = position; cursor < doc.length() && !isLineBreakChar(doc.charAt(cursor)); cursor++);
+			while(cursor < doc.length() && isLineBreakChar(doc.charAt(cursor + 1)))
+				cursor++;
+		}
 		doc.setSelection(anchor, cursor);
 		return anchor;
 	}

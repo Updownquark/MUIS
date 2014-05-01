@@ -24,14 +24,30 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			switch (event.getType()) {
 			case pressed:
 				if(event.getButton() == MouseEvent.ButtonType.left) {
-					int position = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
-						element.bounds().getWidth()));
 					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
-					if(element.getDocument().isShiftPressed()) {
-						theAnchor = doc.getSelectionAnchor();
-					} else
-						theAnchor = position;
-					doc.setSelection(theAnchor, position);
+					switch ((event.getClickCount() - 1) % 3) {
+					case 0: // Single-click
+						int position = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
+							element.bounds().getWidth()));
+						if(event.isShiftPressed()) {
+							theAnchor = doc.getSelectionAnchor();
+						} else
+							theAnchor = position;
+						doc.setSelection(theAnchor, position);
+						break;
+					case 1: // Double-click. Select word.
+						theAnchor = selectWord(doc,
+							Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth())));
+						break;
+					case 2: // Triple-click. Select line.
+						if(!Boolean.TRUE.equals(element.atts().get(MuisTextElement.multiLine))) {
+							theAnchor = 0;
+							doc.setSelection(0, doc.length());
+						} else
+							theAnchor = selectLine(doc, Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
+								element.bounds().getWidth())));
+						break;
+					}
 				}
 				break;
 			case released:
@@ -60,40 +76,40 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			switch (event.getKeyCode()) {
 			case C:
 			case X:
-				if(text.getDocument().isControlPressed())
+				if(event.isControlPressed())
 					copyToClipboard(text, event.getKeyCode() == KeyBoardEvent.KeyCode.X);
 				event.use();
 				break;
 			case LEFT_ARROW:
-				left(text, text.getDocument().isShiftPressed());
+				left(text, event.isShiftPressed());
 				event.use();
 				break;
 			case RIGHT_ARROW:
-				right(text, text.getDocument().isShiftPressed());
+				right(text, event.isShiftPressed());
 				event.use();
 				break;
 			case UP_ARROW:
-				up(text, text.getDocument().isShiftPressed());
+				up(text, event.isShiftPressed());
 				event.use();
 				break;
 			case DOWN_ARROW:
-				down(text, text.getDocument().isShiftPressed());
+				down(text, event.isShiftPressed());
 				event.use();
 				break;
 			case HOME:
-				home(text, text.getDocument().isShiftPressed());
+				home(text, event.isShiftPressed());
 				event.use();
 				break;
 			case END:
-				end(text, text.getDocument().isShiftPressed());
+				end(text, event.isShiftPressed());
 				event.use();
 				break;
 			case PAGE_UP:
-				pageUp(text, text.getDocument().isShiftPressed());
+				pageUp(text, event.isShiftPressed());
 				event.use();
 				break;
 			case PAGE_DOWN:
-				pageDown(text, text.getDocument().isShiftPressed());
+				pageDown(text, event.isShiftPressed());
 				event.use();
 				break;
 			default:
@@ -265,5 +281,39 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	private void pageDown(MuisTextElement element, boolean shift) {
 		// TODO Auto-generated method stub
+	}
+
+	private int selectWord(SelectableDocumentModel doc, int position) {
+		int anchor;
+		int cursor;
+		for(anchor = position; anchor > 0 && isWordChar(doc.charAt(anchor)); anchor--);
+		if(anchor < position && !isWordChar(doc.charAt(anchor)))
+			anchor++;
+		for(cursor = position; cursor < doc.length() && isWordChar(doc.charAt(cursor)); cursor++);
+		if(cursor > position && cursor < doc.length() && !isWordChar(doc.charAt(cursor)))
+			cursor--;
+		doc.setSelection(anchor, cursor);
+		return anchor;
+	}
+
+	private boolean isWordChar(char ch) {
+		return Character.isLetterOrDigit(ch) || ch == '_' || ch == '\'';
+	}
+
+	private int selectLine(SelectableDocumentModel doc, int position) {
+		int anchor;
+		int cursor;
+		for(anchor = position; anchor > 0 && !isLineBreakChar(doc.charAt(anchor)); anchor--);
+		if(anchor < position && isLineBreakChar(doc.charAt(anchor)))
+			anchor++;
+		for(cursor = position; cursor < doc.length() && !isLineBreakChar(doc.charAt(cursor)); cursor++);
+		while(cursor < doc.length() && isLineBreakChar(doc.charAt(cursor + 1)))
+			cursor++;
+		doc.setSelection(anchor, cursor);
+		return anchor;
+	}
+
+	private boolean isLineBreakChar(char ch) {
+		return ch == '\n' || ch == '\r';
 	}
 }

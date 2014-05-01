@@ -3,6 +3,7 @@ package org.muis.core;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
@@ -81,9 +82,9 @@ public class MuisDocument {
 
 	private int theMouseY;
 
-	private MouseEvent.ButtonType[] thePressedButtons;
+	private List<MouseEvent.ButtonType> thePressedButtons;
 
-	private KeyBoardEvent.KeyCode[] thePressedKeys;
+	private List<KeyBoardEvent.KeyCode> thePressedKeys;
 
 	private final Object theButtonsLock;
 
@@ -117,8 +118,8 @@ public class MuisDocument {
 		theDocumentStyle = new DocumentStyleSheet(this);
 		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
 		theScrollPolicy = ScrollPolicy.MOUSE;
-		thePressedButtons = new MouseEvent.ButtonType[0];
-		thePressedKeys = new KeyBoardEvent.KeyCode[0];
+		thePressedButtons = new java.util.concurrent.CopyOnWriteArrayList<>();
+		thePressedKeys = new java.util.concurrent.CopyOnWriteArrayList<>();
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
@@ -366,8 +367,8 @@ public class MuisDocument {
 	}
 
 	/** @return All mouse buttons that are currently pressed */
-	public MouseEvent.ButtonType[] getPressedButtons() {
-		return thePressedButtons;
+	public List<MouseEvent.ButtonType> getPressedButtons() {
+		return java.util.Collections.unmodifiableList(thePressedButtons);
 	}
 
 	/**
@@ -379,8 +380,8 @@ public class MuisDocument {
 	}
 
 	/** @return All key codes whose keys are currently pressed */
-	public KeyBoardEvent.KeyCode[] getPressedKeys() {
-		return thePressedKeys;
+	public List<KeyBoardEvent.KeyCode> getPressedKeys() {
+		return java.util.Collections.unmodifiableList(thePressedKeys);
 	}
 
 	/** @return Whether a shift button is currently pressed */
@@ -462,7 +463,8 @@ public class MuisDocument {
 			return;
 		MuisEventPositionCapture<?> newCapture = rendering.capture(x, y);
 		MuisEventPositionCapture<?> oldCapture = rendering.capture(oldX, oldY);
-		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, newCapture);
+		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, thePressedButtons,
+			thePressedKeys, newCapture);
 
 		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
 
@@ -473,29 +475,29 @@ public class MuisDocument {
 				mouseMove(oldCapture, newCapture, events);
 			else {
 				evt = new MouseEvent(this, newCapture.getTarget().getElement(), MouseEvent.MouseEventType.entered, buttonType, clickCount,
+					thePressedButtons, thePressedKeys,
 					newCapture);
 				events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
 			}
 			break;
 		case pressed:
 			synchronized(theButtonsLock) {
-				if(!ArrayUtils.contains(thePressedButtons, buttonType))
-					thePressedButtons = ArrayUtils.add(thePressedButtons, buttonType);
+				if(!thePressedButtons.contains(buttonType))
+					thePressedButtons.add(buttonType);
 			}
 			focusByMouse(newCapture, events);
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
 			break;
 		case released:
 			synchronized(theButtonsLock) {
-				if(ArrayUtils.contains(thePressedButtons, buttonType))
-					thePressedButtons = ArrayUtils.remove(thePressedButtons, buttonType);
+				thePressedButtons.remove(buttonType);
 			}
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
 			break;
 		case clicked:
 		case exited:
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, new MouseEvent(this, oldCapture.getTarget().getElement(), type,
-				buttonType, clickCount, oldCapture), false));
+				buttonType, clickCount, thePressedButtons, thePressedKeys, oldCapture), false));
 			break;
 		case entered:
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
@@ -533,16 +535,19 @@ public class MuisDocument {
 		}
 		// Fire exit events
 		for(MuisEventPositionCapture<?> mec : oldSet) {
-			MouseEvent exit = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.exited, null, 0, mec);
+			MouseEvent exit = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.exited, null, 0,
+				thePressedButtons, thePressedKeys, mec);
 			events.add(new MuisEventQueue.PositionQueueEvent(exit.getElement(), exit, false));
 		}
 		for(MuisEventPositionCapture<?> mec : common) {
-			MouseEvent move = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.moved, null, 0, mec);
+			MouseEvent move = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.moved, null, 0,
+				thePressedButtons, thePressedKeys, mec);
 			events.add(new MuisEventQueue.PositionQueueEvent(move.getElement(), move, false));
 		}
 		// Fire enter events
 		for(MuisEventPositionCapture<?> mec : newSet) {
-			MouseEvent enter = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.entered, null, 0, mec);
+			MouseEvent enter = new MouseEvent(this, mec.getTarget().getElement(), MouseEvent.MouseEventType.entered, null, 0,
+				thePressedButtons, thePressedKeys, mec);
 			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(enter.getElement(), enter, false), true);
 		}
 		setCursor(newCapture.getTarget().getElement());
@@ -573,9 +578,11 @@ public class MuisDocument {
 		theFocus = focus;
 		if(oldFocus != theFocus) {
 			if(oldFocus != null)
-				events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, oldFocus, false), false));
+				events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, oldFocus, thePressedButtons, thePressedKeys, false),
+					false));
 			if(theFocus != null)
-				events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, theFocus, true), false));
+				events
+					.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true), false));
 		}
 	}
 
@@ -659,13 +666,14 @@ public class MuisDocument {
 		case MOUSE:
 		case MIXED:
 			MuisEventPositionCapture<?> capture = rendering.capture(x, y);
-			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, capture);
+			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, thePressedButtons, thePressedKeys,
+				capture);
 			break;
 		case FOCUS:
 			element = theFocus;
 			if(element == null)
 				element = theRoot;
-			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, null);
+			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, thePressedButtons, thePressedKeys, null);
 			break;
 		}
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false), true);
@@ -680,17 +688,17 @@ public class MuisDocument {
 	public void keyed(KeyBoardEvent.KeyCode code, boolean pressed) {
 		final KeyBoardEvent evt;
 		if(theFocus != null)
-			evt = new KeyBoardEvent(this, theFocus, code, pressed);
+			evt = new KeyBoardEvent(this, theFocus, code, thePressedButtons, thePressedKeys, pressed);
 		else
-			evt = new KeyBoardEvent(this, theRoot, code, pressed);
+			evt = new KeyBoardEvent(this, theRoot, code, thePressedButtons, thePressedKeys, pressed);
 		final MuisRendering rendering = theRendering;
 
 		synchronized(theKeysLock) {
 			if(pressed) {
-				if(!ArrayUtils.contains(thePressedKeys, code))
-					thePressedKeys = ArrayUtils.add(thePressedKeys, code);
+				if(!thePressedKeys.contains(code))
+					thePressedKeys.add(code);
 			} else if(ArrayUtils.contains(thePressedKeys, code))
-				thePressedKeys = ArrayUtils.remove(thePressedKeys, code);
+				thePressedKeys.remove(code);
 		}
 		if(theFocus != null)
 			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false, new Runnable() {
@@ -762,7 +770,8 @@ public class MuisDocument {
 					scrollType = null;
 				}
 				if(scrollType != null) {
-					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, scrollType, vertical, downOrRight ? 1 : -1, evt, capture);
+					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, scrollType, vertical, downOrRight ? 1 : -1, evt,
+						thePressedButtons, thePressedKeys, capture);
 					if(capture != null)
 						MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(scrollElement, scrollEvt, false), true);
 					else
@@ -786,9 +795,9 @@ public class MuisDocument {
 	public void character(char c) {
 		org.muis.core.event.CharInputEvent evt = null;
 		if(theFocus != null)
-			evt = new org.muis.core.event.CharInputEvent(this, theFocus, c);
+			evt = new org.muis.core.event.CharInputEvent(this, theFocus, thePressedButtons, thePressedKeys, c);
 		else
-			evt = new org.muis.core.event.CharInputEvent(this, theRoot, c);
+			evt = new org.muis.core.event.CharInputEvent(this, theRoot, thePressedButtons, thePressedKeys, c);
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false), true);
 	}
 

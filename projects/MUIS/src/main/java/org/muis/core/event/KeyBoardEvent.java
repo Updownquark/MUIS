@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
@@ -269,21 +271,24 @@ public class KeyBoardEvent extends UserEvent {
 
 	/**
 	 * Creates a KeyEvent
-	 *
+	 * 
 	 * @param doc The document that this event was generated for
 	 * @param target The focused element that received this key event first
 	 * @param keyCode The key that caused this event
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param pressed Whether the key was pressed or released
 	 */
-	public KeyBoardEvent(MuisDocument doc, MuisElement target, KeyCode keyCode, boolean pressed) {
-		super(doc, target, target, System.currentTimeMillis());
+	public KeyBoardEvent(MuisDocument doc, MuisElement target, KeyCode keyCode, List<MouseEvent.ButtonType> pressedButtons,
+		List<KeyBoardEvent.KeyCode> pressedKeys, boolean pressed) {
+		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis());
 		theBacking = null;
 		theKeyCode = keyCode;
 		wasPressed = pressed;
 	}
 
 	private KeyBoardEvent(KeyBoardEvent backing, MuisElement element) {
-		super(backing.getDocument(), backing.getTarget(), element, backing.getTime());
+		super(backing.getDocument(), backing.getTarget(), element, backing.getPressedButtons(), backing.getPressedKeys(), backing.getTime());
 		theBacking = backing;
 		theKeyCode = backing.theKeyCode;
 		wasPressed = backing.wasPressed;

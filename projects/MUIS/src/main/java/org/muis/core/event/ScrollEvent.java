@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
@@ -32,18 +34,21 @@ public class ScrollEvent extends PositionedUserEvent {
 
 	/**
 	 * Creates a scroll event
-	 *
+	 * 
 	 * @param doc The document that event occurred in
 	 * @param target The element that is the target of the scroll event
 	 * @param scrollType The type of scroll that generated this event
 	 * @param vertical Whether this scroll event represents a vertical or a horizontal scrolling action
 	 * @param amount The amount of {@link ScrollType} units that caused this event
 	 * @param keyEvent The key event that caused this scroll event
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public ScrollEvent(MuisDocument doc, MuisElement target, ScrollType scrollType, boolean vertical, int amount, KeyBoardEvent keyEvent,
+		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys,
 		org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(doc, target, target, System.currentTimeMillis(), capture);
+		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
 		theBacking = null;
 		theScrollType = scrollType;
 		isVertical = vertical;
@@ -52,7 +57,8 @@ public class ScrollEvent extends PositionedUserEvent {
 	}
 
 	private ScrollEvent(ScrollEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getTime(), capture);
+		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getPressedButtons(), backing.getPressedKeys(),
+			backing.getTime(), capture);
 		theBacking = backing;
 		theScrollType = backing.theScrollType;
 		isVertical = backing.isVertical;

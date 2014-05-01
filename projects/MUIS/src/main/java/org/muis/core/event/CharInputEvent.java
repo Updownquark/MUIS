@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.event.boole.TypedPredicate;
@@ -26,16 +28,19 @@ public class CharInputEvent extends UserEvent {
 	 *
 	 * @param doc The MuisDocument that the event occurred in
 	 * @param target The deepest-level element that the event was directed to (the focus)
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param character The character that was input
 	 */
-	public CharInputEvent(MuisDocument doc, MuisElement target, char character) {
-		super(doc, target, target, System.currentTimeMillis());
+	public CharInputEvent(MuisDocument doc, MuisElement target, List<MouseEvent.ButtonType> pressedButtons,
+		List<KeyBoardEvent.KeyCode> pressedKeys, char character) {
+		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis());
 		theBacking = null;
 		theChar = character;
 	}
 
 	private CharInputEvent(CharInputEvent backing, MuisElement element) {
-		super(backing.getDocument(), backing.getTarget(), element, backing.getTime());
+		super(backing.getDocument(), backing.getTarget(), element, backing.getPressedButtons(), backing.getPressedKeys(), backing.getTime());
 		theBacking = backing;
 		theChar = backing.getChar();
 	}

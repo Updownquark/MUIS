@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
@@ -48,17 +50,20 @@ public class MouseEvent extends PositionedUserEvent {
 
 	/**
 	 * Creates a mouse event
-	 *
+	 * 
 	 * @param doc The document that the mouse event occurred in
 	 * @param target The deepest-level element that the mouse event occurred over
 	 * @param type The type of event that this represents
 	 * @param button The mouse button that caused this mouse event
 	 * @param clickCount The number of clicks in quick succession that caused this mouse event
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public MouseEvent(MuisDocument doc, MuisElement target, MouseEventType type, ButtonType button,
-		int clickCount, org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(doc, target, target, System.currentTimeMillis(), capture);
+	public MouseEvent(MuisDocument doc, MuisElement target, MouseEventType type, ButtonType button, int clickCount,
+		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys,
+		org.muis.core.MuisEventPositionCapture<?> capture) {
+		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
 		if(capture == null)
 			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");
 		theBacking = null;
@@ -68,7 +73,8 @@ public class MouseEvent extends PositionedUserEvent {
 	}
 
 	private MouseEvent(MouseEvent backing, org.muis.core.MuisEventPositionCapture<?> capture) {
-		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getTime(), capture);
+		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getPressedButtons(), backing.getPressedKeys(),
+			backing.getTime(), capture);
 		theBacking = backing;
 		theType = backing.theType;
 		theButton = backing.theButton;

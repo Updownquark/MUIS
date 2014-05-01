@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
@@ -20,19 +22,22 @@ public class FocusEvent extends UserEvent {
 
 	/**
 	 * Creates a FocusEvent
-	 *
+	 * 
 	 * @param doc The document that the event was fired on
 	 * @param target The focused element that received this key event first
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param gained Whether the element gained the focus (true) or lost the focus (false)
 	 */
-	public FocusEvent(MuisDocument doc, MuisElement target, boolean gained) {
-		super(doc, target, target, System.currentTimeMillis());
+	public FocusEvent(MuisDocument doc, MuisElement target, List<MouseEvent.ButtonType> pressedButtons,
+		List<KeyBoardEvent.KeyCode> pressedKeys, boolean gained) {
+		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis());
 		theBacking = null;
 		isFocus = gained;
 	}
 
 	private FocusEvent(FocusEvent backing, MuisElement element) {
-		super(backing.getDocument(), backing.getTarget(), element, backing.getTime());
+		super(backing.getDocument(), backing.getTarget(), element, backing.getPressedButtons(), backing.getPressedKeys(), backing.getTime());
 		theBacking = backing;
 		isFocus = backing.isFocus;
 	}

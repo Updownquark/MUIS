@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisEventPositionCapture;
@@ -14,11 +16,14 @@ public abstract class PositionedUserEvent extends UserEvent {
 	 * @param doc The document that the mouse event occurred in
 	 * @param element The element that this event is being fired on
 	 * @param target The deepest-level element that the event occurred in
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param time The time at which user performed this action
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public PositionedUserEvent(MuisDocument doc, MuisElement target, MuisElement element, long time, MuisEventPositionCapture<?> capture) {
-		super(doc, target, element, time);
+	public PositionedUserEvent(MuisDocument doc, MuisElement target, MuisElement element, List<MouseEvent.ButtonType> pressedButtons,
+		List<KeyBoardEvent.KeyCode> pressedKeys, long time, MuisEventPositionCapture<?> capture) {
+		super(doc, target, element, pressedButtons, pressedKeys, time);
 		theCapture = capture;
 		if(theCapture != null)
 			theCapture.seal();

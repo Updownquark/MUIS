@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 
@@ -11,6 +13,9 @@ public abstract class UserEvent implements MuisEvent {
 
 	private final MuisElement theElement;
 
+	private final List<MouseEvent.ButtonType> thePressedButtons;
+	private final List<KeyBoardEvent.KeyCode> thePressedKeys;
+
 	private final long theTime;
 
 	private boolean isUsed;
@@ -21,12 +26,17 @@ public abstract class UserEvent implements MuisEvent {
 	 * @param doc The document that the event occurred in
 	 * @param target The deepest-level element that the event occurred in
 	 * @param element The element that this event is being fired on
+	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
+	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param time The time at which user performed this action
 	 */
-	public UserEvent(MuisDocument doc, MuisElement target, MuisElement element, long time) {
+	public UserEvent(MuisDocument doc, MuisElement target, MuisElement element, List<MouseEvent.ButtonType> pressedButtons,
+		List<KeyBoardEvent.KeyCode> pressedKeys, long time) {
 		theDocument = doc;
 		theTarget = element;
 		theElement = element;
+		thePressedButtons = java.util.Collections.unmodifiableList(new java.util.ArrayList<>(pressedButtons));
+		thePressedKeys = java.util.Collections.unmodifiableList(new java.util.ArrayList<>(pressedKeys));
 		theTime = time;
 	}
 
@@ -43,6 +53,31 @@ public abstract class UserEvent implements MuisEvent {
 	@Override
 	public MuisElement getElement() {
 		return theElement;
+	}
+
+	/** @return Whether a shift button was pressed when this event was generated */
+	public boolean isShiftPressed() {
+		return thePressedKeys.contains(KeyBoardEvent.KeyCode.SHIFT_LEFT) || thePressedKeys.contains(KeyBoardEvent.KeyCode.SHIFT_RIGHT);
+	}
+
+	/** @return Whether a control button was pressed when this event was generated */
+	public boolean isControlPressed() {
+		return thePressedKeys.contains(KeyBoardEvent.KeyCode.CTRL_LEFT) || thePressedKeys.contains(KeyBoardEvent.KeyCode.CTRL_RIGHT);
+	}
+
+	/** @return Whether an alt button was pressed when this event was generated */
+	public boolean isAltPressed() {
+		return thePressedKeys.contains(KeyBoardEvent.KeyCode.ALT_LEFT) || thePressedKeys.contains(KeyBoardEvent.KeyCode.ALT_RIGHT);
+	}
+
+	/** @return The mouse buttons which were pressed when this event was generated */
+	public List<MouseEvent.ButtonType> getPressedButtons() {
+		return thePressedButtons;
+	}
+
+	/** @return The keyboard key which were pressed when this event was generated */
+	public List<KeyBoardEvent.KeyCode> getPressedKeys() {
+		return thePressedKeys;
 	}
 
 	/** @return The time at which the user performed this action */

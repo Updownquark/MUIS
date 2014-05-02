@@ -130,11 +130,11 @@ public class Transform extends MuisTemplate {
 				break;
 			}
 		}
-		if(sxv != 1 || syv != 1) {
+		if(sxv != 1.0 || syv != 1.0) {
 			isTransformed = true;
 			tx.scale(sxv, syv);
 		}
-		if(rotation != null && rotation != 0) {
+		if(rotation != null && rotation != 0.0) {
 			isTransformed = true;
 			tx.rotate(-(rotation / 180 * Math.PI));
 		}
@@ -272,14 +272,93 @@ public class Transform extends MuisTemplate {
 
 		@Override
 		public Point getChildPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
-			// TODO
-			return null;
+			if(theRotation == 0.0 && theScaleX == 1.0 && theScaleY == 1.0) { // Easy case
+				int x = pos.x - child.getX();
+				int y = pos.y - child.getY();
+
+				// Reflection
+				if(theReflection != null)
+					switch (theReflection) {
+					case horizontal:
+						x = child.getWidth() - x;
+						break;
+					case vertical:
+						y = child.getHeight() - y;
+						break;
+					}
+				return new Point(x, y);
+			}
+			double x = pos.x - child.getX();
+			double y = pos.y - child.getY();
+
+			// TODO Rotation
+
+			// Reflection
+			if(theReflection != null)
+				switch (theReflection) {
+				case horizontal:
+					x = child.getWidth() - x;
+					break;
+				case vertical:
+					y = child.getHeight() - y;
+					break;
+				}
+
+			// Scaling
+			if(theScaleX != 1.0)
+				x /= theScaleX;
+			if(theScaleY != 1.0)
+				y /= theScaleY;
+
+			return new Point((int) Math.round(x), (int) Math.round(y));
 		}
 
 		@Override
 		public Point getParentPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
-			// TODO
-			return null;
+			if(theRotation == 0.0 && theScaleX == 1.0 && theScaleY == 1.0) { // Easy case
+				int x = pos.x;
+				int y = pos.y;
+
+				// Reflection
+				if(theReflection != null)
+					switch (theReflection) {
+					case horizontal:
+						x = child.getWidth() - x;
+						break;
+					case vertical:
+						y = child.getHeight() - y;
+						break;
+					}
+				x += child.getX();
+				y += child.getY();
+				return new Point(x, y);
+			}
+			double x = pos.x;
+			double y = pos.y;
+
+			// Scaling
+			if(theScaleX != 1.0)
+				x /= theScaleX;
+			if(theScaleY != 1.0)
+				y /= theScaleY;
+
+			// Reflection
+			if(theReflection != null)
+				switch (theReflection) {
+				case horizontal:
+					x = child.getWidth() - x;
+					break;
+				case vertical:
+					y = child.getHeight() - y;
+					break;
+				}
+
+			// TODO Rotation
+
+			x += child.getX();
+			y += child.getY();
+
+			return new Point((int) Math.round(x), (int) Math.round(y));
 		}
 	}
 }

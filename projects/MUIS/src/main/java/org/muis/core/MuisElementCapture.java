@@ -228,10 +228,13 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 	 */
 	public MuisEventPositionCapture getPositionCapture(MuisEventPositionCapture parent, Point pos) {
 		MuisEventPositionCapture epc = createCapture(parent, pos);
-		for(MuisElementCapture child : getChildrenAt(pos)) {
-			MuisEventPositionCapture childCapture = child.getPositionCapture(epc, pos);
+		for(MuisElementCapture child : sortByReverseZ(theChildren)) {
+			Point relPos = getChildIntersection(child, pos);
+			if(relPos == null)
+				continue;
+			MuisEventPositionCapture childCapture = child.getPositionCapture(epc, relPos);
 			epc.addChild(childCapture);
-			if(!childCapture.isClickThrough(pos))
+			if(!childCapture.isClickThrough(relPos))
 				break; // Don't add more siblings if one sibling covers the position
 		}
 		epc.seal();
@@ -253,11 +256,11 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 		};
 	}
 
-	protected java.awt.Point getChildIntersection(MuisElementCapture child, Point pos) {
+	protected Point getChildIntersection(MuisElementCapture child, Point pos) {
 		int relX = pos.x - child.getX();
 		int relY = pos.y - child.getY();
 		if(relX >= 0 && relY >= 0 && relX < child.getWidth() && relY < child.getHeight())
-			return new Point(pos);
+			return new Point(relX, relY);
 		return null;
 	}
 
@@ -292,6 +295,11 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 		}
 		ret.isSealed = false;
 		return ret;
+	}
+
+	@Override
+	public String toString() {
+		return "Capture for " + theElement;
 	}
 
 	private class SelfIterator implements Iterator<MuisElementCapture> {

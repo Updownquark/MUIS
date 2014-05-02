@@ -7,9 +7,30 @@ import org.muis.util.MuisUtils;
 
 /** Represents a capture of an element's bounds and hierarchy at a point in time */
 public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
+	/** Allows custom conversion between coordinate systems of parent and child */
+	public static interface Transformer {
+		/**
+		 * @param parent The parent capture whose coordinate system <code>pos</code> is in
+		 * @param child The child whose coordinate system to convert to
+		 * @param pos The point to convert
+		 * @return The given point, in the child's coordinate system
+		 */
+		Point getChildPosition(MuisElementCapture parent, MuisElementCapture child, Point pos);
+
+		/**
+		 * @param parent The parent capture whose coordinate system to convert to
+		 * @param child The child whose coordinate system <code>pos</code> is in
+		 * @param pos The point to convert
+		 * @return The given point, in the parent's coordinate system
+		 */
+		Point getParentPosition(MuisElementCapture parent, MuisElementCapture child, Point pos);
+	}
+
 	private MuisElementCapture theParent;
 
 	private final MuisElement theElement;
+
+	private final Transformer theTransformer;
 
 	/** The x-coordinate of the screen point relative to this element */
 	private final int theX;
@@ -37,14 +58,34 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 	 * @param h The height of the element
 	 */
 	public MuisElementCapture(MuisElementCapture p, MuisElement el, int xPos, int yPos, int zIndex, int w, int h) {
+		this(p, el, null, xPos, yPos, zIndex, w, h);
+	}
+
+	/**
+	 * @param p This capture element's parent in the hierarchy
+	 * @param el The MUIS element that this structure is a capture of
+	 * @param transformer The transformer to transform between this capture's coordinates and those of one of its children
+	 * @param xPos The x-coordinate of the element's upper-left corner
+	 * @param yPos The y-coordinate of the element's upper-left corner
+	 * @param zIndex The z-index of the element
+	 * @param w The width of the element
+	 * @param h The height of the element
+	 */
+	public MuisElementCapture(MuisElementCapture p, MuisElement el, Transformer transformer, int xPos, int yPos, int zIndex, int w, int h) {
 		theParent = p;
 		theElement = el;
+		theTransformer = transformer;
 		theX = xPos;
 		theY = yPos;
 		theZ = zIndex;
 		theWidth = w;
 		theHeight = h;
 		theChildren = new java.util.ArrayList<>(3);
+	}
+
+	/** @return The transformer to transform between this capture's coordinates and those of one of its children */
+	public Transformer getTransformer() {
+		return theTransformer;
 	}
 
 	/**
@@ -213,16 +254,31 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 		java.awt.Point ret = new java.awt.Point(theX, theY);
 		MuisElementCapture parent = theParent;
 		while(parent != null) {
-			ret.x += parent.theX;
-			ret.y += parent.theY;
+			ret = parent.getParentIntersection(this, ret);
 			parent = parent.theParent;
 		}
 		return ret;
 	}
 
 	/**
+	 * @param pos The point to check
+	 * @return Whether this element's capture is {@link MuisElement#isClickThrough(int, int) click-through} at the given position
+	 */
+	public boolean isClickThrough(Point pos) {
+		if(!getElement().isClickThrough(pos.x, pos.y))
+			return false;
+		for(MuisElementCapture child : getChildren()) {
+			Point childPos = getChildIntersection(child, pos);
+			if(!child.isClickThrough(childPos))
+				return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Sinks into the element hierarchy by position using the cached bounds of the elements
 	 *
+	 * @param parent The parent capture for the new capture
 	 * @param pos The position of the positioned event within the document
 	 * @return The capture of each element in the hierarchy of the document that the event occurred over
 	 */
@@ -241,6 +297,10 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 		return epc;
 	}
 
+	/**
+	 * @param pos The position within this element's capture
+	 * @return All children of this element's capture that overlap the given point
+	 */
 	public Iterable<? extends MuisElementCapture> getChildrenAt(final Point pos) {
 		return new Iterable<MuisElementCapture>() {
 			@Override
@@ -256,7 +316,25 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 		};
 	}
 
+	/**
+	 * @param child The child whose coordinates the given point is in
+	 * @param pos The point to convert
+	 * @return The given point, in this capture's coordinates, never null.
+	 */
+	protected Point getParentIntersection(MuisElementCapture child, Point pos) {
+		if(theTransformer != null)
+			return theTransformer.getParentPosition(this, child, pos);
+		return new Point(pos.x + theX, pos.y + theY);
+	}
+
+	/**
+	 * @param child The child to test
+	 * @param pos The position in this element capture's coordinates to test
+	 * @return The given position in the child's coordinate system, or null if the child does not overlap the given position
+	 */
 	protected Point getChildIntersection(MuisElementCapture child, Point pos) {
+		if(theTransformer != null)
+			return theTransformer.getChildPosition(this, child, pos);
 		int relX = pos.x - child.getX();
 		int relY = pos.y - child.getY();
 		if(relX >= 0 && relY >= 0 && relX < child.getWidth() && relY < child.getHeight())
@@ -264,6 +342,11 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 		return null;
 	}
 
+	/**
+	 * @param parent The parent capture for the new capture
+	 * @param pos The position for the new capture
+	 * @return The element position capture
+	 */
 	protected MuisEventPositionCapture createCapture(MuisEventPositionCapture parent, Point pos) {
 		return new MuisEventPositionCapture(parent, getElement(), theX, theY, theZ, theWidth, theHeight, pos.x, pos.y);
 	}

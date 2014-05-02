@@ -821,6 +821,7 @@ public abstract class MuisElement implements MuisParseEnv {
 			MuisElementCapture ret = createCapture(cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height);
 			for(MuisElementCapture childBound : paintChildren(graphics, area)) {
 				childBound.setParent(ret);
+				childBound.seal();
 				ret.addChild(childBound);
 			}
 			return ret;

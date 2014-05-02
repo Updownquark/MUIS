@@ -19,11 +19,13 @@ public class Transform extends MuisTemplate {
 	/** The attribute allowing the user to rotate this widget's contents. In clockwise degrees. */
 	public static final MuisAttribute<Double> rotate = new MuisAttribute<>("rotate", MuisProperty.floatAttr);
 
+	/** Creates a transform widget */
 	public Transform() {
 	}
 
 	@Override
 	public void doLayout() {
+		super.doLayout();
 	}
 
 	@Override
@@ -40,8 +42,9 @@ public class Transform extends MuisTemplate {
 
 	@Override
 	protected MuisElementCapture createCapture(int x, int y, int z, int w, int h) {
-		// TODO Auto-generated method stub
-		return super.createCapture(x, y, z, w, h);
+		Double rotation = atts().get(rotate);
+		return new MuisElementCapture(null, this, new TransformTransformer(atts().get(reflect), rotation == null ? 0 : rotation), x, y, z,
+			w, h);
 	}
 
 	@Override
@@ -50,34 +53,41 @@ public class Transform extends MuisTemplate {
 		return super.paintChildren(graphics, area);
 	}
 
-	public static class TransformElementCapture extends MuisElementCapture {
+	/** Applies a transform to {@link MuisElementCapture}s */
+	public static class TransformTransformer implements org.muis.core.MuisElementCapture.Transformer {
 		private final Orientation theReflection;
 
 		private final double theRotation;
 
-		public TransformElementCapture(MuisElementCapture p, MuisElement el, int xPos, int yPos, int zIndex, int w, int h,
-			Orientation reflect, double rotate) {
-			super(p, el, xPos, yPos, zIndex, w, h);
-			theReflection = reflect;
-			theRotation = rotate;
+		/**
+		 * @param reflection The reflection for this transformer to apply. May be null.
+		 * @param rotation The rotation, in clockwise degrees, for this transformer to apply
+		 */
+		public TransformTransformer(Orientation reflection, double rotation) {
+			theReflection = reflection;
+			theRotation = rotation;
+		}
+
+		/** @return The orientation that this transformer applies. May be null. */
+		public Orientation getReflection() {
+			return theReflection;
+		}
+
+		/** @return The rotation (in clockwise degrees) that this transformer applies */
+		public double getRotation() {
+			return theRotation;
 		}
 
 		@Override
-		public Point getDocLocation() {
+		public Point getChildPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
 			// TODO Auto-generated method stub
-			return super.getDocLocation();
+			return null;
 		}
 
 		@Override
-		protected TransformElementCapture clone() {
-			return (TransformElementCapture) super.clone();
+		public Point getParentPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
+			// TODO Auto-generated method stub
+			return null;
 		}
-	}
-
-	public static final class TransformEventPositionCapture extends MuisEventPositionCapture {
-		private final Orientation theReflection;
-
-		private final double theRotation;
-
 	}
 }

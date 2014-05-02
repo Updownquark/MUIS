@@ -1,6 +1,5 @@
 package org.muis.core;
 
-import java.awt.Point;
 import java.util.List;
 
 /** Contains extra information pertaining to the location of a positioned event over the document */
@@ -35,17 +34,6 @@ public class MuisEventPositionCapture extends MuisElementCapture {
 	/** @return The y-coordinate of the positioned event relative to this element */
 	public int getEventY() {
 		return theEventY;
-	}
-
-	public boolean isClickThrough(Point pos) {
-		if(!getElement().isClickThrough(pos.x, pos.y))
-			return false;
-		for(MuisEventPositionCapture child : getChildren()) {
-			Point childPos = getChildIntersection(child, pos);
-			if(!child.isClickThrough(childPos))
-				return false;
-		}
-		return true;
 	}
 
 	@Override

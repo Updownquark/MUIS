@@ -3,8 +3,12 @@ package org.muis.base.widget;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
 
 import org.muis.core.*;
+import org.muis.core.event.AttributeChangedEvent;
+import org.muis.core.event.MuisEventListener;
+import org.muis.core.layout.LayoutGuideType;
 import org.muis.core.layout.Orientation;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.tags.Template;
@@ -13,59 +17,237 @@ import org.muis.core.tags.Template;
 @Template(location = "../../../../simple-container.muis")
 public class Transform extends MuisTemplate {
 	/** The attribute allowing the user to reflect this widget's contents across either the x or the y axis */
-	public static final MuisAttribute<Orientation> reflect = new MuisAttribute<>("reflect", new MuisProperty.MuisEnumProperty<>(
-		Orientation.class));
+	public static final MuisAttribute<Orientation> flip = new MuisAttribute<>("flip",
+		new MuisProperty.MuisEnumProperty<>(Orientation.class));
 
 	/** The attribute allowing the user to rotate this widget's contents. In clockwise degrees. */
 	public static final MuisAttribute<Double> rotate = new MuisAttribute<>("rotate", MuisProperty.floatAttr);
 
+	/** The attribute allowing the user to scale this widget's contents */
+	public static final MuisAttribute<Double> scale = new MuisAttribute<>("scale", MuisProperty.floatAttr);
+
+	/** The attribute allowing the user to scale this widget's contents' width */
+	public static final MuisAttribute<Double> scaleX = new MuisAttribute<>("scale-x", MuisProperty.floatAttr);
+
+	/** The attribute allowing the user to scale this widget's contents' height */
+	public static final MuisAttribute<Double> scaleY = new MuisAttribute<>("scale-y", MuisProperty.floatAttr);
+
 	/** Creates a transform widget */
 	public Transform() {
+		life().runWhen(new Runnable() {
+			@Override
+			public void run() {
+				atts().accept(this, flip);
+				atts().accept(this, rotate);
+				events().listen(AttributeChangedEvent.att(flip), new MuisEventListener<AttributeChangedEvent<Orientation>>() {
+					@Override
+					public void eventOccurred(AttributeChangedEvent<Orientation> event) {
+						events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
+						relayout(false);
+					}
+				});
+				events().listen(AttributeChangedEvent.att(rotate), new MuisEventListener<AttributeChangedEvent<Double>>() {
+					@Override
+					public void eventOccurred(AttributeChangedEvent<Double> event) {
+						events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
+						relayout(false);
+					}
+				});
+			}
+		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
+	}
+
+	/** @return This widget's contents block */
+	public Block getContents() {
+		return (Block) getElement(getTemplate().getAttachPoint("contents"));
 	}
 
 	@Override
 	public void doLayout() {
+		// TODO
 		super.doLayout();
 	}
 
 	@Override
 	public SizeGuide getWSizer() {
-		// TODO Auto-generated method stub
-		return super.getWSizer();
+		return getSizer(Orientation.horizontal);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
-		// TODO Auto-generated method stub
-		return super.getHSizer();
+		return getSizer(Orientation.vertical);
+	}
+
+	private SizeGuide getSizer(Orientation orientation) {
+		Block contents = getContents();
+		Double rotation = atts().get(rotate);
+		Double s = atts().get(scale);
+		Double sx = atts().get(scaleX);
+		Double sy = atts().get(scaleY);
+		double sxv = sx != null ? sx : (s != null ? s : 1);
+		double syv = sy != null ? sx : (s != null ? s : 1);
+		return new TransformingSizeGuide(rotation == null ? 0 : rotation, sxv, syv, contents.getWSizer(), contents.getHSizer(),
+			orientation);
 	}
 
 	@Override
 	protected MuisElementCapture createCapture(int x, int y, int z, int w, int h) {
 		Double rotation = atts().get(rotate);
-		return new MuisElementCapture(null, this, new TransformTransformer(atts().get(reflect), rotation == null ? 0 : rotation), x, y, z,
-			w, h);
+		Double s = atts().get(scale);
+		Double sx = atts().get(scaleX);
+		Double sy = atts().get(scaleY);
+		double sxv = sx != null ? sx : (s != null ? s : 1);
+		double syv = sy != null ? sx : (s != null ? s : 1);
+		return new MuisElementCapture(null, this, new TransformTransformer(atts().get(flip), rotation == null ? 0 : rotation, sxv, syv), x,
+			y, z, w, h);
 	}
 
 	@Override
 	public MuisElementCapture [] paintChildren(Graphics2D graphics, Rectangle area) {
-		// TODO Auto-generated method stub
-		return super.paintChildren(graphics, area);
+		Block content = getContents();
+		Orientation reflection = atts().get(flip);
+		Double rotation = atts().get(rotate);
+		Double s = atts().get(scale);
+		Double sx = atts().get(scaleX);
+		Double sy = atts().get(scaleY);
+		double sxv = sx != null ? sx : (s != null ? s : 1);
+		double syv = sy != null ? sx : (s != null ? s : 1);
+		AffineTransform tx = new AffineTransform();
+		boolean isTransformed = false;
+		if(reflection != null) {
+			isTransformed = true;
+			switch (reflection) {
+			case horizontal:
+				// Flip the contents horizontally
+				tx.scale(-1, 1);
+				tx.translate(-content.bounds().getWidth(), 0);
+				break;
+			case vertical:
+				// Flip the contents vertically
+				tx.scale(1, -1);
+				tx.translate(0, -content.bounds().getHeight());
+				graphics.transform(tx);
+				break;
+			}
+		}
+		if(sxv != 1 || syv != 1) {
+			isTransformed = true;
+			tx.scale(sxv, syv);
+		}
+		if(rotation != null && rotation != 0) {
+			isTransformed = true;
+			tx.rotate(-(rotation / 180 * Math.PI));
+		}
+
+		AffineTransform pre = null;
+		if(isTransformed) {
+			pre = graphics.getTransform();
+			graphics.transform(tx);
+		}
+		try {
+			return super.paintChildren(graphics, area);
+		} finally {
+			if(isTransformed)
+				graphics.setTransform(pre);
+		}
+	}
+
+	/** Transform's content's size guides */
+	public static class TransformingSizeGuide implements SizeGuide {
+		private final double theRotation;
+		private final double theScaleX;
+		private final double theScaleY;
+
+		private final SizeGuide theWSizer;
+		private final SizeGuide theHSizer;
+
+		/**
+		 * @param rotation The rotation, in clockwise degrees, for this transformer to apply
+		 * @param sX The scale factor in the x-direction
+		 * @param sY The scale factor in the y-direction
+		 * @param wSizer The width sizer to transform
+		 * @param hSizer The height sizer to transform
+		 * @param orientation The orientation for this size guide
+		 */
+		public TransformingSizeGuide(double rotation, double sX, double sY, SizeGuide wSizer, SizeGuide hSizer,
+			Orientation orientation) {
+			theRotation = rotation;
+			theScaleX = sX;
+			theScaleY = sY;
+			theWSizer = wSizer;
+			theHSizer = hSizer;
+		}
+
+		/** @return The rotation (in clockwise degrees) that this transformer applies */
+		public double getRotation() {
+			return theRotation;
+		}
+
+		/** @return The scale factor in the x-direction that this transformer applies */
+		public double getScaleX() {
+			return theScaleX;
+		}
+
+		/** @return The scale factor in the y-direction that this transformer applies */
+		public double getScaleY() {
+			return theScaleY;
+		}
+
+		@Override
+		public int getMin(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.min, crossSize, csMax);
+		}
+
+		@Override
+		public int getMinPreferred(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.minPref, crossSize, csMax);
+		}
+
+		@Override
+		public int getPreferred(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.pref, crossSize, csMax);
+		}
+
+		@Override
+		public int getMaxPreferred(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.maxPref, crossSize, csMax);
+		}
+
+		@Override
+		public int getMax(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.max, crossSize, csMax);
+		}
+
+		@Override
+		public int getBaseline(int size) {
+			return 0;
+		}
+
+		@Override
+		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			// TODO
+			return 0;
+		}
 	}
 
 	/** Applies a transform to {@link MuisElementCapture}s */
 	public static class TransformTransformer implements org.muis.core.MuisElementCapture.Transformer {
 		private final Orientation theReflection;
-
 		private final double theRotation;
+		private final double theScaleX;
+		private final double theScaleY;
 
 		/**
 		 * @param reflection The reflection for this transformer to apply. May be null.
 		 * @param rotation The rotation, in clockwise degrees, for this transformer to apply
+		 * @param sX The scale factor in the x-direction
+		 * @param sY The scale factor in the y-direction
 		 */
-		public TransformTransformer(Orientation reflection, double rotation) {
+		public TransformTransformer(Orientation reflection, double rotation, double sX, double sY) {
 			theReflection = reflection;
 			theRotation = rotation;
+			theScaleX = sX;
+			theScaleY = sY;
 		}
 
 		/** @return The orientation that this transformer applies. May be null. */
@@ -78,15 +260,25 @@ public class Transform extends MuisTemplate {
 			return theRotation;
 		}
 
+		/** @return The scale factor in the x-direction that this transformer applies */
+		public double getScaleX() {
+			return theScaleX;
+		}
+
+		/** @return The scale factor in the y-direction that this transformer applies */
+		public double getScaleY() {
+			return theScaleY;
+		}
+
 		@Override
 		public Point getChildPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
-			// TODO Auto-generated method stub
+			// TODO
 			return null;
 		}
 
 		@Override
 		public Point getParentPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
-			// TODO Auto-generated method stub
+			// TODO
 			return null;
 		}
 	}

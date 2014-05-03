@@ -134,7 +134,8 @@ public class Transform extends MuisTemplate {
 			double sin = Math.sin(radians);
 			double cos = Math.cos(radians);
 			final int oldX = p.x, oldY = p.y;
-			// TODO
+			p.x = (int) Math.round(cos * oldX - sin * oldY);
+			p.y = (int) Math.round(sin * oldX + cos * oldY);
 		}
 	}
 

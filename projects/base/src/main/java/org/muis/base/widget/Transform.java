@@ -64,7 +64,49 @@ public class Transform extends MuisTemplate {
 
 	@Override
 	public void doLayout() {
-		// TODO
+		Block contents = getContents();
+		double rotation = normalize(atts().get(rotate));
+		Double s = atts().get(scale);
+		Double sx = atts().get(scaleX);
+		Double sy = atts().get(scaleY);
+		double sxv = sx != null ? sx : (s != null ? s : 1);
+		double syv = sy != null ? sx : (s != null ? s : 1);
+
+		int pw = bounds().getWidth();
+		int ph = bounds().getHeight();
+		int x, y;
+		int cw, ch;
+		if(rotation == 0.0) {
+			x = y = 0;
+			cw = pw;
+			ch = ph;
+		} else if(rotation == 90.0) {
+			x = pw;
+			y = 0;
+			cw = ph;
+			ch = pw;
+		} else if(rotation == 180.0) {
+			x = pw;
+			y = ph;
+			cw = pw;
+			ch = ph;
+		} else if(rotation == 270.0) {
+			x = 0;
+			y = ph;
+			cw = ph;
+			ch = pw;
+		} else {
+			x = y = cw = ch = 0;
+			// TODO
+		}
+
+		if(sxv != 1.0)
+			cw = (int) Math.round(cw * sxv);
+		if(syv != 1.0)
+			ch = (int) Math.round(ch * syv);
+
+		contents.bounds().setBounds(x, y, cw, ch);
+
 		super.doLayout();
 	}
 
@@ -130,7 +172,7 @@ public class Transform extends MuisTemplate {
 			p.x = oldY;
 			p.y = h - oldX;
 		} else {
-			double radians = rotation / 180.0 * Math.PI;
+			double radians = -rotation / 180.0 * Math.PI;
 			double sin = Math.sin(radians);
 			double cos = Math.cos(radians);
 			final int oldX = p.x, oldY = p.y;
@@ -198,6 +240,8 @@ public class Transform extends MuisTemplate {
 		private final SizeGuide theWSizer;
 		private final SizeGuide theHSizer;
 
+		private final Orientation theOrientation;
+
 		/**
 		 * @param rotation The rotation, in clockwise degrees, for this transformer to apply
 		 * @param sX The scale factor in the x-direction
@@ -213,6 +257,7 @@ public class Transform extends MuisTemplate {
 			theScaleY = sY;
 			theWSizer = wSizer;
 			theHSizer = hSizer;
+			theOrientation = orientation;
 		}
 
 		/** @return The rotation (in clockwise degrees) that this transformer applies */
@@ -262,8 +307,21 @@ public class Transform extends MuisTemplate {
 
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-			// TODO
-			return 0;
+			boolean vertical = theOrientation == Orientation.vertical;
+			int ret;
+			if(theRotation == 0.0 || theRotation == 180.0) {
+				ret = (vertical ? theHSizer : theWSizer).get(type, crossSize, csMax);
+				if((vertical ? theScaleY : theScaleX) != 1.0)
+					ret *= vertical ? theScaleY : theScaleX;
+			} else if(theRotation == 90.0 || theRotation == 270.0) {
+				ret = (vertical ? theWSizer : theHSizer).get(type, crossSize, csMax);
+				if((vertical ? theScaleX : theScaleY) != 1.0)
+					ret *= vertical ? theScaleX : theScaleY;
+			} else {
+				// TODO
+				ret = 0;
+			}
+			return ret;
 		}
 	}
 

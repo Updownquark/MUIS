@@ -24,12 +24,8 @@ public class LayoutContainer extends MuisElement {
 	@Override
 	public org.muis.core.mgr.ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
 		org.muis.core.mgr.ElementList<? extends MuisElement> ret = super.initChildren(children);
-		events().listen(AttributeChangedEvent.att(LAYOUT_ATTR),
-			new org.muis.core.event.MuisEventListener<AttributeChangedEvent<MuisLayout>>() {
-			@Override
-				public void eventOccurred(AttributeChangedEvent<MuisLayout> event) {
-					setLayout(event.getValue());
-			}
+		events().listen(AttributeChangedEvent.att(LAYOUT_ATTR), (AttributeChangedEvent<MuisLayout> event) -> {
+			setLayout(event.getValue());
 		});
 		setLayout(atts().get(LAYOUT_ATTR));
 		return ret;

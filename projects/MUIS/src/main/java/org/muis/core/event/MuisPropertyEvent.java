@@ -10,12 +10,8 @@ import org.muis.core.event.boole.TypedPredicate;
  */
 public abstract class MuisPropertyEvent<T> implements MuisEvent {
 	/** Filters for property events */
-	public static final TypedPredicate<MuisEvent, MuisPropertyEvent<?>> base = new TypedPredicate<MuisEvent, MuisPropertyEvent<?>>() {
-		@Override
-		public MuisPropertyEvent<?> cast(MuisEvent value) {
-			return value instanceof MuisPropertyEvent && !((MuisPropertyEvent<?>) value).isOverridden() ? (MuisPropertyEvent<?>) value
-				: null;
-		}
+	public static final TypedPredicate<MuisEvent, MuisPropertyEvent<?>> base = value -> {
+		return value instanceof MuisPropertyEvent && !((MuisPropertyEvent<?>) value).isOverridden() ? (MuisPropertyEvent<?>) value : null;
 	};
 
 	private final MuisElement theElement;

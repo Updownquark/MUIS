@@ -11,11 +11,8 @@ import org.muis.core.event.boole.TypedPredicate;
 public class PositionedUserEventCondition<E extends PositionedUserEvent> extends UserEventCondition<E> {
 	/** Filters all {@link PositionedUserEvent}s */
 	@SuppressWarnings("hiding")
-	protected static TypedPredicate<MuisEvent, PositionedUserEvent> base = new TypedPredicate<MuisEvent, PositionedUserEvent>() {
-		@Override
-		public PositionedUserEvent cast(MuisEvent value) {
-			return value instanceof PositionedUserEvent ? (PositionedUserEvent) value : null;
-		}
+	protected static TypedPredicate<MuisEvent, PositionedUserEvent> base = value -> {
+		return value instanceof PositionedUserEvent ? (PositionedUserEvent) value : null;
 	};
 
 	/** Filters all {@link UserEvent#isUsed() unused} {@link PositionedUserEvent}s */

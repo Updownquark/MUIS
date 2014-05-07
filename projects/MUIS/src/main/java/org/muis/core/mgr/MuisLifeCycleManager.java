@@ -44,11 +44,8 @@ public class MuisLifeCycleManager {
 		theStages = initStages;
 		theLifeCycleListeners = new LifeCycleListener[0];
 		theListenerLock = new Object();
-		acceptor.setController(new Controller() {
-			@Override
-			public void advance(String toStage) {
-				advanceLifeCycle(toStage);
-			}
+		acceptor.setController(toStage -> {
+			advanceLifeCycle(toStage);
 		});
 	}
 

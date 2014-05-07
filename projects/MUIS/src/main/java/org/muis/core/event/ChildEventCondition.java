@@ -13,11 +13,8 @@ import org.muis.core.event.boole.TypedPredicate;
 /** Allows advanced filtering on {@link ChildEvent}s */
 public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Cloneable {
 	/** Filters events of this type */
-	public static final TypedPredicate<MuisEvent, ChildEvent> base = new TypedPredicate<MuisEvent, ChildEvent>() {
-		@Override
-		public ChildEvent cast(MuisEvent value) {
-			return value instanceof ChildEvent ? (ChildEvent) value : null;
-		}
+	public static final TypedPredicate<MuisEvent, ChildEvent> base = value -> {
+		return value instanceof ChildEvent ? (ChildEvent) value : null;
 	};
 
 	/** Filters {@link ChildEvent}s based on their {@link ChildEvent#getType() type} */

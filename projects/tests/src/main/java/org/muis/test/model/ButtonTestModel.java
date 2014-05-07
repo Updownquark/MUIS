@@ -2,7 +2,6 @@ package org.muis.test.model;
 
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
-import org.muis.core.model.MuisModelValueEvent;
 import org.muis.core.style.BackgroundStyle;
 
 /** A simple MUIS model for the button test */
@@ -14,17 +13,14 @@ public class ButtonTestModel {
 	/** Creates the test model */
 	public ButtonTestModel() {
 		theColorGroup = new org.muis.base.model.MuisButtonGroup();
-		theColorGroup.addListener(new org.muis.core.model.MuisModelValueListener<String>() {
-			@Override
-			public void valueChanged(MuisModelValueEvent<? extends String> evt) {
-				if(evt.getUserEvent() == null)
-					return;
-				try {
-					evt.getUserEvent().getDocument().getRoot().getStyle().getSelf()
-						.set(BackgroundStyle.color, org.muis.core.style.Colors.parseColor(theColorGroup.get()));
-				} catch(ClassCastException | IllegalArgumentException | MuisException e) {
-					e.printStackTrace();
-				}
+		theColorGroup.addListener(evt -> {
+			if(evt.getUserEvent() == null)
+				return;
+			try {
+				evt.getUserEvent().getDocument().getRoot().getStyle().getSelf()
+					.set(BackgroundStyle.color, org.muis.core.style.Colors.parseColor(theColorGroup.get()));
+			} catch(ClassCastException | IllegalArgumentException | MuisException e) {
+				e.printStackTrace();
 			}
 		});
 	}

@@ -3,8 +3,7 @@ package org.muis.core;
 import org.muis.core.layout.SizeGuide;
 
 /** Manages the position and size of children in a container */
-public interface MuisLayout
-{
+public interface MuisLayout {
 	/**
 	 * Allows the layout to see the children it may be laying out before they are initialized. This allows the layout to do things such as
 	 * install allowed and required attribute templates that may be needed for instructions on where each widget goes.

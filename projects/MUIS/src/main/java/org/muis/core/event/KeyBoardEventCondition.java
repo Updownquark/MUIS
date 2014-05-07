@@ -7,11 +7,8 @@ import org.muis.core.event.boole.TypedPredicate;
 public class KeyBoardEventCondition extends UserEventCondition<KeyBoardEvent> {
 	/** Filters all {@link KeyBoardEvent}s */
 	@SuppressWarnings("hiding")
-	public static TypedPredicate<MuisEvent, KeyBoardEvent> base = new TypedPredicate<MuisEvent, KeyBoardEvent>() {
-		@Override
-		public KeyBoardEvent cast(MuisEvent value) {
-			return value instanceof KeyBoardEvent ? (KeyBoardEvent) value : null;
-		}
+	public static TypedPredicate<MuisEvent, KeyBoardEvent> base = value -> {
+		return value instanceof KeyBoardEvent ? (KeyBoardEvent) value : null;
 	};
 
 	/** Filters {@link KeyBoardEvent}s based on their {@link KeyBoardEvent#wasPressed() pressed} attribute */

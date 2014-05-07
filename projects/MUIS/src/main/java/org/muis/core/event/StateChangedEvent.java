@@ -8,11 +8,8 @@ import org.muis.core.mgr.MuisState;
 public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	/** Filters events of this type */
 	@SuppressWarnings("hiding")
-	public static final TypedPredicate<MuisEvent, StateChangedEvent> base = new TypedPredicate<MuisEvent, StateChangedEvent>() {
-		@Override
-		public StateChangedEvent cast(MuisEvent value) {
-			return value instanceof StateChangedEvent ? (StateChangedEvent) value : null;
-		}
+	public static final TypedPredicate<MuisEvent, StateChangedEvent> base = value -> {
+		return value instanceof StateChangedEvent ? (StateChangedEvent) value : null;
 	};
 
 	/** A filter for state change events on a particular state */

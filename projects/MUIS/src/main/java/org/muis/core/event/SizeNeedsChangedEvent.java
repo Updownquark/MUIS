@@ -8,11 +8,8 @@ import org.muis.core.event.boole.TypedPredicate;
  */
 public class SizeNeedsChangedEvent implements MuisEvent {
 	/** Filters for this type of event */
-	public static final TypedPredicate<MuisEvent, SizeNeedsChangedEvent> sizeNeeds = new TypedPredicate<MuisEvent, SizeNeedsChangedEvent>() {
-		@Override
-		public SizeNeedsChangedEvent cast(MuisEvent value) {
-			return value instanceof SizeNeedsChangedEvent ? (SizeNeedsChangedEvent) value : null;
-		}
+	public static final TypedPredicate<MuisEvent, SizeNeedsChangedEvent> sizeNeeds = value -> {
+		return value instanceof SizeNeedsChangedEvent ? (SizeNeedsChangedEvent) value : null;
 	};
 
 	private final MuisElement theElement;

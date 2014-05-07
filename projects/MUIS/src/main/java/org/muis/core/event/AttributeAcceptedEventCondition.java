@@ -6,11 +6,8 @@ import org.muis.core.event.boole.TypedPredicate;
 /** Allows advanced filtering on {@link AttributeAcceptedEvent}s */
 public class AttributeAcceptedEventCondition implements MuisEventCondition<AttributeAcceptedEvent> {
 	/** Filters all {@link AttributeAcceptedEvent}s */
-	public static final TypedPredicate<MuisEvent, AttributeAcceptedEvent> base = new TypedPredicate<MuisEvent, AttributeAcceptedEvent>() {
-		@Override
-		public AttributeAcceptedEvent cast(MuisEvent value) {
-			return value instanceof AttributeAcceptedEvent ? (AttributeAcceptedEvent) value : null;
-		}
+	public static final TypedPredicate<MuisEvent, AttributeAcceptedEvent> base = value -> {
+		return value instanceof AttributeAcceptedEvent ? (AttributeAcceptedEvent) value : null;
 	};
 
 	/** Filters {@link AttributeAcceptedEvent}s on their {@link AttributeAcceptedEvent#isAccepted() accepted} attribute */

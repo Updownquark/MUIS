@@ -42,11 +42,8 @@ public class MuisBrowser extends javax.swing.JPanel {
 				goToAddress(theAddressBar.getText());
 			}
 		});
-		theMessageListener = new org.muis.core.mgr.MuisMessageCenter.MuisMessageListener() {
-			@Override
-			public void messageReceived(MuisMessage msg) {
-				printMessage(msg);
-			}
+		theMessageListener = msg -> {
+			printMessage(msg);
 		};
 	}
 

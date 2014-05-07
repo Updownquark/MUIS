@@ -15,11 +15,8 @@ import org.muis.core.event.boole.TypedPredicate;
 public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent> {
 	/** Filters all {@link MouseEvent}s */
 	@SuppressWarnings("hiding")
-	public static TypedPredicate<MuisEvent, MouseEvent> base = new TypedPredicate<MuisEvent, MouseEvent>() {
-		@Override
-		public MouseEvent cast(MuisEvent value) {
-			return value instanceof MouseEvent ? (MouseEvent) value : null;
-		}
+	public static TypedPredicate<MuisEvent, MouseEvent> base = value -> {
+		return value instanceof MouseEvent ? (MouseEvent) value : null;
 	};
 
 	/** Filters mouse events that have not been {@link UserEvent#use() used} */

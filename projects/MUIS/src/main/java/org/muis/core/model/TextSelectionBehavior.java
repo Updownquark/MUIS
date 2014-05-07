@@ -131,17 +131,11 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		theElement = element;
 		element.events().listen(MouseEvent.mouse, theMouseListener);
 		element.events().listen(KeyBoardEvent.key.press(), theKeyListener);
-		element.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
-			@Override
-			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-				theCursorXLoc = -1;
-			}
+		element.getDocumentModel().addContentListener(evt -> {
+			theCursorXLoc = -1;
 		});
-		element.addTextSelectionListener(new SelectableDocumentModel.SelectionListener() {
-			@Override
-			public void selectionChanged(SelectableDocumentModel.SelectionChangeEvent evt) {
-				theCursorXLoc = -1;
-			}
+		element.addTextSelectionListener(evt -> {
+			theCursorXLoc = -1;
 		});
 	}
 

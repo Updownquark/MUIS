@@ -177,11 +177,8 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 			}
 			return ret;
 		} else {
-			return new Iterable<StyledSequenceMetric>() {
-				@Override
-				public Iterator<StyledSequenceMetric> iterator() {
-					return new MetricsIterator(iterateFrom(start).iterator(), breakWidth);
-				}
+			return () -> {
+				return new MetricsIterator(iterateFrom(start).iterator(), breakWidth);
 			};
 		}
 	}

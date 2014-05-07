@@ -9,9 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
-import org.muis.core.style.stateful.StateChangedEvent;
 import org.muis.util.Transaction;
 
 import prisms.util.ArrayUtils;
@@ -44,40 +42,34 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
 		 * correctly because the cache may have the old color/size/etc */
-		theNormalStyle.addListener(new org.muis.core.style.StyleListener() {
-			@Override
-			public void eventOccurred(StyleAttributeEvent<?> event) {
-				int minSel = theCursor;
-				int maxSel = theCursor;
-				if(theSelectionAnchor < minSel)
-					minSel = theSelectionAnchor;
-				if(theSelectionAnchor > maxSel)
-					maxSel = theSelectionAnchor;
-				if(minSel == 0 && maxSel == length()) {
-					return; // No unselected text
-				}
-				clearCache();
-				int evtStart = minSel == 0 ? maxSel : 0;
-				int evtEnd = maxSel == length() ? minSel : length();
-				fireStyleEvent(evtStart, evtEnd);
+		theNormalStyle.addListener(event-> {
+			int minSel = theCursor;
+			int maxSel = theCursor;
+			if(theSelectionAnchor < minSel)
+				minSel = theSelectionAnchor;
+			if(theSelectionAnchor > maxSel)
+				maxSel = theSelectionAnchor;
+			if(minSel == 0 && maxSel == length()) {
+				return; // No unselected text
 			}
+			clearCache();
+			int evtStart = minSel == 0 ? maxSel : 0;
+			int evtEnd = maxSel == length() ? minSel : length();
+			fireStyleEvent(evtStart, evtEnd);
 		});
-		theSelectedStyle.addListener(new org.muis.core.style.StyleListener() {
-			@Override
-			public void eventOccurred(StyleAttributeEvent<?> event) {
-				if(theCursor == theSelectionAnchor) {
-					return; // No selected text
-				}
-				clearCache();
-				int evtStart = theSelectionAnchor;
-				int evtEnd = theCursor;
-				if(evtStart > evtEnd) {
-					int temp = evtStart;
-					evtStart = evtEnd;
-					evtEnd = temp;
-				}
-				fireStyleEvent(evtStart, evtEnd);
+		theSelectedStyle.addListener(event-> {
+			if(theCursor == theSelectionAnchor) {
+				return; // No selected text
 			}
+			clearCache();
+			int evtStart = theSelectionAnchor;
+			int evtEnd = theCursor;
+			if(evtStart > evtEnd) {
+				int temp = evtStart;
+				evtStart = evtEnd;
+				evtEnd = temp;
+			}
+			fireStyleEvent(evtStart, evtEnd);
 		});
 	}
 
@@ -800,11 +792,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
 			addDependency(parent);
 			// TODO Not 100% sure I need this listener--maybe the dependency handles it automatically but I don't think so
-			parent.addStateChangeListener(new org.muis.core.style.stateful.StateChangeListener() {
-				@Override
-				public void stateChanged(StateChangedEvent evt) {
-					setState(selected ? prisms.util.ArrayUtils.add(evt.getNewState(), TEXT_SELECTION) : evt.getNewState());
-				}
+			parent.addStateChangeListener(evt -> {
+				setState(selected ? prisms.util.ArrayUtils.add(evt.getNewState(), TEXT_SELECTION) : evt.getNewState());
 			});
 			setState(selected ? prisms.util.ArrayUtils.add(parent.getState(), TEXT_SELECTION) : parent.getState());
 		}

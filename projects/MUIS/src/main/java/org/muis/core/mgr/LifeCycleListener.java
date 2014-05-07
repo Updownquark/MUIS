@@ -1,8 +1,7 @@
 package org.muis.core.mgr;
 
 /** A listener to be notified when the life cycle of an element transitions to a new stage */
-public interface LifeCycleListener
-{
+public interface LifeCycleListener {
 	/**
 	 * @param fromStage The stage that is being concluded and transitioned out of
 	 * @param toStage The stage to be transitioned into

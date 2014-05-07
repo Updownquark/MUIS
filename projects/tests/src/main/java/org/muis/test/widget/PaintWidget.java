@@ -19,11 +19,8 @@ public class PaintWidget extends org.muis.base.widget.Block {
 	/** Creates a PaintWidget */
 	public PaintWidget() {
 		setFocusable(true);
-		events().listen(BoundsChangedEvent.bounds, new MuisEventListener<BoundsChangedEvent>() {
-			@Override
-			public void eventOccurred(BoundsChangedEvent event) {
-				resized();
-			}
+		events().listen(BoundsChangedEvent.bounds, (BoundsChangedEvent event) -> {
+			resized();
 		}).listen(MouseEvent.mouse, new MuisEventListener<MouseEvent>() {
 			private boolean isMouseDown;
 
@@ -63,18 +60,15 @@ public class PaintWidget extends org.muis.base.widget.Block {
 					repaint(new Rectangle(pos.x, pos.y, 1, 1), true);
 				}
 			}
-		}).listen(KeyBoardEvent.key.press(), new MuisEventListener<KeyBoardEvent>() {
-			@Override
-			public void eventOccurred(KeyBoardEvent event) {
-				if(event.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {
-					for(int x = 0; x < theImage.getWidth(); x++) {
-						for(int y = 0; y < theImage.getHeight(); y++) {
-							theImage.setRGB(x, y, 0);
-						}
+		}).listen(KeyBoardEvent.key.press(), (KeyBoardEvent event) -> {
+			if(event.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {
+				for(int x = 0; x < theImage.getWidth(); x++) {
+					for(int y = 0; y < theImage.getHeight(); y++) {
+						theImage.setRGB(x, y, 0);
 					}
 				}
-				repaint(null, true);
 			}
+			repaint(null, true);
 		});
 	}
 

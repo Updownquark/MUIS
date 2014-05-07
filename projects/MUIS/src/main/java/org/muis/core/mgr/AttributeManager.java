@@ -267,11 +267,8 @@ public class AttributeManager {
 		theAttributesByName = new ConcurrentHashMap<>();
 		theRawAttributes = new ConcurrentHashMap<>();
 		theElement = element;
-		theElement.life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				setReady();
-			}
+		theElement.life().runWhen(() -> {
+			setReady();
 		}, MuisConstants.CoreStage.STARTUP.toString(), 0);
 	}
 
@@ -601,76 +598,70 @@ public class AttributeManager {
 
 	/** @return An iterable to iterate through all accepted attributes in this manager */
 	public Iterable<MuisAttribute<?>> attributes() {
-		return new Iterable<MuisAttribute<?>>() {
-			@Override
-			public Iterator<MuisAttribute<?>> iterator() {
-				return new Iterator<MuisAttribute<?>>() {
-					private final Iterator<AttributeHolder<?>> theWrapped = holders().iterator();
+		return () -> {
+			return new Iterator<MuisAttribute<?>>() {
+				private final Iterator<AttributeHolder<?>> theWrapped = holders().iterator();
 
-					@Override
-					public boolean hasNext() {
-						return theWrapped.hasNext();
-					}
+				@Override
+				public boolean hasNext() {
+					return theWrapped.hasNext();
+				}
 
-					@Override
-					public MuisAttribute<?> next() {
-						return theWrapped.next().getAttribute();
-					}
+				@Override
+				public MuisAttribute<?> next() {
+					return theWrapped.next().getAttribute();
+				}
 
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
+				@Override
+				public void remove() {
+					throw new UnsupportedOperationException();
+				}
+			};
 		};
 	}
 
 	/** @return An iterable to iterate through the metadata of each accepted attribute in this manager */
 	public Iterable<AttributeHolder<?>> holders() {
-		return new Iterable<AttributeHolder<?>>() {
-			@Override
-			public Iterator<AttributeHolder<?>> iterator() {
-				return new Iterator<AttributeHolder<?>>() {
-					private final Iterator<AttributeHolder<?>> theWrapped = theAcceptedAttrs.values().iterator();
+		return () -> {
+			return new Iterator<AttributeHolder<?>>() {
+				private final Iterator<AttributeHolder<?>> theWrapped = theAcceptedAttrs.values().iterator();
 
-					private AttributeHolder<?> theNext;
+				private AttributeHolder<?> theNext;
 
-					private boolean calledNext = true;
+				private boolean calledNext = true;
 
-					@Override
-					public boolean hasNext() {
-						if(!calledNext)
-							return theNext != null;
-						calledNext = false;
-						theNext = null;
-						while(theNext == null) {
-							if(!theWrapped.hasNext())
-								return false;
-							theNext = theWrapped.next();
-							if(!theNext.isWanted())
-								theNext = null;
-						}
+				@Override
+				public boolean hasNext() {
+					if(!calledNext)
 						return theNext != null;
+					calledNext = false;
+					theNext = null;
+					while(theNext == null) {
+						if(!theWrapped.hasNext())
+							return false;
+						theNext = theWrapped.next();
+						if(!theNext.isWanted())
+							theNext = null;
 					}
+					return theNext != null;
+				}
 
-					@Override
-					public AttributeHolder<?> next() {
-						if(calledNext && !hasNext())
-							return theWrapped.next();
-						calledNext = true;
-						if(theNext == null)
-							return theWrapped.next();
-						else
-							return theNext;
-					}
+				@Override
+				public AttributeHolder<?> next() {
+					if(calledNext && !hasNext())
+						return theWrapped.next();
+					calledNext = true;
+					if(theNext == null)
+						return theWrapped.next();
+					else
+						return theNext;
+				}
 
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
+				@Override
+				public void remove() {
+					throw new UnsupportedOperationException();
+				}
+			};
 		};
 	}
 
@@ -717,14 +708,11 @@ public class AttributeManager {
 	@Override
 	public String toString() {
 		StringBuilder ret = new StringBuilder();
-		org.jdom2.output.EscapeStrategy strategy = new org.jdom2.output.EscapeStrategy() {
-			@Override
-			public boolean shouldEscape(char ch) {
-				if(org.jdom2.Verifier.isHighSurrogate(ch)) {
-					return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
-				}
-				return false;
+		org.jdom2.output.EscapeStrategy strategy = ch -> {
+			if(org.jdom2.Verifier.isHighSurrogate(ch)) {
+				return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
 			}
+			return false;
 		};
 		for(AttributeHolder<?> holder : holders()) {
 			if(!holder.isWanted() || holder.getValue() == null)

@@ -10,11 +10,8 @@ import org.muis.core.event.boole.TypedPredicate;
  */
 public class UserEventCondition<E extends UserEvent> implements MuisEventCondition<E>, Cloneable {
 	/** Filters all {@link UserEvent}s */
-	public static TypedPredicate<MuisEvent, UserEvent> base = new TypedPredicate<MuisEvent, UserEvent>() {
-		@Override
-		public UserEvent cast(MuisEvent value) {
-			return value instanceof UserEvent ? (UserEvent) value : null;
-		}
+	public static TypedPredicate<MuisEvent, UserEvent> base = value -> {
+		return value instanceof UserEvent ? (UserEvent) value : null;
 	};
 
 	/** Filters {@link UserEvent#isUsed() unused} {@link UserEvent}s */

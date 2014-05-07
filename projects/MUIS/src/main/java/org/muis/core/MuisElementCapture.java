@@ -353,11 +353,8 @@ public class MuisElementCapture implements Cloneable, prisms.util.Sealable {
 
 	private static java.util.List<MuisElementCapture> sortByReverseZ(java.util.List<? extends MuisElementCapture> children) {
 		java.util.ArrayList<MuisElementCapture> ret = new java.util.ArrayList<>(children);
-		java.util.Collections.sort(ret, new java.util.Comparator<MuisElementCapture>() {
-			@Override
-			public int compare(MuisElementCapture o1, MuisElementCapture o2) {
-				return o2.getZ() - o2.getZ();
-			}
+		java.util.Collections.sort(ret, (MuisElementCapture o1, MuisElementCapture o2) -> {
+			return o2.getZ() - o2.getZ();
 		});
 		return ret;
 	}

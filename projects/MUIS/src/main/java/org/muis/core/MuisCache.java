@@ -3,8 +3,7 @@ package org.muis.core;
 import java.util.ArrayList;
 
 /** Enables caching of resources in MUIS */
-public class MuisCache
-{
+public class MuisCache {
 	/**
 	 * Represents a type of item that can be cached
 	 *
@@ -12,8 +11,7 @@ public class MuisCache
 	 * @param <V> The value type for the cached item type
 	 * @param <E> The type of exception that may be thrown when this item type generates a value
 	 */
-	public interface CacheItemType<K, V, E extends Exception>
-	{
+	public interface CacheItemType<K, V, E extends Exception> {
 		/**
 		 * @param env The MUIS environment to generate the resource for
 		 * @param key The key to generate the cached value for
@@ -35,8 +33,7 @@ public class MuisCache
 	 * @param <K> The type key that the cache item is to be generated for
 	 * @param <V> The type of value to be generated for the key
 	 */
-	public interface ItemReceiver<K, V>
-	{
+	public interface ItemReceiver<K, V> {
 		/**
 		 * Called when the item becomes available in the cache
 		 *
@@ -54,8 +51,7 @@ public class MuisCache
 		public void errorOccurred(K key, Throwable exception);
 	}
 
-	private static class CacheKey<K, V, E extends Exception>
-	{
+	private static class CacheKey<K, V, E extends Exception> {
 		private CacheItemType<K, V, E> theType;
 
 		private K theKey;
@@ -68,27 +64,23 @@ public class MuisCache
 
 		final ArrayList<ItemReceiver<K, V>> theReceivers;
 
-		CacheKey(CacheItemType<K, V, E> type, K key)
-		{
+		CacheKey(CacheItemType<K, V, E> type, K key) {
 			theType = type;
 			theKey = key;
 			theReceivers = new ArrayList<>();
 			isLoading = true;
 		}
 
-		CacheItemType<K, V, E> getType()
-		{
+		CacheItemType<K, V, E> getType() {
 			return theType;
 		}
 
-		K getKey()
-		{
+		K getKey() {
 			return theKey;
 		}
 
 		@Override
-		public boolean equals(Object o)
-		{
+		public boolean equals(Object o) {
 			if(!(o instanceof CacheKey))
 				return false;
 			CacheKey<?, ?, ?> item = (CacheKey<?, ?, ?>) o;
@@ -96,8 +88,7 @@ public class MuisCache
 		}
 
 		@Override
-		public int hashCode()
-		{
+		public int hashCode() {
 			return theType.hashCode() * 13 + (theKey == null ? 0 : theKey.hashCode());
 		}
 	}
@@ -109,35 +100,31 @@ public class MuisCache
 	private prisms.arch.Worker theWorker;
 
 	/** Creates a MUIS cache */
-	public MuisCache()
-	{
-		theInternalCache = new prisms.util.DemandCache<>(
-			new prisms.util.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
-				@Override
-				public float quality(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value)
-				{
-					if(key.isLoading)
-						return 1000000000f;
-					else
-						return 1;
-				}
+	public MuisCache() {
+		theInternalCache = new prisms.util.DemandCache<>(new prisms.util.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
+			@Override
+			public float quality(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value) {
+				if(key.isLoading)
+					return 1000000000f;
+				else
+					return 1;
+			}
 
-				@Override
-				public float size(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value)
-				{
-					if(key.isLoading)
-						return 0;
-					else
-						return ((CacheKey<?, Object, ?>) key).getType().size(value.theValue);
-				}
-			}, 100000000f, 60L * 60 * 1000);
+			@Override
+			public float size(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value) {
+				if(key.isLoading)
+					return 0;
+				else
+					return ((CacheKey<?, Object, ?>) key).getType().size(value.theValue);
+			}
+		}, 100000000f, 60L * 60 * 1000);
 		theOuterLock = new Object();
 		theWorker = new prisms.impl.ThreadPoolWorker("MUIS Cache Worker", 4);
 	}
 
 	/**
 	 * Retrieves a cached item and optionally generates the item if not cached, waiting for the generation to be complete
-	 * 
+	 *
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item
@@ -148,39 +135,33 @@ public class MuisCache
 	 * @return The value cached for the given type and key
 	 * @throws E If an exception occurs generating a new cache value
 	 */
-	public <K, V, E extends Exception> V getAndWait(MuisEnvironment env, CacheItemType<K, V, E> type, K key, boolean generate) throws E
-	{
+	public <K, V, E extends Exception> V getAndWait(MuisEnvironment env, CacheItemType<K, V, E> type, K key, boolean generate) throws E {
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-		if(stored == null)
-		{
+		if(stored == null) {
 			if(!generate)
 				return null;
 			stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-			while(stored == null)
-			{ // This is in a while loop because it's remotely possible that the entry could be purged before get returns
+			while(stored == null) { // This is in a while loop because it's remotely possible that the entry could be purged before get
+									// returns
 				get(env, type, key, null);
 				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 			}
 		}
 
 		while(stored.isLoading)
-			try
-			{
+			try {
 				Thread.sleep(10);
-			} catch(InterruptedException e)
-			{
+			} catch(InterruptedException e) {
 			}
-		if(stored.theError != null)
-		{
+		if(stored.theError != null) {
 			if(stored.theError instanceof RuntimeException)
 				throw (RuntimeException) stored.theError;
 			else if(stored.theError instanceof Error)
 				throw (Error) stored.theError;
 			else
 				throw (E) stored.theError;
-		}
-		else
+		} else
 			return stored.theValue;
 	}
 
@@ -198,32 +179,26 @@ public class MuisCache
 	 * @throws E The error that occurred while generating the cache value, if the cache has already attempted to generate the item and
 	 *             failed
 	 */
-	public <K, V, E extends Exception> V get(MuisEnvironment env, CacheItemType<K, V, E> type, K key, ItemReceiver<K, V> receiver) throws E
-	{
+	public <K, V, E extends Exception> V get(MuisEnvironment env, CacheItemType<K, V, E> type, K key, ItemReceiver<K, V> receiver) throws E {
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
 		if(stored == null)
-			synchronized(theOuterLock)
-			{
+			synchronized(theOuterLock) {
 				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-				if(stored == null)
-				{
+				if(stored == null) {
 					stored = cacheKey;
 					theInternalCache.put(cacheKey, stored);
 					startGet(env, stored);
 				}
 			}
 		if(stored.isLoading && receiver != null)
-			synchronized(stored.theReceivers)
-			{
-				if(stored.isLoading)
-				{
+			synchronized(stored.theReceivers) {
+				if(stored.isLoading) {
 					stored.theReceivers.add(receiver);
 					return null;
 				}
 			}
-		if(stored.theError != null)
-		{
+		if(stored.theError != null) {
 			if(receiver != null)
 				receiver.errorOccurred(key, stored.theError);
 			if(stored.theError instanceof RuntimeException)
@@ -232,9 +207,7 @@ public class MuisCache
 				throw (Error) stored.theError;
 			else
 				throw (E) stored.theError;
-		}
-		else
-		{
+		} else {
 			if(receiver != null)
 				receiver.itemGenerated(key, stored.theValue);
 			return stored.theValue;
@@ -248,51 +221,37 @@ public class MuisCache
 	 * @param key The key of the item to remove from the cache
 	 * @return The value cached for the given type and key that was removed
 	 */
-	public <K, V> V remove(CacheItemType<K, V, ?> type, K key)
-	{
+	public <K, V> V remove(CacheItemType<K, V, ?> type, K key) {
 		CacheKey<K, V, ?> cacheKey = new CacheKey<>(type, key);
 		return (V) theInternalCache.remove(cacheKey);
 	}
 
-	private <K, V, E extends Exception> void startGet(final MuisEnvironment env, final CacheKey<K, V, E> key)
-	{
-		theWorker.run(new Runnable() {
-			@Override
-			public void run()
-			{
-				try
-				{
-					key.theValue = key.getType().generate(env, key.getKey());
-				} catch(Throwable e)
-				{
-					key.theError = e;
-				} finally
-				{
-					try
-					{
-						synchronized(key.theReceivers)
-						{
-							for(ItemReceiver<K, V> receiver : key.theReceivers)
-								if(key.theError != null)
-									receiver.errorOccurred(key.getKey(), key.theError);
-								else
-									receiver.itemGenerated(key.getKey(), key.theValue);
-						}
-					} finally
-					{
-						key.isLoading = false;
+	private <K, V, E extends Exception> void startGet(final MuisEnvironment env, final CacheKey<K, V, E> key) {
+		theWorker.run(() -> {
+			try {
+				key.theValue = key.getType().generate(env, key.getKey());
+			} catch(Throwable e) {
+				key.theError = e;
+			} finally {
+				try {
+					synchronized(key.theReceivers) {
+						for(ItemReceiver<K, V> receiver : key.theReceivers)
+							if(key.theError != null)
+								receiver.errorOccurred(key.getKey(), key.theError);
+							else
+								receiver.itemGenerated(key.getKey(), key.theValue);
 					}
+				} finally {
+					key.isLoading = false;
 				}
 			}
 		}, new prisms.arch.Worker.ErrorListener() {
 			@Override
-			public void error(Error error)
-			{
+			public void error(Error error) {
 			}
 
 			@Override
-			public void runtime(RuntimeException ex)
-			{
+			public void runtime(RuntimeException ex) {
 			}
 		});
 	}

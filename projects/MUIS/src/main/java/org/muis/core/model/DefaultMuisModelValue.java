@@ -81,11 +81,8 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 		if(widget == null)
 			return null;
 		theRegisteredElements.add(widget);
-		return new WidgetRegistration() {
-			@Override
-			public void unregister() {
-				theRegisteredElements.remove(widget);
-			}
+		return () -> {
+			theRegisteredElements.remove(widget);
 		};
 	}
 

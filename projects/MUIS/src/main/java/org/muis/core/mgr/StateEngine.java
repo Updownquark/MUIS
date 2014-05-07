@@ -1,7 +1,6 @@
 package org.muis.core.mgr;
 
 import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -111,15 +110,11 @@ public class StateEngine implements StateSet {
 
 	@Override
 	public Iterator<MuisState> iterator() {
-		return ArrayUtils.conditionalIterator(theStates.entrySet().iterator(),
-			new ArrayUtils.Accepter<java.util.Map.Entry<MuisState, StateValue>, MuisState>() {
-				@Override
-				public MuisState accept(Entry<MuisState, StateValue> value) {
-					if(!isActive(value.getValue()))
-						return null;
-					return value.getKey();
-				}
-			}, false);
+		return ArrayUtils.conditionalIterator(theStates.entrySet().iterator(), value -> {
+			if(!isActive(value.getValue()))
+				return null;
+			return value.getKey();
+		}, false);
 	}
 
 	@Override
@@ -134,30 +129,27 @@ public class StateEngine implements StateSet {
 
 	/** @return All states that are controlled in this engine, whether they are active or not */
 	public Iterable<MuisState> getAllStates() {
-		return new Iterable<MuisState>() {
-			@Override
-			public Iterator<MuisState> iterator() {
-				return new Iterator<MuisState>() {
-					private final StateController [] theControllerSnapshot = theStateControllers;
+		return () -> {
+			return new Iterator<MuisState>() {
+				private final StateController [] theControllerSnapshot = theStateControllers;
 
-					private int theIndex;
+				private int theIndex;
 
-					@Override
-					public boolean hasNext() {
-						return theIndex < theControllerSnapshot.length;
-					}
+				@Override
+				public boolean hasNext() {
+					return theIndex < theControllerSnapshot.length;
+				}
 
-					@Override
-					public MuisState next() {
-						return theControllerSnapshot[theIndex++].getState();
-					}
+				@Override
+				public MuisState next() {
+					return theControllerSnapshot[theIndex++].getState();
+				}
 
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
+				@Override
+				public void remove() {
+					throw new UnsupportedOperationException();
+				}
+			};
 		};
 	}
 

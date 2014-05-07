@@ -27,40 +27,34 @@ public class ModelValueLinker<T1, T2> {
 		theMessaging = msg;
 		theLeft = left;
 		theRight = right;
-		theLeftListener = new MuisModelValueListener<T1>() {
-			@Override
-			public void valueChanged(MuisModelValueEvent<? extends T1> evt) {
-				if(theLeftToRight == null) {
-					theMessaging.warn("Model value linker for " + theLeft + "<-->" + theRight
-						+ " is missing the converter from left to right", "left", theLeft, "right", theRight);
-					return;
-				}
-				if(theEventLock)
-					return;
-				theEventLock = true;
-				try {
-					theRight.set(theLeftToRight.convert(evt.getNewValue()), evt.getUserEvent());
-				} finally {
-					theEventLock = false;
-				}
+		theLeftListener = evt -> {
+			if(theLeftToRight == null) {
+				theMessaging.warn("Model value linker for " + theLeft + "<-->" + theRight + " is missing the converter from left to right",
+					"left", theLeft, "right", theRight);
+				return;
+			}
+			if(theEventLock)
+				return;
+			theEventLock = true;
+			try {
+				theRight.set(theLeftToRight.convert(evt.getNewValue()), evt.getUserEvent());
+			} finally {
+				theEventLock = false;
 			}
 		};
-		theRightListener = new MuisModelValueListener<T2>() {
-			@Override
-			public void valueChanged(MuisModelValueEvent<? extends T2> evt) {
-				if(theLeftToRight == null) {
-					theMessaging.warn("Model value linker for " + theLeft + "<-->" + theRight
-						+ " is missing the converter from right to left", "left", theLeft, "right", theRight);
-					return;
-				}
-				if(theEventLock)
-					return;
-				theEventLock = true;
-				try {
-					theLeft.set(theRightToLeft.convert(evt.getNewValue()), evt.getUserEvent());
-				} finally {
-					theEventLock = false;
-				}
+		theRightListener = evt -> {
+			if(theLeftToRight == null) {
+				theMessaging.warn("Model value linker for " + theLeft + "<-->" + theRight + " is missing the converter from right to left",
+					"left", theLeft, "right", theRight);
+				return;
+			}
+			if(theEventLock)
+				return;
+			theEventLock = true;
+			try {
+				theLeft.set(theRightToLeft.convert(evt.getNewValue()), evt.getUserEvent());
+			} finally {
+				theEventLock = false;
 			}
 		};
 	}

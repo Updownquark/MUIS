@@ -45,12 +45,9 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.muis.core.style.FontStyle.getDomainInstance());
 		theDocument = new WrappingDocumentModel(doc);
-		theDocument.getDocumentModel().addContentListener(new MuisDocumentModel.ContentListener() {
-			@Override
-			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(MuisTextElement.this, null));
-				repaint(null, false);
-			}
+		theDocument.getDocumentModel().addContentListener(evt -> {
+			events().fire(new org.muis.core.event.SizeNeedsChangedEvent(MuisTextElement.this, null));
+			repaint(null, false);
 		});
 		theDocument.getDocumentModel().addStyleListener(new MuisDocumentModel.StyleListener() {
 			@Override
@@ -124,11 +121,8 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 				return false;
 			}
 		});
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				new org.muis.core.model.TextSelectionBehavior().install(MuisTextElement.this);
-			}
+		life().runWhen(() -> {
+			new org.muis.core.model.TextSelectionBehavior().install(MuisTextElement.this);
 		}, MuisConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
 	}
 
@@ -320,14 +314,11 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 			ret.append('<').append(getTagName()).append('>');
 		else
 			ret.append("<!TEXT>");
-		ret.append(org.jdom2.output.Format.escapeText(new org.jdom2.output.EscapeStrategy() {
-			@Override
-			public boolean shouldEscape(char ch) {
-				if(org.jdom2.Verifier.isHighSurrogate(ch)) {
-					return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
-				}
-				return false;
+		ret.append(org.jdom2.output.Format.escapeText(ch -> {
+			if(org.jdom2.Verifier.isHighSurrogate(ch)) {
+				return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
 			}
+		return false;
 		}, "\n", theDocument.getDocumentModel().toString()));
 		if(getTagName() != null)
 			ret.append('<').append('/').append(getTagName()).append('>');

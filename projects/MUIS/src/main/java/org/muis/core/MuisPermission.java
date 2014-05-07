@@ -4,11 +4,9 @@ package org.muis.core;
  * A MuisPermission is a request or a requirement for a toolkit to use a capability. According to the environment's security policy, these
  * permissions may be granted automatically, presented to the user for acceptance or rejection, or denied automatically.
  */
-public class MuisPermission
-{
+public class MuisPermission {
 	/** The type of permission requested */
-	public static enum Type
-	{
+	public static enum Type {
 		/** Gives an application access to the client's CPU */
 		CPU("Processor Time", "cpu", ProcessorSubTypes.values()),
 		/** Gives an application access to the client's transient (fast-access) memory */
@@ -44,8 +42,7 @@ public class MuisPermission
 
 		private final SubType [] theSubTypes;
 
-		Type(String disp, String k, SubType [] subTypes)
-		{
+		Type(String disp, String k, SubType [] subTypes) {
 			display = disp;
 			key = k;
 			theSubTypes = subTypes;
@@ -54,8 +51,7 @@ public class MuisPermission
 		/**
 		 * @return The subtypes available for this type
 		 */
-		public SubType [] getSubTypes()
-		{
+		public SubType [] getSubTypes() {
 			return theSubTypes;
 		}
 
@@ -63,8 +59,7 @@ public class MuisPermission
 		 * @param key The key of the permission type
 		 * @return The permission type whose key is given, or null if no such permission type exists
 		 */
-		public static Type byKey(String key)
-		{
+		public static Type byKey(String key) {
 			for(Type t : values())
 				if(t.key.equals(key))
 					return t;
@@ -73,8 +68,7 @@ public class MuisPermission
 	}
 
 	/** A sub-type of permission requested */
-	public static interface SubType
-	{
+	public static interface SubType {
 		/**
 		 * @return The display for the sub type
 		 */
@@ -92,8 +86,7 @@ public class MuisPermission
 	}
 
 	/** A parameter that may be specified for a sub-type to further define the requested permission */
-	public static interface Parameter
-	{
+	public static interface Parameter {
 		/**
 		 * @return The displayable name of the parameter
 		 */
@@ -113,16 +106,13 @@ public class MuisPermission
 		String validate(String value);
 	}
 
-	static String validateIntParam(String value, String key, int min, int max)
-	{
+	static String validateIntParam(String value, String key, int min, int max) {
 		if(value == null)
 			return "No " + key + " specified";
 		int ret;
-		try
-		{
+		try {
 			ret = Integer.parseInt(value);
-		} catch(NumberFormatException e)
-		{
+		} catch(NumberFormatException e) {
 			return key + " specified is not a number: " + value;
 		}
 		if(ret < min || ret > max)
@@ -130,16 +120,13 @@ public class MuisPermission
 		return null;
 	}
 
-	static String validateFloatParam(String value, String key, float min, float max)
-	{
+	static String validateFloatParam(String value, String key, float min, float max) {
 		if(value == null)
 			return "No " + key + " specified";
 		float ret;
-		try
-		{
+		try {
 			ret = Float.parseFloat(value);
-		} catch(NumberFormatException e)
-		{
+		} catch(NumberFormatException e) {
 			return key + " specified is not a number: " + value;
 		}
 		if(ret < min || ret > max)
@@ -147,8 +134,7 @@ public class MuisPermission
 		return null;
 	}
 
-	static String validateBoolParam(String value, String key)
-	{
+	static String validateBoolParam(String value, String key) {
 		if(value == null)
 			return null; // Assumed false
 		if("true".equalsIgnoreCase(key) || "false".equalsIgnoreCase(key))
@@ -157,8 +143,7 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#CPU} */
-	public static enum ProcessorSubTypes implements SubType
-	{
+	public static enum ProcessorSubTypes implements SubType {
 		/** The percent of processor time a toolkit is requesting to use for very short bursts */
 		SecondPercent("second"),
 		/** The percent of processor time a toolkit is requesting to use for finite periods */
@@ -170,42 +155,35 @@ public class MuisPermission
 
 		private final String theKey;
 
-		ProcessorSubTypes(String key)
-		{
+		ProcessorSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return name();
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
+		public Parameter [] getParameters() {
 			return new Parameter[] {new Parameter() {
 				@Override
-				public String getName()
-				{
+				public String getName() {
 					return "Percent Usage";
 				}
 
 				@Override
-				public String getKey()
-				{
+				public String getKey() {
 					return "percent";
 				}
 
 				@Override
-				public String validate(String value)
-				{
+				public String validate(String value) {
 					return validateIntParam(value, getKey(), 5, 100);
 				}
 			}};
@@ -213,8 +191,7 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#Memory} */
-	public static enum MemorySubTypes implements SubType
-	{
+	public static enum MemorySubTypes implements SubType {
 		/** The percent of system memory the toolkit is requesting to use for short periods */
 		MinuteAmount("minute"),
 		/**
@@ -224,42 +201,35 @@ public class MuisPermission
 
 		private final String theKey;
 
-		MemorySubTypes(String key)
-		{
+		MemorySubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return name();
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
+		public Parameter [] getParameters() {
 			return new Parameter[] {new Parameter() {
 				@Override
-				public String getName()
-				{
+				public String getName() {
 					return "Percent Usage";
 				}
 
 				@Override
-				public String getKey()
-				{
+				public String getKey() {
 					return "percent";
 				}
 
 				@Override
-				public String validate(String value)
-				{
+				public String validate(String value) {
 					return validateIntParam(value, getKey(), 5, 100);
 				}
 			}};
@@ -267,8 +237,7 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#ProfileAccess} */
-	public static enum ProfileAccessSubTypes implements SubType
-	{
+	public static enum ProfileAccessSubTypes implements SubType {
 		/** Represents a request by the toolkit for access to the user's profile name */
 		Name("name"),
 		/** Represents a request by the toolkit for access to the user profile's age */
@@ -286,33 +255,28 @@ public class MuisPermission
 
 		private final String theKey;
 
-		ProfileAccessSubTypes(String key)
-		{
+		ProfileAccessSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return name();
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
+		public Parameter [] getParameters() {
 			return new Parameter[0];
 		}
 	}
 
 	/** Subtypes for {@link Type#Storage} */
-	public static enum StorageSubTypes implements SubType
-	{
+	public static enum StorageSubTypes implements SubType {
 		/** Represents a request by the toolkit for access to a private storage directory */
 		Private("private"),
 		/**
@@ -326,45 +290,37 @@ public class MuisPermission
 
 		private final String theKey;
 
-		StorageSubTypes(String key)
-		{
+		StorageSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return name();
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
-			switch (this)
-			{
+		public Parameter [] getParameters() {
+			switch (this) {
 			case Private:
 				return new Parameter[] {new Parameter() {
 					@Override
-					public String getName()
-					{
+					public String getName() {
 						return "Amount (MB)";
 					}
 
 					@Override
-					public String getKey()
-					{
+					public String getKey() {
 						return "amount";
 					}
 
 					@Override
-					public String validate(String value)
-					{
+					public String validate(String value) {
 						return validateFloatParam(value, getKey(), 0, 1E9f);
 					}
 
@@ -372,59 +328,50 @@ public class MuisPermission
 			case Specific:
 				return new Parameter[] {new Parameter() {
 					@Override
-					public String getName()
-					{
+					public String getName() {
 						return "Location";
 					}
 
 					@Override
-					public String getKey()
-					{
+					public String getKey() {
 						return "location";
 					}
 
 					@Override
-					public String validate(String value)
-					{
+					public String validate(String value) {
 						// TODO validate path?
 						return null;
 					}
 				}, new Parameter() {
 					@Override
-					public String getName()
-					{
+					public String getName() {
 						return "Writeable";
 					}
 
 					@Override
-					public String getKey()
-					{
+					public String getKey() {
 						return "write";
 					}
 
 					@Override
-					public String validate(String value)
-					{
+					public String validate(String value) {
 						return validateBoolParam(value, getKey());
 					}
 				}};
 			case General:
 				return new Parameter[] {new Parameter() {
 					@Override
-					public String getName()
-					{
+					public String getName() {
 						return "Writeable";
 					}
 
 					@Override
-					public String getKey()
-					{
+					public String getKey() {
 						return "write";
 					}
 
 					@Override
-					public String validate(String value)
-					{
+					public String validate(String value) {
 						return validateBoolParam(value, getKey());
 					}
 				}};
@@ -434,8 +381,7 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#NetworkAccess} */
-	public static enum NetworkSubTypes implements SubType
-	{
+	public static enum NetworkSubTypes implements SubType {
 		/**
 		 * Specifies that the toolkit wants to be able to make HTTP network calls to its home server
 		 */
@@ -455,45 +401,37 @@ public class MuisPermission
 
 		private final String theKey;
 
-		NetworkSubTypes(String key)
-		{
+		NetworkSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return name();
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
-			switch (this)
-			{
+		public Parameter [] getParameters() {
+			switch (this) {
 			case Specific:
 				return new Parameter[] {new Parameter() {
 					@Override
-					public String getName()
-					{
+					public String getName() {
 						return "Location";
 					}
 
 					@Override
-					public String getKey()
-					{
+					public String getKey() {
 						return "location";
 					}
 
 					@Override
-					public String validate(String value)
-					{
+					public String validate(String value) {
 						// TODO validate URL location?
 						return null;
 					}
@@ -508,49 +446,41 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#CreateThread} */
-	public static enum ThreadSubTypes implements SubType
-	{
+	public static enum ThreadSubTypes implements SubType {
 		/** Specifies the maximum number of threads the toolkit wants to create */
 		Number("number");
 
 		private final String theKey;
 
-		ThreadSubTypes(String key)
-		{
+		ThreadSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return "";
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
+		public Parameter [] getParameters() {
 			return new Parameter[] {new Parameter() {
 				@Override
-				public String getName()
-				{
+				public String getName() {
 					return "Number";
 				}
 
 				@Override
-				public String getKey()
-				{
+				public String getKey() {
 					return "number";
 				}
 
 				@Override
-				public String validate(String value)
-				{
+				public String validate(String value) {
 					return validateIntParam(value, getKey(), 0, 100);
 				}
 			}};
@@ -558,8 +488,7 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#CreateProcess} */
-	public static enum ProcessSubTypes implements SubType
-	{
+	public static enum ProcessSubTypes implements SubType {
 		/** Specifies a process command that the toolkit wants to spawn */
 		Specific("specific"),
 		/** Specifies that the toolkit wants to be able to call any command-line program */
@@ -567,45 +496,37 @@ public class MuisPermission
 
 		private final String theKey;
 
-		ProcessSubTypes(String key)
-		{
+		ProcessSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return "";
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
-			switch (this)
-			{
+		public Parameter [] getParameters() {
+			switch (this) {
 			case Specific:
 				return new Parameter[] {new Parameter() {
 					@Override
-					public String getName()
-					{
+					public String getName() {
 						return "Command Name";
 					}
 
 					@Override
-					public String getKey()
-					{
+					public String getKey() {
 						return "command";
 					}
 
 					@Override
-					public String validate(String value)
-					{
+					public String validate(String value) {
 						// TODO validate command?
 						return null;
 					}
@@ -618,8 +539,7 @@ public class MuisPermission
 	}
 
 	/** Subtypes for {@link Type#CreateWindow} */
-	public static enum WindowSubTypes implements SubType
-	{
+	public static enum WindowSubTypes implements SubType {
 		/**
 		 * Specifies the maximum number of simulataneous windows (in addition to the root window) that the toolkit wants to create
 		 */
@@ -627,42 +547,35 @@ public class MuisPermission
 
 		private final String theKey;
 
-		WindowSubTypes(String key)
-		{
+		WindowSubTypes(String key) {
 			theKey = key;
 		}
 
 		@Override
-		public String getDisplay()
-		{
+		public String getDisplay() {
 			return "";
 		}
 
 		@Override
-		public String getKey()
-		{
+		public String getKey() {
 			return theKey;
 		}
 
 		@Override
-		public Parameter [] getParameters()
-		{
+		public Parameter [] getParameters() {
 			return new Parameter[] {new Parameter() {
 				@Override
-				public String getName()
-				{
+				public String getName() {
 					return "Number";
 				}
 
 				@Override
-				public String getKey()
-				{
+				public String getKey() {
 					return "number";
 				}
 
 				@Override
-				public String validate(String value)
-				{
+				public String validate(String value) {
 					return validateIntParam(value, getKey(), 0, 100);
 				}
 			}};
@@ -697,8 +610,7 @@ public class MuisPermission
 	 * @param explain An explanation as to why the toolkit requires or requests the permission, what it will be used for, and why the user
 	 *            should grant the toolkit this permission
 	 */
-	public MuisPermission(Type _type, SubType _subType, String [] paramValues, boolean req, String explain)
-	{
+	public MuisPermission(Type _type, SubType _subType, String [] paramValues, boolean req, String explain) {
 		type = _type;
 		subType = _subType;
 		if(paramValues.length != subType.getParameters().length)
@@ -715,8 +627,7 @@ public class MuisPermission
 	 * @return The value of the parameter at the given index
 	 * @see SubType#getParameters()
 	 */
-	public String getParamValue(int idx)
-	{
+	public String getParamValue(int idx) {
 		return parameters[idx];
 	}
 }

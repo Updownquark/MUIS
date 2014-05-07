@@ -219,11 +219,8 @@ public class MuisDocument {
 
 	/** @return An Iterable to iterate through this document's groups */
 	public Iterable<NamedStyleGroup> groups() {
-		return new Iterable<NamedStyleGroup>() {
-			@Override
-			public java.util.Iterator<NamedStyleGroup> iterator() {
-				return new GroupIterator(theDocumentGroups);
-			}
+		return () -> {
+			return new GroupIterator(theDocumentGroups);
 		};
 	}
 
@@ -250,11 +247,8 @@ public class MuisDocument {
 				return group;
 		NamedStyleGroup ret = new NamedStyleGroup(this, name);
 		theDocumentGroups = ArrayUtils.add(theDocumentGroups, ret);
-		java.util.Arrays.sort(theDocumentGroups, new java.util.Comparator<NamedStyleGroup>() {
-			@Override
-			public int compare(NamedStyleGroup g1, NamedStyleGroup g2) {
-				return g1.getName().compareToIgnoreCase(g2.getName());
-			}
+		java.util.Arrays.sort(theDocumentGroups, (NamedStyleGroup g1, NamedStyleGroup g2) -> {
+			return g1.getName().compareToIgnoreCase(g2.getName());
 		});
 		return ret;
 	}
@@ -701,12 +695,9 @@ public class MuisDocument {
 				thePressedKeys.remove(code);
 		}
 		if(theFocus != null)
-			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false, new Runnable() {
-				@Override
-				public void run() {
-					if(!evt.isUsed())
-						scroll(evt, rendering);
-				}
+			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.UserQueueEvent(evt, false, () -> {
+				if(!evt.isUsed())
+					scroll(evt, rendering);
 			}), true);
 		else
 			scroll(evt, rendering);

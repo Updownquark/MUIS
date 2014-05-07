@@ -191,11 +191,8 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 				break;
 			}
 		if(!sameZ) {
-			java.util.Arrays.sort(children, new java.util.Comparator<MuisElement>() {
-				@Override
-				public int compare(MuisElement el1, MuisElement el2) {
-					return el1.getZ() - el2.getZ();
-				}
+			java.util.Arrays.sort(children, (MuisElement el1, MuisElement el2) -> {
+				return el1.getZ() - el2.getZ();
 			});
 		}
 		return children;

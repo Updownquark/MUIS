@@ -2,45 +2,37 @@ package org.muis.core.mgr;
 
 import org.muis.core.MuisElement;
 
-public class MuisLock implements AutoCloseable
-{
+public class MuisLock implements AutoCloseable {
 	private final MuisElement [] theElements;
 
 	private final Object theType;
 
 	private volatile MuisLocker theLocker;
 
-	public MuisLock(Object type, MuisElement... els)
-	{
+	public MuisLock(Object type, MuisElement... els) {
 		theElements = els;
 		theType = type;
 	}
 
-	public MuisElement [] getElements()
-	{
+	public MuisElement [] getElements() {
 		return theElements.clone();
 	}
 
-	public Object getType()
-	{
+	public Object getType() {
 		return theType;
 	}
 
-	public boolean isActive()
-	{
+	public boolean isActive() {
 		return theLocker != null;
 	}
 
-	void setLocker(MuisLocker locker)
-	{
+	void setLocker(MuisLocker locker) {
 		theLocker = locker;
 	}
 
 	@Override
-	public void close()
-	{
-		synchronized(theElements)
-		{
+	public void close() {
+		synchronized(theElements) {
 			theLocker.unlock(this);
 			theLocker = null;
 		}

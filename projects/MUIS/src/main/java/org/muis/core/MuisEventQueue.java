@@ -591,21 +591,18 @@ public class MuisEventQueue {
 
 	private MuisEventQueue() {
 		theEvents = new Event[0];
-		theComparator = new java.util.Comparator<Event>() {
-			@Override
-			public int compare(Event o1, Event o2) {
-				int diff = o1.getPriority() - o2.getPriority();
-				if(diff != 0)
-					return -diff;
-				diff = o1.comparePriority(o2);
-				if(diff != 0)
-					return -diff;
-				diff = o2.comparePriority(o1);
-				if(diff != 0)
-					return diff;
-				long timeDiff = o1.getTime() - o2.getTime();
-				return timeDiff < 0 ? -1 : (timeDiff > 0 ? 1 : 0);
-			}
+		theComparator = (Event o1, Event o2) -> {
+			int diff = o1.getPriority() - o2.getPriority();
+			if(diff != 0)
+				return -diff;
+			diff = o1.comparePriority(o2);
+			if(diff != 0)
+				return -diff;
+			diff = o2.comparePriority(o1);
+			if(diff != 0)
+				return diff;
+			long timeDiff = o1.getTime() - o2.getTime();
+			return timeDiff < 0 ? -1 : (timeDiff > 0 ? 1 : 0);
 		};
 		theLock = new Object();
 		theFrequency = 25;

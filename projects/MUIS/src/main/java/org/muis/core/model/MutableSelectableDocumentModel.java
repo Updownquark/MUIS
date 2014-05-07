@@ -16,5 +16,7 @@ public interface MutableSelectableDocumentModel extends MutableDocumentModel, Se
 	 * @param c The character to insert
 	 * @return This model, for chaining
 	 */
-	MutableSelectableDocumentModel insert(char c);
+	default MutableSelectableDocumentModel insert(char c) {
+		return insert(String.valueOf(c));
+	};
 }

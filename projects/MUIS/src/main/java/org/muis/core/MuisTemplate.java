@@ -768,36 +768,30 @@ public abstract class MuisTemplate extends MuisElement {
 		theAttachmentMappings = new HashMap<>();
 		theUninitialized = new HashSet<>();
 		theBehaviors = new ArrayList<>();
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					MuisEnvironment env = getDocument().getEnvironment();
-					theTemplateStructure = TemplateStructure.getTemplateStructure(env, MuisTemplate.this.getClass());
-				} catch(MuisException e) {
-					msg().fatal("Could not generate template structure", e);
-				}
+		life().runWhen(() -> {
+			try {
+				MuisEnvironment env = getDocument().getEnvironment();
+				theTemplateStructure = TemplateStructure.getTemplateStructure(env, MuisTemplate.this.getClass());
+			} catch(MuisException e) {
+				msg().fatal("Could not generate template structure", e);
 			}
 		}, MuisConstants.CoreStage.INIT_SELF.toString(), 1);
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				for(Class<? extends MuisBehavior<?>> behaviorClass : theTemplateStructure.getBehaviors()) {
-					MuisBehavior<?> behavior;
-					try {
-						behavior = behaviorClass.newInstance();
-					} catch(InstantiationException | IllegalAccessException e) {
-						msg().error(
-							"Could not instantiate behavior " + behaviorClass.getName() + " for templated widget "
-								+ theTemplateStructure.getDefiner().getName(), e);
-						continue;
-					}
-					try {
-						addBehavior(behavior);
-					} catch(RuntimeException e) {
-						msg().error(
-							"Failed to install behavior " + behaviorClass.getName() + " on templated widget " + getClass().getName(), e);
-					}
+		life().runWhen(() -> {
+			for(Class<? extends MuisBehavior<?>> behaviorClass : theTemplateStructure.getBehaviors()) {
+				MuisBehavior<?> behavior;
+				try {
+					behavior = behaviorClass.newInstance();
+				} catch(InstantiationException | IllegalAccessException e) {
+					msg().error(
+						"Could not instantiate behavior " + behaviorClass.getName() + " for templated widget "
+							+ theTemplateStructure.getDefiner().getName(), e);
+					continue;
+				}
+				try {
+					addBehavior(behavior);
+				} catch(RuntimeException e) {
+					msg().error(
+						"Failed to install behavior " + behaviorClass.getName() + " on templated widget " + getClass().getName(), e);
 				}
 			}
 		}, MuisConstants.CoreStage.INIT_CHILDREN.toString(), 1);

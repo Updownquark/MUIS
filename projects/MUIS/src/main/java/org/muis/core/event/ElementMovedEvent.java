@@ -6,11 +6,8 @@ import org.muis.core.event.boole.TypedPredicate;
 /** Signifies the transfer of an element from one parent to another */
 public class ElementMovedEvent implements MuisEvent {
 	/** Filters events of this type */
-	public static final TypedPredicate<MuisEvent, ElementMovedEvent> moved = new TypedPredicate<MuisEvent, ElementMovedEvent>() {
-		@Override
-		public ElementMovedEvent cast(MuisEvent value) {
-			return value instanceof ElementMovedEvent ? (ElementMovedEvent) value : null;
-		}
+	public static final TypedPredicate<MuisEvent, ElementMovedEvent> moved = value -> {
+		return value instanceof ElementMovedEvent ? (ElementMovedEvent) value : null;
 	};
 
 	private final MuisElement theElement;

@@ -6,7 +6,6 @@ import org.muis.core.MuisException;
 import org.muis.core.model.DefaultMuisModel;
 import org.muis.core.model.DefaultMuisModelValue;
 import org.muis.core.model.ModelValueLinker;
-import org.muis.core.model.ValueConverter;
 import org.muis.core.style.Colors;
 
 /** The model backing the ModelTest.muis */
@@ -53,68 +52,44 @@ public class ModelTestModel extends DefaultMuisModel {
 		theBgGroup.getValue("green", Boolean.class);
 		theBgGroup.getValue("blue", Boolean.class);
 
-		new ModelValueLinker<>(null, theBgGroup, theBgValue).setLeftToRight(new ValueConverter<String, Color>() {
-			@Override
-			public Color convert(String value) {
-				try {
-					return Colors.parseColor(value);
-				} catch(MuisException e) {
-					e.printStackTrace();
-					return Color.white;
-				}
+		new ModelValueLinker<>(null, theBgGroup, theBgValue).setLeftToRight(value -> {
+			try {
+				return Colors.parseColor(value);
+			} catch(MuisException e) {
+				e.printStackTrace();
+				return Color.white;
 			}
-		}).setRightToLeft(new ValueConverter<Color, String>() {
-			@Override
-			public String convert(Color value) {
-				return Colors.toString(value);
-			}
+		}).setRightToLeft(value -> {
+			return Colors.toString(value);
 		}).link();
-		new ModelValueLinker<>(null, theBgGroup, theBgGroupName).setLeftToRight(new ValueConverter<String, String>() {
-			@Override
-			public String convert(String value) {
-				return "bg-" + value;
-			}
-		}).setRightToLeft(new ValueConverter<String, String>() {
-			@Override
-			public String convert(String value) {
-				throw new IllegalStateException("Should never get called");
-			}
+		new ModelValueLinker<>(null, theBgGroup, theBgGroupName).setLeftToRight(value -> {
+			return "bg-" + value;
+		}).setRightToLeft(value -> {
+			throw new IllegalStateException("Should never get called");
 		}).link();
-		new ModelValueLinker<>(null, theBgGroup, theBgImage).setLeftToRight(new ValueConverter<String, String>() {
-			@Override
-			public String convert(String value) {
-				switch (value) {
-				case "red":
-					return "fire";
-				case "blue":
-					return "waterfall";
-				case "green":
-					return "plant";
-				default:
-					return "fire";
-				}
+		new ModelValueLinker<>(null, theBgGroup, theBgImage).setLeftToRight(value -> {
+			switch (value) {
+			case "red":
+				return "fire";
+			case "blue":
+				return "waterfall";
+			case "green":
+				return "plant";
+			default:
+				return "fire";
 			}
-		}).setRightToLeft(new ValueConverter<String, String>() {
-			@Override
-			public String convert(String value) {
-				throw new IllegalStateException("Should never get called");
-			}
+		}).setRightToLeft(value -> {
+			throw new IllegalStateException("Should never get called");
 		}).link();
 
-		new ModelValueLinker<>(null, theFgValue, theFgText).setLeftToRight(new ValueConverter<Color, String>() {
-			@Override
-			public String convert(Color value) {
-				return Colors.toString(value);
-			}
-		}).setRightToLeft(new ValueConverter<String, Color>() {
-			@Override
-			public Color convert(String value) {
-				try {
-					return Colors.parseColor(value);
-				} catch(MuisException e) {
-					// e.printStackTrace(); //No need to print this
-					return Color.black;
-				}
+		new ModelValueLinker<>(null, theFgValue, theFgText).setLeftToRight(value -> {
+			return Colors.toString(value);
+		}).setRightToLeft(value -> {
+			try {
+				return Colors.parseColor(value);
+			} catch(MuisException e) {
+				// e.printStackTrace(); //No need to print this
+			return Color.black;
 			}
 		}).link();
 

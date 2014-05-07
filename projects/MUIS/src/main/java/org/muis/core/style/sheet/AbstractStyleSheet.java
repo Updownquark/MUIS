@@ -1,7 +1,6 @@
 package org.muis.core.style.sheet;
 
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionEvent;
 import org.muis.core.style.StyleExpressionListener;
 import org.muis.core.style.StyleExpressionValue;
 
@@ -46,18 +45,15 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	/** Creates the style sheet */
 	public AbstractStyleSheet() {
 		theDependencies = new StyleSheet[0];
-		theDependencyListener = new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
-			@Override
-			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> event) {
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute())) {
-					if(expr.getExpression() == event.getExpression())
-						break;
-					if(expr.getExpression() == null
-						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
-						return;
-				}
-				styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
+		theDependencyListener = event -> {
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute())) {
+				if(expr.getExpression() == event.getExpression())
+					break;
+				if(expr.getExpression() == null
+					|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
+					return;
 			}
+			styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 		};
 	}
 

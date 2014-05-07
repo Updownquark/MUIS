@@ -41,12 +41,9 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 			type = (Class<E>) MuisElement.class;
 		theType = type;
 		theTemplatePaths = new TemplateRole[0];
-		styleSheet.addListener(new StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>>() {
-			@Override
-			public void eventOccurred(StyleExpressionEvent<StyleSheet, StateGroupTypeExpression<?>, ?> evt) {
-				if(matchesFilter(evt.getExpression()))
-					styleChanged(evt.getAttribute(), evt.getExpression().getState());
-			}
+		styleSheet.addListener(evt -> {
+			if(matchesFilter(evt.getExpression()))
+				styleChanged(evt.getAttribute(), evt.getExpression().getState());
 		});
 		theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 	}
@@ -167,20 +164,13 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	@Override
 	public Iterable<StyleAttribute<?>> allLocal() {
-		return new Iterable<StyleAttribute<?>>() {
-			@Override
-			public java.util.Iterator<StyleAttribute<?>> iterator() {
-				return ArrayUtils.conditionalIterator(theStyleSheet.allAttrs().iterator(),
-					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
-						@Override
-						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> exp : theStyleSheet.getExpressions(value))
-								if(matchesFilter(exp.getExpression()))
-									return value;
-							return null;
-						}
-					}, false);
-			}
+		return () -> {
+			return ArrayUtils.conditionalIterator(theStyleSheet.allAttrs().iterator(), value-> {
+				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> exp : theStyleSheet.getExpressions(value))
+					if(matchesFilter(exp.getExpression()))
+						return value;
+				return null;
+			}, false);
 		};
 	}
 

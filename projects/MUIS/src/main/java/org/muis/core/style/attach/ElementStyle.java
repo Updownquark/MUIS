@@ -2,7 +2,6 @@ package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.StateChangedEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
@@ -34,11 +33,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
 		theStyleGroups = new TypedStyleGroup[0];
-		element.life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				addDependencies();
-			}
+		element.life().runWhen(() -> {
+			addDependencies();
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 
@@ -47,41 +43,35 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
 		}
-		theElement.events().listen(ElementMovedEvent.moved, new MuisEventListener<ElementMovedEvent>() {
-			@Override
-			public void eventOccurred(ElementMovedEvent event) {
-				ElementStyle oldParentStyle = theParentStyle;
-				if(oldParentStyle != null) {
-					if(event.getNewParent() != null) {
-						theParentStyle = event.getNewParent().getStyle();
-						replaceDependency(oldParentStyle.getHeir(), theParentStyle.getHeir());
-					} else {
-						theParentStyle = null;
-						removeDependency(oldParentStyle.getHeir());
-					}
-				} else if(event.getNewParent() != null) {
+		theElement.events().listen(ElementMovedEvent.moved, (ElementMovedEvent event) -> {
+			ElementStyle oldParentStyle = theParentStyle;
+			if(oldParentStyle != null) {
+				if(event.getNewParent() != null) {
 					theParentStyle = event.getNewParent().getStyle();
-					addDependency(theParentStyle.getHeir(), null);
+					replaceDependency(oldParentStyle.getHeir(), theParentStyle.getHeir());
+				} else {
+					theParentStyle = null;
+					removeDependency(oldParentStyle.getHeir());
 				}
+			} else if(event.getNewParent() != null) {
+				theParentStyle = event.getNewParent().getStyle();
+				addDependency(theParentStyle.getHeir(), null);
 			}
 		});
 		MuisState [] currentState = theElement.state().toArray();
 		setState(currentState);
 		theSelfStyle.setState(currentState);
 		theHeirStyle.setState(currentState);
-		theElement.events().listen(org.muis.core.event.StateChangedEvent.base, new MuisEventListener<StateChangedEvent>() {
-			@Override
-			public void eventOccurred(StateChangedEvent event) {
-				MuisState state = event.getState();
-				if(event.getValue()) {
-					addState(state);
-					theSelfStyle.addState(state);
-					theHeirStyle.addState(state);
-				} else {
-					removeState(state);
-					theSelfStyle.removeState(state);
-					theHeirStyle.removeState(state);
-				}
+		theElement.events().listen(org.muis.core.event.StateChangedEvent.base, (StateChangedEvent event) -> {
+			MuisState state = event.getState();
+			if(event.getValue()) {
+				addState(state);
+				theSelfStyle.addState(state);
+				theHeirStyle.addState(state);
+			} else {
+				removeState(state);
+				theSelfStyle.removeState(state);
+				theHeirStyle.removeState(state);
 			}
 		});
 	}
@@ -159,14 +149,11 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 *         attached to it. It does not include attributes inherited from the element's ancestors
 	 */
 	public Iterable<StyleAttribute<?>> elementAttributes() {
-		return new Iterable<StyleAttribute<?>>() {
-			@Override
-			public java.util.Iterator<StyleAttribute<?>> iterator() {
-				MuisStyle [] depends = new MuisStyle[theStyleGroups.length + 1];
-				depends[0] = theSelfStyle;
-				System.arraycopy(depends, 1, theStyleGroups, 0, theStyleGroups.length);
-				return new AttributeIterator(ElementStyle.this, depends);
-			}
+		return () -> {
+			MuisStyle [] depends = new MuisStyle[theStyleGroups.length + 1];
+			depends[0] = theSelfStyle;
+			System.arraycopy(depends, 1, theStyleGroups, 0, theStyleGroups.length);
+			return new AttributeIterator(ElementStyle.this, depends);
 		};
 	}
 
@@ -175,11 +162,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 * @return An iterable to get the groups associated with this style
 	 */
 	public Iterable<TypedStyleGroup<?>> groups(final boolean forward) {
-		return new Iterable<TypedStyleGroup<?>>() {
-			@Override
-			public NamedStyleIterator iterator() {
-				return new NamedStyleIterator(theStyleGroups, forward);
-			}
+		return () -> {
+			return new NamedStyleIterator(theStyleGroups, forward);
 		};
 	}
 

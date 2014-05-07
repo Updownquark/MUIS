@@ -12,12 +12,9 @@ import org.muis.core.event.boole.TypedPredicate;
 public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEvent<T> {
 	/** Filters events of this type */
 	@SuppressWarnings("hiding")
-	public static final TypedPredicate<MuisEvent, StyleAttributeEvent<?>> base = new TypedPredicate<MuisEvent, StyleAttributeEvent<?>>() {
-		@Override
-		public StyleAttributeEvent<?> cast(MuisEvent value) {
-			return value instanceof StyleAttributeEvent && !((StyleAttributeEvent<?>) value).isOverridden() ? (StyleAttributeEvent<?>) value
-				: null;
-		}
+	public static final TypedPredicate<MuisEvent, StyleAttributeEvent<?>> base = value -> {
+		return value instanceof StyleAttributeEvent && !((StyleAttributeEvent<?>) value).isOverridden() ? (StyleAttributeEvent<?>) value
+			: null;
 	};
 
 	/**

@@ -3,7 +3,6 @@ package org.muis.core.style.attach;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
-import org.muis.core.style.StyleListener;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
@@ -20,42 +19,36 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	public ElementSelfStyle(ElementStyle elStyle) {
 		theElStyle = elStyle;
 		addDependency(elStyle);
-		theElStyle.getElement().life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement()
-					.getClass());
-				// Add listener to modify the filtered style sheet's template path
-				TemplatePathListener tpl = new TemplatePathListener();
-				tpl.addListener(new TemplatePathListener.Listener() {
-					@Override
-					public void pathAdded(TemplateRole path) {
-						theStyleSheet.addTemplatePath(path);
-					}
+		theElStyle.getElement().life().runWhen(() -> {
+			theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement()
+				.getClass());
+			// Add listener to modify the filtered style sheet's template path
+			TemplatePathListener tpl = new TemplatePathListener();
+			tpl.addListener(new TemplatePathListener.Listener() {
+				@Override
+				public void pathAdded(TemplateRole path) {
+					theStyleSheet.addTemplatePath(path);
+				}
 
-					@Override
-					public void pathRemoved(TemplateRole path) {
-						theStyleSheet.removeTemplatePath(path);
-					}
+				@Override
+				public void pathRemoved(TemplateRole path) {
+					theStyleSheet.removeTemplatePath(path);
+				}
 
-					@Override
-					public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
-						theStyleSheet.replaceTemplatePath(oldPath, newPath);
-					}
-				});
-				tpl.listen(theElStyle.getElement());
-				addDependency(theStyleSheet);
-				// Add a dependency for typed, non-grouped style sheet attributes
-				addListener(new StyleListener() {
-					@Override
-					public void eventOccurred(StyleAttributeEvent<?> event) {
-						StyleAttributeEvent<Object> evt = (StyleAttributeEvent<Object>) event;
-						evt = new StyleAttributeEvent<>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(),
-							evt.getAttribute(), evt.getValue());
-						theElStyle.getElement().events().fire(evt);
-					}
-				});
-			}
+				@Override
+				public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
+					theStyleSheet.replaceTemplatePath(oldPath, newPath);
+				}
+			});
+			tpl.listen(theElStyle.getElement());
+			addDependency(theStyleSheet);
+			// Add a dependency for typed, non-grouped style sheet attributes
+			addListener((StyleAttributeEvent<?> event) -> {
+				StyleAttributeEvent<Object> evt = (StyleAttributeEvent<Object>) event;
+				evt = new StyleAttributeEvent<>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(),
+					evt.getAttribute(), evt.getValue());
+				theElStyle.getElement().events().fire(evt);
+			});
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 

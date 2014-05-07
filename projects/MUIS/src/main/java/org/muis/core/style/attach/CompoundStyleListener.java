@@ -34,17 +34,11 @@ public class CompoundStyleListener {
 		theElement = element;
 		theDomains = new StyleDomain[0];
 		theAttributes = new StyleAttribute[0];
-		theStyleListener = new MuisEventListener<StyleAttributeEvent<?>>() {
-			@Override
-			public void eventOccurred(StyleAttributeEvent<?> event) {
-				CompoundStyleListener.this.eventOccurred(event);
-			}
+		theStyleListener = event -> {
+			CompoundStyleListener.this.eventOccurred(event);
 		};
-		theGroupListener = new MuisEventListener<GroupMemberEvent>() {
-			@Override
-			public void eventOccurred(GroupMemberEvent event) {
-				CompoundStyleListener.this.eventOccurred(event);
-			}
+		theGroupListener = event -> {
+			CompoundStyleListener.this.eventOccurred(event);
 		};
 	}
 

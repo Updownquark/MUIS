@@ -7,11 +7,8 @@ import org.muis.core.event.boole.TypedPredicate;
 /** An event representing the addition or removal of a style group in an element */
 public class GroupMemberEvent implements MuisEvent {
 	/** Filters for events of this type */
-	public static final TypedPredicate<MuisEvent, GroupMemberEvent> groups = new TypedPredicate<MuisEvent, GroupMemberEvent>() {
-		@Override
-		public GroupMemberEvent cast(MuisEvent value) {
-			return value instanceof GroupMemberEvent ? (GroupMemberEvent) value : null;
-		}
+	public static final TypedPredicate<MuisEvent, GroupMemberEvent> groups = value -> {
+		return value instanceof GroupMemberEvent ? (GroupMemberEvent) value : null;
 	};
 
 	private final MuisElement theElement;

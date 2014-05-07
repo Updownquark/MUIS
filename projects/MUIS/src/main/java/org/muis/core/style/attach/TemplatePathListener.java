@@ -67,14 +67,11 @@ public class TemplatePathListener {
 			throw new IllegalStateException("This " + getClass().getSimpleName() + " is already listening to "
 				+ (element == theElement ? "this" : "a different") + " element.");
 		theElement = element;
-		theElement.events().listen(AttributeChangedEvent.base, new MuisEventListener<AttributeChangedEvent<?>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<?> event) {
-				if(!(event.getAttribute().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType))
-					return;
-				MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getAttribute();
-				roleChanged(roleAttr, (AttachPoint) event.getValue());
-			}
+		theElement.events().listen(AttributeChangedEvent.base, (AttributeChangedEvent<?> event) -> {
+			if(!(event.getAttribute().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType))
+				return;
+			MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getAttribute();
+			roleChanged(roleAttr, (AttachPoint) event.getValue());
 		});
 		if(theElement.getParent() != null)
 			checkCurrent();
@@ -177,18 +174,15 @@ public class TemplatePathListener {
 			newValue.paths = ArrayUtils.add(newValue.paths, singlet);
 			notifyPathAdded(singlet);
 			newValue.parentListener.listen(newAttachParent);
-			newValue.parentGroupListener = new MuisEventListener<AttributeChangedEvent<String []>>() {
-				@Override
-				public void eventOccurred(AttributeChangedEvent<String []> event) {
-					List<String> oldGroups = newValue.parentGroups;
-					newValue.parentGroups = Arrays.asList(event.getValue());
-					for(int i = newValue.paths.length - 1; i >= 0; i--) {
-						notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), newValue.paths[i]),
-							new TemplateRole(newValue.role, newValue.parentGroups, newValue.parent.getClass(), newValue.paths[i]));
-					}
-					notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), null), new TemplateRole(
-						newValue.role, newValue.parentGroups, newValue.parent.getClass(), null));
+			newValue.parentGroupListener = (AttributeChangedEvent<String []> event) -> {
+				List<String> oldGroups = newValue.parentGroups;
+				newValue.parentGroups = Arrays.asList(event.getValue());
+				for(int i = newValue.paths.length - 1; i >= 0; i--) {
+					notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), newValue.paths[i]),
+						new TemplateRole(newValue.role, newValue.parentGroups, newValue.parent.getClass(), newValue.paths[i]));
 				}
+				notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), null), new TemplateRole(
+					newValue.role, newValue.parentGroups, newValue.parent.getClass(), null));
 			};
 			newValue.parent.events().listen(AttributeChangedEvent.att(GroupPropertyType.attribute), newValue.parentGroupListener);
 		}

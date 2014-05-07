@@ -240,7 +240,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		centers.add(this);
 		for(MuisElement child : theElement.getChildren())
 			centers.add(child.msg().allMessages());
-		return ArrayUtils.iterable(centers.toArray(new Iterable[centers.size()]));
+		return ArrayUtils.iterable((Iterable<MuisMessage> []) centers.toArray(new Iterable[centers.size()]));
 	}
 
 	/** @param listener The listener to be notified when a new message is received by this message center or one of its children */

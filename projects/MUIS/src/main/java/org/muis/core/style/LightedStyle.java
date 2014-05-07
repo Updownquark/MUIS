@@ -33,9 +33,9 @@ public class LightedStyle implements StyleDomain {
 
 	static {
 		instance = new LightedStyle();
-		lightSource = new StyleAttribute<>(instance, "source", new MuisProperty.NamedValuePropertyType<>(MuisProperty.floatAttr, "top", 0d,
-			"top-right", 45d, "right", 90d, "bottom-right", 135d, "bottom", 180d, "bottom-left", 225d, "left", 270d, "top-left", 315d),
-			315d, new MuisProperty.ComparableValidator<>(0d, 360d));
+		lightSource = new StyleAttribute<Double>(instance, "source", new MuisProperty.NamedValuePropertyType<>(MuisProperty.floatAttr,
+			"top", 0d, "top-right", 45d, "right", 90d, "bottom-right", 135d, "bottom", 180d, "bottom-left", 225d, "left", 270d, "top-left",
+			315d), 315d, new MuisProperty.ComparableValidator<>(0d, 360d));
 		instance.register(lightSource);
 		lightColor = new StyleAttribute<>(instance, "color", MuisAttribute.colorAttr, Color.white);
 		instance.register(lightColor);

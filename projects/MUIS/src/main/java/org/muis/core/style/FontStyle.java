@@ -102,8 +102,8 @@ public class FontStyle implements StyleDomain {
 		weight = new StyleAttribute<>(instance, "weight", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, weights), 1d,
 			new MuisProperty.ComparableValidator<>(0.25d, 3d));
 		instance.register(weight);
-		slant = new StyleAttribute<>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal", 0d,
-			"italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d));
+		slant = new StyleAttribute<Double>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal",
+			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d));
 		instance.register(slant);
 		underline = new StyleAttribute<>(instance, "underline", new MuisProperty.MuisEnumProperty<>(Underline.class), Underline.none);
 		instance.register(underline);

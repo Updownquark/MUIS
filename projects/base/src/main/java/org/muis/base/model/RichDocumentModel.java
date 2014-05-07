@@ -447,7 +447,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().localAttributes());
 			}
-			return ArrayUtils.iterable(ret.toArray(new Iterable[ret.size()]));
+			return ArrayUtils.iterable((Iterable<StyleAttribute<?>> []) ret.toArray(new Iterable[ret.size()]));
 		}
 
 		@Override
@@ -481,7 +481,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().iterator());
 			}
-			return ArrayUtils.iterator(ret.toArray(new Iterator[ret.size()]));
+			return ArrayUtils.iterator((Iterator<StyleAttribute<?>> []) ret.toArray(new Iterator[ret.size()]));
 		}
 
 		@Override

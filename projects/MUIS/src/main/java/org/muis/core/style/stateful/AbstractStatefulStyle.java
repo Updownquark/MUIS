@@ -1,7 +1,6 @@
 package org.muis.core.style.stateful;
 
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionEvent;
 import org.muis.core.style.StyleExpressionListener;
 import org.muis.core.style.StyleExpressionValue;
 
@@ -50,18 +49,15 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 */
 	public AbstractStatefulStyle(StatefulStyle... dependencies) {
 		theDependencies = dependencies;
-		theDependencyListener = new StyleExpressionListener<StatefulStyle, StateExpression>() {
-			@Override
-			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> event) {
-				for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute())) {
-					if(expr.getExpression() == event.getExpression())
-						break;
-					if(expr.getExpression() == null
-						|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
-						return;
-				}
-				styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
+		theDependencyListener = event -> {
+			for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute())) {
+				if(expr.getExpression() == event.getExpression())
+					break;
+				if(expr.getExpression() == null
+					|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
+					return;
 			}
+			styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 		};
 		for(StatefulStyle dep : theDependencies)
 			dep.addListener(theDependencyListener);

@@ -3,7 +3,6 @@ package org.muis.base.widget;
 import org.muis.base.model.RichDocumentModel;
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.model.*;
 
 /**
@@ -20,42 +19,29 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 
 	/** Creates the label */
 	public Label() {
-		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
-			@Override
-			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
-				setText(getTextFor(evt.getNewValue()));
-			}
+		theValueListener = evt -> {
+			setText(getTextFor(evt.getNewValue()));
 		};
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				Object accepter = new Object();
-				atts().accept(accepter, rich);
-				atts().accept(accepter, ModelAttributes.value);
-				events().listen(AttributeChangedEvent.att(rich), new MuisEventListener<AttributeChangedEvent<Boolean>>() {
-					@Override
-					public void eventOccurred(AttributeChangedEvent<Boolean> event) {
-						setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
-							getDocumentBackingStyle()));
-					}
-				});
-				events().listen(AttributeChangedEvent.att(ModelAttributes.value),
-					new MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
-						@Override
-						public void eventOccurred(AttributeChangedEvent<MuisModelValue<?>> event) {
-							modelValueChanged(event.getOldValue(), event.getValue());
-						}
-					});
-				modelValueChanged(null, atts().get(ModelAttributes.value));
+		life().runWhen(() -> {
+			Object accepter = new Object();
+			atts().accept(accepter, rich);
+			atts().accept(accepter, ModelAttributes.value);
+			events().listen(AttributeChangedEvent.att(rich), (AttributeChangedEvent<Boolean> event) -> {
+				setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
+					getDocumentBackingStyle()));
+			});
+			events().listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
+				modelValueChanged(event.getOldValue(), event.getValue());
+			});
+			modelValueChanged(null, atts().get(ModelAttributes.value));
 
-				if(Boolean.TRUE.equals(atts().get(rich))) {
-					MuisDocumentModel doc = getWrappedModel();
-					if(!(doc instanceof RichDocumentModel)) {
-						String text = getText();
-						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
-						if(text != null)
-							setText(text);
-					}
+			if(Boolean.TRUE.equals(atts().get(rich))) {
+				MuisDocumentModel doc = getWrappedModel();
+				if(!(doc instanceof RichDocumentModel)) {
+					String text = getText();
+					setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
+					if(text != null)
+						setText(text);
 				}
 			}
 		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);

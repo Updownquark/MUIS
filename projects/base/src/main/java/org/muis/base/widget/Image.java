@@ -7,7 +7,6 @@ import java.net.URL;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisProperty;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEventListener;
 
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
 public class Image extends GenericImage {
@@ -39,58 +38,43 @@ public class Image extends GenericImage {
 		atts().accept(this, hResize);
 		atts().accept(this, vResize);
 		atts().accept(this, propLocked);
-		events().listen(att(src), new MuisEventListener<AttributeChangedEvent<URL>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<URL> event) {
-				setImageLocation(event.getElement().atts().get(src));
-			}
-		}).listen(att(resize), new MuisEventListener<AttributeChangedEvent<ImageResizePolicy>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<ImageResizePolicy> event) {
-				ImageResizePolicy policy = event.getElement().atts().get(resize);
-				if(event.getElement().atts().get(hResize) != null || event.getElement().atts().get(vResize) != null) {
-					if(policy != null)
-						msg().warn(
-							hResize.getName() + " and " + vResize.getName() + " attributes override the effects of " + resize.getName());
-					if(policy == null)
-						policy = ImageResizePolicy.lockIfEmpty;
-					if(event.getElement().atts().get(hResize) == null)
-						setHorizontalResizePolicy(policy);
-					else if(event.getElement().atts().get(vResize) == null)
-						setVerticalResizePolicy(policy);
-				} else {
-					if(policy == null)
-						policy = ImageResizePolicy.lockIfEmpty;
-					setHorizontalResizePolicy(policy);
-					setVerticalResizePolicy(policy);
-				}
-			}
-		}).listen(att(hResize), new MuisEventListener<AttributeChangedEvent<ImageResizePolicy>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<ImageResizePolicy> event) {
-				ImageResizePolicy policy = event.getElement().atts().get(hResize);
+		events().listen(att(src), (AttributeChangedEvent<URL> event) -> {
+			setImageLocation(event.getElement().atts().get(src));
+		}).listen(att(resize), (AttributeChangedEvent<ImageResizePolicy> event) -> {
+			ImageResizePolicy policy = event.getElement().atts().get(resize);
+			if(event.getElement().atts().get(hResize) != null || event.getElement().atts().get(vResize) != null) {
+				if(policy != null)
+					msg().warn(
+						hResize.getName() + " and " + vResize.getName() + " attributes override the effects of " + resize.getName());
 				if(policy == null)
-					policy = event.getElement().atts().get(resize);
+					policy = ImageResizePolicy.lockIfEmpty;
+				if(event.getElement().atts().get(hResize) == null)
+					setHorizontalResizePolicy(policy);
+				else if(event.getElement().atts().get(vResize) == null)
+					setVerticalResizePolicy(policy);
+			} else {
 				if(policy == null)
 					policy = ImageResizePolicy.lockIfEmpty;
 				setHorizontalResizePolicy(policy);
-			}
-		}).listen(att(vResize), new MuisEventListener<AttributeChangedEvent<ImageResizePolicy>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<ImageResizePolicy> event) {
-				ImageResizePolicy policy = event.getElement().atts().get(vResize);
-				if(policy == null)
-					policy = event.getElement().atts().get(resize);
-				if(policy == null)
-					policy = ImageResizePolicy.lockIfEmpty;
 				setVerticalResizePolicy(policy);
 			}
-		}).listen(att(propLocked), new MuisEventListener<AttributeChangedEvent<Boolean>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<Boolean> event) {
-				Boolean locked = event.getElement().atts().get(propLocked);
-				setProportionLocked(locked == null ? false : locked.booleanValue());
-			}
+		}).listen(att(hResize), (AttributeChangedEvent<ImageResizePolicy> event) -> {
+			ImageResizePolicy policy = event.getElement().atts().get(hResize);
+			if(policy == null)
+				policy = event.getElement().atts().get(resize);
+			if(policy == null)
+				policy = ImageResizePolicy.lockIfEmpty;
+			setHorizontalResizePolicy(policy);
+		}).listen(att(vResize), (AttributeChangedEvent<ImageResizePolicy> event) -> {
+			ImageResizePolicy policy = event.getElement().atts().get(vResize);
+			if(policy == null)
+				policy = event.getElement().atts().get(resize);
+			if(policy == null)
+				policy = ImageResizePolicy.lockIfEmpty;
+			setVerticalResizePolicy(policy);
+		}).listen(att(propLocked), (AttributeChangedEvent<Boolean> event) -> {
+			Boolean locked = event.getElement().atts().get(propLocked);
+			setProportionLocked(locked == null ? false : locked.booleanValue());
 		});
 	}
 }

@@ -4,7 +4,9 @@ import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 import static org.muis.core.MuisTextElement.multiLine;
 
-import org.muis.core.event.*;
+import org.muis.core.event.AttributeChangedEvent;
+import org.muis.core.event.FocusEvent;
+import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.model.*;
 import org.muis.core.tags.Template;
 import org.muis.util.Transaction;
@@ -37,84 +39,58 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				}
 			}
 		};
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				atts().accept(this, charLengthAtt);
-				atts().accept(this, charRowsAtt);
-				atts().accept(this, ModelAttributes.value);
-				atts().accept(this, multiLine);
-			}
+		life().runWhen(() -> {
+			atts().accept(this, charLengthAtt);
+			atts().accept(this, charRowsAtt);
+			atts().accept(this, ModelAttributes.value);
+			atts().accept(this, multiLine);
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				initDocument();
-				new org.muis.util.MuisAttributeExposer(TextField.this, getValueElement(), msg(), multiLine);
-				DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
-				cursor.setTextElement(getValueElement());
-				cursor.setStyleAnchor(getStyle().getSelf());
-				org.muis.core.MuisElement textHolder = getElement(getTemplate().getAttachPoint("text"));
-				try {
-					textHolder.atts().set(charLengthAtt, atts().get(charLengthAtt));
-					textHolder.atts().set(charRowsAtt, atts().get(charRowsAtt));
-				} catch(org.muis.core.MuisException e) {
-					msg().error("Could not initialize text layout attributes", e);
-				}
-				events().listen(AttributeChangedEvent.att(charLengthAtt), new MuisEventListener<AttributeChangedEvent<Long>>() {
-					@Override
-					public void eventOccurred(AttributeChangedEvent<Long> event) {
-						try {
-							getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
-						} catch(org.muis.core.MuisException e) {
-							msg().error("Could not pass on " + event.getAttribute(), e);
-						}
-					}
-				}).listen(AttributeChangedEvent.att(charRowsAtt), new MuisEventListener<AttributeChangedEvent<Long>>(){
-					@Override
-					public void eventOccurred(AttributeChangedEvent<Long> event) {
-						try {
-							getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
-						} catch(org.muis.core.MuisException e) {
-							msg().error("Could not pass on " + event.getAttribute(), e);
-						}
-					}
-					})
-					.listen(AttributeChangedEvent.att(ModelAttributes.value),
-						new MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
-					@Override
-					public void eventOccurred(AttributeChangedEvent<MuisModelValue<?>> event) {
-						modelValueChanged(event.getOldValue(), event.getValue());
-					}
-				});
-				getContentModel().addContentListener(new MuisDocumentModel.ContentListener() {
-					@Override
-					public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-						if(theCallbackLock > 0)
-							return;
-						pushToEdit();
-						fireModelChange();
-					}
-				});
-				modelValueChanged(null, atts().get(ModelAttributes.value));
-
-				events().listen(FocusEvent.blur, new MuisEventListener<FocusEvent>() {
-					@Override
-					public void eventOccurred(FocusEvent event) {
-						pushToModel();
-					}
-				});
-				events().listen(KeyBoardEvent.key.press(), new MuisEventListener<KeyBoardEvent>() {
-					@Override
-					public void eventOccurred(KeyBoardEvent event) {
-						if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
-							if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
-								return;
-							pushToModel();
-						}
-					}
-				});
+		life().runWhen(() -> {
+			initDocument();
+			new org.muis.util.MuisAttributeExposer(TextField.this, getValueElement(), msg(), multiLine);
+			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
+			cursor.setTextElement(getValueElement());
+			cursor.setStyleAnchor(getStyle().getSelf());
+			org.muis.core.MuisElement textHolder = getElement(getTemplate().getAttachPoint("text"));
+			try {
+				textHolder.atts().set(charLengthAtt, atts().get(charLengthAtt));
+				textHolder.atts().set(charRowsAtt, atts().get(charRowsAtt));
+			} catch(org.muis.core.MuisException e) {
+				msg().error("Could not initialize text layout attributes", e);
 			}
+			events().listen(AttributeChangedEvent.att(charLengthAtt), (AttributeChangedEvent<Long> event) -> {
+				try {
+					getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
+				} catch(org.muis.core.MuisException e) {
+					msg().error("Could not pass on " + event.getAttribute(), e);
+				}
+			}).listen(AttributeChangedEvent.att(charRowsAtt), (AttributeChangedEvent<Long> event) -> {
+				try {
+					getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
+				} catch(org.muis.core.MuisException e) {
+					msg().error("Could not pass on " + event.getAttribute(), e);
+				}
+			}).listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
+				modelValueChanged(event.getOldValue(), event.getValue());
+			});
+			getContentModel().addContentListener(evt -> {
+				if(theCallbackLock > 0)
+					return;
+				pushToEdit();
+				fireModelChange();
+			});
+			modelValueChanged(null, atts().get(ModelAttributes.value));
+
+			events().listen(FocusEvent.blur, (FocusEvent event) -> {
+				pushToModel();
+			});
+			events().listen(KeyBoardEvent.key.press(), (KeyBoardEvent event) -> {
+				if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
+					if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
+						return;
+					pushToModel();
+				}
+			});
 		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 

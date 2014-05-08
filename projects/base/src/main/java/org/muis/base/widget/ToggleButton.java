@@ -4,7 +4,6 @@ import org.muis.base.BaseConstants;
 import org.muis.core.event.*;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisModelValue;
-import org.muis.core.model.MuisModelValueEvent;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 
@@ -23,33 +22,23 @@ public class ToggleButton extends Button {
 	/** Creates a toggle button */
 	public ToggleButton() {
 		super(false);
-		theValueListener = new org.muis.core.model.MuisModelValueListener<Boolean>() {
-			@Override
-			public void valueChanged(MuisModelValueEvent<? extends Boolean> evt) {
-				if(state().is(BaseConstants.States.SELECTED) == evt.getNewValue().booleanValue())
-					return;
-				theSelectedController.setActive(evt.getNewValue(), evt.getUserEvent());
-			}
+		theValueListener = evt -> {
+			if(state().is(BaseConstants.States.SELECTED) == evt.getNewValue().booleanValue())
+				return;
+			theSelectedController.setActive(evt.getNewValue(), evt.getUserEvent());
 		};
 		atts().accept(new Object(), ModelAttributes.value);
-		events().listen(AttributeChangedEvent.att(ModelAttributes.value),
-			new MuisEventListener<AttributeChangedEvent<MuisModelValue<?>>>() {
-				@Override
-				public void eventOccurred(AttributeChangedEvent<MuisModelValue<?>> event) {
-					setModelValue(event.getOldValue(), event.getValue());
-				}
-			});
+		events().listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
+			setModelValue(event.getOldValue(), event.getValue());
+		});
 		setModelValue(null, atts().get(ModelAttributes.value));
 		theSelectedController = state().control(BaseConstants.States.SELECTED);
-		events().listen(StateChangedEvent.state(BaseConstants.States.SELECTED), new MuisEventListener<StateChangedEvent>() {
-			@Override
-			public void eventOccurred(StateChangedEvent event) {
-				MuisEvent cause = event.getCause();
-				if(event.getValue())
-					valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
-				else
-					valueChanged(false, cause instanceof UserEvent ? (UserEvent) cause : null);
-			}
+		events().listen(StateChangedEvent.state(BaseConstants.States.SELECTED), (StateChangedEvent event) -> {
+			MuisEvent cause = event.getCause();
+			if(event.getValue())
+				valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
+			else
+				valueChanged(false, cause instanceof UserEvent ? (UserEvent) cause : null);
 		});
 	}
 

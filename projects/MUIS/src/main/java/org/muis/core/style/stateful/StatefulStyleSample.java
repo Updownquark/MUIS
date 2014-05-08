@@ -78,20 +78,13 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public Iterable<StyleAttribute<?>> localAttributes() {
-		return new Iterable<StyleAttribute<?>>() {
-			@Override
-			public Iterator<StyleAttribute<?>> iterator() {
-				return ArrayUtils.conditionalIterator(theStatefulStyle.allLocal().iterator(),
-					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
-						@Override
-						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(value))
-								if(sev.getExpression() == null || sev.getExpression().matches(theState))
-									return value;
-							return null;
-						}
-					}, false);
-			}
+		return () -> {
+			return ArrayUtils.conditionalIterator(theStatefulStyle.allLocal().iterator(), value -> {
+				for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(value))
+					if(sev.getExpression() == null || sev.getExpression().matches(theState))
+						return value;
+				return null;
+			}, false);
 		};
 	}
 
@@ -110,14 +103,11 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public void addListener(final StyleListener listener) {
-		StyleExpressionListener<StatefulStyle, StateExpression> expListener = new StyleExpressionListener<StatefulStyle, StateExpression>() {
-			@Override
-			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
-				if(evt.getExpression() == null || evt.getExpression().matches(theState)) {
-					StyleAttribute<Object> attr = (StyleAttribute<Object>) evt.getAttribute();
-					listener.eventOccurred(new org.muis.core.style.StyleAttributeEvent<>(null, StatefulStyleSample.this,
-						StatefulStyleSample.this, attr, get(attr)));
-				}
+		StyleExpressionListener<StatefulStyle, StateExpression> expListener = evt -> {
+			if(evt.getExpression() == null || evt.getExpression().matches(theState)) {
+				StyleAttribute<Object> attr = (StyleAttribute<Object>) evt.getAttribute();
+				listener.eventOccurred(new org.muis.core.style.StyleAttributeEvent<>(null, StatefulStyleSample.this,
+					StatefulStyleSample.this, attr, get(attr)));
 			}
 		};
 		theStatefulStyle.addListener(expListener);

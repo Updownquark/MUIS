@@ -32,82 +32,72 @@ public class Button extends org.muis.core.MuisTemplate {
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
 		theEnabledController.setActive(true, null);
 		setFocusable(true);
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				if(isActionable) {
-					atts().accept(new Object(), ModelAttributes.action);
-					events().listen(AttributeChangedEvent.att(ModelAttributes.action),
-						new MuisEventListener<AttributeChangedEvent<MuisActionListener>>() {
-							@Override
-							public void eventOccurred(AttributeChangedEvent<MuisActionListener> event) {
-								listenerChanged(event.getOldValue(), event.getValue());
-							}
-						});
-					listenerChanged(null, atts().get(ModelAttributes.action));
-				}
-				events().listen(StateChangedEvent.state(MuisConstants.States.CLICK), new MuisEventListener<StateChangedEvent>() {
-					private Point theClickLocation;
-
-					@Override
-					public void eventOccurred(StateChangedEvent event) {
-						if(!state().is(BaseConstants.States.ENABLED))
-							return;
-						MuisEvent cause = event.getCause();
-						if(event.getValue()) {
-							if(cause instanceof MouseEvent) {
-								theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
-								theDepressedController.setActive(true, cause);
-							} else
-								theClickLocation = null;
-						} else {
-							Point click = theClickLocation;
-							theClickLocation = null;
-							checkDepressed(cause);
-							if(click == null || !(cause instanceof MouseEvent)
-								|| ((MouseEvent) cause).getType() != MouseEvent.MouseEventType.released) {
-								return;
-							}
-							if(state().is(BaseConstants.States.DEPRESSED))
-								return;
-							Point unclick = ((MouseEvent) cause).getPosition(Button.this);
-							int dx = click.x - unclick.x;
-							int dy = click.y - unclick.y;
-							double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyle.clickTolerance);
-							if(dx > tol || dy > tol)
-								return;
-							double dist2 = dx * dx + dy * dy;
-							if(dist2 > tol * tol)
-								return;
-							action((MouseEvent) cause);
-						}
-					}
+		life().runWhen(() -> {
+			if(isActionable) {
+				atts().accept(new Object(), ModelAttributes.action);
+				events().listen(AttributeChangedEvent.att(ModelAttributes.action), (AttributeChangedEvent<MuisActionListener> event) -> {
+					listenerChanged(event.getOldValue(), event.getValue());
 				});
-				events().listen(KeyBoardEvent.key, new MuisEventListener<KeyBoardEvent>() {
-					@Override
-					public void eventOccurred(KeyBoardEvent event) {
-						if(event.wasPressed()) {
-							if(event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
-								return;
-							if(!state().is(BaseConstants.States.ENABLED))
-								return;
-							theDepressedController.setActive(true, event);
-						} else {
-							if(event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
-								return;
-							if(!state().is(BaseConstants.States.ENABLED))
-								return;
-							checkDepressed(event);
-							if(state().is(BaseConstants.States.DEPRESSED))
-								return;
-							org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
-							if(listener == null)
-								return;
-							action(event);
-						}
-					}
-				});
+				listenerChanged(null, atts().get(ModelAttributes.action));
 			}
+			events().listen(StateChangedEvent.state(MuisConstants.States.CLICK), new MuisEventListener<StateChangedEvent>() {
+				private Point theClickLocation;
+
+				@Override
+				public void eventOccurred(StateChangedEvent event) {
+					if(!state().is(BaseConstants.States.ENABLED))
+						return;
+					MuisEvent cause = event.getCause();
+					if(event.getValue()) {
+						if(cause instanceof MouseEvent) {
+							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
+							theDepressedController.setActive(true, cause);
+						} else
+							theClickLocation = null;
+					} else {
+						Point click = theClickLocation;
+						theClickLocation = null;
+						checkDepressed(cause);
+						if(click == null || !(cause instanceof MouseEvent)
+							|| ((MouseEvent) cause).getType() != MouseEvent.MouseEventType.released) {
+							return;
+						}
+						if(state().is(BaseConstants.States.DEPRESSED))
+							return;
+						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
+						int dx = click.x - unclick.x;
+						int dy = click.y - unclick.y;
+						double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyle.clickTolerance);
+						if(dx > tol || dy > tol)
+							return;
+						double dist2 = dx * dx + dy * dy;
+						if(dist2 > tol * tol)
+							return;
+						action((MouseEvent) cause);
+					}
+				}
+			});
+			events().listen(KeyBoardEvent.key, (KeyBoardEvent event) -> {
+				if(event.wasPressed()) {
+					if(event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
+						return;
+					if(!state().is(BaseConstants.States.ENABLED))
+						return;
+					theDepressedController.setActive(true, event);
+				} else {
+					if(event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
+						return;
+					if(!state().is(BaseConstants.States.ENABLED))
+						return;
+					checkDepressed(event);
+					if(state().is(BaseConstants.States.DEPRESSED))
+						return;
+					org.muis.core.model.MuisActionListener listener = atts().get(ModelAttributes.action);
+					if(listener == null)
+						return;
+					action(event);
+				}
+			});
 		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 

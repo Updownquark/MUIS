@@ -148,57 +148,54 @@ public class GenericImage extends org.muis.core.LayoutContainer {
 	/** Creates a generic image */
 	public GenericImage() {
 		theLock = new Object();
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				org.muis.core.MuisEnvironment env = getDocument().getEnvironment();
-				org.muis.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
-				if(res == null)
-					msg().error("No configured img-load-icon");
-				if(res != null && theLoadingImage == null)
-					try {
-						env.getCache().get(env, cacheType, org.muis.util.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
-							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
-								@Override
-								public void itemGenerated(URL key, ImageData value) {
-									if(theLoadingImage == null) {
-										theLoadingImage = value;
-										imageChanged();
-									}
+		life().runWhen(() -> {
+			org.muis.core.MuisEnvironment env = getDocument().getEnvironment();
+			org.muis.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
+			if(res == null)
+				msg().error("No configured img-load-icon");
+			if(res != null && theLoadingImage == null)
+				try {
+					env.getCache().get(env, cacheType, org.muis.util.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
+							@Override
+							public void itemGenerated(URL key, ImageData value) {
+								if(theLoadingImage == null) {
+									theLoadingImage = value;
+									imageChanged();
 								}
+							}
 
-								@Override
-								public void errorOccurred(URL key, Throwable exception) {
-									msg().error("Could not load image loading icon", exception);
+							@Override
+							public void errorOccurred(URL key, Throwable exception) {
+								msg().error("Could not load image loading icon", exception);
+							}
+						});
+				} catch(org.muis.core.MuisException | java.io.IOException e) {
+					msg().error("Could not retrieve image loading icon", e);
+				}
+			res = getToolkit().getMappedResource("img-load-failed-icon");
+			if(res == null)
+				msg().error("No configured img-load-failed-icon");
+			if(res != null && theErrorImage == null)
+				try {
+					env.getCache().get(env, cacheType, org.muis.util.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+						new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
+							@Override
+							public void itemGenerated(URL key, ImageData value) {
+								if(theErrorImage == null) {
+									theLoadingImage = value;
+									imageChanged();
 								}
-							});
-					} catch(org.muis.core.MuisException | java.io.IOException e) {
-						msg().error("Could not retrieve image loading icon", e);
-					}
-				res = getToolkit().getMappedResource("img-load-failed-icon");
-				if(res == null)
-					msg().error("No configured img-load-failed-icon");
-				if(res != null && theErrorImage == null)
-					try {
-						env.getCache().get(env, cacheType, org.muis.util.MuisUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
-							new org.muis.core.MuisCache.ItemReceiver<URL, ImageData>() {
-								@Override
-								public void itemGenerated(URL key, ImageData value) {
-									if(theErrorImage == null) {
-										theLoadingImage = value;
-										imageChanged();
-									}
-								}
+							}
 
-								@Override
-								public void errorOccurred(URL key, Throwable exception) {
-									msg().error("Could not load image load failed icon", exception);
-								}
-							});
-					} catch(org.muis.core.MuisException | java.io.IOException e) {
-						msg().error("Could not retrieve image load failed icon", e);
-					}
-			}
+							@Override
+							public void errorOccurred(URL key, Throwable exception) {
+								msg().error("Could not load image load failed icon", exception);
+							}
+						});
+				} catch(org.muis.core.MuisException | java.io.IOException e) {
+					msg().error("Could not retrieve image load failed icon", e);
+				}
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		theHResizePolicy = ImageResizePolicy.lockIfEmpty;
 		theVResizePolicy = ImageResizePolicy.lockIfEmpty;

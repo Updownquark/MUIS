@@ -32,17 +32,11 @@ public class TextEditLayout implements MuisLayout {
 		theListener = CompoundListener.create(this);
 		theListener.acceptAll(charLengthAtt, charRowsAtt).onChange(CompoundListener.sizeNeedsChanged);
 		theListener.child().watchAll(org.muis.core.style.FontStyle.getDomainInstance()).onChange(CompoundListener.layout);
-		theContentListener = new MuisDocumentModel.ContentListener() {
-			@Override
-			public void contentChanged(MuisDocumentModel.ContentChangeEvent evt) {
-				theParent.relayout(false);
-			}
+		theContentListener = evt -> {
+			theParent.relayout(false);
 		};
-		theStyleListener = new MuisDocumentModel.StyleListener() {
-			@Override
-			public void styleChanged(MuisDocumentModel.StyleChangeEvent evt) {
-				theParent.relayout(false);
-			}
+		theStyleListener = evt -> {
+			theParent.relayout(false);
 		};
 	}
 

@@ -23,30 +23,24 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		theCurrentState = new MuisState[0];
 		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theStateListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
-		addListener(new StyleExpressionListener<StatefulStyle, StateExpression>() {
-			@Override
-			public void eventOccurred(StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) {
-				if(evt.getExpression() != null && !evt.getExpression().matches(theCurrentState))
+		addListener((StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) -> {
+			if(evt.getExpression() != null && !evt.getExpression().matches(theCurrentState))
+				return;
+			for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(evt.getAttribute())) {
+				if(sev.getExpression() == evt.getExpression())
+					break;
+				if(sev.getExpression() == null || sev.getExpression().matches(theCurrentState))
 					return;
-				for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(evt.getAttribute())) {
-					if(sev.getExpression() == evt.getExpression())
-						break;
-					if(sev.getExpression() == null || sev.getExpression().matches(theCurrentState))
-						return;
-				}
-				MuisStyle root;
-				if(evt.getRootStyle() instanceof MuisStyle)
-					root = (MuisStyle) evt.getRootStyle();
-				else
-					root = new StatefulStyleSample(evt.getRootStyle(), theCurrentState);
-				styleChanged(evt.getAttribute(), get(evt.getAttribute()), root);
 			}
+			MuisStyle root;
+			if(evt.getRootStyle() instanceof MuisStyle)
+				root = (MuisStyle) evt.getRootStyle();
+			else
+				root = new StatefulStyleSample(evt.getRootStyle(), theCurrentState);
+			styleChanged(evt.getAttribute(), get(evt.getAttribute()), root);
 		});
-		theDependencyStyleListener = new StyleListener() {
-			@Override
-			public void eventOccurred(StyleAttributeEvent<?> event) {
-				styleChanged(event.getAttribute(), event.getValue(), event.getRootStyle());
-			}
+		theDependencyStyleListener = event -> {
+			styleChanged(event.getAttribute(), event.getValue(), event.getRootStyle());
 		};
 	}
 
@@ -231,21 +225,14 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public Iterable<StyleAttribute<?>> localAttributes() {
-		return new Iterable<StyleAttribute<?>>() {
-			@Override
-			public Iterator<StyleAttribute<?>> iterator() {
-				final MuisState [] stateCapture = theCurrentState;
-				return ArrayUtils.conditionalIterator(allLocal().iterator(),
-					new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
-						@Override
-						public StyleAttribute<?> accept(StyleAttribute<?> value) {
-							for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(value))
-								if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
-									return value;
-							return null;
-						}
-					}, false);
-			}
+		return () -> {
+			final MuisState [] stateCapture = theCurrentState;
+			return ArrayUtils.conditionalIterator(allLocal().iterator(), value -> {
+				for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(value))
+					if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
+						return value;
+				return null;
+			}, false);
 		};
 	}
 
@@ -276,16 +263,13 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	public Iterator<StyleAttribute<?>> iterator() {
 		final MuisState [] stateCapture = theCurrentState;
 		final java.util.HashSet<StyleAttribute<?>> used = new java.util.HashSet<>();
-		return ArrayUtils.conditionalIterator(allAttrs().iterator(), new ArrayUtils.Accepter<StyleAttribute<?>, StyleAttribute<?>>() {
-			@Override
-			public StyleAttribute<?> accept(StyleAttribute<?> value) {
-				if(!used.add(value))
-					return null;
-				for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(value))
-					if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
-						return value;
+		return ArrayUtils.conditionalIterator(allAttrs().iterator(), value -> {
+			if(!used.add(value))
 				return null;
-			}
+			for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(value))
+				if(sev.getExpression() == null || sev.getExpression().matches(stateCapture))
+					return value;
+			return null;
 		}, false);
 	}
 

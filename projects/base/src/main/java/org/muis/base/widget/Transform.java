@@ -7,7 +7,6 @@ import java.awt.geom.AffineTransform;
 
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.layout.LayoutGuideType;
 import org.muis.core.layout.Orientation;
 import org.muis.core.layout.SizeGuide;
@@ -34,26 +33,17 @@ public class Transform extends MuisTemplate {
 
 	/** Creates a transform widget */
 	public Transform() {
-		life().runWhen(new Runnable() {
-			@Override
-			public void run() {
-				atts().accept(this, flip);
-				atts().accept(this, rotate);
-				events().listen(AttributeChangedEvent.att(flip), new MuisEventListener<AttributeChangedEvent<Orientation>>() {
-					@Override
-					public void eventOccurred(AttributeChangedEvent<Orientation> event) {
-						events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
-						relayout(false);
-					}
-				});
-				events().listen(AttributeChangedEvent.att(rotate), new MuisEventListener<AttributeChangedEvent<Double>>() {
-					@Override
-					public void eventOccurred(AttributeChangedEvent<Double> event) {
-						events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
-						relayout(false);
-					}
-				});
-			}
+		life().runWhen(() -> {
+			atts().accept(this, flip);
+			atts().accept(this, rotate);
+			events().listen(AttributeChangedEvent.att(flip), (AttributeChangedEvent<Orientation> event) -> {
+				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
+				relayout(false);
+			});
+			events().listen(AttributeChangedEvent.att(rotate), (AttributeChangedEvent<Double> event) -> {
+				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
+				relayout(false);
+			});
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 

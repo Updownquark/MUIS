@@ -44,39 +44,33 @@ public class MuisAttributeExposer {
 		theSource = source;
 		theDest = dest;
 		theAttributes = atts;
-		theAttAcceptListener = new MuisEventListener<AttributeAcceptedEvent>() {
-			@Override
-			public void eventOccurred(AttributeAcceptedEvent event) {
-				if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
-					return;
-				if(event.isAccepted())
-					try {
-						if(!theSource.atts().isAccepted(event.getAttribute()))
-							theSource.atts().accept(this, event.isRequired(), (MuisAttribute<Object>) event.getAttribute(),
-								event.getInitialValue());
-					} catch(MuisException e) {
-						theMessageCenter.error("Attribute synchronization failed: Source " + theSource + " cannot accept attribute "
-							+ event.getAttribute(), e);
-					}
-				else if(!theDest.atts().isAccepted(event.getAttribute()))
-					theSource.atts().reject(this, event.getAttribute());
-			}
+		theAttAcceptListener = event -> {
+			if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
+				return;
+			if(event.isAccepted())
+				try {
+					if(!theSource.atts().isAccepted(event.getAttribute()))
+						theSource.atts().accept(this, event.isRequired(), (MuisAttribute<Object>) event.getAttribute(),
+							event.getInitialValue());
+				} catch(MuisException e) {
+					theMessageCenter.error(
+						"Attribute synchronization failed: Source " + theSource + " cannot accept attribute " + event.getAttribute(), e);
+				}
+			else if(!theDest.atts().isAccepted(event.getAttribute()))
+				theSource.atts().reject(this, event.getAttribute());
 		};
-		theAttChangeListener = new MuisEventListener<AttributeChangedEvent<?>>() {
-			@Override
-			public void eventOccurred(AttributeChangedEvent<?> event) {
-				if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
-					return;
-				MuisAttribute<?> att = event.getAttribute();
-				if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)
-					&& theDest.atts().isAccepted(att))
-					try {
-						theDest.atts().set((MuisAttribute<Object>) att, event.getValue());
-					} catch(MuisException e) {
-						theMessageCenter.error("Attribute synchronization failed: Destination " + theDest + " cannot accept value "
-							+ theSource.atts().get(att) + " for attribute " + att, e);
-					}
-			}
+		theAttChangeListener = event -> {
+			if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
+				return;
+			MuisAttribute<?> att = event.getAttribute();
+			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)
+				&& theDest.atts().isAccepted(att))
+				try {
+					theDest.atts().set((MuisAttribute<Object>) att, event.getValue());
+				} catch(MuisException e) {
+					theMessageCenter.error("Attribute synchronization failed: Destination " + theDest + " cannot accept value "
+						+ theSource.atts().get(att) + " for attribute " + att, e);
+				}
 		};
 		theDest.events().listen(AttributeAcceptedEvent.attAccept, theAttAcceptListener);
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders()) {

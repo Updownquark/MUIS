@@ -41,6 +41,16 @@ public class Transform extends MuisTemplate {
 				relayout(false);
 			});
 			events().listen(AttributeChangedEvent.att(rotate), (AttributeChangedEvent<Double> event) -> {
+						if(event.getValue() % 90 != 0) {
+							msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value",
+								event.getValue());
+							try {
+								atts().set(rotate, Math.round(event.getValue() / 90) * 90.0);
+							} catch(MuisException e) {
+								throw new IllegalStateException(e);
+							}
+							return;
+						}
 				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
 				relayout(false);
 			});
@@ -54,7 +64,49 @@ public class Transform extends MuisTemplate {
 
 	@Override
 	public void doLayout() {
-		// TODO
+		Block contents = getContents();
+		double rotation = normalize(atts().get(rotate));
+		Double s = atts().get(scale);
+		Double sx = atts().get(scaleX);
+		Double sy = atts().get(scaleY);
+		double sxv = sx != null ? sx : (s != null ? s : 1);
+		double syv = sy != null ? sx : (s != null ? s : 1);
+
+		int pw = bounds().getWidth();
+		int ph = bounds().getHeight();
+		int x, y;
+		int cw, ch;
+		if(rotation == 0.0) {
+			x = y = 0;
+			cw = pw;
+			ch = ph;
+		} else if(rotation == 90.0) {
+			x = pw;
+			y = 0;
+			cw = ph;
+			ch = pw;
+		} else if(rotation == 180.0) {
+			x = pw;
+			y = ph;
+			cw = pw;
+			ch = ph;
+		} else if(rotation == 270.0) {
+			x = 0;
+			y = ph;
+			cw = ph;
+			ch = pw;
+		} else {
+			x = y = cw = ch = 0;
+			// TODO
+		}
+
+		if(sxv != 1.0)
+			cw = (int) Math.round(cw * sxv);
+		if(syv != 1.0)
+			ch = (int) Math.round(ch * syv);
+
+		contents.bounds().setBounds(x, y, cw, ch);
+
 		super.doLayout();
 	}
 
@@ -76,7 +128,7 @@ public class Transform extends MuisTemplate {
 		Double sy = atts().get(scaleY);
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
-		return new TransformingSizeGuide(rotation == null ? 0 : rotation, sxv, syv, contents.getWSizer(), contents.getHSizer(),
+		return new TransformingSizeGuide(normalize(rotation), sxv, syv, contents.getWSizer(), contents.getHSizer(),
 			orientation);
 	}
 
@@ -88,15 +140,52 @@ public class Transform extends MuisTemplate {
 		Double sy = atts().get(scaleY);
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
-		return new MuisElementCapture(null, this, new TransformTransformer(atts().get(flip), rotation == null ? 0 : rotation, sxv, syv), x,
+		return new MuisElementCapture(null, this, new TransformTransformer(atts().get(flip), normalize(rotation), sxv, syv), x,
 			y, z, w, h);
+	}
+
+	private double normalize(Double rotation) {
+		if(rotation == null)
+			return 0.0;
+		double ret = rotation;
+		if(ret < 0) {
+			ret = -ret;
+			ret %= 360.0;
+			ret = 360.0 - ret;
+		} else if(ret >= 360.0)
+			ret %= 360;
+		return ret;
+	}
+
+	private static void rotate(Point p, int w, int h, double rotation) {
+		if(rotation == 0) {
+		} else if(rotation == 90.0) {
+			final int oldX = p.x, oldY = p.y;
+			p.x = oldY;
+			p.y = h - oldX;
+		} else if(rotation == 180.0) {
+			final int oldX = p.x, oldY = p.y;
+			p.x = w - oldX;
+			p.y = h - oldY;
+		} else if(rotation == 270.0) {
+			final int oldX = p.x, oldY = p.y;
+			p.x = oldY;
+			p.y = h - oldX;
+		} else {
+			double radians = -rotation / 180.0 * Math.PI;
+			double sin = Math.sin(radians);
+			double cos = Math.cos(radians);
+			final int oldX = p.x, oldY = p.y;
+			p.x = (int) Math.round(cos * oldX - sin * oldY);
+			p.y = (int) Math.round(sin * oldX + cos * oldY);
+		}
 	}
 
 	@Override
 	public MuisElementCapture [] paintChildren(Graphics2D graphics, Rectangle area) {
 		Block content = getContents();
 		Orientation reflection = atts().get(flip);
-		Double rotation = atts().get(rotate);
+		double rotation = normalize(atts().get(rotate));
 		Double s = atts().get(scale);
 		Double sx = atts().get(scaleX);
 		Double sy = atts().get(scaleY);
@@ -124,7 +213,7 @@ public class Transform extends MuisTemplate {
 			isTransformed = true;
 			tx.scale(sxv, syv);
 		}
-		if(rotation != null && rotation != 0.0) {
+		if(rotation != 0.0) {
 			isTransformed = true;
 			tx.rotate(-(rotation / 180 * Math.PI));
 		}
@@ -151,6 +240,8 @@ public class Transform extends MuisTemplate {
 		private final SizeGuide theWSizer;
 		private final SizeGuide theHSizer;
 
+		private final Orientation theOrientation;
+
 		/**
 		 * @param rotation The rotation, in clockwise degrees, for this transformer to apply
 		 * @param sX The scale factor in the x-direction
@@ -166,6 +257,7 @@ public class Transform extends MuisTemplate {
 			theScaleY = sY;
 			theWSizer = wSizer;
 			theHSizer = hSizer;
+			theOrientation = orientation;
 		}
 
 		/** @return The rotation (in clockwise degrees) that this transformer applies */
@@ -215,8 +307,21 @@ public class Transform extends MuisTemplate {
 
 		@Override
 		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-			// TODO
-			return 0;
+			boolean vertical = theOrientation == Orientation.vertical;
+			int ret;
+			if(theRotation == 0.0 || theRotation == 180.0) {
+				ret = (vertical ? theHSizer : theWSizer).get(type, crossSize, csMax);
+				if((vertical ? theScaleY : theScaleX) != 1.0)
+					ret *= vertical ? theScaleY : theScaleX;
+			} else if(theRotation == 90.0 || theRotation == 270.0) {
+				ret = (vertical ? theWSizer : theHSizer).get(type, crossSize, csMax);
+				if((vertical ? theScaleX : theScaleY) != 1.0)
+					ret *= vertical ? theScaleX : theScaleY;
+			} else {
+				// TODO
+				ret = 0;
+			}
+			return ret;
 		}
 	}
 
@@ -262,93 +367,52 @@ public class Transform extends MuisTemplate {
 
 		@Override
 		public Point getChildPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
-			if(theRotation == 0.0 && theScaleX == 1.0 && theScaleY == 1.0) { // Easy case
-				int x = pos.x - child.getX();
-				int y = pos.y - child.getY();
+			// Order is translate, rotate, scale, reflect
+			int x = pos.x - child.getX();
+			int y = pos.y - child.getY();
 
-				// Reflection
-				if(theReflection != null)
-					switch (theReflection) {
-					case horizontal:
-						x = child.getWidth() - x;
-						break;
-					case vertical:
-						y = child.getHeight() - y;
-						break;
-					}
-				return new Point(x, y);
-			}
-			double x = pos.x - child.getX();
-			double y = pos.y - child.getY();
+			rotate(pos, child.getWidth(), child.getHeight(), theRotation);
 
-			// TODO Rotation
-
-			// Reflection
-			if(theReflection != null)
-				switch (theReflection) {
-				case horizontal:
-					x = child.getWidth() - x;
-					break;
-				case vertical:
-					y = child.getHeight() - y;
-					break;
-				}
-
-			// Scaling
 			if(theScaleX != 1.0)
-				x /= theScaleX;
+				x = (int) Math.round(x / theScaleX);
 			if(theScaleY != 1.0)
-				y /= theScaleY;
+				y = (int) Math.round(y / theScaleY);
 
-			return new Point((int) Math.round(x), (int) Math.round(y));
+			if(x < 0 || x >= child.getWidth() || y < 0 || y >= child.getHeight())
+				return null;
+
+			if(theReflection == Orientation.horizontal) {
+				x = child.getWidth() - x;
+			} else if(theReflection == Orientation.vertical) {
+				y = child.getHeight() - y;
+			}
+
+			return new Point(x, y);
 		}
 
 		@Override
 		public Point getParentPosition(MuisElementCapture parent, MuisElementCapture child, Point pos) {
-			if(theRotation == 0.0 && theScaleX == 1.0 && theScaleY == 1.0) { // Easy case
-				int x = pos.x;
-				int y = pos.y;
+			// Order is reflect, scale, rotate, translate
+			int x = pos.x;
+			int y = pos.y;
 
-				// Reflection
-				if(theReflection != null)
-					switch (theReflection) {
-					case horizontal:
-						x = child.getWidth() - x;
-						break;
-					case vertical:
-						y = child.getHeight() - y;
-						break;
-					}
-				x += child.getX();
-				y += child.getY();
-				return new Point(x, y);
+			if(theReflection == Orientation.horizontal) {
+				x = child.getWidth() - x;
+			} else if(theReflection == Orientation.vertical) {
+				y = child.getHeight() - y;
 			}
-			double x = pos.x;
-			double y = pos.y;
 
-			// Scaling
 			if(theScaleX != 1.0)
-				x /= theScaleX;
+				x = (int) Math.round(x * theScaleX);
 			if(theScaleY != 1.0)
-				y /= theScaleY;
+				y = (int) Math.round(y * theScaleY);
 
-			// Reflection
-			if(theReflection != null)
-				switch (theReflection) {
-				case horizontal:
-					x = child.getWidth() - x;
-					break;
-				case vertical:
-					y = child.getHeight() - y;
-					break;
-				}
-
-			// TODO Rotation
+			rotate(pos, child.getWidth(), child.getHeight(), -theRotation);
 
 			x += child.getX();
 			y += child.getY();
 
-			return new Point((int) Math.round(x), (int) Math.round(y));
+			return new Point(x, y);
 		}
 	}
 }

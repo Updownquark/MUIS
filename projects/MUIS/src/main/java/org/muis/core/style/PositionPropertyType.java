@@ -15,9 +15,9 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 	public Position parse(MuisParseEnv env, String value) throws MuisException {
 		if(env.getModelParser().getNextMVR(value, 0) == 0) {
 			org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(value);
-			if(Position.class.isAssignableFrom(modelValue.getType()))
+			if(modelValue.getType().canAssignTo(Position.class))
 				return (Position) modelValue.get();
-			else if(Number.class.isAssignableFrom(modelValue.getType()))
+			else if(modelValue.getType().canAssignTo(Number.class))
 				return new Position(((Number) modelValue.get()).floatValue(), LengthUnit.pixels);
 			else
 				throw new MuisException("Model value " + value + ", type " + modelValue.getType() + " is not compatible with position.");

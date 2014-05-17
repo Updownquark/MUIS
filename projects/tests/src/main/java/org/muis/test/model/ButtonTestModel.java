@@ -14,10 +14,11 @@ public class ButtonTestModel {
 	public ButtonTestModel() {
 		theColorGroup = new org.muis.base.model.MuisButtonGroup();
 		theColorGroup.addListener(evt -> {
-			if(evt.getUserEvent() == null)
+			org.muis.core.event.UserEvent ue = org.muis.core.model.MuisModelValueEvent.getUserEvent(evt);
+			if(ue == null)
 				return;
 			try {
-				evt.getUserEvent().getDocument().getRoot().getStyle().getSelf()
+				ue.getDocument().getRoot().getStyle().getSelf()
 					.set(BackgroundStyle.color, org.muis.core.style.Colors.parseColor(theColorGroup.get()));
 			} catch(ClassCastException | IllegalArgumentException | MuisException e) {
 				e.printStackTrace();

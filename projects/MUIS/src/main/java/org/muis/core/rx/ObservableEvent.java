@@ -6,7 +6,7 @@ package org.muis.core.rx;
  * @param <T> The compile-time type of the observable's value
  */
 public class ObservableEvent<T> {
-	private final Observable<T> theObservable;
+	private final ObservableValue<T> theObservable;
 
 	private final T theOldValue;
 	private final T theNewValue;
@@ -18,7 +18,7 @@ public class ObservableEvent<T> {
 	 * @param newValue The new value in the observable
 	 * @param cause The observable event that caused this event (may be null)
 	 */
-	public ObservableEvent(Observable<T> observable, T oldValue, T newValue, ObservableEvent<?> cause) {
+	public ObservableEvent(ObservableValue<T> observable, T oldValue, T newValue, ObservableEvent<?> cause) {
 		theObservable = observable;
 		theOldValue = oldValue;
 		theNewValue = newValue;
@@ -26,7 +26,7 @@ public class ObservableEvent<T> {
 	}
 
 	/** @return The observable that caused this event */
-	public Observable<T> getObservable() {
+	public ObservableValue<T> getObservable() {
 		return theObservable;
 	}
 

@@ -16,7 +16,7 @@ import org.muis.util.Transaction;
 public class TextField extends org.muis.core.MuisTemplate implements DocumentedElement {
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
-	private org.muis.core.model.MuisModelValueListener<Object> theValueListener;
+	private org.muis.core.rx.ObservableListener<Object> theValueListener;
 
 	private WrappingDocumentModel theDocumentWrapper;
 
@@ -24,11 +24,11 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 	/** Creates a text field */
 	public TextField() {
-		theValueListener = new org.muis.core.model.MuisModelValueListener<Object>() {
+		theValueListener = new org.muis.core.rx.ObservableListener<Object>() {
 			private boolean theEventLock;
 
 			@Override
-			public void valueChanged(MuisModelValueEvent<? extends Object> evt) {
+			public void valueChanged(org.muis.core.rx.ObservableEvent<? extends Object> evt) {
 				if(!theEventLock) {
 					theEventLock = true;
 					try {
@@ -165,7 +165,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 	private void fireModelChange() {
 		MuisModelValue<?> modelValue = atts().get(ModelAttributes.value);
-		if(modelValue != null && modelValue.getType() == String.class)
+		if(modelValue != null && modelValue.getType().canAssignTo(String.class))
 			((MuisModelValue<String>) modelValue).set(getContentModel().toString(), null);
 	}
 

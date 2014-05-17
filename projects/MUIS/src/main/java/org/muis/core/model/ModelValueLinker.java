@@ -1,6 +1,7 @@
 package org.muis.core.model;
 
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.rx.ObservableListener;
 
 /**
  * Links 2 values via converters
@@ -14,8 +15,8 @@ public class ModelValueLinker<T1, T2> {
 	private final MuisModelValue<T2> theRight;
 	private ValueConverter<T1, T2> theLeftToRight;
 	private ValueConverter<T2, T1> theRightToLeft;
-	private final MuisModelValueListener<T1> theLeftListener;
-	private final MuisModelValueListener<T2> theRightListener;
+	private final ObservableListener<T1> theLeftListener;
+	private final ObservableListener<T2> theRightListener;
 	private boolean theEventLock;
 
 	/**
@@ -37,7 +38,7 @@ public class ModelValueLinker<T1, T2> {
 				return;
 			theEventLock = true;
 			try {
-				theRight.set(theLeftToRight.convert(evt.getNewValue()), evt.getUserEvent());
+				theRight.set(theLeftToRight.convert(evt.getNewValue()), MuisModelValueEvent.getUserEvent(evt));
 			} finally {
 				theEventLock = false;
 			}
@@ -52,7 +53,7 @@ public class ModelValueLinker<T1, T2> {
 				return;
 			theEventLock = true;
 			try {
-				theLeft.set(theRightToLeft.convert(evt.getNewValue()), evt.getUserEvent());
+				theLeft.set(theRightToLeft.convert(evt.getNewValue()), MuisModelValueEvent.getUserEvent(evt));
 			} finally {
 				theEventLock = false;
 			}

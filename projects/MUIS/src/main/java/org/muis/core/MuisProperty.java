@@ -201,7 +201,7 @@ public abstract class MuisProperty<T> {
 			if(env.getModelParser().getNextMVR(value, 0) == 0) {
 				org.muis.core.model.MuisModelValue<? extends CharSequence> modelValue = (org.muis.core.model.MuisModelValue<? extends CharSequence>) env
 					.getModelParser().parseMVR(value);
-				if(CharSequence.class.isAssignableFrom(modelValue.getType()))
+				if(modelValue.getType().canAssignTo(CharSequence.class))
 					return modelValue.get().toString();
 				else
 					throw new MuisException("Model value " + value + " is not of type string");
@@ -480,7 +480,7 @@ public abstract class MuisProperty<T> {
 			if(env.getModelParser().getNextMVR(value, 0) == 0) {
 				org.muis.core.model.MuisModelValue<Color> modelValue = (org.muis.core.model.MuisModelValue<Color>) env.getModelParser()
 					.parseMVR(value);
-				if(Color.class.isAssignableFrom(modelValue.getType()))
+				if(modelValue.getType().canAssignTo(Color.class))
 					return modelValue.get();
 				else
 					throw new MuisException("Model value " + value + " is not of type color");
@@ -708,7 +708,7 @@ public abstract class MuisProperty<T> {
 			if(env.getModelParser().getNextMVR(value, 0) == 0) {
 				org.muis.core.model.MuisModelValue<V> modelValue = (org.muis.core.model.MuisModelValue<V>) env.getModelParser().parseMVR(
 					value);
-				if(theTypeProperty.type.isAssignableFrom(modelValue.getType()))
+				if(modelValue.getType().canAssignTo(theTypeProperty.type))
 					return modelValue.get();
 				else
 					throw new MuisException("Model value " + value + " is not of type " + theTypeProperty.type.getSimpleName());
@@ -790,7 +790,7 @@ public abstract class MuisProperty<T> {
 			if(env.getModelParser().getNextMVR(value, 0) == 0) {
 				org.muis.core.model.MuisModelValue<T> modelValue = (org.muis.core.model.MuisModelValue<T>) env.getModelParser().parseMVR(
 					value);
-				if(enumType.isAssignableFrom(modelValue.getType()))
+				if(modelValue.getType().canAssignTo(enumType))
 					return modelValue.get();
 				else
 					throw new MuisException("Model value " + value + " is not of type " + enumType.getSimpleName());
@@ -897,13 +897,13 @@ public abstract class MuisProperty<T> {
 		public <V extends T> V parse(MuisParseEnv env, String value) throws MuisException {
 			if(env.getModelParser().getNextMVR(value, 0) == 0) {
 				org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(value);
-				if(String.class.isAssignableFrom(modelValue.getType())) {
+				if(modelValue.getType().canAssignTo(String.class)) {
 					String mv = (String) modelValue.get();
 					if(theNamedValues.containsKey(mv))
 						return (V) theNamedValues.get(mv);
 					else
 						throw new MuisException("Model value " + value + " does not match a predefined value.");
-				} else if(theWrapped.getType().isAssignableFrom(modelValue.getType())) {
+				} else if(modelValue.getType().canAssignTo(theWrapped.getType())) {
 					return (V) modelValue.get();
 				} else
 					throw new MuisException("Model value " + value + " is not of type " + theWrapped.getType().getSimpleName());

@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
 import org.muis.core.model.MuisModelValue;
+import org.muis.core.rx.ObservableEvent;
+import org.muis.core.rx.ObservableListener;
 
 /** Manages attribute information for an element */
 public class AttributeManager {
@@ -227,14 +229,14 @@ public class AttributeManager {
 	class AttributeModelWatcher {
 		private AttributeHolder<?> theAttribute;
 		private MuisModelValue<?> theModelValue;
-		private org.muis.core.model.MuisModelValueListener<Object> theListener;
+		private ObservableListener<Object> theListener;
 
 		AttributeModelWatcher(AttributeHolder<?> att, MuisModelValue<?> value) {
 			theAttribute = att;
 			theModelValue = value;
-			theListener = new org.muis.core.model.MuisModelValueListener<Object>() {
+			theListener = new ObservableListener<Object>() {
 				@Override
-				public void valueChanged(org.muis.core.model.MuisModelValueEvent<?> evt) {
+				public void valueChanged(ObservableEvent<?> evt) {
 					try {
 						theAttribute.valueModelChanged();
 					} catch(MuisException e) {

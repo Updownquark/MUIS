@@ -14,9 +14,9 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 	public Size parse(MuisParseEnv env, String value) throws org.muis.core.MuisException {
 		if(env.getModelParser().getNextMVR(value, 0) == 0) {
 			org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(value);
-			if(Size.class.isAssignableFrom(modelValue.getType()))
+			if(modelValue.getType().canAssignTo(Size.class))
 				return (Size) modelValue.get();
-			else if(Number.class.isAssignableFrom(modelValue.getType()))
+			else if(modelValue.getType().canAssignTo(Number.class))
 				return new Size(((Number) modelValue.get()).floatValue(), LengthUnit.pixels);
 			else
 				throw new MuisException("Model value " + value + ", type " + modelValue.getType() + " is not compatible with position.");

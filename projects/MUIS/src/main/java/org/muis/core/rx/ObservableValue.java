@@ -1,15 +1,16 @@
 package org.muis.core.rx;
 
-import java.lang.reflect.Type;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import prisms.lang.Type;
 
 /**
  * A value holder that can notify listeners when the value changes
  *
  * @param <T> The compile-time type of this observable's value
  */
-public interface Observable<T> {
+public interface ObservableValue<T> {
 	/** @return The type of value this observable contains. May be null if this observable's value is always null. */
 	Type getType();
 
@@ -20,13 +21,13 @@ public interface Observable<T> {
 	 * @param listener The listener to be notified when this observable's value changes
 	 * @return This observable, for chaining
 	 */
-	Observable<T> addListener(ObservableListener<? super T> listener);
+	ObservableValue<T> addListener(ObservableListener<? super T> listener);
 
 	/**
 	 * @param listener The listener to stop notifying when this observable's value changes
 	 * @return This observable, for chaining
 	 */
-	Observable<T> removeListener(ObservableListener<?> listener);
+	ObservableValue<T> removeListener(ObservableListener<?> listener);
 
 	/**
 	 * Composes this observable into another observable that depends on this one
@@ -35,7 +36,7 @@ public interface Observable<T> {
 	 * @param function The function to apply to this observable's value
 	 * @return The new observable whose value is a function of this observable's value
 	 */
-	default <R> Observable<R> compose(Function<T, R> function) {
+	default <R> ObservableValue<R> compose(Function<T, R> function) {
 		return new ComposedObservable<>((Object [] args) -> {
 			return function.apply((T) args[0]);
 		}, this);
@@ -50,7 +51,7 @@ public interface Observable<T> {
 	 * @param arg The other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
-	default <U, R> Observable<R> compose(BiFunction<T, U, R> function, Observable<U> arg) {
+	default <U, R> ObservableValue<R> compose(BiFunction<T, U, R> function, ObservableValue<U> arg) {
 		return new ComposedObservable<>((Object [] args) -> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this, arg);
@@ -67,7 +68,7 @@ public interface Observable<T> {
 	 * @param arg3 The second other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
-	default <U, V, R> Observable<R> compose(TriFunction<T, U, V, R> function, Observable<U> arg2, Observable<V> arg3) {
+	default <U, V, R> ObservableValue<R> compose(TriFunction<T, U, V, R> function, ObservableValue<U> arg2, ObservableValue<V> arg3) {
 		return new ComposedObservable<>((Object [] args) -> {
 			return function.apply((T) args[0], (U) args[1], (V) args[3]);
 		}, this, arg2, arg3);
@@ -78,11 +79,11 @@ public interface Observable<T> {
 	 * @param value The value to wrap
 	 * @return An observable that always returns the given value
 	 */
-	public static <X> Observable<X> constant(final X value) {
-		return new Observable<X>() {
+	public static <X> ObservableValue<X> constant(final X value) {
+		return new ObservableValue<X>() {
 			@Override
-			public Class<? extends X> getType() {
-				return value == null ? null : (Class<? extends X>) value.getClass();
+			public Type getType() {
+				return value == null ? null : new Type(value.getClass());
 			}
 
 			@Override
@@ -91,12 +92,12 @@ public interface Observable<T> {
 			}
 
 			@Override
-			public Observable<X> addListener(ObservableListener<? super X> listener) {
+			public ObservableValue<X> addListener(ObservableListener<? super X> listener) {
 				return this; // Immutable--no need to store the listeners
 			}
 
 			@Override
-			public Observable<X> removeListener(ObservableListener<?> listener) {
+			public ObservableValue<X> removeListener(ObservableListener<?> listener) {
 				return this;
 			}
 		};

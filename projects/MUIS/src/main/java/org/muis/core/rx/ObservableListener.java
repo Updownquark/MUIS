@@ -7,5 +7,5 @@ package org.muis.core.rx;
 @FunctionalInterface
 public interface ObservableListener<T> {
 	/** @param event The event representing the value change */
-	void eventOccurred(ObservableEvent<? extends T> event);
+	void valueChanged(ObservableEvent<? extends T> event);
 }

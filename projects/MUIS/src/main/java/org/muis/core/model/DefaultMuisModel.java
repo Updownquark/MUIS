@@ -101,7 +101,7 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 	@Override
 	public <T> DefaultMuisModelValue<? extends T> getValue(String name, Class<T> type) {
 		DefaultMuisModelValue<?> value = theValues.get(name);
-		if(type != null && !type.isAssignableFrom(value.getType()))
+		if(type != null && !value.getType().canAssignTo(type))
 			throw new ClassCastException("Value \"" + name + "\" is type \"" + value.getType().getName() + "\", not \"" + type.getName()
 				+ "\"");
 		return (DefaultMuisModelValue<? extends T>) value;

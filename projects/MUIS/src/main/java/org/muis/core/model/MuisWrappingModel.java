@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
+import org.muis.core.rx.ObservableListener;
 
 /** An implementation of MuisAppModel that wraps a POJO and makes its values and models available via reflection */
 public class MuisWrappingModel implements MuisAppModel {
@@ -136,7 +137,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		if(!(value.getClass().equals(MuisMemberAccessor.class)))
 			return null;
 		MuisMemberAccessor<?> accessor = (MuisMemberAccessor<?>) value;
-		if(modelType.isAssignableFrom(accessor.getType()))
+		if(accessor.getType().canAssignTo(modelType))
 			return ((MuisMemberAccessor<T>) accessor).get();
 		else
 			throw new ClassCastException("Widget model \"" + name + "\" is of type " + accessor.getType().getName() + ", not "
@@ -149,7 +150,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		if(!(value instanceof MuisModelValue))
 			return null;
 		MuisModelValue<?> modelValue = (MuisModelValue<?>) value;
-		if(type.isAssignableFrom(modelValue.getType()))
+		if(modelValue.getType().canAssignTo(type))
 			return (MuisModelValue<? extends T>) value;
 		else
 			throw new ClassCastException("Model value \"" + name + "\" is of type " + modelValue.getType().getName() + ", not "
@@ -273,11 +274,11 @@ public class MuisWrappingModel implements MuisAppModel {
 			theRegisteredElements = new java.util.concurrent.CopyOnWriteArrayList<>();
 		}
 
-		Class<T> getType() {
+		prisms.lang.Type getType() {
 			if(theFieldGetter instanceof Field)
-				return (Class<T>) ((Field) theFieldGetter).getType();
+				return new prisms.lang.Type(((Field) theFieldGetter).getType());
 			else
-				return (Class<T>) ((Method) theFieldGetter).getReturnType();
+				return new prisms.lang.Type(((Method) theFieldGetter).getReturnType());
 		}
 
 		@SuppressWarnings("unused")
@@ -348,7 +349,7 @@ public class MuisWrappingModel implements MuisAppModel {
 	}
 
 	private class MuisMemberValue<T> extends MuisMemberAccessor<T> implements MuisModelValue<T> {
-		private List<MuisModelValueListener<? super T>> theListeners;
+		private List<ObservableListener<? super T>> theListeners;
 
 		MuisMemberValue(Getter<?> appModel, Member member) {
 			super(appModel, member);
@@ -356,7 +357,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public Class<T> getType() {
+		public prisms.lang.Type getType() {
 			return super.getType();
 		}
 
@@ -375,19 +376,21 @@ public class MuisWrappingModel implements MuisAppModel {
 			T oldValue = get();
 			set(value);
 			MuisModelValueEvent<T> valueEvent = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
-			for(MuisModelValueListener<? super T> listener : theListeners)
+			for(ObservableListener<? super T> listener : theListeners)
 				listener.valueChanged(valueEvent);
 		}
 
 		@Override
-		public void addListener(MuisModelValueListener<? super T> listener) {
+		public MuisModelValue<T> addListener(ObservableListener<? super T> listener) {
 			if(listener != null)
 				theListeners.add(listener);
+			return this;
 		}
 
 		@Override
-		public void removeListener(MuisModelValueListener<?> listener) {
+		public MuisModelValue<T> removeListener(ObservableListener<?> listener) {
 			theListeners.remove(listener);
+			return this;
 		}
 	}
 

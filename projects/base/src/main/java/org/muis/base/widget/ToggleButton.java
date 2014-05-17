@@ -15,7 +15,7 @@ import org.muis.core.tags.StateSupport;
 public class ToggleButton extends Button {
 	private org.muis.core.mgr.StateEngine.StateController theSelectedController;
 
-	private org.muis.core.model.MuisModelValueListener<Boolean> theValueListener;
+	private org.muis.core.rx.ObservableListener<Boolean> theValueListener;
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
@@ -25,7 +25,7 @@ public class ToggleButton extends Button {
 		theValueListener = evt -> {
 			if(state().is(BaseConstants.States.SELECTED) == evt.getNewValue().booleanValue())
 				return;
-			theSelectedController.setActive(evt.getNewValue(), evt.getUserEvent());
+			theSelectedController.setActive(evt.getNewValue(), org.muis.core.model.MuisModelValueEvent.getUserEvent(evt));
 		};
 		atts().accept(new Object(), ModelAttributes.value);
 		events().listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
@@ -56,14 +56,14 @@ public class ToggleButton extends Button {
 				theRegistration.unregister();
 		}
 		if(newValue != null) {
-			if(newValue.getType() != Boolean.class && newValue.getType() != Boolean.TYPE) {
+			if(!newValue.getType().canAssignTo(Boolean.TYPE)) {
 				msg().error("Toggle button backed by non-boolean model: " + newValue.getType(), "modelValue", newValue);
 				return;
 			}
 			((MuisModelValue<Boolean>) newValue).addListener(theValueListener);
 			if(newValue instanceof org.muis.core.model.WidgetRegister)
 				theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(this);
-			setEnabled(newValue.isMutable(), null);
+			// setEnabled(newValue.isMutable(), null); TODO
 			theSelectedController.setActive((Boolean) newValue.get(), null);
 		} else {
 			setEnabled(true, null);
@@ -74,7 +74,7 @@ public class ToggleButton extends Button {
 		MuisModelValue<Boolean> modelValue = (MuisModelValue<Boolean>) atts().get(ModelAttributes.value);
 		if(modelValue == null)
 			return;
-		if(modelValue.getType() != Boolean.class && modelValue.getType() != Boolean.TYPE)
+		if(modelValue.getType().canAssignTo(Boolean.TYPE))
 			return;
 		if(modelValue.get().booleanValue() == value)
 			return;

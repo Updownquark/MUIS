@@ -440,7 +440,8 @@ public class MuisDomParser implements MuisParser {
 					Class<?> type = parseType(typeAtt, classView, msg, name + "." + subName, modelEl);
 					if(type == null)
 						continue;
-					org.muis.core.model.DefaultMuisModelValue<?> value = new org.muis.core.model.DefaultMuisModelValue<>(type);
+					org.muis.core.model.DefaultMuisModelValue<?> value = new org.muis.core.model.DefaultMuisModelValue<>(
+						new prisms.lang.Type(type));
 					((org.muis.core.model.DefaultMuisModelValue<Object>) value).set(getDefaultValue(type), null);
 					model.values().put(subName, value);
 					break;

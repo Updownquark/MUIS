@@ -1,17 +1,18 @@
 package org.muis.core.rx;
 
-import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
+import prisms.lang.Type;
+
 /**
  * An observable that depends on the values of other observables
- * 
+ *
  * @param <T> The type of the composed observable
  */
-public class ComposedObservable<T> implements Observable<T> {
-	private final List<Observable<?>> theComposed;
+public class ComposedObservable<T> implements ObservableValue<T> {
+	private final List<ObservableValue<?>> theComposed;
 	private final Function<Object [], T> theFunction;
 	private final CopyOnWriteArrayList<ObservableListener<? super T>> theListeners;
 
@@ -19,7 +20,7 @@ public class ComposedObservable<T> implements Observable<T> {
 	 * @param function The function that operates on the argument observables to produce this observable's value
 	 * @param composed The argument observables whose values are passed to the function
 	 */
-	public ComposedObservable(Function<Object [], T> function, Observable<?>... composed) {
+	public ComposedObservable(Function<Object [], T> function, ObservableValue<?>... composed) {
 		theFunction = function;
 		theComposed = java.util.Collections.unmodifiableList(java.util.Arrays.asList(composed));
 		theListeners = new CopyOnWriteArrayList<>();
@@ -41,14 +42,14 @@ public class ComposedObservable<T> implements Observable<T> {
 			ObservableEvent<T> toFire = new ObservableEvent<>(this, oldValue, newValue, evt);
 			fire(toFire);
 		};
-		for(Observable<?> comp : composed)
+		for(ObservableValue<?> comp : composed)
 			comp.addListener(listener);
 	}
 
 	@Override
 	public Type getType() {
 		try {
-			return theFunction.getClass().getMethod("apply", Object [].class).getGenericReturnType();
+			return new Type(theFunction.getClass().getMethod("apply", Object [].class).getGenericReturnType());
 		} catch(NoSuchMethodException | SecurityException e) {
 			throw new IllegalStateException("No apply method on a function?", e);
 		}
@@ -63,19 +64,19 @@ public class ComposedObservable<T> implements Observable<T> {
 	}
 
 	@Override
-	public Observable<T> addListener(ObservableListener<? super T> listener) {
+	public ObservableValue<T> addListener(ObservableListener<? super T> listener) {
 		theListeners.add(listener);
 		return this;
 	}
 
 	@Override
-	public Observable<T> removeListener(ObservableListener<?> listener) {
+	public ObservableValue<T> removeListener(ObservableListener<?> listener) {
 		theListeners.remove(listener);
 		return this;
 	}
 
 	private void fire(ObservableEvent<T> event) {
 		for(ObservableListener<? super T> listener : theListeners)
-			listener.eventOccurred(event);
+			listener.valueChanged(event);
 	}
 }

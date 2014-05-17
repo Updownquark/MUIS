@@ -2,6 +2,9 @@ package org.muis.base.model;
 
 import org.muis.core.event.UserEvent;
 import org.muis.core.model.*;
+import org.muis.core.rx.ObservableListener;
+
+import prisms.lang.Type;
 
 /**
  * A model that manages a set of boolean-valued widgets, such as toggle buttons or radio buttons, only one of which may be selected at a
@@ -12,7 +15,7 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 
 	private java.util.Map<String, CaseModelValue> theButtonValues;
 
-	private java.util.List<MuisModelValueListener<String>> theListeners;
+	private java.util.List<ObservableListener<String>> theListeners;
 
 	/** Creates the button group */
 	public MuisButtonGroup() {
@@ -54,18 +57,13 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 	}
 
 	@Override
-	public Class<String> getType() {
-		return String.class;
+	public Type getType() {
+		return new Type(String.class);
 	}
 
 	@Override
 	public String get() {
 		return theValue;
-	}
-
-	@Override
-	public boolean isMutable() {
-		return true;
 	}
 
 	@Override
@@ -75,21 +73,23 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 		String oldValue = theValue;
 		theValue = value;
 		MuisModelValueEvent<String> modelEvt = new MuisModelValueEvent<>(this, event, oldValue, theValue);
-		for(MuisModelValueListener<String> listener : theListeners)
+		for(ObservableListener<String> listener : theListeners)
 			listener.valueChanged(modelEvt);
 		for(CaseModelValue buttonModel : theButtonValues.values())
 			buttonModel.fireChange(oldValue, theValue, event);
 	}
 
 	@Override
-	public void addListener(MuisModelValueListener<? super String> listener) {
+	public MuisButtonGroup addListener(ObservableListener<? super String> listener) {
 		if(listener != null)
-			theListeners.add((MuisModelValueListener<String>) listener);
+			theListeners.add((ObservableListener<String>) listener);
+		return this;
 	}
 
 	@Override
-	public void removeListener(MuisModelValueListener<?> listener) {
+	public MuisButtonGroup removeListener(ObservableListener<?> listener) {
 		theListeners.remove(listener);
+		return this;
 	}
 
 	/** @return All values that have models in this button group */
@@ -100,7 +100,7 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 	private class CaseModelValue implements MuisModelValue<Boolean> {
 		private final String theCaseValue;
 
-		private java.util.List<MuisModelValueListener<Boolean>> theButtonListeners;
+		private java.util.List<ObservableListener<Boolean>> theButtonListeners;
 
 		CaseModelValue(String caseValue) {
 			theCaseValue = caseValue;
@@ -108,18 +108,13 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 		}
 
 		@Override
-		public Class<Boolean> getType() {
-			return Boolean.class;
+		public Type getType() {
+			return new Type(Boolean.class);
 		}
 
 		@Override
 		public Boolean get() {
 			return theCaseValue.equals(theValue);
-		}
-
-		@Override
-		public boolean isMutable() {
-			return true;
 		}
 
 		@Override
@@ -129,20 +124,22 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 		}
 
 		@Override
-		public void addListener(MuisModelValueListener<? super Boolean> listener) {
+		public CaseModelValue addListener(ObservableListener<? super Boolean> listener) {
 			if(listener != null)
-				theButtonListeners.add((MuisModelValueListener<Boolean>) listener);
+				theButtonListeners.add((ObservableListener<Boolean>) listener);
+			return this;
 		}
 
 		@Override
-		public void removeListener(MuisModelValueListener<?> listener) {
+		public CaseModelValue removeListener(ObservableListener<?> listener) {
 			theButtonListeners.remove(listener);
+			return this;
 		}
 
 		void fireChange(String oldValue, String newValue, UserEvent cause) {
 			MuisModelValueEvent<Boolean> buttonEvent = new MuisModelValueEvent<>(this, cause, theCaseValue.equals(oldValue),
 				theCaseValue.equals(theValue));
-			for(MuisModelValueListener<Boolean> listener : theButtonListeners)
+			for(ObservableListener<Boolean> listener : theButtonListeners)
 				listener.valueChanged(buttonEvent);
 		}
 	}

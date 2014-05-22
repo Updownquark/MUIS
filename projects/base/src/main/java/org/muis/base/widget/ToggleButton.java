@@ -15,7 +15,7 @@ import org.muis.core.tags.StateSupport;
 public class ToggleButton extends Button {
 	private org.muis.core.mgr.StateEngine.StateController theSelectedController;
 
-	private org.muis.core.rx.ObservableListener<Boolean> theValueListener;
+	private org.muis.core.rx.ObservableValueListener<Boolean> theValueListener;
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 

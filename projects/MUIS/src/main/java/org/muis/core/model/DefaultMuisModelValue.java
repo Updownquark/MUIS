@@ -3,7 +3,7 @@ package org.muis.core.model;
 import java.util.List;
 
 import org.muis.core.MuisElement;
-import org.muis.core.rx.ObservableListener;
+import org.muis.core.rx.ObservableValueListener;
 
 import prisms.lang.Type;
 
@@ -17,7 +17,7 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 
 	private T theValue;
 
-	private List<ObservableListener<? super T>> theListeners;
+	private List<ObservableValueListener<? super T>> theListeners;
 
 	private List<MuisElement> theRegisteredElements;
 
@@ -48,19 +48,19 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 		T oldValue = theValue;
 		theValue = value;
 		MuisModelValueEvent<T> event = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
-		for(ObservableListener<? super T> listener : theListeners)
+		for(ObservableValueListener<? super T> listener : theListeners)
 			listener.valueChanged(event);
 	}
 
 	@Override
-	public DefaultMuisModelValue<T> addListener(ObservableListener<? super T> listener) {
+	public DefaultMuisModelValue<T> addListener(ObservableValueListener<? super T> listener) {
 		if(listener != null)
 			theListeners.add(listener);
 		return this;
 	}
 
 	@Override
-	public DefaultMuisModelValue<T> removeListener(ObservableListener<?> listener) {
+	public DefaultMuisModelValue<T> removeListener(ObservableValueListener<?> listener) {
 		theListeners.remove(listener);
 		return this;
 	}

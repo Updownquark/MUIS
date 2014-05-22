@@ -2,7 +2,7 @@ package org.muis.base.model;
 
 import org.muis.core.event.UserEvent;
 import org.muis.core.model.*;
-import org.muis.core.rx.ObservableListener;
+import org.muis.core.rx.ObservableValueListener;
 
 import prisms.lang.Type;
 
@@ -15,7 +15,7 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 
 	private java.util.Map<String, CaseModelValue> theButtonValues;
 
-	private java.util.List<ObservableListener<String>> theListeners;
+	private java.util.List<ObservableValueListener<String>> theListeners;
 
 	/** Creates the button group */
 	public MuisButtonGroup() {
@@ -73,21 +73,21 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 		String oldValue = theValue;
 		theValue = value;
 		MuisModelValueEvent<String> modelEvt = new MuisModelValueEvent<>(this, event, oldValue, theValue);
-		for(ObservableListener<String> listener : theListeners)
+		for(ObservableValueListener<String> listener : theListeners)
 			listener.valueChanged(modelEvt);
 		for(CaseModelValue buttonModel : theButtonValues.values())
 			buttonModel.fireChange(oldValue, theValue, event);
 	}
 
 	@Override
-	public MuisButtonGroup addListener(ObservableListener<? super String> listener) {
+	public MuisButtonGroup addListener(ObservableValueListener<? super String> listener) {
 		if(listener != null)
-			theListeners.add((ObservableListener<String>) listener);
+			theListeners.add((ObservableValueListener<String>) listener);
 		return this;
 	}
 
 	@Override
-	public MuisButtonGroup removeListener(ObservableListener<?> listener) {
+	public MuisButtonGroup removeListener(ObservableValueListener<?> listener) {
 		theListeners.remove(listener);
 		return this;
 	}
@@ -100,7 +100,7 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 	private class CaseModelValue implements MuisModelValue<Boolean> {
 		private final String theCaseValue;
 
-		private java.util.List<ObservableListener<Boolean>> theButtonListeners;
+		private java.util.List<ObservableValueListener<Boolean>> theButtonListeners;
 
 		CaseModelValue(String caseValue) {
 			theCaseValue = caseValue;
@@ -124,14 +124,14 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 		}
 
 		@Override
-		public CaseModelValue addListener(ObservableListener<? super Boolean> listener) {
+		public CaseModelValue addListener(ObservableValueListener<? super Boolean> listener) {
 			if(listener != null)
-				theButtonListeners.add((ObservableListener<Boolean>) listener);
+				theButtonListeners.add((ObservableValueListener<Boolean>) listener);
 			return this;
 		}
 
 		@Override
-		public CaseModelValue removeListener(ObservableListener<?> listener) {
+		public CaseModelValue removeListener(ObservableValueListener<?> listener) {
 			theButtonListeners.remove(listener);
 			return this;
 		}
@@ -139,7 +139,7 @@ public class MuisButtonGroup implements MuisAppModel, MuisModelValue<String> {
 		void fireChange(String oldValue, String newValue, UserEvent cause) {
 			MuisModelValueEvent<Boolean> buttonEvent = new MuisModelValueEvent<>(this, cause, theCaseValue.equals(oldValue),
 				theCaseValue.equals(theValue));
-			for(ObservableListener<Boolean> listener : theButtonListeners)
+			for(ObservableValueListener<Boolean> listener : theButtonListeners)
 				listener.valueChanged(buttonEvent);
 		}
 	}

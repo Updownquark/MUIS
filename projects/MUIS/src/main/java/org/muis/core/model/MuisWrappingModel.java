@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
-import org.muis.core.rx.ObservableListener;
+import org.muis.core.rx.ObservableValueListener;
 
 /** An implementation of MuisAppModel that wraps a POJO and makes its values and models available via reflection */
 public class MuisWrappingModel implements MuisAppModel {
@@ -349,7 +349,7 @@ public class MuisWrappingModel implements MuisAppModel {
 	}
 
 	private class MuisMemberValue<T> extends MuisMemberAccessor<T> implements MuisModelValue<T> {
-		private List<ObservableListener<? super T>> theListeners;
+		private List<ObservableValueListener<? super T>> theListeners;
 
 		MuisMemberValue(Getter<?> appModel, Member member) {
 			super(appModel, member);
@@ -376,19 +376,19 @@ public class MuisWrappingModel implements MuisAppModel {
 			T oldValue = get();
 			set(value);
 			MuisModelValueEvent<T> valueEvent = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
-			for(ObservableListener<? super T> listener : theListeners)
+			for(ObservableValueListener<? super T> listener : theListeners)
 				listener.valueChanged(valueEvent);
 		}
 
 		@Override
-		public MuisModelValue<T> addListener(ObservableListener<? super T> listener) {
+		public MuisModelValue<T> addListener(ObservableValueListener<? super T> listener) {
 			if(listener != null)
 				theListeners.add(listener);
 			return this;
 		}
 
 		@Override
-		public MuisModelValue<T> removeListener(ObservableListener<?> listener) {
+		public MuisModelValue<T> removeListener(ObservableValueListener<?> listener) {
 			theListeners.remove(listener);
 			return this;
 		}

@@ -21,13 +21,13 @@ public interface ObservableValue<T> {
 	 * @param listener The listener to be notified when this observable's value changes
 	 * @return This observable, for chaining
 	 */
-	ObservableValue<T> addListener(ObservableListener<? super T> listener);
+	ObservableValue<T> addListener(ObservableValueListener<? super T> listener);
 
 	/**
 	 * @param listener The listener to stop notifying when this observable's value changes
 	 * @return This observable, for chaining
 	 */
-	ObservableValue<T> removeListener(ObservableListener<?> listener);
+	ObservableValue<T> removeListener(ObservableValueListener<?> listener);
 
 	/**
 	 * Composes this observable into another observable that depends on this one
@@ -37,7 +37,7 @@ public interface ObservableValue<T> {
 	 * @return The new observable whose value is a function of this observable's value
 	 */
 	default <R> ObservableValue<R> compose(Function<T, R> function) {
-		return new ComposedObservable<>((Object [] args) -> {
+		return new ComposedObservableValue<>((Object [] args) -> {
 			return function.apply((T) args[0]);
 		}, this);
 	};
@@ -52,7 +52,7 @@ public interface ObservableValue<T> {
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
 	default <U, R> ObservableValue<R> compose(BiFunction<T, U, R> function, ObservableValue<U> arg) {
-		return new ComposedObservable<>((Object [] args) -> {
+		return new ComposedObservableValue<>((Object [] args) -> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this, arg);
 	}
@@ -69,7 +69,7 @@ public interface ObservableValue<T> {
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
 	default <U, V, R> ObservableValue<R> compose(TriFunction<T, U, V, R> function, ObservableValue<U> arg2, ObservableValue<V> arg3) {
-		return new ComposedObservable<>((Object [] args) -> {
+		return new ComposedObservableValue<>((Object [] args) -> {
 			return function.apply((T) args[0], (U) args[1], (V) args[3]);
 		}, this, arg2, arg3);
 	}
@@ -92,12 +92,12 @@ public interface ObservableValue<T> {
 			}
 
 			@Override
-			public ObservableValue<X> addListener(ObservableListener<? super X> listener) {
+			public ObservableValue<X> addListener(ObservableValueListener<? super X> listener) {
 				return this; // Immutable--no need to store the listeners
 			}
 
 			@Override
-			public ObservableValue<X> removeListener(ObservableListener<?> listener) {
+			public ObservableValue<X> removeListener(ObservableValueListener<?> listener) {
 				return this;
 			}
 		};

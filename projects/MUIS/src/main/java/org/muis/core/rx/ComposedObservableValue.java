@@ -11,20 +11,20 @@ import prisms.lang.Type;
  *
  * @param <T> The type of the composed observable
  */
-public class ComposedObservable<T> implements ObservableValue<T> {
+public class ComposedObservableValue<T> implements ObservableValue<T> {
 	private final List<ObservableValue<?>> theComposed;
 	private final Function<Object [], T> theFunction;
-	private final CopyOnWriteArrayList<ObservableListener<? super T>> theListeners;
+	private final CopyOnWriteArrayList<ObservableValueListener<? super T>> theListeners;
 
 	/**
 	 * @param function The function that operates on the argument observables to produce this observable's value
 	 * @param composed The argument observables whose values are passed to the function
 	 */
-	public ComposedObservable(Function<Object [], T> function, ObservableValue<?>... composed) {
+	public ComposedObservableValue(Function<Object [], T> function, ObservableValue<?>... composed) {
 		theFunction = function;
 		theComposed = java.util.Collections.unmodifiableList(java.util.Arrays.asList(composed));
 		theListeners = new CopyOnWriteArrayList<>();
-		ObservableListener<Object> listener = evt -> {
+		ObservableValueListener<Object> listener = evt -> {
 			Object [] args = new Object[theComposed.size()];
 			for(int i = 0; i < args.length; i++) {
 				if(theComposed.get(i) == evt.getObservable())
@@ -39,7 +39,7 @@ public class ComposedObservable<T> implements ObservableValue<T> {
 			}
 
 			T newValue = theFunction.apply(args);
-			ObservableEvent<T> toFire = new ObservableEvent<>(this, oldValue, newValue, evt);
+			ObservableValueEvent<T> toFire = new ObservableValueEvent<>(this, oldValue, newValue, evt);
 			fire(toFire);
 		};
 		for(ObservableValue<?> comp : composed)
@@ -64,19 +64,19 @@ public class ComposedObservable<T> implements ObservableValue<T> {
 	}
 
 	@Override
-	public ObservableValue<T> addListener(ObservableListener<? super T> listener) {
+	public ObservableValue<T> addListener(ObservableValueListener<? super T> listener) {
 		theListeners.add(listener);
 		return this;
 	}
 
 	@Override
-	public ObservableValue<T> removeListener(ObservableListener<?> listener) {
+	public ObservableValue<T> removeListener(ObservableValueListener<?> listener) {
 		theListeners.remove(listener);
 		return this;
 	}
 
-	private void fire(ObservableEvent<T> event) {
-		for(ObservableListener<? super T> listener : theListeners)
+	private void fire(ObservableValueEvent<T> event) {
+		for(ObservableValueListener<? super T> listener : theListeners)
 			listener.valueChanged(event);
 	}
 }

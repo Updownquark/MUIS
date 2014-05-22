@@ -15,7 +15,7 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
-	private org.muis.core.rx.ObservableListener<Object> theValueListener;
+	private org.muis.core.rx.ObservableValueListener<Object> theValueListener;
 
 	/** Creates the label */
 	public Label() {

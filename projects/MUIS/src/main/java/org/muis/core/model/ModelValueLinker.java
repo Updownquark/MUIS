@@ -1,7 +1,7 @@
 package org.muis.core.model;
 
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.rx.ObservableListener;
+import org.muis.core.rx.ObservableValueListener;
 
 /**
  * Links 2 values via converters
@@ -15,8 +15,8 @@ public class ModelValueLinker<T1, T2> {
 	private final MuisModelValue<T2> theRight;
 	private ValueConverter<T1, T2> theLeftToRight;
 	private ValueConverter<T2, T1> theRightToLeft;
-	private final ObservableListener<T1> theLeftListener;
-	private final ObservableListener<T2> theRightListener;
+	private final ObservableValueListener<T1> theLeftListener;
+	private final ObservableValueListener<T2> theRightListener;
 	private boolean theEventLock;
 
 	/**

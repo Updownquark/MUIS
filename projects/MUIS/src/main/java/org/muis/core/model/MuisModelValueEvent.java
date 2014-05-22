@@ -1,14 +1,14 @@
 package org.muis.core.model;
 
 import org.muis.core.event.UserEvent;
-import org.muis.core.rx.ObservableEvent;
+import org.muis.core.rx.ObservableValueEvent;
 
 /**
  * An event representing a user's choice to change the value of {@link MuisModelValue}
  *
  * @param <T> The type of value changed
  */
-public class MuisModelValueEvent<T> extends ObservableEvent<T> {
+public class MuisModelValueEvent<T> extends ObservableValueEvent<T> {
 	private final UserEvent theUserEvent;
 
 	/**
@@ -37,7 +37,7 @@ public class MuisModelValueEvent<T> extends ObservableEvent<T> {
 	 * @param event The observable event
 	 * @return The user event that ultimately caused the observable event (may be null)
 	 */
-	public static UserEvent getUserEvent(ObservableEvent<?> event) {
+	public static UserEvent getUserEvent(ObservableValueEvent<?> event) {
 		while(event != null && !(event instanceof MuisModelValueEvent))
 			event = event.getCause();
 		if(event != null)

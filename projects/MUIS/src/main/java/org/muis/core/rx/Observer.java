@@ -1,7 +1,7 @@
 package org.muis.core.rx;
 
 public interface Observer<T> {
-	<V extends T> void onNext(V value);
+	void onNext(T value);
 
 	default void onCompleted() {
 	}

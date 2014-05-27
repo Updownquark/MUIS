@@ -1,7 +1,6 @@
 package org.muis.core.rx;
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 /**
@@ -9,16 +8,15 @@ import java.util.function.Function;
  *
  * @param <T> The type of the composed observable
  */
-public class ComposedObservable<T> implements Observable<T> {
+public class ComposedObservable<T> extends DefaultObservable<T> {
 	private static final Object NONE = new Object();
 
-	private volatile boolean isAlive = true;
+	private final Observer<T> theController;
 	private final List<Observable<?>> theComposed;
 	private final List<Observer<Object>> theInternalListeners;
 	private final List<Object> theInternalValues;
 	private final List<Subscription<?>> theInternalSubscriptions;
 	private final Function<Object [], T> theFunction;
-	private final CopyOnWriteArrayList<Observer<? super T>> theListeners;
 
 	/**
 	 * @param function The function that operates on the argument observables to produce this observable's value
@@ -30,7 +28,9 @@ public class ComposedObservable<T> implements Observable<T> {
 		theInternalListeners=new java.util.ArrayList<>(composed.length);
 		theInternalValues=new java.util.ArrayList<>(composed.length);
 		theInternalSubscriptions=new java.util.ArrayList<>(composed.length);
-		theListeners = new CopyOnWriteArrayList<>();
+		theController = control(observer -> {
+			fireNext(observer);
+		});
 		for(int i=0;i<composed.length;i++){
 			final int index=i;
 			theInternalValues.add(NONE);
@@ -48,28 +48,12 @@ public class ComposedObservable<T> implements Observable<T> {
 
 				@Override
 				public void onError(Throwable e) {
-					fireError(e);
+					theController.onError(e);
 				}
 			};
 			theInternalListeners.add(listener);
 			theInternalSubscriptions.add(theComposed.get(index).subscribe(listener));
 		}
-	}
-
-	@Override
-	public Subscription<T> subscribe(final Observer<? super T> listener) {
-		theListeners.add(listener);
-		return new Subscription<T>() {
-			@Override
-			public Subscription<T> subscribe(Observer<? super T> observer) {
-				return ComposedObservable.this.subscribe(listener);
-			}
-
-			@Override
-			public void unsubscribe() {
-				theListeners.remove(listener);
-			}
-		};
 	}
 
 	private void fireNext() {
@@ -81,24 +65,31 @@ public class ComposedObservable<T> implements Observable<T> {
 		try {
 			next = theFunction.apply(args);
 		} catch(Throwable e) {
-			fireError(e);
+			theController.onError(e);
 			return;
 		}
-		for(Observer<? super T> listener : theListeners)
-			listener.onNext(next);
+		theController.onNext(next);
+	}
+
+	private void fireNext(Observer<? super T> observer) {
+		Object [] args = theInternalValues.toArray();
+		for(Object value : args)
+			if(value == NONE)
+				return;
+		T latest;
+		try {
+			latest = theFunction.apply(args);
+		} catch(Throwable e) {
+			observer.onError(e);
+			return;
+		}
+		observer.onNext(latest);
 	}
 
 	private void fireComplete() {
-		if(!isAlive)
-			return;
-		isAlive = false;
+		theController.onCompleted();
 		for(Subscription<?> sub : theInternalSubscriptions.toArray(new Subscription[0]))
 			sub.unsubscribe();
 		theInternalSubscriptions.clear();
-	}
-
-	private void fireError(Throwable e) {
-		for(Observer<? super T> listener : theListeners)
-			listener.onError(e);
 	}
 }

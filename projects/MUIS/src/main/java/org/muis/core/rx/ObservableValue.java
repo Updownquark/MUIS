@@ -10,24 +10,12 @@ import prisms.lang.Type;
  *
  * @param <T> The compile-time type of this observable's value
  */
-public interface ObservableValue<T> {
+public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> {
 	/** @return The type of value this observable contains. May be null if this observable's value is always null. */
 	Type getType();
 
 	/** @return The current value of this observable */
 	T get();
-
-	/**
-	 * @param listener The listener to be notified when this observable's value changes
-	 * @return This observable, for chaining
-	 */
-	ObservableValue<T> addListener(ObservableValueListener<? super T> listener);
-
-	/**
-	 * @param listener The listener to stop notifying when this observable's value changes
-	 * @return This observable, for chaining
-	 */
-	ObservableValue<T> removeListener(ObservableValueListener<?> listener);
 
 	/**
 	 * Composes this observable into another observable that depends on this one
@@ -92,13 +80,17 @@ public interface ObservableValue<T> {
 			}
 
 			@Override
-			public ObservableValue<X> addListener(ObservableValueListener<? super X> listener) {
-				return this; // Immutable--no need to store the listeners
-			}
+			public Subscription<ObservableValueEvent<X>> subscribe(Observer<? super ObservableValueEvent<X>> observer) {
+				return new Subscription<ObservableValueEvent<X>>() {
+					@Override
+					public Subscription<ObservableValueEvent<X>> subscribe(Observer<? super ObservableValueEvent<X>> observer2) {
+						return this;
+					}
 
-			@Override
-			public ObservableValue<X> removeListener(ObservableValueListener<?> listener) {
-				return this;
+					@Override
+					public void unsubscribe() {
+					}
+				};
 			}
 		};
 	}

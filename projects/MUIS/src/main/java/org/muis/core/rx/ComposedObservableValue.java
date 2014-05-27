@@ -1,7 +1,6 @@
 package org.muis.core.rx;
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 import prisms.lang.Type;
@@ -11,10 +10,10 @@ import prisms.lang.Type;
  *
  * @param <T> The type of the composed observable
  */
-public class ComposedObservableValue<T> implements ObservableValue<T> {
+public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
+	private final Observer<ObservableValueEvent<T>> theController;
 	private final List<ObservableValue<?>> theComposed;
 	private final Function<Object [], T> theFunction;
-	private final CopyOnWriteArrayList<ObservableValueListener<? super T>> theListeners;
 
 	/**
 	 * @param function The function that operates on the argument observables to produce this observable's value
@@ -23,8 +22,10 @@ public class ComposedObservableValue<T> implements ObservableValue<T> {
 	public ComposedObservableValue(Function<Object [], T> function, ObservableValue<?>... composed) {
 		theFunction = function;
 		theComposed = java.util.Collections.unmodifiableList(java.util.Arrays.asList(composed));
-		theListeners = new CopyOnWriteArrayList<>();
-		ObservableValueListener<Object> listener = evt -> {
+		theController = control(observer -> {
+			fire(observer);
+		});
+		Observer<ObservableValueEvent<Object>> listener = evt -> {
 			Object [] args = new Object[theComposed.size()];
 			for(int i = 0; i < args.length; i++) {
 				if(theComposed.get(i) == evt.getObservable())
@@ -63,20 +64,14 @@ public class ComposedObservableValue<T> implements ObservableValue<T> {
 		return theFunction.apply(args);
 	}
 
-	@Override
-	public ObservableValue<T> addListener(ObservableValueListener<? super T> listener) {
-		theListeners.add(listener);
-		return this;
-	}
-
-	@Override
-	public ObservableValue<T> removeListener(ObservableValueListener<?> listener) {
-		theListeners.remove(listener);
-		return this;
-	}
-
 	private void fire(ObservableValueEvent<T> event) {
 		for(ObservableValueListener<? super T> listener : theListeners)
 			listener.valueChanged(event);
+	}
+
+	private void fire(Observer<? super ObservableValueEvent<T>> observer) {
+		T value = get();
+		ObservableValueEvent<T> event = new ObservableValueEvent<T>(this, null, value, null);
+		observer.onNext(event);
 	}
 }

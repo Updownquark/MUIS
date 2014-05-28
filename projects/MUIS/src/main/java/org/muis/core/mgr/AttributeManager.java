@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.model.MuisModelValue;
-import org.muis.core.rx.Subscription;
+import org.muis.core.rx.*;
 
 import prisms.lang.Type;
 
@@ -18,12 +18,12 @@ public class AttributeManager {
 	 *
 	 * @param <T> The type of the attribute to hold
 	 */
-	public class AttributeHolder<T> extends org.muis.core.rx.DefaultObservableValue<T> {
+	public class AttributeHolder<T> extends DefaultObservableValue<T> {
 		private AttributeHolder<T> theParent;
 
 		private final MuisAttribute<T> theAttr;
 
-		private final org.muis.core.rx.Observer<org.muis.core.rx.ObservableValueEvent<T>> theController;
+		private final Observer<ObservableValueEvent<T>> theController;
 
 		private IdentityHashMap<Object, Object> theNeeders;
 
@@ -87,9 +87,9 @@ public class AttributeManager {
 		}
 
 		/** @return All model values that this attribute currently depends on */
-		public MuisModelValue<?> [] getModelDependencies() {
+		public ObservableValue<?> [] getModelDependencies() {
 			AttributeModelWatcher [] watchers = theModelWatchers;
-			MuisModelValue<?> [] ret = new MuisModelValue[watchers.length];
+			ObservableValue<?> [] ret = new ObservableValue[watchers.length];
 			for(int i = 0; i < watchers.length; i++) {
 				ret[i] = watchers[i].getModelValue();
 			}
@@ -129,17 +129,17 @@ public class AttributeManager {
 			if(java.util.Objects.equals(theFormattedValue, formattedValue))
 				return;
 			theFormattedValue = formattedValue;
-			MuisModelValue<?> [] values = getModelValues(formattedValue);
+			ObservableValue<?> [] values = getModelValues(formattedValue);
 			synchronized(theModelWatcherLock) {
 				theModelWatchers = prisms.util.ArrayUtils.adjust(theModelWatchers, values,
-					new prisms.util.ArrayUtils.DifferenceListener<AttributeModelWatcher, MuisModelValue<?>>() {
+					new prisms.util.ArrayUtils.DifferenceListener<AttributeModelWatcher, ObservableValue<?>>() {
 						@Override
-						public boolean identity(AttributeModelWatcher o1, MuisModelValue<?> o2) {
+						public boolean identity(AttributeModelWatcher o1, ObservableValue<?> o2) {
 							return o1.getModelValue() == o2;
 						}
 
 						@Override
-						public AttributeModelWatcher added(MuisModelValue<?> o, int mIdx, int retIdx) {
+						public AttributeModelWatcher added(ObservableValue<?> o, int mIdx, int retIdx) {
 							return new AttributeModelWatcher(AttributeHolder.this, o);
 						}
 
@@ -150,7 +150,7 @@ public class AttributeManager {
 						}
 
 						@Override
-						public AttributeModelWatcher set(AttributeModelWatcher o1, int idx1, int incMod, MuisModelValue<?> o2, int idx2,
+						public AttributeModelWatcher set(AttributeModelWatcher o1, int idx1, int incMod, ObservableValue<?> o2, int idx2,
 							int retIdx) {
 							return o1;
 						}
@@ -158,22 +158,22 @@ public class AttributeManager {
 			}
 		}
 
-		private final MuisModelValue<?> [] getModelValues(String value) throws org.muis.core.parser.MuisParseException {
+		private final ObservableValue<?> [] getModelValues(String value) throws org.muis.core.parser.MuisParseException {
 			if(value == null)
 				return new MuisModelValue[0];
-			java.util.ArrayList<MuisModelValue<?>> ret = new java.util.ArrayList<>();
+			java.util.ArrayList<ObservableValue<?>> ret = new java.util.ArrayList<>();
 			int next = 0;
 			while(next >= 0) {
 				next = theElement.getModelParser().getNextMVR(value, next);
 				if(next >= 0) {
 					String extracted = theElement.getModelParser().extractMVR(value, next);
-					MuisModelValue<?> modelValue = theElement.getModelParser().parseMVR(extracted);
+					ObservableValue<?> modelValue = theElement.getModelParser().parseMVR(extracted);
 					if(!ret.contains(modelValue))
 						ret.add(modelValue);
 					next += extracted.length();
 				}
 			}
-			return ret.toArray(new MuisModelValue[ret.size()]);
+			return ret.toArray(new ObservableValue[ret.size()]);
 		}
 
 		synchronized void addWanter(Object wanter, boolean isNeeder) {
@@ -241,10 +241,10 @@ public class AttributeManager {
 
 	class AttributeModelWatcher {
 		private AttributeHolder<?> theAttribute;
-		private MuisModelValue<?> theModelValue;
+		private ObservableValue<?> theModelValue;
 		private Subscription<?> theSubscription;
 
-		AttributeModelWatcher(AttributeHolder<?> att, MuisModelValue<?> value) {
+		AttributeModelWatcher(AttributeHolder<?> att, ObservableValue<?> value) {
 			theAttribute = att;
 			theModelValue = value;
 			theSubscription = theModelValue.act(val -> {
@@ -257,7 +257,7 @@ public class AttributeManager {
 			});
 		}
 
-		MuisModelValue<?> getModelValue() {
+		ObservableValue<?> getModelValue() {
 			return theModelValue;
 		}
 

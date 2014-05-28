@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 
-import org.jdom2.Element;
 import org.muis.core.*;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
@@ -15,7 +14,6 @@ import org.muis.core.style.sheet.StateGroupTypeExpression;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.StateExpression;
 
-import prisms.arch.PrismsConfig;
 import prisms.lang.*;
 import prisms.lang.types.ParsedStatementBlock;
 
@@ -888,8 +886,8 @@ public class StyleSheetParser {
 	public StyleSheetParser() {
 		theParser = new PrismsParser();
 		try {
-			theParser.configure(getStyleSheetDefConfig());
-		} catch(java.io.IOException | MuisParseException e) {
+			theParser.configure(StyleSheetParser.class.getResource("MSS.xml"));
+		} catch(java.io.IOException e) {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}
 		theEnv = new DefaultEvaluationEnvironment();
@@ -897,8 +895,8 @@ public class StyleSheetParser {
 		// Use the default prisms.lang Grammar.xml to implement some setup declarations to prepare the environment
 		PrismsParser setupParser = new PrismsParser();
 		try {
-			setupParser.configure(getSetupConfig());
-		} catch(IOException | MuisParseException e) {
+			setupParser.configure(PrismsParser.class.getResource("Grammar.xml"));
+		} catch(IOException e) {
 			throw new IllegalStateException("Could not configure style sheet setup parser", e);
 		}
 		if(DEBUG) {
@@ -924,47 +922,6 @@ public class StyleSheetParser {
 				System.err.println("Could not execute XML stylesheet parser setup expression: " + command);
 				e.printStackTrace();
 			}
-		}
-	}
-
-	private static PrismsConfig getStyleSheetDefConfig() throws IOException, MuisParseException {
-		return getConfig(getStyleSheetDefXml());
-	}
-
-	private static PrismsConfig getSetupConfig() throws IOException, MuisParseException {
-		return getConfig(getSetupConfigXml());
-	}
-
-	private static PrismsConfig getConfig(Element element) {
-		return new PrismsConfig.DefaultPrismsConfig(element.getName(), element.getTextNormalize(), getSubConfigs(element));
-	}
-
-	private static PrismsConfig [] getSubConfigs(Element element) {
-		ArrayList<PrismsConfig> ret = new ArrayList<>();
-		for(org.jdom2.Attribute att : element.getAttributes()) {
-			ret.add(new PrismsConfig.DefaultPrismsConfig(att.getName(), att.getValue(), new PrismsConfig[0]));
-		}
-		for(Element el : element.getChildren()) {
-			ret.add(getConfig(el));
-		}
-		return ret.toArray(new PrismsConfig[ret.size()]);
-	}
-
-	private static Element getStyleSheetDefXml() throws IOException, MuisParseException {
-		try {
-			return new org.jdom2.input.SAXBuilder().build(
-				new java.io.InputStreamReader(StyleSheetParser.class.getResourceAsStream("MSS.xml"))).getRootElement();
-		} catch(org.jdom2.JDOMException e) {
-			throw new MuisParseException("Could not parse MSS.xml", e);
-		}
-	}
-
-	private static Element getSetupConfigXml() throws IOException, MuisParseException {
-		try {
-			return new org.jdom2.input.SAXBuilder().build(
-				new java.io.InputStreamReader(PrismsParser.class.getResourceAsStream("Grammar.xml"))).getRootElement();
-		} catch(org.jdom2.JDOMException e) {
-			throw new MuisParseException("Could not parse Grammar.xml", e);
 		}
 	}
 

@@ -896,7 +896,7 @@ public abstract class MuisProperty<T> {
 		@Override
 		public <V extends T> V parse(MuisParseEnv env, String value) throws MuisException {
 			if(env.getModelParser().getNextMVR(value, 0) == 0) {
-				org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(value);
+				org.muis.core.rx.ObservableValue<?> modelValue = env.getModelParser().parseMVR(value);
 				if(modelValue.getType().canAssignTo(String.class)) {
 					String mv = (String) modelValue.get();
 					if(theNamedValues.containsKey(mv))

@@ -1,6 +1,7 @@
 package org.muis.core.model;
 
 import org.muis.core.parser.MuisParseException;
+import org.muis.core.rx.ObservableValue;
 
 /** Parses references to model values from property values */
 public interface ModelValueReferenceParser {
@@ -24,5 +25,5 @@ public interface ModelValueReferenceParser {
 	 * @return The parsed model value reference
 	 * @throws MuisParseException If an error occurs parsing the reference
 	 */
-	MuisModelValue<?> parseMVR(String mvr) throws MuisParseException;
+	ObservableValue<?> parseMVR(String mvr) throws MuisParseException;
 }

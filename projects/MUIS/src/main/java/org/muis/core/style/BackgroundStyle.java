@@ -65,7 +65,7 @@ public class BackgroundStyle implements StyleDomain {
 		@Override
 		public Cursor parse(MuisParseEnv env, String parseValue) throws MuisException {
 			if(env.getModelParser().getNextMVR(parseValue, 0) == 0) {
-				org.muis.core.model.MuisModelValue<?> modelValue = env.getModelParser().parseMVR(parseValue);
+				org.muis.core.rx.ObservableValue<?> modelValue = env.getModelParser().parseMVR(parseValue);
 				if(modelValue.getType().canAssignTo(Cursor.class))
 					return (Cursor) modelValue.get();
 				else if(modelValue.getType().canAssignTo(String.class)) {

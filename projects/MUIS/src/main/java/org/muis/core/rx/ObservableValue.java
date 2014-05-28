@@ -71,7 +71,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 		return new ObservableValue<X>() {
 			@Override
 			public Type getType() {
-				return value == null ? null : new Type(value.getClass());
+				return value == null ? Type.NULL : new Type(value.getClass());
 			}
 
 			@Override

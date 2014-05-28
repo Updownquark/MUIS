@@ -3,27 +3,46 @@ package org.muis.core.rx;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * A default implementation of observable
+ *
+ * @param <T> The type of values this observable provides
+ */
 public class DefaultObservable<T> implements Observable<T> {
+	/**
+	 * Listens for subscriptions to an observable
+	 *
+	 * @param <T> The type of observable to listen for subscriptions to
+	 */
 	public static interface OnSubscribe<T> {
+		/** @param observer The new observer on the observable */
 		void onsubscribe(Observer<? super T> observer);
 	}
 
 	private OnSubscribe<T> theOnSubscribe;
-	private AtomicBoolean isAlive = new AtomicBoolean(false);
+	private AtomicBoolean isAlive = new AtomicBoolean(true);
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
 	private final CopyOnWriteArrayList<Observer<? super T>> theListeners;
 
+	/** Creates the observable */
 	public DefaultObservable() {
 		theListeners = new CopyOnWriteArrayList<>();
 	}
 
+	/**
+	 * Obtains control of the observable. This method may only be called once.
+	 * 
+	 * @param onSubscribe The listener to call for each new subscription to the observable
+	 * @return An observer whose methods control this observable
+	 * @throws IllegalStateException If this observer is already controlled
+	 */
 	public Observer<T> control(OnSubscribe<T> onSubscribe) throws IllegalStateException {
 		if(hasIssuedController.getAndSet(true))
 			throw new IllegalStateException("This observable is already controlled");
 		theOnSubscribe = onSubscribe;
 		return new Observer<T>(){
 			@Override
-			public void onNext(T value) {
+			public <V extends T> void onNext(V value) {
 				fireNext(value);
 			}
 

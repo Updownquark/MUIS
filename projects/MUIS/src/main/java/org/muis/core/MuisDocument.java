@@ -5,10 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-import org.muis.core.event.FocusEvent;
-import org.muis.core.event.KeyBoardEvent;
-import org.muis.core.event.MouseEvent;
-import org.muis.core.event.ScrollEvent;
+import org.muis.core.event.*;
 import org.muis.core.mgr.MuisLocker;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.style.attach.DocumentStyleSheet;
@@ -57,6 +54,8 @@ public class MuisDocument {
 	private final java.net.URL theLocation;
 
 	private final org.muis.core.parser.MuisParser theParser;
+
+	private final org.muis.core.model.ModelValueReferenceParser theModelParser;
 
 	private MuisClassView theClassView;
 
@@ -113,6 +112,7 @@ public class MuisDocument {
 		theParser = parser;
 		theLocation = location;
 		theHead = head;
+		theModelParser = new org.muis.core.model.DefaultModelValueReferenceParser(this);
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
@@ -180,6 +180,11 @@ public class MuisDocument {
 	/** @return The parser that created this document */
 	public org.muis.core.parser.MuisParser getParser() {
 		return theParser;
+	}
+
+	/** @return The parser to parse model values */
+	public org.muis.core.model.ModelValueReferenceParser getModelParser() {
+		return theModelParser;
 	}
 
 	/** @return The class map that applies to the whole document */
@@ -479,7 +484,7 @@ public class MuisDocument {
 				if(!thePressedButtons.contains(buttonType))
 					thePressedButtons.add(buttonType);
 			}
-			focusByMouse(newCapture, events);
+			focusByMouse(newCapture, evt, events);
 			events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false));
 			break;
 		case released:
@@ -547,10 +552,10 @@ public class MuisDocument {
 		setCursor(newCapture.getTarget().getElement());
 	}
 
-	private void focusByMouse(MuisEventPositionCapture capture, java.util.List<MuisEventQueue.Event> events) {
+	private void focusByMouse(MuisEventPositionCapture capture, UserEvent cause, java.util.List<MuisEventQueue.Event> events) {
 		for(MuisEventPositionCapture mec : capture.iterate(true))
 			if(mec.getElement().isFocusable()) {
-				setFocus(mec.getElement());
+				setFocus(mec.getElement(), cause);
 				return;
 			}
 	}
@@ -559,50 +564,59 @@ public class MuisDocument {
 	 * Sets the document's focused element. This method does not invoke {@link MuisElement#isFocusable()}, so this will work on any element.
 	 *
 	 * @param toFocus The element to give the focus to
+	 * @param cause The user event triggering the focus change, if any
 	 */
-	public void setFocus(MuisElement toFocus) {
+	public void setFocus(MuisElement toFocus, UserEvent cause) {
 		ArrayList<MuisEventQueue.Event> events = new ArrayList<>();
-		setFocus(toFocus, events);
+		setFocus(toFocus, cause, events);
 		for(MuisEventQueue.Event event : events)
 			MuisEventQueue.get().scheduleEvent(event, true);
 	}
 
-	private void setFocus(MuisElement focus, java.util.List<MuisEventQueue.Event> events) {
+	private void setFocus(MuisElement focus, UserEvent cause, java.util.List<MuisEventQueue.Event> events) {
 		MuisElement oldFocus = theFocus;
 		theFocus = focus;
 		if(oldFocus != theFocus) {
 			if(oldFocus != null)
-				events.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, oldFocus, thePressedButtons, thePressedKeys, false),
-					false));
+				events.add(new MuisEventQueue.UserQueueEvent(
+					new FocusEvent(this, oldFocus, thePressedButtons, thePressedKeys, false, cause), false));
 			if(theFocus != null)
-				events
-					.add(new MuisEventQueue.UserQueueEvent(new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true), false));
+				events.add(new MuisEventQueue.UserQueueEvent(
+					new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true, cause), false));
 		}
 	}
 
-	/** Moves this document's focus to the focusable widget previous to the currently focused widget */
-	public void backupFocus() {
+	/**
+	 * Moves this document's focus to the focusable widget previous to the currently focused widget
+	 *
+	 * @param cause The user event triggering the focus change, if any
+	 */
+	public void backupFocus(UserEvent cause) {
 		if(theFocus == null)
 			return;
-		if(searchFocus(theFocus, false))
+		if(searchFocus(theFocus, cause, false))
 			return;
 		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable element. */
 		MuisElement deepest = getDeepestElement(theRoot, false);
-		searchFocus(deepest, false);
+		searchFocus(deepest, cause, false);
 	}
 
-	/** Moves this document's focus to the focusable widget after the currently focused widget */
-	public void advanceFocus() {
+	/**
+	 * Moves this document's focus to the focusable widget after the currently focused widget
+	 *
+	 * @param cause The user event triggering the focus change, if any
+	 */
+	public void advanceFocus(UserEvent cause) {
 		if(theFocus == null)
 			return;
-		if(searchFocus(theFocus, true))
+		if(searchFocus(theFocus, cause, true))
 			return;
 		/* If we get here, then there was no next focusable element. We must wrap around to the first focusable element. */
 		MuisElement deepest = getDeepestElement(theRoot, true);
-		searchFocus(deepest, true);
+		searchFocus(deepest, cause, true);
 	}
 
-	boolean searchFocus(MuisElement el, boolean forward) {
+	boolean searchFocus(MuisElement el, UserEvent cause, boolean forward) {
 		MuisElement lastChild = theFocus;
 		MuisElement parent = theFocus.getParent();
 		while(parent != null) {
@@ -619,13 +633,13 @@ public class MuisDocument {
 						parent = deepest;
 						break;
 					} else if(children[c].isFocusable()) {
-						setFocus(children[c]);
+						setFocus(children[c], cause);
 						return true;
 					}
 				} else if(children[c] == lastChild)
 					foundLastChild = true;
 			if(parent.isFocusable()) {
-				setFocus(parent);
+				setFocus(parent, cause);
 				return true;
 			}
 			lastChild = parent;
@@ -661,13 +675,14 @@ public class MuisDocument {
 		case MIXED:
 			MuisEventPositionCapture capture = rendering.capture(x, y);
 			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, thePressedButtons, thePressedKeys,
-				capture);
+				capture, null);
 			break;
 		case FOCUS:
 			element = theFocus;
 			if(element == null)
 				element = theRoot;
-			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, thePressedButtons, thePressedKeys, null);
+			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, thePressedButtons, thePressedKeys, null,
+				null);
 			break;
 		}
 		MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(theRoot, evt, false), true);
@@ -762,7 +777,7 @@ public class MuisDocument {
 				}
 				if(scrollType != null) {
 					ScrollEvent scrollEvt = new ScrollEvent(this, scrollElement, scrollType, vertical, downOrRight ? 1 : -1, evt,
-						thePressedButtons, thePressedKeys, capture);
+						thePressedButtons, thePressedKeys, capture, evt);
 					if(capture != null)
 						MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(scrollElement, scrollEvt, false), true);
 					else
@@ -772,9 +787,9 @@ public class MuisDocument {
 
 			if(evt.getKeyCode() == KeyBoardEvent.KeyCode.TAB)
 				if(isShiftPressed())
-					backupFocus();
+					backupFocus(evt);
 				else
-					advanceFocus();
+					advanceFocus(evt);
 		}
 	}
 

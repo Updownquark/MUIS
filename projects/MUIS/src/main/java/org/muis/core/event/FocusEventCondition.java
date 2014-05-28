@@ -6,7 +6,7 @@ import org.muis.core.event.boole.TypedPredicate;
 public class FocusEventCondition extends UserEventCondition<FocusEvent> {
 	/** Filters all {@link FocusEvent}s */
 	@SuppressWarnings("hiding")
-	public static TypedPredicate<MuisEvent, FocusEvent> base = value -> {
+	public static java.util.function.Function<MuisEvent, FocusEvent> base = value -> {
 		return value instanceof FocusEvent ? (FocusEvent) value : null;
 	};
 
@@ -45,11 +45,13 @@ public class FocusEventCondition extends UserEventCondition<FocusEvent> {
 	}
 
 	@Override
-	public TypedPredicate<MuisEvent, FocusEvent> getTester() {
-		TypedPredicate<MuisEvent, FocusEvent> focusTester = base;
-		if(isFocus != null)
-			focusTester = new org.muis.core.event.boole.TPAnd<>(focusTester, isFocus ? predicateFocus : predicateBlur);
-		return new org.muis.core.event.boole.TPAnd<>(getUserTester(), focusTester);
+	public FocusEvent apply(MuisEvent evt) {
+		FocusEvent focusEvt = base.apply(userApply(evt));
+		if(focusEvt == null)
+			return null;
+		if(isFocus != null && focusEvt.isFocus() != isFocus.booleanValue())
+			return null;
+		return focusEvt;
 	}
 
 	@Override

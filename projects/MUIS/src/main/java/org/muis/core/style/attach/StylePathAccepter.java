@@ -9,8 +9,7 @@ import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 
 /** Accepts paths for the style attribute */
-public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter,
-	org.muis.core.event.MuisEventListener<AttributeChangedEvent<MuisStyle>> {
+public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, org.muis.core.rx.Action<AttributeChangedEvent<MuisStyle>> {
 	/** The attribute path name for an element's self-style */
 	public static final String SELF_STYLE = "self";
 
@@ -35,7 +34,7 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter,
 	}
 
 	@Override
-	public void eventOccurred(AttributeChangedEvent<MuisStyle> event) {
+	public void act(AttributeChangedEvent<MuisStyle> event) {
 		MuisAttribute<MuisStyle> attr = event.getAttribute();
 		MuisElement element = event.getElement();
 		MutableStatefulStyle target;

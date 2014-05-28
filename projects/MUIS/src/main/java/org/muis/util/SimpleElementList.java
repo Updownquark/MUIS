@@ -4,8 +4,9 @@ import java.util.*;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.mgr.AbstractElementList;
+import org.muis.core.rx.Observer;
+import org.muis.core.rx.Subscription;
 
 /**
  * A simple element list
@@ -26,12 +27,18 @@ public class SimpleElementList<E extends MuisElement> extends AbstractElementLis
 	}
 
 	@Override
-	public void addListener(MuisEventListener<ChildEvent> listener) {
-		throw new UnsupportedOperationException("Listeners not supported in this list");
-	}
+	public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer) {
+		return new Subscription<ChildEvent>() {
+			@Override
+			public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer2) {
+				return this;
+			}
 
-	@Override
-	public void removeListener(MuisEventListener<ChildEvent> listener) {
+			@Override
+			public void unsubscribe() {
+			}
+		};
+		// Listeners not supported
 	}
 
 	@Override

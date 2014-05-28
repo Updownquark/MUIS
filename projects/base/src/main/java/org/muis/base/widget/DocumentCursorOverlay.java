@@ -9,9 +9,9 @@ import java.awt.image.BufferedImage;
 
 import org.muis.core.MuisElement;
 import org.muis.core.MuisTextElement;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.event.StateChangedEvent;
 import org.muis.core.model.SelectableDocumentModel;
+import org.muis.core.rx.Action;
 import org.muis.core.style.FontStyle;
 import org.muis.core.style.MuisStyle;
 
@@ -36,7 +36,7 @@ public class DocumentCursorOverlay extends MuisElement {
 		if(theTextElement != null)
 			throw new IllegalStateException("A " + getClass().getSimpleName() + "'s text element may only be set once");
 		theTextElement = text;
-		theTextElement.events().listen(StateChangedEvent.state(FOCUS), new MuisEventListener<StateChangedEvent>() {
+		theTextElement.events().filterMap(StateChangedEvent.state(FOCUS)).act(new Action<StateChangedEvent>() {
 			org.muis.motion.Animation theCursorBlinkAnimation = new org.muis.motion.Animation() {
 				@Override
 				public boolean update(long time) {
@@ -61,7 +61,7 @@ public class DocumentCursorOverlay extends MuisElement {
 			};
 
 			@Override
-			public void eventOccurred(StateChangedEvent event) {
+			public void act(StateChangedEvent event) {
 				if(event.getValue()) {
 					resetBlink();
 					org.muis.motion.AnimationManager.get().start(theCursorBlinkAnimation);

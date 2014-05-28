@@ -8,6 +8,9 @@ import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.model.*;
+import org.muis.core.rx.Action;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Subscription;
 import org.muis.core.tags.Template;
 import org.muis.util.Transaction;
 
@@ -16,7 +19,8 @@ import org.muis.util.Transaction;
 public class TextField extends org.muis.core.MuisTemplate implements DocumentedElement {
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
-	private org.muis.core.rx.ObservableValueListener<Object> theValueListener;
+	private Action<ObservableValueEvent<?>> theValueListener;
+	private Subscription<?> theValueSubscription;
 
 	private WrappingDocumentModel theDocumentWrapper;
 
@@ -24,15 +28,15 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 	/** Creates a text field */
 	public TextField() {
-		theValueListener = new org.muis.core.rx.ObservableValueListener<Object>() {
+		theValueListener = new Action<ObservableValueEvent<?>>() {
 			private boolean theEventLock;
 
 			@Override
-			public void valueChanged(org.muis.core.rx.ObservableValueEvent<? extends Object> evt) {
+			public void act(ObservableValueEvent<?> evt) {
 				if(!theEventLock) {
 					theEventLock = true;
 					try {
-						getContentModel().setText(getTextFor(evt.getNewValue()));
+						getContentModel().setText(getTextFor(evt.getValue()));
 					} finally {
 						theEventLock = false;
 					}
@@ -58,19 +62,21 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			} catch(org.muis.core.MuisException e) {
 				msg().error("Could not initialize text layout attributes", e);
 			}
-			events().listen(AttributeChangedEvent.att(charLengthAtt), (AttributeChangedEvent<Long> event) -> {
+			events().filterMap(AttributeChangedEvent.att(charLengthAtt)).act(event -> {
 				try {
 					getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
 				} catch(org.muis.core.MuisException e) {
 					msg().error("Could not pass on " + event.getAttribute(), e);
 				}
-			}).listen(AttributeChangedEvent.att(charRowsAtt), (AttributeChangedEvent<Long> event) -> {
+			});
+			events().filterMap(AttributeChangedEvent.att(charRowsAtt)).act(event -> {
 				try {
 					getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
 				} catch(org.muis.core.MuisException e) {
 					msg().error("Could not pass on " + event.getAttribute(), e);
 				}
-			}).listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
+			});
+			events().filterMap(AttributeChangedEvent.att(ModelAttributes.value)).act(event -> {
 				modelValueChanged(event.getOldValue(), event.getValue());
 			});
 			getContentModel().addContentListener(evt -> {
@@ -81,10 +87,10 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			});
 			modelValueChanged(null, atts().get(ModelAttributes.value));
 
-			events().listen(FocusEvent.blur, (FocusEvent event) -> {
+			events().filterMap(FocusEvent.blur).act(event -> {
 				pushToModel();
 			});
-			events().listen(KeyBoardEvent.key.press(), (KeyBoardEvent event) -> {
+			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
 				if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
 					if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
 						return;
@@ -175,8 +181,10 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		if(oldValue instanceof MutableSelectableDocumentModel) {
 			if(!(newValue instanceof MuisDocumentModel))
 				setContentModel(null);
-		} else if(oldValue != null)
-			oldValue.removeListener(theValueListener);
+		} else if(oldValue != null) {
+			theValueSubscription.unsubscribe();
+			theValueSubscription = null;
+		}
 		if(newValue instanceof org.muis.core.model.WidgetRegister)
 			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(TextField.this);
 		if(newValue instanceof MuisDocumentModel) {
@@ -186,7 +194,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				throw new IllegalArgumentException("Document model for a text field must be a "
 					+ MutableSelectableDocumentModel.class.getName());
 		} else if(newValue != null) {
-			newValue.addListener(theValueListener);
+			theValueSubscription = newValue.act(theValueListener);
 			getContentModel().setText(getTextFor(newValue.get()));
 		} else
 			pushToModel();

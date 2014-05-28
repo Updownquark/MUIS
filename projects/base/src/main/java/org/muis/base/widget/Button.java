@@ -9,6 +9,7 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionEvent;
 import org.muis.core.model.MuisActionListener;
+import org.muis.core.rx.Action;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
@@ -35,16 +36,16 @@ public class Button extends org.muis.core.MuisTemplate {
 		life().runWhen(() -> {
 			if(isActionable) {
 				atts().accept(new Object(), ModelAttributes.action);
-				events().listen(AttributeChangedEvent.att(ModelAttributes.action), (AttributeChangedEvent<MuisActionListener> event) -> {
+				events().filterMap(AttributeChangedEvent.att(ModelAttributes.action)).act(event -> {
 					listenerChanged(event.getOldValue(), event.getValue());
 				});
 				listenerChanged(null, atts().get(ModelAttributes.action));
 			}
-			events().listen(StateChangedEvent.state(MuisConstants.States.CLICK), new MuisEventListener<StateChangedEvent>() {
+			events().filterMap(StateChangedEvent.state(MuisConstants.States.CLICK)).act(new Action<StateChangedEvent>() {
 				private Point theClickLocation;
 
 				@Override
-				public void eventOccurred(StateChangedEvent event) {
+				public void act(StateChangedEvent event) {
 					if(!state().is(BaseConstants.States.ENABLED))
 						return;
 					MuisEvent cause = event.getCause();
@@ -77,7 +78,7 @@ public class Button extends org.muis.core.MuisTemplate {
 					}
 				}
 			});
-			events().listen(KeyBoardEvent.key, (KeyBoardEvent event) -> {
+			events().filterMap(KeyBoardEvent.key).act(event -> {
 				if(event.wasPressed()) {
 					if(event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
 						return;

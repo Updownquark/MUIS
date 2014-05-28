@@ -271,7 +271,7 @@ public class KeyBoardEvent extends UserEvent {
 
 	/**
 	 * Creates a KeyEvent
-	 * 
+	 *
 	 * @param doc The document that this event was generated for
 	 * @param target The focused element that received this key event first
 	 * @param keyCode The key that caused this event
@@ -302,6 +302,11 @@ public class KeyBoardEvent extends UserEvent {
 	/** @return Whether this event was due to the user pressing a key or releasing it */
 	public boolean wasPressed() {
 		return wasPressed;
+	}
+
+	@Override
+	public MuisEvent getCause() {
+		return null;
 	}
 
 	@Override

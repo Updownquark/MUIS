@@ -6,7 +6,6 @@ import java.net.URL;
 
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisProperty;
-import org.muis.core.event.AttributeChangedEvent;
 
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
 public class Image extends GenericImage {
@@ -38,9 +37,11 @@ public class Image extends GenericImage {
 		atts().accept(this, hResize);
 		atts().accept(this, vResize);
 		atts().accept(this, propLocked);
-		events().listen(att(src), (AttributeChangedEvent<URL> event) -> {
+		events().filterMap(att(src)).act(event -> {
 			setImageLocation(event.getElement().atts().get(src));
-		}).listen(att(resize), (AttributeChangedEvent<ImageResizePolicy> event) -> {
+		});
+		events().filterMap(att(resize)).act(
+			event -> {
 			ImageResizePolicy policy = event.getElement().atts().get(resize);
 			if(event.getElement().atts().get(hResize) != null || event.getElement().atts().get(vResize) != null) {
 				if(policy != null)
@@ -58,21 +59,24 @@ public class Image extends GenericImage {
 				setHorizontalResizePolicy(policy);
 				setVerticalResizePolicy(policy);
 			}
-		}).listen(att(hResize), (AttributeChangedEvent<ImageResizePolicy> event) -> {
+			});
+		events().filterMap(att(hResize)).act(event -> {
 			ImageResizePolicy policy = event.getElement().atts().get(hResize);
 			if(policy == null)
 				policy = event.getElement().atts().get(resize);
 			if(policy == null)
 				policy = ImageResizePolicy.lockIfEmpty;
 			setHorizontalResizePolicy(policy);
-		}).listen(att(vResize), (AttributeChangedEvent<ImageResizePolicy> event) -> {
+		});
+		events().filterMap(att(vResize)).act(event -> {
 			ImageResizePolicy policy = event.getElement().atts().get(vResize);
 			if(policy == null)
 				policy = event.getElement().atts().get(resize);
 			if(policy == null)
 				policy = ImageResizePolicy.lockIfEmpty;
 			setVerticalResizePolicy(policy);
-		}).listen(att(propLocked), (AttributeChangedEvent<Boolean> event) -> {
+		});
+		events().filterMap(att(propLocked)).act(event -> {
 			Boolean locked = event.getElement().atts().get(propLocked);
 			setProportionLocked(locked == null ? false : locked.booleanValue());
 		});

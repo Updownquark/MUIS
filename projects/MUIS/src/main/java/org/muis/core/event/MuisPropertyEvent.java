@@ -1,39 +1,44 @@
 package org.muis.core.event;
 
+
 import org.muis.core.MuisElement;
 import org.muis.core.event.boole.TypedPredicate;
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
 
 /**
  * Represents an event that occurs when a property changes value.
  *
  * @param <T> The type of the property that was changed
  */
-public abstract class MuisPropertyEvent<T> implements MuisEvent {
+public abstract class MuisPropertyEvent<T> extends ObservableValueEvent<T> implements MuisEvent {
 	/** Filters for property events */
 	public static final TypedPredicate<MuisEvent, MuisPropertyEvent<?>> base = value -> {
 		return value instanceof MuisPropertyEvent && !((MuisPropertyEvent<?>) value).isOverridden() ? (MuisPropertyEvent<?>) value : null;
 	};
 
 	private final MuisElement theElement;
-	private final T theNewValue;
 
 	/**
 	 * @param element The element that this event is being fired in
+	 * @param observable The observable that is firing this event
+	 * @param oldValue The value of the property before it was changed
 	 * @param newValue The current value of the property after it has been changed
+	 * @param cause The cause of this event
 	 */
-	public MuisPropertyEvent(MuisElement element, T newValue) {
+	public MuisPropertyEvent(MuisElement element, ObservableValue<T> observable, T oldValue, T newValue, MuisEvent cause) {
+		super(observable, oldValue, newValue, cause);
 		theElement = element;
-		theNewValue = newValue;
-	}
-
-	/** @return The new value of the property */
-	public T getValue() {
-		return theNewValue;
 	}
 
 	@Override
 	public MuisElement getElement() {
 		return theElement;
+	}
+
+	@Override
+	public MuisEvent getCause() {
+		return (MuisEvent) super.getCause();
 	}
 
 	/**

@@ -1,87 +1,40 @@
 package org.muis.core.event;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 
+import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent.ChildEventType;
-import org.muis.core.event.boole.TPAnd;
-import org.muis.core.event.boole.TPOr;
-import org.muis.core.event.boole.TypedPredicate;
 
 /** Allows advanced filtering on {@link ChildEvent}s */
 public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Cloneable {
 	/** Filters events of this type */
-	public static final TypedPredicate<MuisEvent, ChildEvent> base = value -> {
+	public static final Function<MuisEvent, ChildEvent> base = value -> {
 		return value instanceof ChildEvent ? (ChildEvent) value : null;
 	};
-
-	/** Filters {@link ChildEvent}s based on their {@link ChildEvent#getType() type} */
-	public static class ChildEventTypePredicate implements TypedPredicate<ChildEvent, ChildEvent> {
-		private final ChildEventType theType;
-
-		private ChildEventTypePredicate(ChildEventType type) {
-			theType = type;
-		}
-
-		@Override
-		public ChildEvent cast(ChildEvent value) {
-			return value.getType() == theType ? value : null;
-		}
-	}
-
-	/** A map of all {@link ChildEventType}s to {@link ChildEventTypePredicate}s that filter on that type */
-	public static final Map<ChildEventType, ChildEventTypePredicate> types;
-
-	static {
-		Map<ChildEventType, ChildEventTypePredicate> t = new java.util.LinkedHashMap<>();
-		for(ChildEventType type : ChildEventType.values())
-			t.put(type, new ChildEventTypePredicate(type));
-		types = Collections.unmodifiableMap(t);
-	}
-
-	/**
-	 * @param eventTypes The child event types to filter on
-	 * @return A filter that filters events for any of the given types
-	 */
-	public static TPOr<ChildEvent> or(ChildEventType... eventTypes) {
-		List<ChildEventTypePredicate> preds = new ArrayList<>();
-		for(ChildEventType type : eventTypes)
-			preds.add(types.get(type));
-		return new TPOr<>(preds);
-	}
-
-	/**
-	 * @param eventTypes The child event types to filter on
-	 * @return A filter that filters events for any of the given types
-	 */
-	public static TPOr<ChildEvent> orTypes(Iterable<ChildEventType> eventTypes) {
-		List<ChildEventTypePredicate> preds = new ArrayList<>();
-		for(ChildEventType type : eventTypes)
-			preds.add(types.get(type));
-		return new TPOr<>(preds);
-	}
 
 	/** Filters child events */
 	public static final ChildEventCondition child = new ChildEventCondition();
 
 	private List<ChildEventType> theTypes;
 
+	private MuisElement theChild;
+
 	private ChildEventCondition() {
 		theTypes = null;
 	}
 
 	@Override
-	public TypedPredicate<MuisEvent, ChildEvent> getTester() {
-		TypedPredicate<MuisEvent, ChildEvent> ret = base;
-		if(theTypes != null) {
-			if(theTypes.size() == 1)
-				ret = new TPAnd<>(base, types.get(theTypes.get(0)));
-			else
-				ret = new TPAnd<>(base, orTypes(theTypes));
-		}
-		return ret;
+	public ChildEvent apply(MuisEvent event) {
+		if(!(event instanceof ChildEvent))
+			return null;
+		ChildEvent chEvt = (ChildEvent) event;
+		if(!theTypes.isEmpty() && !theTypes.contains(chEvt.getType()))
+			return null;
+		if(theChild != null && theChild != chEvt.getChild())
+			return null;
+		return chEvt;
 	}
 
 	/**
@@ -121,6 +74,16 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 	/** @return A new condition that accepts move-typed child events */
 	public ChildEventCondition move() {
 		return addTypes(ChildEventType.MOVE);
+	}
+
+	/**
+	 * @param childElement The child to filter on
+	 * @return A filter for events on the given child
+	 */
+	public ChildEventCondition forChild(MuisElement childElement) {
+		ChildEventCondition copy = clone();
+		copy.theChild = childElement;
+		return copy;
 	}
 
 	@Override

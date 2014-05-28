@@ -13,6 +13,7 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.model.ModelValueReferenceParser;
+import org.muis.core.rx.Action;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.Texture;
@@ -114,7 +115,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		theDefaultStyleListener.addDomain(BackgroundStyle.getDomainInstance());
 		theDefaultStyleListener.addDomain(org.muis.core.style.LightedStyle.getDomainInstance());
 		theDefaultStyleListener.add();
-		events().listen(ChildEvent.child, (ChildEvent event) -> {
+		events().filterMap(ChildEvent.child).act(event -> {
 			events().fire(new SizeNeedsChangedEvent(MuisElement.this, null));
 			switch (event.getType()) {
 			case ADD:
@@ -131,13 +132,13 @@ public abstract class MuisElement implements MuisParseEnv {
 				break;
 			}
 		});
-		theChildren.events().listen(BoundsChangedEvent.bounds, (BoundsChangedEvent event) -> {
+		theChildren.events().filterMap(BoundsChangedEvent.bounds).act(event -> {
 			Rectangle paintRect = event.getValue().union(event.getOldValue());
 			repaint(paintRect, false);
 		});
-		theChildren.events().listen(SizeNeedsChangedEvent.sizeNeeds, new MuisEventListener<SizeNeedsChangedEvent>() {
+		theChildren.events().filterMap(SizeNeedsChangedEvent.sizeNeeds).act(new Action<SizeNeedsChangedEvent>() {
 			@Override
-			public void eventOccurred(SizeNeedsChangedEvent event) {
+			public void act(SizeNeedsChangedEvent event) {
 				if(!isInPreferred(org.muis.core.layout.Orientation.horizontal) || !isInPreferred(org.muis.core.layout.Orientation.vertical)) {
 					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(MuisElement.this, event);
 					events().fire(newEvent);
@@ -172,10 +173,10 @@ public abstract class MuisElement implements MuisParseEnv {
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE);
 		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute);
-		events().listen(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE),
+		events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
 			(StylePathAccepter) org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		final boolean [] groupCallbackLock = new boolean[1];
-		events().listen(AttributeChangedEvent.att(GroupPropertyType.attribute), (AttributeChangedEvent<String []> event) -> {
+		events().filterMap(AttributeChangedEvent.att(GroupPropertyType.attribute)).act(event -> {
 			if(groupCallbackLock[0])
 				return;
 			groupCallbackLock[0] = true;
@@ -185,7 +186,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				groupCallbackLock[0] = false;
 			}
 		});
-		events().listen(GroupMemberEvent.groups, (GroupMemberEvent event) -> {
+		events().filterMap(GroupMemberEvent.groups).act(event -> {
 			if(groupCallbackLock[0])
 				return;
 			groupCallbackLock[0] = true;
@@ -205,7 +206,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				groupCallbackLock[0] = false;
 			}
 		});
-		events().listen(BoundsChangedEvent.bounds, (BoundsChangedEvent event) -> {
+		events().filterMap(BoundsChangedEvent.bounds).act(event -> {
 			Rectangle old = event.getOldValue();
 			if(event.getValue().width != old.width || event.getValue().height != old.height)
 				relayout(false);
@@ -248,7 +249,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		theStateControllers.middleClicked = theStateEngine.control(States.MIDDLE_CLICK);
 		theStateControllers.hovered = theStateEngine.control(States.HOVER);
 		theStateControllers.focused = theStateEngine.control(States.FOCUS);
-		events().listen(MouseEvent.mouse, (MouseEvent event) -> {
+		events().filterMap(MouseEvent.mouse).act(event -> {
 			switch (event.getType()) {
 			case pressed:
 				switch (event.getButton()) {
@@ -310,7 +311,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				break;
 			}
 		});
-		events().listen(FocusEvent.focusEvent, (FocusEvent event) -> {
+		events().filterMap(FocusEvent.focusEvent).act(event -> {
 			theStateControllers.focused.setActive(event.isFocus(), event);
 		});
 	}
@@ -550,7 +551,7 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	@Override
 	public final ModelValueReferenceParser getModelParser() {
-		return new org.muis.core.model.DefaultModelValueReferenceParser(theDocument);
+		return theDocument.getModelParser();
 	}
 
 	// Hierarchy methods

@@ -6,27 +6,29 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.BoundsChangedEvent;
 import org.muis.core.layout.Orientation;
 import org.muis.core.layout.SizeGuide;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
+
+import prisms.lang.Type;
 
 /** Bounds for an element. Contains some extra methods for easy access. */
-public class ElementBounds implements org.muis.core.layout.Bounds {
+public class ElementBounds extends org.muis.core.rx.DefaultObservableValue<Rectangle> implements org.muis.core.layout.Bounds {
 	private final MuisElement theElement;
 
 	private ElementBoundsDimension theHorizontalBounds;
-
 	private ElementBoundsDimension theVerticalBounds;
 
 	private int theX;
-
 	private int theY;
-
 	private int theW;
-
 	private int theH;
 
+	private final Observer<ObservableValueEvent<Rectangle>> theController;
 	private volatile int theStackChecker;
 
 	/** @param element The element to create the bounds for */
 	public ElementBounds(MuisElement element) {
+		theController = control(null);
 		theElement = element;
 		theHorizontalBounds = new ElementBoundsDimension(false);
 		theVerticalBounds = new ElementBoundsDimension(true);
@@ -161,6 +163,44 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 		return new Rectangle(theX, theY, theW, theH);
 	}
 
+	@Override
+	public Rectangle get() {
+		return getBounds();
+	}
+
+	@Override
+	public Type getType() {
+		return new Type(Rectangle.class);
+	}
+
+	/** @return An observable value for this bounds' x-coordinate. Equivalent to <code>mapV(bounds->{return bounds.x;})</code>. */
+	public org.muis.core.rx.ObservableValue<Integer> observeX() {
+		return mapV(bounds -> {
+			return bounds.x;
+		});
+	}
+
+	/** @return An observable value for this bounds' y-coordinate. Equivalent to <code>mapV(bounds->{return bounds.y;})</code>. */
+	public org.muis.core.rx.ObservableValue<Integer> observeY() {
+		return mapV(bounds -> {
+			return bounds.y;
+		});
+	}
+
+	/** @return An observable value for this bounds' width. Equivalent to <code>mapV(bounds->{return bounds.width;})</code>. */
+	public org.muis.core.rx.ObservableValue<Integer> observeW() {
+		return mapV(bounds -> {
+			return bounds.width;
+		});
+	}
+
+	/** @return An observable value for this bounds' height. Equivalent to <code>mapV(bounds->{return bounds.height;})</code>. */
+	public org.muis.core.rx.ObservableValue<Integer> observeH() {
+		return mapV(bounds -> {
+			return bounds.height;
+		});
+	}
+
 	/**
 	 *
 	 * @param x See {@link #getHorizontal()}.{@link org.muis.core.layout.BoundsDimension#setPosition(int) setPosition(int)}
@@ -188,12 +228,14 @@ public class ElementBounds implements org.muis.core.layout.Bounds {
 	private final void fire(Rectangle preBounds, Rectangle newBounds) {
 		theStackChecker++;
 		final int stackCheck = theStackChecker;
-		theElement.events().fire(new BoundsChangedEvent(theElement, preBounds, newBounds) {
+		BoundsChangedEvent evt = new BoundsChangedEvent(theElement, this, preBounds, newBounds, null) {
 			@Override
 			public boolean isOverridden() {
 				return stackCheck != theStackChecker;
 			}
-		});
+		};
+		theController.onNext(evt);
+		theElement.events().fire(evt);
 	}
 
 	/** A BoundsDimension for an element along one axis */

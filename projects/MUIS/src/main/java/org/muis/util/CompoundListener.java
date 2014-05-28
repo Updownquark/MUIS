@@ -9,6 +9,8 @@ import org.muis.core.MuisException;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEventListener;
+import org.muis.core.rx.Action;
+import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleDomain;
@@ -352,7 +354,7 @@ public abstract class CompoundListener<T> {
 		@Override
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<>(this);
-			theElement.events().listen(AttributeChangedEvent.base, ret.attListener);
+			ret.attSubscription = theElement.events().filterMap(AttributeChangedEvent.base).act(ret.attListener);
 			theElement.getStyle().getSelf().addListener(ret.getStyleListener());
 			return ret;
 		}
@@ -374,12 +376,12 @@ public abstract class CompoundListener<T> {
 		@Override
 		public void drop() {
 			for(ChainedCompoundListener<?> chain : getAnonymousChains()) {
-				theElement.events().remove(AttributeChangedEvent.base, chain.attListener);
+				chain.attSubscription.unsubscribe();
 				theElement.getStyle().getSelf().removeListener(chain.getStyleListener());
 			}
 			for(String name : getChainNames()) {
 				ChainedCompoundListener<?> cl = (ChainedCompoundListener<?>) chain(name);
-				theElement.events().remove(AttributeChangedEvent.base, cl.attListener);
+				cl.attSubscription.unsubscribe();
 				theElement.getStyle().getSelf().removeListener(cl.getStyleListener());
 			}
 			super.drop();
@@ -390,12 +392,15 @@ public abstract class CompoundListener<T> {
 	private static class ChildCompoundListener extends ChainableCompoundListener {
 		private final CompoundElementListener theElListener;
 
-		private MuisEventListener<ChildEvent> theAddedListener;
+		private Action<ChildEvent> theAddedListener;
+		private Subscription<?> theAddSubscription;
+		private Action<ChildEvent> theRemovedListener;
+		private Subscription<?> theRemoveSubscription;
 
-		private MuisEventListener<ChildEvent> theRemovedListener;
-
-		private MuisEventListener<AttributeChangedEvent<?>> theAttListener;
-		private MuisEventListener<StyleAttributeEvent<?>> theStyleListener;
+		private Action<AttributeChangedEvent<?>> theAttListener;
+		private Subscription<?> theAttSubscription;
+		private Action<StyleAttributeEvent<?>> theStyleListener;
+		private Subscription<?> theStyleSubscription;
 
 		private ArrayList<IndividualElementListener> theIndividualListeners;
 
@@ -432,9 +437,9 @@ public abstract class CompoundListener<T> {
 			};
 			theAttListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
-					chain.attListener.eventOccurred(event);
+					chain.attListener.act(event);
 				for(String name : getChainNames())
-					((ChildChainedCompoundListener<?>) chain(name)).attListener.eventOccurred(event);
+					((ChildChainedCompoundListener<?>) chain(name)).attListener.act(event);
 			};
 			theStyleListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
@@ -442,10 +447,10 @@ public abstract class CompoundListener<T> {
 				for(String name : getChainNames())
 					((ChildChainedCompoundListener<?>) chain(name)).styleListener.eventOccurred(event);
 			};
-			theElListener.getElement().events().listen(ChildEvent.child.add(), theAddedListener);
-			theElListener.getElement().events().listen(ChildEvent.child.remove(), theRemovedListener);
-			theElListener.getElement().ch().events().listen(AttributeChangedEvent.base, theAttListener);
-			theElListener.getElement().ch().events().listen(StyleAttributeEvent.base, theStyleListener);
+			theAddSubscription = theElListener.getElement().events().filterMap(ChildEvent.child.add()).act(theAddedListener);
+			theRemoveSubscription = theElListener.getElement().events().filterMap(ChildEvent.child.remove()).act(theRemovedListener);
+			theAttSubscription = theElListener.getElement().ch().events().filterMap(AttributeChangedEvent.base).act(theAttListener);
+			theStyleSubscription = theElListener.getElement().ch().events().filterMap(StyleAttributeEvent.base).act(theStyleListener);
 			theIndividualListeners = new ArrayList<>();
 			theElementListeners = new java.util.HashMap<>();
 		}
@@ -498,10 +503,10 @@ public abstract class CompoundListener<T> {
 
 		@Override
 		void drop() {
-			theElListener.getElement().events().remove(AttributeChangedEvent.base, theAttListener);
-			theElListener.getElement().events().remove(StyleAttributeEvent.base, theStyleListener);
-			theElListener.getElement().events().remove(ChildEvent.child.add(), theAddedListener);
-			theElListener.getElement().events().remove(ChildEvent.child.remove(), theRemovedListener);
+			theAttSubscription.unsubscribe();
+			theStyleSubscription.unsubscribe();
+			theAddSubscription.unsubscribe();
+			theRemoveSubscription.unsubscribe();
 			for(CompoundElementListener childListener : theElementListeners.values())
 				childListener.drop();
 			theElementListeners.clear();
@@ -715,7 +720,8 @@ public abstract class CompoundListener<T> {
 
 		private boolean isDropped;
 
-		MuisEventListener<AttributeChangedEvent<?>> attListener;
+		Action<AttributeChangedEvent<?>> attListener;
+		Subscription<?> attSubscription;
 		MuisEventListener<StyleAttributeEvent<?>> styleListener;
 
 		ChainedCompoundListener() {

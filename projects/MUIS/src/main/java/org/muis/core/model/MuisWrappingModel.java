@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
-import org.muis.core.rx.ObservableValueListener;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
+import org.muis.core.rx.Subscription;
 
 /** An implementation of MuisAppModel that wraps a POJO and makes its values and models available via reflection */
 public class MuisWrappingModel implements MuisAppModel {
@@ -349,7 +351,7 @@ public class MuisWrappingModel implements MuisAppModel {
 	}
 
 	private class MuisMemberValue<T> extends MuisMemberAccessor<T> implements MuisModelValue<T> {
-		private List<ObservableValueListener<? super T>> theListeners;
+		private List<Observer<? super ObservableValueEvent<T>>> theListeners;
 
 		MuisMemberValue(Getter<?> appModel, Member member) {
 			super(appModel, member);
@@ -376,21 +378,24 @@ public class MuisWrappingModel implements MuisAppModel {
 			T oldValue = get();
 			set(value);
 			MuisModelValueEvent<T> valueEvent = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
-			for(ObservableValueListener<? super T> listener : theListeners)
-				listener.valueChanged(valueEvent);
+			for(Observer<? super ObservableValueEvent<T>> listener : theListeners)
+				listener.onNext(valueEvent);
 		}
 
 		@Override
-		public MuisModelValue<T> addListener(ObservableValueListener<? super T> listener) {
-			if(listener != null)
-				theListeners.add(listener);
-			return this;
-		}
+		public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+			theListeners.add(observer);
+			return new Subscription<ObservableValueEvent<T>>() {
+				@Override
+				public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+					return MuisMemberValue.this.subscribe(observer2);
+				}
 
-		@Override
-		public MuisModelValue<T> removeListener(ObservableValueListener<?> listener) {
-			theListeners.remove(listener);
-			return this;
+				@Override
+				public void unsubscribe() {
+					theListeners.remove(observer);
+				}
+			};
 		}
 	}
 

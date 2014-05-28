@@ -4,7 +4,6 @@ import java.util.*;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.mgr.ElementList;
 
 /**
@@ -22,9 +21,9 @@ public abstract class FilteredElementList<E extends MuisElement> extends org.mui
 	public FilteredElementList(MuisElement parent, ElementList<? extends E> backing) {
 		super(parent);
 		theBacking = backing;
-		theBacking.addListener(new MuisEventListener<ChildEvent>() {
+		theBacking.act(new org.muis.core.rx.Action<ChildEvent>() {
 			@Override
-			public void eventOccurred(ChildEvent evt) {
+			public void act(ChildEvent evt) {
 				int index = -1;
 				int movedFromIndex = -1;
 				switch (evt.getType()) {

@@ -1,149 +1,21 @@
 package org.muis.core.event;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.muis.core.event.MouseEvent.ButtonType;
 import org.muis.core.event.MouseEvent.MouseEventType;
-import org.muis.core.event.boole.TPAnd;
-import org.muis.core.event.boole.TPOr;
-import org.muis.core.event.boole.TypedPredicate;
 
 /** Allows advanced filtering on {@link MouseEvent}s */
 public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent> {
 	/** Filters all {@link MouseEvent}s */
 	@SuppressWarnings("hiding")
-	public static TypedPredicate<MuisEvent, MouseEvent> base = value -> {
+	public static java.util.function.Function<MuisEvent, MouseEvent> base = value -> {
 		return value instanceof MouseEvent ? (MouseEvent) value : null;
 	};
 
 	/** Filters mouse events that have not been {@link UserEvent#use() used} */
 	public static final MouseEventCondition mouse = new MouseEventCondition();
-
-	/** Filters {@link MouseEvent}s based on their {@link MouseEvent#getType() type} attribute */
-	public static class MouseEventTypedPredicate implements TypedPredicate<MouseEvent, MouseEvent> {
-		private final MouseEventType theType;
-
-		private MouseEventTypedPredicate(MouseEventType type) {
-			theType = type;
-		}
-
-		/** @return The mouse event type that this predicate filters */
-		public MouseEventType getType() {
-			return theType;
-		}
-
-		@Override
-		public MouseEvent cast(MouseEvent value) {
-			return value.getType() == theType ? value : null;
-		}
-	}
-
-	/** Filters {@link MouseEvent}s based on their {@link MouseEvent#getButton() buttonType} attribute */
-	public static class ButtonTypedPredicate implements TypedPredicate<MouseEvent, MouseEvent> {
-		private final ButtonType theButton;
-
-		private ButtonTypedPredicate(ButtonType type) {
-			theButton = type;
-		}
-
-		/** @return The mouse button that this predicate filters */
-		public ButtonType getButton() {
-			return theButton;
-		}
-
-		@Override
-		public MouseEvent cast(MouseEvent value) {
-			return value.getButton() == theButton ? value : null;
-		}
-	}
-
-	/** Filters {@link MouseEvent}s based on their {@link MouseEvent#getClickCount() clickCount} attribute */
-	public static class ClickCountPredicate implements TypedPredicate<MouseEvent, MouseEvent> {
-		private final int theClickCount;
-
-		/** @param count The click count to filter on */
-		public ClickCountPredicate(int count) {
-			theClickCount=count;
-		}
-
-		/** @return The click count that this predicate filters */
-		public int getClickCount(){
-			return theClickCount;
-		}
-
-		@Override
-		public MouseEvent cast(MouseEvent value) {
-			return value.getClickCount()==theClickCount ? value : null;
-		}
-	}
-
-	/** A map of all mouse event types to predicates that filter on them */
-	public static final Map<MouseEventType, MouseEventTypedPredicate> types;
-	/** A map of all mouse buttons to predicates that filter on them */
-	public static final Map<ButtonType, ButtonTypedPredicate> buttons;
-	/** Filters single clicks */
-	public static final ClickCountPredicate singleClick = new ClickCountPredicate(1);
-	/** Filters double clicks */
-	public static final ClickCountPredicate doubleClick = new ClickCountPredicate(2);
-
-	static {
-		Map<MouseEventType, MouseEventTypedPredicate> t = new java.util.LinkedHashMap<>();
-		for(MouseEventType type : MouseEventType.values())
-			t.put(type, new MouseEventTypedPredicate(type));
-		types = Collections.unmodifiableMap(t);
-
-		Map<ButtonType, ButtonTypedPredicate> b = new java.util.LinkedHashMap<>();
-		for(ButtonType type : ButtonType.values())
-			b.put(type, new ButtonTypedPredicate(type));
-		buttons = Collections.unmodifiableMap(b);
-	}
-
-	/**
-	 * @param eventTypes The mouse event types to filter
-	 * @return A condition that filters mouse events of any of the given types
-	 */
-	public static TPOr<MouseEvent> or(MouseEventType... eventTypes) {
-		List<MouseEventTypedPredicate> preds = new ArrayList<>();
-		for(MouseEventType type : eventTypes)
-			preds.add(types.get(type));
-		return new TPOr<>(preds);
-	}
-
-	/**
-	 * @param eventTypes The mouse event types to filter
-	 * @return A condition that filters mouse events of any of the given types
-	 */
-	public static TPOr<MouseEvent> orTypes(Iterable<MouseEventType> eventTypes) {
-		List<MouseEventTypedPredicate> preds = new ArrayList<>();
-		for(MouseEventType type : eventTypes)
-			preds.add(types.get(type));
-		return new TPOr<>(preds);
-	}
-
-	/**
-	 * @param buttonTypes The mouse buttons to filter
-	 * @return A condition that filters mouse events for any of the given buttons
-	 */
-	public static TPOr<MouseEvent> or(ButtonType... buttonTypes) {
-		List<ButtonTypedPredicate> preds = new ArrayList<>();
-		for(ButtonType type : buttonTypes)
-			preds.add(buttons.get(type));
-		return new TPOr<>(preds);
-	}
-
-	/**
-	 * @param buttonTypes The mouse buttons to filter
-	 * @return A condition that filters mouse events for any of the given buttons
-	 */
-	public static TPOr<MouseEvent> orButtons(Iterable<ButtonType> buttonTypes) {
-		List<ButtonTypedPredicate> preds = new ArrayList<>();
-		for(ButtonType type : buttonTypes)
-			preds.add(buttons.get(type));
-		return new TPOr<>(preds);
-	}
 
 	private List<MouseEventType> theTypes;
 	private List<ButtonType> theButtons;
@@ -156,34 +28,17 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 	}
 
 	@Override
-	public TypedPredicate<MuisEvent, MouseEvent> getTester() {
-		TypedPredicate<MuisEvent, MouseEvent> mousePred = base;
-		if(theTypes != null) {
-			if(theTypes.size() == 1)
-				mousePred = new TPAnd<>(base, types.get(theTypes.get(0)));
-			else
-				mousePred = new TPAnd<>(base, orTypes(theTypes));
-		}
-		if(theButtons != null) {
-			if(theButtons.size() == 1)
-				mousePred = new TPAnd<>(base, buttons.get(theButtons.get(0)));
-			else
-				mousePred = new TPAnd<>(base, orButtons(theButtons));
-		}
-		if(theClickCount != null) {
-			switch (theClickCount) {
-			case 1:
-				mousePred = new TPAnd<>(base, singleClick);
-				break;
-			case 2:
-				mousePred = new TPAnd<>(base, doubleClick);
-				break;
-			default:
-				mousePred = new TPAnd<>(base, new ClickCountPredicate(theClickCount));
-				break;
-			}
-		}
-		return new TPAnd<>(getPositionedTester(), mousePred);
+	public MouseEvent apply(MuisEvent evt) {
+		MouseEvent mouseEvt = base.apply(userApply(evt));
+		if(mouseEvt == null)
+			return null;
+		if(!theTypes.isEmpty() && !theTypes.contains(mouseEvt.getType()))
+			return null;
+		if(!theButtons.isEmpty() && !theButtons.contains(mouseEvt.getButton()))
+			return null;
+		if(theClickCount != null && mouseEvt.getClickCount() != theClickCount.intValue())
+			return null;
+		return mouseEvt;
 	}
 
 	@Override

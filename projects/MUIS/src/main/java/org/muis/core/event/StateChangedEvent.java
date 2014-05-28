@@ -1,5 +1,7 @@
 package org.muis.core.event;
 
+import java.util.function.Function;
+
 import org.muis.core.MuisElement;
 import org.muis.core.event.boole.TypedPredicate;
 import org.muis.core.mgr.MuisState;
@@ -8,7 +10,7 @@ import org.muis.core.mgr.MuisState;
 public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	/** Filters events of this type */
 	@SuppressWarnings("hiding")
-	public static final TypedPredicate<MuisEvent, StateChangedEvent> base = value -> {
+	public static final Function<MuisEvent, StateChangedEvent> base = value -> {
 		return value instanceof StateChangedEvent ? (StateChangedEvent) value : null;
 	};
 
@@ -38,8 +40,15 @@ public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	 * @param state The state to listen for
 	 * @return A filter for change events to the given state
 	 */
-	public static TypedPredicate<MuisEvent, StateChangedEvent> state(MuisState state) {
-		return new org.muis.core.event.boole.TPAnd<>(base, new StateTypedPredicate(state));
+	public static Function<MuisEvent, StateChangedEvent> state(MuisState state) {
+		return event -> {
+			StateChangedEvent stateEvt = base.apply(event);
+			if(stateEvt == null)
+				return null;
+			if(stateEvt.getState() != state)
+				return null;
+			return stateEvt;
+		};
 	}
 
 	private final MuisState theState;
@@ -53,7 +62,7 @@ public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	 * @param cause The event that was the cause of the state change--may be null
 	 */
 	public StateChangedEvent(MuisElement element, MuisState state, boolean newValue, MuisEvent cause) {
-		super(element, newValue);
+		super(element, null, !newValue, newValue, cause);
 		theState = state;
 		theCause = cause;
 	}
@@ -64,6 +73,7 @@ public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	}
 
 	/** @return The event that was the cause of the state change--may be null */
+	@Override
 	public MuisEvent getCause() {
 		return theCause;
 	}

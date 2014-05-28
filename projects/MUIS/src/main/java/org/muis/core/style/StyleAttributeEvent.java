@@ -1,5 +1,7 @@
 package org.muis.core.style;
 
+import java.util.function.Function;
+
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.boole.TypedPredicate;
@@ -12,7 +14,7 @@ import org.muis.core.event.boole.TypedPredicate;
 public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEvent<T> {
 	/** Filters events of this type */
 	@SuppressWarnings("hiding")
-	public static final TypedPredicate<MuisEvent, StyleAttributeEvent<?>> base = value -> {
+	public static final Function<MuisEvent, StyleAttributeEvent<?>> base = value -> {
 		return value instanceof StyleAttributeEvent && !((StyleAttributeEvent<?>) value).isOverridden() ? (StyleAttributeEvent<?>) value
 			: null;
 	};
@@ -48,8 +50,13 @@ public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEven
 	 * @param attr The attribute to listen for
 	 * @return A filter for change events to the given attribute
 	 */
-	public static <T> TypedPredicate<MuisEvent, StyleAttributeEvent<T>> style(StyleAttribute<T> attr) {
-		return new org.muis.core.event.boole.TPAnd<>(base, new StyleAttributeTypedPredicate<>(attr));
+	public static <T> Function<MuisEvent, StyleAttributeEvent<T>> style(StyleAttribute<T> attr) {
+		return event -> {
+			StyleAttributeEvent<?> styleEvt = base.apply(event);
+			if(styleEvt == null || styleEvt.getAttribute() != attr)
+				return null;
+			return (StyleAttributeEvent<T>) styleEvt;
+		};
 	}
 
 	private MuisStyle theRootStyle;
@@ -68,7 +75,7 @@ public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEven
 	 * @param value The new value of the attribute in the style
 	 */
 	public StyleAttributeEvent(MuisElement element, MuisStyle root, MuisStyle local, StyleAttribute<T> attr, T value) {
-		super(element, value);
+		super(element, null, null, value, null);
 		theRootStyle = root;
 		theLocalStyle = local;
 		theAttribute = attr;

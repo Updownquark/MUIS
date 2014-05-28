@@ -1,7 +1,9 @@
 package org.muis.core.model;
 
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.rx.ObservableValueListener;
+import org.muis.core.rx.Action;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Subscription;
 
 /**
  * Links 2 values via converters
@@ -15,8 +17,10 @@ public class ModelValueLinker<T1, T2> {
 	private final MuisModelValue<T2> theRight;
 	private ValueConverter<T1, T2> theLeftToRight;
 	private ValueConverter<T2, T1> theRightToLeft;
-	private final ObservableValueListener<T1> theLeftListener;
-	private final ObservableValueListener<T2> theRightListener;
+	private final Action<ObservableValueEvent<T1>> theLeftListener;
+	private Subscription<?> theLeftSubscription;
+	private final Action<ObservableValueEvent<T2>> theRightListener;
+	private Subscription<?> theRightSubscription;
 	private boolean theEventLock;
 
 	/**
@@ -38,7 +42,7 @@ public class ModelValueLinker<T1, T2> {
 				return;
 			theEventLock = true;
 			try {
-				theRight.set(theLeftToRight.convert(evt.getNewValue()), MuisModelValueEvent.getUserEvent(evt));
+				theRight.set(theLeftToRight.convert(evt.getValue()), MuisModelValueEvent.getUserEvent(evt));
 			} finally {
 				theEventLock = false;
 			}
@@ -53,7 +57,7 @@ public class ModelValueLinker<T1, T2> {
 				return;
 			theEventLock = true;
 			try {
-				theLeft.set(theRightToLeft.convert(evt.getNewValue()), MuisModelValueEvent.getUserEvent(evt));
+				theLeft.set(theRightToLeft.convert(evt.getValue()), MuisModelValueEvent.getUserEvent(evt));
 			} finally {
 				theEventLock = false;
 			}
@@ -99,15 +103,21 @@ public class ModelValueLinker<T1, T2> {
 				"left", theLeft, "right", theRight);
 			// Should we throw an exception here or just link in the hope that they set the converters later?
 		}
-		theLeft.addListener(theLeftListener);
-		theRight.addListener(theRightListener);
+		theLeftSubscription = theLeft.act(theLeftListener);
+		theRightSubscription = theRight.act(theRightListener);
 		return this;
 	}
 
 	/** Unlinks the two values */
 	public void unlink() {
-		theLeft.removeListener(theLeftListener);
-		theRight.removeListener(theRightListener);
+		if(theLeftSubscription != null) {
+			theLeftSubscription.unsubscribe();
+			theLeftSubscription = null;
+		}
+		if(theRightSubscription != null) {
+			theRightSubscription.unsubscribe();
+			theRightSubscription = null;
+		}
 	}
 
 	@Override

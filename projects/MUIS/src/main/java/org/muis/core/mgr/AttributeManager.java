@@ -5,9 +5,11 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
+import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.model.MuisModelValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.ObservableValueListener;
+import org.muis.core.rx.Subscription;
+
+import prisms.lang.Type;
 
 /** Manages attribute information for an element */
 public class AttributeManager {
@@ -16,10 +18,12 @@ public class AttributeManager {
 	 *
 	 * @param <T> The type of the attribute to hold
 	 */
-	public class AttributeHolder<T> {
+	public class AttributeHolder<T> extends org.muis.core.rx.DefaultObservableValue<T> {
 		private AttributeHolder<T> theParent;
 
 		private final MuisAttribute<T> theAttr;
+
+		private final org.muis.core.rx.Observer<org.muis.core.rx.ObservableValueEvent<T>> theController;
 
 		private IdentityHashMap<Object, Object> theNeeders;
 
@@ -36,11 +40,13 @@ public class AttributeManager {
 
 		AttributeHolder(MuisAttribute<T> attr) {
 			theAttr = attr;
+			theController = control(null);
 		}
 
 		AttributeHolder(MuisPathedAttribute<T> attr, AttributeHolder<T> parent) {
 			theParent = parent;
 			theAttr = attr;
+			theController = control(null);
 		}
 
 		/** @return The attribute that this holder holds */
@@ -49,8 +55,14 @@ public class AttributeManager {
 		}
 
 		/** @return The value of the attribute in this manager */
-		public final T getValue() {
+		@Override
+		public final T get() {
 			return theValue;
+		}
+
+		@Override
+		public final Type getType() {
+			return new Type(theAttr.getType().getType());
 		}
 
 		/**
@@ -103,13 +115,14 @@ public class AttributeManager {
 			theValue = value;
 			theStackChecker++;
 			final int stackCheck = theStackChecker;
-			theElement.events().fire(
-				new org.muis.core.event.AttributeChangedEvent<T>(theElement, theAttr, theAttr.getType().cast(old), value) {
-					@Override
-					public boolean isOverridden() {
-						return stackCheck != theStackChecker;
-					}
-				});
+			AttributeChangedEvent<T> evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(old), value, null) {
+				@Override
+				public boolean isOverridden() {
+					return stackCheck != theStackChecker;
+				}
+			};
+			theController.onNext(evt);
+			theElement.events().fire(evt);
 		}
 
 		private final void resetModelWatchers(String formattedValue) throws org.muis.core.parser.MuisParseException {
@@ -229,23 +242,19 @@ public class AttributeManager {
 	class AttributeModelWatcher {
 		private AttributeHolder<?> theAttribute;
 		private MuisModelValue<?> theModelValue;
-		private ObservableValueListener<Object> theListener;
+		private Subscription<?> theSubscription;
 
 		AttributeModelWatcher(AttributeHolder<?> att, MuisModelValue<?> value) {
 			theAttribute = att;
 			theModelValue = value;
-			theListener = new ObservableValueListener<Object>() {
-				@Override
-				public void valueChanged(ObservableValueEvent<?> evt) {
-					try {
-						theAttribute.valueModelChanged();
-					} catch(MuisException e) {
-						theElement.msg().error("Failed to re-parse or set attribute on model change", e, "attribute",
-							theAttribute.getAttribute());
-					}
+			theSubscription = theModelValue.act(val -> {
+				try {
+					theAttribute.valueModelChanged();
+				} catch(MuisException e) {
+					theElement.msg().error("Failed to re-parse or set attribute on model change", e, "attribute",
+						theAttribute.getAttribute());
 				}
-			};
-			theModelValue.addListener(theListener);
+			});
 		}
 
 		MuisModelValue<?> getModelValue() {
@@ -253,7 +262,7 @@ public class AttributeManager {
 		}
 
 		void remove() {
-			theModelValue.removeListener(theListener);
+			theSubscription.unsubscribe();
 		}
 	}
 
@@ -301,6 +310,18 @@ public class AttributeManager {
 			}
 		}
 		return holder;
+	}
+
+	/**
+	 * @param attr The attribute to get the holder for
+	 * @return The attribute holder for the given attribute, or null if the given attribute is not accepted in this manager
+	 */
+	public <T> AttributeHolder<T> getHolder(MuisAttribute<T> attr) {
+		try {
+			return getHolder(attr, false);
+		} catch(MuisException e) {
+			throw new IllegalStateException("Should not be thrown here", e);
+		}
 	}
 
 	/**
@@ -380,7 +401,7 @@ public class AttributeManager {
 		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
 		if(holder == null)
 			return null;
-		return holder.getValue();
+		return holder.get();
 	}
 
 	/**
@@ -392,7 +413,7 @@ public class AttributeManager {
 		if(attr == null)
 			return false;
 		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
-		if(holder != null && holder.getValue() != null)
+		if(holder != null && holder.get() != null)
 			return true;
 		if(theRawAttributes != null && theRawAttributes.get(name) != null)
 			return true;
@@ -405,7 +426,7 @@ public class AttributeManager {
 	 */
 	public final boolean isSet(MuisAttribute<?> attr) {
 		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
-		return holder != null && holder.getValue() != null;
+		return holder != null && holder.get() != null;
 	}
 
 	/**
@@ -431,9 +452,9 @@ public class AttributeManager {
 		AttributeHolder<T> storedAttr = (AttributeHolder<T>) theAcceptedAttrs.get(attr);
 		if(storedAttr == null)
 			return def;
-		if(storedAttr.getValue() == null)
+		if(storedAttr.get() == null)
 			return def; // Same name, but different attribute
-		return storedAttr.getValue();
+		return storedAttr.get();
 	}
 
 	/**
@@ -542,7 +563,7 @@ public class AttributeManager {
 				}
 			}
 		}
-		if(initValue != null && holder.getValue() == null)
+		if(initValue != null && holder.get() == null)
 			set(attr, initValue);
 	}
 
@@ -674,8 +695,7 @@ public class AttributeManager {
 			if(!holder.wasWanted()) {
 				holders.remove();
 				namedAttrRemoved(holder.getAttribute());
-				theElement.msg().error("Attribute " + holder.getAttribute() + " is not accepted in this element", "value",
-					holder.getValue());
+				theElement.msg().error("Attribute " + holder.getAttribute() + " is not accepted in this element", "value", holder.get());
 			}
 		}
 		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
@@ -717,7 +737,7 @@ public class AttributeManager {
 			return false;
 		};
 		for(AttributeHolder<?> holder : holders()) {
-			if(!holder.isWanted() || holder.getValue() == null)
+			if(!holder.isWanted() || holder.get() == null)
 				continue;
 			if(ret.length() > 0)
 				ret.append(' ');
@@ -726,9 +746,9 @@ public class AttributeManager {
 			if(holder.getAttribute().getType() instanceof MuisProperty.PrintablePropertyType)
 				value = "\""
 					+ org.jdom2.output.Format.escapeAttribute(strategy, ((MuisProperty.PrintablePropertyType<Object>) holder.getAttribute()
-						.getType()).toString(holder.getValue())) + "\"";
+						.getType()).toString(holder.get())) + "\"";
 			else
-				value = String.valueOf(holder.getValue());
+				value = String.valueOf(holder.get());
 			ret.append(value);
 		}
 		return ret.toString();

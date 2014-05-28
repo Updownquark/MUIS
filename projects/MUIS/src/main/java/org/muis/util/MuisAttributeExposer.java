@@ -5,7 +5,8 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.event.AttributeAcceptedEvent;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.rx.Action;
+import org.muis.core.rx.Subscription;
 
 import prisms.util.ArrayUtils;
 
@@ -31,8 +32,10 @@ public class MuisAttributeExposer {
 
 	private boolean isActive;
 
-	private MuisEventListener<AttributeAcceptedEvent> theAttAcceptListener;
-	private MuisEventListener<AttributeChangedEvent<?>> theAttChangeListener;
+	private Action<AttributeAcceptedEvent> theAttAcceptListener;
+	private Subscription<?> theAttAcceptSubscription;
+	private Action<AttributeChangedEvent<?>> theAttChangeListener;
+	private Subscription<?> theAttChangeSubscription;
 
 	/**
 	 * @param source The element whose attributes to synchronize to another element
@@ -72,7 +75,7 @@ public class MuisAttributeExposer {
 						+ theSource.atts().get(att) + " for attribute " + att, e);
 				}
 		};
-		theDest.events().listen(AttributeAcceptedEvent.attAccept, theAttAcceptListener);
+		theAttAcceptSubscription = theDest.events().filterMap(AttributeAcceptedEvent.attAccept).act(theAttAcceptListener);
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders()) {
 			MuisAttribute<?> att = holder.getAttribute();
 			if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, att))
@@ -80,12 +83,12 @@ public class MuisAttributeExposer {
 			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.muis.core.MuisTemplate.TemplateStructure.RoleAttributeType)) {
 				try {
 					if(!theSource.atts().isAccepted(att))
-						theSource.atts().accept(this, holder.isRequired(), (MuisAttribute<Object>) att, holder.getValue());
+						theSource.atts().accept(this, holder.isRequired(), (MuisAttribute<Object>) att, holder.get());
 				} catch(MuisException e) {
 					theMessageCenter.error("Attribute synchronization failed: Source " + theSource + " cannot accept attribute " + att, e);
 				}
 				Object newVal = theSource.atts().get(att);
-				if(!java.util.Objects.equals(holder.getValue(), newVal))
+				if(!java.util.Objects.equals(holder.get(), newVal))
 					try {
 						theDest.atts().set((MuisAttribute<Object>) att, newVal);
 					} catch(MuisException e) {
@@ -94,7 +97,7 @@ public class MuisAttributeExposer {
 					}
 			}
 		}
-		theSource.events().listen(AttributeChangedEvent.base, theAttChangeListener);
+		theAttChangeSubscription = theSource.events().filterMap(AttributeChangedEvent.base).act(theAttChangeListener);
 	}
 
 	/** @return The element that is the source of the attributes being synchronized */
@@ -116,8 +119,8 @@ public class MuisAttributeExposer {
 	public void close() {
 		if(!isActive)
 			return;
-		theDest.events().remove(AttributeAcceptedEvent.attAccept, theAttAcceptListener);
-		theSource.events().remove(AttributeChangedEvent.base, theAttChangeListener);
+		theAttAcceptSubscription.unsubscribe();
+		theAttChangeSubscription.unsubscribe();
 		for(org.muis.core.mgr.AttributeManager.AttributeHolder<?> holder : theDest.atts().holders())
 			theSource.atts().reject(this, holder.getAttribute());
 		isActive = false;

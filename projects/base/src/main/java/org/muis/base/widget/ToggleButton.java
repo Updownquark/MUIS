@@ -15,7 +15,9 @@ import org.muis.core.tags.StateSupport;
 public class ToggleButton extends Button {
 	private org.muis.core.mgr.StateEngine.StateController theSelectedController;
 
-	private org.muis.core.rx.ObservableValueListener<Boolean> theValueListener;
+	private org.muis.core.rx.Action<org.muis.core.rx.ObservableValueEvent<Boolean>> theValueListener;
+
+	private org.muis.core.rx.Subscription<?> theValueSubscription;
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
@@ -23,17 +25,17 @@ public class ToggleButton extends Button {
 	public ToggleButton() {
 		super(false);
 		theValueListener = evt -> {
-			if(state().is(BaseConstants.States.SELECTED) == evt.getNewValue().booleanValue())
+			if(state().is(BaseConstants.States.SELECTED) == evt.getValue().booleanValue())
 				return;
-			theSelectedController.setActive(evt.getNewValue(), org.muis.core.model.MuisModelValueEvent.getUserEvent(evt));
+			theSelectedController.setActive(evt.getValue(), org.muis.core.model.MuisModelValueEvent.getUserEvent(evt));
 		};
 		atts().accept(new Object(), ModelAttributes.value);
-		events().listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
+		events().filterMap(AttributeChangedEvent.att(ModelAttributes.value)).act(event -> {
 			setModelValue(event.getOldValue(), event.getValue());
 		});
 		setModelValue(null, atts().get(ModelAttributes.value));
 		theSelectedController = state().control(BaseConstants.States.SELECTED);
-		events().listen(StateChangedEvent.state(BaseConstants.States.SELECTED), (StateChangedEvent event) -> {
+		events().filterMap(StateChangedEvent.state(BaseConstants.States.SELECTED)).act(event -> {
 			MuisEvent cause = event.getCause();
 			if(event.getValue())
 				valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
@@ -51,7 +53,8 @@ public class ToggleButton extends Button {
 
 	private void setModelValue(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
 		if(oldValue != null) {
-			oldValue.removeListener(theValueListener);
+			theValueSubscription.unsubscribe();
+			theValueSubscription = null;
 			if(theRegistration != null)
 				theRegistration.unregister();
 		}
@@ -60,7 +63,7 @@ public class ToggleButton extends Button {
 				msg().error("Toggle button backed by non-boolean model: " + newValue.getType(), "modelValue", newValue);
 				return;
 			}
-			((MuisModelValue<Boolean>) newValue).addListener(theValueListener);
+			theValueSubscription = ((MuisModelValue<Boolean>) newValue).act(theValueListener);
 			if(newValue instanceof org.muis.core.model.WidgetRegister)
 				theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(this);
 			// setEnabled(newValue.isMutable(), null); TODO

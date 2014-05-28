@@ -2,32 +2,29 @@ package org.muis.core.event;
 
 import java.awt.Rectangle;
 
-import org.muis.core.event.boole.TypedPredicate;
+import org.muis.core.mgr.ElementBounds;
 
 /** Fired when an element's position or size changes */
 public abstract class BoundsChangedEvent extends MuisPropertyEvent<Rectangle> {
 	/** Filters events of this type */
-	public static final TypedPredicate<MuisEvent, BoundsChangedEvent> bounds = new TypedPredicate<MuisEvent, BoundsChangedEvent>() {
-		@Override
-		public BoundsChangedEvent cast(MuisEvent value) {
-			return value instanceof BoundsChangedEvent && !((BoundsChangedEvent) value).isOverridden() ? (BoundsChangedEvent) value : null;
-		}
+	public static final java.util.function.Function<MuisEvent, BoundsChangedEvent> bounds = value -> {
+		return value instanceof BoundsChangedEvent && !((BoundsChangedEvent) value).isOverridden() ? (BoundsChangedEvent) value : null;
 	};
-
-	private final Rectangle theOldValue;
 
 	/**
 	 * @param el The element whose bounds changed
+	 * @param observable The element bounds that is firing this event
 	 * @param oldBounds The old bounds
 	 * @param newBounds The new bounds
+	 * @param cause The cause of this event
 	 */
-	public BoundsChangedEvent(org.muis.core.MuisElement el, Rectangle oldBounds, Rectangle newBounds) {
-		super(el, newBounds);
-		theOldValue = oldBounds;
+	public BoundsChangedEvent(org.muis.core.MuisElement el, ElementBounds observable, Rectangle oldBounds, Rectangle newBounds,
+		MuisEvent cause) {
+		super(el, observable, oldBounds, newBounds, cause);
 	}
 
-	/** @return The value of the bounds before it was changed */
-	public Rectangle getOldValue() {
-		return theOldValue;
+	@Override
+	public ElementBounds getObservable() {
+		return (ElementBounds) super.getObservable();
 	}
 }

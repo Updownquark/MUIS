@@ -2,7 +2,6 @@ package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
-import org.muis.core.event.StateChangedEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
@@ -43,7 +42,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			theParentStyle = theElement.getParent().getStyle();
 			addDependency(theParentStyle.getHeir(), null);
 		}
-		theElement.events().listen(ElementMovedEvent.moved, (ElementMovedEvent event) -> {
+		theElement.events().filterMap(ElementMovedEvent.moved).act(event -> {
 			ElementStyle oldParentStyle = theParentStyle;
 			if(oldParentStyle != null) {
 				if(event.getNewParent() != null) {
@@ -62,7 +61,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		setState(currentState);
 		theSelfStyle.setState(currentState);
 		theHeirStyle.setState(currentState);
-		theElement.events().listen(org.muis.core.event.StateChangedEvent.base, (StateChangedEvent event) -> {
+		theElement.events().filterMap(org.muis.core.event.StateChangedEvent.base).act(event -> {
 			MuisState state = event.getState();
 			if(event.getValue()) {
 				addState(state);

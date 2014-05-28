@@ -4,6 +4,7 @@ import org.muis.base.model.RichDocumentModel;
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.model.*;
+import org.muis.core.rx.Subscription;
 
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
@@ -15,22 +16,20 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
-	private org.muis.core.rx.ObservableValueListener<Object> theValueListener;
+	private Subscription<?> theValueSubscription;
 
 	/** Creates the label */
 	public Label() {
-		theValueListener = evt -> {
-			setText(getTextFor(evt.getNewValue()));
-		};
 		life().runWhen(() -> {
 			Object accepter = new Object();
 			atts().accept(accepter, rich);
 			atts().accept(accepter, ModelAttributes.value);
-			events().listen(AttributeChangedEvent.att(rich), (AttributeChangedEvent<Boolean> event) -> {
+				events().filterMap(AttributeChangedEvent.att(rich)).act(
+					event -> {
 				setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
 					getDocumentBackingStyle()));
 			});
-			events().listen(AttributeChangedEvent.att(ModelAttributes.value), (AttributeChangedEvent<MuisModelValue<?>> event) -> {
+				events().filterMap(AttributeChangedEvent.att(ModelAttributes.value)).act(event -> {
 				modelValueChanged(event.getOldValue(), event.getValue());
 			});
 			modelValueChanged(null, atts().get(ModelAttributes.value));
@@ -154,14 +153,18 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 		if(oldValue instanceof MuisDocumentModel) {
 			if(!(newValue instanceof MuisDocumentModel))
 				setDocumentModel(null);
-		} else if(oldValue != null)
-			oldValue.removeListener(theValueListener);
+		} else if(oldValue != null) {
+			theValueSubscription.unsubscribe();
+			theValueSubscription = null;
+		}
 		if(newValue instanceof org.muis.core.model.WidgetRegister)
 			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(Label.this);
 		if(newValue instanceof MuisDocumentModel)
 			setDocumentModel((MuisDocumentModel) newValue);
 		else if(newValue != null) {
-			newValue.addListener(theValueListener);
+			theValueSubscription = newValue.act(evt -> {
+				setText(getTextFor(evt.getValue()));
+			});
 			setText(getTextFor(newValue.get()));
 		}
 	}

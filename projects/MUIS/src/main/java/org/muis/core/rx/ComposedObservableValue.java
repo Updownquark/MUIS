@@ -25,26 +25,29 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 		theController = control(observer -> {
 			fire(observer);
 		});
-		Observer<ObservableValueEvent<Object>> listener = evt -> {
-			Object [] args = new Object[theComposed.size()];
-			for(int i = 0; i < args.length; i++) {
-				if(theComposed.get(i) == evt.getObservable())
-					args[i] = evt.getOldValue();
-				else
-					args[i] = theComposed.get(i).get();
-			}
-			T oldValue = theFunction.apply(args);
-			for(int i = 0; i < args.length; i++) {
-				if(theComposed.get(i) == evt.getObservable())
-					args[i] = evt.getNewValue();
-			}
+		Observer<ObservableValueEvent<Object>> listener = new Observer<ObservableValueEvent<Object>>() {
+			@Override
+			public <V extends ObservableValueEvent<Object>> void onNext(V evt) {
+				Object [] args = new Object[theComposed.size()];
+				for(int i = 0; i < args.length; i++) {
+					if(theComposed.get(i) == evt.getObservable())
+						args[i] = evt.getOldValue();
+					else
+						args[i] = theComposed.get(i).get();
+				}
+				T oldValue = theFunction.apply(args);
+				for(int i = 0; i < args.length; i++) {
+					if(theComposed.get(i) == evt.getObservable())
+						args[i] = evt.getValue();
+				}
 
-			T newValue = theFunction.apply(args);
-			ObservableValueEvent<T> toFire = new ObservableValueEvent<>(this, oldValue, newValue, evt);
-			fire(toFire);
+				T newValue = theFunction.apply(args);
+				ObservableValueEvent<T> toFire = new ObservableValueEvent<T>(ComposedObservableValue.this, oldValue, newValue, evt);
+				theController.onNext(toFire);
+			}
 		};
 		for(ObservableValue<?> comp : composed)
-			comp.addListener(listener);
+			((ObservableValue<Object>) comp).subscribe(listener);
 	}
 
 	@Override
@@ -62,11 +65,6 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 		for(int i = 0; i < args.length; i++)
 			args[i] = theComposed.get(i).get();
 		return theFunction.apply(args);
-	}
-
-	private void fire(ObservableValueEvent<T> event) {
-		for(ObservableValueListener<? super T> listener : theListeners)
-			listener.valueChanged(event);
 	}
 
 	private void fire(Observer<? super ObservableValueEvent<T>> observer) {

@@ -2,15 +2,13 @@ package org.muis.core.mgr;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEvent;
-import org.muis.core.event.MuisEventCondition;
-import org.muis.core.event.MuisEventListener;
-import org.muis.core.event.boole.ConditionTree;
-import org.muis.core.event.boole.TypedPredicate;
+import org.muis.core.rx.DefaultObservable;
+import org.muis.core.rx.Observable;
+import org.muis.core.rx.Observer;
 
 import prisms.util.ArrayUtils;
 
@@ -19,57 +17,31 @@ import prisms.util.ArrayUtils;
  *
  * @param <E> The type of elements in the list
  */
-public abstract class AbstractElementList<E extends MuisElement> implements ElementList<E> {
-	private java.util.concurrent.CopyOnWriteArrayList<MuisEventListener<ChildEvent>> theListeners;
-	private final ConditionTree<MuisEvent, MuisEventListener<?>> theChildListeners;
-	private final EventListenerManager theEvents;
+public abstract class AbstractElementList<E extends MuisElement> extends DefaultObservable<ChildEvent> implements ElementList<E> {
+	private final DefaultObservable<MuisEvent> theEvents;
+	private final Observer<MuisEvent> theController;
 
 	private final MuisElement theParent;
 
 	/** @param parent The parent to manage the children of */
 	public AbstractElementList(MuisElement parent) {
-		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
-		theChildListeners = new ConditionTree<>();
 		theParent = parent;
-		theEvents = new EventListenerManager() {
-			@Override
-			public <T extends MuisEvent> EventListenerManager listen(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
-				return listen(condition.getTester(), listeners);
-			}
+		theEvents = new DefaultObservable<>();
+		theController = theEvents.control(null);
+		// On child add, subscribe to child events until the child is removed
+		filterMap(ChildEvent.child.add()).act(evt -> {
+			evt.getChild().events().takeUntil(filterMap(ChildEvent.child.forChild(evt.getChild()))).subscribe(new Observer<MuisEvent>() {
+				@Override
+				public <V extends MuisEvent> void onNext(V value) {
+					theController.onNext(value);
+				}
 
-			@Override
-			public <T extends MuisEvent> EventListenerManager remove(MuisEventCondition<T> condition, MuisEventListener<T>... listeners) {
-				return remove(condition.getTester(), listeners);
-			}
-
-			@Override
-			public <T extends MuisEvent> EventListenerManager listen(TypedPredicate<MuisEvent, T> condition,
-				MuisEventListener<T>... listeners) {
-				theChildListeners.add(condition, listeners);
-				for(E child : AbstractElementList.this)
-					child.events().listen(condition, listeners);
-				return this;
-			}
-
-			@Override
-			public <T extends MuisEvent> EventListenerManager remove(TypedPredicate<MuisEvent, T> condition,
-				MuisEventListener<T>... listeners) {
-				theChildListeners.remove(condition, listeners);
-				for(E child : AbstractElementList.this)
-					child.events().remove(condition, listeners);
-				return this;
-			}
-		};
-	}
-
-	@Override
-	public void addListener(MuisEventListener<ChildEvent> listener) {
-		theListeners.add(listener);
-	}
-
-	@Override
-	public void removeListener(MuisEventListener<ChildEvent> listener) {
-		theListeners.remove(listener);
+				@Override
+				public void onError(Throwable e) {
+					theController.onError(e);
+				}
+			});
+		});
 	}
 
 	@Override
@@ -78,30 +50,8 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 	}
 
 	@Override
-	public final EventListenerManager events() {
+	public final Observable<MuisEvent> events() {
 		return theEvents;
-	}
-
-	/**
-	 * Called by implementation after a child is added to the list
-	 *
-	 * @param child The child that was added to the list
-	 */
-	protected void childAdded(MuisElement child) {
-		for(Entry<? extends TypedPredicate<? extends MuisEvent, ?>, List<MuisEventListener<?>>> entry : theChildListeners.entries())
-			for(MuisEventListener<?> listener : entry.getValue())
-				child.events().listen((TypedPredicate<MuisEvent, MuisEvent>) entry.getKey(), (MuisEventListener<MuisEvent>) listener);
-	}
-
-	/**
-	 * Called by implementation after a child is removed from the list
-	 *
-	 * @param child The child that was added to the list
-	 */
-	protected void childRemoved(MuisElement child) {
-		for(Entry<? extends TypedPredicate<? extends MuisEvent, ?>, List<MuisEventListener<?>>> entry : theChildListeners.entries())
-			for(MuisEventListener<?> listener : entry.getValue())
-				child.events().remove((TypedPredicate<MuisEvent, MuisEvent>) entry.getKey(), (MuisEventListener<MuisEvent>) listener);
 	}
 
 	@Override
@@ -200,7 +150,6 @@ public abstract class AbstractElementList<E extends MuisElement> implements Elem
 
 	/** @param evt The ChildEvent to fire */
 	protected void fireEvent(ChildEvent evt) {
-		for(MuisEventListener<ChildEvent> listener : theListeners)
-			listener.eventOccurred(evt);
+		theController.onNext(evt);
 	}
 }

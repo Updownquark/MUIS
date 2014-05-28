@@ -3,7 +3,9 @@ package org.muis.core.model;
 import java.util.List;
 
 import org.muis.core.MuisElement;
-import org.muis.core.rx.ObservableValueListener;
+import org.muis.core.rx.DefaultObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
 
 import prisms.lang.Type;
 
@@ -12,12 +14,12 @@ import prisms.lang.Type;
  *
  * @param <T> The (compile-time) type of the value
  */
-public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegister {
+public class DefaultMuisModelValue<T> extends DefaultObservableValue<T> implements MuisModelValue<T>, WidgetRegister {
 	private final Type theType;
 
 	private T theValue;
 
-	private List<ObservableValueListener<? super T>> theListeners;
+	private Observer<ObservableValueEvent<T>> theController;
 
 	private List<MuisElement> theRegisteredElements;
 
@@ -29,7 +31,7 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 	/** @param type The (run-time) type of the value */
 	public DefaultMuisModelValue(Type type) {
 		theType = type;
-		theListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+		theController = control(null);
 		theRegisteredElements = new java.util.concurrent.CopyOnWriteArrayList<>();
 	}
 
@@ -48,21 +50,7 @@ public class DefaultMuisModelValue<T> implements MuisModelValue<T>, WidgetRegist
 		T oldValue = theValue;
 		theValue = value;
 		MuisModelValueEvent<T> event = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
-		for(ObservableValueListener<? super T> listener : theListeners)
-			listener.valueChanged(event);
-	}
-
-	@Override
-	public DefaultMuisModelValue<T> addListener(ObservableValueListener<? super T> listener) {
-		if(listener != null)
-			theListeners.add(listener);
-		return this;
-	}
-
-	@Override
-	public DefaultMuisModelValue<T> removeListener(ObservableValueListener<?> listener) {
-		theListeners.remove(listener);
-		return this;
+		theController.onNext(event);
 	}
 
 	@Override

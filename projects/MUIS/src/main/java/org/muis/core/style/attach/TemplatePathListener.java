@@ -9,7 +9,7 @@ import org.muis.core.MuisTemplate;
 import org.muis.core.MuisTemplate.AttachPoint;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.ElementMovedEvent;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.rx.Subscription;
 import org.muis.core.style.sheet.TemplateRole;
 
 import prisms.util.ArrayUtils;
@@ -38,7 +38,8 @@ public class TemplatePathListener {
 
 		TemplatePathListener parentListener;
 
-		MuisEventListener<AttributeChangedEvent<String []>> parentGroupListener;
+		org.muis.core.rx.Action<AttributeChangedEvent<String []>> parentGroupListener;
+		Subscription<?> parentGroupSubscription;
 
 		TemplateRole [] paths = new TemplateRole[0];
 
@@ -67,7 +68,7 @@ public class TemplatePathListener {
 			throw new IllegalStateException("This " + getClass().getSimpleName() + " is already listening to "
 				+ (element == theElement ? "this" : "a different") + " element.");
 		theElement = element;
-		theElement.events().listen(AttributeChangedEvent.base, (AttributeChangedEvent<?> event) -> {
+		theElement.events().filterMap(AttributeChangedEvent.base).act(event -> {
 			if(!(event.getAttribute().getType() instanceof MuisTemplate.TemplateStructure.RoleAttributeType))
 				return;
 			MuisAttribute<AttachPoint> roleAttr = (MuisAttribute<AttachPoint>) event.getAttribute();
@@ -75,14 +76,13 @@ public class TemplatePathListener {
 		});
 		if(theElement.getParent() != null)
 			checkCurrent();
-		else
-			theElement.events().listen(ElementMovedEvent.moved, new MuisEventListener<ElementMovedEvent>() {
-				@Override
-				public void eventOccurred(ElementMovedEvent event) {
-					theElement.events().remove(ElementMovedEvent.moved, this);
-					checkCurrent();
-				}
+		else {
+			Subscription<?> [] sub = new Subscription[1];
+			sub[0] = theElement.events().filterMap(ElementMovedEvent.moved).act(event -> {
+				sub[0].unsubscribe();
+				checkCurrent();
 			});
+		}
 	}
 
 	private void checkCurrent() {
@@ -137,7 +137,7 @@ public class TemplatePathListener {
 			return;
 		if(oldValue != null) {
 			// Remove old listener and template paths
-			oldValue.parent.events().remove(AttributeChangedEvent.att(GroupPropertyType.attribute), oldValue.parentGroupListener);
+			oldValue.parentGroupSubscription.unsubscribe();
 			oldValue.parentListener.unlisten();
 			for(int i = oldValue.paths.length - 1; i >= 0; i++)
 				notifyPathRemoved(new TemplateRole(oldValue.role, oldValue.parentGroups, oldValue.parent.getClass(), oldValue.paths[i]));
@@ -174,7 +174,7 @@ public class TemplatePathListener {
 			newValue.paths = ArrayUtils.add(newValue.paths, singlet);
 			notifyPathAdded(singlet);
 			newValue.parentListener.listen(newAttachParent);
-			newValue.parentGroupListener = (AttributeChangedEvent<String []> event) -> {
+			newValue.parentGroupListener = event -> {
 				List<String> oldGroups = newValue.parentGroups;
 				newValue.parentGroups = Arrays.asList(event.getValue());
 				for(int i = newValue.paths.length - 1; i >= 0; i--) {
@@ -184,7 +184,8 @@ public class TemplatePathListener {
 				notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), null), new TemplateRole(
 					newValue.role, newValue.parentGroups, newValue.parent.getClass(), null));
 			};
-			newValue.parent.events().listen(AttributeChangedEvent.att(GroupPropertyType.attribute), newValue.parentGroupListener);
+			newValue.parentGroupSubscription = newValue.parent.events().filterMap(AttributeChangedEvent.att(GroupPropertyType.attribute))
+				.act(newValue.parentGroupListener);
 		}
 	}
 

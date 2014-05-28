@@ -1,8 +1,11 @@
 package org.muis.core.event;
 
+import java.util.function.Function;
+
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.event.boole.TypedPredicate;
+import org.muis.core.mgr.AttributeManager.AttributeHolder;
 
 /**
  * Fired when a new value is set on an attribute
@@ -12,12 +15,9 @@ import org.muis.core.event.boole.TypedPredicate;
 public abstract class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	/** Filters events of this type */
 	@SuppressWarnings("hiding")
-	public static final TypedPredicate<MuisEvent, AttributeChangedEvent<?>> base = new TypedPredicate<MuisEvent, AttributeChangedEvent<?>>() {
-		@Override
-		public AttributeChangedEvent<?> cast(MuisEvent value) {
-			return value instanceof AttributeChangedEvent && !((AttributeChangedEvent<?>) value).isOverridden() ? (AttributeChangedEvent<?>) value
-				: null;
-		}
+	public static final Function<MuisEvent, AttributeChangedEvent<?>> base = value -> {
+		return value instanceof AttributeChangedEvent && !((AttributeChangedEvent<?>) value).isOverridden() ? (AttributeChangedEvent<?>) value
+			: null;
 	};
 
 	/**
@@ -51,32 +51,40 @@ public abstract class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	 * @param attr The attribute to listen for
 	 * @return A filter for change events to the given attribute
 	 */
-	public static <T> TypedPredicate<MuisEvent, AttributeChangedEvent<T>> att(MuisAttribute<T> attr) {
-		return new org.muis.core.event.boole.TPAnd<>(base, new AttributeTypedPredicate<>(attr));
+	public static <T> Function<MuisEvent, AttributeChangedEvent<T>> att(MuisAttribute<T> attr) {
+		return event -> {
+			AttributeChangedEvent<?> attEvt = base.apply(event);
+			if(attEvt == null)
+				return null;
+			if(attEvt.getAttribute() != attr)
+				return null;
+			return (AttributeChangedEvent<T>) attEvt;
+		};
 	}
 
 	private final MuisAttribute<T> theAttr;
-	private final T theOldValue;
 
 	/**
 	 * @param element The element whose attribute changed
+	 * @param holder The attribute holder firing this event
 	 * @param attr The attribute whose value changed
 	 * @param oldValue The attribute's value before it was changed
 	 * @param newValue The attribute's value after it was changed
+	 * @param cause The cause of this event
 	 */
-	public AttributeChangedEvent(MuisElement element, MuisAttribute<T> attr, T oldValue, T newValue) {
-		super(element, newValue);
+	public AttributeChangedEvent(MuisElement element, AttributeHolder<T> holder, MuisAttribute<T> attr, T oldValue, T newValue,
+		MuisEvent cause) {
+		super(element, holder, oldValue, newValue, cause);
 		theAttr = attr;
-		theOldValue = oldValue;
+	}
+
+	@Override
+	public AttributeHolder<T> getObservable() {
+		return (AttributeHolder<T>) super.getObservable();
 	}
 
 	/** @return The attribute whose value changed */
 	public MuisAttribute<T> getAttribute() {
 		return theAttr;
-	}
-
-	/** @return The value of the attribute before it was changed */
-	public T getOldValue() {
-		return theOldValue;
 	}
 }

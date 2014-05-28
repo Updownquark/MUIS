@@ -534,7 +534,7 @@ public abstract class MuisProperty<T> {
 				if(next >= 0) {
 					String extracted = env.getModelParser().extractMVR(value, next);
 					org.muis.core.model.MuisModelValue<String> mv = (MuisModelValue<String>) env.getModelParser().parseMVR(extracted);
-					if(!String.class.equals(mv.getType()))
+					if(!mv.getType().canAssignTo(String.class))
 						throw new MuisException("Resource attributes accept properties of type String only");
 					String v = mv.get();
 					value = value.substring(0, next) + mv.get() + value.substring(next + extracted.length());

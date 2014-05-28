@@ -12,4 +12,7 @@ public interface MuisEvent {
 	 *         be fired to any more listeners to avoid propagating misinformation
 	 */
 	boolean isOverridden();
+
+	/** @return The event that may have caused this event. May be null. */
+	MuisEvent getCause();
 }

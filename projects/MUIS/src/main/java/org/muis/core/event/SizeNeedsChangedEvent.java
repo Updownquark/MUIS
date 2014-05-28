@@ -1,14 +1,13 @@
 package org.muis.core.event;
 
 import org.muis.core.MuisElement;
-import org.muis.core.event.boole.TypedPredicate;
 
 /**
  * An event communicating that an element's size needs may have changed and its parent or an ancestor may need to lay its contents out again
  */
 public class SizeNeedsChangedEvent implements MuisEvent {
 	/** Filters for this type of event */
-	public static final TypedPredicate<MuisEvent, SizeNeedsChangedEvent> sizeNeeds = value -> {
+	public static final java.util.function.Function<MuisEvent, SizeNeedsChangedEvent> sizeNeeds = value -> {
 		return value instanceof SizeNeedsChangedEvent ? (SizeNeedsChangedEvent) value : null;
 	};
 
@@ -32,6 +31,7 @@ public class SizeNeedsChangedEvent implements MuisEvent {
 	}
 
 	/** @return The event from a child that may have prompted this event (may be null) */
+	@Override
 	public SizeNeedsChangedEvent getCause() {
 		return theCause;
 	}

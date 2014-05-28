@@ -7,7 +7,10 @@ import java.util.ListIterator;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.event.MuisEvent;
+import org.muis.core.rx.Observable;
+import org.muis.core.rx.Observer;
+import org.muis.core.rx.Subscription;
 
 /**
  * An augmented, immutable list of elements
@@ -23,13 +26,8 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 	}
 
 	@Override
-	public void addListener(MuisEventListener<ChildEvent> listener) {
-		theContents.addListener(listener);
-	}
-
-	@Override
-	public void removeListener(MuisEventListener<ChildEvent> listener) {
-		theContents.removeListener(listener);
+	public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer) {
+		return theContents.subscribe(observer);
 	}
 
 	@Override
@@ -53,7 +51,7 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 	}
 
 	@Override
-	public EventListenerManager events() {
+	public Observable<MuisEvent> events() {
 		return theContents.events();
 	}
 

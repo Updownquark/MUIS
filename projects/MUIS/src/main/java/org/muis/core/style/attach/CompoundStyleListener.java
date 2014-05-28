@@ -1,7 +1,7 @@
 package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.rx.Action;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
@@ -14,8 +14,10 @@ import prisms.util.ArrayUtils;
 public class CompoundStyleListener {
 	private final MuisElement theElement;
 
-	private MuisEventListener<StyleAttributeEvent<?>> theStyleListener;
-	private MuisEventListener<GroupMemberEvent> theGroupListener;
+	private Action<StyleAttributeEvent<?>> theStyleListener;
+	private Action<GroupMemberEvent> theGroupListener;
+	private org.muis.core.rx.DefaultObservable<MuisElement> theRemoveObservable = new org.muis.core.rx.DefaultObservable<>();
+	private org.muis.core.rx.Observer<MuisElement> theRemoveController = theRemoveObservable.control(null);
 
 	private StyleDomain [] theDomains;
 
@@ -47,14 +49,13 @@ public class CompoundStyleListener {
 		if(isAdded)
 			return;
 		isAdded = true;
-		theElement.events().listen(StyleAttributeEvent.base, theStyleListener);
-		theElement.events().listen(GroupMemberEvent.groups, theGroupListener);
+		theElement.events().filterMap(StyleAttributeEvent.base).takeUntil(theRemoveObservable).act(theStyleListener);
+		theElement.events().filterMap(GroupMemberEvent.groups).takeUntil(theRemoveObservable).act(theGroupListener);
 	}
 
 	/** Removes this listener from the element. */
 	public void remove() {
-		theElement.events().remove(StyleAttributeEvent.base, theStyleListener);
-		theElement.events().remove(GroupMemberEvent.groups, theGroupListener);
+		theRemoveController.onNext(theElement);
 	}
 
 	/**

@@ -36,21 +36,21 @@ public class Transform extends MuisTemplate {
 		life().runWhen(() -> {
 			atts().accept(this, flip);
 			atts().accept(this, rotate);
-			events().listen(AttributeChangedEvent.att(flip), (AttributeChangedEvent<Orientation> event) -> {
+			events().filterMap(AttributeChangedEvent.att(flip)).act(event -> {
 				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
 				relayout(false);
 			});
-			events().listen(AttributeChangedEvent.att(rotate), (AttributeChangedEvent<Double> event) -> {
-						if(event.getValue() % 90 != 0) {
-							msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value",
-								event.getValue());
-							try {
-								atts().set(rotate, Math.round(event.getValue() / 90) * 90.0);
-							} catch(MuisException e) {
-								throw new IllegalStateException(e);
-							}
-							return;
-						}
+			events().filterMap(AttributeChangedEvent.att(rotate)).act(event -> {
+				if(event.getValue() % 90 != 0) {
+					msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value",
+						event.getValue());
+					try {
+						atts().set(rotate, Math.round(event.getValue() / 90) * 90.0);
+					} catch(MuisException e) {
+						throw new IllegalStateException(e);
+					}
+					return;
+				}
 				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
 				relayout(false);
 			});

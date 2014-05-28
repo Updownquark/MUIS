@@ -114,10 +114,8 @@ public class ChildList extends AbstractElementList<MuisElement> {
 			fireEvent(new ChildEvent(getParent(), child, index, oldIndex, ChildEvent.ChildEventType.MOVE, oldList, newList));
 		else {
 			ImmutableChildList<MuisElement> middleList = list(ArrayUtils.remove(oldChildren, index));
-			childRemoved(oldChildren[index]);
 			fireEvent(new ChildEvent(getParent(), oldChildren[index], index, index, ChildEvent.ChildEventType.REMOVE, oldList, middleList));
 			fireEvent(new ChildEvent(getParent(), child, index, index, ChildEvent.ChildEventType.ADD, middleList, newList));
-			childAdded(child);
 		}
 		return oldChildren[index];
 	}
@@ -145,7 +143,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		ImmutableChildList<MuisElement> oldList = list(oldChildren);
 		ImmutableChildList<MuisElement> newList = list(newChildren);
 		fireEvent(new ChildEvent(getParent(), child, index, index, ChildEvent.ChildEventType.ADD, oldList, newList));
-		childAdded(child);
 		return true;
 	}
 
@@ -173,7 +170,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		ImmutableChildList<MuisElement> oldList = list(oldChildren);
 		ImmutableChildList<MuisElement> newList = list(newChildren);
 		fireEvent(new ChildEvent(getParent(), child, index, index, ChildEvent.ChildEventType.ADD, oldList, newList));
-		childAdded(child);
 	}
 
 	@Override
@@ -189,7 +185,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		}
 		ImmutableChildList<MuisElement> oldList = list(oldChildren);
 		ImmutableChildList<MuisElement> newList = list(newChildren);
-		childRemoved(oldChild);
 		fireEvent(new ChildEvent(getParent(), oldChild, index, index, ChildEvent.ChildEventType.REMOVE, oldList, newList));
 		return oldChild;
 	}
@@ -212,7 +207,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		}
 		ImmutableChildList<MuisElement> oldList = list(oldChildren);
 		ImmutableChildList<MuisElement> newList = list(newChildren);
-		childRemoved(oldChild);
 		fireEvent(new ChildEvent(getParent(), oldChild, index, index, ChildEvent.ChildEventType.REMOVE, oldList, newList));
 		return true;
 	}
@@ -232,7 +226,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		ImmutableChildList<MuisElement> immOld = new ImmutableChildList<>(tempOldChildren);
 		ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
 		for(int c = oldChildren.length - 1; c >= 0; c--) {
-			childRemoved(oldChildren[c]);
 			fireEvent(new ChildEvent(getParent(), oldChildren[c], c, c, ChildEvent.ChildEventType.REMOVE, immOld, immNew));
 			tempOldChildren.remove(c);
 			if(c > 0)
@@ -276,7 +269,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		for(int c = 0; c < toAdd.size(); c++) {
 			tempNewChildren.add(toAdd.get(c));
 			fireEvent(new ChildEvent(getParent(), toAdd.get(c), index + c, index + c, ChildEvent.ChildEventType.ADD, immOld, immNew));
-			childAdded(toAdd.get(c));
 			tempOldChildren.add(toAdd.get(c));
 		}
 		return !toAdd.isEmpty();
@@ -318,7 +310,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		for(int c = 0; c < toAdd.size(); c++) {
 			tempNewChildren.add(toAdd.get(c));
 			fireEvent(new ChildEvent(getParent(), toAdd.get(c), index + c, index + c, ChildEvent.ChildEventType.ADD, immOld, immNew));
-			childAdded(toAdd.get(c));
 			tempOldChildren.add(toAdd.get(c));
 		}
 		return !toAdd.isEmpty();
@@ -357,7 +348,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 		ImmutableChildList<MuisElement> immNew = new ImmutableChildList<>(tempNewChildren);
 		for(Integer index : toRemove) {
 			tempNewChildren.remove(index);
-			childRemoved(oldChildren[index]);
 			fireEvent(new ChildEvent(getParent(), oldChildren[index], index, index, ChildEvent.ChildEventType.REMOVE, immOld, immNew));
 			tempOldChildren.remove(index);
 		}
@@ -396,7 +386,6 @@ public class ChildList extends AbstractElementList<MuisElement> {
 				if(toRetain.contains(i))
 					continue;
 				tempNewChildren.remove(i);
-				childRemoved(oldChildren[i]);
 				fireEvent(new ChildEvent(getParent(), oldChildren[i], i, i, ChildEvent.ChildEventType.REMOVE, immOld, immNew));
 				tempOldChildren.remove(i);
 			}

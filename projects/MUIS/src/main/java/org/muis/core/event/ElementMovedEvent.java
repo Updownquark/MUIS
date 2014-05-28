@@ -1,12 +1,11 @@
 package org.muis.core.event;
 
 import org.muis.core.MuisElement;
-import org.muis.core.event.boole.TypedPredicate;
 
 /** Signifies the transfer of an element from one parent to another */
 public class ElementMovedEvent implements MuisEvent {
 	/** Filters events of this type */
-	public static final TypedPredicate<MuisEvent, ElementMovedEvent> moved = value -> {
+	public static final java.util.function.Function<MuisEvent, ElementMovedEvent> moved = value -> {
 		return value instanceof ElementMovedEvent ? (ElementMovedEvent) value : null;
 	};
 
@@ -29,6 +28,11 @@ public class ElementMovedEvent implements MuisEvent {
 	@Override
 	public MuisElement getElement() {
 		return theElement;
+	}
+
+	@Override
+	public MuisEvent getCause() {
+		return null;
 	}
 
 	/** @return The parent of the element prior to the move */

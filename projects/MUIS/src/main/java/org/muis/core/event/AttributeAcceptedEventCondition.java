@@ -1,12 +1,11 @@
 package org.muis.core.event;
 
-import org.muis.core.event.boole.TPAnd;
 import org.muis.core.event.boole.TypedPredicate;
 
 /** Allows advanced filtering on {@link AttributeAcceptedEvent}s */
 public class AttributeAcceptedEventCondition implements MuisEventCondition<AttributeAcceptedEvent> {
 	/** Filters all {@link AttributeAcceptedEvent}s */
-	public static final TypedPredicate<MuisEvent, AttributeAcceptedEvent> base = value -> {
+	public static final java.util.function.Function<MuisEvent, AttributeAcceptedEvent> base = value -> {
 		return value instanceof AttributeAcceptedEvent ? (AttributeAcceptedEvent) value : null;
 	};
 
@@ -59,13 +58,15 @@ public class AttributeAcceptedEventCondition implements MuisEventCondition<Attri
 	}
 
 	@Override
-	public TypedPredicate<MuisEvent, AttributeAcceptedEvent> getTester() {
-		TypedPredicate<MuisEvent, AttributeAcceptedEvent> ret = base;
-		if(isAccepted != null)
-			ret = new TPAnd<>(ret, isAccepted ? predicateAccept : predicateReject);
-		if(isRequired != null)
-			ret = new TPAnd<>(ret, isRequired ? predicateRequired : predicateOptional);
-		return ret;
+	public AttributeAcceptedEvent apply(MuisEvent evt) {
+		AttributeAcceptedEvent attEvt = base.apply(evt);
+		if(attEvt == null)
+			return null;
+		if(isAccepted != null && attEvt.isAccepted() != isAccepted.booleanValue())
+			return null;
+		if(isRequired != null && attEvt.isRequired() != isRequired.booleanValue())
+			return null;
+		return attEvt;
 	}
 
 	/** @return A filter for accept events for required or optional attributes */

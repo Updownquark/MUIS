@@ -97,6 +97,11 @@ public class MouseEvent extends PositionedUserEvent {
 	}
 
 	@Override
+	public MuisEvent getCause() {
+		return null;
+	}
+
+	@Override
 	public MouseEvent copyFor(MuisElement element) {
 		MuisEventPositionCapture capture = getCapture().find(element);
 		if(capture == null)

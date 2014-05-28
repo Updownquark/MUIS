@@ -4,20 +4,15 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.event.MuisEvent;
+import org.muis.core.rx.Observable;
 
 /**
  * A list of elements (potentially a particular type of element) with a few extra operations available
  *
  * @param <E> The type of element
  */
-public interface ElementList<E extends MuisElement> extends List<E> {
-	/** @param listener The listener to be notified when this child list's content changes */
-	void addListener(MuisEventListener<ChildEvent> listener);
-
-	/** @param listener The listener to stop notifying */
-	void removeListener(MuisEventListener<ChildEvent> listener);
-
+public interface ElementList<E extends MuisElement> extends List<E>, Observable<ChildEvent> {
 	/** @return The parent whose children this list manages */
 	MuisElement getParent();
 
@@ -42,7 +37,7 @@ public interface ElementList<E extends MuisElement> extends List<E> {
 	MuisElement [] sortByZ();
 
 	/** @return An event listener manager to allow the addition of listeners on every element in this list */
-	EventListenerManager events();
+	Observable<MuisEvent> events();
 
 	@Override
 	public E [] toArray();

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.muis.core.*;
+import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage.Type;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.ModelValueReferenceParser;
@@ -406,10 +407,10 @@ public class MuisRichTextParser {
 			theWrapped = wrap;
 			theMsg = theWrapped == null ? null : new org.muis.core.mgr.MutatingMessageCenter(theWrapped.msg()) {
 				@Override
-				public void message(Type type, String text, Throwable exception, Object... params) {
+				public void message(Type type, String text, MuisEvent cause, Throwable exception, Object... params) {
 					if(type.compareTo(Type.ERROR) >= 0)
 						throw new MuisExceptionWrapper(text, exception);
-					super.message(type, text, exception, params);
+					super.message(type, text, cause, exception, params);
 				}
 			};
 			theMVRParser = new ModelValueReferenceParser() {

@@ -71,6 +71,11 @@ public class ChildEvent implements MuisEvent {
 		return theParent;
 	}
 
+	@Override
+	public MuisEvent getCause() {
+		return null;
+	}
+
 	/** @return The child that was added, removed, or moved */
 	public MuisElement getChild() {
 		return theChild;

@@ -6,6 +6,7 @@ import java.util.Iterator;
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisEnvironment;
+import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage.Type;
 
 import prisms.util.ArrayUtils;
@@ -17,16 +18,23 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		private final MuisElement theElement;
 		private final MuisMessage theMessage;
 		private final boolean isRemove;
+		private final MuisEvent theCause;
 
-		MuisMessageEvent(MuisElement element, MuisMessage message, boolean remove) {
+		MuisMessageEvent(MuisElement element, MuisMessage message, boolean remove, MuisEvent cause) {
 			theElement = element;
 			theMessage = message;
 			isRemove = remove;
+			theCause = cause;
 		}
 
 		@Override
 		public MuisElement getElement() {
 			return theElement;
+		}
+
+		@Override
+		public MuisEvent getCause() {
+			return theCause;
 		}
 
 		/** @return The message that was added or removed */
@@ -105,10 +113,11 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 *
 	 * @param type The type of the message
 	 * @param text The text of the message
+	 * @param cause The cause of the message
 	 * @param exception The exception which may have caused the message
 	 * @param params Any parameters relevant to the message
 	 */
-	public void message(Type type, String text, Throwable exception, Object... params) {
+	public void message(Type type, String text, MuisEvent cause, Throwable exception, Object... params) {
 		MuisMessage message;
 		if(theElement != null)
 			message = new MuisMessage(theElement, type, theElement.life().getStage(), text, exception, params);
@@ -116,97 +125,100 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 			message = new MuisMessage(theDocument, type, theDocument.getRoot().life().getStage(), text, exception, params);
 		else
 			message = new MuisMessage(theEnvironment, type, org.muis.core.MuisConstants.CoreStage.READY.name(), text, exception, params);
-		message(message);
+		message(message, cause);
 	}
 
-	private void message(MuisMessage message) {
+	private void message(MuisMessage message, MuisEvent cause) {
 		theMessages.add(message);
 		if(theWorstMessageType == null || message.type.compareTo(theWorstMessageType) > 0)
 			theWorstMessageType = message.type;
-		fireListeners(message);
+		fireListeners(message, cause);
 
 		if(theElement != null) {
 			if(theElement.getParent() != null)
-				theElement.getParent().msg().message(message);
+				theElement.getParent().msg().message(message, cause);
 			else
-				theElement.getDocument().msg().message(message);
+				theElement.getDocument().msg().message(message, cause);
 		} else if(theDocument != null)
-			theEnvironment.msg().message(message);
+			theEnvironment.msg().message(message, cause);
 	}
 
 	/**
 	 * Records an fatal error in this message center. A fatal error disables this item so that it will not function. Short-hand for
-	 * {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the error
+	 * @param cause The cause of the message
 	 * @param exception The exception that may have caused the error
 	 * @param params Any parameters that may be relevant to the error
 	 */
-	public void fatal(String text, Throwable exception, Object... params) {
-		message(MuisMessage.Type.FATAL, text, exception, params);
+	public void fatal(String text, MuisEvent cause, Throwable exception, Object... params) {
+		message(MuisMessage.Type.FATAL, text, cause, exception, params);
 	}
 
 	/**
 	 * Records an fatal error in this message center. A fatal error disables this item so that it will not function. Short-hand for
-	 * {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the error
 	 * @param params Any parameters that may be relevant to the error
 	 */
 	public void fatal(String text, Object... params) {
-		message(MuisMessage.Type.FATAL, text, null, params);
+		message(MuisMessage.Type.FATAL, text, null, null, params);
 	}
 
 	/**
-	 * Records an error in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * Records an error in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the error
+	 * @param cause The cause of the message
 	 * @param exception The exception that may have caused the error
 	 * @param params Any parameters that may be relevant to the error
 	 */
-	public void error(String text, Throwable exception, Object... params) {
-		message(MuisMessage.Type.ERROR, text, exception, params);
+	public void error(String text, MuisEvent cause, Throwable exception, Object... params) {
+		message(MuisMessage.Type.ERROR, text, cause, exception, params);
 	}
 
 	/**
-	 * Records an error in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * Records an error in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the error
 	 * @param params Any parameters that may be relevant to the error
 	 */
 	public void error(String text, Object... params) {
-		message(MuisMessage.Type.ERROR, text, null, params);
+		message(MuisMessage.Type.ERROR, text, null, null, params);
 	}
 
 	/**
-	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
+	 *
+	 * @param text A description of the warning
+	 * @param cause The cause of the message
+	 * @param exception The exception that may have caused the warning
+	 * @param params Any parameters that may be relevant to the warning
+	 */
+	public void warn(String text, MuisEvent cause, Throwable exception, Object... params) {
+		message(MuisMessage.Type.WARNING, text, cause, exception, params);
+	}
+
+	/**
+	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the warning
 	 * @param params Any parameters that may be relevant to the warning
 	 */
 	public void warn(String text, Object... params) {
-		message(MuisMessage.Type.WARNING, text, null, params);
+		message(MuisMessage.Type.WARNING, text, null, null, params);
 	}
 
 	/**
-	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
-	 *
-	 * @param text A description of the warning
-	 * @param exception The exception that may have caused the warning
-	 * @param params Any parameters that may be relevant to the warning
-	 */
-	public void warn(String text, Throwable exception, Object... params) {
-		message(MuisMessage.Type.WARNING, text, exception, params);
-	}
-
-	/**
-	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, Throwable, Object...)}
+	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the warning
 	 * @param params Any parameters that may be relevant to the warning
 	 */
 	public void info(String text, Object... params) {
-		message(MuisMessage.Type.INFO, text, null, params);
+		message(MuisMessage.Type.INFO, text, null, null, params);
 	}
 
 	/** @return The worst type of message associated with this message center */
@@ -253,11 +265,11 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 		theListeners.remove(listener);
 	}
 
-	private void fireListeners(MuisMessage msg) {
+	private void fireListeners(MuisMessage msg, MuisEvent cause) {
 		for(MuisMessageListener listener : theListeners)
 			listener.messageReceived(msg);
 		if(theElement != null)
-			theElement.events().fire(new MuisMessageEvent(theElement, msg, false));
+			theElement.events().fire(new MuisMessageEvent(theElement, msg, false, cause));
 	}
 
 	private void reEvalWorstMessage() {
@@ -297,7 +309,7 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 				if(theLastMessage.type == theWorstMessageType)
 					reEvalWorstMessage();
 				if(theElement != null)
-					theElement.events().fire(new MuisMessageEvent(theElement, theLastMessage, true));
+					theElement.events().fire(new MuisMessageEvent(theElement, theLastMessage, true, null));
 			}
 		};
 	}

@@ -37,6 +37,11 @@ public class AttributeAcceptedEvent implements MuisEvent {
 		return theElement;
 	}
 
+	@Override
+	public MuisEvent getCause() {
+		return null;
+	}
+
 	/** @return The attribute that was accepted or rejected on the element */
 	public MuisAttribute<?> getAttribute() {
 		return theAttribute;

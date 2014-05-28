@@ -1,7 +1,6 @@
 package org.muis.core.event;
 
-import org.muis.core.event.boole.TPAnd;
-import org.muis.core.event.boole.TypedPredicate;
+import java.util.function.Function;
 
 /**
  * Allows advanced filtering on {@link UserEvent}s
@@ -10,16 +9,13 @@ import org.muis.core.event.boole.TypedPredicate;
  */
 public class UserEventCondition<E extends UserEvent> implements MuisEventCondition<E>, Cloneable {
 	/** Filters all {@link UserEvent}s */
-	public static TypedPredicate<MuisEvent, UserEvent> base = value -> {
+	public static Function<MuisEvent, UserEvent> base = value -> {
 		return value instanceof UserEvent ? (UserEvent) value : null;
 	};
 
 	/** Filters {@link UserEvent#isUsed() unused} {@link UserEvent}s */
-	public static TypedPredicate<UserEvent, UserEvent> notWithUsed = new TypedPredicate<UserEvent, UserEvent>() {
-		@Override
-		public UserEvent cast(UserEvent value) {
-			return value.isUsed() ? null : value;
-		}
+	public static Function<UserEvent, UserEvent> notWithUsed = value -> {
+		return value.isUsed() ? null : value;
 	};
 
 	/** Filters {@link UserEvent#isUsed() unused} {@link UserEvent}s */
@@ -32,18 +28,23 @@ public class UserEventCondition<E extends UserEvent> implements MuisEventConditi
 		isWithUsed = false;
 	}
 
-	/** @return The superclass filter, to be AND-ed by subclasses */
-	protected TypedPredicate<MuisEvent, UserEvent> getUserTester() {
-		TypedPredicate<MuisEvent, UserEvent> ret = base;
-		if(!isWithUsed)
-			ret = new TPAnd<>(ret, notWithUsed);
-		return ret;
-	}
-
 	/* Should be overridden by subclass */
 	@Override
-	public TypedPredicate<MuisEvent, E> getTester() {
-		return (TypedPredicate<MuisEvent, E>) getUserTester();
+	public E apply(MuisEvent t) {
+		return (E) userApply(t);
+	}
+
+	/**
+	 * @param event The event to filter
+	 * @return The event if it meets the user part of this condition; null otherwise
+	 */
+	protected UserEvent userApply(MuisEvent event) {
+		UserEvent evt = base.apply(event);
+		if(evt == null)
+			return null;
+		if(!isWithUsed && evt.isUsed())
+			return null;
+		return evt;
 	}
 
 	/** @return A filter that accepts events that are {@link UserEvent#isUsed() used} as well as unused. */

@@ -1,7 +1,5 @@
 package org.muis.core.event;
 
-import org.muis.core.event.boole.TPAnd;
-import org.muis.core.event.boole.TypedPredicate;
 
 /**
  * Allows advanced filtering on {@link PositionedUserEvent}s
@@ -11,7 +9,7 @@ import org.muis.core.event.boole.TypedPredicate;
 public class PositionedUserEventCondition<E extends PositionedUserEvent> extends UserEventCondition<E> {
 	/** Filters all {@link PositionedUserEvent}s */
 	@SuppressWarnings("hiding")
-	protected static TypedPredicate<MuisEvent, PositionedUserEvent> base = value -> {
+	protected static java.util.function.Function<MuisEvent, PositionedUserEvent> base = value -> {
 		return value instanceof PositionedUserEvent ? (PositionedUserEvent) value : null;
 	};
 
@@ -22,15 +20,18 @@ public class PositionedUserEventCondition<E extends PositionedUserEvent> extends
 	protected PositionedUserEventCondition() {
 	}
 
-	/** @return The superclass filter, to be AND-ed by subclasses */
-	protected TypedPredicate<MuisEvent, PositionedUserEvent> getPositionedTester() {
-		return new TPAnd<>(getUserTester(), base);
+	/**
+	 * @param event The event to filter
+	 * @return The event if it meets the positioned part of this condition; null otherwise
+	 */
+	protected PositionedUserEvent positionedApply(MuisEvent event) {
+		return base.apply(userApply(event));
 	}
 
 	/* Should be overridden by subclass */
 	@Override
-	public TypedPredicate<MuisEvent, E> getTester() {
-		return (TypedPredicate<MuisEvent, E>) getPositionedTester();
+	public E apply(MuisEvent evt) {
+		return (E) positionedApply(evt);
 	}
 
 	@Override

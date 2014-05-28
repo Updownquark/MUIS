@@ -5,11 +5,12 @@ import java.awt.geom.Point2D;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
-import org.muis.core.event.MuisEventListener;
+import org.muis.core.rx.DefaultObservable;
+import org.muis.core.rx.Observer;
 
 /** Implements the text-selecting feature as a user drags over a text element. Also implements keyboard copying (Ctrl+C or Ctrl+X). */
 public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
-	private class MouseListener implements MuisEventListener<MouseEvent> {
+	private class MouseListener implements org.muis.core.rx.Action<MouseEvent> {
 		MouseListener() {
 			super();
 		}
@@ -17,7 +18,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		private int theAnchor = -1;
 
 		@Override
-		public void eventOccurred(MouseEvent event) {
+		public void act(MouseEvent event) {
 			MuisTextElement element = (MuisTextElement) event.getElement();
 			if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 				return;
@@ -69,9 +70,9 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		}
 	}
 
-	private class KeyListener implements MuisEventListener<KeyBoardEvent> {
+	private class KeyListener implements org.muis.core.rx.Action<KeyBoardEvent> {
 		@Override
-		public void eventOccurred(KeyBoardEvent event) {
+		public void act(KeyBoardEvent event) {
 			MuisTextElement text = (MuisTextElement) event.getElement();
 			switch (event.getKeyCode()) {
 			case C:
@@ -121,6 +122,8 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	private MouseListener theMouseListener = new MouseListener();
 	private KeyListener theKeyListener = new KeyListener();
+	private DefaultObservable<MuisTextElement> theUnsubscribeObservable = new DefaultObservable<>();
+	private Observer<MuisTextElement> theUnsubscribeController = theUnsubscribeObservable.control(null);
 
 	private int theCursorXLoc = -1;
 
@@ -129,8 +132,12 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		if(theElement != null)
 			throw new IllegalStateException(getClass().getSimpleName() + " may only be used with a single element");
 		theElement = element;
-		element.events().listen(MouseEvent.mouse, theMouseListener);
-		element.events().listen(KeyBoardEvent.key.press(), theKeyListener);
+		element.events().filterMap(MouseEvent.mouse).takeUntil(theUnsubscribeObservable.filter(el -> {
+			return el == element;
+		})).act(theMouseListener);
+		element.events().filterMap(KeyBoardEvent.key.press()).takeUntil(theUnsubscribeObservable.filter(el -> {
+			return el == element;
+		})).act(theKeyListener);
 		element.getDocumentModel().addContentListener(evt -> {
 			theCursorXLoc = -1;
 		});
@@ -141,8 +148,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 
 	@Override
 	public void uninstall(MuisTextElement element) {
-		element.events().remove(MouseEvent.mouse, theMouseListener);
-		element.events().remove(KeyBoardEvent.key.press(), theKeyListener);
+		theUnsubscribeController.onNext(element);
 		if(theElement == element)
 			theElement = null;
 	}

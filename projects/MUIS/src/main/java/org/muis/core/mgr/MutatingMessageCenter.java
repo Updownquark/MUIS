@@ -1,5 +1,6 @@
 package org.muis.core.mgr;
 
+import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage.Type;
 
 /** Wraps another message center, passing modified messages through to it */
@@ -37,11 +38,11 @@ public class MutatingMessageCenter extends MuisMessageCenter {
 	}
 
 	@Override
-	public void message(Type type, String text, Throwable exception, Object... params) {
+	public void message(Type type, String text, MuisEvent cause, Throwable exception, Object... params) {
 		if(thePrepend != null)
 			text = thePrepend + text;
 		if(theParams != null)
 			params = prisms.util.ArrayUtils.addAll(params, theParams);
-		theWrapped.message(type, text, exception, params);
+		theWrapped.message(type, text, cause, exception, params);
 	}
 }

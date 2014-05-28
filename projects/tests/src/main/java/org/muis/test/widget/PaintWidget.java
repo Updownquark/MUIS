@@ -7,7 +7,6 @@ import java.awt.Rectangle;
 import org.muis.core.event.BoundsChangedEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
-import org.muis.core.event.MuisEventListener;
 
 /**
  * Provides testing feedback for mouse events--paints the font color over pixels where the mouse passed over while the left button was
@@ -19,13 +18,14 @@ public class PaintWidget extends org.muis.base.widget.Block {
 	/** Creates a PaintWidget */
 	public PaintWidget() {
 		setFocusable(true);
-		events().listen(BoundsChangedEvent.bounds, (BoundsChangedEvent event) -> {
+		events().filterMap(BoundsChangedEvent.bounds).act(event -> {
 			resized();
-		}).listen(MouseEvent.mouse, new MuisEventListener<MouseEvent>() {
+		});
+		events().filterMap(MouseEvent.mouse).act(new org.muis.core.rx.Action<MouseEvent>() {
 			private boolean isMouseDown;
 
 			@Override
-			public void eventOccurred(MouseEvent event) {
+			public void act(MouseEvent event) {
 				switch (event.getType()) {
 				case entered:
 					isMouseDown = getDocument().isButtonPressed(MouseEvent.ButtonType.left);
@@ -60,7 +60,8 @@ public class PaintWidget extends org.muis.base.widget.Block {
 					repaint(new Rectangle(pos.x, pos.y, 1, 1), true);
 				}
 			}
-		}).listen(KeyBoardEvent.key.press(), (KeyBoardEvent event) -> {
+		});
+		events().filterMap(KeyBoardEvent.key.press()).act(event -> {
 			if(event.getKeyCode() == KeyBoardEvent.KeyCode.SPACE && theImage != null) {
 				for(int x = 0; x < theImage.getWidth(); x++) {
 					for(int y = 0; y < theImage.getHeight(); y++) {

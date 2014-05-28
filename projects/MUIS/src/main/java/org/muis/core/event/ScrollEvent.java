@@ -23,6 +23,8 @@ public class ScrollEvent extends PositionedUserEvent {
 		BLOCK;
 	}
 
+	private final UserEvent theCause;
+
 	private final ScrollEvent theBacking;
 
 	private final ScrollType theScrollType;
@@ -45,10 +47,13 @@ public class ScrollEvent extends PositionedUserEvent {
 	 * @param pressedButtons The mouse buttons which were pressed when this event was generated
 	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param capture The capture of the event's location on each element relevant to it
+	 * @param cause The user event that may have triggered this scroll event
 	 */
 	public ScrollEvent(MuisDocument doc, MuisElement target, ScrollType scrollType, boolean vertical, int amount, KeyBoardEvent keyEvent,
-		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys, MuisEventPositionCapture capture) {
+		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys, MuisEventPositionCapture capture,
+		UserEvent cause) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
+		theCause = cause;
 		theBacking = null;
 		theScrollType = scrollType;
 		isVertical = vertical;
@@ -59,6 +64,7 @@ public class ScrollEvent extends PositionedUserEvent {
 	private ScrollEvent(ScrollEvent backing, MuisEventPositionCapture capture) {
 		super(backing.getDocument(), backing.getTarget(), capture.getElement(), backing.getPressedButtons(), backing.getPressedKeys(),
 			backing.getTime(), capture);
+		theCause = backing.getCause();
 		theBacking = backing;
 		theScrollType = backing.theScrollType;
 		isVertical = backing.isVertical;
@@ -79,6 +85,11 @@ public class ScrollEvent extends PositionedUserEvent {
 	/** @return The key event that caused this scroll event, or null if this scroll event was not caused by a key event */
 	public KeyBoardEvent getKeyEvent() {
 		return theKeyEvent;
+	}
+
+	@Override
+	public UserEvent getCause() {
+		return theCause;
 	}
 
 	/**

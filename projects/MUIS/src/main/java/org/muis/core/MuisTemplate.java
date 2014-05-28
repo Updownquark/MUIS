@@ -4,7 +4,6 @@ import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 import org.muis.core.event.ChildEvent;
-import org.muis.core.event.MuisEventListener;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
@@ -12,6 +11,8 @@ import org.muis.core.model.MuisBehavior;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
+import org.muis.core.rx.Observer;
+import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
@@ -1195,9 +1196,18 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		@Override
-		public void addListener(MuisEventListener<ChildEvent> listener) {
-			// TODO
-			throw new UnsupportedOperationException("Child listeners not implemented on MuisTemplate.children yet");
+		public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer) {
+			// TODO Listeners not supported yet
+			return new Subscription<ChildEvent>() {
+				@Override
+				public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer2) {
+					return this;
+				}
+
+				@Override
+				public void unsubscribe() {
+				}
+			};
 		}
 
 		@Override

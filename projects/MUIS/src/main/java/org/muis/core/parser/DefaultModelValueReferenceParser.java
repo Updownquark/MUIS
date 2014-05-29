@@ -82,7 +82,7 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 	/** @param doc The document to get models from */
 	public DefaultModelValueReferenceParser(org.muis.core.MuisDocument doc) {
 		theDocument = doc;
-		theParseEnv=new EvaluationEnvironment(){
+		theParseEnv = new EvaluationEnvironment() {
 			@Override
 			public boolean usePublicOnly() {
 				return true;
@@ -361,19 +361,86 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 	private static ObservableValue<?> evaluate(ParsedItem item, EvaluationEnvironment env) throws MuisParseException {
 		try {
 			if(item instanceof ParsedMethod) {
+				// TODO
 			} else if(item instanceof ParsedIdentifier) {
 				// TODO
 			} else if(item instanceof ParsedConstructor) {
-				// TODO
+				return ObservableValue.constant(item.evaluate(env, false, true));
 			} else if(item instanceof ParsedParenthetic) {
-				// TODO
+				return evaluate(((ParsedParenthetic) item).getContent(), env);
 			} else if(item instanceof ParsedUnaryOp) {
-				// TODO
+				ParsedUnaryOp op = (ParsedUnaryOp) item;
+				ObservableValue<?> operand = evaluate(op.getOp(), env);
+				switch (op.getName()) {
+				case "+":
+					if(!new Type(Number.class).isAssignable(operand.getType())
+						|| Type.getPrimitiveType(operand.getType().getBaseType()) == null)
+						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
+							+ operand.getType());
+					return operand; // No-op
+				case "-":
+					if(!new Type(Number.class).isAssignable(operand.getType())
+						|| Type.getPrimitiveType(operand.getType().getBaseType()) == null)
+						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
+							+ operand.getType());
+					return ((ObservableValue<? extends Number>) operand).mapV(value -> {
+						if(value instanceof Double)
+							return -value.doubleValue();
+						else if(value instanceof Float)
+							return -value.floatValue();
+						else if(value instanceof Long)
+							return -value.longValue();
+						else if(value instanceof Integer)
+							return -value.intValue();
+						else if(value instanceof Short)
+							return -value.shortValue();
+						else if(value instanceof Byte)
+							return -value.byteValue();
+						else
+							throw new IllegalStateException("Unrecognized number type");
+					});
+				case "!":
+					if(!new Type(Boolean.TYPE).isAssignable(operand.getType()))
+						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
+							+ operand.getType());
+					return ((ObservableValue<Boolean>) operand).mapV(value -> {
+						return !value;
+					});
+				case "~":
+					if(!new Type(Number.class).isAssignable(operand.getType())
+						|| Type.getPrimitiveType(operand.getType().getBaseType()) == null)
+						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
+							+ operand.getType());
+					Class<?> prim = Type.getPrimitiveType(operand.getType().getBaseType());
+					if(prim == Double.TYPE || prim == Float.TYPE)
+						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a floating point type: "
+							+ operand.getType());
+					return ((ObservableValue<? extends Number>) operand).mapV(value -> {
+						if(value instanceof Long)
+							return ~value.longValue();
+						else if(value instanceof Integer)
+							return ~value.intValue();
+						else if(value instanceof Short)
+							return ~value.shortValue();
+						else if(value instanceof Byte)
+							return ~value.byteValue();
+						else
+							throw new IllegalStateException("Unrecognized number type");
+					});
+				default:
+					throw new MuisParseException("Unrecognized unary operator: " + op.getName());
+				}
 			} else if(item instanceof ParsedBinaryOp) {
 				// TODO
 			} else if(item instanceof ParsedArrayIndex) {
 				// TODO
 			} else if(item instanceof ParsedConditional) {
+				ParsedConditional cond = (ParsedConditional) item;
+				ObservableValue<Boolean> condition = (ObservableValue<Boolean>) evaluate(cond.getCondition(), env);
+				if(!new Type(Boolean.TYPE).isAssignable(condition.getType()))
+					throw new MuisParseException("A conditional must start with a boolean expression");
+				ObservableValue<?> affirm = evaluate(cond.getAffirmative(), env);
+				ObservableValue<?> negate = evaluate(cond.getNegative(), env);
 				// TODO
 			} else if(item instanceof ParsedType) {
 				throw new MuisParseException("Parsed model value is not a value: " + item.toString());

@@ -24,8 +24,19 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param function The function to apply to this observable's value
 	 * @return The new observable whose value is a function of this observable's value
 	 */
-	default <R> ObservableValue<R> mapV(Function<T, R> function) {
-		return new ComposedObservableValue<>((Object [] args) -> {
+	default <R> ObservableValue<R> mapV(Function<? super T, R> function) {
+		return mapV(null, function);
+	};
+
+	/**
+	 * Composes this observable into another observable that depends on this one
+	 *
+	 * @param <R> The type of the new observable
+	 * @param function The function to apply to this observable's value
+	 * @return The new observable whose value is a function of this observable's value
+	 */
+	default <R> ObservableValue<R> mapV(Type type, Function<? super T, R> function) {
+		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0]);
 		}, this);
 	};
@@ -39,8 +50,12 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param arg The other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
-	default <U, R> ObservableValue<R> composeV(BiFunction<T, U, R> function, ObservableValue<U> arg) {
-		return new ComposedObservableValue<>((Object [] args) -> {
+	default <U, R> ObservableValue<R> composeV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
+		return composeV(null, function, arg);
+	}
+
+	default <U, R> ObservableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
+		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this, arg);
 	}
@@ -56,9 +71,15 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param arg3 The second other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
-	default <U, V, R> ObservableValue<R> composeV(TriFunction<T, U, V, R> function, ObservableValue<U> arg2, ObservableValue<V> arg3) {
-		return new ComposedObservableValue<>((Object [] args) -> {
-			return function.apply((T) args[0], (U) args[1], (V) args[3]);
+	default <U, V, R> ObservableValue<R> composeV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
+		ObservableValue<V> arg3) {
+		return composeV(null, function, arg2, arg3);
+	}
+
+	default <U, V, R> ObservableValue<R> composeV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
+		ObservableValue<U> arg2, ObservableValue<V> arg3) {
+		return new ComposedObservableValue<R>(type, args -> {
+			return function.apply((T) args[0], (U) args[1], (V) args[2]);
 		}, this, arg2, arg3);
 	}
 

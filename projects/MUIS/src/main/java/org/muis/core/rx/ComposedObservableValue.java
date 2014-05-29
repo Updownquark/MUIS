@@ -14,13 +14,28 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 	private final Observer<ObservableValueEvent<T>> theController;
 	private final List<ObservableValue<?>> theComposed;
 	private final Function<Object [], T> theFunction;
+	private final Type theType;
 
 	/**
 	 * @param function The function that operates on the argument observables to produce this observable's value
 	 * @param composed The argument observables whose values are passed to the function
 	 */
 	public ComposedObservableValue(Function<Object [], T> function, ObservableValue<?>... composed) {
+		this(null, function, composed);
+	}
+
+	/**
+	 * @param type The type for this value
+	 * @param function The function that operates on the argument observables to produce this observable's value
+	 * @param composed The argument observables whose values are passed to the function
+	 */
+	public ComposedObservableValue(Type type, Function<Object [], T> function, ObservableValue<?>... composed) {
 		theFunction = function;
+		try {
+			theType = type != null ? type : new Type(theFunction.getClass().getMethod("apply", Object [].class).getGenericReturnType());
+		} catch(NoSuchMethodException | SecurityException e) {
+			throw new IllegalStateException("No apply method on a function?", e);
+		}
 		theComposed = java.util.Collections.unmodifiableList(java.util.Arrays.asList(composed));
 		theController = control(observer -> {
 			fire(observer);
@@ -52,11 +67,7 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 
 	@Override
 	public Type getType() {
-		try {
-			return new Type(theFunction.getClass().getMethod("apply", Object [].class).getGenericReturnType());
-		} catch(NoSuchMethodException | SecurityException e) {
-			throw new IllegalStateException("No apply method on a function?", e);
-		}
+		return theType;
 	}
 
 	@Override

@@ -359,6 +359,7 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 	}
 
 	private static ObservableValue<?> evaluate(ParsedItem item, EvaluationEnvironment env) throws MuisParseException {
+		// TODO should we allow assignments for model values?
 		try {
 			if(item instanceof ParsedMethod) {
 				// TODO
@@ -373,29 +374,29 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 				ObservableValue<?> operand = evaluate(op.getOp(), env);
 				switch (op.getName()) {
 				case "+":
-					if(!new Type(Number.class).isAssignable(operand.getType())
-						|| Type.getPrimitiveType(operand.getType().getBaseType()) == null)
+					if(!operand.getType().isMathable())
 						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
 							+ operand.getType());
 					return operand; // No-op
 				case "-":
-					if(!new Type(Number.class).isAssignable(operand.getType())
-						|| Type.getPrimitiveType(operand.getType().getBaseType()) == null)
+					if(!operand.getType().isMathable())
 						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
 							+ operand.getType());
-					return ((ObservableValue<? extends Number>) operand).mapV(value -> {
+					return operand.mapV(operand.getType(), value -> {
 						if(value instanceof Double)
-							return -value.doubleValue();
+							return -((Number)value).doubleValue();
 						else if(value instanceof Float)
-							return -value.floatValue();
+							return -((Number)value).floatValue();
 						else if(value instanceof Long)
-							return -value.longValue();
+							return -((Number)value).longValue();
 						else if(value instanceof Integer)
-							return -value.intValue();
+							return -((Number)value).intValue();
 						else if(value instanceof Short)
-							return -value.shortValue();
+							return -((Number)value).shortValue();
 						else if(value instanceof Byte)
-							return -value.byteValue();
+							return -((Number)value).byteValue();
+						else if(value instanceof Character)
+							return -((Character) value).charValue();
 						else
 							throw new IllegalStateException("Unrecognized number type");
 					});
@@ -407,23 +408,24 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 						return !value;
 					});
 				case "~":
-					if(!new Type(Number.class).isAssignable(operand.getType())
-						|| Type.getPrimitiveType(operand.getType().getBaseType()) == null)
+					if(!operand.getType().isIntMathable())
 						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a value of type "
 							+ operand.getType());
 					Class<?> prim = Type.getPrimitiveType(operand.getType().getBaseType());
 					if(prim == Double.TYPE || prim == Float.TYPE)
 						throw new MuisParseException("Operator " + op.getName() + " cannot be applied to a floating point type: "
 							+ operand.getType());
-					return ((ObservableValue<? extends Number>) operand).mapV(value -> {
+					return operand.mapV(operand.getType(), value -> {
 						if(value instanceof Long)
-							return ~value.longValue();
+							return ~((Number) value).longValue();
 						else if(value instanceof Integer)
-							return ~value.intValue();
+							return ~((Number) value).intValue();
 						else if(value instanceof Short)
-							return ~value.shortValue();
+							return ~((Number) value).shortValue();
 						else if(value instanceof Byte)
-							return ~value.byteValue();
+							return ~((Number) value).byteValue();
+						else if(value instanceof Character)
+							return ~((Character) value).charValue();
 						else
 							throw new IllegalStateException("Unrecognized number type");
 					});
@@ -431,9 +433,112 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 					throw new MuisParseException("Unrecognized unary operator: " + op.getName());
 				}
 			} else if(item instanceof ParsedBinaryOp) {
+				ParsedBinaryOp op = (ParsedBinaryOp) item;
+				ObservableValue<?> left = evaluate(op.getOp1(), env);
+				ObservableValue<?> right = evaluate(op.getOp2(), env);
+				switch (op.getName()) {
+				case "+":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() + ((Number) intType.cast(r)).intValue();
+						} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+						} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+						} else {
+						}
+					}, right);
+				case "-":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "*":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "/":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "%":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "==":
+				case "!=":
+				case ">":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case ">=":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "<":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "<=":
+					if(!left.getType().isMathable() || !right.getType().isMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "&&":
+				case "||":
+				case "^":
+				case "<<":
+					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case ">>":
+					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case ">>>":
+					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "&":
+					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				case "|":
+					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+				}
 				// TODO
 			} else if(item instanceof ParsedArrayIndex) {
-				// TODO
+				ParsedArrayIndex ai = (ParsedArrayIndex) item;
+				ObservableValue<?> array = evaluate(ai.getArray(), env);
+				ObservableValue<?> index = evaluate(ai.getIndex(), env);
+				if(!array.getType().isArray() && !new Type(java.util.List.class).isAssignable(array.getType()))
+					throw new MuisParseException("Array index cannot be applied to " + array.getType());
+				if(!new Type(Integer.TYPE).isAssignable(index.getType()))
+					throw new MuisParseException(index.getType() + " cannot be used as an array index");
+				Type elType;
+				if(array.getType().isArray())
+					elType = array.getType().getComponentType();
+				else if(array.getType().getParamTypes().length == 1)
+					elType = array.getType().getParamTypes()[0];
+				else
+					elType = new Type(Object.class);
+				return array.composeV(elType, (Object arr, Integer idx) -> {
+					if(arr.getClass().isArray())
+						return java.lang.reflect.Array.get(arr, idx);
+					else
+						return ((java.util.List<?>) arr).get(idx);
+				}, (ObservableValue<Integer>) index);
+			} else if(item instanceof ParsedCast) {
+				ParsedCast cast = (ParsedCast) item;
+				Type castType = cast.getType().evaluate(env, true, false).getType();
+				ObservableValue<?> value = evaluate(cast.getValue(), env);
+				if(castType.getCommonType(value.getType()) == null)
+					throw new MuisParseException("Cannot cast from " + value.getType() + " to " + castType);
+				return value.mapV(castType, v -> {
+					return v;
+				});
 			} else if(item instanceof ParsedConditional) {
 				ParsedConditional cond = (ParsedConditional) item;
 				ObservableValue<Boolean> condition = (ObservableValue<Boolean>) evaluate(cond.getCondition(), env);
@@ -441,7 +546,10 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 					throw new MuisParseException("A conditional must start with a boolean expression");
 				ObservableValue<?> affirm = evaluate(cond.getAffirmative(), env);
 				ObservableValue<?> negate = evaluate(cond.getNegative(), env);
-				// TODO
+				Type commonType = affirm.getType().getCommonType(negate.getType());
+				return condition.composeV(commonType, (Boolean b, Object aff, Object neg) -> {
+					return b ? aff : neg;
+				}, affirm, negate);
 			} else if(item instanceof ParsedType) {
 				throw new MuisParseException("Parsed model value is not a value: " + item.toString());
 			} else if(item instanceof ParsedCast) {

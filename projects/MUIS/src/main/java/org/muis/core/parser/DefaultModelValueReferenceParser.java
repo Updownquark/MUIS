@@ -366,7 +366,7 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 			} else if(item instanceof ParsedIdentifier) {
 				// TODO
 			} else if(item instanceof ParsedConstructor) {
-				return ObservableValue.constant(item.evaluate(env, false, true));
+				// TODO
 			} else if(item instanceof ParsedParenthetic) {
 				return evaluate(((ParsedParenthetic) item).getContent(), env);
 			} else if(item instanceof ParsedUnaryOp) {
@@ -446,69 +446,211 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 							Type intType = new Type(Integer.TYPE);
 							return ((Number) intType.cast(l)).intValue() + ((Number) intType.cast(r)).intValue();
 						} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() + ((Number) longType.cast(r)).longValue();
 						} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+							Type floatType = new Type(Float.TYPE);
+							return ((Number) floatType.cast(l)).floatValue() + ((Number) floatType.cast(r)).floatValue();
 						} else {
+							Type doubleType = new Type(Double.TYPE);
+							return ((Number) doubleType.cast(l)).doubleValue() + ((Number) doubleType.cast(r)).doubleValue();
 						}
 					}, right);
 				case "-":
 					if(!left.getType().isMathable() || !right.getType().isMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() - ((Number) intType.cast(r)).intValue();
+						} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() - ((Number) longType.cast(r)).longValue();
+						} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+							Type floatType = new Type(Float.TYPE);
+							return ((Number) floatType.cast(l)).floatValue() - ((Number) floatType.cast(r)).floatValue();
+						} else {
+							Type doubleType = new Type(Double.TYPE);
+							return ((Number) doubleType.cast(l)).doubleValue() - ((Number) doubleType.cast(r)).doubleValue();
+						}
+					}, right);
 				case "*":
 					if(!left.getType().isMathable() || !right.getType().isMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() * ((Number) intType.cast(r)).intValue();
+						} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() * ((Number) longType.cast(r)).longValue();
+						} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+							Type floatType = new Type(Float.TYPE);
+							return ((Number) floatType.cast(l)).floatValue() * ((Number) floatType.cast(r)).floatValue();
+						} else {
+							Type doubleType = new Type(Double.TYPE);
+							return ((Number) doubleType.cast(l)).doubleValue() * ((Number) doubleType.cast(r)).doubleValue();
+						}
+					}, right);
 				case "/":
 					if(!left.getType().isMathable() || !right.getType().isMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() / ((Number) intType.cast(r)).intValue();
+						} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() / ((Number) longType.cast(r)).longValue();
+						} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+							Type floatType = new Type(Float.TYPE);
+							return ((Number) floatType.cast(l)).floatValue() / ((Number) floatType.cast(r)).floatValue();
+						} else {
+							Type doubleType = new Type(Double.TYPE);
+							return ((Number) doubleType.cast(l)).doubleValue() / ((Number) doubleType.cast(r)).doubleValue();
+						}
+					}, right);
 				case "%":
 					if(!left.getType().isMathable() || !right.getType().isMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() % ((Number) intType.cast(r)).intValue();
+						} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() % ((Number) longType.cast(r)).longValue();
+						} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+							Type floatType = new Type(Float.TYPE);
+							return ((Number) floatType.cast(l)).floatValue() % ((Number) floatType.cast(r)).floatValue();
+						} else {
+							Type doubleType = new Type(Double.TYPE);
+							return ((Number) doubleType.cast(l)).doubleValue() % ((Number) doubleType.cast(r)).doubleValue();
+						}
+					}, right);
 				case "==":
+					return compare(left, right, op.getName(), true).mapV(val->{return val==0;});
 				case "!=":
+					return compare(left, right, op.getName(), true).mapV(val->{return val!=0;});
 				case ">":
-					if(!left.getType().isMathable() || !right.getType().isMathable())
-						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
-							+ " and " + right.getType());
+					return compare(left, right, op.getName(), true).mapV(val->{return val>0;});
 				case ">=":
-					if(!left.getType().isMathable() || !right.getType().isMathable())
-						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
-							+ " and " + right.getType());
+					return compare(left, right, op.getName(), true).mapV(val->{return val>=0;});
 				case "<":
-					if(!left.getType().isMathable() || !right.getType().isMathable())
-						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
-							+ " and " + right.getType());
+					return compare(left, right, op.getName(), true).mapV(val->{return val<0;});
 				case "<=":
-					if(!left.getType().isMathable() || !right.getType().isMathable())
+					return compare(left, right, op.getName(), true).mapV(val->{return val<=0;});
+				case "&&":
+					if(!left.getType().canAssignTo(Boolean.TYPE) || !right.getType().canAssignTo(Boolean.TYPE))
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
-				case "&&":
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						return ((Boolean) l).booleanValue() && ((Boolean) r).booleanValue();
+					}, right);
 				case "||":
-				case "^":
+					if(!left.getType().canAssignTo(Boolean.TYPE) || !right.getType().canAssignTo(Boolean.TYPE))
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						return ((Boolean) l).booleanValue() || ((Boolean) r).booleanValue();
+					}, right);
 				case "<<":
 					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() << ((Number) intType.cast(r)).intValue();
+						} else {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() << ((Number) longType.cast(r)).longValue();
+						}
+					}, right);
 				case ">>":
 					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() >> ((Number) intType.cast(r)).intValue();
+						} else {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() >> ((Number) longType.cast(r)).longValue();
+						}
+					}, right);
 				case ">>>":
 					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() >>> ((Number) intType.cast(r)).intValue();
+						} else {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() >> ((Number) longType.cast(r)).longValue();
+						}
+					}, right);
 				case "&":
-					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+					boolean isBool = left.getType().canAssignTo(Boolean.TYPE) && right.getType().canAssignTo(Boolean.TYPE);
+					if(!isBool && (!left.getType().isIntMathable() || !right.getType().isIntMathable()))
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(isBool) {
+							return ((Boolean) l).booleanValue() & ((Boolean) r).booleanValue();
+						}
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() & ((Number) intType.cast(r)).intValue();
+						} else {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() & ((Number) longType.cast(r)).longValue();
+						}
+					}, right);
 				case "|":
-					if(!left.getType().isIntMathable() || !right.getType().isIntMathable())
+					isBool = left.getType().canAssignTo(Boolean.TYPE) && right.getType().canAssignTo(Boolean.TYPE);
+					if(!isBool && (!left.getType().isIntMathable() || !right.getType().isIntMathable()))
 						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
 							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(isBool) {
+							return ((Boolean) l).booleanValue() | ((Boolean) r).booleanValue();
+						}
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() | ((Number) intType.cast(r)).intValue();
+						} else {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() | ((Number) longType.cast(r)).longValue();
+						}
+					}, right);
+				case "^":
+					isBool = left.getType().canAssignTo(Boolean.TYPE) && right.getType().canAssignTo(Boolean.TYPE);
+					if(!isBool && (!left.getType().isIntMathable() || !right.getType().isIntMathable()))
+						throw new MuisParseException("Binary operator " + op.getName() + " cannot be applied to " + left.getType()
+							+ " and " + right.getType());
+					return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+						if(isBool) {
+							return ((Boolean) l).booleanValue() ^ ((Boolean) r).booleanValue();
+						}
+						if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+							Type intType = new Type(Integer.TYPE);
+							return ((Number) intType.cast(l)).intValue() ^ ((Number) intType.cast(r)).intValue();
+						} else {
+							Type longType = new Type(Long.TYPE);
+							return ((Number) longType.cast(l)).longValue() ^ ((Number) longType.cast(r)).longValue();
+						}
+					}, right);
+				default:
+					throw new MuisParseException("Unrecognized binary operator " + op.getName());
 				}
-				// TODO
 			} else if(item instanceof ParsedArrayIndex) {
 				ParsedArrayIndex ai = (ParsedArrayIndex) item;
 				ObservableValue<?> array = evaluate(ai.getArray(), env);
@@ -553,7 +695,15 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 			} else if(item instanceof ParsedType) {
 				throw new MuisParseException("Parsed model value is not a value: " + item.toString());
 			} else if(item instanceof ParsedCast) {
-			} else if(item instanceof ParsedNumber || item instanceof ParsedString || item instanceof ParsedBoolean) {
+				Type castType = ((ParsedCast) item).getType().evaluate(env, true, false).getType();
+				ObservableValue<?> value = evaluate(((ParsedCast) item).getValue(), env);
+				if(castType.getCommonType(value.getType()) == null)
+					throw new MuisParseException("Cannot cast " + value.getType() + " to " + castType);
+				return value.mapV(castType, val -> {
+					return val;
+				});
+			} else if(item instanceof ParsedNumber || item instanceof ParsedString || item instanceof ParsedChar
+				|| item instanceof ParsedBoolean) {
 				return ObservableValue.constant(item.evaluate(env, false, true));
 			} else if(item instanceof ParsedNull) {
 				return ObservableValue.constant(null);
@@ -562,5 +712,62 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 		} catch(EvaluationException e) {
 			throw new MuisParseException("Failed to parse model value", e);
 		}
+	}
+
+	private static ObservableValue<Integer> compare(ObservableValue<?> left, ObservableValue<?> right, String opName, boolean equality)
+		throws MuisParseException {
+		Type commonType = left.getType().getCommonType(right.getType());
+		if(commonType == null)
+			throw new MuisParseException("Binary operator " + opName + " cannot be applied to " + left.getType() + " and "
+				+ right.getType());
+		boolean comparable;
+		if(left.getType().canAssignTo(Comparable.class) && left.getType().canAssignTo(Comparable.class)) {
+			Type leftParam = left.getType().getParamTypes().length == 1 ? left.getType().getParamTypes()[0] : null;
+			Type rightParam = right.getType().getParamTypes().length == 1 ? right.getType().getParamTypes()[0] : null;
+			if(leftParam == null || rightParam == null) {
+				comparable = false;
+				if(!equality)
+					throw new MuisParseException("Binary operator " + opName + " cannot be applied to " + left.getType() + " and "
+						+ right.getType());
+			} else if(!leftParam.isAssignable(rightParam)) {
+				comparable = false;
+				if(!equality)
+					throw new MuisParseException("Binary operator " + opName + " cannot be applied to " + left.getType() + " and "
+						+ right.getType());
+			} else
+				comparable = true;
+		} else
+			comparable = false;
+		if(!comparable && !equality) {
+			if(!left.getType().isMathable() || !right.getType().isMathable())
+				throw new MuisParseException("Binary operator " + opName + " cannot be applied to " + left.getType() + " and "
+					+ right.getType());
+		}
+		return left.composeV(left.getType().getCommonType(right.getType()), (Object l, Object r) -> {
+			if(left.getType().canAssignTo(Integer.TYPE) && right.getType().canAssignTo(Integer.TYPE)) {
+				Type intType = new Type(Integer.TYPE);
+				int leftInt = ((Number) intType.cast(l)).intValue();
+				int rightInt = ((Number) intType.cast(r)).intValue();
+				return leftInt > rightInt ? 1 : (leftInt < rightInt ? -1 : 0);
+			} else if(left.getType().canAssignTo(Long.TYPE) && right.getType().canAssignTo(Long.TYPE)) {
+				Type longType = new Type(Long.TYPE);
+				long leftLong = ((Number) longType.cast(l)).longValue();
+				long rightLong = ((Number) longType.cast(r)).longValue();
+				return leftLong > rightLong ? 1 : (leftLong < rightLong ? -1 : 0);
+			} else if(left.getType().canAssignTo(Float.TYPE) && right.getType().canAssignTo(Float.TYPE)) {
+				Type floatType = new Type(Float.TYPE);
+				int leftFloat = ((Number) floatType.cast(l)).intValue();
+				int rightFloat = ((Number) floatType.cast(r)).intValue();
+				return leftFloat > rightFloat ? 1 : (leftFloat < rightFloat ? -1 : 0);
+			} else if(left.getType().canAssignTo(Double.TYPE) && right.getType().canAssignTo(Double.TYPE)) {
+				Type doubleType = new Type(Double.TYPE);
+				int leftDouble = ((Number) doubleType.cast(l)).intValue();
+				int rightDouble = ((Number) doubleType.cast(r)).intValue();
+				return leftDouble > rightDouble ? 1 : (leftDouble < rightDouble ? -1 : 0);
+			} else if(comparable)
+				return ((Comparable<Object>) l).compareTo(r);
+			else
+				return l == r ? 0 : 1;
+		}, right);
 	}
 }

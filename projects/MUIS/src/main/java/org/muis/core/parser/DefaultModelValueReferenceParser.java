@@ -3,6 +3,7 @@ package org.muis.core.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -366,7 +367,55 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 			} else if(item instanceof ParsedIdentifier) {
 				// TODO
 			} else if(item instanceof ParsedConstructor) {
-				// TODO
+				ParsedConstructor constructor = (ParsedConstructor) item;
+				ObservableValue<?> [] args = new ObservableValue[constructor.getArguments().length];
+				Type [] argTypes = new Type[args.length];
+				for(int i = 0; i < args.length; i++) {
+					args[i] = evaluate(constructor.getArguments()[i], env);
+					argTypes[i] = args[i].getType();
+				}
+				Type type = constructor.getType().evaluate(env, true, false).getType();
+				Class<?> base = type.getBaseType();
+				StringBuilder constructorString = new StringBuilder();
+				constructorString.append(type.getBaseType().getName()).append('(');
+				for(int i = 0; i < argTypes.length; i++) {
+					if(i > 0)
+						constructorString.append(", ");
+					constructorString.append(argTypes[i]);
+				}
+				java.lang.reflect.Constructor<?> toInvoke;
+				try {
+					toInvoke = constructor.getTarget(type, argTypes, true);
+				} catch(EvaluationException e) {
+					throw new MuisParseException("No such constructor " + constructorString, e);
+				}
+
+				if(args.length == 0) {
+					org.muis.core.rx.DefaultObservableValue<?> ret = new org.muis.core.rx.DefaultObservableValue<Object>() {
+						@Override
+						public Type getType() {
+							return type;
+						}
+
+						@Override
+						public Object get() {
+							try {
+								return toInvoke.newInstance();
+							} catch(InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+								throw new IllegalStateException("Could not instantiate " + type, e);
+							}
+						}
+					};
+					ret.control(null);
+					return ret;
+				}
+				return new org.muis.core.rx.ComposedObservableValue<>(type, constructorArgs -> {
+					try {
+						return toInvoke.newInstance(constructorArgs);
+					} catch(Exception e) {
+						throw new IllegalArgumentException("Could not invoke constructor " + constructorString, e);
+					}
+				}, args);
 			} else if(item instanceof ParsedParenthetic) {
 				return evaluate(((ParsedParenthetic) item).getContent(), env);
 			} else if(item instanceof ParsedUnaryOp) {

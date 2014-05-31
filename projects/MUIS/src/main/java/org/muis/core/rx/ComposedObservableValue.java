@@ -57,7 +57,7 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 				}
 
 				T newValue = theFunction.apply(args);
-				ObservableValueEvent<T> toFire = new ObservableValueEvent<T>(ComposedObservableValue.this, oldValue, newValue, evt);
+				ObservableValueEvent<T> toFire = new ObservableValueEvent<>(ComposedObservableValue.this, oldValue, newValue, evt);
 				theController.onNext(toFire);
 			}
 		};
@@ -80,7 +80,7 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 
 	private void fire(Observer<? super ObservableValueEvent<T>> observer) {
 		T value = get();
-		ObservableValueEvent<T> event = new ObservableValueEvent<T>(this, null, value, null);
+		ObservableValueEvent<T> event = new ObservableValueEvent<>(this, null, value, null);
 		observer.onNext(event);
 	}
 }

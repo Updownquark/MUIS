@@ -74,6 +74,7 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * @param <R> The type of the returned observable
 	 * @param func The map function
 	 * @return An observable that provides the values of this observable, mapped by the given function
 	 */
@@ -84,6 +85,7 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * @param <R> The type of the returned observable
 	 * @param func The filter map function
 	 * @return An observable that provides the values of this observable, mapped by the given function, except where that function returns
 	 *         null
@@ -113,6 +115,8 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * @param <V> The type of the other observable to be combined with this one
+	 * @param <R> The type of the returned observable
 	 * @param other The other observable to compose
 	 * @param func The function to use to combine the observables' values
 	 * @return A new observable whose values are the specified combination of this observable and the others'

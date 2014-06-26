@@ -15,6 +15,7 @@ import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.StateExpression;
 
 import prisms.lang.*;
+import prisms.lang.eval.PrismsEvaluator;
 import prisms.lang.types.ParsedStatementBlock;
 
 /** Parses MUIS style sheets using a custom format */
@@ -52,11 +53,6 @@ public class StyleSheetParser {
 		@Override
 		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {
 			throw new IllegalArgumentException("No such dependent " + dependent);
-		}
-
-		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
 		}
 
 		@Override
@@ -164,11 +160,6 @@ public class StyleSheetParser {
 			throw new IllegalArgumentException("No such dependent " + dependent);
 		}
 
-		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
-		}
-
 		private double getNumber(ParseMatch match, String name) throws ParseException {
 			ParsedItem initVal = getParser().parseStructures(this, match)[0];
 			if(!(initVal instanceof prisms.lang.types.ParsedNumber))
@@ -230,11 +221,6 @@ public class StyleSheetParser {
 		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {
 			throw new IllegalArgumentException("No such dependent " + dependent);
 		}
-
-		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
-		}
 	}
 
 	/** Represents a filter determining the conditions under which a set of style assignments will be applied */
@@ -247,11 +233,6 @@ public class StyleSheetParser {
 				deps[idx] = toReplace;
 			else
 				throw new IllegalArgumentException("No such dependent " + dependent);
-		}
-
-		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
 		}
 	}
 
@@ -427,11 +408,6 @@ public class StyleSheetParser {
 		}
 
 		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
-		}
-
-		@Override
 		public String toString() {
 			StringBuilder ret = new StringBuilder();
 			for(ParsedStyleFilter filter : theFilters)
@@ -492,11 +468,6 @@ public class StyleSheetParser {
 		}
 
 		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
-		}
-
-		@Override
 		public String toString() {
 			return theDomain + "." + theAttrName + "=" + theValue;
 		}
@@ -549,11 +520,6 @@ public class StyleSheetParser {
 		}
 
 		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
-		}
-
-		@Override
 		public String toString() {
 			return theDomain + "=" + theValues;
 		}
@@ -592,11 +558,6 @@ public class StyleSheetParser {
 						+ toReplace.getClass().getName());
 			} else
 				throw new IllegalArgumentException("No such dependent " + dependent);
-		}
-
-		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
 		}
 
 		@Override
@@ -643,11 +604,6 @@ public class StyleSheetParser {
 				theValue = toReplace;
 			else
 				throw new IllegalArgumentException("No such dependent " + dependent);
-		}
-
-		@Override
-		public EvaluationResult evaluate(EvaluationEnvironment env, boolean asType, boolean withValues) throws EvaluationException {
-			return null;
 		}
 
 		@Override
@@ -879,7 +835,6 @@ public class StyleSheetParser {
 	}
 
 	private PrismsParser theParser;
-
 	private EvaluationEnvironment theEnv;
 
 	/** Creates a style sheet parser */
@@ -899,6 +854,8 @@ public class StyleSheetParser {
 		} catch(IOException e) {
 			throw new IllegalStateException("Could not configure style sheet setup parser", e);
 		}
+		PrismsEvaluator setupEvaluator = new PrismsEvaluator();
+		prisms.lang.eval.DefaultEvaluation.initializeDefaults(setupEvaluator);
 		if(DEBUG) {
 			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
 			theParser.setDebugger(debugger);
@@ -916,8 +873,9 @@ public class StyleSheetParser {
 		// TODO Add more constants and functions
 		for(String command : commands) {
 			try {
-				setupParser.parseStructures(new prisms.lang.ParseStructRoot(command), setupParser.parseMatches(command))[0].evaluate(
-					theEnv, false, true);
+				setupEvaluator.evaluate(
+					setupParser.parseStructures(new prisms.lang.ParseStructRoot(command), setupParser.parseMatches(command))[0], theEnv,
+					false, true);
 			} catch(ParseException | EvaluationException e) {
 				System.err.println("Could not execute XML stylesheet parser setup expression: " + command);
 				e.printStackTrace();

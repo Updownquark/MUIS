@@ -16,6 +16,8 @@ import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.SettableValue;
 
 import prisms.lang.*;
+import prisms.lang.eval.MathUtils;
+import prisms.lang.eval.PrismsEvaluator;
 import prisms.lang.types.*;
 import prisms.util.ProgramTracker;
 
@@ -53,6 +55,8 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 		} catch(IOException e) {
 			throw new IllegalStateException("Could not configure style sheet setup parser", e);
 		}
+		prisms.lang.eval.PrismsEvaluator setupEvaluator = new prisms.lang.eval.PrismsEvaluator();
+		prisms.lang.eval.DefaultEvaluation.initializeDefaults(setupEvaluator);
 		if(DEBUG) {
 			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
 			MVX_PARSER.setDebugger(debugger);
@@ -71,8 +75,9 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 		// TODO Add more constants and functions
 		for(String command : commands) {
 			try {
-				setupParser.parseStructures(new prisms.lang.ParseStructRoot(command), setupParser.parseMatches(command))[0].evaluate(
-					MVX_ENV, false, true);
+				setupEvaluator.evaluate(
+					setupParser.parseStructures(new prisms.lang.ParseStructRoot(command), setupParser.parseMatches(command))[0], MVX_ENV,
+					false, true);
 			} catch(ParseException | EvaluationException e) {
 				System.err.println("Could not execute XML stylesheet parser setup expression: " + command);
 				e.printStackTrace();
@@ -291,7 +296,7 @@ public class DefaultModelValueReferenceParser implements ModelValueReferencePars
 			}
 
 			@Override
-			public void load(InputStream in, PrismsParser parser) throws IOException {
+			public void load(InputStream in, PrismsParser parser, PrismsEvaluator eval) throws IOException {
 				throw new IllegalStateException("Load is not supported");
 			}
 		};

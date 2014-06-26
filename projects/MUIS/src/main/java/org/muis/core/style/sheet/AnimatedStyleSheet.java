@@ -5,8 +5,11 @@ import java.util.Iterator;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 
+import prisms.lang.EvaluationEnvironment;
 import prisms.lang.EvaluationException;
+import prisms.lang.EvaluationResult;
 import prisms.lang.ParsedItem;
+import prisms.lang.eval.PrismsEvaluator;
 
 /** A style sheet whose values can be animated internally */
 public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<AnimatedStyleSheet.AnimatedVariable> {
@@ -156,6 +159,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		}
 	}
 
+	private final prisms.lang.eval.PrismsEvaluator theEvaluator;
 	private final prisms.lang.EvaluationEnvironment theEnv;
 
 	private java.util.LinkedHashSet<AnimatedVariable> theVariables;
@@ -166,6 +170,15 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	/** @param env The evaluation environment for this style sheet to get constants, function definitions, and other information from */
 	public AnimatedStyleSheet(prisms.lang.EvaluationEnvironment env) {
+		theEvaluator = new prisms.lang.eval.PrismsEvaluator();
+		prisms.lang.eval.DefaultEvaluation.initializeDefaults(theEvaluator);
+		theEvaluator.addEvaluator(ConstantItem.class, new prisms.lang.eval.PrismsItemEvaluator<ConstantItem>() {
+			@Override
+			public EvaluationResult evaluate(ConstantItem item, PrismsEvaluator evaluator, EvaluationEnvironment env2, boolean asType,
+				boolean withValues) throws EvaluationException {
+				return item.get();
+			}
+		});
 		theEnv = env;
 		theVariables = new java.util.LinkedHashSet<>();
 	}
@@ -356,7 +369,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	protected <T> T evaluate(StyleAttribute<T> attr, ParsedItem item) throws ClassCastException, IllegalArgumentException,
 		IllegalStateException {
 		try {
-			return super.castAndValidate(attr, (T) item.evaluate(theEnv, false, true).getValue());
+			return super.castAndValidate(attr, (T) theEvaluator.evaluate(item, theEnv, false, true).getValue());
 		} catch(EvaluationException e) {
 			throw new IllegalStateException("Animated expression " + item + " for style attribute " + attr + " failed to evaluate", e);
 		}

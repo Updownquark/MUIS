@@ -12,8 +12,8 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 
 	@Override
 	public Size parse(MuisParseEnv env, String value) throws org.muis.core.MuisException {
-		if(env.getModelParser().getNextMVR(value, 0) == 0) {
-			org.muis.core.rx.ObservableValue<?> modelValue = env.getModelParser().parseMVR(value);
+		if(env.getValueParser().getNextMVR(value, 0) == 0) {
+			org.muis.core.rx.ObservableValue<?> modelValue = env.getValueParser().parseMVR(value);
 			if(modelValue.getType().canAssignTo(Size.class))
 				return (Size) modelValue.get();
 			else if(modelValue.getType().canAssignTo(Number.class))

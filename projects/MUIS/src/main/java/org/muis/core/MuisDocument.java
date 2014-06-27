@@ -55,7 +55,7 @@ public class MuisDocument {
 
 	private final org.muis.core.parser.MuisParser theParser;
 
-	private final org.muis.core.model.ModelValueReferenceParser theModelParser;
+	private final org.muis.core.model.MuisValueReferenceParser theModelParser;
 
 	private MuisClassView theClassView;
 
@@ -183,7 +183,7 @@ public class MuisDocument {
 	}
 
 	/** @return The parser to parse model values */
-	public org.muis.core.model.ModelValueReferenceParser getModelParser() {
+	public org.muis.core.model.MuisValueReferenceParser getModelParser() {
 		return theModelParser;
 	}
 

@@ -12,7 +12,7 @@ import org.muis.core.layout.SimpleSizeGuide;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
-import org.muis.core.model.ModelValueReferenceParser;
+import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.rx.Action;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.MuisStyle;
@@ -550,7 +550,7 @@ public abstract class MuisElement implements MuisParseEnv {
 	}
 
 	@Override
-	public final ModelValueReferenceParser getModelParser() {
+	public final MuisValueReferenceParser getValueParser() {
 		return theDocument.getModelParser();
 	}
 

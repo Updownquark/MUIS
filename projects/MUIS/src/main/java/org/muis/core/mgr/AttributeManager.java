@@ -164,10 +164,10 @@ public class AttributeManager {
 			java.util.ArrayList<ObservableValue<?>> ret = new java.util.ArrayList<>();
 			int next = 0;
 			while(next >= 0) {
-				next = theElement.getModelParser().getNextMVR(value, next);
+				next = theElement.getValueParser().getNextMVR(value, next);
 				if(next >= 0) {
-					String extracted = theElement.getModelParser().extractMVR(value, next);
-					ObservableValue<?> modelValue = theElement.getModelParser().parseMVR(extracted);
+					String extracted = theElement.getValueParser().extractMVR(value, next);
+					ObservableValue<?> modelValue = theElement.getValueParser().parseMVR(extracted);
 					if(!ret.contains(modelValue))
 						ret.add(modelValue);
 					next += extracted.length();

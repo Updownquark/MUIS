@@ -1,7 +1,7 @@
 package org.muis.core;
 
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.model.ModelValueReferenceParser;
+import org.muis.core.model.MuisValueReferenceParser;
 
 /** An environment needed to parse entities in MUIS */
 public interface MuisParseEnv {
@@ -11,6 +11,6 @@ public interface MuisParseEnv {
 	MuisMessageCenter msg();
 	/** @return The document in the scope of this environment. May be null. */
 	MuisDocument doc();
-	/** @return The parser to parse model values with */
-	ModelValueReferenceParser getModelParser();
+	/** @return The parser to parse reference values with */
+	MuisValueReferenceParser getValueParser();
 }

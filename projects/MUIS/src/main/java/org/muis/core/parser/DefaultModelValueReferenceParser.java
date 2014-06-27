@@ -10,7 +10,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.muis.core.model.ModelValueReferenceParser;
+import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.SettableValue;
@@ -21,8 +21,8 @@ import prisms.lang.eval.PrismsEvaluator;
 import prisms.lang.types.*;
 import prisms.util.ProgramTracker;
 
-/** The default implementation of {@link ModelValueReferenceParser} */
-public class DefaultModelValueReferenceParser implements ModelValueReferenceParser {
+/** The default implementation of {@link MuisValueReferenceParser} */
+public class DefaultModelValueReferenceParser implements MuisValueReferenceParser {
 	private static boolean DEBUG = false;
 
 	private static final Pattern MVR_PATTERN;

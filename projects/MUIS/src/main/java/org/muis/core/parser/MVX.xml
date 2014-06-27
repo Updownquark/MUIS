@@ -477,6 +477,10 @@
 		<literal storeAs="name">%</literal>
 		<op />
 	</operator>
+	<operator name="percent" order="50" priority="210" impl="org.muis.core.eval.impl.ParsedPercent">
+		<op storeAs="value" />
+		<literal storeAs="name">%</literal>
+	</operator>
 
 	<!-- Unary pre -->
 	<operator name="posit" order="50" priority="220" impl="prisms.lang.types.ParsedUnaryOp">

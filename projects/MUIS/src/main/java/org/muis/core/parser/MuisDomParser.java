@@ -11,7 +11,7 @@ import org.jdom2.Text;
 import org.muis.core.*;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.DefaultMuisModel;
-import org.muis.core.model.ModelValueReferenceParser;
+import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisModelValue;
 import org.muis.core.style.sheet.ParsedStyleSheet;
@@ -569,8 +569,8 @@ public class MuisDomParser implements MuisParser {
 		}
 
 		@Override
-		public ModelValueReferenceParser getModelParser() {
-			return new ModelValueReferenceParser() {
+		public MuisValueReferenceParser getValueParser() {
+			return new MuisValueReferenceParser() {
 				@Override
 				public int getNextMVR(String value, int start) {
 					return -1;

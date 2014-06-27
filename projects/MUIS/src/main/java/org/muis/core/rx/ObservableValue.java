@@ -112,30 +112,50 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @return An observable that always returns the given value
 	 */
 	public static <X> ObservableValue<X> constant(final X value) {
-		return new ObservableValue<X>() {
-			@Override
-			public Type getType() {
-				return value == null ? Type.NULL : new Type(value.getClass());
-			}
+		return new ConstantObservableValue<>(value == null ? Type.NULL : new Type(value.getClass()), value);
+	}
 
-			@Override
-			public X get() {
-				return value;
-			}
+	/**
+	 * An observable value whose value cannot change
+	 *
+	 * @param <T> The type of this value
+	 */
+	public static final class ConstantObservableValue<T> implements ObservableValue<T> {
+		private final Type theType;
+		private final T theValue;
 
-			@Override
-			public Subscription<ObservableValueEvent<X>> subscribe(Observer<? super ObservableValueEvent<X>> observer) {
-				return new Subscription<ObservableValueEvent<X>>() {
-					@Override
-					public Subscription<ObservableValueEvent<X>> subscribe(Observer<? super ObservableValueEvent<X>> observer2) {
-						return this;
-					}
+		/**
+		 * @param type The type of this observable value
+		 * @param value This observable value's value
+		 */
+		public ConstantObservableValue(Type type, T value) {
+			theType = type;
+			theValue = value;
+		}
 
-					@Override
-					public void unsubscribe() {
-					}
-				};
-			}
-		};
+		@Override
+		public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+			observer.onNext(new ObservableValueEvent<>(this, theValue, theValue, null));
+			return new Subscription<ObservableValueEvent<T>>() {
+				@Override
+				public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+					return this;
+				}
+
+				@Override
+				public void unsubscribe() {
+				}
+			};
+		}
+
+		@Override
+		public Type getType() {
+			return theType;
+		}
+
+		@Override
+		public T get() {
+			return theValue;
+		}
 	}
 }

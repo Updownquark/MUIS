@@ -32,8 +32,8 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 		String [] ret = value.split(",");
 		for(int i = 0; i < ret.length; i++) {
 			ret[i] = ret[i].trim();
-			if(env.getModelParser().getNextMVR(ret[i], 0) == 0) {
-				org.muis.core.model.MuisModelValue<String> modelValue = (org.muis.core.model.MuisModelValue<String>) env.getModelParser()
+			if(env.getValueParser().getNextMVR(ret[i], 0) == 0) {
+				org.muis.core.model.MuisModelValue<String> modelValue = (org.muis.core.model.MuisModelValue<String>) env.getValueParser()
 					.parseMVR(ret[i]);
 				if(modelValue.getType().canAssignTo(String.class))
 					ret[i] = modelValue.get();

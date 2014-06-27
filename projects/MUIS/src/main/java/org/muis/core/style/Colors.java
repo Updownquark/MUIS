@@ -585,7 +585,14 @@ public class Colors {
 
 	private static final String hexDigits = "0123456789abcdef";
 
-	private static int hexInt(String str, int start) {
+	/**
+	 * A utility method for 2-digit parsing hexadecimal numbers out of a string
+	 * 
+	 * @param str The string
+	 * @param start The index at which the number starts
+	 * @return The hex digit
+	 */
+	public static int hexInt(String str, int start) {
 		int ret = hexDigits.indexOf(str.charAt(start));
 		ret *= 16;
 		ret += hexDigits.indexOf(str.charAt(start + 1));

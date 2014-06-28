@@ -1,26 +1,19 @@
 package org.muis.core;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.net.URL;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
+import java.util.*;
 
-import org.muis.core.eval.impl.ObservableEvaluator;
-import org.muis.core.eval.impl.ObservableItemEvaluator;
-import org.muis.core.eval.impl.ParsedColor;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.rx.ObservableValue;
+import org.muis.core.style.Colors;
 import org.muis.util.MuisUtils;
 
 import prisms.arch.PrismsConfig;
-import prisms.lang.EvaluationException;
-import prisms.lang.ParsedItem;
-import prisms.lang.PrismsParser;
-import prisms.lang.Type;
-import prisms.lang.eval.PrismsEvaluator;
+import prisms.lang.*;
 import prisms.lang.eval.PrismsItemEvaluator;
+import prisms.lang.types.ParsedFunctionDeclaration;
 
 /**
  * Represents a property in MUIS
@@ -153,7 +146,8 @@ public abstract class MuisProperty<T> {
 		public ObservableValue<? extends T> parse(MuisParseEnv env, String value) throws MuisException {
 			WrappingPrismsParser parser = new WrappingPrismsParser(env.getValueParser().getParser());
 			WrappingObservableEvaluator evaluator = new WrappingObservableEvaluator(env.getValueParser().getEvaluator());
-			mutate(parser, evaluator);
+			EvaluationEnvironment evalEnv = env.getValueParser().getEvaluationEnvironment().scope(true);
+			mutate(parser, evaluator, evalEnv);
 
 			ParsedItem item;
 			try {
@@ -177,7 +171,7 @@ public abstract class MuisProperty<T> {
 			return (ObservableValue<? extends T>) ret;
 		}
 
-		protected void mutate(PrismsParser parser, PrismsEvaluator eval) {
+		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) {
 		}
 
 		@Override
@@ -516,13 +510,13 @@ public abstract class MuisProperty<T> {
 	};
 
 	private static class ColorPropertyType extends PrismsParsedPropertyType<Color> implements PrintablePropertyType<Color> {
+		private final PrismsConfig theColorOp;
+
+		private final List<ParsedFunctionDeclaration> theFunctions;
+
 		ColorPropertyType() {
 			super(new Type(Color.class));
-		}
-
-		@Override
-		protected void mutate(PrismsParser parser, PrismsEvaluator eval) {
-			PrismsConfig op = new prisms.arch.MutableConfig("entity").set("name", "color").set("order", "1")
+			theColorOp = new prisms.arch.MutableConfig("entity").set("name", "color").set("order", "1")
 				.set("impl", ParsedColor.class.getName()) //
 				.getOrCreate("select") //
 				/**/.getOrCreate("option") //
@@ -533,10 +527,44 @@ public abstract class MuisProperty<T> {
 				/*		*/.getParent() //
 				/**/.getParent() //
 				.getParent().getOrCreate("charset").set("storeAs", "value").set("pattern", "[0-9][A-F][a-f]{6}");
-			parser.insertOperator(op);
+
+			theFunctions=new java.util.ArrayList<>();
+			// Use the default prisms.lang Grammar.xml to implement some setup declarations to prepare the environment
+			PrismsParser setupParser = new PrismsParser();
+			try {
+				setupParser.configure(PrismsParser.class.getResource("Grammar.xml"));
+			} catch(IOException e) {
+				throw new IllegalStateException("Could not configure style sheet setup parser", e);
+			}
+
+			ArrayList<String> commands = new ArrayList<>();
+			// Add constants and functions like rgb(r, g, b) here
+			commands.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");
+			commands.add("java.awt.Color hsb(int h, int s, int b){return " + org.muis.core.style.Colors.class.getName() + ".hsb(h, s, b);}");
+			// TODO Add more constants and functions
+			for(String command : commands) {
+				try {
+					theFunctions.add((ParsedFunctionDeclaration) setupParser.parseStructures(new prisms.lang.ParseStructRoot(command),
+						setupParser.parseMatches(command))[0]);
+				} catch(ParseException | EvaluationException e) {
+					System.err.println("Could not compile color property evaluation functions: " + command);
+					e.printStackTrace();
+				}
+			}
+		}
+
+		@Override
+		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) {
+			parser.insertOperator(theColorOp);
 			eval.addEvaluator(ParsedColor.class, new org.muis.core.eval.impl.ColorEvaluator());
 
-			// TODO Add evaluators to evaluate color name literals and rgb(r, g, b) and hsb(h, s, b) functions
+			Type colorType = new Type(Color.class);
+			for(String colorName : Colors.getColorNames()) {
+				env.declareVariable(colorName, colorType, true, null, 0);
+				env.setVariable(colorName, Colors.parseColor(colorName), null, 0);
+			}
+			for(ParsedFunctionDeclaration func : theFunctions)
+				env.declareFunction(func);
 		}
 
 		@Override

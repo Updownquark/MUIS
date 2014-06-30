@@ -432,11 +432,11 @@ public class Colors {
 
 	private static final java.util.Map<String, Color> theNamedColors;
 
-	private static final java.util.IdentityHashMap<Color, String> theColorNames;
+	private static final java.util.Map<Color, String> theColorNames;
 
 	static {
-		theNamedColors = new java.util.HashMap<>();
-		theColorNames = new java.util.IdentityHashMap<>();
+		java.util.Map<String, Color> namedColors = new java.util.HashMap<>();
+		java.util.IdentityHashMap<Color, String> colorNames = new java.util.IdentityHashMap<>();
 		java.lang.reflect.Field[] colorFields = Colors.class.getDeclaredFields();
 		for(java.lang.reflect.Field field : colorFields) {
 			int mods = field.getModifiers();
@@ -446,12 +446,14 @@ public class Colors {
 				continue;
 			try {
 				Color value = (Color) field.get(null);
-				theNamedColors.put(field.getName().toLowerCase(), value);
-				theColorNames.put(value, field.getName());
+				namedColors.put(field.getName().toLowerCase(), value);
+				colorNames.put(value, field.getName());
 			} catch(IllegalAccessException e) {
 				e.printStackTrace();
 			}
 		}
+		theNamedColors = java.util.Collections.unmodifiableMap(namedColors);
+		theColorNames = java.util.Collections.unmodifiableMap(colorNames);
 	}
 
 	/** An internal method to swallow the exception from {@link #parseColor(String)} */
@@ -563,6 +565,11 @@ public class Colors {
 		return ret;
 	}
 
+	/** @return The names of all named colors in this class */
+	public static java.util.Set<String> getColorNames() {
+		return theNamedColors.keySet();
+	}
+
 	/**
 	 * @param r The red component of the color, from 0-255
 	 * @param g The green component of the color, from 0-255
@@ -587,7 +594,7 @@ public class Colors {
 
 	/**
 	 * A utility method for 2-digit parsing hexadecimal numbers out of a string
-	 * 
+	 *
 	 * @param str The string
 	 * @param start The index at which the number starts
 	 * @return The hex digit

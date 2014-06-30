@@ -18,6 +18,8 @@ import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
 import org.muis.util.MuisUtils;
 
+import prisms.lang.Type;
+
 /**
  * Allows complex widgets to be created more easily by addressing a template MUIS file with widget definitions that are reproduced in each
  * instance of the widget. The template file also may contain attach point definitions, allowing the widget's content to be specified from
@@ -191,16 +193,16 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 
 			@Override
-			public <V extends AttachPoint> Class<V> getType() {
-				return (Class<V>) AttachPoint.class;
+			public Type getType() {
+				return new Type(AttachPoint.class);
 			}
 
 			@Override
-			public <V extends AttachPoint> V parse(MuisParseEnv env, String value) throws MuisException {
+			public org.muis.core.rx.ObservableValue<AttachPoint> parse(MuisParseEnv env, String value) throws MuisException {
 				AttachPoint ret = theTemplate.getAttachPoint(value);
 				if(ret == null)
 					throw new MuisException("No such attach point \"" + value + "\" in template " + theTemplate.getDefiner().getName());
-				return (V) ret;
+				return org.muis.core.rx.ObservableValue.constant(ret);
 			}
 
 			@Override

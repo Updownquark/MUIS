@@ -9,10 +9,10 @@ import org.muis.core.*;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage.Type;
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.model.ModelValueReferenceParser;
 import org.muis.core.model.MuisDocumentModel.StyledSequence;
-import org.muis.core.model.MuisModelValue;
+import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.MuisParseException;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.*;
 
 /** Parses and formats text in the MUIS rich format */
@@ -45,8 +45,8 @@ public class MuisRichTextParser {
 	static {
 		Map<String, StyleValue<?>> tgs = new java.util.LinkedHashMap<>();
 		try {
-			tgs.put("b", new StyleValue<>(FontStyle.weight, FontStyle.weight.getType().parse(new NoMVParseEnv(null), "bold")));
-			tgs.put("i", new StyleValue<>(FontStyle.slant, FontStyle.slant.getType().parse(new NoMVParseEnv(null), "italic")));
+			tgs.put("b", new StyleValue<>(FontStyle.weight, FontStyle.weight.getType().parse(new NoMVParseEnv(null), "bold").get()));
+			tgs.put("i", new StyleValue<>(FontStyle.slant, FontStyle.slant.getType().parse(new NoMVParseEnv(null), "italic").get()));
 			tgs.put("ul", new StyleValue<>(FontStyle.underline, FontStyle.Underline.on));
 			tgs.put("uldot", new StyleValue<>(FontStyle.underline, FontStyle.Underline.dotted));
 			tgs.put("uldash", new StyleValue<>(FontStyle.underline, FontStyle.Underline.dashed));
@@ -401,7 +401,7 @@ public class MuisRichTextParser {
 
 		private final MuisMessageCenter theMsg;
 
-		private final ModelValueReferenceParser theMVRParser;
+		private final MuisValueReferenceParser theMVRParser;
 
 		NoMVParseEnv(MuisParseEnv wrap) {
 			theWrapped = wrap;
@@ -413,20 +413,9 @@ public class MuisRichTextParser {
 					super.message(type, text, cause, exception, params);
 				}
 			};
-			theMVRParser = new ModelValueReferenceParser() {
-
+			theMVRParser = new MuisValueReferenceParser() {
 				@Override
-				public int getNextMVR(String value, int mvrStart) {
-					return -1;
-				}
-
-				@Override
-				public String extractMVR(String value, int mvrStart) throws MuisParseException {
-					return null;
-				}
-
-				@Override
-				public MuisModelValue<?> parseMVR(String mvr) throws MuisParseException {
+				public ObservableValue<?> parse(String mvr) throws MuisParseException {
 					return null;
 				}
 			};
@@ -448,7 +437,7 @@ public class MuisRichTextParser {
 		}
 
 		@Override
-		public ModelValueReferenceParser getModelParser() {
+		public MuisValueReferenceParser getValueParser() {
 			return theMVRParser;
 		}
 	}

@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
+import org.muis.core.eval.impl.ObservableEvaluator;
+import org.muis.core.eval.impl.ObservableItemEvaluator;
+import org.muis.core.eval.impl.ParsedColor;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.Colors;
@@ -171,7 +174,7 @@ public abstract class MuisProperty<T> {
 			return (ObservableValue<? extends T>) ret;
 		}
 
-		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) {
+		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws MuisException {
 		}
 
 		@Override
@@ -546,7 +549,7 @@ public abstract class MuisProperty<T> {
 				try {
 					theFunctions.add((ParsedFunctionDeclaration) setupParser.parseStructures(new prisms.lang.ParseStructRoot(command),
 						setupParser.parseMatches(command))[0]);
-				} catch(ParseException | EvaluationException e) {
+				} catch(ParseException e) {
 					System.err.println("Could not compile color property evaluation functions: " + command);
 					e.printStackTrace();
 				}
@@ -554,14 +557,18 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) {
+		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws MuisException {
 			parser.insertOperator(theColorOp);
 			eval.addEvaluator(ParsedColor.class, new org.muis.core.eval.impl.ColorEvaluator());
 
 			Type colorType = new Type(Color.class);
 			for(String colorName : Colors.getColorNames()) {
-				env.declareVariable(colorName, colorType, true, null, 0);
-				env.setVariable(colorName, Colors.parseColor(colorName), null, 0);
+				try {
+					env.declareVariable(colorName, colorType, true, null, 0);
+					env.setVariable(colorName, Colors.parseColor(colorName), null, 0);
+				} catch(EvaluationException | MuisException e) {
+
+				}
 			}
 			for(ParsedFunctionDeclaration func : theFunctions)
 				env.declareFunction(func);

@@ -133,9 +133,15 @@ public abstract class MuisProperty<T> {
 	private static abstract class AbstractPrintablePropertyType<T> extends AbstractPropertyType<T> implements PrintablePropertyType<T> {
 	}
 
+	/**
+	 * Parses MUIS properties using a PrismsParser
+	 *
+	 * @param <T> The type of the property
+	 */
 	public static class PrismsParsedPropertyType<T> extends AbstractPropertyType<T> {
 		private final Type theType;
 
+		/** @param type The type of the property */
 		public PrismsParsedPropertyType(Type type) {
 			theType = type;
 		}
@@ -174,6 +180,14 @@ public abstract class MuisProperty<T> {
 			return (ObservableValue<? extends T>) ret;
 		}
 
+		/**
+		 * May be used by subclasses to modify the prisms parsing types
+		 *
+		 * @param parser The parser
+		 * @param eval The evaluator
+		 * @param env The evaluation environment
+		 * @throws MuisException If an error occurs mutating the parsing types
+		 */
 		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws MuisException {
 		}
 
@@ -192,6 +206,12 @@ public abstract class MuisProperty<T> {
 		}
 	}
 
+	/**
+	 * @param env The parsing environment
+	 * @param text The text to parse
+	 * @return An observable value, if the text is explicitly marked to be parsed as such. Null otherwise.
+	 * @throws MuisParseException If an exception occurs parsing the explicitly-marked observable from the text.
+	 */
 	public static ObservableValue<?> parseExplicitObservable(MuisParseEnv env, String text) throws MuisParseException {
 		if(text.startsWith("${") && text.endsWith("}"))
 			return env.getValueParser().parse(text.substring(2, text.length() - 1));
@@ -420,7 +440,7 @@ public abstract class MuisProperty<T> {
 	};
 
 	/** A boolean property type--values must be either true or false */
-	public static final AbstractPropertyType<Boolean> boolAttr = new PrismsParsedPropertyType<Boolean>(new Type(Boolean.TYPE));
+	public static final AbstractPropertyType<Boolean> boolAttr = new PrismsParsedPropertyType<>(new Type(Boolean.TYPE));
 
 	/** An integer property type--values must be valid integers */
 	public static final AbstractPropertyType<Long> intAttr = new PrismsParsedPropertyType<Long>(new Type(Long.TYPE)) {
@@ -545,6 +565,7 @@ public abstract class MuisProperty<T> {
 			commands.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");
 			commands.add("java.awt.Color hsb(int h, int s, int b){return " + org.muis.core.style.Colors.class.getName() + ".hsb(h, s, b);}");
 			// TODO Add more constants and functions
+			// TODO Are these defined by default? Maybe we don't need them here.
 			for(String command : commands) {
 				try {
 					theFunctions.add((ParsedFunctionDeclaration) setupParser.parseStructures(new prisms.lang.ParseStructRoot(command),
@@ -777,7 +798,7 @@ public abstract class MuisProperty<T> {
 		@Override
 		public ObservableValue<T> parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
-				return new ObservableValue.ConstantObservableValue<T>(new Type(theTypeProperty.type), null);
+				return new ObservableValue.ConstantObservableValue<>(new Type(theTypeProperty.type), null);
 			ObservableValue<?> ret = parseExplicitObservable(env, value);
 			if(ret != null) {
 				if(ret.getType().canAssignTo(theTypeProperty.type)) {

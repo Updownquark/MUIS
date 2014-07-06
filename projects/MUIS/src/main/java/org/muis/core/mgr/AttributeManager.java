@@ -6,8 +6,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.model.MuisModelValue;
-import org.muis.core.rx.*;
+import org.muis.core.rx.DefaultObservableValue;
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
 
 import prisms.lang.Type;
 
@@ -31,22 +33,42 @@ public class AttributeManager {
 
 		private boolean wasWanted;
 
-		private T theValue;
-
-		private String theFormattedValue;
-		private AttributeModelWatcher [] theModelWatchers = new AttributeModelWatcher[0];
-		private final Object theModelWatcherLock = new Object();
+		private volatile T theLastGoodValue;
+		private volatile boolean isOVError;
+		private ObservableValue<ObservableValue<? extends T>> theContainerObservable;
+		private Observer<ObservableValueEvent<ObservableValue<? extends T>>> theContainerController;
+		private ObservableValue<? extends T> theContainedObservable;
 		private volatile int theStackChecker;
+
+		{
+			theController = control(null);
+			theContainerObservable = new DefaultObservableValue<ObservableValue<? extends T>>() {
+				private Type theType;
+
+				@Override
+				public Type getType() {
+					if(theType == null)
+						theType = new Type(DefaultObservableValue.class, new Type(ObservableValue.class, new Type(theAttr.getType()
+							.getType(), true)));
+					return theType;
+				}
+
+				@Override
+				public ObservableValue<? extends T> get() {
+					return theContainedObservable;
+				}
+			};
+			theContainerController = ((DefaultObservableValue<ObservableValue<? extends T>>) theContainerObservable)
+				.control(null);
+		}
 
 		AttributeHolder(MuisAttribute<T> attr) {
 			theAttr = attr;
-			theController = control(null);
 		}
 
 		AttributeHolder(MuisPathedAttribute<T> attr, AttributeHolder<T> parent) {
 			theParent = parent;
 			theAttr = attr;
-			theController = control(null);
 		}
 
 		/** @return The attribute that this holder holds */
@@ -57,12 +79,21 @@ public class AttributeManager {
 		/** @return The value of the attribute in this manager */
 		@Override
 		public final T get() {
-			return theValue;
+			if(isOVError)
+				return theLastGoodValue;
+			else if(theContainedObservable == null)
+				return null;
+			return theContainedObservable.get();
+		}
+
+		/** @return The observable that this holder encapsulates */
+		public final ObservableValue<? extends T> getContainedObservable() {
+			return theContainedObservable;
 		}
 
 		@Override
 		public final Type getType() {
-			return new Type(theAttr.getType().getType());
+			return theAttr.getType().getType();
 		}
 
 		/**
@@ -71,10 +102,9 @@ public class AttributeManager {
 		 * @throws MuisException If the value cannot be parsed or cannot be set for the attribute
 		 */
 		public final T set(String valueStr) throws MuisException {
-			T value = theAttr.getType().parse(theElement, valueStr);
-			resetModelWatchers(valueStr);
-			setInternal(value);
-			return value;
+			ObservableValue<? extends T> value = theAttr.getType().parse(theElement, valueStr);
+			setContainedObservable(value);
+			return value.get();
 		}
 
 		/**
@@ -82,25 +112,45 @@ public class AttributeManager {
 		 * @throws MuisException If the value cannot be set for the attribute
 		 */
 		public final void set(T value) throws MuisException {
-			resetModelWatchers(null);
-			setInternal(value);
+			setContainedObservable(ObservableValue.constant(value));
 		}
 
-		/** @return All model values that this attribute currently depends on */
-		public ObservableValue<?> [] getModelDependencies() {
-			AttributeModelWatcher [] watchers = theModelWatchers;
-			ObservableValue<?> [] ret = new ObservableValue[watchers.length];
-			for(int i = 0; i < watchers.length; i++) {
-				ret[i] = watchers[i].getModelValue();
+		/**
+		 * @param observable The new observable for this attribute's value to reflect
+		 * @throws MuisException If the observable's current value is incompatible with this attribute's type
+		 */
+		public final void setContainedObservable(ObservableValue<? extends T> observable) throws MuisException {
+			T value = observable == null ? null : observable.get();
+			try {
+				checkValue(value);
+			} catch(MuisException e) {
+				isOVError = true;
+				theController.onError(e);
+				throw e;
 			}
-			return ret;
+			isOVError = false;
+			T oldValue = theLastGoodValue;
+			ObservableValue<? extends T> oldObservable = theContainedObservable;
+			theContainedObservable = observable;
+			theLastGoodValue = value;
+			fire(oldValue, value);
+			theContainerController.onNext(new ObservableValueEvent<>(theContainerObservable, oldObservable, theContainedObservable, null));
+			observable.takeUntil(theContainerObservable).act(evt -> {
+				try {
+					checkValue(evt.getValue());
+				} catch(MuisException e) {
+					isOVError = true;
+					theController.onError(e);
+					return;
+				}
+				isOVError = false;
+				T oldEventValue = theLastGoodValue;
+				theLastGoodValue = evt.getValue();
+				fire(oldEventValue, evt.getValue());
+			});
 		}
 
-		void valueModelChanged() throws MuisException {
-			set(theFormattedValue);
-		}
-
-		private final void setInternal(T value) throws MuisException {
+		private void checkValue(T value) throws MuisException {
 			if(value == null && isRequired())
 				throw new MuisException("Attribute " + theAttr + " is required--cannot be set to null");
 			if(value != null) {
@@ -111,11 +161,13 @@ public class AttributeManager {
 				if(theAttr.getValidator() != null)
 					theAttr.getValidator().assertValid(value);
 			}
-			Object old = theValue;
-			theValue = value;
+		}
+
+		private void fire(T oldValue, T value) {
 			theStackChecker++;
 			final int stackCheck = theStackChecker;
-			AttributeChangedEvent<T> evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(old), value, null) {
+			AttributeChangedEvent<T> evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(oldValue), value,
+				null) {
 				@Override
 				public boolean isOverridden() {
 					return stackCheck != theStackChecker;
@@ -123,57 +175,6 @@ public class AttributeManager {
 			};
 			theController.onNext(evt);
 			theElement.events().fire(evt);
-		}
-
-		private final void resetModelWatchers(String formattedValue) throws org.muis.core.parser.MuisParseException {
-			if(java.util.Objects.equals(theFormattedValue, formattedValue))
-				return;
-			theFormattedValue = formattedValue;
-			ObservableValue<?> [] values = getModelValues(formattedValue);
-			synchronized(theModelWatcherLock) {
-				theModelWatchers = prisms.util.ArrayUtils.adjust(theModelWatchers, values,
-					new prisms.util.ArrayUtils.DifferenceListener<AttributeModelWatcher, ObservableValue<?>>() {
-						@Override
-						public boolean identity(AttributeModelWatcher o1, ObservableValue<?> o2) {
-							return o1.getModelValue() == o2;
-						}
-
-						@Override
-						public AttributeModelWatcher added(ObservableValue<?> o, int mIdx, int retIdx) {
-							return new AttributeModelWatcher(AttributeHolder.this, o);
-						}
-
-						@Override
-						public AttributeModelWatcher removed(AttributeModelWatcher o, int oIdx, int incMod, int retIdx) {
-							o.remove();
-							return null;
-						}
-
-						@Override
-						public AttributeModelWatcher set(AttributeModelWatcher o1, int idx1, int incMod, ObservableValue<?> o2, int idx2,
-							int retIdx) {
-							return o1;
-						}
-					});
-			}
-		}
-
-		private final ObservableValue<?> [] getModelValues(String value) throws org.muis.core.parser.MuisParseException {
-			if(value == null)
-				return new MuisModelValue[0];
-			java.util.ArrayList<ObservableValue<?>> ret = new java.util.ArrayList<>();
-			int next = 0;
-			while(next >= 0) {
-				next = theElement.getValueParser().getNextMVR(value, next);
-				if(next >= 0) {
-					String extracted = theElement.getValueParser().extractMVR(value, next);
-					ObservableValue<?> modelValue = theElement.getValueParser().parseMVR(extracted);
-					if(!ret.contains(modelValue))
-						ret.add(modelValue);
-					next += extracted.length();
-				}
-			}
-			return ret.toArray(new ObservableValue[ret.size()]);
 		}
 
 		synchronized void addWanter(Object wanter, boolean isNeeder) {
@@ -239,33 +240,6 @@ public class AttributeManager {
 		}
 	}
 
-	class AttributeModelWatcher {
-		private AttributeHolder<?> theAttribute;
-		private ObservableValue<?> theModelValue;
-		private Subscription<?> theSubscription;
-
-		AttributeModelWatcher(AttributeHolder<?> att, ObservableValue<?> value) {
-			theAttribute = att;
-			theModelValue = value;
-			theSubscription = theModelValue.act(val -> {
-				try {
-					theAttribute.valueModelChanged();
-				} catch(MuisException e) {
-					theElement.msg().error("Failed to re-parse or set attribute on model change", e, "attribute",
-						theAttribute.getAttribute());
-				}
-			});
-		}
-
-		ObservableValue<?> getModelValue() {
-			return theModelValue;
-		}
-
-		void remove() {
-			theSubscription.unsubscribe();
-		}
-	}
-
 	private ConcurrentHashMap<MuisAttribute<?>, AttributeHolder<?>> theAcceptedAttrs;
 	private ConcurrentHashMap<String, MuisAttribute<?>> theAttributesByName;
 	private ConcurrentHashMap<String, String> theRawAttributes;
@@ -313,6 +287,7 @@ public class AttributeManager {
 	}
 
 	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to get the holder for
 	 * @return The attribute holder for the given attribute, or null if the given attribute is not accepted in this manager
 	 */

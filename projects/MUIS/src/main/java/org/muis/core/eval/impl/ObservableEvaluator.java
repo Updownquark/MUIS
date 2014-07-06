@@ -14,10 +14,11 @@ public class ObservableEvaluator extends PrismsEvaluator {
 
 	/** Creates the evaluator */
 	public ObservableEvaluator() {
-		theObservableEvaluators = new prisms.util.SubClassMap<ParsedItem, ObservableItemEvaluator<?>>();
+		theObservableEvaluators = new prisms.util.SubClassMap<>();
 	}
 
 	/**
+	 * @param <T> The subtype of parsed item to add the evaluator for
 	 * @param type The type of item to support observable evaluation for
 	 * @param evaluator The observable evaluator for the given type
 	 */
@@ -26,6 +27,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 	}
 
 	/**
+	 * @param <T> The subtype of parsed item to get the evaluator for
 	 * @param type The type to get observable evaluation support for
 	 * @return The observable evaluator for the given type
 	 */
@@ -85,7 +87,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 					} catch(EvaluationException e) {
 						throw new IllegalStateException("Value evaluation failed", e);
 					}
-					ObservableValueEvent<Object> event = new ObservableValueEvent<Object>(ret, oldValue, newValue, value);
+					ObservableValueEvent<Object> event = new ObservableValueEvent<>(ret, oldValue, newValue, value);
 					controller.onNext(event);
 				}
 

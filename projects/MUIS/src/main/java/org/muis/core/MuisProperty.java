@@ -6,16 +6,16 @@ import java.net.URL;
 import java.util.*;
 
 import org.muis.core.eval.impl.ObservableEvaluator;
-import org.muis.core.eval.impl.ObservableItemEvaluator;
 import org.muis.core.eval.impl.ParsedColor;
 import org.muis.core.parser.MuisParseException;
+import org.muis.core.parser.WrappingObservableEvaluator;
+import org.muis.core.parser.WrappingPrismsParser;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.Colors;
 import org.muis.util.MuisUtils;
 
 import prisms.arch.PrismsConfig;
 import prisms.lang.*;
-import prisms.lang.eval.PrismsItemEvaluator;
 import prisms.lang.types.ParsedFunctionDeclaration;
 
 /**
@@ -157,6 +157,8 @@ public abstract class MuisProperty<T> {
 			WrappingObservableEvaluator evaluator = new WrappingObservableEvaluator(env.getValueParser().getEvaluator());
 			EvaluationEnvironment evalEnv = env.getValueParser().getEvaluationEnvironment().scope(true);
 			mutate(parser, evaluator, evalEnv);
+			parser.validateConfig();
+			evaluator.seal();
 
 			ParsedItem item;
 			try {
@@ -217,117 +219,6 @@ public abstract class MuisProperty<T> {
 			return env.getValueParser().parse(text.substring(2, text.length() - 1));
 		else
 			return null;
-	}
-
-	private static class WrappingPrismsParser extends PrismsParser {
-		private final PrismsParser theWrapped;
-		private final SortedSet<PrismsConfig> theExtraOps;
-		private final java.util.Map<String, PrismsConfig> theExtraOpsByName;
-		private final List<String> theExtraTerminators;
-		private final java.util.Set<String> theClearedTerminators;
-		private final List<String> theExtraIgnorables;
-		private final org.muis.util.AggregateSortedSet<PrismsConfig> theAggregateOps;
-		private final org.muis.util.AggregateList<String> theAggregateTerminators;
-		private final org.muis.util.AggregateList<String> theAggregateIgnorables;
-
-		WrappingPrismsParser(PrismsParser wrap) {
-			theWrapped = wrap;
-			theExtraOps = new java.util.TreeSet<>(theWrapped.getOperators().comparator());
-			theExtraOpsByName = new java.util.HashMap<>();
-			theExtraTerminators = new java.util.ArrayList<>();
-			theClearedTerminators = new java.util.HashSet<>();
-			theExtraIgnorables = new java.util.ArrayList<>();
-			theAggregateOps = new org.muis.util.AggregateSortedSet<>(theExtraOps, theWrapped.getOperators());
-			theAggregateTerminators = new org.muis.util.AggregateList<>(theClearedTerminators, theWrapped.getTerminators(),
-				theExtraTerminators);
-			theAggregateIgnorables = new org.muis.util.AggregateList<>(null, theWrapped.getIgnorables(), theExtraIgnorables);
-		}
-
-		@Override
-		public SortedSet<PrismsConfig> getOperators() {
-			return theAggregateOps;
-		}
-
-		@Override
-		public PrismsConfig getOperator(String name) {
-			PrismsConfig ret = theExtraOpsByName.get(name);
-			if(ret == null)
-				ret = theWrapped.getOperator(name);
-			return ret;
-		}
-
-		@Override
-		public void addTerminator(String terminator) {
-			theExtraTerminators.add(terminator);
-		}
-
-		@Override
-		public void removeTerminator(String terminator) {
-			theClearedTerminators.add(terminator);
-		}
-
-		@Override
-		public void clearTerminators() {
-			theExtraTerminators.clear();
-			theClearedTerminators.clear();
-			theClearedTerminators.addAll(theWrapped.getTerminators());
-		}
-
-		@Override
-		public List<String> getTerminators() {
-			return theAggregateTerminators;
-		}
-
-		@Override
-		public List<String> getIgnorables() {
-			return theAggregateIgnorables;
-		}
-
-		@Override
-		protected void operatorAdded(PrismsConfig op) {
-			theExtraOps.add(op);
-			theExtraOpsByName.put(op.get("name"), op);
-			if(op.is("ignorable", false))
-				theExtraIgnorables.add(op.get("name"));
-		}
-	}
-
-	private static class WrappingObservableEvaluator extends ObservableEvaluator {
-		private final ObservableEvaluator theWrapped;
-		private final prisms.util.SubClassMap<ParsedItem, PrismsItemEvaluator<?>> theExtraEvaluators;
-		private final prisms.util.SubClassMap<ParsedItem, ObservableItemEvaluator<?>> theExtraObservableEvaluators;
-
-		WrappingObservableEvaluator(ObservableEvaluator wrap) {
-			theWrapped = wrap;
-			theExtraEvaluators = new prisms.util.SubClassMap<>();
-			theExtraObservableEvaluators = new prisms.util.SubClassMap<>();
-		}
-
-		@Override
-		public <T extends ParsedItem> void addEvaluator(Class<T> type, PrismsItemEvaluator<? super T> evaluator) {
-			theExtraEvaluators.put(type, evaluator);
-		}
-
-		@Override
-		public <T extends ParsedItem> void addEvaluator(Class<T> type, ObservableItemEvaluator<? super T> evaluator) {
-			theExtraObservableEvaluators.put(type, evaluator);
-		}
-
-		@Override
-		public <T extends ParsedItem> PrismsItemEvaluator<? super T> getEvaluatorFor(Class<T> type) {
-			PrismsItemEvaluator<?> ret = theExtraEvaluators.get(type);
-			if(ret != null)
-				return (PrismsItemEvaluator<T>) ret;
-			return theWrapped.getEvaluatorFor(type);
-		}
-
-		@Override
-		public <T extends ParsedItem> ObservableItemEvaluator<? super T> getObservableEvaluatorFor(Class<T> type) {
-			ObservableItemEvaluator<?> ret = theExtraObservableEvaluators.get(type);
-			if(ret != null)
-				return (ObservableItemEvaluator<T>) ret;
-			return theWrapped.getObservableEvaluatorFor(type);
-		}
 	}
 
 	private final String theName;

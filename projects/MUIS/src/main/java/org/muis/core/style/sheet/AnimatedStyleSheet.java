@@ -326,8 +326,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		if(value == null)
 			value = (T) new ConstantItem(attr.getType().getType(), null);
 		else if(!(value instanceof ParsedItem))
-			value = (T) new ConstantItem(value.getClass(), value);
-		return new StyleExpressionEvalValue<StateGroupTypeExpression<?>, T>(this, attr, exp, (ParsedItem) value);
+			value = (T) new ConstantItem(new prisms.lang.Type(value.getClass()), value);
+		return new StyleExpressionEvalValue<>(this, attr, exp, (ParsedItem) value);
 	}
 
 	/**

@@ -11,8 +11,8 @@ public class ConstantItem extends ParsedItem {
 	 * @param type The type of the value
 	 * @param value The value
 	 */
-	public ConstantItem(Class<?> type, Object value) {
-		theValue = new EvaluationResult(new prisms.lang.Type(type), value);;
+	public ConstantItem(prisms.lang.Type type, Object value) {
+		theValue = new EvaluationResult(type, value);
 	}
 
 	/** @return This item's type and value */

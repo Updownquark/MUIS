@@ -21,8 +21,11 @@ public class ObservableEvaluator extends PrismsEvaluator {
 	 * @param <T> The subtype of parsed item to add the evaluator for
 	 * @param type The type of item to support observable evaluation for
 	 * @param evaluator The observable evaluator for the given type
+	 * @throws SealedException If this evaluator has been {@link #seal() sealed}
 	 */
-	public <T extends ParsedItem> void addEvaluator(Class<T> type, ObservableItemEvaluator<? super T> evaluator) {
+	public <T extends ParsedItem> void addEvaluator(Class<T> type, ObservableItemEvaluator<? super T> evaluator) throws SealedException {
+		if(isSealed())
+			throw new SealedException(this);
 		theObservableEvaluators.put(type, evaluator);
 	}
 

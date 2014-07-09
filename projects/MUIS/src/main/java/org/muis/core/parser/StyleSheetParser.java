@@ -1226,10 +1226,10 @@ public class StyleSheetParser {
 				if(var.getName().equals(text))
 					return value;
 			}
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text));
+			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text).get());
 		} else if(value instanceof prisms.lang.types.ParsedString) {
 			String text = ((prisms.lang.types.ParsedString) value).getValue();
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text));
+			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text).get());
 		} else {
 			for(ParsedItem depend : value.getDependents()) {
 				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, env);

@@ -356,7 +356,6 @@ public abstract class MuisElement implements MuisParseEnv {
 	}
 
 	/** @return The document that this element belongs to */
-	@Override
 	public final MuisDocument doc() {
 		return theDocument;
 	}

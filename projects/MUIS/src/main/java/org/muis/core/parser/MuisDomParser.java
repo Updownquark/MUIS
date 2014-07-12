@@ -334,8 +334,8 @@ public class MuisDomParser implements MuisParser {
 				return null;
 			}
 			try {
-				ParsedStyleSheet ret = theStyleSheetParser.parse(
-					new SimpleParseEnv(new MuisClassView(theEnvironment, classView, null), msg), ssLoc, theEnvironment);
+				ParsedStyleSheet ret = theStyleSheetParser.parse(new SimpleParseEnv(new MuisClassView(theEnvironment, classView, null),
+					msg, theEnvironment.getValueParser()), ssLoc, theEnvironment);
 				ret.setLocation(ssLoc);
 				// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to the
 				// EventQueue somehow
@@ -546,10 +546,12 @@ public class MuisDomParser implements MuisParser {
 	private static class SimpleParseEnv implements MuisParseEnv {
 		private final MuisClassView theClassView;
 		private final MuisMessageCenter theMsg;
+		private final MuisValueReferenceParser theModelParser;
 
-		SimpleParseEnv(MuisClassView cv, MuisMessageCenter msg) {
+		SimpleParseEnv(MuisClassView cv, MuisMessageCenter msg, MuisValueReferenceParser parser) {
 			theClassView = cv;
 			theMsg = msg;
+			theModelParser = parser;
 		}
 
 		@Override
@@ -563,13 +565,8 @@ public class MuisDomParser implements MuisParser {
 		}
 
 		@Override
-		public MuisDocument doc() {
-			return null;
-		}
-
-		@Override
 		public MuisValueReferenceParser getValueParser() {
-			return DefaultModelValueReferenceParser.BASE;
+			return theModelParser;
 		}
 	}
 }

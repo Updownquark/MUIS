@@ -1,12 +1,14 @@
 package org.muis.core;
 
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.model.MuisValueReferenceParser;
+import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContentCreator;
 import org.muis.core.parser.MuisParser;
 import org.muis.core.style.sheet.StyleSheet;
 
 /** The environment that MUIS documents operate in */
-public class MuisEnvironment {
+public class MuisEnvironment implements MuisParseEnv {
 	/** The location of the core toolkit */
 	public static final java.net.URL CORE_TOOLKIT = MuisEnvironment.class.getResource("/MuisRegistry.xml");
 
@@ -31,6 +33,8 @@ public class MuisEnvironment {
 
 	private final Object theToolkitLock;
 
+	private DefaultModelValueReferenceParser theMVP;
+
 	/** Creates a MUIS environment */
 	public MuisEnvironment() {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
@@ -38,6 +42,19 @@ public class MuisEnvironment {
 		theCache = new MuisCache();
 		theStyle = new EnvironmentStyle();
 		theToolkitLock = new Object();
+		theMVP = new DefaultModelValueReferenceParser(null);
+	}
+
+	@Override
+	public MuisClassView cv() {
+		MuisClassView ret = new MuisClassView(this, null, getCoreToolkit());
+		ret.seal();
+		return ret;
+	}
+
+	@Override
+	public MuisValueReferenceParser getValueParser() {
+		return theMVP;
 	}
 
 	/** @return The parser for the environment */
@@ -73,6 +90,7 @@ public class MuisEnvironment {
 	 * @return The message center for this environment
 	 * @see #getMessageCenter()
 	 */
+	@Override
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
 	}

@@ -9,8 +9,6 @@ public interface MuisParseEnv {
 	MuisClassView cv();
 	/** @return The message center to report parsing errors to */
 	MuisMessageCenter msg();
-	/** @return The document in the scope of this environment. May be null. */
-	MuisDocument doc();
 	/** @return The parser to parse reference values with */
 	MuisValueReferenceParser getValueParser();
 }

@@ -112,7 +112,7 @@ public class MuisDocument {
 		theParser = parser;
 		theLocation = location;
 		theHead = head;
-		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(this);
+		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser());
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);

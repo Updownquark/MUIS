@@ -5,14 +5,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Set;
 
-import org.muis.core.*;
+import org.muis.core.MuisClassView;
+import org.muis.core.MuisException;
+import org.muis.core.MuisParseEnv;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.mgr.MuisMessage.Type;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisDocumentModel.StyledSequence;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.MuisParseException;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.*;
 
 /** Parses and formats text in the MUIS rich format */
@@ -398,10 +399,7 @@ public class MuisRichTextParser {
 
 	private static class NoMVParseEnv implements MuisParseEnv {
 		private final MuisParseEnv theWrapped;
-
 		private final MuisMessageCenter theMsg;
-
-		private final MuisValueReferenceParser theMVRParser;
 
 		NoMVParseEnv(MuisParseEnv wrap) {
 			theWrapped = wrap;
@@ -411,12 +409,6 @@ public class MuisRichTextParser {
 					if(type.compareTo(Type.ERROR) >= 0)
 						throw new MuisExceptionWrapper(text, exception);
 					super.message(type, text, cause, exception, params);
-				}
-			};
-			theMVRParser = new MuisValueReferenceParser() {
-				@Override
-				public ObservableValue<?> parse(String mvr) throws MuisParseException {
-					return null;
 				}
 			};
 		}
@@ -432,13 +424,8 @@ public class MuisRichTextParser {
 		}
 
 		@Override
-		public MuisDocument doc() {
-			return theWrapped.doc();
-		}
-
-		@Override
 		public MuisValueReferenceParser getValueParser() {
-			return theMVRParser;
+			return theWrapped.getValueParser();
 		}
 	}
 

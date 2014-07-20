@@ -116,6 +116,16 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	}
 
 	/**
+	 * @param <X> The compile-time type of the value to wrap
+	 * @param type The run-time type of the value to wrap
+	 * @param value The value to wrap
+	 * @return An observable that always returns the given value
+	 */
+	public static <X> ObservableValue<X> constant(final Type type, final X value) {
+		return new ConstantObservableValue<>(type, value);
+	}
+
+	/**
 	 * An observable value whose value cannot change
 	 *
 	 * @param <T> The type of this value

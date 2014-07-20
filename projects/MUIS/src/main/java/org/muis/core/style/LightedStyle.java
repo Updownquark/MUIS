@@ -41,7 +41,7 @@ public class LightedStyle implements StyleDomain {
 		instance.register(lightColor);
 		shadowColor = new StyleAttribute<>(instance, "shadow", MuisAttribute.colorAttr, Color.black);
 		instance.register(shadowColor);
-		maxShadingAmount = new StyleAttribute<>(instance, "max-amount", MuisAttribute.amountAttr, .5,
+		maxShadingAmount = new StyleAttribute<>(instance, "max-amount", MuisAttribute.floatAttr, .5,
 			new MuisProperty.ComparableValidator<>(0d, 1d));
 	}
 

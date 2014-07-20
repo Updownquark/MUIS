@@ -5,6 +5,9 @@ import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
 import org.muis.core.parser.MuisParseException;
+import org.muis.core.rx.ObservableValue;
+
+import prisms.lang.Type;
 
 /** Attributes pertaining to models */
 public class ModelAttributes {
@@ -23,25 +26,25 @@ public class ModelAttributes {
 	static {
 		actionType = new MuisProperty.PropertyType<MuisActionListener>() {
 			@Override
-			public <V extends MuisActionListener> Class<V> getType() {
-				return (Class<V>) MuisActionListener.class;
+			public Type getType() {
+				return new Type(MuisActionListener.class);
 			}
 
 			@Override
-			public <V extends MuisActionListener> V parse(MuisParseEnv env, String attValue) throws MuisException {
+			public ObservableValue<? extends MuisActionListener> parse(MuisParseEnv env, String attValue) throws MuisException {
 				MuisDocument doc = env.msg().getDocument();
 				if(doc == null)
 					throw new IllegalArgumentException("Cannot get actions without document context");
 				String [] entries = attValue.split(",");
 				if(entries.length == 0)
-					return null;
+					return ObservableValue.constant(new Type(MuisActionListener.class), (MuisActionListener) null);
 				if(entries.length == 1)
-					return (V) getModelActionListener(doc, entries[0].trim());
+					return ObservableValue.constant(getModelActionListener(doc, entries[0].trim()));
 				else {
 					AggregateActionListener agg = new AggregateActionListener();
 					for(String entry : entries)
 						agg.addListener(getModelActionListener(doc, entry.trim()));
-					return (V) agg;
+					return ObservableValue.constant(agg);
 				}
 			}
 

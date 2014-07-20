@@ -84,7 +84,7 @@ public class FontStyle implements StyleDomain {
 		instance.register(family);
 		color = new StyleAttribute<>(instance, "color", MuisAttribute.colorAttr, Color.black);
 		instance.register(color);
-		transparency = new StyleAttribute<>(instance, "transparency", MuisAttribute.amountAttr, 0d, new MuisProperty.ComparableValidator<>(
+		transparency = new StyleAttribute<>(instance, "transparency", MuisAttribute.floatAttr, 0d, new MuisProperty.ComparableValidator<>(
 			0d, 1d));
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
@@ -102,7 +102,7 @@ public class FontStyle implements StyleDomain {
 		weight = new StyleAttribute<>(instance, "weight", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, weights), 1d,
 			new MuisProperty.ComparableValidator<>(0.25d, 3d));
 		instance.register(weight);
-		slant = new StyleAttribute<Double>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.amountAttr, "normal",
+		slant = new StyleAttribute<Double>(instance, "slant", new MuisProperty.NamedValuePropertyType<>(MuisAttribute.floatAttr, "normal",
 			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new MuisProperty.ComparableValidator<>(-1d, 1d));
 		instance.register(slant);
 		underline = new StyleAttribute<>(instance, "underline", new MuisProperty.MuisEnumProperty<>(Underline.class), Underline.none);
@@ -119,8 +119,8 @@ public class FontStyle implements StyleDomain {
 		instance.register(antiAlias);
 		wordWrap = new StyleAttribute<>(instance, "word-wrap", MuisAttribute.boolAttr, true);
 		instance.register(wordWrap);
-		stretch = new StyleAttribute<>(instance, "stretch", MuisAttribute.amountAttr, 1d, new MuisProperty.ComparableValidator<>(0.05d,
-			100d));
+		stretch = new StyleAttribute<>(instance, "stretch", MuisAttribute.floatAttr, 1d,
+			new MuisProperty.ComparableValidator<>(0.05d, 100d));
 		instance.register(stretch);
 	}
 

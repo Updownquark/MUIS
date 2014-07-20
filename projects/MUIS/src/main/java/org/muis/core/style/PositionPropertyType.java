@@ -3,6 +3,9 @@ package org.muis.core.style;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
+import org.muis.core.rx.ObservableValue;
+
+import prisms.lang.Type;
 
 /** An attribute type that validates and parses instances of {@link Position} from an attribute value */
 public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Position> implements
@@ -12,13 +15,15 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 	public static final PositionPropertyType instance = new PositionPropertyType();
 
 	@Override
-	public Position parse(MuisParseEnv env, String value) throws MuisException {
-		if(env.getValueParser().getNextMVR(value, 0) == 0) {
-			org.muis.core.rx.ObservableValue<?> modelValue = env.getValueParser().parseMVR(value);
+	public ObservableValue<? extends Position> parse(MuisParseEnv env, String value) throws MuisException {
+		ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, value);
+		if(modelValue != null) {
 			if(modelValue.getType().canAssignTo(Position.class))
-				return (Position) modelValue.get();
+				return (ObservableValue<? extends Position>) modelValue;
 			else if(modelValue.getType().canAssignTo(Number.class))
-				return new Position(((Number) modelValue.get()).floatValue(), LengthUnit.pixels);
+				return ((ObservableValue<? extends Number>) modelValue).mapV(val -> {
+					return new Position(val.floatValue(), LengthUnit.pixels);
+				});
 			else
 				throw new MuisException("Model value " + value + ", type " + modelValue.getType() + " is not compatible with position.");
 		}
@@ -38,11 +43,11 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 		number = number.substring(neg ? 1 : 0, c);
 		int lengthVal = Integer.parseInt(number);
 		if(c == value.length())
-			return new Position(lengthVal, LengthUnit.pixels); // Default unit
+			return ObservableValue.constant(new Position(lengthVal, LengthUnit.pixels)); // Default unit
 		String unitString = value.substring(c);
 		for(LengthUnit u : LengthUnit.values())
 			if(u.attrValue.equals(unitString))
-				return new Position(lengthVal, u);
+				return ObservableValue.constant(new Position(lengthVal, u));
 		throw new IllegalArgumentException(propName() + ": " + value + " is not a valid position unit");
 	}
 
@@ -58,8 +63,8 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 	}
 
 	@Override
-	public Class<Position> getType() {
-		return Position.class;
+	public Type getType() {
+		return new Type(Position.class);
 	}
 
 	@Override

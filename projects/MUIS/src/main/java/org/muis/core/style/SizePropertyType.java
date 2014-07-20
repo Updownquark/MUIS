@@ -3,6 +3,9 @@ package org.muis.core.style;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
+import org.muis.core.rx.ObservableValue;
+
+import prisms.lang.Type;
 
 /** An attribute type that validates and parses instances of {@link Size} from an attribute value */
 public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> implements MuisProperty.PrintablePropertyType<Size>
@@ -11,13 +14,15 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 	public static final SizePropertyType instance = new SizePropertyType();
 
 	@Override
-	public Size parse(MuisParseEnv env, String value) throws org.muis.core.MuisException {
-		if(env.getValueParser().getNextMVR(value, 0) == 0) {
-			org.muis.core.rx.ObservableValue<?> modelValue = env.getValueParser().parseMVR(value);
+	public ObservableValue<? extends Size> parse(MuisParseEnv env, String value) throws org.muis.core.MuisException {
+		ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, value);
+		if(modelValue != null) {
 			if(modelValue.getType().canAssignTo(Size.class))
-				return (Size) modelValue.get();
+				return (ObservableValue<? extends Size>) modelValue;
 			else if(modelValue.getType().canAssignTo(Number.class))
-				return new Size(((Number) modelValue.get()).floatValue(), LengthUnit.pixels);
+				return ((ObservableValue<? extends Number>) modelValue).mapV(val -> {
+					return new Size(val.floatValue(), LengthUnit.pixels);
+				});
 			else
 				throw new MuisException("Model value " + value + ", type " + modelValue.getType() + " is not compatible with position.");
 		}
@@ -37,11 +42,11 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 		number = number.substring(neg ? 1 : 0, c);
 		int lengthVal = Integer.parseInt(number);
 		if(c == value.length())
-			return new Size(lengthVal, LengthUnit.pixels); // Default unit
+			return ObservableValue.constant(new Size(lengthVal, LengthUnit.pixels)); // Default unit
 		String unitString = value.substring(c);
 		for(LengthUnit u : LengthUnit.values())
 			if(u.isSize() && u.attrValue.equals(unitString))
-				return new Size(lengthVal, u);
+				return ObservableValue.constant(new Size(lengthVal, u));
 		throw new IllegalArgumentException(propName() + ": " + value + " is not a valid size unit");
 	}
 
@@ -57,8 +62,8 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 	}
 
 	@Override
-	public Class<Size> getType() {
-		return Size.class;
+	public Type getType() {
+		return new Type(Size.class);
 	}
 
 	@Override

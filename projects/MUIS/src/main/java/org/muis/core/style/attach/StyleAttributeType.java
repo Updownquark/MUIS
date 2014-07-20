@@ -4,7 +4,10 @@ import org.muis.core.MuisAttribute;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.*;
+
+import prisms.lang.Type;
 
 /** The attribute type to parse styles */
 public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisStyle> implements
@@ -20,13 +23,13 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 	}
 
 	@Override
-	public Class<ElementStyle> getType() {
-		return ElementStyle.class;
+	public Type getType() {
+		return new Type(ElementStyle.class);
 	}
 
 	@Override
-	public MuisStyle parse(MuisParseEnv env, String value) throws MuisException {
-		return parseStyle(env, value);
+	public ObservableValue<MuisStyle> parse(MuisParseEnv env, String value) throws MuisException {
+		return ObservableValue.constant(parseStyle(env, value));
 	}
 
 	/**

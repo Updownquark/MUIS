@@ -5,6 +5,9 @@ import java.awt.Cursor;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
+import org.muis.core.rx.ObservableValue;
+
+import prisms.lang.Type;
 
 /**
  * Contains style attributes pertaining to the background of a widget. These styles are supported by {@link org.muis.core.MuisElement} and
@@ -58,32 +61,37 @@ public class BackgroundStyle implements StyleDomain {
 	/** The property type for cursor properties */
 	public static MuisProperty.PropertyType<Cursor> CURSOR_PROPERTY_TYPE = new MuisProperty.AbstractPropertyType<Cursor>() {
 		@Override
-		public Class<Cursor> getType() {
-			return Cursor.class;
+		public Type getType() {
+			return new Type(Cursor.class);
 		}
 
 		@Override
-		public Cursor parse(MuisParseEnv env, String parseValue) throws MuisException {
-			if(env.getValueParser().getNextMVR(parseValue, 0) == 0) {
-				org.muis.core.rx.ObservableValue<?> modelValue = env.getValueParser().parseMVR(parseValue);
+		public ObservableValue<? extends Cursor> parse(MuisParseEnv env, String parseValue) throws MuisException {
+			ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, parseValue);
+			if(modelValue != null) {
 				if(modelValue.getType().canAssignTo(Cursor.class))
-					return (Cursor) modelValue.get();
+					return (ObservableValue<? extends Cursor>) modelValue;
 				else if(modelValue.getType().canAssignTo(String.class)) {
-					String mv = (String) modelValue.get();
-					for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
-						if(preDef.display.equals(mv))
-							return Cursor.getPredefinedCursor(preDef.type);
-					}
-					throw new MuisException("No predefined cursor named " + mv);
+					return ((ObservableValue<String>) modelValue).mapV(str -> {
+						try {
+							return parseCursor(str);
+						} catch(Exception e) {
+							throw new IllegalStateException(e);
+						}
+					});
 				} else
 					throw new MuisException("Model value " + parseValue + " is not of type cursor");
 			}
+			return ObservableValue.constant(parseCursor(parseValue));
+		}
+
+		private Cursor parseCursor(String text) throws MuisException {
 			for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
-				if(preDef.display.equals(parseValue))
+				if(preDef.display.equals(text))
 					return Cursor.getPredefinedCursor(preDef.type);
 			}
 			// TODO Support custom cursors
-			throw new org.muis.core.MuisException("Custom cursors are not supported yet");
+			throw new MuisException("Custom cursors are not supported yet");
 		}
 
 		@Override
@@ -128,7 +136,7 @@ public class BackgroundStyle implements StyleDomain {
 		instance.register(texture);
 		color = new StyleAttribute<>(instance, "color", MuisProperty.colorAttr, new java.awt.Color(255, 255, 255));
 		instance.register(color);
-		transparency = new StyleAttribute<>(instance, "transparency", MuisProperty.amountAttr, 0d, new MuisProperty.ComparableValidator<>(
+		transparency = new StyleAttribute<>(instance, "transparency", MuisProperty.floatAttr, 0d, new MuisProperty.ComparableValidator<>(
 			0d, 1d));
 		instance.register(transparency);
 		cornerRadius = new StyleAttribute<>(instance, "corner-radius", SizePropertyType.instance, new Size(),

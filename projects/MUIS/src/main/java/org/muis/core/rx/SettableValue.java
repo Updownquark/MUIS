@@ -5,9 +5,26 @@ import java.util.function.Function;
 
 import prisms.lang.Type;
 
+/**
+ * An observable value for which a value can be assigned directly
+ *
+ * @param <T> The type of the value
+ */
 public interface SettableValue<T> extends ObservableValue<T> {
-	<V extends T> SettableValue<T> set(V value) throws IllegalArgumentException;
+	/**
+	 * @param value The value to assign to this value
+	 * @param cause Something that may have caused this change
+	 * @return This value, for chaining
+	 * @throws IllegalArgumentException If the value is not acceptable or setting it fails
+	 */
+	<V extends T> SettableValue<T> set(V value, Object cause) throws IllegalArgumentException;
 
+	/**
+	 * @param value The value to check
+	 * @return null if the value is not known to be unacceptable for this value, or an error text if it is known to be unacceptable. A null
+	 *         value returned from this method does not guarantee that a call to {@link #set(Object, Object)} for the same value will not
+	 *         throw an IllegalArgumentException
+	 */
 	<V extends T> String isAcceptable(V value);
 
 	public default <R> SettableValue<R> mapV(Function<? super T, R> function, Function<? super R, ? extends T> reverse) {
@@ -20,8 +37,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			return function.apply((T) args[0]);
 		}, this) {
 			@Override
-			public <V extends R> SettableValue<R> set(V value) throws IllegalArgumentException {
-				root.set(reverse.apply(value));
+			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
+				root.set(reverse.apply(value), cause);
 				return this;
 			}
 
@@ -44,8 +61,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this) {
 			@Override
-			public <V extends R> SettableValue<R> set(V value) throws IllegalArgumentException {
-				root.set(reverse.apply(value, arg.get()));
+			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
+				root.set(reverse.apply(value, arg.get()), cause);
 				return this;
 			}
 
@@ -63,8 +80,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this) {
 			@Override
-			public <V extends R> SettableValue<R> set(V value) throws IllegalArgumentException {
-				root.set(reverse.apply(value, arg.get()));
+			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
+				root.set(reverse.apply(value, arg.get()), cause);
 				return this;
 			}
 
@@ -91,8 +108,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			return function.apply((T) args[0], (U) args[1], (V) args[2]);
 		}, this) {
 			@Override
-			public <V extends R> SettableValue<R> set(V value) throws IllegalArgumentException {
-				root.set(reverse.apply(value, arg2.get(), arg3.get()));
+			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
+				root.set(reverse.apply(value, arg2.get(), arg3.get()), cause);
 				return this;
 			}
 

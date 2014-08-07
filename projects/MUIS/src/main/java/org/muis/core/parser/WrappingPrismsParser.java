@@ -6,6 +6,7 @@ import java.util.SortedSet;
 import prisms.arch.PrismsConfig;
 import prisms.lang.PrismsParser;
 
+/** Wraps a prisms parser, allowing the wrapped parser to remain intact while adding additional operators */
 public class WrappingPrismsParser extends PrismsParser {
 	private final PrismsParser theWrapped;
 	private final SortedSet<PrismsConfig> theExtraOps;
@@ -17,6 +18,7 @@ public class WrappingPrismsParser extends PrismsParser {
 	private final org.muis.util.AggregateList<String> theAggregateTerminators;
 	private final org.muis.util.AggregateList<String> theAggregateIgnorables;
 
+	/** @param wrap The parser to wrap */
 	public WrappingPrismsParser(PrismsParser wrap) {
 		theWrapped = wrap;
 		theExtraOps = new java.util.TreeSet<>(theWrapped.getOperators().comparator());

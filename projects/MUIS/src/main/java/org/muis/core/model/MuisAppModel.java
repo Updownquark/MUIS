@@ -1,5 +1,7 @@
 package org.muis.core.model;
 
+import org.muis.core.rx.ObservableValue;
+
 /** Contains values and sub models that define how MUIS widgets present and alter their data */
 public interface MuisAppModel {
 	/**
@@ -24,7 +26,7 @@ public interface MuisAppModel {
 	 * @return The value with the given name, or null if no such value exists in this model
 	 * @throws ClassCastException If the given value exists in this model, but is not of the given type
 	 */
-	<T> MuisModelValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException;
+	<T> ObservableValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException;
 
 	/**
 	 * @param name The name of the action to get the listener for

@@ -15,13 +15,13 @@ public class ModelAttributes {
 	public static final MuisProperty.PropertyType<MuisActionListener> actionType;
 
 	/** The tyep of attribute to set for the user to specify a value */
-	public static final MuisProperty.PropertyType<MuisModelValue<?>> valueType;
+	public static final MuisProperty.PropertyType<ObservableValue<?>> valueType;
 
 	/** The "action" attribute on an actionable widget */
 	public static final org.muis.core.MuisAttribute<MuisActionListener> action;
 
 	/** The "value" attribute on a value-modeled widget */
-	public static final org.muis.core.MuisAttribute<MuisModelValue<?>> value;
+	public static final org.muis.core.MuisAttribute<ObservableValue<?>> value;
 
 	static {
 		actionType = new MuisProperty.PropertyType<MuisActionListener>() {
@@ -57,28 +57,8 @@ public class ModelAttributes {
 			}
 		};
 
-		valueType = new MuisProperty.PropertyType<MuisModelValue<?>>() {
-			@Override
-			public <V extends MuisModelValue<?>> Class<V> getType() {
-				return (Class<V>) MuisModelValue.class;
-			}
-
-			@Override
-			public <V extends MuisModelValue<?>> V parse(MuisParseEnv env, String attValue) throws MuisException {
-				MuisDocument doc = env.msg().getDocument();
-				if(doc == null)
-					throw new IllegalArgumentException("Cannot get model values without document context");
-				return (V) getModelValue(doc, attValue);
-			}
-
-			@Override
-			public <V extends MuisModelValue<?>> V cast(Object attValue) {
-				if(attValue instanceof MuisModelValue)
-					return (V) attValue;
-				else
-					return null;
-			}
-		};
+		valueType = new MuisProperty.PrismsParsedPropertyType<ObservableValue<?>>(new Type(ObservableValue.class, new Type(new Type(
+			Object.class), true)));
 
 		action = new org.muis.core.MuisAttribute<>("action", actionType);
 		value = new org.muis.core.MuisAttribute<>("value", valueType);
@@ -124,13 +104,13 @@ public class ModelAttributes {
 	 * @return The parsed model value, or null if parsing failed (errors reported to the message center)
 	 * @throws MuisParseException If the model cannot be parsed from the value
 	 */
-	public static MuisModelValue<?> getModelValue(MuisDocument doc, String att) throws MuisParseException {
+	public static ObservableValue<?> getModelValue(MuisDocument doc, String att) throws MuisParseException {
 		StringBuilder name = new StringBuilder();
 		MuisAppModel model = getModel(doc, att, "value", name);
 		if(model == null)
 			return null;
 		String [] div = att.split("\\.");
-		MuisModelValue<?> ret = model.getValue(div[div.length - 1], Object.class);
+		ObservableValue<? extends Object> ret = model.getValue(div[div.length - 1], Object.class);
 		if(ret == null) {
 			throw new MuisParseException("Value \"" + div[div.length - 1] + "\" does not exist in model \"" + name + "\".");
 		}

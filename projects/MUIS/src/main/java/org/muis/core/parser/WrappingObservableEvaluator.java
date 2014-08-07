@@ -6,11 +6,13 @@ import org.muis.core.eval.impl.ObservableItemEvaluator;
 import prisms.lang.ParsedItem;
 import prisms.lang.eval.PrismsItemEvaluator;
 
+/** Wraps an evaluator, keeping the wrapped evaluator pristine while adding operator types useable to this evaluator */
 public class WrappingObservableEvaluator extends ObservableEvaluator {
 	private final ObservableEvaluator theWrapped;
 	private final prisms.util.SubClassMap<ParsedItem, PrismsItemEvaluator<?>> theExtraEvaluators;
 	private final prisms.util.SubClassMap<ParsedItem, ObservableItemEvaluator<?>> theExtraObservableEvaluators;
 
+	/** @param wrap The evaluator to wrap */
 	public WrappingObservableEvaluator(ObservableEvaluator wrap) {
 		theWrapped = wrap;
 		theExtraEvaluators = new prisms.util.SubClassMap<>();

@@ -126,6 +126,40 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	}
 
 	/**
+	 * @param type The super type of all observables possibly contained in the given nested observable, or null to use the type of the
+	 *            contained observable
+	 * @param ov The nested observable
+	 * @return An observable value whose value is the value of <code>ov.get()</code>
+	 */
+	public static <T> ObservableValue<T> flatten(final Type type, final ObservableValue<? extends ObservableValue<? extends T>> ov) {
+		DefaultObservableValue<T> ret = new DefaultObservableValue<T>() {
+			@Override
+			public Type getType() {
+				if(type != null)
+					return type;
+				else
+					return ov.getType();
+			}
+
+			@Override
+			public T get() {
+				return ov.get().get();
+			}
+		};
+		Observer<ObservableValueEvent<T>> controller = ret.control(null);
+		ov.act(value -> {
+			ObservableValueEvent<T> evt = new ObservableValueEvent<>(ret, value.getOldValue() == null ? null : value.getOldValue().get(),
+				value.getValue().get(), value.getCause());
+			controller.onNext(evt);
+			value.getValue().takeUntil(ov).act(value2 -> {
+				ObservableValueEvent<T> evt2 = new ObservableValueEvent<>(ret, value2.getOldValue(), value2.getValue(), value2.getCause());
+				controller.onNext(evt2);
+			});
+		});
+		return ret;
+	}
+
+	/**
 	 * An observable value whose value cannot change
 	 *
 	 * @param <T> The type of this value

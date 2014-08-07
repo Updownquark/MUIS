@@ -13,8 +13,11 @@ import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.DefaultMuisModel;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisValueReferenceParser;
+import org.muis.core.rx.SimpleSettableValue;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 import org.muis.util.MuisUtils;
+
+import prisms.lang.Type;
 
 /** Parses MUIS components using the JDOM library */
 public class MuisDomParser implements MuisParser {
@@ -439,9 +442,8 @@ public class MuisDomParser implements MuisParser {
 					Class<?> type = parseType(typeAtt, classView, msg, name + "." + subName, modelEl);
 					if(type == null)
 						continue;
-					org.muis.core.model.DefaultMuisModelValue<?> value = new org.muis.core.model.DefaultMuisModelValue<>(
-						new prisms.lang.Type(type));
-					((org.muis.core.model.DefaultMuisModelValue<Object>) value).set(getDefaultValue(type), null);
+					SimpleSettableValue<?> value = new SimpleSettableValue<>(new Type(type), true);
+					((SimpleSettableValue<Object>) value).set(getDefaultValue(type), null);
 					model.values().put(subName, value);
 					break;
 				default:

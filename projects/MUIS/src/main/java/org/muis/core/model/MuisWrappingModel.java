@@ -5,9 +5,9 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
-import org.muis.core.rx.Subscription;
+import org.muis.core.rx.*;
+
+import prisms.lang.Type;
 
 /** An implementation of MuisAppModel that wraps a POJO and makes its values and models available via reflection */
 public class MuisWrappingModel implements MuisAppModel {
@@ -147,13 +147,13 @@ public class MuisWrappingModel implements MuisAppModel {
 	}
 
 	@Override
-	public <T> MuisModelValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
+	public <T> ObservableValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
 		Object value = theData.get(name);
-		if(!(value instanceof MuisModelValue))
+		if(!(value instanceof ObservableValue))
 			return null;
-		MuisModelValue<?> modelValue = (MuisModelValue<?>) value;
+		ObservableValue<?> modelValue = (ObservableValue<?>) value;
 		if(modelValue.getType().canAssignTo(type))
-			return (MuisModelValue<? extends T>) value;
+			return (ObservableValue<? extends T>) value;
 		else
 			throw new ClassCastException("Model value \"" + name + "\" is of type " + modelValue.getType().getName() + ", not "
 				+ type.getName());
@@ -312,6 +312,21 @@ public class MuisWrappingModel implements MuisAppModel {
 				return false;
 		}
 
+		<V extends T> String isAcceptable(V value) {
+			if(!isMutable())
+				return "MUIS value \"" + theName + "\" is not mutable";
+			if(value == null)
+				return null;
+			Type type;
+			if(theFieldSetter != null)
+				type = new Type(theFieldSetter.getGenericParameterTypes()[0]);
+			else
+				type = new Type(((Field) theFieldGetter).getGenericType());
+			if(!type.isAssignableFrom(value.getClass()))
+				return "Value of type " + value.getClass().getName() + " cannot be assigned to model of type " + type;
+			return null;
+		}
+
 		void set(T value) {
 			if(!isMutable())
 				throw new IllegalStateException("MUIS value \"" + theName + "\" is not mutable");
@@ -350,7 +365,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 	}
 
-	private class MuisMemberValue<T> extends MuisMemberAccessor<T> implements MuisModelValue<T> {
+	private class MuisMemberValue<T> extends MuisMemberAccessor<T> implements SettableValue<T> {
 		private List<Observer<? super ObservableValueEvent<T>>> theListeners;
 
 		MuisMemberValue(Getter<?> appModel, Member member) {
@@ -374,12 +389,18 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public void set(T value, UserEvent userEvent) {
+		public <V extends T> String isAcceptable(V value) {
+			return super.isAcceptable(value);
+		}
+
+		@Override
+		public <V extends T> MuisMemberValue<T> set(V value, Object cause) throws IllegalArgumentException {
 			T oldValue = get();
-			set(value);
-			MuisModelValueEvent<T> valueEvent = new MuisModelValueEvent<>(this, userEvent, oldValue, value);
+			super.set(value);
+			ObservableValueEvent<T> valueEvent = new ObservableValueEvent<T>(this, oldValue, value, cause);
 			for(Observer<? super ObservableValueEvent<T>> listener : theListeners)
 				listener.onNext(valueEvent);
+			return this;
 		}
 
 		@Override

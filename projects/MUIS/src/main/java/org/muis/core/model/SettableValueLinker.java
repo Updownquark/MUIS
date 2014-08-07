@@ -3,6 +3,7 @@ package org.muis.core.model;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.rx.Action;
 import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.SettableValue;
 import org.muis.core.rx.Subscription;
 
 /**
@@ -11,10 +12,10 @@ import org.muis.core.rx.Subscription;
  * @param <T1> The type of the left value
  * @param <T2> The type of the right value
  */
-public class ModelValueLinker<T1, T2> {
+public class SettableValueLinker<T1, T2> {
 	private final MuisMessageCenter theMessaging;
-	private final MuisModelValue<T1> theLeft;
-	private final MuisModelValue<T2> theRight;
+	private final SettableValue<T1> theLeft;
+	private final SettableValue<T2> theRight;
 	private ValueConverter<T1, T2> theLeftToRight;
 	private ValueConverter<T2, T1> theRightToLeft;
 	private final Action<ObservableValueEvent<T1>> theLeftListener;
@@ -28,7 +29,7 @@ public class ModelValueLinker<T1, T2> {
 	 * @param left The left value
 	 * @param right The right value
 	 */
-	public ModelValueLinker(MuisMessageCenter msg, MuisModelValue<T1> left, MuisModelValue<T2> right) {
+	public SettableValueLinker(MuisMessageCenter msg, SettableValue<T1> left, SettableValue<T2> right) {
 		theMessaging = msg;
 		theLeft = left;
 		theRight = right;
@@ -42,7 +43,7 @@ public class ModelValueLinker<T1, T2> {
 				return;
 			theEventLock = true;
 			try {
-				theRight.set(theLeftToRight.convert(evt.getValue()), MuisModelValueEvent.getUserEvent(evt));
+				theRight.set(theLeftToRight.convert(evt.getValue()), evt);
 			} finally {
 				theEventLock = false;
 			}
@@ -57,7 +58,7 @@ public class ModelValueLinker<T1, T2> {
 				return;
 			theEventLock = true;
 			try {
-				theLeft.set(theRightToLeft.convert(evt.getValue()), MuisModelValueEvent.getUserEvent(evt));
+				theLeft.set(theRightToLeft.convert(evt.getValue()), evt);
 			} finally {
 				theEventLock = false;
 			}
@@ -65,12 +66,12 @@ public class ModelValueLinker<T1, T2> {
 	}
 
 	/** @return The left value */
-	public MuisModelValue<T1> getLeft() {
+	public SettableValue<T1> getLeft() {
 		return theLeft;
 	}
 
 	/** @return The right value */
-	public MuisModelValue<T2> getRight() {
+	public SettableValue<T2> getRight() {
 		return theRight;
 	}
 
@@ -78,7 +79,7 @@ public class ModelValueLinker<T1, T2> {
 	 * @param ltr The converter from the left type to the right type
 	 * @return this
 	 */
-	public ModelValueLinker<T1, T2> setLeftToRight(ValueConverter<T1, T2> ltr) {
+	public SettableValueLinker<T1, T2> setLeftToRight(ValueConverter<T1, T2> ltr) {
 		theLeftToRight = ltr;
 		return this;
 	}
@@ -87,7 +88,7 @@ public class ModelValueLinker<T1, T2> {
 	 * @param rtl The converter from the right type to the left type
 	 * @return this
 	 */
-	public ModelValueLinker<T1, T2> setRightToLeft(ValueConverter<T2, T1> rtl) {
+	public SettableValueLinker<T1, T2> setRightToLeft(ValueConverter<T2, T1> rtl) {
 		theRightToLeft = rtl;
 		return this;
 	}
@@ -97,7 +98,7 @@ public class ModelValueLinker<T1, T2> {
 	 *
 	 * @return this
 	 */
-	public ModelValueLinker<T1, T2> link() {
+	public SettableValueLinker<T1, T2> link() {
 		if(theLeftToRight == null || theRightToLeft == null) {
 			theMessaging.warn("Model value linker for " + theLeft + "<-->" + theRight + " is missing one or both of its converters",
 				"left", theLeft, "right", theRight);

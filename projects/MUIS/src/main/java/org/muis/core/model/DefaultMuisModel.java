@@ -2,6 +2,8 @@ package org.muis.core.model;
 
 import java.util.Map;
 
+import org.muis.core.rx.ObservableValue;
+
 /** The default (typically XML-specified) implementation for MuisAppModel */
 public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 	private boolean isSealed;
@@ -10,7 +12,7 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 
 	private Map<String, MuisWidgetModel> theWidgetModels;
 
-	private Map<String, DefaultMuisModelValue<?>> theValues;
+	private Map<String, ObservableValue<?>> theValues;
 
 	private Map<String, AggregateActionListener> theActions;
 
@@ -46,7 +48,7 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 	}
 
 	/** @return The value map for this model. This map is modifiable if this model has not been sealed yet. */
-	public Map<String, DefaultMuisModelValue<?>> values() {
+	public Map<String, ObservableValue<?>> values() {
 		return theValues;
 	}
 
@@ -99,12 +101,12 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 	}
 
 	@Override
-	public <T> DefaultMuisModelValue<? extends T> getValue(String name, Class<T> type) {
-		DefaultMuisModelValue<?> value = theValues.get(name);
+	public <T> ObservableValue<? extends T> getValue(String name, Class<T> type) {
+		ObservableValue<?> value = theValues.get(name);
 		if(type != null && !value.getType().canAssignTo(type))
 			throw new ClassCastException("Value \"" + name + "\" is type \"" + value.getType().getName() + "\", not \"" + type.getName()
 				+ "\"");
-		return (DefaultMuisModelValue<? extends T>) value;
+		return (ObservableValue<? extends T>) value;
 	}
 
 	@Override

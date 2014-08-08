@@ -4,7 +4,9 @@ import org.muis.base.model.RichDocumentModel;
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.model.*;
-import org.muis.core.rx.Subscription;
+import org.muis.core.rx.ObservableValue;
+
+import prisms.lang.Type;
 
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
@@ -16,34 +18,41 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
-	private Subscription<?> theValueSubscription;
-
 	/** Creates the label */
 	public Label() {
-		life().runWhen(() -> {
-			Object accepter = new Object();
-			atts().accept(accepter, rich);
-			atts().accept(accepter, ModelAttributes.value);
+		life().runWhen(
+			() -> {
+				Object accepter = new Object();
+				atts().accept(accepter, rich);
+				atts().accept(accepter, ModelAttributes.value);
 				events().filterMap(AttributeChangedEvent.att(rich)).act(
 					event -> {
-				setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
-					getDocumentBackingStyle()));
-			});
-				events().filterMap(AttributeChangedEvent.att(ModelAttributes.value)).act(event -> {
-				modelValueChanged(event.getOldValue(), event.getValue());
-			});
-			modelValueChanged(null, atts().get(ModelAttributes.value));
+						setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
+							getDocumentBackingStyle()));
+					});
 
-			if(Boolean.TRUE.equals(atts().get(rich))) {
-				MuisDocumentModel doc = getWrappedModel();
-				if(!(doc instanceof RichDocumentModel)) {
-					String text = getText();
-					setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
-					if(text != null)
-						setText(text);
+				ObservableValue<ObservableValue<?>> modelValue = atts().getHolder(ModelAttributes.value);
+				modelValue.act(evt -> { // Widget registration
+					if(theRegistration != null)
+						theRegistration.unregister();
+					theRegistration = null;
+						if(evt.getValue() instanceof WidgetRegister)
+						theRegistration = ((WidgetRegister) evt.getValue()).register(Label.this);
+				});
+				ObservableValue.flatten(new Type(Object.class, true), modelValue).act(evt -> {
+					modelValueChanged(evt.getOldValue(), evt.getValue());
+				});
+
+				if(Boolean.TRUE.equals(atts().get(rich))) {
+					MuisDocumentModel doc = getWrappedModel();
+					if(!(doc instanceof RichDocumentModel)) {
+						String text = getText();
+						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
+						if(text != null)
+							setText(text);
+					}
 				}
-			}
-		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
+			}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	/**
@@ -147,25 +156,15 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 		}
 	}
 
-	private void modelValueChanged(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
-		if(theRegistration != null)
-			theRegistration.unregister();
+	private void modelValueChanged(Object oldValue, Object newValue) {
 		if(oldValue instanceof MuisDocumentModel) {
 			if(!(newValue instanceof MuisDocumentModel))
 				setDocumentModel(null);
-		} else if(oldValue != null) {
-			theValueSubscription.unsubscribe();
-			theValueSubscription = null;
 		}
-		if(newValue instanceof org.muis.core.model.WidgetRegister)
-			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(Label.this);
 		if(newValue instanceof MuisDocumentModel)
 			setDocumentModel((MuisDocumentModel) newValue);
 		else if(newValue != null) {
-			theValueSubscription = newValue.act(evt -> {
-				setText(getTextFor(evt.getValue()));
-			});
-			setText(getTextFor(newValue.get()));
+			setText(getTextFor(newValue));
 		}
 	}
 

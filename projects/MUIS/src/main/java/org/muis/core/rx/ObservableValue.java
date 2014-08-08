@@ -143,18 +143,25 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 
 			@Override
 			public T get() {
-				return ov.get().get();
+				ObservableValue<? extends T> contained = ov.get();
+				return contained == null ? null : contained.get();
 			}
 		};
 		Observer<ObservableValueEvent<T>> controller = ret.control(null);
 		ov.act(value -> {
 			ObservableValueEvent<T> evt = new ObservableValueEvent<>(ret, value.getOldValue() == null ? null : value.getOldValue().get(),
-				value.getValue().get(), value.getCause());
+				value.getValue() == null ? null : value.getValue().get(), value.getCause());
 			controller.onNext(evt);
-			value.getValue().takeUntil(ov).act(value2 -> {
-				ObservableValueEvent<T> evt2 = new ObservableValueEvent<>(ret, value2.getOldValue(), value2.getValue(), value2.getCause());
-				controller.onNext(evt2);
-			});
+			if(value.getValue() != null)
+				value
+					.getValue()
+					.takeUntil(ov)
+					.act(
+						value2 -> {
+							ObservableValueEvent<T> evt2 = new ObservableValueEvent<>(ret, value2.getOldValue(), value2.getValue(), value2
+								.getCause());
+							controller.onNext(evt2);
+						});
 		});
 		return ret;
 	}

@@ -27,10 +27,21 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 */
 	<V extends T> String isAcceptable(V value);
 
+	/**
+	 * @param function The function to map this value to another
+	 * @param reverse The function to map the other value to this one
+	 * @return The mapped settable value
+	 */
 	public default <R> SettableValue<R> mapV(Function<? super T, R> function, Function<? super R, ? extends T> reverse) {
 		return mapV(null, function, reverse);
 	}
 
+	/**
+	 * @param type The type for the new value
+	 * @param function The function to map this value to another
+	 * @param reverse The function to map the other value to this one
+	 * @return The mapped settable value
+	 */
 	public default <R> SettableValue<R> mapV(Type type, Function<? super T, R> function, Function<? super R, ? extends T> reverse) {
 		SettableValue<T> root = this;
 		return new ComposedSettableValue<R>(type, args -> {
@@ -49,11 +60,28 @@ public interface SettableValue<T> extends ObservableValue<T> {
 		};
 	}
 
+	/**
+	 * Composes this settable value with another observable value
+	 * 
+	 * @param function The function to combine the values into another value
+	 * @param arg The value to combine this value with
+	 * @param reverse The function to reverse the transformation
+	 * @return The composed settable value
+	 */
 	public default <U, R> SettableValue<R> composeV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
 		BiFunction<? super R, ? super U, ? extends T> reverse) {
 		return composeV(null, function, arg, reverse);
 	}
 
+	/**
+	 * Composes this settable value with another observable value
+	 * 
+	 * @param type The type of the new value
+	 * @param function The function to combine the values into another value
+	 * @param arg The value to combine this value with
+	 * @param reverse The function to reverse the transformation
+	 * @return The composed settable value
+	 */
 	public default <U, R> SettableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
 		BiFunction<? super R, ? super U, ? extends T> reverse) {
 		SettableValue<T> root = this;
@@ -73,6 +101,16 @@ public interface SettableValue<T> extends ObservableValue<T> {
 		};
 	}
 
+	/**
+	 * Composes this settable value with another observable value
+	 * 
+	 * @param type The type of the new value
+	 * @param function The function to combine the values into another value
+	 * @param arg The value to combine this value with
+	 * @param accept The function to filter acceptance of values for the new value
+	 * @param reverse The function to reverse the transformation
+	 * @return The composed settable value
+	 */
 	public default <U, R> SettableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
 		BiFunction<? super R, ? super U, String> accept, BiFunction<? super R, ? super U, ? extends T> reverse) {
 		SettableValue<T> root = this;
@@ -96,11 +134,30 @@ public interface SettableValue<T> extends ObservableValue<T> {
 		};
 	}
 
+	/**
+	 * Composes this settable value with 2 other observable values
+	 * 
+	 * @param function The function to combine the values into another value
+	 * @param arg2 The first other value to combine this value with
+	 * @param arg3 The second other value to combine this value with
+	 * @param reverse The function to reverse the transformation
+	 * @return The composed settable value
+	 */
 	public default <U, V, R> SettableValue<R> composeV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
 		ObservableValue<V> arg3, TriFunction<? super R, ? super U, ? super V, ? extends T> reverse) {
 		return composeV(null, function, arg2, arg3, reverse);
 	}
 
+	/**
+	 * Composes this settable value with 2 other observable values
+	 * 
+	 * @param type The type of the new value
+	 * @param function The function to combine the values into another value
+	 * @param arg2 The first other value to combine this value with
+	 * @param arg3 The second other value to combine this value with
+	 * @param reverse The function to reverse the transformation
+	 * @return The composed settable value
+	 */
 	public default <U, V, R> SettableValue<R> composeV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
 		ObservableValue<U> arg2, ObservableValue<V> arg3, TriFunction<? super R, ? super U, ? super V, ? extends T> reverse) {
 		SettableValue<T> root = this;
@@ -108,13 +165,13 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			return function.apply((T) args[0], (U) args[1], (V) args[2]);
 		}, this) {
 			@Override
-			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
+			public <V2 extends R> SettableValue<R> set(V2 value, Object cause) throws IllegalArgumentException {
 				root.set(reverse.apply(value, arg2.get(), arg3.get()), cause);
 				return this;
 			}
 
 			@Override
-			public <V extends R> String isAcceptable(V value) {
+			public <V2 extends R> String isAcceptable(V2 value) {
 				return root.isAcceptable(reverse.apply(value, arg2.get(), arg3.get()));
 			}
 		};

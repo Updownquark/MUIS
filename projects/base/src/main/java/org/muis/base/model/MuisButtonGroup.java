@@ -1,10 +1,9 @@
 package org.muis.base.model;
 
-import org.muis.core.event.UserEvent;
-import org.muis.core.model.*;
-import org.muis.core.rx.DefaultObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
+import org.muis.core.model.MuisActionListener;
+import org.muis.core.model.MuisAppModel;
+import org.muis.core.model.MuisWidgetModel;
+import org.muis.core.rx.*;
 
 import prisms.lang.Type;
 
@@ -12,7 +11,7 @@ import prisms.lang.Type;
  * A model that manages a set of boolean-valued widgets, such as toggle buttons or radio buttons, only one of which may be selected at a
  * time
  */
-public class MuisButtonGroup extends DefaultObservableValue<String> implements MuisAppModel, MuisModelValue<String> {
+public class MuisButtonGroup extends DefaultObservableValue<String> implements MuisAppModel, SettableValue<String> {
 	private volatile String theValue;
 
 	private java.util.Map<String, CaseModelValue> theButtonValues;
@@ -36,11 +35,11 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 	}
 
 	@Override
-	public <T> MuisModelValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
+	public <T> SettableValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
 		if(name.equals("value")) {
 			if(!type.isAssignableFrom(String.class))
 				throw new IllegalArgumentException("This value is of type String--not " + type.getName());
-			return (MuisModelValue<T>) this;
+			return (SettableValue<T>) this;
 		} else {
 			if(!type.isAssignableFrom(Boolean.class) && !type.isAssignableFrom(Boolean.TYPE))
 				throw new IllegalArgumentException("This value is of type Boolean--not " + type.getName());
@@ -49,7 +48,7 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 				btnValue = new CaseModelValue(name);
 				theButtonValues.put(name, btnValue);
 			}
-			return (MuisModelValue<T>) btnValue;
+			return (SettableValue<T>) btnValue;
 		}
 	}
 
@@ -69,15 +68,23 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 	}
 
 	@Override
-	public void set(String value, UserEvent event) throws IllegalStateException {
+	public String isAcceptable(String value) {
+		if(!theButtonValues.containsKey(value))
+			return "\"" + value + "\" is not a valid value for this model value";
+		return null;
+	}
+
+	@Override
+	public MuisButtonGroup set(String value, Object cause) throws IllegalStateException {
 		if(!theButtonValues.containsKey(value))
 			throw new IllegalStateException("\"" + value + "\" is not a valid value for this model value");
 		String oldValue = theValue;
 		theValue = value;
-		MuisModelValueEvent<String> modelEvt = new MuisModelValueEvent<>(this, event, oldValue, theValue);
+		ObservableValueEvent<String> modelEvt = new ObservableValueEvent<>(this, oldValue, theValue, cause);
 		theController.onNext(modelEvt);
 		for(CaseModelValue buttonModel : theButtonValues.values())
-			buttonModel.fireChange(oldValue, theValue, event);
+			buttonModel.fireChange(oldValue, theValue, cause);
+		return this;
 	}
 
 	/** @return All values that have models in this button group */
@@ -85,7 +92,7 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 		return java.util.Collections.unmodifiableSet(theButtonValues.keySet());
 	}
 
-	private class CaseModelValue extends DefaultObservableValue<Boolean> implements MuisModelValue<Boolean> {
+	private class CaseModelValue extends DefaultObservableValue<Boolean> implements SettableValue<Boolean> {
 		private final String theCaseValue;
 
 		private final Observer<ObservableValueEvent<Boolean>> theCaseController;
@@ -106,14 +113,20 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 		}
 
 		@Override
-		public void set(Boolean value, UserEvent event) throws IllegalStateException {
+		public CaseModelValue set(Boolean value, Object event) throws IllegalStateException {
 			if(!value.equals(get()))
 				MuisButtonGroup.this.set(theCaseValue, event);
+			return this;
 		}
 
-		void fireChange(String oldValue, String newValue, UserEvent cause) {
-			MuisModelValueEvent<Boolean> buttonEvent = new MuisModelValueEvent<>(this, cause, theCaseValue.equals(oldValue),
-				theCaseValue.equals(theValue));
+		@Override
+		public String isAcceptable(Boolean value) {
+			return null;
+		}
+
+		void fireChange(String oldValue, String newValue, Object cause) {
+			ObservableValueEvent<Boolean> buttonEvent = new ObservableValueEvent<>(this, theCaseValue.equals(oldValue),
+				theCaseValue.equals(theValue), cause);
 			theCaseController.onNext(buttonEvent);
 		}
 	}

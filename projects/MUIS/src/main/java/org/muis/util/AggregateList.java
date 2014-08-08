@@ -4,11 +4,20 @@ import java.util.*;
 
 import prisms.util.ArrayUtils;
 
+/**
+ * Aggregates a number of lists into a single list
+ * 
+ * @param <E> The type of this list
+ */
 public class AggregateList<E> implements List<E> {
 	private final List<? extends E> [] theComponents;
 
 	private final Collection<?> theIgnores;
 
+	/**
+	 * @param ignores The values to ignore. These will not be part of this collection even if they exist in the component lists.
+	 * @param components The component lists to combine into this list
+	 */
 	public AggregateList(Collection<?> ignores, List<? extends E>... components) {
 		theComponents = components;
 		theIgnores = ignores;

@@ -9,6 +9,8 @@ import java.util.ArrayList;
 
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
+import org.muis.core.event.UserEvent;
+import org.muis.core.rx.ObservableValueEvent;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.FontStyle;
 import org.muis.core.tags.State;
@@ -285,5 +287,19 @@ public class MuisUtils {
 			type2 = type2.getSuperclass();
 		}
 		return ret.toArray(new org.muis.core.mgr.MuisState[ret.size()]);
+	}
+
+	/**
+	 * @param event The observable event
+	 * @return The user event that ultimately caused the observable event (may be null)
+	 */
+	public static UserEvent getUserEvent(ObservableValueEvent<?> event) {
+		while(event != null) {
+			if(event.getCause() instanceof UserEvent)
+				return (UserEvent) event.getCause();
+			else if(event.getCause() instanceof ObservableValueEvent)
+				event = (ObservableValueEvent<?>) event.getCause();
+		}
+		return null;
 	}
 }

@@ -9,10 +9,13 @@ import prisms.lang.PrismsParser;
 
 /** Parses references to values from property values */
 public interface MuisValueReferenceParser {
+	/** @return The prisms parser used by this model parser */
 	PrismsParser getParser();
 
+	/** @return The evaluator used by this model parser */
 	ObservableEvaluator getEvaluator();
 
+	/** @return The environment used by this model parser */
 	EvaluationEnvironment getEvaluationEnvironment();
 
 	/**

@@ -69,6 +69,7 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 		}
 	}
 
+	/** The base of all model parsers in MUIS */
 	public static final DefaultModelValueReferenceParser BASE = new DefaultModelValueReferenceParser(null);
 
 	private MuisValueReferenceParser theSuperParser;
@@ -87,9 +88,11 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 		theEvaluator.seal();
 	}
 
+	/** Allows subclasses to modify their parser, evaluator, and environment before being used */
 	protected void applyModification() {
 	}
 
+	/** @return The parser that this parser inherits definitions from */
 	public MuisValueReferenceParser getSuperParser() {
 		return theSuperParser;
 	}

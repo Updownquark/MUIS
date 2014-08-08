@@ -1,11 +1,14 @@
 package org.muis.base.widget;
 
 import org.muis.base.BaseConstants;
-import org.muis.core.event.*;
+import org.muis.core.event.MuisEvent;
+import org.muis.core.event.StateChangedEvent;
+import org.muis.core.event.UserEvent;
 import org.muis.core.model.ModelAttributes;
-import org.muis.core.model.MuisModelValue;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
+import org.muis.util.MuisUtils;
 
 /**
  * A button that has a {@link org.muis.base.BaseConstants.States#SELECTED selected} state and modifies a boolean model value based on that
@@ -15,25 +18,30 @@ import org.muis.core.tags.StateSupport;
 public class ToggleButton extends Button {
 	private org.muis.core.mgr.StateEngine.StateController theSelectedController;
 
-	private org.muis.core.rx.Action<org.muis.core.rx.ObservableValueEvent<Boolean>> theValueListener;
-
-	private org.muis.core.rx.Subscription<?> theValueSubscription;
-
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
 	/** Creates a toggle button */
 	public ToggleButton() {
 		super(false);
-		theValueListener = evt -> {
-			if(state().is(BaseConstants.States.SELECTED) == evt.getValue().booleanValue())
-				return;
-			theSelectedController.setActive(evt.getValue(), org.muis.core.model.MuisModelValueEvent.getUserEvent(evt));
-		};
-		atts().accept(new Object(), ModelAttributes.value);
-		events().filterMap(AttributeChangedEvent.att(ModelAttributes.value)).act(event -> {
-			setModelValue(event.getOldValue(), event.getValue());
+		ObservableValue<ObservableValue<?>> mv = atts().accept(new Object(), ModelAttributes.value);
+		mv.act(evt -> {
+			if(theRegistration != null)
+				theRegistration.unregister();
+			if(evt.getValue() instanceof org.muis.core.model.WidgetRegister)
+				theRegistration = ((org.muis.core.model.WidgetRegister) evt.getValue()).register(this);
+			if(evt.getValue() != null) {
+				if(!evt.getObservable().getType().canAssignTo(Boolean.TYPE)) {
+					msg()
+						.error("Toggle button backed by non-boolean model: " + evt.getObservable().getType(), "modelValue", evt.getValue());
+					return;
+				}
+				((ObservableValue<Boolean>) evt.getValue()).takeUntil(mv).act(evt2 -> {
+					if(state().is(BaseConstants.States.SELECTED) != evt2.getValue())
+						theSelectedController.setActive(evt2.getValue(), MuisUtils.getUserEvent(evt2));
+				});
+			} else
+				setEnabled(true, MuisUtils.getUserEvent(evt));
 		});
-		setModelValue(null, atts().get(ModelAttributes.value));
 		theSelectedController = state().control(BaseConstants.States.SELECTED);
 		events().filterMap(StateChangedEvent.state(BaseConstants.States.SELECTED)).act(event -> {
 			MuisEvent cause = event.getCause();
@@ -51,38 +59,16 @@ public class ToggleButton extends Button {
 		theSelectedController.setActive(!state().is(BaseConstants.States.SELECTED), cause);
 	}
 
-	private void setModelValue(MuisModelValue<?> oldValue, MuisModelValue<?> newValue) {
-		if(oldValue != null) {
-			theValueSubscription.unsubscribe();
-			theValueSubscription = null;
-			if(theRegistration != null)
-				theRegistration.unregister();
-		}
-		if(newValue != null) {
-			if(!newValue.getType().canAssignTo(Boolean.TYPE)) {
-				msg().error("Toggle button backed by non-boolean model: " + newValue.getType(), "modelValue", newValue);
-				return;
-			}
-			theValueSubscription = ((MuisModelValue<Boolean>) newValue).act(theValueListener);
-			if(newValue instanceof org.muis.core.model.WidgetRegister)
-				theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(this);
-			// setEnabled(newValue.isMutable(), null); TODO
-			theSelectedController.setActive((Boolean) newValue.get(), null);
-		} else {
-			setEnabled(true, null);
-		}
-	}
-
 	private void valueChanged(boolean value, UserEvent cause) {
-		MuisModelValue<Boolean> modelValue = (MuisModelValue<Boolean>) atts().get(ModelAttributes.value);
+		ObservableValue<Boolean> modelValue = (ObservableValue<Boolean>) atts().get(ModelAttributes.value);
 		if(modelValue == null)
 			return;
-		if(modelValue.getType().canAssignTo(Boolean.TYPE))
+		if(!(modelValue instanceof org.muis.core.rx.SettableValue) || modelValue.getType().canAssignTo(Boolean.TYPE))
 			return;
 		if(modelValue.get().booleanValue() == value)
 			return;
 		try {
-			modelValue.set(value, cause);
+			((org.muis.core.rx.SettableValue<Boolean>) modelValue).set(value, cause);
 		} catch(RuntimeException e) {
 			msg().error("Model value threw exception for value \"" + value + "\"", e);
 		}

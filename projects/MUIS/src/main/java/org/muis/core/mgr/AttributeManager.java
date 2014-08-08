@@ -440,10 +440,11 @@ public class AttributeManager {
 	 * @param needer The object that needs the attribute
 	 * @param attr The attribute that must be specified for this element
 	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @return The attribute holder for the attribute in this manager
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T, V extends T> void require(Object needer, MuisAttribute<T> attr, V initValue) throws MuisException {
-		accept(needer, true, attr, initValue);
+	public final <T, V extends T> AttributeHolder<T> require(Object needer, MuisAttribute<T> attr, V initValue) throws MuisException {
+		return accept(needer, true, attr, initValue);
 	}
 
 	/**
@@ -451,10 +452,11 @@ public class AttributeManager {
 	 *
 	 * @param needer The object that needs the attribute
 	 * @param attr The attribute that must be specified for this element
+	 * @return The attribute holder for the attribute in this manager
 	 */
-	public final void require(Object needer, MuisAttribute<?> attr) {
+	public final <T> AttributeHolder<T> require(Object needer, MuisAttribute<T> attr) {
 		try {
-			accept(needer, true, attr, null);
+			return accept(needer, true, attr, null);
 		} catch(MuisException e) {
 			throw new IllegalStateException("Should not throw MuisException with null initValue");
 		}
@@ -482,10 +484,11 @@ public class AttributeManager {
 	 * @param wanter The object that cares about the attribute
 	 * @param attr The attribute that may be specified for this element
 	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @return The attribute holder for the attribute in this manager
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T, V extends T> void accept(Object wanter, MuisAttribute<T> attr, V initValue) throws MuisException {
-		accept(wanter, false, attr, initValue);
+	public final <T, V extends T> AttributeHolder<T> accept(Object wanter, MuisAttribute<T> attr, V initValue) throws MuisException {
+		return accept(wanter, false, attr, initValue);
 	}
 
 	/**
@@ -493,10 +496,11 @@ public class AttributeManager {
 	 *
 	 * @param wanter The object that cares about the attribute
 	 * @param attr The attribute that must be specified for this element
+	 * @return The attribute holder for the attribute in this manager
 	 */
-	public final void accept(Object wanter, MuisAttribute<?> attr) {
+	public final <T> AttributeHolder<T> accept(Object wanter, MuisAttribute<T> attr) {
 		try {
-			accept(wanter, false, attr, null);
+			return accept(wanter, false, attr, null);
 		} catch(MuisException e) {
 			throw new IllegalStateException("Should not throw MuisException with null initValue");
 		}
@@ -511,9 +515,11 @@ public class AttributeManager {
 	 * @param require Whether the attribute should be required or optional
 	 * @param attr The attribute to accept
 	 * @param initValue The value to set for the attribute if a value is not set already
+	 * @return The attribute holder for the attribute in this manager
 	 * @throws MuisException If the given value is not acceptable for the given attribute
 	 */
-	public final <T, V extends T> void accept(Object wanter, boolean require, MuisAttribute<T> attr, V initValue) throws MuisException {
+	public final <T, V extends T> AttributeHolder<T> accept(Object wanter, boolean require, MuisAttribute<T> attr, V initValue)
+		throws MuisException {
 		if(attr instanceof MuisPathedAttribute)
 			throw new IllegalArgumentException("Pathed attributes cannot be accepted or required");
 		if(require && initValue == null && theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) > 0)
@@ -540,6 +546,7 @@ public class AttributeManager {
 		}
 		if(initValue != null && holder.get() == null)
 			set(attr, initValue);
+		return holder;
 	}
 
 	private void fireAccepted(boolean require, MuisAttribute<?> attr, Object value) {

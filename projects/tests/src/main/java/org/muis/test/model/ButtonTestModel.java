@@ -14,7 +14,7 @@ public class ButtonTestModel {
 	public ButtonTestModel() {
 		theColorGroup = new org.muis.base.model.MuisButtonGroup();
 		theColorGroup.act(evt -> {
-			org.muis.core.event.UserEvent ue = org.muis.core.model.MuisModelValueEvent.getUserEvent(evt);
+			org.muis.core.event.UserEvent ue = org.muis.util.MuisUtils.getUserEvent(evt);
 			if(ue == null)
 				return;
 			try {

@@ -110,6 +110,9 @@ public class MuisBrowser extends javax.swing.JPanel {
 		try {
 			muisDoc.postCreate();
 			theContentPane.setContent(muisDoc);
+			muisDoc.getRoot().bounds().act(event -> {
+				System.out.println("Bounds " + event.getValue());
+			});
 			java.awt.Window window = getWindow();
 			if(window instanceof java.awt.Frame)
 				((java.awt.Frame) window).setTitle(muisDoc.getHead().getTitle());

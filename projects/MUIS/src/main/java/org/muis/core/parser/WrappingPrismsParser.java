@@ -19,6 +19,7 @@ public class WrappingPrismsParser extends PrismsParser {
 
 	/** @param wrap The parser to wrap */
 	public WrappingPrismsParser(PrismsParser wrap) {
+		setDebugger(wrap.getDebugger());
 		theWrapped = wrap;
 		theExtraOps = new java.util.ArrayList<>();
 		theExtraOpsByName = new java.util.HashMap<>();

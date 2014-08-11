@@ -169,6 +169,12 @@ public abstract class MuisProperty<T> {
 				if(matches.length > 1)
 					throw new MuisParseException("A single value is required for this property: " + value);
 				item = parser.parseStructures(new prisms.lang.ParseStructRoot(value), matches)[0];
+				if(matches[0].getError() != null)
+					throw new MuisParseException("Parsing failed for this property: " + value, new prisms.lang.EvaluationException(
+						matches[0].getError(), item, matches[0].getErrorMatch().index));
+				if(!matches[0].isComplete())
+					throw new MuisParseException("Parsing failed for this property: " + value, new prisms.lang.EvaluationException(
+						"Incomplete", item, matches[0].getIncompleteMatch().index));
 			} catch(prisms.lang.ParseException e) {
 				throw new MuisParseException("Parsing failed for property type " + getClass().getSimpleName() + ": " + value, e);
 			}
@@ -182,7 +188,7 @@ public abstract class MuisProperty<T> {
 			if(theType.equals(ret.getType()))
 				return (ObservableValue<? extends T>) ret;
 			else if(canCast(ret.getType()))
-				return ret.mapV(v -> {
+				return ret.mapV(theType, v -> {
 					return cast(v);
 				});
 			else
@@ -463,8 +469,8 @@ public abstract class MuisProperty<T> {
 
 		ColorPropertyType() {
 			super(new Type(Color.class));
-			theColorOp = new prisms.arch.MutableConfig("entity").set("name", "color").set("order", "1")
-				.set("impl", ParsedColor.class.getName()) //
+			theColorOp = new prisms.arch.MutableConfig("entity");
+			((prisms.arch.MutableConfig) theColorOp).set("name", "color").set("order", "1").set("impl", ParsedColor.class.getName()) //
 				.getOrCreate("select") //
 				/**/.getOrCreate("option") //
 				/*		*/.getOrCreate("literal").set("storeAs", "rgb").setValue("#") //
@@ -475,7 +481,7 @@ public abstract class MuisProperty<T> {
 				/**/.getParent() //
 				.getParent().getOrCreate("charset").set("storeAs", "value").set("pattern", "[0-9][A-F][a-f]{6}");
 
-			theFunctions=new java.util.ArrayList<>();
+			theFunctions = new java.util.ArrayList<>();
 			// Use the default prisms.lang Grammar.xml to implement some setup declarations to prepare the environment
 			PrismsParser setupParser = new PrismsParser();
 			try {
@@ -486,8 +492,10 @@ public abstract class MuisProperty<T> {
 
 			ArrayList<String> commands = new ArrayList<>();
 			// Add constants and functions like rgb(r, g, b) here
-			commands.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");
-			commands.add("java.awt.Color hsb(int h, int s, int b){return " + org.muis.core.style.Colors.class.getName() + ".hsb(h, s, b);}");
+			commands
+				.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");
+			commands
+				.add("java.awt.Color hsb(int h, int s, int b){return " + org.muis.core.style.Colors.class.getName() + ".hsb(h, s, b);}");
 			// TODO Add more constants and functions
 			// TODO Are these defined by default? Maybe we don't need them here.
 			for(String command : commands) {

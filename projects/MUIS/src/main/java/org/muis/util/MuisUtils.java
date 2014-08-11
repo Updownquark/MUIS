@@ -299,6 +299,8 @@ public class MuisUtils {
 				return (UserEvent) event.getCause();
 			else if(event.getCause() instanceof ObservableValueEvent)
 				event = (ObservableValueEvent<?>) event.getCause();
+			else
+				event = null;
 		}
 		return null;
 	}

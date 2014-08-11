@@ -148,6 +148,18 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 * {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
 	 * @param text A description of the error
+	 * @param exception The exception that may have caused the error
+	 * @param params Any parameters that may be relevant to the error
+	 */
+	public void fatal(String text, Throwable exception, Object... params) {
+		message(MuisMessage.Type.FATAL, text, null, exception, params);
+	}
+
+	/**
+	 * Records an fatal error in this message center. A fatal error disables this item so that it will not function. Short-hand for
+	 * {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
+	 *
+	 * @param text A description of the error
 	 * @param cause The cause of the message
 	 * @param exception The exception that may have caused the error
 	 * @param params Any parameters that may be relevant to the error
@@ -165,6 +177,17 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 */
 	public void fatal(String text, Object... params) {
 		message(MuisMessage.Type.FATAL, text, null, null, params);
+	}
+
+	/**
+	 * Records an error in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
+	 *
+	 * @param text A description of the error
+	 * @param exception The exception that may have caused the error
+	 * @param params Any parameters that may be relevant to the error
+	 */
+	public void error(String text, Throwable exception, Object... params) {
+		message(MuisMessage.Type.ERROR, text, null, exception, params);
 	}
 
 	/**
@@ -199,6 +222,17 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	 */
 	public void warn(String text, MuisEvent cause, Throwable exception, Object... params) {
 		message(MuisMessage.Type.WARNING, text, cause, exception, params);
+	}
+
+	/**
+	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
+	 *
+	 * @param text A description of the warning
+	 * @param exception The exception that may have caused the warning
+	 * @param params Any parameters that may be relevant to the warning
+	 */
+	public void warn(String text, Throwable exception, Object... params) {
+		message(MuisMessage.Type.WARNING, text, null, exception, params);
 	}
 
 	/**

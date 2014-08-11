@@ -32,7 +32,7 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 	public ComposedObservableValue(Type type, Function<Object [], T> function, ObservableValue<?>... composed) {
 		theFunction = function;
 		try {
-			theType = type != null ? type : new Type(theFunction.getClass().getMethod("apply", Object [].class).getGenericReturnType());
+			theType = type != null ? type : new Type(theFunction.getClass().getMethod("apply", Object.class).getGenericReturnType());
 		} catch(NoSuchMethodException | SecurityException e) {
 			throw new IllegalStateException("No apply method on a function?", e);
 		}

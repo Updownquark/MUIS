@@ -11,7 +11,7 @@ import prisms.lang.*;
 
 /** The default implementation of {@link MuisValueReferenceParser} */
 public class DefaultModelValueReferenceParser implements MuisValueReferenceParser {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 
 	private static PrismsParser MVX_PARSER;
 	private static ObservableEvaluator MVX_EVALUATOR;

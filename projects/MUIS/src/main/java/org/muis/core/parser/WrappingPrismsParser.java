@@ -1,7 +1,6 @@
 package org.muis.core.parser;
 
 import java.util.List;
-import java.util.SortedSet;
 
 import prisms.arch.PrismsConfig;
 import prisms.lang.PrismsParser;
@@ -9,31 +8,30 @@ import prisms.lang.PrismsParser;
 /** Wraps a prisms parser, allowing the wrapped parser to remain intact while adding additional operators */
 public class WrappingPrismsParser extends PrismsParser {
 	private final PrismsParser theWrapped;
-	private final SortedSet<PrismsConfig> theExtraOps;
+	private final List<PrismsConfig> theExtraOps;
 	private final java.util.Map<String, PrismsConfig> theExtraOpsByName;
 	private final List<String> theExtraTerminators;
 	private final java.util.Set<String> theClearedTerminators;
 	private final List<String> theExtraIgnorables;
-	private final org.muis.util.AggregateSortedSet<PrismsConfig> theAggregateOps;
+	private final org.muis.util.AggregateList<PrismsConfig> theAggregateOps;
 	private final org.muis.util.AggregateList<String> theAggregateTerminators;
 	private final org.muis.util.AggregateList<String> theAggregateIgnorables;
 
 	/** @param wrap The parser to wrap */
 	public WrappingPrismsParser(PrismsParser wrap) {
 		theWrapped = wrap;
-		theExtraOps = new java.util.TreeSet<>(theWrapped.getOperators().comparator());
+		theExtraOps = new java.util.ArrayList<>();
 		theExtraOpsByName = new java.util.HashMap<>();
 		theExtraTerminators = new java.util.ArrayList<>();
 		theClearedTerminators = new java.util.HashSet<>();
 		theExtraIgnorables = new java.util.ArrayList<>();
-		theAggregateOps = new org.muis.util.AggregateSortedSet<>(theExtraOps, theWrapped.getOperators());
-		theAggregateTerminators = new org.muis.util.AggregateList<>(theClearedTerminators, theWrapped.getTerminators(),
-			theExtraTerminators);
+		theAggregateOps = new org.muis.util.AggregateList<>(theExtraOps, theWrapped.getOperators());
+		theAggregateTerminators = new org.muis.util.AggregateList<>(theClearedTerminators, theWrapped.getTerminators(), theExtraTerminators);
 		theAggregateIgnorables = new org.muis.util.AggregateList<>(null, theWrapped.getIgnorables(), theExtraIgnorables);
 	}
 
 	@Override
-	public SortedSet<PrismsConfig> getOperators() {
+	public List<PrismsConfig> getOperators() {
 		return theAggregateOps;
 	}
 
@@ -47,7 +45,10 @@ public class WrappingPrismsParser extends PrismsParser {
 
 	@Override
 	public void addTerminator(String terminator) {
-		theExtraTerminators.add(terminator);
+		if(theExtraTerminators == null)
+			super.addTerminator(terminator);
+		else
+			theExtraTerminators.add(terminator);
 	}
 
 	@Override
@@ -74,6 +75,11 @@ public class WrappingPrismsParser extends PrismsParser {
 
 	@Override
 	protected void operatorAdded(PrismsConfig op) {
+		int index = java.util.Collections.binarySearch(theExtraOps, op, operatorCompare);
+		if(index >= 0) {
+			for(; index < theExtraOps.size() && operatorCompare.compare(theExtraOps.get(index), op) == 0; index++);
+		} else
+			index = -(index + 1);
 		theExtraOps.add(op);
 		theExtraOpsByName.put(op.get("name"), op);
 		if(op.is("ignorable", false))

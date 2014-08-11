@@ -106,7 +106,7 @@ public class StyleParsingUtils {
 
 		Object value;
 		try {
-			value = styleAttr.getType().parse(env, valueStr);
+			value = styleAttr.getType().parse(env, valueStr).get();
 		} catch(org.muis.core.MuisException e) {
 			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(),
 				e);

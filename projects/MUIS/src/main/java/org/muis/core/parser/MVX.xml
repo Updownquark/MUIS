@@ -147,39 +147,6 @@
 			</option>
 		</option>
 		<literal>)</literal>
-		<option>
-			<literal storeAs="anonymous">{</literal>
-			<option min="0">
-				<select>
-					<option>
-						<option>
-							<literal>public</literal>
-						</option>
-						<op type="function declaration" storeAs="method" />
-					</option>
-					<option>
-						<op type="declaration|final declaration|assign" storeAs="field" />
-					</option>
-				</select>
-			</option>
-			<option>
-				<op type="block" storeAs="instanceInitializer" />
-			</option>
-			<option min="0">
-				<select>
-					<option>
-						<option>
-							<literal>public</literal>
-						</option>
-						<op type="function declaration" storeAs="method" />
-					</option>
-					<option>
-						<op type="declaration|final declaration|assign" storeAs="field" />
-					</option>
-				</select>
-			</option>
-			<literal>}</literal>
-		</option>
 	</operator>
 	<operator name="array initializer" order="1" impl="prisms.lang.types.ParsedArrayInitializer">
 		<literal>new</literal>

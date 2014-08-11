@@ -3,7 +3,10 @@ package org.muis.core;
 import java.awt.Color;
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
 import org.muis.core.eval.impl.ObservableEvaluator;
 import org.muis.core.eval.impl.ParsedColor;
@@ -176,10 +179,15 @@ public abstract class MuisProperty<T> {
 			} catch(EvaluationException e) {
 				throw new MuisParseException("Evaluation failed for property type " + getClass().getSimpleName() + ": " + value, e);
 			}
-			if(!theType.isAssignable(ret.getType()))
+			if(theType.equals(ret.getType()))
+				return (ObservableValue<? extends T>) ret;
+			else if(canCast(ret.getType()))
+				return ret.mapV(v -> {
+					return cast(v);
+				});
+			else
 				throw new MuisException("The given value of type " + ret.getType() + " is not compatible with this property's type ("
 					+ theType + ")");
-			return (ObservableValue<? extends T>) ret;
 		}
 
 		/**
@@ -191,6 +199,14 @@ public abstract class MuisProperty<T> {
 		 * @throws MuisException If an error occurs mutating the parsing types
 		 */
 		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws MuisException {
+		}
+
+		/**
+		 * @param type The type to check
+		 * @return Whether objects of the given type can be cast or converted to items of this property's type
+		 */
+		public boolean canCast(Type type) {
+			return type.isAssignable(theType);
 		}
 
 		@Override
@@ -346,6 +362,23 @@ public abstract class MuisProperty<T> {
 		@Override
 		public String toString() {
 			return "float";
+		}
+
+		@Override
+		public boolean canCast(Type type) {
+			return type.isMathable();
+		}
+
+		@Override
+		public Double cast(Object value) {
+			if(value instanceof Double)
+				return (Double) value;
+			else if(value instanceof Number)
+				return ((Number) value).doubleValue();
+			else if(value instanceof Character)
+				return (double) ((Character) value).charValue();
+			else
+				return null;
 		}
 	};
 
@@ -926,8 +959,8 @@ public abstract class MuisProperty<T> {
 	 * @param <T> The type of value to validate
 	 */
 	public static class ComparableValidator<T> extends AbstractPropertyValidator<T> {
-		private final Comparator<T> theCompare;
-		private final Comparator<T> theInternalCompare;
+		private final Comparator<? super T> theCompare;
+		private final Comparator<? super T> theInternalCompare;
 
 		private final T theMin;
 		private final T theMax;
@@ -949,7 +982,7 @@ public abstract class MuisProperty<T> {
 		 * @param max The maximum value for the property
 		 * @param compare The comparator to use to compare. May be null if this type is comparable.
 		 */
-		public ComparableValidator(T min, T max, Comparator<T> compare) {
+		public ComparableValidator(T min, T max, Comparator<? super T> compare) {
 			theCompare = compare;
 			theMin = min;
 			theMax = max;
@@ -979,7 +1012,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		/** @return The comparator that is used to validate values. May be null if the type is comparable. */
-		public Comparator<T> getCompare() {
+		public Comparator<? super T> getCompare() {
 			return theCompare;
 		}
 

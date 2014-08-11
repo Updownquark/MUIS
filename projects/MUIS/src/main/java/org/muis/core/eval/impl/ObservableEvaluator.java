@@ -108,15 +108,6 @@ public class ObservableEvaluator extends PrismsEvaluator {
 		return ret;
 	}
 
-	@Override
-	public EvaluationResult evaluate(ParsedItem item, EvaluationEnvironment env, boolean asType, boolean withValues)
-		throws EvaluationException {
-		if(asType)
-			return super.evaluate(item, env, asType, withValues);
-		ObservableValue<?> obs = evaluateObservable(item, env);
-		return new EvaluationResult(obs.getType(), withValues ? obs.get() : null);
-	}
-
 	private class CachingSpoofingEvaluator extends PrismsEvaluator {
 		private java.util.Map<ParsedItem, EvaluationResult> theCachedValues;
 

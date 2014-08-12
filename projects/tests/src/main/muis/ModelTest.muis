@@ -19,7 +19,7 @@
    			<block region="right" width="200" layout="box" direction="down">
 	   			<text-field value="model.fg.text" length="30"></text-field>
    			</block>
-   			<border region="center" group="${model.bg.group-name}" style="font.color=${model.fg.value}">
+   			<border region="center" group="${model.bg.groupName}" style="font.color=model.fg.value">
    				This text's background should match the selected button at left.
    				Its font color should match the value at right.
    			</border>

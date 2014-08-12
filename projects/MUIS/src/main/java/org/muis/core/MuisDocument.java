@@ -8,9 +8,17 @@ import java.util.List;
 import org.muis.core.event.*;
 import org.muis.core.mgr.MuisLocker;
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.model.MuisActionListener;
+import org.muis.core.model.MuisAppModel;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.attach.DocumentStyleSheet;
 import org.muis.core.style.attach.NamedStyleGroup;
 
+import prisms.lang.*;
+import prisms.lang.EvaluationEnvironment.VariableImpl;
+import prisms.lang.eval.PrismsEvaluator;
+import prisms.lang.eval.PrismsItemEvaluator;
+import prisms.lang.types.ParsedMethod;
 import prisms.util.ArrayUtils;
 
 /** Contains all data pertaining to a MUIS application */
@@ -112,7 +120,72 @@ public class MuisDocument {
 		theParser = parser;
 		theLocation = location;
 		theHead = head;
-		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser());
+		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser()) {
+			@Override
+			protected void applyModification() {
+				super.applyModification();
+				Type modelType = new Type(MuisAppModel.class);
+				// Special evaluator to evaluate submodels and model values
+				PrismsItemEvaluator<? super ParsedMethod> superEval = getEvaluator().getEvaluatorFor(ParsedMethod.class);
+				getEvaluator().addEvaluator(ParsedMethod.class, new PrismsItemEvaluator<ParsedMethod>() {
+					@Override
+					public EvaluationResult evaluate(ParsedMethod item, PrismsEvaluator evaluator, EvaluationEnvironment evalEnv,
+						boolean asType, boolean withValues) throws EvaluationException {
+						if(item.getContext() != null && item.getArguments().length == 0) {
+							EvaluationResult ctx = evaluator.evaluate(item.getContext(), evalEnv, asType, withValues);
+							if(ctx.getType().canAssignTo(MuisAppModel.class)) {
+								if(!withValues)
+									ctx = evaluator.evaluate(item.getContext(), evalEnv, false, true);
+								MuisAppModel model = (MuisAppModel) ctx.getValue();
+								if(item.isMethod()) {
+									MuisActionListener action = model.getAction(item.getName());
+									if(action == null)
+										throw new EvaluationException("No action named " + item.getName() + " on model "
+											+ item.getContext().getMatch().text, item, item.getStored("name").index);
+									return new EvaluationResult(new Type(MuisActionListener.class), action);
+								} else {
+									MuisAppModel subModel = model.getSubModel(item.getName());
+									if(subModel != null)
+										return new EvaluationResult(modelType, subModel);
+									ObservableValue<?> modelValue = model.getValue(item.getName(), null);
+									if(modelValue != null)
+										return new EvaluationResult(new Type(modelValue.getClass()), modelValue);
+									throw new EvaluationException("No sub-model or value named " + item.getName() + " on model "
+										+ item.getContext().getMatch().text, item, item.getStored("name").index);
+								}
+							}
+						}
+						return superEval.evaluate(item, evaluator, evalEnv, asType, withValues);
+					}
+				});
+				if(getEvaluationEnvironment() instanceof prisms.lang.DefaultEvaluationEnvironment) {
+					prisms.lang.DefaultEvaluationEnvironment evalEnv = (prisms.lang.DefaultEvaluationEnvironment) getEvaluationEnvironment();
+					evalEnv.addVariableSource(new prisms.lang.VariableSource() {
+						@Override
+						public Variable [] getDeclaredVariables() {
+							String [] modelNames = getHead().getModels();
+							Variable [] ret = new Variable[modelNames.length];
+							for(int i = 0; i < ret.length; i++) {
+								ret[i] = new VariableImpl(modelType, modelNames[i], true);
+								((VariableImpl) ret[i]).setValue(getHead().getModel(modelNames[i]));
+							}
+							return ret;
+						}
+
+						@Override
+						public Variable getDeclaredVariable(String name) {
+							MuisAppModel model = getHead().getModel(name);
+							if(model != null) {
+								VariableImpl ret = new VariableImpl(modelType, name, true);
+								ret.setValue(model);
+								return ret;
+							} else
+								return null;
+						}
+					});
+				}
+			}
+		};
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessageCenter = new MuisMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
@@ -474,8 +547,7 @@ public class MuisDocument {
 				mouseMove(oldCapture, newCapture, events);
 			else {
 				evt = new MouseEvent(this, newCapture.getTarget().getElement(), MouseEvent.MouseEventType.entered, buttonType, clickCount,
-					thePressedButtons, thePressedKeys,
-					newCapture);
+					thePressedButtons, thePressedKeys, newCapture);
 				events.add(new MuisEventQueue.PositionQueueEvent(theRoot, evt, true));
 			}
 			break;

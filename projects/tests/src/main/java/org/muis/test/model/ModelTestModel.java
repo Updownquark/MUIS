@@ -40,7 +40,7 @@ public class ModelTestModel extends DefaultMuisModel {
 		subModels().put("bg", theBgModel);
 		theBgModel.subModels().put("buttons", theBgGroup);
 		theBgModel.values().put("value", theBgValue);
-		theBgModel.values().put("group-name", theBgGroupName);
+		theBgModel.values().put("groupName", theBgGroupName);
 		theBgModel.values().put("image", theBgImage);
 		theBgModel.seal();
 

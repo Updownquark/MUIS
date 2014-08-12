@@ -22,7 +22,7 @@ public interface MuisAppModel {
 	/**
 	 * @param <T> The compile-time type of the value
 	 * @param name The name of the value to get
-	 * @param type The run-time type of the value
+	 * @param type The type of the value to be checked at run-time, or null to get the value without type checking
 	 * @return The value with the given name, or null if no such value exists in this model
 	 * @throws ClassCastException If the given value exists in this model, but is not of the given type
 	 */

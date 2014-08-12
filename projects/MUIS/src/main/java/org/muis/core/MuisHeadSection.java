@@ -71,4 +71,9 @@ public class MuisHeadSection implements Sealable {
 			throw new SealedException(this);
 		theModels.put(name, model);
 	}
+
+	/** @return The names of all models in this document */
+	public String [] getModels() {
+		return theModels.keySet().toArray(new String[theModels.size()]);
+	}
 }

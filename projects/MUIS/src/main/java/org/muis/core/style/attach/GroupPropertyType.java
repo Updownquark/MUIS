@@ -36,6 +36,8 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 	public ObservableValue<String []> parse(MuisParseEnv env, String value) throws MuisException {
 		ObservableValue<?> ret = MuisProperty.parseExplicitObservable(env, value);
 		if(ret != null) {
+			if(ret.getType().canAssignTo(ObservableValue.class))
+				ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
 			if(ret.getType().canAssignTo(String [].class)) {
 				return (ObservableValue<String []>) ret;
 			} else if(ret.getType().canAssignTo(CharSequence [].class)) {
@@ -57,23 +59,29 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 						str[i++] = s.toString();
 					return str;
 				});
+			} else if(ret.getType().canAssignTo(CharSequence.class)) {
+				return ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
+					return new String[] {seq.toString()};
+				});
 			} else if(ret != null)
-				throw new MuisException("Model value " + value + " is not of type string");
+				throw new MuisException("Model value " + value + " is not of type string: " + ret.getType());
 		}
 
 		String [] split = value.split(",");
-		ObservableValue<String> [] splitObs = new ObservableValue[split.length];
+		ObservableValue<?> [] splitObs = new ObservableValue[split.length];
 		for(int i = 0; i < split.length; i++) {
 			split[i] = split[i].trim();
-			splitObs[i] = (ObservableValue<String>) MuisProperty.parseExplicitObservable(env, split[i]);
+			splitObs[i] = MuisProperty.parseExplicitObservable(env, split[i]);
 			if(splitObs[i] != null) {
+				if(splitObs[i].getType().canAssignTo(ObservableValue.class))
+					splitObs[i] = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) splitObs[i]);
 				if(splitObs[i].getType().canAssignTo(String.class)) {
 				} else if(splitObs[i].getType().canAssignTo(CharSequence.class)) {
 					splitObs[i] = splitObs[i].mapV(seq -> {
 						return seq.toString();
 					});
 				} else
-					throw new MuisException("Model value " + split[i] + " is not compatible with string");
+					throw new MuisException("Model value " + split[i] + " is not compatible with string: " + splitObs[i].getType());
 			} else
 				splitObs[i] = ObservableValue.constant(split[i]);
 		}

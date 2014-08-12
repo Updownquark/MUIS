@@ -117,14 +117,14 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 		ParsedItem item;
 		try {
 			ParseMatch [] matches = theParser.parseMatches(mvr);
-			if(matches.length != 0)
+			if(matches.length != 1)
 				throw new MuisParseException("Exactly one expression expected for property value: " + mvr);
 			item = theParser.parseStructures(new prisms.lang.ParseStructRoot(mvr), matches)[0];
 		} catch(ParseException e) {
 			throw new MuisParseException("Property parsing failed: " + mvr, e);
 		}
 		try {
-			return theEvaluator.evaluateObservable(item, MVX_ENV);
+			return theEvaluator.evaluateObservable(item, theEnv);
 		} catch(EvaluationException e) {
 			throw new MuisParseException(e.getMessage(), e);
 		}

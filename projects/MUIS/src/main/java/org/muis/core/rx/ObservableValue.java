@@ -138,7 +138,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 				if(type != null)
 					return type;
 				else
-					return ov.getType();
+					return ov.get().getType();
 			}
 
 			@Override

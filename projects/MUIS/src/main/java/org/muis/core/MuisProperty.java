@@ -19,6 +19,7 @@ import org.muis.util.MuisUtils;
 
 import prisms.arch.PrismsConfig;
 import prisms.lang.*;
+import prisms.lang.EvaluationEnvironment.VariableImpl;
 import prisms.lang.types.ParsedFunctionDeclaration;
 
 /**
@@ -181,7 +182,7 @@ public abstract class MuisProperty<T> {
 
 			ObservableValue<?> ret;
 			try {
-				ret = evaluator.evaluateObservable(item, env.getValueParser().getEvaluationEnvironment());
+				ret = evaluator.evaluateObservable(item, evalEnv);
 			} catch(EvaluationException e) {
 				throw new MuisParseException("Evaluation failed for property type " + getClass().getSimpleName() + ": " + value, e);
 			}
@@ -191,9 +192,17 @@ public abstract class MuisProperty<T> {
 				return ret.mapV(theType, v -> {
 					return cast(v);
 				});
-			else
-				throw new MuisException("The given value of type " + ret.getType() + " is not compatible with this property's type ("
-					+ theType + ")");
+			else if(ret.getType().canAssignTo(ObservableValue.class)){
+				ObservableValue<?> contained=(ObservableValue<?>) ret.get();
+				if(theType.equals(contained.getType()))
+					return ObservableValue.flatten(theType, (ObservableValue<? extends ObservableValue<? extends T>>) ret);
+				else if(canCast(contained.getType()))
+					return ObservableValue.flatten(contained.getType(), (ObservableValue<? extends ObservableValue<?>>) ret).mapV(v -> {
+						return cast(v);
+					});
+			}
+			throw new MuisException("The given value of type " + ret.getType() + " is not compatible with this property's type (" + theType
+				+ ")");
 		}
 
 		/**
@@ -212,7 +221,7 @@ public abstract class MuisProperty<T> {
 		 * @return Whether objects of the given type can be cast or converted to items of this property's type
 		 */
 		public boolean canCast(Type type) {
-			return type.isAssignable(theType);
+			return theType.isAssignable(type);
 		}
 
 		@Override
@@ -360,6 +369,23 @@ public abstract class MuisProperty<T> {
 		@Override
 		public String toString() {
 			return "int";
+		}
+
+		@Override
+		public boolean canCast(Type type) {
+			return type.isIntMathable();
+		}
+
+		@Override
+		public Long cast(Object value) {
+			if(value instanceof Long)
+				return (Long) value;
+			else if(value instanceof Number)
+				return ((Number) value).longValue();
+			else if(value instanceof Character)
+				return (long) ((Character) value).charValue();
+			else
+				return null;
 		}
 	};
 
@@ -514,17 +540,74 @@ public abstract class MuisProperty<T> {
 			parser.insertOperator(theColorOp);
 			eval.addEvaluator(ParsedColor.class, new org.muis.core.eval.impl.ColorEvaluator());
 
-			Type colorType = new Type(Color.class);
-			for(String colorName : Colors.getColorNames()) {
-				try {
-					env.declareVariable(colorName, colorType, true, null, 0);
-					env.setVariable(colorName, Colors.parseColor(colorName), null, 0);
-				} catch(EvaluationException | MuisException e) {
-
-				}
-			}
 			for(ParsedFunctionDeclaration func : theFunctions)
 				env.declareFunction(func);
+
+			Type colorType = new Type(Color.class);
+			if(env instanceof DefaultEvaluationEnvironment) {
+				((DefaultEvaluationEnvironment) env).addVariableSource(new VariableSource() {
+					@Override
+					public Variable [] getDeclaredVariables() {
+						java.util.Collection<String> names = Colors.getColorNames();
+						Variable [] ret = new Variable[names.size()];
+						int i = 0;
+						for(String name : names) {
+							ret[i] = new VariableImpl(colorType, name, true);
+							try {
+								((VariableImpl) ret[i]).setValue(Colors.parseColor(name));
+							} catch(MuisException e) {
+							}
+							i++;
+						}
+						return ret;
+					}
+
+					@Override
+					public Variable getDeclaredVariable(String name) {
+						Color value;
+						try {
+							value = Colors.parseIfColor(name);
+						} catch(MuisException e) {
+							return null;
+						}
+						if(value != null) {
+							VariableImpl ret = new VariableImpl(colorType, name, true);
+							ret.setValue(value);
+							return ret;
+						}
+						return null;
+					}
+				});
+			} else {
+				for(String colorName : Colors.getColorNames()) {
+					try {
+						env.declareVariable(colorName, colorType, true, null, 0);
+						env.setVariable(colorName, Colors.parseColor(colorName), null, 0);
+					} catch(EvaluationException | MuisException e) {
+
+					}
+				}
+			}
+		}
+
+		@Override
+		public boolean canCast(Type type) {
+			if(super.canCast(type))
+				return true;
+			if(type.canAssignTo(String.class))
+				return true;
+			return false;
+		}
+
+		@Override
+		public <V extends Color> V cast(Object value) {
+			if(value instanceof String)
+				try {
+					return (V) Colors.parseIfColor((String) value);
+				} catch(MuisException e) {
+					return null;
+				}
+			return super.cast(value);
 		}
 
 		@Override
@@ -555,6 +638,8 @@ public abstract class MuisProperty<T> {
 		public ObservableValue<URL> parse(MuisParseEnv env, String value) throws MuisException {
 			ObservableValue<?> ret = parseExplicitObservable(env, value);
 			if(ret != null) {
+				if(ret.getType().canAssignTo(ObservableValue.class))
+					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
 				if(ret.getType().canAssignTo(URL.class)) {
 				} else if(ret.getType().canAssignTo(CharSequence.class)) {
 					ret = ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
@@ -577,22 +662,42 @@ public abstract class MuisProperty<T> {
 				} catch(java.net.MalformedURLException e) {
 					throw new MuisException(propName() + ": Resource property is not a valid URL: \"" + value + "\"", e);
 				}
-			ResourceMapping mapping = toolkit.getMappedResource(content);
+			ret = parseExplicitObservable(env, content);
+			if(ret != null) {
+				if(ret.getType().canAssignTo(ObservableValue.class))
+					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
+				if(ret.getType().canAssignTo(CharSequence.class)) {
+					return ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
+						try {
+							return getMappedResource(toolkit, seq.toString());
+						} catch(Exception e) {
+							throw new IllegalArgumentException(e);
+						}
+					});
+				} else
+					throw new MuisException("Model value " + content + " is not of type string");
+			}
+			return ObservableValue.constant(getMappedResource(toolkit, content));
+		}
+
+		private URL getMappedResource(MuisToolkit toolkit, String resource) throws MuisException {
+			ResourceMapping mapping = toolkit.getMappedResource(resource);
 			if(mapping == null)
-				throw new MuisException(propName() + ": Resource property must map to a declared resource: \"" + value + "\" in toolkit "
-					+ toolkit.getName() + " or one of its dependencies");
+				throw new MuisException(propName() + ": Resource property must map to a declared resource: \"" + resource
+					+ "\" in toolkit " + toolkit.getName() + " or one of its dependencies");
 			if(mapping.getLocation().contains(":"))
 				try {
-					return ObservableValue.constant(new URL(mapping.getLocation()));
+					return new URL(mapping.getLocation());
 				} catch(java.net.MalformedURLException e) {
 					throw new MuisException(propName() + ": Resource property maps to an invalid URL \"" + mapping.getLocation()
-						+ "\" in toolkit " + mapping.getOwner().getName() + ": \"" + value + "\"");
+						+ "\" in toolkit " + mapping.getOwner().getName() + ": \"" + resource + "\"");
 				}
 			try {
-				return ObservableValue.constant(MuisUtils.resolveURL(mapping.getOwner().getURI(), mapping.getLocation()));
+				return MuisUtils.resolveURL(mapping.getOwner().getURI(), mapping.getLocation());
 			} catch(MuisException e) {
 				throw new MuisException(propName() + ": Resource property maps to a resource (" + mapping.getLocation()
-					+ ") that cannot be resolved with respect to toolkit \"" + mapping.getOwner().getName() + "\"'s URL: \"" + value + "\"");
+					+ ") that cannot be resolved with respect to toolkit \"" + mapping.getOwner().getName() + "\"'s URL: \"" + resource
+					+ "\"");
 			}
 		}
 

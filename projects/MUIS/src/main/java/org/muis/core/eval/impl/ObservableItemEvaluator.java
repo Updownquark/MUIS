@@ -19,6 +19,5 @@ public interface ObservableItemEvaluator<T extends ParsedItem> {
 	 * @return The observable value represented by the parsed item
 	 * @throws EvaluationException If an error occurs in evaluation
 	 */
-	ObservableValue<? extends T> evaluateObservable(T item, ObservableEvaluator evaluator, EvaluationEnvironment env)
-		throws EvaluationException;
+	ObservableValue<?> evaluateObservable(T item, ObservableEvaluator evaluator, EvaluationEnvironment env) throws EvaluationException;
 }

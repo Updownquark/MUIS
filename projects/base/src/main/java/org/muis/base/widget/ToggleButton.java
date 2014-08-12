@@ -30,7 +30,7 @@ public class ToggleButton extends Button {
 			if(evt.getValue() instanceof org.muis.core.model.WidgetRegister)
 				theRegistration = ((org.muis.core.model.WidgetRegister) evt.getValue()).register(this);
 			if(evt.getValue() != null) {
-				if(!evt.getObservable().getType().canAssignTo(Boolean.TYPE)) {
+				if(!evt.getValue().getType().canAssignTo(Boolean.TYPE)) {
 					msg()
 						.error("Toggle button backed by non-boolean model: " + evt.getObservable().getType(), "modelValue", evt.getValue());
 					return;

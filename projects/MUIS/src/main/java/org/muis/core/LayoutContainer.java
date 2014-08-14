@@ -45,6 +45,7 @@ public class LayoutContainer extends MuisElement {
 		theLayout = layout;
 		if(theLayout != null)
 			theLayout.initChildren(this, getChildren().toArray());
+		relayout(false);
 	}
 
 	@Override

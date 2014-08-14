@@ -1,6 +1,5 @@
 package org.muis.core;
 
-import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.layout.SizeGuide;
 
 /** A simple container element that lays its children out using an implementation of {@link MuisLayout} */
@@ -14,21 +13,15 @@ public class LayoutContainer extends MuisElement {
 	/** Creates a layout container */
 	public LayoutContainer() {
 		MuisLayout defLayout = getDefaultLayout();
-		try {
-			atts().require(this, LAYOUT_ATTR, defLayout);
-		} catch(MuisException e) {
-			msg().error("Could not set default layout", e, "layout", defLayout);
-		}
-	}
-
-	@Override
-	public org.muis.core.mgr.ElementList<? extends MuisElement> initChildren(MuisElement [] children) {
-		org.muis.core.mgr.ElementList<? extends MuisElement> ret = super.initChildren(children);
-		events().filterMap(AttributeChangedEvent.att(LAYOUT_ATTR)).act(event -> {
-			setLayout(event.getValue());
-		});
-		setLayout(atts().get(LAYOUT_ATTR));
-		return ret;
+		life().runWhen(() -> {
+			try {
+				atts().require(this, LAYOUT_ATTR, defLayout).act(event -> {
+					setLayout(event.getValue());
+				});
+			} catch(MuisException e) {
+				msg().error("Could not set default layout", e, "layout", defLayout);
+			}
+		}, MuisConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 	}
 
 	/**

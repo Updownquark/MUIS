@@ -472,8 +472,6 @@ public class AttributeManager {
 		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
 		if(holder != null)
 			holder.unrequire(wanter);
-		else
-			accept(wanter, attr);
 	}
 
 	/**

@@ -35,8 +35,7 @@ public class Button extends org.muis.core.MuisTemplate {
 		setFocusable(true);
 		life().runWhen(() -> {
 			if(isActionable) {
-				atts().accept(new Object(), ModelAttributes.action);
-				events().filterMap(AttributeChangedEvent.att(ModelAttributes.action)).act(event -> {
+				atts().accept(new Object(), ModelAttributes.action).act(event -> {
 					listenerChanged(event.getOldValue(), event.getValue());
 				});
 				listenerChanged(null, atts().get(ModelAttributes.action));

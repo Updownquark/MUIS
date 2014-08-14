@@ -6,7 +6,6 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
 import org.muis.core.*;
-import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.layout.LayoutGuideType;
 import org.muis.core.layout.Orientation;
 import org.muis.core.layout.SizeGuide;
@@ -34,13 +33,12 @@ public class Transform extends MuisTemplate {
 	/** Creates a transform widget */
 	public Transform() {
 		life().runWhen(() -> {
-			atts().accept(this, flip);
-			atts().accept(this, rotate);
-			events().filterMap(AttributeChangedEvent.att(flip)).act(event -> {
+				atts().accept(this, flip).act(event -> {
 				events().fire(new org.muis.core.event.SizeNeedsChangedEvent(Transform.this, null));
 				relayout(false);
 			});
-			events().filterMap(AttributeChangedEvent.att(rotate)).act(event -> {
+				atts().accept(this, rotate).act(
+					event -> {
 				if(event.getValue() % 90 != 0) {
 					msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value",
 						event.getValue());

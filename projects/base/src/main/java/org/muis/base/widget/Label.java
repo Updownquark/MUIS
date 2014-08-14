@@ -2,7 +2,6 @@ package org.muis.base.widget;
 
 import org.muis.base.model.RichDocumentModel;
 import org.muis.core.*;
-import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.model.*;
 import org.muis.core.rx.ObservableValue;
 
@@ -23,13 +22,12 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 		life().runWhen(
 			() -> {
 				Object accepter = new Object();
-				atts().accept(accepter, rich);
-				atts().accept(accepter, ModelAttributes.value);
-				events().filterMap(AttributeChangedEvent.att(rich)).act(
+				atts().accept(accepter, rich).act(
 					event -> {
 						setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
 							getDocumentBackingStyle()));
 					});
+				atts().accept(accepter, ModelAttributes.value);
 
 				ObservableValue<ObservableValue<?>> modelValue = atts().getHolder(ModelAttributes.value);
 				modelValue.act(evt -> { // Widget registration

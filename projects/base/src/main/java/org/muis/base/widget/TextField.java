@@ -4,7 +4,6 @@ import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 import static org.muis.core.MuisTextElement.multiLine;
 
-import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.model.*;
@@ -28,9 +27,26 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	/** Creates a text field */
 	public TextField() {
 		life().runWhen(() -> {
-			atts().accept(this, charLengthAtt);
-			atts().accept(this, charRowsAtt);
-			atts().accept(this, ModelAttributes.value);
+			atts().accept(this, charLengthAtt).act(event -> {
+				try {
+					getElement(getTemplate().getAttachPoint("text")).atts().set(charLengthAtt, event.getValue());
+				} catch(org.muis.core.MuisException e) {
+					msg().error("Could not pass on " + charLengthAtt, e);
+				}
+			});
+			atts().accept(this, charRowsAtt).act(event -> {
+				try {
+					getElement(getTemplate().getAttachPoint("text")).atts().set(charRowsAtt, event.getValue());
+				} catch(org.muis.core.MuisException e) {
+					msg().error("Could not pass on " + charRowsAtt, e);
+				}
+			});
+			atts().accept(this, ModelAttributes.value).act(event -> {
+				if(theRegistration != null)
+					theRegistration.unregister();
+				if(event.getValue() instanceof org.muis.core.model.WidgetRegister)
+					theRegistration = ((org.muis.core.model.WidgetRegister) event.getValue()).register(TextField.this);
+			});
 			atts().accept(this, multiLine);
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
@@ -40,35 +56,15 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			cursor.setTextElement(getValueElement());
 			cursor.setStyleAnchor(getStyle().getSelf());
 			org.muis.core.MuisElement textHolder = getElement(getTemplate().getAttachPoint("text"));
-				try {
+			try {
 				textHolder.atts().set(charLengthAtt, atts().get(charLengthAtt));
 				textHolder.atts().set(charRowsAtt, atts().get(charRowsAtt));
-				} catch(org.muis.core.MuisException e) {
+			} catch(org.muis.core.MuisException e) {
 				msg().error("Could not initialize text layout attributes", e);
-				}
-			events().filterMap(AttributeChangedEvent.att(charLengthAtt)).act(event -> {
-				try {
-					getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
-				} catch(org.muis.core.MuisException e) {
-					msg().error("Could not pass on " + event.getAttribute(), e);
-				}
-			});
-			events().filterMap(AttributeChangedEvent.att(charRowsAtt)).act(event -> {
-				try {
-					getElement(getTemplate().getAttachPoint("text")).atts().set(event.getAttribute(), event.getValue());
-				} catch(org.muis.core.MuisException e) {
-					msg().error("Could not pass on " + event.getAttribute(), e);
-				}
-			});
-				atts().getHolder(ModelAttributes.value).act(event -> {
-					if(theRegistration != null)
-						theRegistration.unregister();
-					if(event.getValue() instanceof org.muis.core.model.WidgetRegister)
-						theRegistration = ((org.muis.core.model.WidgetRegister) event.getValue()).register(TextField.this);
-				});
+			}
 			ObservableValue.flatten(new Type(Object.class, true), atts().getHolder(ModelAttributes.value)).act(evt -> {
 				modelValueChanged(evt.getOldValue(), evt.getValue());
-					});
+			});
 			getContentModel().addContentListener(evt -> {
 				if(theCallbackLock > 0)
 					return;
@@ -78,7 +74,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			modelValueChanged(null, atts().get(ModelAttributes.value));
 
 			events().filterMap(FocusEvent.blur).act(event -> {
-					pushToModel();
+				pushToModel();
 			});
 			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
 				if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {

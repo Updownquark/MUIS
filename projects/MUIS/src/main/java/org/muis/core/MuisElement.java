@@ -171,12 +171,11 @@ public abstract class MuisElement implements MuisParseEnv {
 			}
 		});
 		Object styleWanter = new Object();
-		theAttributeManager.accept(styleWanter, org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE);
-		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute);
+		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
 		events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
-			(StylePathAccepter) org.muis.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+			(StylePathAccepter) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		final boolean [] groupCallbackLock = new boolean[1];
-		events().filterMap(AttributeChangedEvent.att(GroupPropertyType.attribute)).act(event -> {
+		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute).act(event -> {
 			if(groupCallbackLock[0])
 				return;
 			groupCallbackLock[0] = true;
@@ -206,7 +205,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				groupCallbackLock[0] = false;
 			}
 		});
-		events().filterMap(BoundsChangedEvent.bounds).act(event -> {
+		bounds().act(event -> {
 			Rectangle old = event.getOldValue();
 			if(event.getValue().width != old.width || event.getValue().height != old.height)
 				relayout(false);

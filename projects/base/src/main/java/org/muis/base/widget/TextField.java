@@ -71,7 +71,6 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				pushToEdit();
 				fireModelChange();
 			});
-			modelValueChanged(null, atts().get(ModelAttributes.value));
 
 			events().filterMap(FocusEvent.blur).act(event -> {
 				pushToModel();

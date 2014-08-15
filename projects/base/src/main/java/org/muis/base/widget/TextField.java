@@ -171,6 +171,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			else
 				throw new IllegalArgumentException("Document model for a text field must be a "
 					+ MutableSelectableDocumentModel.class.getName());
+			pushToEdit();
 		} else if(newValue != null) {
 			if(!theEventLock) {
 				theEventLock = true;
@@ -180,6 +181,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					theEventLock = false;
 				}
 			}
+			pushToEdit();
 		} else
 			pushToModel();
 	}

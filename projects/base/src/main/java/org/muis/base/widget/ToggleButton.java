@@ -1,6 +1,7 @@
 package org.muis.base.widget;
 
 import org.muis.base.BaseConstants;
+import org.muis.core.MuisConstants;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.StateChangedEvent;
 import org.muis.core.event.UserEvent;
@@ -23,33 +24,36 @@ public class ToggleButton extends Button {
 	/** Creates a toggle button */
 	public ToggleButton() {
 		super(false);
-		ObservableValue<ObservableValue<?>> mv = atts().accept(new Object(), ModelAttributes.value);
-		mv.act(evt -> {
-			if(theRegistration != null)
-				theRegistration.unregister();
-			if(evt.getValue() instanceof org.muis.core.model.WidgetRegister)
-				theRegistration = ((org.muis.core.model.WidgetRegister) evt.getValue()).register(this);
-			if(evt.getValue() != null) {
-				if(!evt.getValue().getType().canAssignTo(Boolean.TYPE)) {
-					msg()
-						.error("Toggle button backed by non-boolean model: " + evt.getObservable().getType(), "modelValue", evt.getValue());
-					return;
-				}
-				((ObservableValue<Boolean>) evt.getValue()).takeUntil(mv).act(evt2 -> {
-					if(state().is(BaseConstants.States.SELECTED) != evt2.getValue())
-						theSelectedController.setActive(evt2.getValue(), MuisUtils.getUserEvent(evt2));
+		life().runWhen(
+			() -> {
+				ObservableValue<ObservableValue<?>> mv = atts().accept(new Object(), ModelAttributes.value);
+				mv.act(evt -> {
+					if(theRegistration != null)
+						theRegistration.unregister();
+					if(evt.getValue() instanceof org.muis.core.model.WidgetRegister)
+						theRegistration = ((org.muis.core.model.WidgetRegister) evt.getValue()).register(this);
+					if(evt.getValue() != null) {
+						if(!evt.getValue().getType().canAssignTo(Boolean.TYPE)) {
+							msg().error("Toggle button backed by non-boolean model: " + evt.getObservable().getType(), "modelValue",
+								evt.getValue());
+							return;
+						}
+						((ObservableValue<Boolean>) evt.getValue()).takeUntil(mv).act(evt2 -> {
+							if(state().is(BaseConstants.States.SELECTED) != evt2.getValue())
+								theSelectedController.setActive(evt2.getValue(), MuisUtils.getUserEvent(evt2));
+						});
+					} else
+						setEnabled(true, MuisUtils.getUserEvent(evt));
 				});
-			} else
-				setEnabled(true, MuisUtils.getUserEvent(evt));
-		});
-		theSelectedController = state().control(BaseConstants.States.SELECTED);
-		events().filterMap(StateChangedEvent.state(BaseConstants.States.SELECTED)).act(event -> {
-			MuisEvent cause = event.getCause();
-			if(event.getValue())
-				valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
-			else
-				valueChanged(false, cause instanceof UserEvent ? (UserEvent) cause : null);
-		});
+				theSelectedController = state().control(BaseConstants.States.SELECTED);
+				events().filterMap(StateChangedEvent.state(BaseConstants.States.SELECTED)).act(event -> {
+					MuisEvent cause = event.getCause();
+					if(event.getValue())
+						valueChanged(true, cause instanceof UserEvent ? (UserEvent) cause : null);
+					else
+						valueChanged(false, cause instanceof UserEvent ? (UserEvent) cause : null);
+				});
+			}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	@Override

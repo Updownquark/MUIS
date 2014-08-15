@@ -32,9 +32,9 @@ public class MouseEventCondition extends PositionedUserEventCondition<MouseEvent
 		MouseEvent mouseEvt = base.apply(userApply(evt));
 		if(mouseEvt == null)
 			return null;
-		if(!theTypes.isEmpty() && !theTypes.contains(mouseEvt.getType()))
+		if(theTypes != null && !theTypes.contains(mouseEvt.getType()))
 			return null;
-		if(!theButtons.isEmpty() && !theButtons.contains(mouseEvt.getButton()))
+		if(theButtons != null && !theButtons.contains(mouseEvt.getButton()))
 			return null;
 		if(theClickCount != null && mouseEvt.getClickCount() != theClickCount.intValue())
 			return null;

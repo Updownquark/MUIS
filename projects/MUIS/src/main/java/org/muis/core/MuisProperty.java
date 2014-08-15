@@ -316,7 +316,7 @@ public abstract class MuisProperty<T> {
 
 	@Override
 	public int hashCode() {
-		return theName.hashCode() * 13 + theType.hashCode() * 7 + (theValidator == null ? 0 : theValidator.hashCode());
+		return theName.hashCode() * 13 + theType.hashCode() * 7;
 	}
 
 	/** A string property type--this type validates anything */

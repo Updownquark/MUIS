@@ -543,7 +543,7 @@ public class AttributeManager {
 			}
 		}
 		if(initValue != null && holder.get() == null)
-			set(attr, initValue);
+			holder.set(initValue);
 		return holder;
 	}
 
@@ -676,6 +676,8 @@ public class AttributeManager {
 				holders.remove();
 				namedAttrRemoved(holder.getAttribute());
 				theElement.msg().error("Attribute " + holder.getAttribute() + " is not accepted in this element", "value", holder.get());
+			} else if(holder.isRequired() && holder.get() == null) {
+				theElement.msg().error("Attribute " + holder.getAttribute() + " is required but has no value in this element");
 			}
 		}
 		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())

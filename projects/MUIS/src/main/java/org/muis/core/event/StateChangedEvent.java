@@ -77,4 +77,9 @@ public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	public MuisEvent getCause() {
 		return theCause;
 	}
+
+	@Override
+	public String toString() {
+		return theState + " " + (getValue() ? "active" : "inactive") + (theCause == null ? "" : "(" + theCause + ")");
+	}
 }

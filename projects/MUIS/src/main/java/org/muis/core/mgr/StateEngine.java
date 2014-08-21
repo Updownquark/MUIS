@@ -6,11 +6,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
+import org.muis.core.event.StateChangedEvent;
+import org.muis.core.rx.DefaultObservable;
+import org.muis.core.rx.Observer;
 
 import prisms.util.ArrayUtils;
 
 /** Keeps track of states for an entity and fires events when they change */
-public class StateEngine implements StateSet {
+public class StateEngine extends DefaultObservable<StateChangedEvent> implements StateSet {
 	/** Allows control over one state in an engine */
 	public interface StateController {
 		/** @return The engine that this controller controls a state in */
@@ -65,12 +68,15 @@ public class StateEngine implements StateSet {
 
 	private Object theStateControllerLock;
 
+	private Observer<StateChangedEvent> theObservableController;
+
 	/**
 	 * Creates a state engine
 	 *
 	 * @param element The element that this engine keeps state for
 	 */
 	public StateEngine(MuisElement element) {
+		theObservableController = super.control(null);
 		theElement = element;
 		theStates = new ConcurrentHashMap<>();
 		theStateControllers = new StateControllerImpl[0];
@@ -194,12 +200,14 @@ public class StateEngine implements StateSet {
 		if(old.isActive() == active)
 			return;
 
-		theElement.events().fire(new org.muis.core.event.StateChangedEvent(theElement, state, active, event) {
+		StateChangedEvent sce = new StateChangedEvent(theElement, state, active, event) {
 			@Override
 			public boolean isOverridden() {
 				return stack != newState.getStackChecker().get();
 			}
-		});
+		};
+		theObservableController.onNext(sce);
+		theElement.events().fire(sce);
 	}
 
 	@Override

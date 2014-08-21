@@ -449,7 +449,8 @@ public class AttributeManager {
 
 	/**
 	 * Specifies a required attribute for this element
-	 *
+	 * 
+	 * @param <T> The type of the attribute to require
 	 * @param needer The object that needs the attribute
 	 * @param attr The attribute that must be specified for this element
 	 * @return The attribute holder for the attribute in this manager
@@ -492,6 +493,7 @@ public class AttributeManager {
 	/**
 	 * Specifies an optional attribute for this element
 	 *
+	 * @param <T> The type of the attribute to accept
 	 * @param wanter The object that cares about the attribute
 	 * @param attr The attribute that must be specified for this element
 	 * @return The attribute holder for the attribute in this manager

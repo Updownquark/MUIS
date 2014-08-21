@@ -28,7 +28,7 @@ public class ModelTestModel extends DefaultMuisModel {
 	/** Creates the model */
 	public ModelTestModel() {
 		theBgModel = new DefaultMuisModel();
-		theBgValue = new SimpleSettableValue<Color>(Color.class, false);
+		theBgValue = new SimpleSettableValue<>(Color.class, false);
 		theBgGroup = new org.muis.base.model.MuisButtonGroup();
 		theBgGroupName = new SimpleSettableValue<>(String.class, true);
 		theBgImage = new SimpleSettableValue<>(String.class, false);

@@ -57,8 +57,7 @@ public class ModelAttributes {
 			}
 		};
 
-		valueType = new MuisProperty.PrismsParsedPropertyType<ObservableValue<?>>(new Type(ObservableValue.class, new Type(new Type(
-			Object.class), true)));
+		valueType = new MuisProperty.PrismsParsedPropertyType<>(new Type(ObservableValue.class, new Type(new Type(Object.class), true)));
 
 		action = new org.muis.core.MuisAttribute<>("action", actionType);
 		value = new org.muis.core.MuisAttribute<>("value", valueType);

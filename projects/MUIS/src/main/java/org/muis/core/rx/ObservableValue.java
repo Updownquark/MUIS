@@ -126,6 +126,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	}
 
 	/**
+	 * @param <T> The compile-time super type of all observables contained in the nested observable
 	 * @param type The super type of all observables possibly contained in the given nested observable, or null to use the type of the
 	 *            contained observable
 	 * @param ov The nested observable

@@ -206,8 +206,8 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	void styleChanged(StyleAttribute<?> attr, StateExpression exp) {
-		StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt = new StyleExpressionEvent<StatefulStyle, StateExpression, Object>(
-			this, this, (StyleAttribute<Object>) attr, exp);
+		StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt = new StyleExpressionEvent<>(this, this, (StyleAttribute<Object>) attr,
+			exp);
 		for(StyleExpressionListener<StatefulStyle, StateExpression> listener : theListeners)
 			listener.eventOccurred(evt);
 	}

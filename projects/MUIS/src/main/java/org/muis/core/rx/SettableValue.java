@@ -12,6 +12,7 @@ import prisms.lang.Type;
  */
 public interface SettableValue<T> extends ObservableValue<T> {
 	/**
+	 * @param <V> The type of the value to set
 	 * @param value The value to assign to this value
 	 * @param cause Something that may have caused this change
 	 * @return This value, for chaining
@@ -20,6 +21,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	<V extends T> SettableValue<T> set(V value, Object cause) throws IllegalArgumentException;
 
 	/**
+	 * @param <V> The type of the value to check
 	 * @param value The value to check
 	 * @return null if the value is not known to be unacceptable for this value, or an error text if it is known to be unacceptable. A null
 	 *         value returned from this method does not guarantee that a call to {@link #set(Object, Object)} for the same value will not
@@ -28,6 +30,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	<V extends T> String isAcceptable(V value);
 
 	/**
+	 * @param <R> The type of the new settable value to create
 	 * @param function The function to map this value to another
 	 * @param reverse The function to map the other value to this one
 	 * @return The mapped settable value
@@ -37,6 +40,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	}
 
 	/**
+	 * @param <R> The type of the new settable value to create
 	 * @param type The type for the new value
 	 * @param function The function to map this value to another
 	 * @param reverse The function to map the other value to this one
@@ -62,7 +66,9 @@ public interface SettableValue<T> extends ObservableValue<T> {
 
 	/**
 	 * Composes this settable value with another observable value
-	 * 
+	 *
+	 * @param <U> The type of the value to compose this value with
+	 * @param <R> The type of the new settable value to create
 	 * @param function The function to combine the values into another value
 	 * @param arg The value to combine this value with
 	 * @param reverse The function to reverse the transformation
@@ -75,7 +81,9 @@ public interface SettableValue<T> extends ObservableValue<T> {
 
 	/**
 	 * Composes this settable value with another observable value
-	 * 
+	 *
+	 * @param <U> The type of the value to compose this value with
+	 * @param <R> The type of the new settable value to create
 	 * @param type The type of the new value
 	 * @param function The function to combine the values into another value
 	 * @param arg The value to combine this value with
@@ -103,7 +111,9 @@ public interface SettableValue<T> extends ObservableValue<T> {
 
 	/**
 	 * Composes this settable value with another observable value
-	 * 
+	 *
+	 * @param <U> The type of the value to compose this value with
+	 * @param <R> The type of the new settable value to create
 	 * @param type The type of the new value
 	 * @param function The function to combine the values into another value
 	 * @param arg The value to combine this value with
@@ -136,7 +146,10 @@ public interface SettableValue<T> extends ObservableValue<T> {
 
 	/**
 	 * Composes this settable value with 2 other observable values
-	 * 
+	 *
+	 * @param <U> The type of the first value to compose this value with
+	 * @param <V> The type of the second value to compose this value with
+	 * @param <R> The type of the new settable value to create
 	 * @param function The function to combine the values into another value
 	 * @param arg2 The first other value to combine this value with
 	 * @param arg3 The second other value to combine this value with
@@ -150,7 +163,10 @@ public interface SettableValue<T> extends ObservableValue<T> {
 
 	/**
 	 * Composes this settable value with 2 other observable values
-	 * 
+	 *
+	 * @param <U> The type of the first value to compose this value with
+	 * @param <V> The type of the second value to compose this value with
+	 * @param <R> The type of the new settable value to create
 	 * @param type The type of the new value
 	 * @param function The function to combine the values into another value
 	 * @param arg2 The first other value to combine this value with

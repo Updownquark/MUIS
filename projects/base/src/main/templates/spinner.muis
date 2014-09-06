@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<template>
+	<head>
+		<model name="model" type="org.muis.base.model.SpinnerModel" />
+	</head>
+	<body layout="layer">
+		<border template-attach-point="border" template-external="false" template-mutable="false" layout="border">
+			<text-field template-attach-point="text" template-external="false" region="center"  />
+			<block region="east" layout="border">
+				<button template-attach-point="up" region="north" action="model.increment" />
+				<button template-attach-point="down" region="south" action="model.decrement" />
+			</block>
+		</border>
+	</body>
+</template>

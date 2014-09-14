@@ -3,6 +3,8 @@ package org.muis.core.rx;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.muis.util.BiTuple;
+
 import prisms.lang.Type;
 
 /**
@@ -69,6 +71,15 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this, arg);
+	}
+
+	/**
+	 * @param <U> The type of the other observable to tuplize
+	 * @param arg The other observable to tuplize
+	 * @return An observable which broadcasts tuples of the latest values of this observable value and another
+	 */
+	default <U> ObservableValue<BiTuple<T, U>> tupleV(ObservableValue<U> arg) {
+		return composeV(BiTuple<T, U>::new, arg);
 	}
 
 	/**
@@ -165,6 +176,28 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 						});
 		});
 		return ret;
+	}
+
+	/**
+	 * @param <V> The first argument type
+	 * @param <U> The second argument type
+	 * @return A binary function that returns its first argument
+	 */
+	public static <V, U> BiFunction<V, U, V> first() {
+		return (V v1, U v2) -> {
+			return v1;
+		};
+	}
+
+	/**
+	 * @param <V> The first argument type
+	 * @param <U> The second argument type
+	 * @return A binary function that returns its second argument
+	 */
+	public static <V, U> BiFunction<V, U, U> second() {
+		return (V v1, U v2) -> {
+			return v2;
+		};
 	}
 
 	/**

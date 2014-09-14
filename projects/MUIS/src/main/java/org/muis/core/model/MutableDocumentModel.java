@@ -14,6 +14,15 @@ public interface MutableDocumentModel extends MuisDocumentModel, Appendable {
 	public MutableDocumentModel append(char c);
 
 	/**
+	 * Clears this document's content
+	 * 
+	 * @return This model, for chaining
+	 */
+	public default MuisDocumentModel clear() {
+		return delete(0, length());
+	}
+
+	/**
 	 * Deletes characters from this document
 	 *
 	 * @param start The index of the start of the sequence to remove, inclusive

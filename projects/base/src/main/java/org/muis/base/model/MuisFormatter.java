@@ -9,8 +9,6 @@ import org.muis.core.model.MutableDocumentModel;
  * @param <T> The type of objects that this formatter can parse and format
  */
 public interface MuisFormatter<T> {
-	void setText(T value, MutableDocumentModel doc);
-
 	void append(T value, MutableDocumentModel doc);
 
 	T parse(MuisDocumentModel doc);

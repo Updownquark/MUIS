@@ -175,6 +175,16 @@ public interface MuisDocumentModel extends CharSequence, Iterable<StyledSequence
 	/** @param listener The listener to stop notification for */
 	void removeStyleListener(StyleListener listener);
 
+	/** @param run The listener to invoke when either this document's content or its style changes */
+	default void onContentStyleChange(Runnable run) {
+		addContentListener(evt -> {
+			run.run();
+		});
+		addStyleListener(evt -> {
+			run.run();
+		});
+	}
+
 	/** @return A transaction that prevents any other threads from modifying this document model until the transaction is closed */
 	Transaction holdForRead();
 }

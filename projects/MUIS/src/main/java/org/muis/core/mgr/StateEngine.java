@@ -223,7 +223,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		public StateControllerImpl(MuisState state) {
 			theState = state;
 			theController = control(null);
-			StateEngine.this.filter(event -> event.getState() == theState).act(event -> theController.onNext(event));
+			StateEngine.this.filter(event -> event.getState().equals(theState)).act(event -> theController.onNext(event));
 		}
 
 		@Override

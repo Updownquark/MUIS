@@ -4,21 +4,27 @@ import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 import static org.muis.core.MuisTextElement.multiLine;
 
+import org.muis.base.BaseConstants;
 import org.muis.base.model.MuisFormatter;
 import org.muis.base.model.RichDocumentModel;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisProperty;
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
+import org.muis.core.mgr.StateEngine.StateController;
 import org.muis.core.model.*;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.SettableValue;
+import org.muis.core.tags.State;
+import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
 import org.muis.util.BiTuple;
 import org.muis.util.Transaction;
 
 /** A simple widget that takes and displays text input from the user */
 @Template(location = "../../../../text-field.muis")
+@StateSupport({@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY),
+		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
 public class TextField extends org.muis.core.MuisTemplate implements DocumentedElement {
 	/** Allows the user to specify the model whose content is displayed in this text field */
 	public static final MuisAttribute<MuisDocumentModel> document = new MuisAttribute<>("doc", new MuisProperty.MuisTypeInstanceProperty<>(
@@ -34,11 +40,17 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 	private boolean isDocDirty;
 
+	private StateController theErrorController;
+
+	private StateController theEnabledController;
+
 	private int theCallbackLock = 0;
 
 	/** Creates a text field */
 	public TextField() {
 		life().runWhen(() -> {
+				theErrorController = state().control(BaseConstants.States.ERROR);
+				theEnabledController = state().control(BaseConstants.States.ENABLED);
 			Object accepter = new Object();
 			atts().accept(accepter, charLengthAtt).act(event -> {
 				try {
@@ -71,6 +83,8 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 						setDocument(tuple.getValue2());
 					}
 				});
+				atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
+				atts().getHolder(ModelAttributes.value).error().act(ex -> theErrorController.set(true, ex));
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
 			initDocument();

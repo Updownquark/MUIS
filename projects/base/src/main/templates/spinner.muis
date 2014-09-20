@@ -2,11 +2,15 @@
 
 <template>
 	<head>
-		<model name="model" type="org.muis.base.model.SpinnerModel" />
+		<model name="model">
+			<value name="value" />
+			<action name="increment" />
+			<action name="decrement" />
+		</model>
 	</head>
 	<body layout="layer">
 		<border template-attach-point="border" template-external="false" template-mutable="false" layout="border">
-			<text-field template-attach-point="text" template-external="false" region="center"  />
+			<text-field template-attach-point="text" region="center" value="model.value" template-expose-atts="format" />
 			<block region="east" layout="border">
 				<button template-attach-point="up" region="north" action="model.increment" />
 				<button template-attach-point="down" region="south" action="model.decrement" />

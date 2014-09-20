@@ -1,25 +1,47 @@
 package org.muis.core.model;
 
+import org.muis.core.rx.DefaultObservableValue;
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
+
+import prisms.lang.Type;
+
 /** A MUIS action listener that propagates the events it gets to one or more other listeners */
 public class AggregateActionListener implements MuisActionListener, prisms.util.Sealable {
 	private boolean isSealed;
 
 	private java.util.List<MuisActionListener> theListeners;
 
+	private DefaultObservableValue<Boolean> isEnabled;
+	private Observer<ObservableValueEvent<Boolean>> theEnabledController;
+
 	/** Creates an aggregate listener */
 	public AggregateActionListener() {
 		theListeners = new java.util.ArrayList<>(2);
+		isEnabled = new DefaultObservableValue<Boolean>() {
+			@Override
+			public Type getType() {
+				return new Type(Boolean.class);
+			}
+
+			@Override
+			public Boolean get() {
+				boolean ret = false;
+				for(MuisActionListener listener : theListeners)
+					if(listener.isEnabled().get()) {
+						ret = true;
+						break;
+					}
+				return ret;
+			}
+		};
+		theEnabledController = isEnabled.control(null);
 	}
 
 	@Override
-	public boolean isEnabled() {
-		boolean ret = false;
-		for(MuisActionListener listener : theListeners)
-			if(listener.isEnabled()) {
-				ret = true;
-				break;
-			}
-		return ret;
+	public ObservableValue<Boolean> isEnabled() {
+		return isEnabled;
 	}
 
 	@Override
@@ -32,15 +54,29 @@ public class AggregateActionListener implements MuisActionListener, prisms.util.
 	public void addListener(MuisActionListener listener) {
 		if(isSealed)
 			throw new SealedException(this);
-		if(listener != null)
+		if(listener != null) {
+			boolean oldEnabled = isEnabled.get();
 			theListeners.add(listener);
+			if(!oldEnabled && listener.isEnabled().get())
+				theEnabledController.onNext(new ObservableValueEvent<>(isEnabled, false, true, null));
+		}
 	}
 
 	/** @param listener The listener to remove from notification */
 	public void removeListener(MuisActionListener listener) {
 		if(isSealed)
 			throw new SealedException(this);
+		boolean fire = listener.isEnabled().get();
+		if(fire) {
+			for(MuisActionListener action : theListeners)
+				if(action != listener && action.isEnabled().get()) {
+					fire = false;
+					break;
+				}
+		}
 		theListeners.remove(listener);
+		if(fire)
+			theEnabledController.onNext(new ObservableValueEvent<>(isEnabled, true, false, null));
 	}
 
 	@Override

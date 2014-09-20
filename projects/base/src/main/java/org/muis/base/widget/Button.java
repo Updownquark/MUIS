@@ -171,7 +171,7 @@ public class Button extends org.muis.core.MuisTemplate {
 		if(newValue instanceof org.muis.core.model.WidgetRegister)
 			theRegistration = ((org.muis.core.model.WidgetRegister) newValue).register(Button.this);
 		if(newValue != null)
-			setEnabled(newValue.isEnabled(), null);
+			setEnabled(newValue.isEnabled().get(), null);
 	}
 
 	private void checkDepressed(MuisEvent cause) {

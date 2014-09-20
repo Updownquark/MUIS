@@ -30,6 +30,17 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	<V extends T> String isAcceptable(V value);
 
 	/**
+	 * @param <V> The type of the value to set
+	 * @param value The observable value to link this value to
+	 * @return A subscription by which the link may be canceled
+	 */
+	default <V extends T> Subscription<ObservableValueEvent<V>> link(ObservableValue<V> value) {
+		return value.act(event -> {
+			set(event.getValue(), event);
+		});
+	}
+
+	/**
 	 * @param <R> The type of the new settable value to create
 	 * @param function The function to map this value to another
 	 * @param reverse The function to map the other value to this one

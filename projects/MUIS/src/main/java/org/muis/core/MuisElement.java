@@ -253,13 +253,13 @@ public abstract class MuisElement implements MuisParseEnv {
 			case pressed:
 				switch (event.getButton()) {
 				case left:
-					theStateControllers.clicked.setActive(true, event);
+					theStateControllers.clicked.set(true, event);
 					break;
 				case right:
-					theStateControllers.rightClicked.setActive(true, event);
+					theStateControllers.rightClicked.set(true, event);
 					break;
 				case middle:
-					theStateControllers.middleClicked.setActive(true, event);
+					theStateControllers.middleClicked.set(true, event);
 					break;
 				default:
 					break;
@@ -268,13 +268,13 @@ public abstract class MuisElement implements MuisParseEnv {
 			case released:
 				switch (event.getButton()) {
 				case left:
-					theStateControllers.clicked.setActive(false, event);
+					theStateControllers.clicked.set(false, event);
 					break;
 				case right:
-					theStateControllers.rightClicked.setActive(false, event);
+					theStateControllers.rightClicked.set(false, event);
 					break;
 				case middle:
-					theStateControllers.middleClicked.setActive(false, event);
+					theStateControllers.middleClicked.set(false, event);
 					break;
 				default:
 					break;
@@ -285,17 +285,17 @@ public abstract class MuisElement implements MuisParseEnv {
 			case moved:
 				break;
 			case entered:
-				theStateControllers.hovered.setActive(true, event);
+				theStateControllers.hovered.set(true, event);
 				for(org.muis.core.event.MouseEvent.ButtonType button : theDocument.getPressedButtons()) {
 					switch (button) {
 					case left:
-						theStateControllers.clicked.setActive(true, event);
+						theStateControllers.clicked.set(true, event);
 						break;
 					case right:
-						theStateControllers.rightClicked.setActive(true, event);
+						theStateControllers.rightClicked.set(true, event);
 						break;
 					case middle:
-						theStateControllers.middleClicked.setActive(true, event);
+						theStateControllers.middleClicked.set(true, event);
 						break;
 					default:
 						break;
@@ -303,15 +303,15 @@ public abstract class MuisElement implements MuisParseEnv {
 				}
 				break;
 			case exited:
-				theStateControllers.clicked.setActive(false, event);
-				theStateControllers.rightClicked.setActive(false, event);
-				theStateControllers.middleClicked.setActive(false, event);
-				theStateControllers.hovered.setActive(false, event);
+				theStateControllers.clicked.set(false, event);
+				theStateControllers.rightClicked.set(false, event);
+				theStateControllers.middleClicked.set(false, event);
+				theStateControllers.hovered.set(false, event);
 				break;
 			}
 		});
 		events().filterMap(FocusEvent.focusEvent).act(event -> {
-			theStateControllers.focused.setActive(event.isFocus(), event);
+			theStateControllers.focused.set(event.isFocus(), event);
 		});
 	}
 

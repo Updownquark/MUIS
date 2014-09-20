@@ -7,29 +7,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.StateChangedEvent;
-import org.muis.core.rx.DefaultObservable;
-import org.muis.core.rx.Observer;
+import org.muis.core.rx.*;
 
+import prisms.lang.Type;
 import prisms.util.ArrayUtils;
 
 /** Keeps track of states for an entity and fires events when they change */
 public class StateEngine extends DefaultObservable<StateChangedEvent> implements StateSet {
 	/** Allows control over one state in an engine */
-	public interface StateController {
+	public interface StateController extends SettableValue<Boolean> {
 		/** @return The engine that this controller controls a state in */
 		StateEngine getEngine();
 
 		/** @return The state that this controller controls */
 		MuisState getState();
-
-		/** @return Whether this controller's state is active in the engine at the moment */
-		boolean isActive();
-
-		/**
-		 * @param active Whether this controller's state should be active in the engine now
-		 * @param cause The event that caused the change--may be null, but should be provided if possible
-		 */
-		void setActive(boolean active, MuisEvent cause);
 	}
 
 	private static class StateValue {
@@ -192,7 +183,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		return ret;
 	}
 
-	private void stateChanged(MuisState state, final boolean active, MuisEvent event) {
+	private void stateChanged(MuisState state, final boolean active, Object cause) {
 		final StateValue newState = new StateValue(active);
 		StateValue old = theStates.put(state, newState);
 		newState.setStackChecker(old.getStackChecker());
@@ -200,6 +191,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		if(old.isActive() == active)
 			return;
 
+		MuisEvent event = cause instanceof MuisEvent ? (MuisEvent) cause : null;
 		StateChangedEvent sce = new StateChangedEvent(theElement, state, active, event) {
 			@Override
 			public boolean isOverridden() {
@@ -223,11 +215,15 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		return ret.toString();
 	}
 
-	private class StateControllerImpl implements StateController {
+	private class StateControllerImpl extends DefaultSettableValue<Boolean> implements StateController {
 		private final MuisState theState;
+
+		private final Observer<ObservableValueEvent<Boolean>> theController;
 
 		public StateControllerImpl(MuisState state) {
 			theState = state;
+			theController = control(null);
+			StateEngine.this.filter(event -> event.getState() == theState).act(event -> theController.onNext(event));
 		}
 
 		@Override
@@ -241,13 +237,24 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		}
 
 		@Override
-		public boolean isActive() {
-			return is(theState);
+		public SettableValue<Boolean> set(Boolean active, Object cause) throws IllegalArgumentException {
+			stateChanged(theState, active, cause);
+			return this;
 		}
 
 		@Override
-		public void setActive(boolean active, MuisEvent cause) {
-			stateChanged(theState, active, cause);
+		public String isAcceptable(Boolean value) {
+			return value != null ? null : "null Boolean value unacceptable";
+		}
+
+		@Override
+		public Type getType() {
+			return new Type(Boolean.class);
+		}
+
+		@Override
+		public Boolean get() {
+			return is(theState);
 		}
 	}
 }

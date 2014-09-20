@@ -31,7 +31,7 @@ public class Button extends org.muis.core.MuisTemplate {
 	public Button() {
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
-		theEnabledController.setActive(true, null);
+		theEnabledController.set(true, null);
 		setFocusable(true);
 		life().runWhen(() -> {
 			if(isActionable) {
@@ -51,7 +51,7 @@ public class Button extends org.muis.core.MuisTemplate {
 					if(event.getValue()) {
 						if(cause instanceof MouseEvent) {
 							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
-							theDepressedController.setActive(true, cause);
+							theDepressedController.set(true, cause);
 						} else
 							theClickLocation = null;
 					} else {
@@ -83,7 +83,7 @@ public class Button extends org.muis.core.MuisTemplate {
 						return;
 					if(!state().is(BaseConstants.States.ENABLED))
 						return;
-					theDepressedController.setActive(true, event);
+					theDepressedController.set(true, event);
 				} else {
 					if(event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
 						return;
@@ -117,9 +117,9 @@ public class Button extends org.muis.core.MuisTemplate {
 	 * @param cause The cause of the change (may be null)
 	 */
 	public void setEnabled(boolean enabled, MuisEvent cause) {
-		theEnabledController.setActive(enabled, cause);
+		theEnabledController.set(enabled, cause);
 		if(!enabled)
-			theDepressedController.setActive(false, cause);
+			theDepressedController.set(false, cause);
 	}
 
 	@Override
@@ -184,7 +184,7 @@ public class Button extends org.muis.core.MuisTemplate {
 		else
 			pressed = false;
 		if(!pressed)
-			theDepressedController.setActive(pressed, cause);
+			theDepressedController.set(pressed, cause);
 	}
 
 	private static class RadiusAddSizePolicy extends org.muis.core.layout.AbstractSizeGuide {

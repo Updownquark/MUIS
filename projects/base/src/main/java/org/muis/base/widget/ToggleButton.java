@@ -40,7 +40,7 @@ public class ToggleButton extends Button {
 						}
 						((ObservableValue<Boolean>) evt.getValue()).takeUntil(mv).act(evt2 -> {
 							if(state().is(BaseConstants.States.SELECTED) != evt2.getValue())
-								theSelectedController.setActive(evt2.getValue(), MuisUtils.getUserEvent(evt2));
+								theSelectedController.set(evt2.getValue(), MuisUtils.getUserEvent(evt2));
 						});
 					} else
 						setEnabled(true, MuisUtils.getUserEvent(evt));
@@ -60,7 +60,7 @@ public class ToggleButton extends Button {
 	protected void action(UserEvent cause) {
 		if(!state().is(BaseConstants.States.ENABLED))
 			return;
-		theSelectedController.setActive(!state().is(BaseConstants.States.SELECTED), cause);
+		theSelectedController.set(!state().is(BaseConstants.States.SELECTED), cause);
 	}
 
 	private void valueChanged(boolean value, UserEvent cause) {
@@ -77,6 +77,6 @@ public class ToggleButton extends Button {
 			msg().error("Model value threw exception for value \"" + value + "\"", e);
 		}
 		if(modelValue.get().booleanValue() != value)
-			theSelectedController.setActive(modelValue.get(), null);
+			theSelectedController.set(modelValue.get(), null);
 	}
 }

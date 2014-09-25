@@ -3,11 +3,16 @@ package org.muis.core.parser;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.muis.core.MuisClassView;
+import org.muis.core.MuisException;
 import org.muis.core.eval.impl.ObservableEvaluator;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.rx.ObservableValue;
 
 import prisms.lang.*;
+import prisms.lang.eval.PrismsEvaluator;
+import prisms.lang.eval.PrismsItemEvaluator;
+import prisms.lang.types.ParsedType;
 
 /** The default implementation of {@link MuisValueReferenceParser} */
 public class DefaultModelValueReferenceParser implements MuisValueReferenceParser {
@@ -70,15 +75,19 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 	}
 
 	/** The base of all model parsers in MUIS */
-	public static final DefaultModelValueReferenceParser BASE = new DefaultModelValueReferenceParser(null);
+	public static final DefaultModelValueReferenceParser BASE = new DefaultModelValueReferenceParser(null, null);
 
 	private MuisValueReferenceParser theSuperParser;
 	private PrismsParser theParser;
 	private ObservableEvaluator theEvaluator;
 	private EvaluationEnvironment theEnv;
+	private final MuisClassView theClassView;
 
-	/** @param superParser The parser to extend */
-	public DefaultModelValueReferenceParser(MuisValueReferenceParser superParser) {
+	/**
+	 * @param superParser The parser to extend
+	 * @param classView The class view to get mapped types from
+	 */
+	public DefaultModelValueReferenceParser(MuisValueReferenceParser superParser, MuisClassView classView) {
 		theSuperParser = superParser;
 		theParser = new WrappingPrismsParser(superParser != null ? superParser.getParser() : MVX_PARSER);
 		theEvaluator = new WrappingObservableEvaluator(superParser != null ? superParser.getEvaluator() : MVX_EVALUATOR);
@@ -86,10 +95,32 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 		applyModification();
 		theParser.validateConfig();
 		theEvaluator.seal();
+		theClassView = classView;
 	}
 
 	/** Allows subclasses to modify their parser, evaluator, and environment before being used */
 	protected void applyModification() {
+		// Add evaluation capability for namespace-qualified or unqualified tag types
+		PrismsItemEvaluator<? super ParsedType> superEval = getEvaluator().getEvaluatorFor(ParsedType.class);
+		getEvaluator().addEvaluator(ParsedType.class, new PrismsItemEvaluator<ParsedType>() {
+			@Override
+			public EvaluationResult evaluate(ParsedType item, PrismsEvaluator evaluator, EvaluationEnvironment env, boolean asType,
+				boolean withValues) throws EvaluationException {
+				if(theClassView != null) {
+					ParseMatch namespace = item.getStored("namespace");
+					String tagName = item.getName();
+					String className = theClassView.getMappedClass(namespace == null ? null : namespace.text, tagName);
+					if(className != null)
+						try {
+							return new EvaluationResult(new Type(theClassView.loadMappedClass(className, Object.class)));
+						} catch(MuisException e) {
+							// Need access to a message center?
+							e.printStackTrace();
+						}
+				}
+				return superEval.evaluate(item, evaluator, env, asType, withValues);
+			}
+		});
 	}
 
 	/** @return The parser that this parser inherits definitions from */

@@ -120,7 +120,7 @@ public class MuisDocument {
 		theParser = parser;
 		theLocation = location;
 		theHead = head;
-		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser()) {
+		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser(), theClassView) {
 			@Override
 			protected void applyModification() {
 				super.applyModification();

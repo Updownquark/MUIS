@@ -281,20 +281,32 @@
 			<op type="identifier|primitive" storeAs="name" />
 		</option>
 	</entity>
+	<entity name="muis-identifier" order="1000" priority="-1000" impl="prisms.lang.types.ParsedIdentifier">
+		<charset pattern="[_a-zA-Z][_\-a-zA-Z0-9]*" storeAs="name" />
+	</entity>
 	<entity name="type" priority="-1" impl="prisms.lang.types.ParsedType">
-		<op type="basic type" storeAs="base" />
-		<option>
-			<literal>&lt;</literal>
-			<op type="wildcard type" storeAs="paramType" />
-			<option min="0">
-				<literal>,</literal>
+		<option> <!-- Normal java type -->
+			<op type="basic type" storeAs="base" />
+			<option>
+				<literal>&lt;</literal>
 				<op type="wildcard type" storeAs="paramType" />
+				<option min="0">
+					<literal>,</literal>
+					<op type="wildcard type" storeAs="paramType" />
+				</option>
+				<literal>&gt;</literal>
 			</option>
-			<literal>&gt;</literal>
+			<option min="0">
+				<literal storeAs="array">[</literal>
+				<literal>]</literal>
+			</option>
 		</option>
-		<option min="0">
-			<literal storeAs="array">[</literal>
-			<literal>]</literal>
+		<option> <!-- MUIS-type namespace-qualified tag type -->
+			<option>
+				<op type="muis-identifer" storeAs="namespace" />
+				<literal>:</literal>
+			</option>
+			<op type="muis-identifier" storeAs="base" />
 		</option>
 	</entity>
 	<entity name="wildcard type" priority="-1" impl="prisms.lang.types.ParsedType">

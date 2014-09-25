@@ -56,6 +56,8 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	private MuisClassView theClassView;
 
+	private MuisValueReferenceParser theModelParser;
+
 	private String theNamespace;
 
 	private String theTagName;
@@ -474,6 +476,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
+		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(theDocument.getModelParser(), theClassView);
 		setParent(parent);
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}
@@ -549,7 +552,7 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	@Override
 	public final MuisValueReferenceParser getValueParser() {
-		return theDocument.getModelParser();
+		return theModelParser;
 	}
 
 	// Hierarchy methods

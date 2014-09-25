@@ -42,7 +42,7 @@ public class MuisEnvironment implements MuisParseEnv {
 		theCache = new MuisCache();
 		theStyle = new EnvironmentStyle();
 		theToolkitLock = new Object();
-		theMVP = new DefaultModelValueReferenceParser(DefaultModelValueReferenceParser.BASE);
+		theMVP = new DefaultModelValueReferenceParser(DefaultModelValueReferenceParser.BASE, null);
 	}
 
 	@Override

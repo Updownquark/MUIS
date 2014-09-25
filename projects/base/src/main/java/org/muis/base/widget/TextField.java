@@ -5,8 +5,7 @@ import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 import static org.muis.core.MuisTextElement.multiLine;
 
 import org.muis.base.BaseConstants;
-import org.muis.base.model.MuisFormatter;
-import org.muis.base.model.RichDocumentModel;
+import org.muis.base.model.*;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisProperty;
 import org.muis.core.event.FocusEvent;
@@ -33,6 +32,10 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	/** Allows specification of the format used by the text field */
 	public static final MuisAttribute<MuisFormatter<?>> format = new MuisAttribute<>("format", new MuisProperty.MuisTypeInstanceProperty<>(
 		(Class<MuisFormatter<?>>) (Class<?>) MuisFormatter.class));
+
+	/** Allows specification of the format used by the text field */
+	public static final MuisAttribute<Validator<?>> validator = new MuisAttribute<>("validator",
+		new MuisProperty.MuisTypeInstanceProperty<>((Class<Validator<?>>) (Class<?>) Validator.class));
 
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
@@ -84,7 +87,6 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					}
 				});
 				atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
-				atts().getHolder(ModelAttributes.value).error().act(ex -> theErrorController.set(true, ex));
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
 			initDocument();
@@ -172,10 +174,37 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		if(mv == null)
 			return;
 		MuisFormatter<?> formatter = atts().get(format);
-		if(formatter != null)
-			((SettableValue<Object>) mv).set(formatter.parse(getDocumentModel()), null);
-		else
-			((SettableValue<String>) mv).set(getDocumentModel().toString(), null);
+		Validator<?> val = atts().get(validator);
+		Object value = null;
+		boolean parsed = false;
+		boolean validated = false;
+		try {
+			if(formatter != null)
+				value = formatter.parse(getDocumentModel());
+			else
+				value = getDocumentModel().toString();
+			parsed = true;
+			if(validator != null) {
+				String valMsg = ((Validator<Object>) val).validate(value);
+				if(valMsg != null) {
+					// TODO Do something with the message
+					theErrorController.set(true, null);
+				}
+			}
+			validated = true;
+			((SettableValue<Object>) mv).set(value, null);
+			theEnabledController.set(false, null);
+		} catch(MuisParseException e) {
+			// TODO Do something with the message and the positions
+			theErrorController.set(true, e);
+		} catch(Exception e) {
+			if(!parsed)
+				msg().error("Error parsing text field value: " + getDocumentModel(), e);
+			else if(!validated)
+				msg().error("Error validating text field value: " + getDocumentModel(), e, "value", value);
+			else
+				msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
+		}
 	}
 
 	private void register(Object o) {

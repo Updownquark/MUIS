@@ -38,6 +38,9 @@
         <type tag="btn">org.muis.base.style.ButtonStyle</type>
         <type tag="border-style">org.muis.base.style.BorderStyle</type>
         <type tag="text-edit-style">org.muis.base.style.TextEditStyle</type>
+
+        <!-- Utilities -->
+        <type tag="formats">org.muis.base.model.Formats</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>

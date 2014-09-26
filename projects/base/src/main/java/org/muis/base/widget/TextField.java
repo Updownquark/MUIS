@@ -81,7 +81,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					else if(tuple.getValue1().getValue1() != null) {
 						if(tuple.getValue2() != null)
 							msg().warn("Both model value and document specified. Using model value.");
-						setValue(tuple.getValue1().getValue1(), tuple.getValue1().getValue2());
+							setValue(tuple.getValue1().getValue1(), tuple.getValue1().getValue2(), event);
 					} else {
 						setDocument(tuple.getValue2());
 					}
@@ -127,7 +127,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	protected void initDocument() {
 		new org.muis.base.model.SimpleTextEditing().install(this);
 		getValueElement().getDocumentModel().onContentStyleChange(() -> {
-			isDocDirty = true;
+			setDocDirty();
 		});
 	}
 
@@ -140,7 +140,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		getValueElement().setDocumentModel(model);
 	}
 
-	private void setValue(ObservableValue<?> value, MuisFormatter<?> formatter) {
+	private void setValue(ObservableValue<?> value, MuisFormatter<?> formatter, org.muis.core.rx.ObservableValueEvent<?> event) {
 		register(value);
 		MutableDocumentModel editModel = (MutableDocumentModel) getDocumentModel();
 		boolean rich = atts().get(Label.rich) == true;
@@ -159,6 +159,11 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		} finally {
 			theCallbackLock--;
 		}
+		if(value instanceof SettableValue) {
+			((SettableValue<?>) value).isEnabled().takeUntil(event.getObservable())
+				.act(enabledEvent -> theEnabledController.set(enabledEvent.getValue(), enabledEvent));
+		} else
+			theEnabledController.set(false, event);
 	}
 
 	private void setDocument(MuisDocumentModel doc) {
@@ -167,17 +172,11 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		setEditModel(doc);
 	}
 
-	void pushChanges() {
-		if(!isDocDirty || theCallbackLock > 0 || isDocOverridden)
-			return;
-		ObservableValue<?> mv = atts().get(ModelAttributes.value);
-		if(mv == null)
-			return;
+	private Object getValidatedValue() {
 		MuisFormatter<?> formatter = atts().get(format);
 		Validator<?> val = atts().get(validator);
 		Object value = null;
 		boolean parsed = false;
-		boolean validated = false;
 		try {
 			if(formatter != null)
 				value = formatter.parse(getDocumentModel());
@@ -191,19 +190,37 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					theErrorController.set(true, null);
 				}
 			}
-			validated = true;
-			((SettableValue<Object>) mv).set(value, null);
-			theEnabledController.set(false, null);
+			theErrorController.set(false, null);
 		} catch(MuisParseException e) {
 			// TODO Do something with the message and the positions
 			theErrorController.set(true, e);
 		} catch(Exception e) {
 			if(!parsed)
 				msg().error("Error parsing text field value: " + getDocumentModel(), e);
-			else if(!validated)
-				msg().error("Error validating text field value: " + getDocumentModel(), e, "value", value);
 			else
-				msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
+				msg().error("Error validating text field value: " + getDocumentModel(), e, "value", value);
+		}
+		return value;
+	}
+
+	private void setDocDirty() {
+		isDocDirty = true;
+		if(isDocOverridden || atts().get(ModelAttributes.value) == null)
+			return;
+		getValidatedValue(); // Set the error state
+	}
+
+	private void pushChanges() {
+		if(!isDocDirty || theCallbackLock > 0 || isDocOverridden)
+			return;
+		ObservableValue<?> mv = atts().get(ModelAttributes.value);
+		if(mv == null)
+			return;
+		Object value = getValidatedValue();
+		try {
+			((SettableValue<Object>) mv).set(value, null);
+		} catch(Exception e) {
+			msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
 		}
 	}
 

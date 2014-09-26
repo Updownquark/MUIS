@@ -19,6 +19,11 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	/** @return The current value of this observable */
 	T get();
 
+	/** @return An observable that just reports this observable value's value in an observable without the event */
+	default Observable<T> value() {
+		return map(event -> event.getValue());
+	}
+
 	/**
 	 * Composes this observable into another observable that depends on this one
 	 *

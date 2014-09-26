@@ -29,6 +29,9 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 */
 	<V extends T> String isAcceptable(V value);
 
+	/** @return An observable whose value reports whether or not this value can be set directly */
+	ObservableValue<Boolean> isEnabled();
+
 	/**
 	 * @param <V> The type of the value to set
 	 * @param value The observable value to link this value to
@@ -71,6 +74,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			@Override
 			public <V extends R> String isAcceptable(V value) {
 				return root.isAcceptable(reverse.apply(value));
+			}
+
+			@Override
+			public ObservableValue<Boolean> isEnabled() {
+				return root.isEnabled();
 			}
 		};
 	}
@@ -117,6 +125,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			public <V extends R> String isAcceptable(V value) {
 				return root.isAcceptable(reverse.apply(value, arg.get()));
 			}
+
+			@Override
+			public ObservableValue<Boolean> isEnabled() {
+				return root.isEnabled();
+			}
 		};
 	}
 
@@ -151,6 +164,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 				if(ret == null)
 					ret = root.isAcceptable(reverse.apply(value, arg.get()));
 				return ret;
+			}
+
+			@Override
+			public ObservableValue<Boolean> isEnabled() {
+				return root.isEnabled();
 			}
 		};
 	}
@@ -200,6 +218,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 			@Override
 			public <V2 extends R> String isAcceptable(V2 value) {
 				return root.isAcceptable(reverse.apply(value, arg2.get(), arg3.get()));
+			}
+
+			@Override
+			public ObservableValue<Boolean> isEnabled() {
+				return root.isEnabled();
 			}
 		};
 	}

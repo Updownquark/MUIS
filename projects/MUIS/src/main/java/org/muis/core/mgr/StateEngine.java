@@ -248,6 +248,11 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		}
 
 		@Override
+		public ObservableValue<Boolean> isEnabled() {
+			return ObservableValue.constant(true);
+		}
+
+		@Override
 		public Type getType() {
 			return new Type(Boolean.class);
 		}

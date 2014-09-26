@@ -389,6 +389,11 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
+		public ObservableValue<Boolean> isEnabled() {
+			return ObservableValue.constant(isMutable());
+		}
+
+		@Override
 		public <V extends T> String isAcceptable(V value) {
 			return super.isAcceptable(value);
 		}

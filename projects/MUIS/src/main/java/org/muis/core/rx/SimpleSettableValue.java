@@ -65,4 +65,9 @@ public class SimpleSettableValue<T> extends DefaultSettableValue<T> {
 			return "Value of type " + value.getClass().getName() + " cannot be assigned as " + theType;
 		return null;
 	}
+
+	@Override
+	public ObservableValue<Boolean> isEnabled() {
+		return ObservableValue.constant(true);
+	}
 }

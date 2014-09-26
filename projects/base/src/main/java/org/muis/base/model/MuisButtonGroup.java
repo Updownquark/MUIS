@@ -75,6 +75,11 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 	}
 
 	@Override
+	public ObservableValue<Boolean> isEnabled() {
+		return ObservableValue.constant(true);
+	}
+
+	@Override
 	public MuisButtonGroup set(String value, Object cause) throws IllegalStateException {
 		if(!theButtonValues.containsKey(value))
 			throw new IllegalStateException("\"" + value + "\" is not a valid value for this model value");
@@ -122,6 +127,11 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 		@Override
 		public String isAcceptable(Boolean value) {
 			return null;
+		}
+
+		@Override
+		public ObservableValue<Boolean> isEnabled() {
+			return MuisButtonGroup.this.isEnabled();
 		}
 
 		void fireChange(String oldValue, String newValue, Object cause) {

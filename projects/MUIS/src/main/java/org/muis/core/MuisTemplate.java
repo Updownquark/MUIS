@@ -7,7 +7,10 @@ import org.muis.core.event.ChildEvent;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
+import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisBehavior;
+import org.muis.core.model.MuisValueReferenceParser;
+import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
@@ -19,6 +22,7 @@ import org.muis.core.tags.Template;
 import org.muis.util.MuisUtils;
 
 import prisms.lang.Type;
+import prisms.lang.Variable;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template MUIS file with widget definitions that are reproduced in each
@@ -741,6 +745,71 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 	}
 
+	/** A parse environment with access to a templated widget's fields */
+	public static class TemplateParseEnv implements MuisParseEnv {
+		private final MuisTemplate theTemplateWidget;
+		private final TemplateStructure theTemplateStruct;
+
+		private DefaultModelValueReferenceParser theModelParser;
+
+		TemplateParseEnv(MuisTemplate template, TemplateStructure templateStruct) {
+			theTemplateWidget = template;
+			theTemplateStruct = templateStruct;
+			theModelParser = new DefaultModelValueReferenceParser(theTemplateWidget.getValueParser(), null) {
+				@Override
+				protected void applyModification() {
+					super.applyModification();
+					// Make evaluation recognize "this"
+					if(getEvaluationEnvironment() instanceof prisms.lang.DefaultEvaluationEnvironment) {
+						final Variable thisVar = new prisms.lang.EvaluationEnvironment.VariableImpl(
+							new Type(theTemplateStruct.getDefiner()), "this", true);
+						((prisms.lang.DefaultEvaluationEnvironment) getEvaluationEnvironment())
+							.addVariableSource(new prisms.lang.VariableSource() {
+								@Override
+								public Variable [] getDeclaredVariables() {
+									return new Variable[] {thisVar};
+								}
+
+								@Override
+								public Variable getDeclaredVariable(String name) {
+									if(thisVar.getName().equals(name))
+										return thisVar;
+									else
+										return null;
+								}
+							});
+					}
+					// TODO How to evaluate "this.xxx" if the implementor doesn't want to expose the xxx method publicly?
+				}
+			};
+		}
+
+		/** @return The templated widget that this environment parses for */
+		public MuisTemplate getTemplateWidget() {
+			return theTemplateWidget;
+		}
+
+		/** @return The template structure that this environment parses for */
+		public TemplateStructure getTemplateStructure() {
+			return theTemplateStruct;
+		}
+
+		@Override
+		public MuisClassView cv() {
+			return theTemplateWidget.cv();
+		}
+
+		@Override
+		public MuisMessageCenter msg() {
+			return theTemplateWidget.msg();
+		}
+
+		@Override
+		public MuisValueReferenceParser getValueParser() {
+			return theModelParser;
+		}
+	}
+
 	private TemplateStructure theTemplateStructure;
 
 	/**
@@ -948,10 +1017,11 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 		}
 
+		TemplateParseEnv templateCtx = new TemplateParseEnv(this, structure);
 		for(Map.Entry<String, String> att : structure.getWidgetStructure().getAttributes().entrySet()) {
 			if(!atts().isSet(att.getKey())) {
 				try {
-					atts().set(att.getKey(), att.getValue());
+					atts().set(att.getKey(), att.getValue(), templateCtx);
 				} catch(MuisException e) {
 					msg().error(
 						"Templated root attribute " + att.getKey() + "=" + att.getValue() + " failed for templated widget "
@@ -982,11 +1052,11 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		for(MuisContent content : structure.getWidgetStructure().getChildren())
-			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator());
+			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator(), templateCtx);
 	}
 
 	private MuisElement createTemplateChild(TemplateStructure template, MuisElement parent, MuisContent child,
-		org.muis.core.parser.MuisContentCreator creator) throws MuisParseException {
+		org.muis.core.parser.MuisContentCreator creator, MuisParseEnv templateCtx) throws MuisParseException {
 		MuisElement ret;
 		AttachPoint ap = template.getAttachPoint(child);
 		List<MuisElement> mappings = null;
@@ -1018,7 +1088,7 @@ public abstract class MuisTemplate extends MuisElement {
 				ret.atts().accept(theRoleWanter, template.role);
 				try {
 					ret.atts().set(template.role, ap);
-					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true");
+					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateCtx);
 				} catch(MuisException e) {
 					throw new IllegalStateException("Should not have thrown exception here", e);
 				}
@@ -1035,7 +1105,7 @@ public abstract class MuisTemplate extends MuisElement {
 
 		if(child instanceof WidgetStructure)
 			for(MuisContent sub : ((WidgetStructure) child).getChildren())
-				createTemplateChild(template, ret, sub, creator);
+				createTemplateChild(template, ret, sub, creator, templateCtx);
 
 		return ret;
 	}
@@ -1112,7 +1182,7 @@ public abstract class MuisTemplate extends MuisElement {
 					if(attr.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
 						continue;
 					try {
-						children[c].atts().set(attr.getKey(), attr.getValue());
+						children[c].atts().set(attr.getKey(), attr.getValue(), children[c].getParent());
 					} catch(MuisException e) {
 						children[c].msg().error(
 							"Template-specified attribute " + attr.getKey() + "=" + attr.getValue() + " is not supported by content", e);
@@ -1166,7 +1236,7 @@ public abstract class MuisTemplate extends MuisElement {
 		MuisElement [] children = ret.toArray(new MuisElement[ret.size()]);
 
 		try {
-			parent.atts().set(TemplateStructure.IMPLEMENTATION, null);
+			parent.atts().set(TemplateStructure.IMPLEMENTATION, null, this);
 		} catch(MuisException e) {
 			throw new IllegalStateException("Should not get error here", e);
 		}

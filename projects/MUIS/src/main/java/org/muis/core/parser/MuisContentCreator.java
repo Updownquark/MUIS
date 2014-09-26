@@ -19,7 +19,7 @@ public class MuisContentCreator {
 		// Add the attributes
 		for(java.util.Map.Entry<String, String> att : content.getAttributes().entrySet()) {
 			try {
-				doc.getRoot().atts().set(att.getKey(), att.getValue());
+				doc.getRoot().atts().set(att.getKey(), att.getValue(), doc);
 			} catch(MuisException e) {
 				doc.getRoot().msg()
 					.error("Could not set attribute \"" + att.getKey() + "\"", e, "attribute", att.getKey(), "value", att.getValue());
@@ -51,7 +51,7 @@ public class MuisContentCreator {
 		// Add the attributes
 		for(java.util.Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
 			try {
-				ret.atts().set(att.getKey(), att.getValue());
+				ret.atts().set(att.getKey(), att.getValue(), parent);
 			} catch(MuisException e) {
 				ret.msg().error("Could not set attribute \"" + att.getKey() + "\"", e, "attribute", att.getKey(), "value", att.getValue());
 			}

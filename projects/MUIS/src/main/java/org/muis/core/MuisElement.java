@@ -476,7 +476,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
-		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(theDocument.getModelParser(), theClassView);
+		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(theDocument.getValueParser(), theClassView);
 		setParent(parent);
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}

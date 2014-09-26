@@ -100,13 +100,13 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 
 	/** Allows subclasses to modify their parser, evaluator, and environment before being used */
 	protected void applyModification() {
-		// Add evaluation capability for namespace-qualified or unqualified tag types
-		PrismsItemEvaluator<? super ParsedType> superEval = getEvaluator().getEvaluatorFor(ParsedType.class);
-		getEvaluator().addEvaluator(ParsedType.class, new PrismsItemEvaluator<ParsedType>() {
-			@Override
-			public EvaluationResult evaluate(ParsedType item, PrismsEvaluator evaluator, EvaluationEnvironment env, boolean asType,
-				boolean withValues) throws EvaluationException {
-				if(theClassView != null) {
+		if(theClassView != null) {
+			// Add evaluation capability for namespace-qualified or unqualified tag types
+			PrismsItemEvaluator<? super ParsedType> superEval = getEvaluator().getEvaluatorFor(ParsedType.class);
+			getEvaluator().addEvaluator(ParsedType.class, new PrismsItemEvaluator<ParsedType>() {
+				@Override
+				public EvaluationResult evaluate(ParsedType item, PrismsEvaluator evaluator, EvaluationEnvironment env, boolean asType,
+					boolean withValues) throws EvaluationException {
 					ParseMatch namespace = item.getStored("namespace");
 					String tagName = item.getName();
 					String className = theClassView.getMappedClass(namespace == null ? null : namespace.text, tagName);
@@ -117,10 +117,10 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 							// Need access to a message center?
 							e.printStackTrace();
 						}
+					return superEval.evaluate(item, evaluator, env, asType, withValues);
 				}
-				return superEval.evaluate(item, evaluator, env, asType, withValues);
-			}
-		});
+			});
+		}
 	}
 
 	/** @return The parser that this parser inherits definitions from */

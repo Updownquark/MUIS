@@ -10,6 +10,7 @@ import org.muis.core.mgr.MuisLocker;
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisActionListener;
 import org.muis.core.model.MuisAppModel;
+import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.attach.DocumentStyleSheet;
 import org.muis.core.style.attach.NamedStyleGroup;
@@ -22,7 +23,7 @@ import prisms.lang.types.ParsedMethod;
 import prisms.util.ArrayUtils;
 
 /** Contains all data pertaining to a MUIS application */
-public class MuisDocument {
+public class MuisDocument implements MuisParseEnv {
 	/** The different policies this document can take with regards to scrolling events */
 	public static enum ScrollPolicy {
 		/**
@@ -255,8 +256,13 @@ public class MuisDocument {
 		return theParser;
 	}
 
-	/** @return The parser to parse model values */
-	public org.muis.core.model.MuisValueReferenceParser getModelParser() {
+	@Override
+	public MuisClassView cv() {
+		return getClassView();
+	}
+
+	@Override
+	public MuisValueReferenceParser getValueParser() {
 		return theModelParser;
 	}
 
@@ -363,6 +369,7 @@ public class MuisDocument {
 	 *
 	 * @return This document's message center
 	 */
+	@Override
 	public MuisMessageCenter msg() {
 		return getMessageCenter();
 	}

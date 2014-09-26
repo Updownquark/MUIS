@@ -98,11 +98,12 @@ public class AttributeManager {
 
 		/**
 		 * @param valueStr The formatted value to set for the attribute
+		 * @param context The context in which to parse and evaluate the attribute value string
 		 * @return The parsed value
 		 * @throws MuisException If the value cannot be parsed or cannot be set for the attribute
 		 */
-		public final T set(String valueStr) throws MuisException {
-			ObservableValue<? extends T> value = theAttr.getType().parse(theElement, valueStr);
+		public final T set(String valueStr, MuisParseEnv context) throws MuisException {
+			ObservableValue<? extends T> value = theAttr.getType().parse(context, valueStr);
 			setContainedObservable(value);
 			return value.get();
 		}
@@ -240,9 +241,19 @@ public class AttributeManager {
 		}
 	}
 
+	private static class RawAttributeValue {
+		final String value;
+		final MuisParseEnv context;
+
+		RawAttributeValue(String val, MuisParseEnv ctx) {
+			value = val;
+			context = ctx;
+		}
+	}
+
 	private ConcurrentHashMap<MuisAttribute<?>, AttributeHolder<?>> theAcceptedAttrs;
 	private ConcurrentHashMap<String, MuisAttribute<?>> theAttributesByName;
-	private ConcurrentHashMap<String, String> theRawAttributes;
+	private ConcurrentHashMap<String, RawAttributeValue> theRawAttributes;
 
 	private MuisElement theElement;
 
@@ -304,14 +315,15 @@ public class AttributeManager {
 	 *
 	 * @param attr The name of the attribute to set
 	 * @param value The string representation of the attribute's value
+	 * @param context The context in which to parse and evaluate the attribute value string
 	 * @return The parsed value for the attribute, or null if the element has not been initialized
 	 * @throws MuisException If the attribute is not accepted in the element, the value is null and the attribute is required, or the
 	 *             element has already been initialized and the value is not valid for the given attribute
 	 */
-	public final Object set(String attr, String value) throws MuisException {
+	public final Object set(String attr, String value, MuisParseEnv context) throws MuisException {
 		MuisAttribute<?> attrObj = theAttributesByName.get(attr);
 		if(attrObj != null)
-			return set(attrObj, value);
+			return set(attrObj, value, context);
 		String baseName = attr;
 		int dotIdx = baseName.indexOf('.');
 		if(dotIdx >= 0)
@@ -325,14 +337,14 @@ public class AttributeManager {
 			String [] path = attr.substring(dotIdx + 1).split("\\.");
 			if(!holder.theAttr.getPathAccepter().accept(theElement, path))
 				throw new MuisException("Attribute " + attr + " does not accept path \"" + attr.substring(dotIdx + 1) + "\"");
-			return set(new MuisPathedAttribute<>(holder.theAttr, theElement, path), value);
+			return set(new MuisPathedAttribute<>(holder.theAttr, theElement, path), value, context);
 		} else {
 			if(theElement.life().isAfter(MuisConstants.CoreStage.STARTUP.toString()) >= 0)
 				throw new MuisException("Attribute " + attr + " is not accepted in this element");
 			if(value == null)
 				theRawAttributes.remove(attr);
 			else
-				theRawAttributes.put(attr, value);
+				theRawAttributes.put(attr, new RawAttributeValue(value, context));
 			return null;
 		}
 	}
@@ -345,12 +357,13 @@ public class AttributeManager {
 	 * @param <T> The type of the attribute to set
 	 * @param attr The attribute to set
 	 * @param value The value for the attribute
+	 * @param context The context in which to parse and evaluate the attribute value string
 	 * @return The parsed value for the attribute, or null if the element has not been initialized
 	 * @throws MuisException If the attribute is not accepted in the element, the value is null and the attribute is required, or the
 	 *             element has already been initialized and the value is not valid for the given attribute
 	 */
-	public final <T> T set(MuisAttribute<T> attr, String value) throws MuisException {
-		return getHolder(attr, true).set(value);
+	public final <T> T set(MuisAttribute<T> attr, String value, MuisParseEnv context) throws MuisException {
+		return getHolder(attr, true).set(value, context);
 	}
 
 	/**
@@ -449,7 +462,7 @@ public class AttributeManager {
 
 	/**
 	 * Specifies a required attribute for this element
-	 * 
+	 *
 	 * @param <T> The type of the attribute to require
 	 * @param needer The object that needs the attribute
 	 * @param attr The attribute that must be specified for this element
@@ -534,10 +547,10 @@ public class AttributeManager {
 			theAcceptedAttrs.put(attr, holder);
 			theAttributesByName.put(attr.getName(), attr);
 			fireAccepted(require, attr, initValue);
-			String strVal = theRawAttributes.remove(attr.getName());
+			RawAttributeValue strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
-					holder.set(strVal);
+					holder.set(strVal.value, strVal.context);
 				} catch(MuisException e) {
 					theElement.msg().error("Could not parse pre-set value \"" + strVal + "\" of attribute " + attr.getName(), e,
 						"attribute", attr);
@@ -682,8 +695,9 @@ public class AttributeManager {
 				theElement.msg().error("Attribute " + holder.getAttribute() + " is required but has no value in this element");
 			}
 		}
-		for(java.util.Map.Entry<String, String> attr : theRawAttributes.entrySet())
-			theElement.msg().error("No attribute named " + attr.getKey() + " is not accepted in this element", "value", attr.getValue());
+		for(java.util.Map.Entry<String, RawAttributeValue> attr : theRawAttributes.entrySet())
+			theElement.msg().error("No attribute named " + attr.getKey() + " is not accepted in this element", "value",
+				attr.getValue().value);
 		theRawAttributes = null;
 	}
 

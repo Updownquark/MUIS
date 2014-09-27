@@ -1,8 +1,11 @@
 package org.muis.core;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
+import org.muis.core.eval.impl.ObservableEvaluator;
+import org.muis.core.eval.impl.ObservableItemEvaluator;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
@@ -14,6 +17,7 @@ import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.Observer;
 import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
@@ -21,8 +25,11 @@ import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
 import org.muis.util.MuisUtils;
 
+import prisms.lang.EvaluationEnvironment;
+import prisms.lang.EvaluationException;
 import prisms.lang.Type;
 import prisms.lang.Variable;
+import prisms.lang.types.ParsedMethod;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template MUIS file with widget definitions that are reproduced in each
@@ -759,10 +766,10 @@ public abstract class MuisTemplate extends MuisElement {
 				@Override
 				protected void applyModification() {
 					super.applyModification();
-					// Make evaluation recognize "this"
+					// Make evaluation recognize "model"
 					if(getEvaluationEnvironment() instanceof prisms.lang.DefaultEvaluationEnvironment) {
-						final Variable thisVar = new prisms.lang.EvaluationEnvironment.VariableImpl(
-							new Type(theTemplateStruct.getDefiner()), "this", true);
+						Variable thisVar = new prisms.lang.EvaluationEnvironment.VariableImpl(new Type(
+							getModelType(theTemplateStruct.getDefiner())), "model", true);
 						((prisms.lang.DefaultEvaluationEnvironment) getEvaluationEnvironment())
 							.addVariableSource(new prisms.lang.VariableSource() {
 								@Override
@@ -779,7 +786,35 @@ public abstract class MuisTemplate extends MuisElement {
 								}
 							});
 					}
-					// TODO How to evaluate "this.xxx" if the implementor doesn't want to expose the xxx method publicly?
+					//Right now I think we need to evaluate model.xxx separately to avoid returning nested observables
+					//Maybe instead we should just un-nest observables from the models?
+					final ObservableItemEvaluator<? super ParsedMethod> superEval = getEvaluator().getObservableEvaluatorFor(
+						ParsedMethod.class);
+					getEvaluator().addEvaluator(ParsedMethod.class, new ObservableItemEvaluator<ParsedMethod>() {
+						@Override
+						public ObservableValue<?> evaluateObservable(ParsedMethod item, ObservableEvaluator evaluator,
+							EvaluationEnvironment env) throws EvaluationException {
+							if(item.getContext()!=null){
+								prisms.lang.EvaluationResult ctxRes=
+							}
+							return superEval.evaluateObservable(item, evaluator, env);
+						}
+					});
+				}
+
+				private java.lang.reflect.Type getModelType(Class<? extends MuisTemplate> definer) {
+					Method method;
+					try {
+						method = definer.getMethod("getModel");
+					} catch(NoSuchMethodException | SecurityException e) {
+						throw new IllegalStateException("Could not get model type of template class " + definer.getSimpleName(), e);
+					}
+					if(method != null)
+						return method.getGenericReturnType();
+					else if(definer == MuisTemplate.class)
+						throw new IllegalStateException("No getModel method for " + MuisTemplate.class.getSimpleName());
+					else
+						return getModelType((Class<? extends MuisTemplate>) definer.getSuperclass());
 				}
 			};
 		}
@@ -908,6 +943,11 @@ public abstract class MuisTemplate extends MuisElement {
 		if(instance == null)
 			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
 		return instance.setValue(element);
+	}
+
+	/** @return The model that this templated widget uses to hook into its component widgets */
+	protected Object getModel() {
+		return null;
 	}
 
 	@Override

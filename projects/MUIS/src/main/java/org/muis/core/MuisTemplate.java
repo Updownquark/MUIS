@@ -4,8 +4,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
-import org.muis.core.eval.impl.ObservableEvaluator;
-import org.muis.core.eval.impl.ObservableItemEvaluator;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
@@ -17,7 +15,6 @@ import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.Observer;
 import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
@@ -25,11 +22,8 @@ import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
 import org.muis.util.MuisUtils;
 
-import prisms.lang.EvaluationEnvironment;
-import prisms.lang.EvaluationException;
 import prisms.lang.Type;
 import prisms.lang.Variable;
-import prisms.lang.types.ParsedMethod;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template MUIS file with widget definitions that are reproduced in each
@@ -786,20 +780,6 @@ public abstract class MuisTemplate extends MuisElement {
 								}
 							});
 					}
-					//Right now I think we need to evaluate model.xxx separately to avoid returning nested observables
-					//Maybe instead we should just un-nest observables from the models?
-					final ObservableItemEvaluator<? super ParsedMethod> superEval = getEvaluator().getObservableEvaluatorFor(
-						ParsedMethod.class);
-					getEvaluator().addEvaluator(ParsedMethod.class, new ObservableItemEvaluator<ParsedMethod>() {
-						@Override
-						public ObservableValue<?> evaluateObservable(ParsedMethod item, ObservableEvaluator evaluator,
-							EvaluationEnvironment env) throws EvaluationException {
-							if(item.getContext()!=null){
-								prisms.lang.EvaluationResult ctxRes=
-							}
-							return superEval.evaluateObservable(item, evaluator, env);
-						}
-					});
 				}
 
 				private java.lang.reflect.Type getModelType(Class<? extends MuisTemplate> definer) {

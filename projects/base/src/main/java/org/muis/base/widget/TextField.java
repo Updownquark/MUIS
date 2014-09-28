@@ -172,7 +172,10 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		setEditModel(doc);
 	}
 
-	private Object getValidatedValue() {
+	private void validateValue(boolean commit) {
+		ObservableValue<?> mv = atts().get(ModelAttributes.value);
+		if(!(mv instanceof SettableValue))
+			return;
 		MuisFormatter<?> formatter = atts().get(format);
 		Validator<?> val = atts().get(validator);
 		Object value = null;
@@ -191,6 +194,12 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				}
 			}
 			theErrorController.set(false, null);
+
+			String error = ((SettableValue<Object>) mv).isAcceptable(value);
+			if(error != null) {
+				// TODO Do something with the message
+				theErrorController.set(true, null);
+			}
 		} catch(MuisParseException e) {
 			// TODO Do something with the message and the positions
 			theErrorController.set(true, e);
@@ -200,28 +209,26 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			else
 				msg().error("Error validating text field value: " + getDocumentModel(), e, "value", value);
 		}
-		return value;
+
+		if(commit)
+			try {
+				((SettableValue<Object>) mv).set(value, null);
+			} catch(Exception e) {
+				msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
+			}
 	}
 
 	private void setDocDirty() {
 		isDocDirty = true;
 		if(isDocOverridden || atts().get(ModelAttributes.value) == null)
 			return;
-		getValidatedValue(); // Set the error state
+		validateValue(false); // Set the error state
 	}
 
 	private void pushChanges() {
 		if(!isDocDirty || theCallbackLock > 0 || isDocOverridden)
 			return;
-		ObservableValue<?> mv = atts().get(ModelAttributes.value);
-		if(mv == null)
-			return;
-		Object value = getValidatedValue();
-		try {
-			((SettableValue<Object>) mv).set(value, null);
-		} catch(Exception e) {
-			msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
-		}
+		validateValue(true);
 	}
 
 	private void register(Object o) {

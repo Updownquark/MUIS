@@ -540,7 +540,7 @@ public class AttributeManager {
 		AttributeHolder<T> holder = (AttributeHolder<T>) theAcceptedAttrs.get(attr);
 		if(holder != null) {
 			fireAccepted(require, attr, initValue);
-			holder.addWanter(wanter, require); // The attribute is already required
+			holder.addWanter(wanter, require); // The attribute is already accepted
 		} else {
 			holder = new AttributeHolder<>(attr);
 			holder.addWanter(wanter, require);

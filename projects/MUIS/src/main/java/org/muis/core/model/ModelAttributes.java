@@ -1,9 +1,6 @@
 package org.muis.core.model;
 
-import org.muis.core.MuisDocument;
-import org.muis.core.MuisException;
-import org.muis.core.MuisParseEnv;
-import org.muis.core.MuisProperty;
+import org.muis.core.*;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.rx.ObservableValue;
 
@@ -14,14 +11,20 @@ public class ModelAttributes {
 	/** The type of attribute to set for the user to specify an action */
 	public static final MuisProperty.PropertyType<MuisActionListener> actionType;
 
-	/** The tyep of attribute to set for the user to specify a value */
+	/** The type of attribute to set for the user to specify a value */
 	public static final MuisProperty.PropertyType<ObservableValue<?>> valueType;
 
+	/** The type of attribute to set for the user to specify a model */
+	public static final MuisProperty.PropertyType<MuisAppModel> modelType;
+
 	/** The "action" attribute on an actionable widget */
-	public static final org.muis.core.MuisAttribute<MuisActionListener> action;
+	public static final MuisAttribute<MuisActionListener> action;
 
 	/** The "value" attribute on a value-modeled widget */
-	public static final org.muis.core.MuisAttribute<ObservableValue<?>> value;
+	public static final MuisAttribute<ObservableValue<?>> value;
+
+	/** The "model" attribute on a complex-modeled widget */
+	public static final MuisAttribute<MuisAppModel> model;
 
 	static {
 		actionType = new MuisProperty.PropertyType<MuisActionListener>() {
@@ -56,11 +59,12 @@ public class ModelAttributes {
 					return null;
 			}
 		};
-
 		valueType = new MuisProperty.PrismsParsedPropertyType<>(new Type(ObservableValue.class, new Type(new Type(Object.class), true)));
+		modelType = new MuisProperty.PrismsParsedPropertyType<>(new Type(MuisAppModel.class, new Type(new Type(MuisAppModel.class), true)));
 
-		action = new org.muis.core.MuisAttribute<>("action", actionType);
-		value = new org.muis.core.MuisAttribute<>("value", valueType);
+		action = new MuisAttribute<>("action", actionType);
+		value = new MuisAttribute<>("value", valueType);
+		model = new MuisAttribute<>("model", modelType);
 	}
 
 	/**
@@ -80,19 +84,19 @@ public class ModelAttributes {
 				+ " in a model, use the format \"modelName." + type + "\" or \"modelName.subModelName." + type + "\". \"" + att
 				+ "\" is not valid.");
 		}
-		MuisAppModel model = doc.getHead().getModel(split[0]);
+		MuisAppModel appModel = doc.getHead().getModel(split[0]);
 		name.append(split[0]);
 		for(int i = 1; i < split.length - 1; i++) {
-			if(model == null) {
+			if(appModel == null) {
 				throw new MuisParseException("Model \"" + name + "\" does not exist for " + type + " \"" + att + "\".");
 			}
-			model = model.getSubModel(split[i]);
+			appModel = appModel.getSubModel(split[i]);
 			name.append('.').append(split[i]);
 		}
-		if(model == null) {
+		if(appModel == null) {
 			throw new MuisParseException("Model \"" + name + "\" does not exist for " + type + " \"" + att + "\".");
 		}
-		return model;
+		return appModel;
 	}
 
 	/**
@@ -105,11 +109,11 @@ public class ModelAttributes {
 	 */
 	public static ObservableValue<?> getModelValue(MuisDocument doc, String att) throws MuisParseException {
 		StringBuilder name = new StringBuilder();
-		MuisAppModel model = getModel(doc, att, "value", name);
-		if(model == null)
+		MuisAppModel appModel = getModel(doc, att, "value", name);
+		if(appModel == null)
 			return null;
 		String [] div = att.split("\\.");
-		ObservableValue<? extends Object> ret = model.getValue(div[div.length - 1], Object.class);
+		ObservableValue<? extends Object> ret = appModel.getValue(div[div.length - 1], Object.class);
 		if(ret == null) {
 			throw new MuisParseException("Value \"" + div[div.length - 1] + "\" does not exist in model \"" + name + "\".");
 		}
@@ -126,9 +130,9 @@ public class ModelAttributes {
 	 */
 	public static MuisActionListener getModelActionListener(MuisDocument doc, String att) throws MuisParseException {
 		StringBuilder name = new StringBuilder();
-		MuisAppModel model = getModel(doc, att, "action", name);
+		MuisAppModel appModel = getModel(doc, att, "action", name);
 		String [] div = att.split("\\.");
-		MuisActionListener ret = model.getAction(div[div.length - 1]);
+		MuisActionListener ret = appModel.getAction(div[div.length - 1]);
 		if(ret == null) {
 			throw new MuisParseException("Action \"" + div[div.length - 1] + "\" does not exist in model \"" + name + "\".");
 		}

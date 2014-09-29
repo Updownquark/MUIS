@@ -15,6 +15,7 @@ import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.Observer;
 import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
@@ -756,6 +757,7 @@ public abstract class MuisTemplate extends MuisElement {
 		TemplateParseEnv(MuisTemplate template, TemplateStructure templateStruct) {
 			theTemplateWidget = template;
 			theTemplateStruct = templateStruct;
+			// TODO This code is broken now since I've made the model an observable value
 			theModelParser = new DefaultModelValueReferenceParser(theTemplateWidget.getValueParser(), null) {
 				@Override
 				protected void applyModification() {
@@ -926,8 +928,8 @@ public abstract class MuisTemplate extends MuisElement {
 	}
 
 	/** @return The model that this templated widget uses to hook into its component widgets */
-	protected Object getModel() {
-		return null;
+	protected ObservableValue<?> getModel() {
+		return ObservableValue.constant(null);
 	}
 
 	@Override

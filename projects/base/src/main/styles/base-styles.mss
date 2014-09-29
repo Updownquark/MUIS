@@ -58,7 +58,7 @@
 		font.word-wrap=false
 	}
 	.error#value{
-		bg.color=#ff4040
+		bg.color=#ffb0b0
 		font.color=red
 	}
 	text-edit-style.cursor-blink=1000

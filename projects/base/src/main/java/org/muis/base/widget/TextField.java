@@ -110,7 +110,8 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 					if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
 						return;
 					pushChanges();
-				}
+				} else if(event.getKeyCode() == KeyBoardEvent.KeyCode.ESCAPE)
+					resetDocument();
 			});
 		}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
@@ -191,28 +192,36 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 				if(valMsg != null) {
 					// TODO Do something with the message
 					theErrorController.set(true, null);
+					return;
 				}
 			}
-			theErrorController.set(false, null);
 
 			String error = ((SettableValue<Object>) mv).isAcceptable(value);
 			if(error != null) {
 				// TODO Do something with the message
 				theErrorController.set(true, null);
+				return;
 			}
+
+			theErrorController.set(false, null);
 		} catch(MuisParseException e) {
 			// TODO Do something with the message and the positions
 			theErrorController.set(true, e);
+			return;
 		} catch(Exception e) {
 			if(!parsed)
 				msg().error("Error parsing text field value: " + getDocumentModel(), e);
 			else
 				msg().error("Error validating text field value: " + getDocumentModel(), e, "value", value);
+			return;
 		}
 
 		if(commit)
 			try {
 				((SettableValue<Object>) mv).set(value, null);
+				theErrorController.set(false, null);
+			} catch(IllegalArgumentException e) {
+				theErrorController.set(true, null);
 			} catch(Exception e) {
 				msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
 			}
@@ -229,6 +238,30 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		if(!isDocDirty || theCallbackLock > 0 || isDocOverridden)
 			return;
 		validateValue(true);
+		resetDocument();
+	}
+
+	private void resetDocument() {
+		ObservableValue<?> mv = atts().get(ModelAttributes.value);
+		if(mv == null)
+			return;
+		MuisDocumentModel docModel = getDocumentModel();
+		if(!(docModel instanceof MutableDocumentModel))
+			return;
+		MutableDocumentModel editModel = (MutableDocumentModel) docModel;
+		MuisFormatter<?> formatter = atts().get(format);
+		theCallbackLock++;
+		try (Transaction t = editModel.holdForWrite()) {
+			editModel.clear();
+			if(formatter != null)
+				((MuisFormatter<Object>) formatter).append(mv.get(), editModel);
+			else
+				editModel.append("" + mv.get());
+		} finally {
+			theCallbackLock--;
+		}
+		theErrorController.set(false, null);
+		// TODO Think of a way to preserve selection?
 	}
 
 	private void register(Object o) {

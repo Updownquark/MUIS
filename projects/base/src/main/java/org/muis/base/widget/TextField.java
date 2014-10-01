@@ -12,12 +12,12 @@ import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.mgr.StateEngine.StateController;
 import org.muis.core.model.*;
+import org.muis.core.rx.BiTuple;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.SettableValue;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
-import org.muis.util.BiTuple;
 import org.muis.util.Transaction;
 
 /** A simple widget that takes and displays text input from the user */

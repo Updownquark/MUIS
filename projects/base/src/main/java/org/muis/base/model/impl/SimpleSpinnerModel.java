@@ -120,15 +120,22 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 		T oldValue = theValue;
 		theValue = value;
 		theValueController.onNext(new ObservableValueEvent<>(theObservableValue, oldValue, theValue, null));
+		checkActions();
+	}
+
+	/** Checks the increment and decrement actions' enabled status */
+	protected void checkActions() {
 		theIncrementer.check();
 		theDecrementer.check();
 	}
 
 	/** A spinner model that manipulates an integer */
-	public static class IntModel extends SimpleSpinnerModel<Integer> {
-		private int theMin;
-		private int theMax;
-		private int theInterval;
+	public static class LongModel extends SimpleSpinnerModel<Long> {
+		private long theMin;
+
+		private long theMax;
+
+		private long theInterval;
 
 		/**
 		 * @param value The initial value for the model
@@ -136,25 +143,43 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 		 * @param max The maximum value
 		 * @param interval The amount added or removed from the value when the increment/decrement actions are used
 		 */
-		public IntModel(int value, int min, int max, int interval) {
-			super(new Type(Integer.class), value, true);
+		public LongModel(long value, long min, long max, long interval) {
+			super(new Type(Long.class), value, true);
 			theMin = min;
 			theMax = max;
 			theInterval = interval;
 		}
 
+		/**
+		 * @param min The minimum value
+		 * @param max The maximum value
+		 * @param interval The amount added or removed from the value when the increment/decrement actions are used
+		 */
+		public void setConstraints(long min, long max, long interval) {
+			theMin = min;
+			theMax = max;
+			theInterval = interval;
+			long value = getValue().get();
+			if(value < theMin)
+				setValue(theMin);
+			else if(value > theMax)
+				setValue(theMax);
+			else
+				checkActions();
+		}
+
 		@Override
-		protected Integer getNextValue() {
+		protected Long getNextValue() {
 			return getValue().get() + theInterval;
 		}
 
 		@Override
-		protected Integer getPreviousValue() {
+		protected Long getPreviousValue() {
 			return getValue().get() - theInterval;
 		}
 
 		@Override
-		protected String isValid(Integer value) {
+		protected String isValid(Long value) {
 			if(value < theMin)
 				return "Value must be >= " + theMin;
 			else if(value > theMax)
@@ -180,6 +205,24 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 			theMin = min;
 			theMax = max;
 			theInterval = interval;
+		}
+
+		/**
+		 * @param min The minimum value
+		 * @param max The maximum value
+		 * @param interval The amount added or removed from the value when the increment/decrement actions are used
+		 */
+		public void setConstraints(double min, double max, double interval) {
+			theMin = min;
+			theMax = max;
+			theInterval = interval;
+			double value = getValue().get();
+			if(value < theMin)
+				setValue(theMin);
+			else if(value > theMax)
+				setValue(theMax);
+			else
+				checkActions();
 		}
 
 		@Override

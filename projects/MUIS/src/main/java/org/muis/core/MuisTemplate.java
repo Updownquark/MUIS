@@ -1,6 +1,8 @@
 package org.muis.core;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
@@ -9,15 +11,15 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
 import org.muis.core.mgr.ElementList;
 import org.muis.core.mgr.MuisMessageCenter;
+import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisBehavior;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
-import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.*;
 import org.muis.core.rx.Observer;
-import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
@@ -234,6 +236,8 @@ public abstract class MuisTemplate extends MuisElement {
 
 		private Map<AttachPoint, MuisContent> theAttachPointWidgets;
 
+		private Map<String, MuisAppModel> theModels;
+
 		private Class<? extends MuisLayout> theLayoutClass;
 
 		private Class<? extends MuisBehavior<?>> [] theBehaviors;
@@ -265,8 +269,12 @@ public abstract class MuisTemplate extends MuisElement {
 					defAP = ap;
 			}
 			theDefaultAttachPoint = defAP;
-			theAttachPoints = java.util.Collections.unmodifiableMap(attachPoints);
-			theAttachPointWidgets = java.util.Collections.unmodifiableMap(attaches);
+			theAttachPoints = Collections.unmodifiableMap(attachPoints);
+			theAttachPointWidgets = Collections.unmodifiableMap(attaches);
+		}
+
+		private void setModels(Map<String, MuisAppModel> models) {
+			theModels = Collections.unmodifiableMap(models);
 		}
 
 		private void setBehaviors(Class<? extends MuisBehavior<?>> [] behaviors) {
@@ -350,6 +358,62 @@ public abstract class MuisTemplate extends MuisElement {
 			return theLayoutClass;
 		}
 
+		/** @return The names of all the models configured in this template */
+		public String [] getModels() {
+			return theModels.keySet().toArray(new String[theModels.size()]);
+		}
+
+		/**
+		 * @param modelName The name of the model to get
+		 * @param msg The message center for reporting errors
+		 * @return A copy of the model configured with the given name in this template
+		 */
+		public MuisAppModel getModel(String modelName, MuisMessageCenter msg) {
+			MuisAppModel template = theModels.get(modelName);
+			if(template == null)
+				return null;
+			if(template instanceof org.muis.core.model.DefaultMuisModel) {
+				org.muis.core.model.DefaultMuisModel ret = ((org.muis.core.model.DefaultMuisModel) template).clone();
+				ret.seal();
+				return ret;
+			} else {
+				boolean wrapped = template instanceof org.muis.core.model.MuisWrappingModel;
+				Object toCopy;
+				if(wrapped)
+					toCopy = ((org.muis.core.model.MuisWrappingModel) template).getWrapped();
+				else
+					toCopy = template;
+
+				boolean publicClone;
+				try {
+					publicClone = toCopy instanceof Cloneable
+						&& (toCopy.getClass().getMethod("clone").getModifiers() & Modifier.PUBLIC) != 0;
+				} catch(NoSuchMethodException | SecurityException e) {
+					publicClone = false;
+				}
+				if(publicClone) {
+					try {
+						toCopy = toCopy.getClass().getMethod("clone").invoke(toCopy);
+					} catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+						| SecurityException e) {
+						msg.error("Could not duplicate templated model of type " + toCopy.getClass().getName(), e);
+						return null;
+					}
+				} else {
+					try {
+						toCopy = toCopy.getClass().newInstance();
+					} catch(InstantiationException | IllegalAccessException e) {
+						msg.error("Could not instantiate templated model of type " + toCopy.getClass().getName(), e);
+						return null;
+					}
+				}
+				if(wrapped)
+					return new org.muis.core.model.MuisWrappingModel(toCopy, msg);
+				else
+					return (MuisAppModel) toCopy;
+			}
+		}
+
 		@Override
 		public String toString() {
 			return "Template structure for " + theDefiner.getName();
@@ -429,6 +493,9 @@ public abstract class MuisTemplate extends MuisElement {
 					docStruct.getHead().getStyleSheets().size() + " style sheet "
 						+ (docStruct.getHead().getStyleSheets().size() == 1 ? "" : "s") + " specified but ignored in template xml \""
 						+ location + "\" for template class " + templateType.getName());
+			LinkedHashMap<String, MuisAppModel> models = new LinkedHashMap<>();
+			for(String modelName : docStruct.getHead().getModels())
+				models.put(modelName, docStruct.getHead().getModel(modelName));
 			if(docStruct.getContent().getChildren().isEmpty())
 				throw new MuisException("No contents specified in body section of template XML \"" + location + "\" for template class "
 					+ templateType.getName());
@@ -446,6 +513,7 @@ public abstract class MuisTemplate extends MuisElement {
 			WidgetStructure content = docStruct.getContent();
 			String layout = content.getAttributes().remove(LayoutContainer.LAYOUT_ATTR.getName());
 			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure);
+			templateStruct.setModels(models);
 			String behaviorStr = content.getAttributes().remove(BEHAVIOR);
 			if(behaviorStr != null) {
 				String [] split = behaviorStr.split("\\s*,\\s*");
@@ -837,6 +905,10 @@ public abstract class MuisTemplate extends MuisElement {
 
 	private final Map<AttachPoint, AttachPointInstance> theAttachPoints;
 
+	private final Map<String, MuisAppModel> theModels;
+	private final Map<String, DefaultObservableValue<MuisAppModel>> theModelObservables;
+	private final Map<String, Observer<ObservableValueEvent<MuisAppModel>>> theModelControllers;
+
 	private final Map<MuisContent, MuisElement> theStaticContent;
 
 	// Valid during initialization only (prior to initChildren())--will be null after that
@@ -853,10 +925,14 @@ public abstract class MuisTemplate extends MuisElement {
 	public MuisTemplate() {
 		theRoleWanter = new Object();
 		theAttachPoints = new LinkedHashMap<>();
+		theModels = new LinkedHashMap<>();
+		theModelObservables = new HashMap<>();
+		theModelControllers = new HashMap<>();
 		theStaticContent = new HashMap<>();
 		theAttachmentMappings = new HashMap<>();
 		theUninitialized = new HashSet<>();
 		theBehaviors = new ArrayList<>();
+
 		life().runWhen(() -> {
 			try {
 				MuisEnvironment env = getDocument().getEnvironment();
@@ -864,6 +940,7 @@ public abstract class MuisTemplate extends MuisElement {
 			} catch(MuisException e) {
 				msg().fatal("Could not generate template structure", e);
 			}
+			initModels(theTemplateStructure);
 		}, MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
 			for(Class<? extends MuisBehavior<?>> behaviorClass : theTemplateStructure.getBehaviors()) {
@@ -927,9 +1004,59 @@ public abstract class MuisTemplate extends MuisElement {
 		return instance.setValue(element);
 	}
 
-	/** @return The model that this templated widget uses to hook into its component widgets */
-	protected ObservableValue<?> getModel() {
-		return ObservableValue.constant(null);
+	private void initModels(TemplateStructure template) {
+		for(String modelName : template.getModels()) {
+			DefaultObservableValue<MuisAppModel> modelObs = theModelObservables.get(modelName);
+			if(modelObs != null)
+				continue; // Model type overridden by subclass
+			modelObs = new DefaultObservableValue<MuisAppModel>() {
+				@Override
+				public Type getType() {
+					return new Type(MuisAppModel.class);
+				}
+
+				@Override
+				public MuisAppModel get() {
+					MuisAppModel ret = theModels.get(modelName);
+					if(ret == null) {
+						ret = template.getModel(modelName, msg());
+						theModels.put(modelName, ret);
+					}
+					return ret;
+				}
+			};
+			theModelObservables.put(modelName, modelObs);
+			theModelControllers.put(modelName, modelObs.control(null));
+		}
+
+		if(template.getSuperStructure() != null)
+			initModels(template.getSuperStructure());
+	}
+
+	/**
+	 * @param name The name of the model to set for this templated widget
+	 * @param model The model to set
+	 */
+	protected void setModel(String name, Object model) {
+		Observer<ObservableValueEvent<MuisAppModel>> controller = (Observer<ObservableValueEvent<MuisAppModel>>) (Observer<?>) theModelControllers
+			.get(name);
+		if(controller == null)
+			throw new IllegalArgumentException("No such model " + name + " in template " + getTemplate().getDefiner().getSimpleName());
+		MuisAppModel appModel;
+		if(model instanceof MuisAppModel)
+			appModel = (MuisAppModel) model;
+		else
+			appModel = new org.muis.core.model.MuisWrappingModel(model, msg());
+		MuisAppModel old = theModels.put(name, appModel);
+		controller.onNext(new ObservableValueEvent<MuisAppModel>(theModelObservables.get(name), old, appModel, null));
+	}
+
+	/**
+	 * @param name The name of the model to get
+	 * @return The model that this templated widget uses to hook into its component widgets
+	 */
+	protected ObservableValue<?> getModel(String name) {
+		return theModelObservables.get(name);
 	}
 
 	@Override

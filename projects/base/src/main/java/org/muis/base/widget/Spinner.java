@@ -1,15 +1,17 @@
 package org.muis.base.widget;
 
 import org.muis.base.model.SpinnerModel;
+import org.muis.base.model.impl.SimpleSpinnerModel;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisProperty;
 import org.muis.core.MuisTemplate;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionListener;
-import org.muis.core.model.MuisAppModel;
 import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.SettableValue;
 import org.muis.core.tags.Template;
-import org.muis.util.BiTuple;
+
+import prisms.lang.Type;
 
 /** A text box with up and down arrows to increment or decrement the value */
 @Template(location = "../../../../spinner.muis")
@@ -42,44 +44,38 @@ public class Spinner extends MuisTemplate {
 	public static final MuisAttribute<NumberSpinnerType> type = new MuisAttribute<>("type",
 		new MuisProperty.MuisEnumProperty<NumberSpinnerType>(NumberSpinnerType.class));
 	/** Specifies the minimum value for a canned-type spinner */
-	public static final MuisAttribute<Double> min = new MuisAttribute<>("min", MuisProperty.floatAttr);
-	/** Specifies the maximum value for a canned-type spinner */
-	public static final MuisAttribute<Double> max = new MuisAttribute<>("max", MuisProperty.floatAttr);
-	/** Specifies the interva value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner */
-	public static final MuisAttribute<Double> interval = new MuisAttribute<>("interval", MuisProperty.floatAttr);
+	public static final MuisAttribute<Long> minI = new MuisAttribute<>("min", MuisProperty.intAttr);
 
-	private SpinnerModel<?> theModel;
+	/** Specifies the maximum value for a canned-type spinner */
+	public static final MuisAttribute<Long> maxI = new MuisAttribute<>("max", MuisProperty.intAttr);
+
+	/** Specifies the interva value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner */
+	public static final MuisAttribute<Long> intervalI = new MuisAttribute<>("interval", MuisProperty.intAttr);
+
+	/** Specifies the minimum value for a canned-type spinner */
+	public static final MuisAttribute<Double> minF = new MuisAttribute<>("min", MuisProperty.floatAttr);
+	/** Specifies the maximum value for a canned-type spinner */
+	public static final MuisAttribute<Double> maxF = new MuisAttribute<>("max", MuisProperty.floatAttr);
+	/** Specifies the interva value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner */
+	public static final MuisAttribute<Double> intervalF = new MuisAttribute<>("interval", MuisProperty.floatAttr);
 
 	/** Creates a spinner */
 	public Spinner() {
 		life().runWhen(() -> {
 			Object accepter = new Object();
 
-			atts().accept(accepter, ModelAttributes.model);
+			atts().accept(accepter, ModelAttributes.model, type);
 
-			atts().accept(accepter, ModelAttributes.value);
-			atts().accept(accepter, increment);
-			atts().accept(accepter, decrement);
-
-			atts().accept(accepter, type);
-			atts().accept(accepter, min);
-			atts().accept(accepter, max);
-			atts().accept(accepter, interval);
-
-			// TODO Validate the attribute combinations and values. Compose the model.
+			// Validate the attribute combinations and values. Compose the model.
 			atts()
 				.getHolder(ModelAttributes.model)
 				.tupleV(atts().getHolder(type))
+				.value()
 				.act(
-					event -> {
-						BiTuple<MuisAppModel, NumberSpinnerType> spinnerType = event.getValue();
+					spinnerType -> {
 						if(spinnerType.getValue1() != null) {
-							atts().reject(accepter, ModelAttributes.value);
-							atts().reject(accepter, increment);
-							atts().reject(accepter, decrement);
-							atts().reject(accepter, min);
-							atts().reject(accepter, max);
-							atts().reject(accepter, interval);
+							atts().reject(accepter, ModelAttributes.value, increment, decrement, minI, maxI, intervalI, minF, maxF,
+								intervalF);
 							if(spinnerType.getValue2() != null) {
 								msg().warn(
 									"Both " + ModelAttributes.model.getName() + " and " + type.getName() + " attributes specified for "
@@ -91,25 +87,80 @@ public class Spinner extends MuisTemplate {
 									"value", spinnerType.getValue1());
 								return;
 							}
-							// TODO Set the model
+							setModel("model", spinnerType.getValue1());
 						} else if(spinnerType.getValue2() != null) {
-							atts().reject(accepter, increment);
-							atts().reject(accepter, decrement);
+							atts().reject(accepter, increment, decrement);
 							atts().require(accepter, ModelAttributes.value);
-							atts().accept(accepter, min);
-							atts().accept(accepter, max);
-							atts().accept(accepter, interval);
+							switch (spinnerType.getValue2()) {
+							case integer:
+								atts().reject(accepter, minF, maxF, intervalF);
+								atts().accept(accepter, minI, maxI, intervalI);
+
+								SimpleSpinnerModel.LongModel intModel = new SimpleSpinnerModel.LongModel(0, 0, 1000, 1);
+								setModel("model", intModel);
+								((SettableValue<Long>) intModel.getValue()).link(ObservableValue.flatten(new Type(Number.class),
+									(ObservableValue<? extends ObservableValue<? extends Number>>) atts().getHolder(ModelAttributes.value))
+									.mapV(num -> num.longValue()));
+								intModel.getValue().act(valueEvent -> {
+									SettableValue<?> modelValue = (SettableValue<?>) atts().get(ModelAttributes.value);
+									((SettableValue<Object>) modelValue).set(valueEvent.getValue(), valueEvent);
+								});
+								atts().getHolder(minI).tupleV(atts().getHolder(maxI), atts().getHolder(intervalI)).value().act(tuple -> {
+									Long min = tuple.getValue1();
+									Long max = tuple.getValue2();
+									Long intvl = tuple.getValue3();
+									if(min == null)
+										min = (long) 0;
+									if(max == null)
+										max = (long) Long.MAX_VALUE;
+									if(intvl == null)
+										intvl = (long) 1;
+									intModel.setConstraints(min.longValue(), max.longValue(), intvl.longValue());
+								});
+								break;
+							case floating:
+								atts().reject(accepter, minI, maxI, intervalI);
+								atts().accept(accepter, minF, maxF, intervalF);
+
+								SimpleSpinnerModel.DoubleModel floatModel = new SimpleSpinnerModel.DoubleModel(0, 0, 1000, 1);
+								setModel("model", floatModel);
+								((SettableValue<Double>) floatModel.getValue()).link(ObservableValue.flatten(new Type(Number.class),
+									(ObservableValue<? extends ObservableValue<? extends Number>>) atts().getHolder(ModelAttributes.value))
+									.mapV(num -> num.doubleValue()));
+								floatModel.getValue().act(valueEvent -> {
+									SettableValue<?> modelValue = (SettableValue<?>) atts().get(ModelAttributes.value);
+									((SettableValue<Object>) modelValue).set(valueEvent.getValue(), valueEvent);
+								});
+								atts().getHolder(minF).tupleV(atts().getHolder(maxF), atts().getHolder(intervalF)).value().act(tuple -> {
+									Double min = tuple.getValue1();
+									Double max = tuple.getValue2();
+									Double intvl = tuple.getValue3();
+									if(min == null)
+										min = (double) 0;
+									if(max == null)
+										max = (double) Double.MAX_VALUE;
+									if(intvl == null)
+										intvl = (double) 1;
+									floatModel.setConstraints(min.doubleValue(), max.doubleValue(), intvl.doubleValue());
+								});
+								break;
+							}
+
 						} else {
-							atts().require(accepter, ModelAttributes.value);
-							atts().require(accepter, increment);
-							atts().require(accepter, decrement);
+							atts().reject(accepter, minI, maxI, intervalI, minF, maxF, intervalF);
+							atts().require(accepter, ModelAttributes.value, increment, decrement);
+
+							atts()
+								.getHolder(ModelAttributes.value)
+								.tupleV(atts().getHolder(increment), atts().getHolder(decrement))
+								.value()
+								.act(
+									tuple -> {
+										setModel("model", new org.muis.base.model.impl.ComposedSpinnerModel<Object>(
+											(ObservableValue<Object>) tuple.getValue1(), tuple.getValue2(), tuple.getValue3()));
+									});
 						}
 					});
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
-	}
-
-	@Override
-	protected ObservableValue<SpinnerModel<?>> getModel() {
-		return theModel;
 	}
 }

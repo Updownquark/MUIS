@@ -3,8 +3,6 @@ package org.muis.core.rx;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.muis.util.BiTuple;
-
 import prisms.lang.Type;
 
 /**
@@ -85,6 +83,17 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 */
 	default <U> ObservableValue<BiTuple<T, U>> tupleV(ObservableValue<U> arg) {
 		return composeV(BiTuple<T, U>::new, arg);
+	}
+
+	/**
+	 * @param <U> The type of the first other observable to tuplize
+	 * @param <V> The type of the second other observable to tuplize
+	 * @param arg1 The first other observable to tuplize
+	 * @param arg2 The second other observable to tuplize
+	 * @return An observable which broadcasts tuples of the latest values of this observable value and 2 others
+	 */
+	default <U, V> ObservableValue<TriTuple<T, U, V>> tupleV(ObservableValue<U> arg1, ObservableValue<V> arg2) {
+		return composeV(TriTuple<T, U, V>::new, arg1, arg2);
 	}
 
 	/**

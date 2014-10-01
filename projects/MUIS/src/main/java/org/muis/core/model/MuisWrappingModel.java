@@ -44,7 +44,7 @@ public class MuisWrappingModel implements MuisAppModel {
 	private final java.util.Map<String, AggregateActionListener> theActions;
 
 	/**
-	 * @param wrap The POJO model to wrap
+	 * @param wrap The POJO model getter to wrap
 	 * @param msg The message center to give errors and other messages to
 	 */
 	public MuisWrappingModel(Getter<?> wrap, org.muis.core.mgr.MuisMessageCenter msg) {
@@ -53,6 +53,24 @@ public class MuisWrappingModel implements MuisAppModel {
 		theData = new java.util.HashMap<>(5);
 		theActions = new java.util.HashMap<>(2);
 		buildReflectiveModel();
+	}
+
+	/**
+	 * @param wrap The POJO model to wrap
+	 * @param msg The message center to give errors and other messages to
+	 */
+	public MuisWrappingModel(Object wrap, org.muis.core.mgr.MuisMessageCenter msg) {
+		this(new Getter<Object>() {
+			@Override
+			public Class<Object> getType() {
+				return (Class<Object>) wrap.getClass();
+			}
+
+			@Override
+			public Object get() throws IllegalStateException {
+				return wrap;
+			}
+		}, msg);
 	}
 
 	private void buildReflectiveModel() {

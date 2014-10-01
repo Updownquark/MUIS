@@ -1,11 +1,12 @@
 package org.muis.core.model;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.muis.core.rx.ObservableValue;
 
 /** The default (typically XML-specified) implementation for MuisAppModel */
-public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
+public class DefaultMuisModel implements MuisAppModel, Cloneable, prisms.util.Sealable {
 	private boolean isSealed;
 
 	private Map<String, MuisAppModel> theSubModels;
@@ -18,10 +19,10 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 
 	/** Creates the model */
 	public DefaultMuisModel() {
-		theSubModels = new java.util.HashMap<>(2);
-		theWidgetModels = new java.util.HashMap<>(2);
-		theValues = new java.util.HashMap<>(2);
-		theActions = new java.util.HashMap<>(2);
+		theSubModels = new HashMap<>(2);
+		theWidgetModels = new HashMap<>(2);
+		theValues = new HashMap<>(2);
+		theActions = new HashMap<>(2);
 	}
 
 	@Override
@@ -112,5 +113,21 @@ public class DefaultMuisModel implements MuisAppModel, prisms.util.Sealable {
 	@Override
 	public MuisActionListener getAction(String name) {
 		return theActions.get(name);
+	}
+
+	@Override
+	public DefaultMuisModel clone() {
+		DefaultMuisModel ret;
+		try {
+			ret = (DefaultMuisModel) super.clone();
+		} catch(CloneNotSupportedException e) {
+			throw new IllegalStateException(e);
+		}
+		ret.isSealed = false;
+		ret.theSubModels = new HashMap<>(theSubModels);
+		ret.theWidgetModels = new HashMap<>(theWidgetModels);
+		ret.theValues = new HashMap<>(theValues);
+		ret.theActions = new HashMap<>(theActions);
+		return ret;
 	}
 }

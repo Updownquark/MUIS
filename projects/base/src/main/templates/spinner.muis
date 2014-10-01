@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <template>
+	<head>
+		<model name="model" class="org.muis.base.model.SpinnerModel" />
+	</head>
 	<body layout="layer">
 		<border template-attach-point="border" template-external="false" template-mutable="false" layout="border">
 			<text-field template-attach-point="text" region="center" value="model.getValue()" template-expose-atts="format" />

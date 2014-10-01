@@ -1,4 +1,4 @@
-package org.muis.util;
+package org.muis.core.rx;
 
 /**
  * A tuple with two typed values

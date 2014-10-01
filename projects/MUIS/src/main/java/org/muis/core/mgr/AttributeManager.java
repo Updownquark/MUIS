@@ -477,15 +477,32 @@ public class AttributeManager {
 	}
 
 	/**
-	 * Marks an accepted attribute as not required
+	 * Specifies required attributes for this element
 	 *
-	 * @param wanter The object that cares about the attribute
-	 * @param attr The attribute to accept but not require
+	 * @param needer The object that needs the attributes
+	 * @param attrs The attributes that must be specified for this element
 	 */
-	public final void unrequire(Object wanter, MuisAttribute<?> attr) {
-		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
-		if(holder != null)
-			holder.unrequire(wanter);
+	public final void require(Object needer, MuisAttribute<?>... attrs) {
+		for(MuisAttribute<?> attr : attrs)
+			try {
+				accept(needer, true, attr, null);
+			} catch(MuisException e) {
+				throw new IllegalStateException("Should not throw MuisException with null initValue");
+			}
+	}
+
+	/**
+	 * Marks accepted attributes as not required
+	 *
+	 * @param wanter The object that cares about the attributes
+	 * @param attrs The attributes to accept but not require
+	 */
+	public final void unrequire(Object wanter, MuisAttribute<?>... attrs) {
+		for(MuisAttribute<?> attr : attrs) {
+			AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
+			if(holder != null)
+				holder.unrequire(wanter);
+		}
 	}
 
 	/**
@@ -508,7 +525,7 @@ public class AttributeManager {
 	 *
 	 * @param <T> The type of the attribute to accept
 	 * @param wanter The object that cares about the attribute
-	 * @param attr The attribute that must be specified for this element
+	 * @param attr The attribute that may be specified for this element
 	 * @return The attribute holder for the attribute in this manager
 	 */
 	public final <T> AttributeHolder<T> accept(Object wanter, MuisAttribute<T> attr) {
@@ -517,6 +534,21 @@ public class AttributeManager {
 		} catch(MuisException e) {
 			throw new IllegalStateException("Should not throw MuisException with null initValue");
 		}
+	}
+
+	/**
+	 * Specifies optional attributes for this element
+	 *
+	 * @param wanter The object that cares about the attributes
+	 * @param attrs The attributes that may be specified for this element
+	 */
+	public final void accept(Object wanter, MuisAttribute<?>... attrs) {
+		for(MuisAttribute<?> attr : attrs)
+			try {
+				accept(wanter, false, attr, null);
+			} catch(MuisException e) {
+				throw new IllegalStateException("Should not throw MuisException with null initValue");
+			}
 	}
 
 	/**
@@ -567,23 +599,25 @@ public class AttributeManager {
 	}
 
 	/**
-	 * Undoes acceptance of an attribute. This method does not remove any attribute value associated with this element. It merely disables
-	 * the attribute. If the attribute is accepted on this element later, this element's value of that attribute will be preserved.
+	 * Undoes acceptance of one or more attributes. This method does not remove any attribute value associated with this element. It merely
+	 * disables the attribute. If the attribute is accepted on this element later, this element's value of that attribute will be preserved.
 	 *
 	 * @param wanter The object that used to care about the attribute
-	 * @param attr The attribute to not allow in this element
+	 * @param attrs The attributes to not allow in this element
 	 */
-	public final void reject(Object wanter, MuisAttribute<?> attr) {
-		if(attr instanceof MuisPathedAttribute)
-			throw new IllegalArgumentException("Pathed attributes cannot be rejected");
-		AttributeHolder<?> holder = theAcceptedAttrs.get(attr.getName());
-		if(holder != null) {
-			holder.reject(holder);
-			if(!holder.isWanted()) {
-				theAcceptedAttrs.remove(attr);
-				namedAttrRemoved(attr);
+	public final void reject(Object wanter, MuisAttribute<?>... attrs) {
+		for(MuisAttribute<?> attr : attrs) {
+			if(attr instanceof MuisPathedAttribute)
+				throw new IllegalArgumentException("Pathed attributes cannot be rejected");
+			AttributeHolder<?> holder = theAcceptedAttrs.get(attr.getName());
+			if(holder != null) {
+				holder.reject(holder);
+				if(!holder.isWanted()) {
+					theAcceptedAttrs.remove(attr);
+					namedAttrRemoved(attr);
+				}
+				theElement.events().fire(new org.muis.core.event.AttributeAcceptedEvent(theElement, attr, false, false, null));
 			}
-			theElement.events().fire(new org.muis.core.event.AttributeAcceptedEvent(theElement, attr, false, false, null));
 		}
 	}
 

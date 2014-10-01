@@ -5,7 +5,7 @@ import org.muis.core.MuisElement;
 
 /**
  * Fired when an attribute is {@link org.muis.core.mgr.AttributeManager#accept(Object, boolean, MuisAttribute, Object) accepted} or
- * {@link org.muis.core.mgr.AttributeManager#reject(Object, MuisAttribute) rejected} on an element.
+ * {@link org.muis.core.mgr.AttributeManager#reject(Object, MuisAttribute []) rejected} on an element.
  */
 public class AttributeAcceptedEvent implements MuisEvent {
 	/** Filters events of this type */

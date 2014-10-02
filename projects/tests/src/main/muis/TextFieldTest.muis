@@ -6,6 +6,7 @@
 		<style-sheet ref="../styles/muis-tests.mss"></style-sheet>
 		<model name="text-field-model">
 			<value name="simpleString" type="string" />
+			<value name="simpleInt" type="int" />
 		</model>
     </head>
     <body xmlns:base="../../../../base/MuisRegistry.xml">
@@ -21,6 +22,9 @@
    			This text field's value is duplicated on the next line
    			<text-field length="30" format="formats.string" value="text-field-model.simpleString" />
    			<label format="formats.string" value="text-field-model.simpleString" />
+   			This one too, but this text field's value can only be an integer
+   			<text-field length="30" format="formats.integer" value="text-field-model.simpleInt" />
+   			<label format="formats.integer" value="text-field-model.simpleInt" />
    		</block>
     </body>
 </muis>

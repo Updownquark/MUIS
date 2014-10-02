@@ -41,6 +41,23 @@ public class Formats {
 		}
 	};
 
+	/** Formats integers (type long) */
+	public static final MuisFormatter<Long> integer = new MuisFormatter<Long>() {
+		@Override
+		public void append(Long value, MutableDocumentModel doc) {
+			doc.append(value.toString());
+		}
+
+		@Override
+		public Long parse(MuisDocumentModel doc) throws MuisParseException {
+			try {
+				return Long.parseLong(doc.toString());
+			} catch(NumberFormatException e) {
+				throw new MuisParseException(e, -1, -1);
+			}
+		}
+	};
+
 	/** Formats and parses colors using the {@link Colors} class */
 	public static final MuisFormatter<Color> color = new MuisFormatter<Color>() {
 		@Override

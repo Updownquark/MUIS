@@ -1048,7 +1048,7 @@ public abstract class MuisTemplate extends MuisElement {
 		else
 			appModel = new org.muis.core.model.MuisWrappingModel(model, msg());
 		MuisAppModel old = theModels.put(name, appModel);
-		controller.onNext(new ObservableValueEvent<MuisAppModel>(theModelObservables.get(name), old, appModel, null));
+		controller.onNext(new ObservableValueEvent<>(theModelObservables.get(name), old, appModel, null));
 	}
 
 	/**

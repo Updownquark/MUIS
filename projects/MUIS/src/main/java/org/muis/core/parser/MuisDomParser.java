@@ -472,6 +472,8 @@ public class MuisDomParser implements MuisParser {
 			return Float.class;
 		else if(typeName.equals("double"))
 			return Double.class;
+		else if(typeName.equals("string"))
+			return String.class;
 		Class<?> ret = null;
 		for(MuisToolkit tk : classView.getScopedToolkits()) {
 			try {

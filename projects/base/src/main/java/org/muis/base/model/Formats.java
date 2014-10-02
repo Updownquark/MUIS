@@ -28,6 +28,19 @@ public class Formats {
 		return f != null ? f : def;
 	};
 
+	/** Simple formatter for strings */
+	public static final MuisFormatter<String> string = new MuisFormatter<String>() {
+		@Override
+		public void append(String value, MutableDocumentModel doc) {
+			doc.append(value);
+		}
+
+		@Override
+		public String parse(MuisDocumentModel doc) throws MuisParseException {
+			return doc.toString();
+		}
+	};
+
 	/** Formats and parses colors using the {@link Colors} class */
 	public static final MuisFormatter<Color> color = new MuisFormatter<Color>() {
 		@Override

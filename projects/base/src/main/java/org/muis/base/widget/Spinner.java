@@ -42,21 +42,27 @@ public class Spinner extends MuisTemplate {
 
 	/** Used to specify a canned-type spinner */
 	public static final MuisAttribute<NumberSpinnerType> type = new MuisAttribute<>("type",
-		new MuisProperty.MuisEnumProperty<NumberSpinnerType>(NumberSpinnerType.class));
+ new MuisProperty.MuisEnumProperty<>(
+		NumberSpinnerType.class));
 	/** Specifies the minimum value for a canned-type spinner */
 	public static final MuisAttribute<Long> minI = new MuisAttribute<>("min", MuisProperty.intAttr);
 
 	/** Specifies the maximum value for a canned-type spinner */
 	public static final MuisAttribute<Long> maxI = new MuisAttribute<>("max", MuisProperty.intAttr);
 
-	/** Specifies the interva value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner */
+	/**
+	 * Specifies the interval value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner
+	 */
 	public static final MuisAttribute<Long> intervalI = new MuisAttribute<>("interval", MuisProperty.intAttr);
 
 	/** Specifies the minimum value for a canned-type spinner */
 	public static final MuisAttribute<Double> minF = new MuisAttribute<>("min", MuisProperty.floatAttr);
 	/** Specifies the maximum value for a canned-type spinner */
 	public static final MuisAttribute<Double> maxF = new MuisAttribute<>("max", MuisProperty.floatAttr);
-	/** Specifies the interva value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner */
+
+	/**
+	 * Specifies the interval value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner
+	 */
 	public static final MuisAttribute<Double> intervalF = new MuisAttribute<>("interval", MuisProperty.floatAttr);
 
 	/** Creates a spinner */
@@ -156,7 +162,7 @@ public class Spinner extends MuisTemplate {
 								.value()
 								.act(
 									tuple -> {
-										setModel("model", new org.muis.base.model.impl.ComposedSpinnerModel<Object>(
+										setModel("model", new org.muis.base.model.impl.ComposedSpinnerModel<>(
 											(ObservableValue<Object>) tuple.getValue1(), tuple.getValue2(), tuple.getValue3()));
 									});
 						}

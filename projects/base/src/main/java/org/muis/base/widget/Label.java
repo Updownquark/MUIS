@@ -1,20 +1,25 @@
 package org.muis.base.widget;
 
+import static org.muis.base.BaseAttributes.document;
+import static org.muis.base.BaseAttributes.format;
+import static org.muis.base.BaseAttributes.rich;
+
+import org.muis.base.BaseAttributes;
+import org.muis.base.model.Formats;
+import org.muis.base.model.MuisFormatter;
 import org.muis.base.model.RichDocumentModel;
-import org.muis.core.*;
+import org.muis.core.MuisConstants;
+import org.muis.core.MuisException;
+import org.muis.core.MuisTextElement;
 import org.muis.core.model.*;
 import org.muis.core.rx.ObservableValue;
-
-import prisms.lang.Type;
+import org.muis.util.Transaction;
 
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
  * different (flow by default) and its style sheet attributes may be different (margin and padding are typically 0)
  */
 public class Label extends org.muis.core.LayoutContainer implements org.muis.core.model.DocumentedElement {
-	/** The attribute allowing the user to specify a label that parses rich text */
-	public static final MuisAttribute<Boolean> rich = new MuisAttribute<>("rich", org.muis.core.MuisProperty.boolAttr);
-
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
 	/** Creates the label */
@@ -22,26 +27,42 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 		life().runWhen(
 			() -> {
 				Object accepter = new Object();
-				atts().accept(accepter, rich).act(
-					event -> {
-						setDocumentModel(event.getValue() ? new RichDocumentModel(getDocumentBackingStyle()) : new SimpleDocumentModel(
-							getDocumentBackingStyle()));
+				atts().accept(accepter, document, rich, ModelAttributes.value, format);
+				atts().getHolder(document).tupleV(atts().getHolder(rich)).value().act(tuple -> {
+					if(tuple.getValue1() != null) {
+						if(tuple.getValue2() != null)
+							msg().warn(rich.getName() + " attribute specified, but model overridden.  Ignoring.");
+						setDocumentModel(tuple.getValue1());
+					} else if(tuple.getValue2() == Boolean.TRUE)
+						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle()));
+					else
+						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
 					});
-				atts().accept(accepter, ModelAttributes.value);
-
-				ObservableValue<ObservableValue<?>> modelValue = atts().getHolder(ModelAttributes.value);
-				modelValue.act(evt -> { // Widget registration
+				atts().getHolder(ModelAttributes.value).value().act(modelValue -> {
 					if(theRegistration != null)
 						theRegistration.unregister();
 					theRegistration = null;
-						if(evt.getValue() instanceof WidgetRegister)
-						theRegistration = ((WidgetRegister) evt.getValue()).register(Label.this);
+					if(modelValue instanceof WidgetRegister)
+						theRegistration = ((WidgetRegister) modelValue).register(Label.this);
 				});
-				ObservableValue.flatten(new Type(Object.class, true), modelValue).act(evt -> {
-					modelValueChanged(evt.getOldValue(), evt.getValue());
-				});
+				ObservableValue.flatten(null, atts().getHolder(ModelAttributes.value))
+					.tupleV(atts().getHolder(format).mapV(null, Formats.defNullCatch)).value().act(tuple -> {
+						if(atts().getHolder(ModelAttributes.value) == null)
+							return;
+						MuisDocumentModel doc = getDocumentModel();
+						if(!(doc instanceof MutableDocumentModel)) {
+							msg().error("Model value specified with a non-mutable document model");
+							return;
+						}
+						MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
+						try (Transaction trans = mutableDoc.holdForWrite()) {
+							mutableDoc.clear();
+							((MuisFormatter<Object>) tuple.getValue2()).append(tuple.getValue1(), mutableDoc);
+						}
+					});
 
-				if(Boolean.TRUE.equals(atts().get(rich))) {
+				/* Don't think this code is needed anymore
+				if(Boolean.TRUE.equals(atts().get(BaseAttributes.rich))) {
 					MuisDocumentModel doc = getWrappedModel();
 					if(!(doc instanceof RichDocumentModel)) {
 						String text = getText();
@@ -49,7 +70,7 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 						if(text != null)
 							setText(text);
 					}
-				}
+				}*/
 			}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
@@ -60,7 +81,7 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 	public Label(String text, boolean richText) {
 		this();
 		try {
-			atts().set(rich, richText);
+			atts().set(BaseAttributes.rich, richText);
 		} catch(MuisException e) {
 			throw new IllegalStateException(e);
 		}
@@ -141,7 +162,7 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 	}
 
 	/** @param doc The document model for this label */
-	public void setDocumentModel(MuisDocumentModel doc) {
+	protected void setDocumentModel(MuisDocumentModel doc) {
 		if(getChildren().isEmpty())
 			getChildManager().add(new MuisTextElement(doc));
 		else {
@@ -154,24 +175,8 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 		}
 	}
 
-	private void modelValueChanged(Object oldValue, Object newValue) {
-		if(oldValue instanceof MuisDocumentModel) {
-			if(!(newValue instanceof MuisDocumentModel))
-				setDocumentModel(null);
-		}
-		if(newValue instanceof MuisDocumentModel)
-			setDocumentModel((MuisDocumentModel) newValue);
-		else if(newValue != null) {
-			setText(getTextFor(newValue));
-		}
-	}
-
 	@Override
 	protected org.muis.core.MuisLayout getDefaultLayout() {
 		return new org.muis.base.layout.FlowLayout();
-	}
-
-	private static String getTextFor(Object value) {
-		return value == null ? null : value.toString();
 	}
 }

@@ -4,17 +4,16 @@ import static org.muis.base.layout.TextEditLayout.charLengthAtt;
 import static org.muis.base.layout.TextEditLayout.charRowsAtt;
 import static org.muis.core.MuisTextElement.multiLine;
 
+import org.muis.base.BaseAttributes;
 import org.muis.base.BaseConstants;
 import org.muis.base.model.*;
-import org.muis.core.MuisAttribute;
-import org.muis.core.MuisProperty;
 import org.muis.core.event.FocusEvent;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.mgr.StateEngine.StateController;
 import org.muis.core.model.*;
-import org.muis.core.rx.BiTuple;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.SettableValue;
+import org.muis.core.rx.TriTuple;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
@@ -25,18 +24,6 @@ import org.muis.util.Transaction;
 @StateSupport({@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY),
 		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
 public class TextField extends org.muis.core.MuisTemplate implements DocumentedElement {
-	/** Allows the user to specify the model whose content is displayed in this text field */
-	public static final MuisAttribute<MuisDocumentModel> document = new MuisAttribute<>("doc", new MuisProperty.MuisTypeInstanceProperty<>(
-		MuisDocumentModel.class));
-
-	/** Allows specification of the format used by the text field */
-	public static final MuisAttribute<MuisFormatter<?>> format = new MuisAttribute<>("format", new MuisProperty.MuisTypeInstanceProperty<>(
-		(Class<MuisFormatter<?>>) (Class<?>) MuisFormatter.class));
-
-	/** Allows specification of the format used by the text field */
-	public static final MuisAttribute<Validator<?>> validator = new MuisAttribute<>("validator",
-		new MuisProperty.MuisTypeInstanceProperty<>((Class<Validator<?>>) (Class<?>) Validator.class));
-
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
 	private boolean isDocOverridden;
@@ -44,7 +31,6 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	private boolean isDocDirty;
 
 	private StateController theErrorController;
-
 	private StateController theEnabledController;
 
 	private int theCallbackLock = 0;
@@ -52,41 +38,40 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	/** Creates a text field */
 	public TextField() {
 		life().runWhen(() -> {
-				theErrorController = state().control(BaseConstants.States.ERROR);
-				theEnabledController = state().control(BaseConstants.States.ENABLED);
+			theErrorController = state().control(BaseConstants.States.ERROR);
+			theEnabledController = state().control(BaseConstants.States.ENABLED);
 			Object accepter = new Object();
-			atts().accept(accepter, charLengthAtt).act(event -> {
+			atts().accept(accepter, charLengthAtt, charRowsAtt, multiLine, BaseAttributes.format, BaseAttributes.document, ModelAttributes.value, BaseAttributes.rich);
+			atts().getHolder(charLengthAtt).act(event -> {
 				try {
 					getElement(getTemplate().getAttachPoint("text")).atts().set(charLengthAtt, event.getValue());
 				} catch(org.muis.core.MuisException e) {
 					msg().error("Could not pass on " + charLengthAtt, e);
 				}
 			});
-			atts().accept(accepter, charRowsAtt).act(event -> {
+			atts().getHolder(charRowsAtt).act(event -> {
 				try {
 					getElement(getTemplate().getAttachPoint("text")).atts().set(charRowsAtt, event.getValue());
 				} catch(org.muis.core.MuisException e) {
 					msg().error("Could not pass on " + charRowsAtt, e);
 				}
 			});
-			atts().accept(accepter, multiLine);
-				atts().accept(accepter, ModelAttributes.value).tupleV(atts().accept(accepter, format))
-				.tupleV(atts().accept(accepter, document).composeV(ObservableValue.first(), atts().accept(accepter, Label.rich)))
-				.act(event -> {
+			atts().getHolder(ModelAttributes.value)
+				.tupleV(atts().getHolder(BaseAttributes.format),
+					atts().getHolder(BaseAttributes.document).composeV(ObservableValue.first(), atts().getHolder(BaseAttributes.rich))).act(event -> {
 					if(theRegistration != null)
 						theRegistration.unregister();
-						BiTuple<BiTuple<ObservableValue<?>, MuisFormatter<?>>, MuisDocumentModel> tuple = event.getValue();
-					if(tuple.getValue1().getValue1() == null && tuple.getValue2() == null)
+					TriTuple<ObservableValue<?>, MuisFormatter<?>, MuisDocumentModel> tuple = event.getValue();
+					if(tuple.getValue1() == null && tuple.getValue3() == null)
 						msg().warn("No model value or document specified");
-					else if(tuple.getValue1().getValue1() != null) {
-						if(tuple.getValue2() != null)
+					else if(tuple.getValue1() != null) {
+						if(tuple.getValue3() != null)
 							msg().warn("Both model value and document specified. Using model value.");
-							setValue(tuple.getValue1().getValue1(), tuple.getValue1().getValue2(), event);
-					} else {
-						setDocument(tuple.getValue2());
-					}
+						setValue(tuple.getValue1(), tuple.getValue2(), event);
+					} else
+						setDocument(tuple.getValue3());
 				});
-				atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
+			atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
 		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
 			initDocument();
@@ -144,7 +129,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	private void setValue(ObservableValue<?> value, MuisFormatter<?> formatter, org.muis.core.rx.ObservableValueEvent<?> event) {
 		register(value);
 		MutableDocumentModel editModel = (MutableDocumentModel) getDocumentModel();
-		boolean rich = atts().get(Label.rich) == true;
+		boolean rich = atts().get(BaseAttributes.rich) == true;
 		if(isDocOverridden || (rich && !(editModel instanceof RichDocumentModel)) || (!rich && !(editModel instanceof SimpleDocumentModel))) {
 			editModel=rich ? new RichDocumentModel(getStyle().getSelf()) : new SimpleDocumentModel(getStyle().getSelf());
 			setEditModel(editModel);
@@ -177,8 +162,8 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		ObservableValue<?> mv = atts().get(ModelAttributes.value);
 		if(!(mv instanceof SettableValue))
 			return;
-		MuisFormatter<?> formatter = atts().get(format);
-		Validator<?> val = atts().get(validator);
+		MuisFormatter<?> formatter = atts().get(BaseAttributes.format);
+		Validator<?> val = atts().get(BaseAttributes.validator);
 		Object value = null;
 		boolean parsed = false;
 		try {
@@ -187,7 +172,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			else
 				value = getDocumentModel().toString();
 			parsed = true;
-			if(validator != null) {
+			if(BaseAttributes.validator != null) {
 				String valMsg = ((Validator<Object>) val).validate(value);
 				if(valMsg != null) {
 					// TODO Do something with the message
@@ -249,7 +234,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		if(!(docModel instanceof MutableDocumentModel))
 			return;
 		MutableDocumentModel editModel = (MutableDocumentModel) docModel;
-		MuisFormatter<?> formatter = atts().get(format);
+		MuisFormatter<?> formatter = atts().get(BaseAttributes.format);
 		theCallbackLock++;
 		try (Transaction t = editModel.holdForWrite()) {
 			editModel.clear();

@@ -303,7 +303,7 @@
 		</option>
 		<option> <!-- MUIS-type namespace-qualified tag type -->
 			<option>
-				<op type="muis-identifer" storeAs="namespace" />
+				<op type="muis-identifier" storeAs="namespace" />
 				<literal>:</literal>
 			</option>
 			<op type="muis-identifier" storeAs="base" />

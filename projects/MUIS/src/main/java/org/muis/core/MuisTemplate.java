@@ -1,11 +1,12 @@
 package org.muis.core;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
+import org.muis.core.eval.impl.ObservableEvaluator;
+import org.muis.core.eval.impl.ObservableItemEvaluator;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.AbstractElementList;
@@ -25,8 +26,9 @@ import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
 import org.muis.util.MuisUtils;
 
-import prisms.lang.Type;
-import prisms.lang.Variable;
+import prisms.lang.*;
+import prisms.lang.EvaluationEnvironment.VariableImpl;
+import prisms.lang.types.ParsedIdentifier;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template MUIS file with widget definitions that are reproduced in each
@@ -832,39 +834,50 @@ public abstract class MuisTemplate extends MuisElement {
 					super.applyModification();
 					// Make evaluation recognize "model"
 					if(getEvaluationEnvironment() instanceof prisms.lang.DefaultEvaluationEnvironment) {
-						Variable thisVar = new prisms.lang.EvaluationEnvironment.VariableImpl(new Type(
-							getModelType(theTemplateStruct.getDefiner())), "model", true);
 						((prisms.lang.DefaultEvaluationEnvironment) getEvaluationEnvironment())
 							.addVariableSource(new prisms.lang.VariableSource() {
 								@Override
 								public Variable [] getDeclaredVariables() {
-									return new Variable[] {thisVar};
+									Map<String, Variable> vars = new LinkedHashMap<>();
+									addVars(theTemplateStruct, vars);
+									return vars.values().toArray(new Variable[vars.size()]);
+								}
+
+								private void addVars(TemplateStructure struct, Map<String, Variable> vars) {
+									for(String model : struct.getModels())
+										if(!vars.containsKey(model))
+											vars.put(model, new VariableImpl(new Type(MuisAppModel.class), model, true));
+									if(struct.getSuperStructure() != null)
+										addVars(struct.getSuperStructure(), vars);
 								}
 
 								@Override
 								public Variable getDeclaredVariable(String name) {
-									if(thisVar.getName().equals(name))
-										return thisVar;
-									else
-										return null;
+									TemplateStructure struct = theTemplateStruct;
+									while(struct != null) {
+										if(prisms.util.ArrayUtils.contains(struct.getModels(), name))
+											return new VariableImpl(new Type(MuisAppModel.class), name, true);
+										struct = struct.getSuperStructure();
+									}
+									return null;
 								}
 							});
 					}
-				}
-
-				private java.lang.reflect.Type getModelType(Class<? extends MuisTemplate> definer) {
-					Method method;
-					try {
-						method = definer.getMethod("getModel");
-					} catch(NoSuchMethodException | SecurityException e) {
-						throw new IllegalStateException("Could not get model type of template class " + definer.getSimpleName(), e);
-					}
-					if(method != null)
-						return method.getGenericReturnType();
-					else if(definer == MuisTemplate.class)
-						throw new IllegalStateException("No getModel method for " + MuisTemplate.class.getSimpleName());
-					else
-						return getModelType((Class<? extends MuisTemplate>) definer.getSuperclass());
+					ObservableItemEvaluator<? super ParsedIdentifier> oldEval = getEvaluator().getObservableEvaluatorFor(
+						ParsedIdentifier.class);
+					getEvaluator().addEvaluator(ParsedIdentifier.class, new ObservableItemEvaluator<ParsedIdentifier>() {
+						@Override
+						public ObservableValue<?> evaluateObservable(ParsedIdentifier item, ObservableEvaluator evaluator,
+							EvaluationEnvironment env) throws EvaluationException {
+							ObservableValue<MuisAppModel> model = theTemplateWidget.getModel(item.getName());
+							if(model != null)
+								return model;
+							else if(oldEval != null)
+								return oldEval.evaluateObservable(item, evaluator, env);
+							else
+								return null;
+						}
+					});
 				}
 			};
 		}
@@ -1055,7 +1068,7 @@ public abstract class MuisTemplate extends MuisElement {
 	 * @param name The name of the model to get
 	 * @return The model that this templated widget uses to hook into its component widgets
 	 */
-	protected ObservableValue<?> getModel(String name) {
+	protected ObservableValue<MuisAppModel> getModel(String name) {
 		return theModelObservables.get(name);
 	}
 

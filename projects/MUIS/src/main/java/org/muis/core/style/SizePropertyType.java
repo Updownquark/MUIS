@@ -15,7 +15,7 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 
 	@Override
 	public ObservableValue<? extends Size> parse(MuisParseEnv env, String value) throws org.muis.core.MuisException {
-		ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, value);
+		ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, value, false);
 		if(modelValue != null) {
 			if(modelValue.getType().canAssignTo(Size.class))
 				return (ObservableValue<? extends Size>) modelValue;

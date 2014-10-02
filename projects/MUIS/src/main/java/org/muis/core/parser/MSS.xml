@@ -230,7 +230,8 @@
 		<literal>.</literal>
 		<op type="identifier" storeAs="name" />
 		<literal>=</literal>
-		<op storeAs="value" />
+		
+		<charset pattern=".*" storeAs="value" />
 		<option>
 			<literal>;</literal>
 		</option>

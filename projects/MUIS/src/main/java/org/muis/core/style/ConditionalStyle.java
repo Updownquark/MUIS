@@ -1,5 +1,7 @@
 package org.muis.core.style;
 
+import org.muis.core.rx.Observable;
+
 /**
  * An extension of MuisStyle that may have different attribute settings depending on a condition of some type.
  *
@@ -33,9 +35,6 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 */
 	<T> StyleExpressionValue<E, T> [] getExpressions(StyleAttribute<T> attr);
 
-	/** @param listener The listener to be notified when the effective value of any style attribute in this style changes for any state */
-	void addListener(StyleExpressionListener<S, E> listener);
-
-	/** @param listener The listener to remove */
-	void removeListener(StyleExpressionListener<S, E> listener);
+	/** @return An observable for changes in this style's expressions */
+	Observable<StyleExpressionEvent<S, E, ?>> expressions();
 }

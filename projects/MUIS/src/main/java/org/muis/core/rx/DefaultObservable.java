@@ -1,5 +1,6 @@
 package org.muis.core.rx;
 
+import java.lang.ref.SoftReference;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -22,7 +23,7 @@ public class DefaultObservable<T> implements Observable<T> {
 	private OnSubscribe<T> theOnSubscribe;
 	private AtomicBoolean isAlive = new AtomicBoolean(true);
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
-	private final CopyOnWriteArrayList<Observer<? super T>> theListeners;
+	private CopyOnWriteArrayList<SoftReference<Observer<? super T>>> theListeners;
 
 	/** Creates the observable */
 	public DefaultObservable() {
@@ -31,7 +32,7 @@ public class DefaultObservable<T> implements Observable<T> {
 
 	/**
 	 * Obtains control of the observable. This method may only be called once.
-	 * 
+	 *
 	 * @param onSubscribe The listener to call for each new subscription to the observable
 	 * @return An observer whose methods control this observable
 	 * @throws IllegalStateException If this observer is already controlled
@@ -60,30 +61,48 @@ public class DefaultObservable<T> implements Observable<T> {
 
 	@Override
 	public Subscription<T> subscribe(Observer<? super T> observer) {
-		if(!isAlive.get())
+		if(!isAlive.get()) {
 			observer.onCompleted();
-		else {
-			theListeners.add(observer);
+			return new Subscription<T>() {
+				@Override
+				public Subscription<T> subscribe(Observer<? super T> observer2) {
+					return this;
+				}
+
+				@Override
+				public void unsubscribe() {
+				}
+			};
+		} else {
+			SoftReference<Observer<? super T>> ref = new SoftReference<>(observer);
+			theListeners.add(ref);
 			if(theOnSubscribe != null)
 				theOnSubscribe.onsubscribe(observer);
-		}
-		return new Subscription<T>() {
-			@Override
-			public Subscription<T> subscribe(Observer<? super T> observer2) {
-				return DefaultObservable.this.subscribe(observer2);
-			}
+			return new Subscription<T>() {
+				@Override
+				public Subscription<T> subscribe(Observer<? super T> observer2) {
+					return DefaultObservable.this.subscribe(observer2);
+				}
 
-			@Override
-			public void unsubscribe() {
-				theListeners.remove(observer);
-			}
-		};
+				@Override
+				public void unsubscribe() {
+					theListeners.remove(ref);
+				}
+			};
+		}
 	}
 
 	private void fireNext(T value) {
 		if(!isAlive.get())
 			throw new IllegalStateException("Firing a value on a completed observable");
-		for(Observer<? super T> observer : theListeners) {
+		java.util.Iterator<SoftReference<Observer<? super T>>> iter = theListeners.iterator();
+		while(iter.hasNext()) {
+			SoftReference<Observer<? super T>> ref = iter.next();
+			Observer<? super T> observer=ref.get();
+			if(observer == null) {
+				iter.remove();
+				continue;
+			}
 			try {
 				observer.onNext(value);
 			} catch(Throwable e) {
@@ -94,9 +113,12 @@ public class DefaultObservable<T> implements Observable<T> {
 
 	private void fireCompleted() {
 		isAlive.set(false);
-		Observer<? super T> [] observers = theListeners.toArray(new Observer[theListeners.size()]);
+		SoftReference<Observer<? super T>> [] observers = theListeners.toArray(new SoftReference[theListeners.size()]);
 		theListeners.clear();
-		for(Observer<? super T> observer : observers) {
+		for(SoftReference<Observer<? super T>> ref : observers) {
+			Observer<? super T> observer = ref.get();
+			if(observer == null)
+				continue;
 			try {
 				observer.onCompleted();
 			} catch(Throwable e) {
@@ -108,8 +130,28 @@ public class DefaultObservable<T> implements Observable<T> {
 	private void fireError(Throwable e) {
 		if(!isAlive.get())
 			throw new IllegalStateException("Firing a value on a completed observable");
-		for(Observer<? super T> observer : theListeners) {
+		java.util.Iterator<SoftReference<Observer<? super T>>> iter = theListeners.iterator();
+		while(iter.hasNext()) {
+			SoftReference<Observer<? super T>> ref = iter.next();
+			Observer<? super T> observer = ref.get();
+			if(observer == null) {
+				iter.remove();
+				continue;
+			}
 			observer.onError(e);
 		}
+	}
+
+	/**
+	 * Clones this value into a new observable that is NOT yet controlled. Note that this class does not implement {@link Cloneable}, so
+	 * subclasses will need to implement Cloneable for this method to not throw the {@link CloneNotSupportedException}
+	 */
+	@Override
+	protected DefaultObservable<T> clone() throws CloneNotSupportedException {
+		DefaultObservable<T> ret = (DefaultObservable<T>) super.clone();
+		ret.theListeners = new CopyOnWriteArrayList<>();
+		ret.isAlive = new AtomicBoolean(true);
+		ret.hasIssuedController = new AtomicBoolean(false);
+		return ret;
 	}
 }

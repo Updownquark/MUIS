@@ -2,28 +2,49 @@ package org.muis.core.style.stateful;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.*;
+import org.muis.core.model.MuisDocumentModel.StyleListener;
+import org.muis.core.rx.DefaultObservableValue;
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleExpressionValue;
 
+import prisms.lang.Type;
 import prisms.util.ArrayUtils;
 
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
 	private MuisState [] theCurrentState;
 
-	private final java.util.concurrent.ConcurrentLinkedQueue<StyleListener> theStyleListeners;
-
-	private final java.util.concurrent.ConcurrentLinkedQueue<StateChangeListener> theStateListeners;
+	private DefaultObservableValue<Set<MuisState>> theStates;
+	private Observer<ObservableValueEvent<Set<MuisState>>> theStateController;
 
 	private final StyleListener theDependencyStyleListener;
 
 	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
-		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
-		theStateListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
-		addListener((StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt) -> {
+		theStates = new DefaultObservableValue<Set<MuisState>>() {
+			private final Type theType = new Type(Set.class, new Type(MuisState.class));
+
+			@Override
+			public Type getType() {
+				return theType;
+			}
+
+			@Override
+			public Set<MuisState> get() {
+				return toSet(theCurrentState);
+			}
+		};
+		theStateController = theStates.control(null);
+		expressions().act(evt -> {
 			if(evt.getExpression() != null && !evt.getExpression().matches(theCurrentState))
 				return;
 			for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(evt.getAttribute())) {
@@ -45,14 +66,15 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	}
 
 	@Override
-	public void addStateChangeListener(StateChangeListener listener) {
-		if(listener != null)
-			theStateListeners.add(listener);
+	public ObservableValue<Set<MuisState>> states() {
+		return theStates;
 	}
 
-	@Override
-	public void removeStateChangeListener(StateChangeListener listener) {
-		theStateListeners.remove(listener);
+	private static Set<MuisState> toSet(MuisState... states) {
+		java.util.HashSet<MuisState> ret = new java.util.HashSet<>();
+		for(MuisState state : states)
+			ret.add(state);
+		return java.util.Collections.unmodifiableSet(ret);
 	}
 
 	@Override
@@ -148,9 +170,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			checkValues(dep, oldState, newState, forNewState, newValues);
 		for(Map.Entry<StyleAttribute<?>, Object> value : newValues.entrySet())
 			styleChanged(value.getKey(), value.getValue(), null);
-		StateChangedEvent evt = new StateChangedEvent(this, oldState, newState);
-		for(StateChangeListener listener : theStateListeners)
-			listener.stateChanged(evt);
+		StateChangedEvent evt = new StateChangedEvent(this, toSet(oldState), toSet(newState));
+		theStateController.onNext(evt);
 	}
 
 	private void checkValues(StatefulStyle dep, MuisState [] oldState, MuisState [] newState, MuisStyle forNewState,
@@ -216,7 +237,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	}
 
 	@Override
-	public <T> T getLocal(StyleAttribute<T> attr) {
+	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
 		for(StyleExpressionValue<StateExpression, T> value : getLocalExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theCurrentState))
 				return value.getValue();

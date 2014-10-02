@@ -2,9 +2,13 @@ package org.muis.core.style;
 
 import java.util.Iterator;
 
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.Observer;
+import org.muis.core.rx.Subscription;
+
 /** A style that can be sealed to be immutable */
 public class SealableStyle implements MutableStyle, prisms.util.Sealable {
-	private java.util.HashMap<StyleAttribute<?>, Object> theValues;
+	private java.util.HashMap<StyleAttribute<?>, ObservableValue<?>> theValues;
 
 	private boolean isSealed;
 
@@ -29,8 +33,11 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public <T> T getLocal(StyleAttribute<T> attr) {
-		return (T) theValues.get(attr);
+	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
+		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
+		if(ret == null)
+			return ObservableValue.constant(attr.getType().getType(), null);
+		return ret;
 	}
 
 	@Override
@@ -54,7 +61,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 			} catch(org.muis.core.MuisException e) {
 				throw new IllegalArgumentException(e.getMessage());
 			}
-		theValues.put(attr, value);
+		theValues.put(attr, ObservableValue.constant(value));
 		return this;
 	}
 
@@ -82,8 +89,11 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public <T> T get(StyleAttribute<T> attr) {
-		return getLocal(attr);
+	public <T> ObservableValue<T> get(StyleAttribute<T> attr) {
+		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
+		if(ret == null)
+			return ObservableValue.constant(attr.getDefault());
+		return ret;
 	}
 
 	@Override
@@ -105,12 +115,17 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public void addListener(StyleListener listener) {
+	public Subscription<StyleAttributeEvent<?>> subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
 		// Assume the style is sealed and immutable
-	}
+		return new Subscription<StyleAttributeEvent<?>>() {
+			@Override
+			public Subscription<StyleAttributeEvent<?>> subscribe(Observer<? super StyleAttributeEvent<?>> observer2) {
+				return this;
+			}
 
-	@Override
-	public void removeListener(StyleListener listener) {
-		// Assume the style is sealed and immutable
+			@Override
+			public void unsubscribe() {
+			}
+		};
 	}
 }

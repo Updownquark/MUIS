@@ -32,7 +32,8 @@ public class Formats {
 	public static final MuisFormatter<String> string = new MuisFormatter<String>() {
 		@Override
 		public void append(String value, MutableDocumentModel doc) {
-			doc.append(value);
+			if(value != null)
+				doc.append(value);
 		}
 
 		@Override
@@ -45,7 +46,8 @@ public class Formats {
 	public static final MuisFormatter<Long> integer = new MuisFormatter<Long>() {
 		@Override
 		public void append(Long value, MutableDocumentModel doc) {
-			doc.append(value.toString());
+			if(value != null)
+				doc.append(value.toString());
 		}
 
 		@Override
@@ -62,7 +64,8 @@ public class Formats {
 	public static final MuisFormatter<Color> color = new MuisFormatter<Color>() {
 		@Override
 		public void append(Color value, MutableDocumentModel doc) {
-			doc.append(Colors.toString(value));
+			if(value != null)
+				doc.append(Colors.toString(value));
 		}
 
 		@Override

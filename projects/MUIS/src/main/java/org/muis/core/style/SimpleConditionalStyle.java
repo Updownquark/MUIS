@@ -2,6 +2,10 @@ package org.muis.core.style;
 
 import java.util.Iterator;
 
+import org.muis.core.rx.DefaultObservable;
+import org.muis.core.rx.Observable;
+import org.muis.core.rx.Observer;
+
 import prisms.util.ArrayUtils;
 
 /**
@@ -16,12 +20,19 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 
 	private java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, StyleValueHolder<E, ?>> theAttributes;
 
-	private java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener<S, E>> theListeners;
+	private DefaultObservable<StyleExpressionEvent<S, E, ?>> theExpressions;
+	private Observer<StyleExpressionEvent<S, E, ?>> theController;
 
 	/** Creates a SimpleStatefulStyle */
 	protected SimpleConditionalStyle() {
+		theExpressions = new DefaultObservable<>();
+		theController = theExpressions.control(null);
 		theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
-		theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+	}
+
+	@Override
+	public Observable<StyleExpressionEvent<S, E, ?>> expressions() {
+		return theExpressions;
 	}
 
 	@Override
@@ -33,17 +44,6 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	public <T> StyleExpressionValue<E, T> [] getLocalExpressions(StyleAttribute<T> attr) {
 		StyleValueHolder<E, T> holder = (StyleValueHolder<E, T>) theAttributes.get(attr);
 		return holder == null ? new StyleExpressionValue[0] : holder.sort();
-	}
-
-	@Override
-	public void addListener(StyleExpressionListener<S, E> listener) {
-		if(listener != null)
-			theListeners.add(listener);
-	}
-
-	@Override
-	public void removeListener(StyleExpressionListener<S, E> listener) {
-		theListeners.remove(listener);
 	}
 
 	/**
@@ -162,8 +162,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	protected void styleChanged(StyleAttribute<?> attr, E expr, S root) {
 		StyleExpressionEvent<S, E, ?> newEvent = new StyleExpressionEvent<>(root == null ? (S) this : root, (S) this,
 			(StyleAttribute<Object>) attr, expr);
-		for(StyleExpressionListener<S, E> listener : theListeners)
-			listener.eventOccurred(newEvent);
+		theController.onNext(newEvent);
 	}
 
 	@Override
@@ -177,7 +176,8 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		ret.theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
 		for(java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<E, ?>> entry : theAttributes.entrySet())
 			ret.theAttributes.put(entry.getKey(), entry.getValue().clone());
-		ret.theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		ret.theExpressions = new DefaultObservable<>();
+		ret.theController = ret.theExpressions.control(null);
 		// Don't add the listeners--ret is a new style
 		return ret;
 	}

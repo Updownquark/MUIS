@@ -41,13 +41,14 @@ public class ObservableEvaluator extends PrismsEvaluator {
 	/**
 	 * @param item The item to evaluate
 	 * @param env The evaluation environment in which to perform the evaluation
+	 * @param asType Whether to evaluate the result as a type or an instance
 	 * @return An observable value that observes the evaluated result
 	 * @throws EvaluationException If evaluation fails
 	 */
-	public ObservableValue<?> evaluateObservable(ParsedItem item, EvaluationEnvironment env) throws EvaluationException {
+	public ObservableValue<?> evaluateObservable(ParsedItem item, EvaluationEnvironment env, boolean asType) throws EvaluationException {
 		ObservableItemEvaluator<?> evaluator = getObservableEvaluatorFor(item.getClass());
 		if(evaluator != null)
-			return ((ObservableItemEvaluator<ParsedItem>) evaluator).evaluateObservable(item, this, env);
+			return ((ObservableItemEvaluator<ParsedItem>) evaluator).evaluateObservable(item, this, env, asType);
 
 		Type type = evaluate(item, env, false, false).getType();
 		org.muis.core.rx.DefaultObservableValue<Object> ret = new org.muis.core.rx.DefaultObservableValue<Object>() {
@@ -64,23 +65,25 @@ public class ObservableEvaluator extends PrismsEvaluator {
 
 			@Override
 			public Object get() {
-				Object value;
+				EvaluationResult result;
 				try {
-					value = evaluate(item, env, false, true).getValue();
+					result = evaluate(item, env, asType, true);
 				} catch(EvaluationException e) {
 					throw new IllegalStateException("Value evaluation failed", e);
 				}
 				if(type.canAssignTo(ObservableValue.class))
-					return ((ObservableValue<?>) value).get();
+					return ((ObservableValue<?>) result.getValue()).get();
+				else if(asType)
+					return result.getType();
 				else
-					return value;
+					return result.getValue();
 			}
 		};
 		Observer<ObservableValueEvent<Object>> controller = ret.control(null);
 		ParsedItem [] deps = item.getDependents();
 		ObservableValue<?> [] depObs = new ObservableValue[deps.length];
 		for(int i = 0; i < deps.length; i++) {
-			depObs[i] = evaluateObservable(deps[i], env);
+			depObs[i] = evaluateObservable(deps[i], env, asType);
 			ObservableValue<?> depOb = depObs[i];
 			ParsedItem dep = deps[i];
 			depOb.subscribe(new Observer<ObservableValueEvent<?>>() {

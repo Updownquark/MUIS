@@ -67,7 +67,7 @@ public class BackgroundStyle implements StyleDomain {
 
 		@Override
 		public ObservableValue<? extends Cursor> parse(MuisParseEnv env, String parseValue) throws MuisException {
-			ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, parseValue);
+			ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, parseValue, false);
 			if(modelValue != null) {
 				if(modelValue.getType().canAssignTo(Cursor.class))
 					return (ObservableValue<? extends Cursor>) modelValue;

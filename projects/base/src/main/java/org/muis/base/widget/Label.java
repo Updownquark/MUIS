@@ -34,9 +34,9 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 							msg().warn(rich.getName() + " attribute specified, but model overridden.  Ignoring.");
 						setDocumentModel(tuple.getValue1());
 					} else if(tuple.getValue2() == Boolean.TRUE)
-						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle()));
-					else
 						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
+					else
+						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle()));
 					});
 				atts().getHolder(ModelAttributes.value).value().act(modelValue -> {
 					if(theRegistration != null)

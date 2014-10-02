@@ -144,7 +144,7 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 	}
 
 	@Override
-	public ObservableValue<?> parse(String mvr) throws MuisParseException {
+	public ObservableValue<?> parse(String mvr, boolean asType) throws MuisParseException {
 		ParsedItem item;
 		try {
 			ParseMatch [] matches = theParser.parseMatches(mvr);
@@ -155,7 +155,7 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 			throw new MuisParseException("Property parsing failed: " + mvr, e);
 		}
 		try {
-			return theEvaluator.evaluateObservable(item, theEnv);
+			return theEvaluator.evaluateObservable(item, theEnv, asType);
 		} catch(EvaluationException e) {
 			throw new MuisParseException(e.getMessage(), e);
 		}

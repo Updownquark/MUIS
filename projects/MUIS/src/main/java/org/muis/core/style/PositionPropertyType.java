@@ -16,7 +16,7 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 
 	@Override
 	public ObservableValue<? extends Position> parse(MuisParseEnv env, String value) throws MuisException {
-		ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, value);
+		ObservableValue<?> modelValue = MuisProperty.parseExplicitObservable(env, value, false);
 		if(modelValue != null) {
 			if(modelValue.getType().canAssignTo(Position.class))
 				return (ObservableValue<? extends Position>) modelValue;

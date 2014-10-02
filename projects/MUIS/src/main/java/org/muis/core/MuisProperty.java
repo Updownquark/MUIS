@@ -144,15 +144,30 @@ public abstract class MuisProperty<T> {
 	 */
 	public static class PrismsParsedPropertyType<T> extends AbstractPropertyType<T> {
 		private final Type theType;
+		private final boolean evalAsType;
 
 		/** @param type The type of the property */
 		public PrismsParsedPropertyType(Type type) {
+			this(type, false);
+		}
+
+		/**
+		 * @param type The type of the property
+		 * @param asType Whether to parse this property type's values as types or instances
+		 */
+		public PrismsParsedPropertyType(Type type, boolean asType) {
 			theType = type;
+			evalAsType = asType;
 		}
 
 		@Override
 		public Type getType() {
 			return theType;
+		}
+
+		/** @return Whether this property type evaluates its values as types */
+		public boolean asType() {
+			return evalAsType;
 		}
 
 		@Override
@@ -182,7 +197,7 @@ public abstract class MuisProperty<T> {
 
 			ObservableValue<?> ret;
 			try {
-				ret = evaluator.evaluateObservable(item, evalEnv);
+				ret = evaluator.evaluateObservable(item, evalEnv, evalAsType);
 			} catch(EvaluationException e) {
 				throw new MuisParseException("Evaluation failed for property type " + getClass().getSimpleName() + ": " + value, e);
 			}
@@ -234,6 +249,16 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
+		public boolean equals(Object o) {
+			return o != null && o.getClass() == getClass() && ((PrismsParsedPropertyType<?>) o).getType().equals(theType);
+		}
+
+		@Override
+		public int hashCode() {
+			return theType.hashCode();
+		}
+
+		@Override
 		public String toString() {
 			return theType.toString();
 		}
@@ -242,12 +267,13 @@ public abstract class MuisProperty<T> {
 	/**
 	 * @param env The parsing environment
 	 * @param text The text to parse
+	 * @param asType Whether to evaluate the result as a type or an instance
 	 * @return An observable value, if the text is explicitly marked to be parsed as such. Null otherwise.
 	 * @throws MuisParseException If an exception occurs parsing the explicitly-marked observable from the text.
 	 */
-	public static ObservableValue<?> parseExplicitObservable(MuisParseEnv env, String text) throws MuisParseException {
+	public static ObservableValue<?> parseExplicitObservable(MuisParseEnv env, String text, boolean asType) throws MuisParseException {
 		if(text.startsWith("${") && text.endsWith("}"))
-			return env.getValueParser().parse(text.substring(2, text.length() - 1));
+			return env.getValueParser().parse(text.substring(2, text.length() - 1), asType);
 		else
 			return null;
 	}
@@ -323,7 +349,7 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<String> stringAttr = new AbstractPrintablePropertyType<String>() {
 		@Override
 		public ObservableValue<String> parse(MuisParseEnv env, String value) throws MuisException {
-			ObservableValue<?> ret = parseExplicitObservable(env, value);
+			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
 			if(ret != null) {
 				if(ret.getType().canAssignTo(String.class)) {
 				} else if(ret.getType().canAssignTo(CharSequence.class)) {
@@ -423,7 +449,7 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public ObservableValue<Long> parse(MuisParseEnv env, String value) throws MuisException {
-			ObservableValue<?> retObs = parseExplicitObservable(env, value);
+			ObservableValue<?> retObs = parseExplicitObservable(env, value, false);
 			if(retObs != null) {
 				if(retObs.getType().canAssignTo(Long.TYPE)) {
 				} else if(retObs.getType().canAssignTo(java.util.Date.class)) {
@@ -636,7 +662,7 @@ public abstract class MuisProperty<T> {
 	public static final AbstractPropertyType<URL> resourceAttr = new AbstractPropertyType<java.net.URL>() {
 		@Override
 		public ObservableValue<URL> parse(MuisParseEnv env, String value) throws MuisException {
-			ObservableValue<?> ret = parseExplicitObservable(env, value);
+			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
 			if(ret != null) {
 				if(ret.getType().canAssignTo(ObservableValue.class))
 					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
@@ -662,7 +688,7 @@ public abstract class MuisProperty<T> {
 				} catch(java.net.MalformedURLException e) {
 					throw new MuisException(propName() + ": Resource property is not a valid URL: \"" + value + "\"", e);
 				}
-			ret = parseExplicitObservable(env, content);
+			ret = parseExplicitObservable(env, content, false);
 			if(ret != null) {
 				if(ret.getType().canAssignTo(ObservableValue.class))
 					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
@@ -730,91 +756,10 @@ public abstract class MuisProperty<T> {
 	 *
 	 * @param <T> The subtype that the value must map to
 	 */
-	public static class MuisTypeProperty<T> extends AbstractPropertyType<Class<? extends T>> {
-		/** The subtype that the value must map to */
-		public final Class<T> type;
-
+	public static class MuisTypeProperty<T> extends PrismsParsedPropertyType<Class<? extends T>> {
 		/** @param aType The subtype that the value must map to */
 		public MuisTypeProperty(Class<T> aType) {
-			type = aType;
-		}
-
-		@Override
-		public ObservableValue<Class<? extends T>> parse(MuisParseEnv env, String value) throws MuisException {
-			if(value == null)
-				return null;
-			int sep = value.indexOf(':');
-			String ns, tag;
-			if(sep >= 0) {
-				ns = value.substring(0, sep);
-				tag = value.substring(sep + 1);
-			} else {
-				ns = null;
-				tag = value;
-			}
-			MuisToolkit toolkit = null;
-			String className = null;
-			if(ns != null) {
-				toolkit = env.cv().getToolkit(ns);
-				if(toolkit == null)
-					throw new MuisException(propName() + ": Value " + value + " refers to a toolkit \"" + ns
-						+ "\" that is inaccessible from its element");
-				className = toolkit.getMappedClass(tag);
-				if(className == null)
-					throw new MuisException(propName() + ": Value " + value + " refers to a type \"" + tag
-						+ "\" that is not mapped within toolkit " + toolkit.getName());
-			} else {
-				for(MuisToolkit tk : env.cv().getScopedToolkits()) {
-					className = tk.getMappedClass(tag);
-					if(className != null) {
-						toolkit = tk;
-						break;
-					}
-				}
-				if(className == null) {
-					throw new MuisException(propName() + ": Value " + value + " refers to a type \"" + tag
-						+ "\" that is not mapped within a scoped toolkit");
-				}
-			}
-			Class<?> valueClass;
-			try {
-				valueClass = toolkit.loadClass(className, null);
-			} catch(MuisException e) {
-				throw new MuisException(propName() + ": Value " + value + " refers to a type that failed to load", e);
-			}
-			if(!type.isAssignableFrom(valueClass))
-				throw new MuisException(propName() + ": Value " + value + " refers to a type (" + valueClass.getName()
-					+ ") that is not a subtype of " + type);
-			return ObservableValue.constant((Class<? extends T>) valueClass);
-		}
-
-		@Override
-		public Class<? extends T> cast(Object value) {
-			if(!(value instanceof Class<?>))
-				return null;
-			if(!type.isAssignableFrom((Class<?>) value))
-				return null;
-			return (Class<? extends T>) value;
-		}
-
-		@Override
-		public String toString() {
-			return type.isPrimitive() ? type.getSimpleName() : type.getName();
-		}
-
-		@Override
-		public Type getType() {
-			return new Type(type.getClass());
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o != null && o.getClass() == getClass() && ((MuisTypeProperty<?>) o).type.equals(type);
-		}
-
-		@Override
-		public int hashCode() {
-			return getClass().hashCode() * 7 + type.hashCode();
+			super(new Type(aType), true);
 		}
 	}
 
@@ -823,63 +768,40 @@ public abstract class MuisProperty<T> {
 	 *
 	 * @param <T> The type of value to create
 	 */
-	public static final class MuisTypeInstanceProperty<T> extends AbstractPropertyType<T> {
-		/** The subtype that the value must map to */
-		private final MuisTypeProperty<? extends T> theTypeProperty;
-
+	public static final class MuisTypeInstanceProperty<T> extends PrismsParsedPropertyType<T> {
 		/** @param aType The subtype that the value must map to */
 		public MuisTypeInstanceProperty(Class<? extends T> aType) {
-			theTypeProperty = new MuisTypeProperty<>(aType);
+			super(new Type(aType), false);
 		}
 
 		@Override
-		public ObservableValue<T> parse(MuisParseEnv env, String value) throws MuisException {
-			if(value == null)
-				return new ObservableValue.ConstantObservableValue<>(new Type(theTypeProperty.type), null);
-			ObservableValue<?> ret = parseExplicitObservable(env, value);
-			if(ret != null) {
-				if(ret.getType().canAssignTo(theTypeProperty.type)) {
-					return (ObservableValue<T>) ret;
-				} else
-					throw new MuisException("Model value " + value + " is not of type " + theTypeProperty.type);
-			}
-			Class<? extends T> valueClass = theTypeProperty.parse(env, value).get();
-			try {
-				return ObservableValue.constant(valueClass.newInstance());
-			} catch(InstantiationException e) {
-				throw new MuisException(propName() + ": Could not instantiate type " + valueClass.getName(), e);
-			} catch(IllegalAccessException e) {
-				throw new MuisException(propName() + ": Could not access default constructor of type " + valueClass.getName(), e);
-			}
+		public boolean canCast(Type type) {
+			if(getType().isAssignable(type))
+				return true;
+			if(type.canAssignTo(Class.class) && type.getParamTypes().length == 1 && getType().isAssignable(type.getParamTypes()[0]))
+				return true;
+			return false;
 		}
 
 		@Override
 		public <V extends T> V cast(Object value) {
 			if(value == null)
 				return null;
+			if(getType().isAssignableFrom(value.getClass()))
+				return (V) getType().cast(value);
+			else if(value instanceof Class && getType().isAssignableFrom((Class<?>) value)) {
+				try {
+					return (V) getType().cast(((Class<?>) value).newInstance());
+				} catch(InstantiationException e) {
+					throw new IllegalStateException(propName() + ": Could not instantiate type " + ((Class<?>) value).getName(), e);
+				} catch(IllegalAccessException e) {
+					throw new IllegalStateException(propName() + ": Could not access default constructor of type "
+						+ ((Class<?>) value).getName(), e);
+				}
+			}
 			if(!getType().isAssignableFrom(value.getClass()))
 				return null;
 			return (V) getType().cast(value);
-		}
-
-		@Override
-		public String toString() {
-			return getType().toString();
-		}
-
-		@Override
-		public Type getType() {
-			return new Type(theTypeProperty.type);
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o != null && o.getClass() == getClass() && ((MuisTypeInstanceProperty<?>) o).getType().equals(getType());
-		}
-
-		@Override
-		public int hashCode() {
-			return getClass().hashCode() * 7 + getType().hashCode();
 		}
 	}
 
@@ -919,7 +841,7 @@ public abstract class MuisProperty<T> {
 		public ObservableValue<T> parse(MuisParseEnv env, String value) throws MuisException {
 			if(value == null)
 				return null;
-			ObservableValue<?> ret = parseExplicitObservable(env, value);
+			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
 			if(ret != null) {
 				if(ret.getType().canAssignTo(enumType)) {
 					return (ObservableValue<T>) ret;
@@ -1028,7 +950,7 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public ObservableValue<? extends T> parse(MuisParseEnv env, String value) throws MuisException {
-			ObservableValue<?> ret = parseExplicitObservable(env, value);
+			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
 			if(ret != null) {
 				if(theWrapped.getType().isAssignable(ret.getType())) {
 					return (ObservableValue<T>) ret;

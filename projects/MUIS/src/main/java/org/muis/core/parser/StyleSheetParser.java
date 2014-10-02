@@ -8,6 +8,7 @@ import org.muis.core.*;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleDomain;
+import org.muis.core.style.StyleParsingUtils;
 import org.muis.core.style.sheet.AnimatedStyleSheet;
 import org.muis.core.style.sheet.ParsedStyleSheet;
 import org.muis.core.style.sheet.StateGroupTypeExpression;
@@ -423,14 +424,14 @@ public class StyleSheetParser {
 
 		private String theAttrName;
 
-		private ParsedItem theValue;
+		private String theValue;
 
 		@Override
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
 			theDomain = (ParsedType) parser.parseStructures(this, getStored("domain"))[0];
 			theAttrName = getStored("name").text;
-			theValue = parser.parseStructures(this, getStored("value"))[0];
+			theValue = getStored("value").text;
 		}
 
 		/** @return The domain of the attribute to be assigned */
@@ -444,13 +445,13 @@ public class StyleSheetParser {
 		}
 
 		/** @return The value to be assigned to the attribute */
-		public ParsedItem getValue() {
+		public String getValue() {
 			return theValue;
 		}
 
 		@Override
 		public ParsedItem [] getDependents() {
-			return new ParsedItem[] {theDomain, theValue};
+			return new ParsedItem[] {theDomain};
 		}
 
 		@Override
@@ -461,9 +462,7 @@ public class StyleSheetParser {
 				else
 					throw new IllegalArgumentException("Cannot replace the domain of an attribute assignment with "
 						+ toReplace.getClass().getName());
-			} else if(theValue == dependent)
-				theValue = toReplace;
-			else
+			} else
 				throw new IllegalArgumentException("No such dependent " + dependent);
 		}
 
@@ -910,7 +909,7 @@ public class StyleSheetParser {
 			throw new MuisParseException("Could not parse " + location, e);
 		}
 
-		ParsedStyleSheet ret = new ParsedStyleSheet(theEnv.scope(true));
+		ParsedStyleSheet ret = new ParsedStyleSheet(parseEnv.getValueParser());
 		ExpressionContextStack stack = new ExpressionContextStack();
 		boolean hadValues = false;
 		boolean hadAnimation = false;
@@ -1121,45 +1120,46 @@ public class StyleSheetParser {
 		URL location) {
 		StyleDomain domain;
 		try {
-			domain = org.muis.core.style.StyleParsingUtils.getStyleDomain(assign.getDomain().getNamespace(), assign.getDomain().getName(),
-				env.cv());
+			domain = StyleParsingUtils.getStyleDomain(assign.getDomain().getNamespace(), assign.getDomain().getName(), env.cv());
 		} catch(MuisException e) {
 			env.msg().error(e.getMessage(), e);
 			return;
 		}
-		for(StyleAttribute<?> attr : domain) {
-			if(attr.getName().equals(assign.getAttrName())) {
-				ParsedItem value;
-				try {
-					value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, env);
-				} catch(MuisException e) {
-					env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr,
-						"value",
-						assign.getValue());
-					return;
-				}
-				if(!checkValidity(style, attr, value, env, location))
-					break;
-				if(stack.size() > 0)
-					for(StateGroupTypeExpression<?> expr : stack)
-						style.setAnimatedValue(attr, expr, value);
-				else
-					style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
-				return;
+		StyleAttribute<?> attr = null;
+		for(StyleAttribute<?> att : domain) {
+			if(att.getName().equals(assign.getAttrName())) {
+				attr = att;
+				break;
 			}
 		}
-		env.msg()
+		if(attr == null)
+			env.msg()
 			.error(
 				"No attribute " + assign.getAttrName() + " in domain "
 			+ (assign.getDomain().getNamespace() == null ? "" : assign.getDomain().getNamespace() + ":") + assign.getDomain().getName());
+		ParsedItem value;
+		try {
+			value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, env);
+		} catch(MuisException e) {
+			env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr, "value",
+				assign.getValue());
+			return;
+		}
+		if(!checkValidity(style, attr, value, env, location))
+			break;
+		if(stack.size() > 0)
+			for(StateGroupTypeExpression<?> expr : stack)
+				style.setAnimatedValue(attr, expr, value);
+		else
+			style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
 	}
 
 	private void applyDomainAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack,
 		ParsedDomainAssignment domainAssign, URL location) {
 		StyleDomain domain;
 		try {
-			domain = org.muis.core.style.StyleParsingUtils.getStyleDomain(domainAssign.getDomain().getNamespace(), domainAssign.getDomain()
-				.getName(), env.cv());
+			domain = StyleParsingUtils
+				.getStyleDomain(domainAssign.getDomain().getNamespace(), domainAssign.getDomain().getName(), env.cv());
 		} catch(MuisException e) {
 			env.msg().error(e.getMessage(), e);
 			return;

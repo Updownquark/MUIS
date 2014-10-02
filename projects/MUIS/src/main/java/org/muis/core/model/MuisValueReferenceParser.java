@@ -20,8 +20,9 @@ public interface MuisValueReferenceParser {
 
 	/**
 	 * @param mvr The value to parse
+	 * @param asType Whether to evaluate the result as a type or an instance
 	 * @return The parsed model value reference
 	 * @throws MuisParseException If an error occurs parsing the reference
 	 */
-	ObservableValue<?> parse(String mvr) throws MuisParseException;
+	ObservableValue<?> parse(String mvr, boolean asType) throws MuisParseException;
 }

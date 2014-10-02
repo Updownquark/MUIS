@@ -1,7 +1,10 @@
 package org.muis.core.style;
 
+import org.muis.core.rx.Observable;
+import org.muis.core.rx.ObservableValue;
+
 /** Governs the set of properties that define how MUIS elements of different types render themselves */
-public interface MuisStyle extends Iterable<StyleAttribute<?>> {
+public interface MuisStyle extends Iterable<StyleAttribute<?>>, Observable<StyleAttributeEvent<?>> {
 	/** @return The styles, in order, that this style depends on for attributes not set directly in this style */
 	MuisStyle [] getDependencies();
 
@@ -22,7 +25,7 @@ public interface MuisStyle extends Iterable<StyleAttribute<?>> {
 	 * @param attr The attribute to get the value of
 	 * @return The value of the attribute set directly in this style, or null if it is not set
 	 */
-	<T> T getLocal(StyleAttribute<T> attr);
+	<T> ObservableValue<T> getLocal(StyleAttribute<T> attr);
 
 	/** @return An iterable for attributes set locally in this style */
 	Iterable<StyleAttribute<?>> localAttributes();
@@ -33,13 +36,7 @@ public interface MuisStyle extends Iterable<StyleAttribute<?>> {
 	 *
 	 * @param <T> The type of attribute to get the value of
 	 * @param attr The attribute to get the value of
-	 * @return The value of the attribute in this style's scope
+	 * @return The observable value of the attribute in this style's scope
 	 */
-	<T> T get(StyleAttribute<T> attr);
-
-	/** @param listener The listener to be notified when attribute data in this style changes */
-	void addListener(StyleListener listener);
-
-	/** @param listener The listener to remove from notification */
-	void removeListener(StyleListener listener);
+	<T> ObservableValue<T> get(StyleAttribute<T> attr);
 }

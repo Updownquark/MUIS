@@ -2,19 +2,23 @@ package org.muis.core.style.sheet;
 
 import java.util.Iterator;
 
+import org.muis.core.eval.impl.ObservableEvaluator;
+import org.muis.core.eval.impl.ObservableItemEvaluator;
+import org.muis.core.model.MuisValueReferenceParser;
+import org.muis.core.parser.MuisParseException;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 
-import prisms.lang.EvaluationEnvironment;
-import prisms.lang.EvaluationException;
-import prisms.lang.EvaluationResult;
-import prisms.lang.ParsedItem;
+import prisms.lang.*;
 import prisms.lang.eval.PrismsEvaluator;
+import prisms.lang.types.ParsedIdentifier;
 
 /** A style sheet whose values can be animated internally */
 public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<AnimatedStyleSheet.AnimatedVariable> {
 	/** A variable whose value can change over time to affect style value expressions' evaluated values */
-	public static final class AnimatedVariable implements Iterable<AnimationSegment> {
+	public static final class AnimatedVariable extends org.muis.core.rx.DefaultObservableValue<Double> implements Variable,
+		Iterable<AnimationSegment> {
 		private final String theName;
 
 		private final double theStartValue;
@@ -31,6 +35,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 		private int theStyleSheetCount;
 
+		private org.muis.core.rx.Observer<org.muis.core.rx.ObservableValueEvent<Double>> theController;
+
 		/**
 		 * @param varName The name for the variable
 		 * @param startValue The starting value for the variable
@@ -38,6 +44,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		 * @param repeat Whether the animation should cycle or just animate once and finish at the terminal value
 		 */
 		public AnimatedVariable(String varName, double startValue, AnimationSegment [] animation, boolean repeat) {
+			theController = control(null);
 			theName = varName;
 			theStartValue = startValue;
 			theAnimation = java.util.Collections.unmodifiableCollection(java.util.Arrays.asList(animation));
@@ -59,9 +66,24 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			theCurrentValue = theStartValue;
 		}
 
-		/** @return The name of this variable */
+		@Override
 		public String getName() {
 			return theName;
+		}
+
+		@Override
+		public boolean isFinal() {
+			return true; // Not modifiable through attribute values
+		}
+
+		@Override
+		public boolean isInitialized() {
+			return true;
+		}
+
+		@Override
+		public Object getValue() {
+			return theCurrentValue;
 		}
 
 		/** @return The initial value for this variable */
@@ -116,8 +138,22 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		}
 
 		/** @return This variable's current value within its style sheet */
-		public double getCurrentValue() {
+		@Override
+		public Double get() {
 			return theCurrentValue;
+		}
+
+		@Override
+		public Type getType() {
+			return new Type(Double.class);
+		}
+
+		private void setTime(long time) {
+			double oldValue = theCurrentValue;
+			theCurrentValue = getValueFor(time);
+			if(oldValue == theCurrentValue)
+				return;
+			theController.onNext(new org.muis.core.rx.ObservableValueEvent<>(this, oldValue, theCurrentValue, null));
 		}
 	}
 
@@ -159,33 +195,64 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		}
 	}
 
-	private final prisms.lang.eval.PrismsEvaluator theEvaluator;
-	private final prisms.lang.EvaluationEnvironment theEnv;
+	private final MuisValueReferenceParser theModelParser;
 
-	private java.util.LinkedHashSet<AnimatedVariable> theVariables;
+	private java.util.LinkedHashMap<String, AnimatedVariable> theVariables;
 
 	private volatile long theStartTime;
 
 	private volatile boolean isPaused;
 
-	/** @param env The evaluation environment for this style sheet to get constants, function definitions, and other information from */
-	public AnimatedStyleSheet(prisms.lang.EvaluationEnvironment env) {
-		theEvaluator = new prisms.lang.eval.PrismsEvaluator();
-		prisms.lang.eval.DefaultEvaluation.initializeDefaults(theEvaluator);
-		theEvaluator.addEvaluator(ConstantItem.class, new prisms.lang.eval.PrismsItemEvaluator<ConstantItem>() {
+	/** @param modelParser The model parser for this style sheet to get constants, function definitions, and other information from */
+	public AnimatedStyleSheet(MuisValueReferenceParser modelParser) {
+		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(modelParser, null) {
 			@Override
-			public EvaluationResult evaluate(ConstantItem item, PrismsEvaluator evaluator, EvaluationEnvironment env2, boolean asType,
-				boolean withValues) throws EvaluationException {
-				return item.get();
+			protected void applyModification() {
+				super.applyModification();
+				if(getEvaluationEnvironment() instanceof DefaultEvaluationEnvironment)
+					((DefaultEvaluationEnvironment) getEvaluationEnvironment()).addVariableSource(new VariableSource() {
+						@Override
+						public Variable [] getDeclaredVariables() {
+							return theVariables.values().toArray(new Variable[theVariables.size()]);
+						}
+
+						@Override
+						public Variable getDeclaredVariable(String name) {
+							return theVariables.get(name);
+						}
+					});
+
+				getEvaluator().addEvaluator(ParsedIdentifier.class, new ObservableItemEvaluator<ParsedIdentifier>() {
+					private final ObservableItemEvaluator<? super ParsedIdentifier> superEval = getEvaluator().getObservableEvaluatorFor(
+						ParsedIdentifier.class);
+
+					@Override
+					public ObservableValue<?> evaluateObservable(ParsedIdentifier item, ObservableEvaluator evaluator,
+						EvaluationEnvironment env, boolean asType) throws EvaluationException {
+						AnimatedVariable var = theVariables.get(item.getName());
+						if(var != null)
+							return var;
+						else if(superEval != null)
+							return superEval.evaluateObservable(item, evaluator, env, asType);
+						else
+							return null;
+					}
+				});
+				getEvaluator().addEvaluator(ConstantItem.class, new prisms.lang.eval.PrismsItemEvaluator<ConstantItem>() {
+					@Override
+					public EvaluationResult evaluate(ConstantItem item, PrismsEvaluator evaluator, EvaluationEnvironment env2,
+						boolean asType, boolean withValues) throws EvaluationException {
+						return item.get();
+					}
+				});
 			}
-		});
-		theEnv = env;
-		theVariables = new java.util.LinkedHashSet<>();
+		};
+		theVariables = new java.util.LinkedHashMap<>();
 	}
 
-	/** @return The evaluation environment that this style sheet uses */
-	protected prisms.lang.EvaluationEnvironment getEvaluationEnvironment() {
-		return theEnv;
+	/** @return The model parser that this style sheet uses */
+	protected MuisValueReferenceParser getModelParser() {
+		return theModelParser;
 	}
 
 	/** @param var The animation variable to add to this style sheet */
@@ -193,28 +260,18 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		if(var.theStyleSheetCount > 0)
 			throw new IllegalStateException("Animated variables may not be shared between style sheets: " + var.getName());
 		stopAnimation();
-		if(!theVariables.add(var))
+		if(theVariables.containsKey(var.getName()))
 			throw new IllegalArgumentException("An animated variable named " + var.getName() + " already exists in this style sheet");
+		theVariables.put(var.getName(), var);
 		var.theStyleSheetCount++;
-		try {
-			theEnv.declareVariable(var.getName(), new prisms.lang.Type(Double.TYPE), false, null, 0);
-			theEnv.setVariable(var.getName(), var.getCurrentValue(), null, 0);
-		} catch(EvaluationException | NullPointerException e) {
-			throw new IllegalStateException("Could not set initial value of variable " + var.getName() + " for evaluation", e);
-		}
 	}
 
 	/** @param var The variable to remove */
 	protected void removeVariable(AnimatedVariable var) {
 		stopAnimation();
-		if(!theVariables.remove(var))
+		if(theVariables.remove(var.getName()) != null)
 			return;
 		var.theStyleSheetCount--;
-		try {
-			theEnv.dropVariable(var.getName(), null, 0);
-		} catch(EvaluationException e) {
-			throw new IllegalStateException("Could not drop variable " + var.getName() + " for evaluation", e);
-		}
 	}
 
 	/** Begins animation on this style sheet */
@@ -259,19 +316,11 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 */
 	protected void setAnimationTime(long time) {
 		java.util.HashSet<String> changedVars = new java.util.HashSet<>();
-		for(AnimatedVariable var : theVariables) {
-			double newVal = var.getValueFor(time);
-			if(newVal == var.theCurrentValue)
-				continue;
-			changedVars.add(var.getName());
-			var.theCurrentValue = newVal;
-			try {
-				theEnv.setVariable(var.getName(), var.getCurrentValue(), null, 0);
-			} catch(EvaluationException | NullPointerException e) {
-				throw new IllegalStateException("Could not set value of variable " + var.getName() + " for evaluation", e);
-			}
+		for(AnimatedVariable var : theVariables.values()) {
+			var.setTime(time);
 		}
 		// Iterate through local attributes and fire events for variable-dependent values
+		// TODO This may not be necessary when styles are all rx-ified since things should be listening to the observable variables
 		for(StyleAttribute<?> attr : allLocal()) {
 			for(StyleExpressionEvalValue<StateGroupTypeExpression<?>, ?> sev : getLocalExpressions(attr)) {
 				if(hasVariable(sev.getValueExpression(), changedVars))
@@ -317,7 +366,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	@Override
 	public Iterator<AnimatedVariable> iterator() {
-		return prisms.util.ArrayUtils.immutableIterator(theVariables.iterator());
+		return prisms.util.ArrayUtils.immutableIterator(theVariables.values().iterator());
 	}
 
 	@Override
@@ -335,8 +384,22 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 * @param expr The conditional expression for which the given value will be applied
 	 * @param value The value expression to be evaluated for the style attribute's value
 	 */
-	protected void setAnimatedValue(StyleAttribute<?> attr, StateGroupTypeExpression<?> expr, ParsedItem value) {
+	protected <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
 		super.set((StyleAttribute<Object>) attr, expr, value);
+	}
+
+	/**
+	 * @param attr The attribute to set the value for
+	 * @param expr The expression which must be true for the given value to apply
+	 * @param parseableValue The string to parse to get the value for the attribute
+	 * @throws MuisParseException If an error occurs parsing the attribute
+	 */
+	protected void setAnimatedValue(StyleAttribute<?> attr, StateGroupTypeExpression<?> expr, String parseableValue)
+		throws MuisParseException {
+		ObservableValue<?> value = theModelParser.parse(parseableValue, false);
+		if(!attr.getType().getType().isAssignable(value.getType()))
+			throw new MuisParseException("Parsed value's type is incompatible with style attribute " + attr + ": " + parseableValue);
+		setAnimatedValue((StyleAttribute<Object>) attr, expr, value);
 	}
 
 	@Override
@@ -353,45 +416,6 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionEvalValue[array.length];
 		System.arraycopy(array, 0, ret, 0, array.length);
 		return ret;
-	}
-
-	/**
-	 * Evaluates an expression to get an actual style value
-	 *
-	 * @param <T> The type of the style attribute
-	 * @param attr The attribute to evaluate for
-	 * @param item The expression to evaluate
-	 * @return The value that the expression evaluates to
-	 * @throws ClassCastException If the expression evaluates to a value that is not recognized by the attribute
-	 * @throws IllegalArgumentException If the expression evaluates to an invalid value for the attribute
-	 * @throws IllegalStateException If the evaluation of the expression fails
-	 */
-	protected <T> T evaluate(StyleAttribute<T> attr, ParsedItem item) throws ClassCastException, IllegalArgumentException,
-		IllegalStateException {
-		try {
-			return super.castAndValidate(attr, (T) theEvaluator.evaluate(item, theEnv, false, true).getValue());
-		} catch(EvaluationException e) {
-			throw new IllegalStateException("Animated expression " + item + " for style attribute " + attr + " failed to evaluate", e);
-		}
-	}
-
-	@Override
-	protected <T> T castAndValidate(StyleAttribute<T> attr, T value) throws ClassCastException {
-		if(!(value instanceof ParsedItem))
-			throw new IllegalStateException("Implementation error: " + ParsedItem.class.getSimpleName() + " expected, "
-				+ (value == null ? "null" : value.getClass().getSimpleName()) + " received");
-		ParsedItem pi = (ParsedItem) value;
-		T realValue = evaluate(attr, pi);
-		if(realValue == null)
-			return value;
-		try {
-			super.castAndValidate(attr, realValue);
-		} catch(ClassCastException e) {
-			throw new ClassCastException("Evaluation of animated expression " + pi + " produced an invalid result: " + e.getMessage());
-		} catch(IllegalArgumentException e) {
-			throw new IllegalArgumentException("Evaluation of animated expression " + pi + " produced an invalid resul", e);
-		}
-		return value;
 	}
 
 	@Override

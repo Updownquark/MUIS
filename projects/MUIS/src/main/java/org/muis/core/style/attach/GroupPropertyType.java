@@ -34,7 +34,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 
 	@Override
 	public ObservableValue<String []> parse(MuisParseEnv env, String value) throws MuisException {
-		ObservableValue<?> ret = MuisProperty.parseExplicitObservable(env, value);
+		ObservableValue<?> ret = MuisProperty.parseExplicitObservable(env, value, false);
 		if(ret != null) {
 			if(ret.getType().canAssignTo(ObservableValue.class))
 				ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
@@ -71,7 +71,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 		ObservableValue<?> [] splitObs = new ObservableValue[split.length];
 		for(int i = 0; i < split.length; i++) {
 			split[i] = split[i].trim();
-			splitObs[i] = MuisProperty.parseExplicitObservable(env, split[i]);
+			splitObs[i] = MuisProperty.parseExplicitObservable(env, split[i], false);
 			if(splitObs[i] != null) {
 				if(splitObs[i].getType().canAssignTo(ObservableValue.class))
 					splitObs[i] = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) splitObs[i]);

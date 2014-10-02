@@ -1,25 +1,20 @@
 package org.muis.core.style.sheet;
 
+import org.muis.core.model.MuisValueReferenceParser;
+import org.muis.core.parser.MuisParseException;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.StyleAttribute;
-
-import prisms.lang.EvaluationEnvironment;
-import prisms.lang.ParsedItem;
 
 /** An AnimatedStyleSheet whose modification methods are exposed */
 public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {
-	/** Creates this animated style sheet with a default, empty environment */
-	public MutableAnimatedStyleSheet() {
-		this(new prisms.lang.DefaultEvaluationEnvironment());
-	}
-
-	/** @param env The evaluation environment for this style sheet to use */
-	public MutableAnimatedStyleSheet(EvaluationEnvironment env) {
-		super(env);
+	/** @param modelParser The model parser for this style sheet to use */
+	public MutableAnimatedStyleSheet(MuisValueReferenceParser modelParser) {
+		super(modelParser);
 	}
 
 	@Override
-	public EvaluationEnvironment getEvaluationEnvironment() {
-		return super.getEvaluationEnvironment();
+	public MuisValueReferenceParser getModelParser() {
+		return super.getModelParser();
 	}
 
 	@Override
@@ -43,8 +38,13 @@ public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {
 	}
 
 	@Override
-	public void setAnimatedValue(StyleAttribute<?> attr, StateGroupTypeExpression<?> expr, ParsedItem value) {
+	public <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
 		super.setAnimatedValue(attr, expr, value);
+	}
+
+	@Override
+	public void setAnimatedValue(StyleAttribute<?> attr, StateGroupTypeExpression<?> expr, String parseableValue) throws MuisParseException {
+		super.setAnimatedValue(attr, expr, parseableValue);
 	}
 
 	@Override

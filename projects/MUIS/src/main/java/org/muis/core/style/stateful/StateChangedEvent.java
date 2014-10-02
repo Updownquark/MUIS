@@ -1,38 +1,25 @@
 package org.muis.core.style.stateful;
 
+import java.util.Set;
+
 import org.muis.core.mgr.MuisState;
 
 /** Fired when the state of an {@link InternallyStatefulStyle} changes */
-public class StateChangedEvent {
+public class StateChangedEvent extends org.muis.core.rx.ObservableValueEvent<Set<MuisState>> {
 	private final InternallyStatefulStyle theStyle;
-
-	private final MuisState [] theOldState;
-
-	private final MuisState [] theNewState;
 
 	/**
 	 * @param style The style whose state has changed
 	 * @param oldState The old state
 	 * @param newState The new state
 	 */
-	public StateChangedEvent(InternallyStatefulStyle style, MuisState [] oldState, MuisState [] newState) {
+	public StateChangedEvent(InternallyStatefulStyle style, Set<MuisState> oldState, Set<MuisState> newState) {
+		super(style.states(), oldState, newState, null);
 		theStyle = style;
-		theOldState = oldState;
-		theNewState = newState;
 	}
 
 	/** @return The style whose state has changed */
 	public InternallyStatefulStyle getStyle() {
 		return theStyle;
-	}
-
-	/** @return The state prior to the change */
-	public MuisState [] getOldState() {
-		return theOldState;
-	}
-
-	/** @return The state after the change */
-	public MuisState [] getNewState() {
-		return theNewState;
 	}
 }

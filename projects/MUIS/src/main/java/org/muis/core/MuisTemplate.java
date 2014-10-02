@@ -868,12 +868,12 @@ public abstract class MuisTemplate extends MuisElement {
 					getEvaluator().addEvaluator(ParsedIdentifier.class, new ObservableItemEvaluator<ParsedIdentifier>() {
 						@Override
 						public ObservableValue<?> evaluateObservable(ParsedIdentifier item, ObservableEvaluator evaluator,
-							EvaluationEnvironment env) throws EvaluationException {
+							EvaluationEnvironment env, boolean asType) throws EvaluationException {
 							ObservableValue<MuisAppModel> model = theTemplateWidget.getModel(item.getName());
 							if(model != null)
 								return model;
 							else if(oldEval != null)
-								return oldEval.evaluateObservable(item, evaluator, env);
+								return oldEval.evaluateObservable(item, evaluator, env, asType);
 							else
 								return null;
 						}

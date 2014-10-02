@@ -1,7 +1,8 @@
 package org.muis.core.style.stateful;
 
+import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionListener;
+import org.muis.core.style.StyleExpressionEvent;
 import org.muis.core.style.StyleExpressionValue;
 
 import prisms.util.ArrayUtils;
@@ -39,8 +40,9 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	}
 
 	private StatefulStyle [] theDependencies;
+	private Subscription<?> [] theDependSubscriptions;
 
-	private final StyleExpressionListener<StatefulStyle, StateExpression> theDependencyListener;
+	private final org.muis.core.rx.Action<StyleExpressionEvent<StatefulStyle, StateExpression, ?>> theDependencyListener;
 
 	/**
 	 * Creates an abstract stateful style
@@ -59,8 +61,8 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 			}
 			styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
 		};
-		for(StatefulStyle dep : theDependencies)
-			dep.addListener(theDependencyListener);
+		for(int i = 0; i < theDependencies.length; i++)
+			theDependSubscriptions[i] = theDependencies[i].expressions().act(theDependencyListener);
 	}
 
 	@Override
@@ -83,7 +85,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 			idx++;
 		}
 		theDependencies = ArrayUtils.add(theDependencies, depend, idx);
-		depend.addListener(theDependencyListener);
+		theDependSubscriptions = ArrayUtils.add(theDependSubscriptions, depend.expressions().act(theDependencyListener), idx);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				boolean foundOverride = false;
@@ -109,7 +111,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 */
 	protected void addDependency(StatefulStyle depend) {
 		theDependencies = ArrayUtils.add(theDependencies, depend);
-		depend.addListener(theDependencyListener);
+		theDependSubscriptions = ArrayUtils.add(theDependSubscriptions, depend.expressions().act(theDependencyListener));
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				boolean foundOverride = false;
@@ -133,7 +135,8 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		int idx = ArrayUtils.indexOf(theDependencies, depend);
 		if(idx < 0)
 			return;
-		depend.removeListener(theDependencyListener);
+		theDependSubscriptions[idx].unsubscribe();
+		theDependSubscriptions = ArrayUtils.remove(theDependSubscriptions, idx);
 		theDependencies = ArrayUtils.remove(theDependencies, idx);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
@@ -161,7 +164,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 		int idx = ArrayUtils.indexOf(theDependencies, toReplace);
 		if(idx < 0)
 			throw new IllegalArgumentException(toReplace + " is not a dependency of " + this);
-		toReplace.removeListener(theDependencyListener);
+		theDependSubscriptions[idx].unsubscribe();
 		java.util.HashSet<prisms.util.DualKey<StyleAttribute<Object>, StateExpression>> attrs = new java.util.HashSet<>();
 		for(StyleAttribute<?> attr : toReplace.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : toReplace.getExpressions(attr)) {
@@ -189,7 +192,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 			}
 		}
 		theDependencies[idx] = depend;
-		depend.addListener(theDependencyListener);
+		theDependSubscriptions[idx] = depend.expressions().act(theDependencyListener);
 		for(StyleAttribute<?> attr : depend.allAttrs()) {
 			for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
 				boolean foundOverride = false;

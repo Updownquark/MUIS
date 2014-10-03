@@ -1,35 +1,38 @@
 package org.muis.core.style;
 
+import java.util.AbstractSet;
 import java.util.Iterator;
 
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.Observer;
-import org.muis.core.rx.Subscription;
+import org.muis.core.rx.*;
 
-/** A style that can be sealed to be immutable */
+/**
+ * A style that can be sealed to be immutable. All observables returned by this style are just to satisfy the interface--the implementations
+ * assume that the style is sealed and therefore that no changes occur.
+ */
 public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	private java.util.HashMap<StyleAttribute<?>, ObservableValue<?>> theValues;
+	private ObservableSet<StyleAttribute<?>> theObservableAttributes;
+
+	/** Always empty, just here so we can return the same value from the depenencies every time */
+	private final ObservableList<MuisStyle> theDepends;
 
 	private boolean isSealed;
 
 	/** Creates a sealable style */
 	public SealableStyle() {
 		theValues = new java.util.HashMap<>();
+		theDepends = new DefaultObservableList<>();
+		theObservableAttributes = new ConstantObservableSet();
 	}
 
 	@Override
-	public MuisStyle [] getDependencies() {
-		return new MuisStyle[0];
+	public ObservableList<MuisStyle> getDependencies() {
+		return theDepends;
 	}
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
 		return theValues.containsKey(attr);
-	}
-
-	@Override
-	public boolean isSetDeep(StyleAttribute<?> attr) {
-		return isSet(attr);
 	}
 
 	@Override
@@ -74,8 +77,13 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public Iterable<StyleAttribute<?>> localAttributes() {
-		return prisms.util.ArrayUtils.immutableIterable(theValues.keySet());
+	public ObservableCollection<StyleAttribute<?>> attributes() {
+		return theObservableAttributes;
+	}
+
+	@Override
+	public ObservableCollection<StyleAttribute<?>> localAttributes() {
+		return theObservableAttributes;
 	}
 
 	@Override
@@ -89,16 +97,11 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public <T> ObservableValue<T> get(StyleAttribute<T> attr) {
+	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
-		if(ret == null)
+		if(withDefault && ret.get() == null)
 			return ObservableValue.constant(attr.getDefault());
 		return ret;
-	}
-
-	@Override
-	public Iterator<StyleAttribute<?>> iterator() {
-		return prisms.util.ArrayUtils.immutableIterator(theValues.keySet().iterator());
 	}
 
 	@Override
@@ -109,8 +112,11 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		} catch(CloneNotSupportedException e) {
 			throw new IllegalStateException(e);
 		}
+		// At the moment, no need to copy the dependencies because it's always empty, but if sealable styles ever do have dependencies,
+		// we'll need to copy them here
 		ret.theValues = new java.util.HashMap<>();
 		ret.theValues.putAll(theValues);
+		ret.theObservableAttributes = ret.new ConstantObservableSet();
 		return ret;
 	}
 
@@ -127,5 +133,34 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 			public void unsubscribe() {
 			}
 		};
+	}
+
+	class ConstantObservableSet extends AbstractSet<StyleAttribute<?>> implements ObservableSet<StyleAttribute<?>> {
+		@Override
+		public Iterator<StyleAttribute<?>> iterator() {
+			if(isSealed)
+				return theValues.keySet().iterator();
+			else
+				return prisms.util.ArrayUtils.immutableIterator(theValues.keySet().iterator());
+		}
+
+		@Override
+		public int size() {
+			return theValues.size();
+		}
+
+		@Override
+		public Subscription<Observable<StyleAttribute<?>>> subscribe(Observer<? super Observable<StyleAttribute<?>>> observer) {
+			return new Subscription<Observable<StyleAttribute<?>>>() {
+				@Override
+				public Subscription<Observable<StyleAttribute<?>>> subscribe(Observer<? super Observable<StyleAttribute<?>>> observer2) {
+					return this;
+				}
+
+				@Override
+				public void unsubscribe() {
+				}
+			};
+		}
 	}
 }

@@ -42,7 +42,7 @@ public class ComposedObservable<T> extends DefaultObservable<T> {
 				}
 
 				@Override
-				public void onCompleted() {
+				public void onCompleted(Object value) {
 					fireComplete();
 				}
 
@@ -87,7 +87,7 @@ public class ComposedObservable<T> extends DefaultObservable<T> {
 	}
 
 	private void fireComplete() {
-		theController.onCompleted();
+		theController.onCompleted(null);
 		for(Subscription<?> sub : theInternalSubscriptions.toArray(new Subscription[0]))
 			sub.unsubscribe();
 		theInternalSubscriptions.clear();

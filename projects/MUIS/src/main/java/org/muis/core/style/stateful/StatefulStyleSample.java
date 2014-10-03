@@ -1,11 +1,11 @@
 package org.muis.core.style.stateful;
 
-import java.util.Iterator;
-
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.*;
-
-import prisms.util.ArrayUtils;
+import org.muis.core.rx.*;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
+import org.muis.core.style.StyleExpressionValue;
 
 /** A {@link MuisStyle} implementation that gets all its information from a {@link StatefulStyle} for a particular state */
 public class StatefulStyleSample implements MuisStyle {
@@ -13,7 +13,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	private final MuisState [] theState;
 
-	private java.util.HashMap<StyleListener, StyleExpressionListener<StatefulStyle, StateExpression>> theListenerMap;
+	private Observable<StyleAttributeEvent<?>> theEventObservable;
 
 	/**
 	 * @param statefulStyle The stateful style to get the attribute information from
@@ -22,6 +22,10 @@ public class StatefulStyleSample implements MuisStyle {
 	public StatefulStyleSample(StatefulStyle statefulStyle, MuisState [] state) {
 		theStatefulStyle = statefulStyle;
 		theState = state;
+		theEventObservable = theStatefulStyle.expressions().map(event -> {
+			StyleAttribute<Object> attr = (StyleAttribute<Object>) event.getAttribute();
+			return new StyleAttributeEvent<Object>(null, this, this, attr, get(attr, true).get());
+		});
 	}
 
 	/** @return The stateful style that this style uses to get its attribute information from */
@@ -35,19 +39,8 @@ public class StatefulStyleSample implements MuisStyle {
 	}
 
 	@Override
-	public Iterator<StyleAttribute<?>> iterator() {
-		Iterable<StyleAttribute<?>> [] array = new Iterable[getDependencies().length];
-		System.arraycopy(getDependencies(), 0, array, 0, array.length);
-		return ArrayUtils.iterable(ArrayUtils.add(array, localAttributes(), 0)).iterator();
-	}
-
-	@Override
-	public MuisStyle [] getDependencies() {
-		StatefulStyle [] deps = theStatefulStyle.getConditionalDependencies();
-		MuisStyle [] ret = new MuisStyle[deps.length];
-		for(int i = 0; i < ret.length; i++)
-			ret[i] = new StatefulStyleSample(deps[i], theState);
-		return ret;
+	public ObservableList<MuisStyle> getDependencies() {
+		return theStatefulStyle.getConditionalDependencies().mapC(depend -> new StatefulStyleSample(depend, theState));
 	}
 
 	@Override
@@ -59,69 +52,29 @@ public class StatefulStyleSample implements MuisStyle {
 	}
 
 	@Override
-	public boolean isSetDeep(StyleAttribute<?> attr) {
-		if(isSet(attr))
-			return true;
-		for(MuisStyle dep : getDependencies())
-			if(dep.isSetDeep(attr))
-				return true;
-		return false;
-	}
-
-	@Override
-	public <T> T getLocal(StyleAttribute<T> attr) {
-		for(StyleExpressionValue<StateExpression, T> value : theStatefulStyle.getLocalExpressions(attr))
-			if(value.getExpression() == null || value.getExpression().matches(theState))
-				return value.getValue();
-		return null;
-	}
-
-	@Override
-	public Iterable<StyleAttribute<?>> localAttributes() {
-		return () -> {
-			return ArrayUtils.conditionalIterator(theStatefulStyle.allLocal().iterator(), value -> {
-				for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(value))
-					if(sev.getExpression() == null || sev.getExpression().matches(theState))
-						return value;
+	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
+		return theStatefulStyle.getLocalExpressions(attr).first(attr.getType().getType(),
+			(
+			StyleExpressionValue<StateExpression, T> sev) -> {
+			if(sev.getExpression() == null || sev.getExpression().matches(theState))
+				return sev.getValue();
+			else
 				return null;
-			}, false);
-		};
+		});
 	}
 
 	@Override
-	public <T> T get(StyleAttribute<T> attr) {
-		T ret = getLocal(attr);
-		if(ret != null)
-			return ret;
-		for(MuisStyle dep : getDependencies()) {
-			ret = dep.get(attr);
-			if(ret != null)
-				return ret;
-		}
-		return attr.getDefault();
+	public ObservableCollection<StyleAttribute<?>> localAttributes() {
+		return theStatefulStyle.allLocal().filterMapC(attr -> {
+			for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(attr))
+				if(sev.getExpression() == null || sev.getExpression().matches(theState))
+					return attr;
+			return null;
+		});
 	}
 
 	@Override
-	public void addListener(final StyleListener listener) {
-		StyleExpressionListener<StatefulStyle, StateExpression> expListener = evt -> {
-			if(evt.getExpression() == null || evt.getExpression().matches(theState)) {
-				StyleAttribute<Object> attr = (StyleAttribute<Object>) evt.getAttribute();
-				listener.eventOccurred(new org.muis.core.style.StyleAttributeEvent<>(null, StatefulStyleSample.this,
-					StatefulStyleSample.this, attr, get(attr)));
-			}
-		};
-		theStatefulStyle.addListener(expListener);
-		if(theListenerMap == null)
-			theListenerMap = new java.util.HashMap<>();
-		theListenerMap.put(listener, expListener);
-	}
-
-	@Override
-	public void removeListener(StyleListener listener) {
-		if(theListenerMap == null)
-			return;
-		theStatefulStyle.removeListener(theListenerMap.remove(listener));
-		if(theListenerMap.isEmpty())
-			theListenerMap = null;
+	public Subscription<StyleAttributeEvent<?>> subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
+		return theEventObservable.subscribe(observer);
 	}
 }

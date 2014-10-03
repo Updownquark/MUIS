@@ -12,8 +12,12 @@ public interface Observer<T> {
 	 */
 	<V extends T> void onNext(V value);
 
-	/** Signals that the observable has no more values */
-	default void onCompleted() {
+	/**
+	 * Signals that the observable has no more values
+	 * 
+	 * @param value The final value, or null if not applicable
+	 */
+	default <V extends T> void onCompleted(V value) {
 	}
 
 	/** @param e The error that occured in the observable */

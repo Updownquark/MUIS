@@ -100,6 +100,6 @@ public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEven
 	public boolean isOverridden() {
 		/* TODO This may or may not cause performance problems later.  I think it's better to put it here than overriding getValue() to
 		 * query the style every time it's called since this is only called once per listener. */
-		return theLocalStyle.get(theAttribute) == getValue();
+		return theLocalStyle.get(theAttribute, true) == getValue();
 	}
 }

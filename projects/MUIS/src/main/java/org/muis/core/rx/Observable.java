@@ -1,5 +1,6 @@
 package org.muis.core.rx;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -46,6 +47,23 @@ public interface Observable<T> {
 		return ret;
 	}
 
+	/** @return An observable that will fire once when this observable completes (the value will be null) */
+	default Observable<T> completed() {
+		DefaultObservable<T> ret = new DefaultObservable<>();
+		Observer<T> controller = ret.control(null);
+		subscribe(new Observer<T>() {
+			@Override
+			public <V extends T> void onNext(V value) {
+			}
+
+			@Override
+			public <V extends T> void onCompleted(V value) {
+				controller.onNext(value);
+			}
+		});
+		return ret;
+	}
+
 	/**
 	 * @param func The filter function
 	 * @return An observable that provides the same values as this observable minus those that the filter function returns false for
@@ -61,8 +79,8 @@ public interface Observable<T> {
 			}
 
 			@Override
-			public void onCompleted() {
-				controller.onCompleted();
+			public <V extends T> void onCompleted(V value) {
+				controller.onCompleted(value);
 			}
 
 			@Override
@@ -102,8 +120,8 @@ public interface Observable<T> {
 			}
 
 			@Override
-			public void onCompleted() {
-				controller.onCompleted();
+			public <V extends T> void onCompleted(V value) {
+				controller.onCompleted(func.apply(value));
 			}
 
 			@Override
@@ -132,29 +150,67 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable until the first value is observed from the given observable
 	 */
 	default Observable<T> takeUntil(Observable<?> until) {
-		DefaultObservable<T> ret = new DefaultObservable<>();
-		Observer<T> controller = ret.control(null);
-		Subscription<?> [] mainSub = new Subscription[1];
-		Subscription<?> untilSub = until.take(1).act(value -> {
-			controller.onCompleted();
-			mainSub[0].unsubscribe();
+		AtomicBoolean check=new AtomicBoolean(false);
+		Observer<T> [] controller=new Observer[1];
+		Subscription<?> [] untilSub = new Subscription[1];
+		untilSub[0] = until.subscribe(new Observer<Object>() {
+			@Override
+			public <V> void onNext(V value) {
+				if(check.getAndSet(true))
+					return;
+				if(controller[0]!=null)
+					controller[0].onCompleted(null);
+				if(untilSub[0] != null) {
+					untilSub[0].unsubscribe();
+					untilSub[0] = null;
+				}
+			}
+
+			@Override
+			public void onCompleted(Object value) {
+				if(check.getAndSet(true))
+					return;
+				if(controller[0]!=null)
+					controller[0].onCompleted(null);
+				if(untilSub[0] != null) {
+					untilSub[0].unsubscribe();
+					untilSub[0] = null;
+				}
+			}
 		});
-		mainSub[0] = subscribe(new Observer<T>() {
-			@Override
-			public <V extends T> void onNext(V value) {
-				controller.onNext(value);
-			}
+		if(check.get() && untilSub[0] != null) {
+			untilSub[0].unsubscribe();
+			untilSub[0] = null;
+		}
 
-			@Override
-			public void onCompleted() {
-				controller.onCompleted();
-				untilSub.unsubscribe();
+		DefaultObservable<T> ret = new DefaultObservable<>();
+		controller[0] = ret.control(subscriber->{
+			if(check.get()) {
+				subscriber.onCompleted(null);
+				controller[0].onCompleted(null);
+				return;
 			}
+			Subscription<?> [] sub=new Subscription[1];
+			sub[0]=subscribe(new Observer<T>(){
+				@Override
+				public <V extends T> void onNext(V value) {
+					controller[0].onNext(value);
+				}
 
-			@Override
-			public void onError(Throwable e) {
-				controller.onError(e);
-			}
+				@Override
+				public <V extends T> void onCompleted(V value) {
+					controller[0].onCompleted(value);
+					if(untilSub[0] != null) {
+						untilSub[0].unsubscribe();
+						untilSub[0] = null;
+					}
+				}
+
+				@Override
+				public void onError(Throwable e) {
+					controller[0].onError(e);
+				}
+			});
 		});
 		return ret;
 	}
@@ -164,33 +220,59 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable but completes after the given number of values
 	 */
 	default Observable<T> take(int times) {
-		AtomicInteger counter = new AtomicInteger(times);
 		DefaultObservable<T> ret = new DefaultObservable<>();
-		Observer<T> controller = ret.control(null);
-		Subscription<T> [] sub = new Subscription[1];
-		sub[0] = subscribe(new Observer<T>() {
-			@Override
-			public <V extends T> void onNext(V value) {
-				int count = counter.getAndDecrement();
-				if(count >= 0)
-					controller.onNext(value);
-				if(count == 0) {
-					sub[0].unsubscribe();
-					controller.onCompleted();
+		Observer<T> [] controller=new Observer[1];
+		controller[0] = ret.control(subscriber->{
+			AtomicInteger counter = new AtomicInteger(times);
+			Subscription<T> [] sub=new Subscription[1];
+			sub[0]=subscribe(new Observer<T>(){
+				private boolean isAlive(T value) {
+					int count = counter.getAndDecrement();
+					if(count == 0) {
+						controller[0].onCompleted(value);
+					}
+					if(count <= 0 && sub[0] != null) {
+						sub[0].unsubscribe();
+						sub[0] = null;
+					}
+					return count > 0;
 				}
-			}
 
-			@Override
-			public void onCompleted() {
-				controller.onCompleted();
-			}
+				@Override
+				public <V extends T> void onNext(V value) {
+					if(isAlive(value))
+						controller[0].onNext(value);
+				}
 
-			@Override
-			public void onError(Throwable e) {
-				if(counter.get() > 0)
-					controller.onError(e);
-			}
+				@Override
+				public <V extends T> void onCompleted(V value) {
+					controller[0].onCompleted(value);
+				}
+
+				@Override
+				public void onError(Throwable e) {
+					if(isAlive(null))
+						controller[0].onError(e);
+				}
+			});
 		});
 		return ret;
+	}
+
+	/**
+	 * @param obs The observer to get compile-time type information for (not used)
+	 * @return A subscription that does nothing
+	 */
+	public static <T> Subscription<T> nullSubscribe(Observable<T> obs) {
+		return new Subscription<T>() {
+			@Override
+			public Subscription<T> subscribe(Observer<? super T> observer) {
+				return this;
+			}
+
+			@Override
+			public void unsubscribe() {
+			}
+		};
 	}
 }

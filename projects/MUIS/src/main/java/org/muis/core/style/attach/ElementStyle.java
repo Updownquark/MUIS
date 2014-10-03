@@ -3,7 +3,6 @@ package org.muis.core.style.attach;
 import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.mgr.MuisState;
-import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
@@ -141,19 +140,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			return;
 		theStyleGroups = prisms.util.ArrayUtils.remove(theStyleGroups, typedGroup);
 		theElement.events().fire(new GroupMemberEvent(theElement, group, index));
-	}
-
-	/**
-	 * @return All style attributes applying to this style's element directly--those local to this element style or any named style groups
-	 *         attached to it. It does not include attributes inherited from the element's ancestors
-	 */
-	public Iterable<StyleAttribute<?>> elementAttributes() {
-		return () -> {
-			MuisStyle [] depends = new MuisStyle[theStyleGroups.length + 1];
-			depends[0] = theSelfStyle;
-			System.arraycopy(depends, 1, theStyleGroups, 0, theStyleGroups.length);
-			return new AttributeIterator(ElementStyle.this, depends);
-		};
 	}
 
 	/**

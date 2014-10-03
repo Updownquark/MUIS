@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.muis.core.model.MutableDocumentModel;
 import org.muis.core.model.MutableSelectableDocumentModel;
+import org.muis.core.rx.ObservableList;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.MutableStyle;
 import org.muis.core.style.StyleAttribute;
@@ -58,13 +59,8 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		}
 
 		@Override
-		public Iterator<StyleAttribute<?>> iterator() {
-			return ArrayUtils.iterator(localAttributes().iterator(), getParentStyle().iterator());
-		}
-
-		@Override
-		public MuisStyle [] getDependencies() {
-			return new MuisStyle[0];
+		public ObservableList<MuisStyle> getDependencies() {
+			return ObservableList.constant();
 		}
 
 		@Override
@@ -92,24 +88,6 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 				return java.util.Collections.unmodifiableList(java.util.Arrays.asList((StyleAttribute<?> []) theStyles.keySet().toArray(
 					new StyleAttribute[theStyles.size()])));
 			}
-		}
-
-		@Override
-		public <T> T get(StyleAttribute<T> attr) {
-			T ret = getLocal(attr);
-			if(ret != null)
-				return ret;
-			return attr.getDefault();
-		}
-
-		@Override
-		public void addListener(org.muis.core.style.StyleListener listener) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void removeListener(org.muis.core.style.StyleListener listener) {
-			throw new UnsupportedOperationException();
 		}
 	}
 

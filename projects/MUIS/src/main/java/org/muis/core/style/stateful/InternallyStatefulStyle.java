@@ -3,6 +3,7 @@ package org.muis.core.style.stateful;
 import java.util.Set;
 
 import org.muis.core.mgr.MuisState;
+import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 
@@ -12,7 +13,7 @@ import org.muis.core.style.MuisStyle;
  */
 public interface InternallyStatefulStyle extends StatefulStyle, MuisStyle {
 	/** @return The current internal state of this style */
-	MuisState [] getState();
+	ObservableList<MuisState> getState();
 
 	/** @return This style's states */
 	ObservableValue<Set<MuisState>> states();

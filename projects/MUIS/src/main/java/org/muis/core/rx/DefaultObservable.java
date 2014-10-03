@@ -1,6 +1,5 @@
 package org.muis.core.rx;
 
-import java.lang.ref.SoftReference;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -23,7 +22,7 @@ public class DefaultObservable<T> implements Observable<T> {
 	private OnSubscribe<T> theOnSubscribe;
 	private AtomicBoolean isAlive = new AtomicBoolean(true);
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
-	private CopyOnWriteArrayList<SoftReference<Observer<? super T>>> theListeners;
+	private CopyOnWriteArrayList<Observer<? super T>> theListeners;
 
 	/** Creates the observable */
 	public DefaultObservable() {
@@ -48,8 +47,8 @@ public class DefaultObservable<T> implements Observable<T> {
 			}
 
 			@Override
-			public void onCompleted() {
-				fireCompleted();
+			public <V extends T> void onCompleted(V value) {
+				fireCompleted(value);
 			}
 
 			@Override
@@ -62,7 +61,7 @@ public class DefaultObservable<T> implements Observable<T> {
 	@Override
 	public Subscription<T> subscribe(Observer<? super T> observer) {
 		if(!isAlive.get()) {
-			observer.onCompleted();
+			observer.onCompleted(null);
 			return new Subscription<T>() {
 				@Override
 				public Subscription<T> subscribe(Observer<? super T> observer2) {
@@ -74,8 +73,7 @@ public class DefaultObservable<T> implements Observable<T> {
 				}
 			};
 		} else {
-			SoftReference<Observer<? super T>> ref = new SoftReference<>(observer);
-			theListeners.add(ref);
+			theListeners.add(observer);
 			if(theOnSubscribe != null)
 				theOnSubscribe.onsubscribe(observer);
 			return new Subscription<T>() {
@@ -86,7 +84,7 @@ public class DefaultObservable<T> implements Observable<T> {
 
 				@Override
 				public void unsubscribe() {
-					theListeners.remove(ref);
+					theListeners.remove(observer);
 				}
 			};
 		}
@@ -95,14 +93,7 @@ public class DefaultObservable<T> implements Observable<T> {
 	private void fireNext(T value) {
 		if(!isAlive.get())
 			throw new IllegalStateException("Firing a value on a completed observable");
-		java.util.Iterator<SoftReference<Observer<? super T>>> iter = theListeners.iterator();
-		while(iter.hasNext()) {
-			SoftReference<Observer<? super T>> ref = iter.next();
-			Observer<? super T> observer=ref.get();
-			if(observer == null) {
-				iter.remove();
-				continue;
-			}
+		for(Observer<? super T> observer : theListeners) {
 			try {
 				observer.onNext(value);
 			} catch(Throwable e) {
@@ -111,18 +102,16 @@ public class DefaultObservable<T> implements Observable<T> {
 		}
 	}
 
-	private void fireCompleted() {
-		isAlive.set(false);
-		SoftReference<Observer<? super T>> [] observers = theListeners.toArray(new SoftReference[theListeners.size()]);
-		theListeners.clear();
-		for(SoftReference<Observer<? super T>> ref : observers) {
-			Observer<? super T> observer = ref.get();
-			if(observer == null)
-				continue;
-			try {
-				observer.onCompleted();
-			} catch(Throwable e) {
-				observer.onError(e);
+	private void fireCompleted(T value) {
+		if(isAlive.getAndSet(false)) {
+			Observer<? super T> [] observers = theListeners.toArray(new Observer[theListeners.size()]);
+			theListeners.clear();
+			for(Observer<? super T> observer : observers) {
+				try {
+					observer.onCompleted(value);
+				} catch(Throwable e) {
+					observer.onError(e);
+				}
 			}
 		}
 	}
@@ -130,16 +119,8 @@ public class DefaultObservable<T> implements Observable<T> {
 	private void fireError(Throwable e) {
 		if(!isAlive.get())
 			throw new IllegalStateException("Firing a value on a completed observable");
-		java.util.Iterator<SoftReference<Observer<? super T>>> iter = theListeners.iterator();
-		while(iter.hasNext()) {
-			SoftReference<Observer<? super T>> ref = iter.next();
-			Observer<? super T> observer = ref.get();
-			if(observer == null) {
-				iter.remove();
-				continue;
-			}
+		for(Observer<? super T> observer : theListeners)
 			observer.onError(e);
-		}
 	}
 
 	/**

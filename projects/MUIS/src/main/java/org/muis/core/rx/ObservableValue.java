@@ -1,5 +1,6 @@
 package org.muis.core.rx;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -129,6 +130,84 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1], (V) args[2]);
 		}, this, arg2, arg3);
+	}
+
+	@Override
+	default ObservableValue<T> takeUntil(Observable<?> until) {
+		AtomicBoolean check = new AtomicBoolean(false);
+		Observer<ObservableValueEvent<T>> [] controller = new Observer[1];
+		Subscription<?> [] untilSub = new Subscription[1];
+		untilSub[0] = until.subscribe(new Observer<Object>() {
+			@Override
+			public <V> void onNext(V value) {
+				if(check.getAndSet(true))
+					return;
+				if(controller[0] != null)
+					controller[0].onCompleted(null);
+				if(untilSub[0] != null) {
+					untilSub[0].unsubscribe();
+					untilSub[0] = null;
+				}
+			}
+
+			@Override
+			public void onCompleted(Object value) {
+				if(check.getAndSet(true))
+					return;
+				if(controller[0] != null)
+					controller[0].onCompleted(null);
+				if(untilSub[0] != null) {
+					untilSub[0].unsubscribe();
+					untilSub[0] = null;
+				}
+			}
+		});
+		if(check.get() && untilSub[0] != null) {
+			untilSub[0].unsubscribe();
+			untilSub[0] = null;
+		}
+
+		ObservableValue<T> outer = this;
+		DefaultObservableValue<T> ret = new DefaultObservableValue<T>() {
+			@Override
+			public Type getType() {
+				return outer.getType();
+			}
+
+			@Override
+			public T get() {
+				return outer.get();
+			}
+		};
+		controller[0] = ret.control(subscriber -> {
+			if(check.get()) {
+				subscriber.onCompleted(null);
+				controller[0].onCompleted(null);
+				return;
+			}
+			Subscription<?> [] sub = new Subscription[1];
+			sub[0] = subscribe(new Observer<ObservableValueEvent<T>>() {
+				@Override
+				public <V extends ObservableValueEvent<T>> void onNext(V value) {
+					controller[0].onNext(value);
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<T>> void onCompleted(V value) {
+					controller[0].onCompleted(value);
+					if(untilSub[0] != null) {
+						untilSub[0].unsubscribe();
+						untilSub[0] = null;
+					}
+				}
+
+				@Override
+				public void onError(Throwable e) {
+					controller[0].onError(e);
+				}
+			});
+		});
+		return ret;
 	}
 
 	/**

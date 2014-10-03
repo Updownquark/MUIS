@@ -1,6 +1,8 @@
 package org.muis.core.style;
 
-import prisms.util.ArrayUtils;
+import java.util.List;
+
+import org.muis.core.rx.DefaultObservableList;
 
 /**
  * A utility class used by {@link SimpleConditionalStyle}
@@ -8,8 +10,8 @@ import prisms.util.ArrayUtils;
  * @param <E> The type of expression supported by the style set using this class
  * @param <V> The type of the attribute that this holder holds values for
  */
-public class StyleValueHolder<E extends StyleExpression<E>, V>
-	implements Cloneable {
+public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultObservableList<StyleExpressionValue<E, V>> implements
+	Cloneable {
 	/** Compares style expressions such that higher priority ones come out first */
 	public static final java.util.Comparator<StyleExpressionValue<? extends StyleExpression<?>, ?>> STYLE_EXPRESSION_COMPARE;
 
@@ -26,24 +28,25 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 			};
 	}
 
-	private StyleExpressionValue<E, V> [] theValues;
-
-	private boolean isSorted;
+	private List<StyleExpressionValue<E, V>> theController;
 
 	/** @param value The initial expression value to hold */
 	protected StyleValueHolder(StyleExpressionValue<E, V> value) {
-		theValues = new StyleExpressionValue[] {value};
-	}
-
-	/** @return The number of expression values in this holder */
-	public int size() {
-		return theValues.length;
+		theController = control();
+		if(value != null)
+			theController.add(value);
 	}
 
 	/** @param value The expression value to add to this holder */
-	public void add(StyleExpressionValue<E, V> value) {
-		isSorted = false;
-		theValues = ArrayUtils.add(theValues, value);
+	public void addValue(StyleExpressionValue<E, V> value) {
+		int index = java.util.Collections.binarySearch(this, value, STYLE_EXPRESSION_COMPARE);
+		if(index >= 0) {
+			while(index < size() && STYLE_EXPRESSION_COMPARE.compare(get(index), value) == 0)
+				index++;
+		} else {
+			index = -(index + 1);
+		}
+		theController.add(index, value);
 	}
 
 	/**
@@ -52,53 +55,33 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 	 * @param exp The expression to remove the value for
 	 * @return Whether this operation might have caused an attribute value to be different for some condition
 	 */
-	public boolean remove(E exp) {
-		StyleExpressionValue<E, V> [] values = theValues;
+	public boolean removeExpression(E exp) {
 		boolean fireEvent = true;
-		for(int i = 0; i < values.length; i++) {
-			if(ArrayUtils.equals(exp, values[i].getExpression())) {
-				theValues = ArrayUtils.remove(theValues, values[i]);
+		java.util.Iterator<StyleExpressionValue<E, V>> iter = theController.iterator();
+		while(iter.hasNext()) {
+			StyleExpressionValue<E, V> next = iter.next();
+			if(java.util.Objects.equals(exp, next.getExpression())) {
+				iter.remove();
 				return fireEvent;
-			} else if(values[i].getExpression() == null || (exp != null && values[i].getExpression().getWhenTrue(exp) > 0))
-				fireEvent = false;
+			} else if(next.getExpression() == null || (exp != null && next.getExpression().getWhenTrue(exp) > 0))
+				fireEvent = false; // Higher-priority expression that encompasses the given expression--no event
 		}
 		return false;
 	}
 
-	/** @return This holder's expression values, sorted from most general to most specific condition */
-	public StyleExpressionValue<E, V> [] sort() {
-		if(isSorted)
-			return theValues;
-		StyleExpressionValue<E, V> [] values = theValues;
-		java.util.Arrays.sort(values, STYLE_EXPRESSION_COMPARE);
-		isSorted = true;
-		return values;
-	}
-
 	void set(StyleExpressionValue<E, V> sev) {
-		boolean set = false;
 		boolean found = true;
-		while(found && !set) {
-			found = false;
-			StyleExpressionValue<E, V> [] values = theValues;
-			for(int i = 0; i < values.length; i++) {
-				if(ArrayUtils.equals(sev.getExpression(), values[i].getExpression())) {
-					found = true;
-					if(theValues[i] == values[i]) {
-						theValues[i] = sev;
-						set = true;
-					}
-					break;
-				}
+		java.util.ListIterator<StyleExpressionValue<E, V>> iter = theController.listIterator();
+		while(iter.hasNext()) {
+			StyleExpressionValue<E, V> next = iter.next();
+			if(java.util.Objects.equals(sev.getExpression(), next.getExpression())) {
+				found = true;
+				iter.set(sev);
+				break;
 			}
 		}
 		if(!found)
-			add(sev);
-	}
-
-	@Override
-	public String toString() {
-		return ArrayUtils.toString(theValues);
+			iter.add(sev);
 	}
 
 	@Override
@@ -109,7 +92,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V>
 		} catch(CloneNotSupportedException e) {
 			throw new IllegalStateException(e);
 		}
-		ret.theValues = theValues.clone();
+		ret.theController = ret.control();
 		return ret;
 	}
 }

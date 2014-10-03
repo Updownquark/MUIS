@@ -1,12 +1,8 @@
 package org.muis.core.style;
 
-import java.util.Iterator;
+import java.util.Set;
 
-import org.muis.core.rx.DefaultObservable;
-import org.muis.core.rx.Observable;
-import org.muis.core.rx.Observer;
-
-import prisms.util.ArrayUtils;
+import org.muis.core.rx.*;
 
 /**
  * Implements ConditionalStyle without dependencies
@@ -21,13 +17,18 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	private java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, StyleValueHolder<E, ?>> theAttributes;
 
 	private DefaultObservable<StyleExpressionEvent<S, E, ?>> theExpressions;
-	private Observer<StyleExpressionEvent<S, E, ?>> theController;
+	private Observer<StyleExpressionEvent<S, E, ?>> theExprController;
+
+	private DefaultObservableSet<StyleAttribute<?>> theObservableAtts;
+	private Set<StyleAttribute<?>> theAttController;
 
 	/** Creates a SimpleStatefulStyle */
 	protected SimpleConditionalStyle() {
 		theExpressions = new DefaultObservable<>();
-		theController = theExpressions.control(null);
+		theExprController = theExpressions.control(null);
 		theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
+		theObservableAtts = new DefaultObservableSet<>();
+		theAttController = theObservableAtts.control();
 	}
 
 	@Override
@@ -36,14 +37,18 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	}
 
 	@Override
-	public Iterable<StyleAttribute<?>> allLocal() {
-		return ArrayUtils.immutableIterable(theAttributes.keySet());
+	public ObservableCollection<StyleAttribute<?>> allLocal() {
+		return theObservableAtts;
 	}
 
 	@Override
-	public <T> StyleExpressionValue<E, T> [] getLocalExpressions(StyleAttribute<T> attr) {
+	public <T> ObservableList<StyleExpressionValue<E, T>> getLocalExpressions(StyleAttribute<T> attr) {
 		StyleValueHolder<E, T> holder = (StyleValueHolder<E, T>) theAttributes.get(attr);
-		return holder == null ? new StyleExpressionValue[0] : holder.sort();
+		if(holder == null) {
+			holder = new StyleValueHolder<>(null);
+			theAttributes.put(attr, holder);
+		}
+		return holder;
 	}
 
 	/**
@@ -112,6 +117,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		if(holder == null) {
 			holder = new StyleValueHolder<>(sev);
 			theAttributes.put(attr, holder);
+			theObservableAtts.add(attr);
 		} else
 			holder.set(sev);
 		styleChanged(attr, exp, null);
@@ -149,8 +155,10 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		StyleValueHolder<E, ?> holder = theAttributes.get(attr);
 		if(holder != null && holder.remove(exp))
 			styleChanged(attr, exp, null);
-		if(holder.size() == 0)
+		if(holder.size() == 0) {
 			theAttributes.remove(attr);
+			theAttController.remove(attr);
+		}
 	}
 
 	/**
@@ -162,7 +170,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	protected void styleChanged(StyleAttribute<?> attr, E expr, S root) {
 		StyleExpressionEvent<S, E, ?> newEvent = new StyleExpressionEvent<>(root == null ? (S) this : root, (S) this,
 			(StyleAttribute<Object>) attr, expr);
-		theController.onNext(newEvent);
+		theExprController.onNext(newEvent);
 	}
 
 	@Override
@@ -177,62 +185,8 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		for(java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<E, ?>> entry : theAttributes.entrySet())
 			ret.theAttributes.put(entry.getKey(), entry.getValue().clone());
 		ret.theExpressions = new DefaultObservable<>();
-		ret.theController = ret.theExpressions.control(null);
+		ret.theExprController = ret.theExpressions.control(null);
 		// Don't add the listeners--ret is a new style
 		return ret;
-	}
-
-	/** An iterator for style attributes in a style and its dependencies */
-	protected static class AttributeIterator implements java.util.Iterator<StyleAttribute<?>> {
-		private Iterator<StyleAttribute<?>> theLocalAttribs;
-
-		private final Iterator<StyleAttribute<?>> [] theDependencies;
-
-		private int childIndex;
-
-		private boolean calledNext;
-
-		/**
-		 * @param style The style for local attributes
-		 * @param dependencies The set of the style's dependencies
-		 */
-		public AttributeIterator(MuisStyle style, MuisStyle... dependencies) {
-			theLocalAttribs = style.localAttributes().iterator();
-			theDependencies = new java.util.Iterator[dependencies.length];
-			for(int d = 0; d < dependencies.length; d++)
-				theDependencies[d] = dependencies[d].iterator();
-			childIndex = -1;
-		}
-
-		@Override
-		public boolean hasNext() {
-			calledNext = false;
-			if(theLocalAttribs != null) {
-				if(theLocalAttribs.hasNext())
-					return true;
-				else
-					theLocalAttribs = null;
-			}
-			if(childIndex < 0)
-				childIndex = 0;
-			while(childIndex < theDependencies.length && !theDependencies[childIndex].hasNext())
-				childIndex++;
-			return childIndex < theDependencies.length;
-		}
-
-		@Override
-		public StyleAttribute<?> next() {
-			if((calledNext && !hasNext()) || childIndex >= theDependencies.length)
-				throw new java.util.NoSuchElementException();
-			calledNext = true;
-			if(theLocalAttribs != null)
-				return theLocalAttribs.next();
-			return theDependencies[childIndex].next();
-		}
-
-		@Override
-		public void remove() {
-			throw new UnsupportedOperationException("Style iterators are immutable");
-		}
 	}
 }

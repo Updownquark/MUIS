@@ -31,11 +31,7 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 	 */
 	public ComposedObservableValue(Type type, Function<Object [], T> function, ObservableValue<?>... composed) {
 		theFunction = function;
-		try {
-			theType = type != null ? type : new Type(theFunction.getClass().getMethod("apply", Object.class).getGenericReturnType());
-		} catch(NoSuchMethodException | SecurityException e) {
-			throw new IllegalStateException("No apply method on a function?", e);
-		}
+		theType = type != null ? type : getReturnType(function);
 		theComposed = java.util.Collections.unmodifiableList(java.util.Arrays.asList(composed));
 		theController = control(observer -> {
 			fire(observer);
@@ -82,5 +78,17 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 		T value = get();
 		ObservableValueEvent<T> event = new ObservableValueEvent<>(this, null, value, null);
 		observer.onNext(event);
+	}
+
+	/**
+	 * @param function The function
+	 * @return The return type of the function
+	 */
+	public static Type getReturnType(Function<?, ?> function) {
+		try {
+			return new Type(function.getClass().getMethod("apply", Object.class).getGenericReturnType());
+		} catch(NoSuchMethodException | SecurityException e) {
+			throw new IllegalStateException("No apply method on a function?", e);
+		}
 	}
 }

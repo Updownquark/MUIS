@@ -1,10 +1,11 @@
 package org.muis.core.style.stateful;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.*;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
 
 /** A {@link MuisStyle} implementation that gets all its information from a {@link StatefulStyle} for a particular state */
@@ -13,8 +14,6 @@ public class StatefulStyleSample implements MuisStyle {
 
 	private final ObservableSet<MuisState> theState;
 
-	private Observable<StyleAttributeEvent<?>> theEventObservable;
-
 	/**
 	 * @param statefulStyle The stateful style to get the attribute information from
 	 * @param state The state to get the attribute information for
@@ -22,10 +21,6 @@ public class StatefulStyleSample implements MuisStyle {
 	public StatefulStyleSample(StatefulStyle statefulStyle, ObservableSet<MuisState> state) {
 		theStatefulStyle = statefulStyle;
 		theState = state;
-		theEventObservable = theStatefulStyle.expressions().map(event -> {
-			StyleAttribute<Object> attr = (StyleAttribute<Object>) event.getAttribute();
-			return new StyleAttributeEvent<>(null, this, this, attr, get(attr, true).get());
-		});
 	}
 
 	/** @return The stateful style that this style uses to get its attribute information from */
@@ -71,10 +66,5 @@ public class StatefulStyleSample implements MuisStyle {
 					return attr;
 			return null;
 		});
-	}
-
-	@Override
-	public Subscription<StyleAttributeEvent<?>> subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
-		return theEventObservable.subscribe(observer);
 	}
 }

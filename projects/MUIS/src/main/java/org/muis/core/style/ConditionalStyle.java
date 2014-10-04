@@ -1,6 +1,5 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.Observable;
 import org.muis.core.rx.ObservableCollection;
 import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableSet;
@@ -47,7 +46,4 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 		ret.addList(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
 		return ret;
 	}
-
-	/** @return An observable for changes in this style's expressions */
-	Observable<StyleExpressionEvent<S, E, ?>> expressions();
 }

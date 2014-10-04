@@ -1,10 +1,11 @@
 package org.muis.core.style.sheet;
 
-import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionListener;
-import org.muis.core.style.StyleExpressionValue;
+import java.util.List;
 
-import prisms.util.ArrayUtils;
+import org.muis.core.rx.DefaultObservableList;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleExpressionValue;
 
 /** Implements dependencies on top of {@link SimpleStyleSheet} */
 public abstract class AbstractStyleSheet extends SimpleStyleSheet {
@@ -22,43 +23,17 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		return false;
 	}
 
-	/**
-	 * @param style The style to check
-	 * @param attr The style attribute to check
-	 * @param expr The expression to check
-	 * @return Whether the given style contains (anywhere in the dependency tree) a style expression that is true when the given state
-	 *         expression is true for the given attribute
-	 */
-	static boolean isSetDeep(StyleSheet style, StyleAttribute<?> attr, StateGroupTypeExpression<?> expr) {
-		if(isSet(style, attr, expr))
-			return true;
-		for(StyleSheet depend : style.getConditionalDependencies())
-			if(isSetDeep(depend, attr, expr))
-				return true;
-		return false;
-	}
-
-	private StyleSheet [] theDependencies;
-
-	private final StyleExpressionListener<StyleSheet, StateGroupTypeExpression<?>> theDependencyListener;
+	private DefaultObservableList<StyleSheet> theDependencies;
+	private List<StyleSheet> theDependController;
 
 	/** Creates the style sheet */
 	public AbstractStyleSheet() {
-		theDependencies = new StyleSheet[0];
-		theDependencyListener = event -> {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(event.getAttribute())) {
-				if(expr.getExpression() == event.getExpression())
-					break;
-				if(expr.getExpression() == null
-					|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
-					return;
-			}
-			styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
-		};
+		theDependencies = new DefaultObservableList<>();
+		theDependController = theDependencies.control(null);
 	}
 
 	@Override
-	public StyleSheet [] getConditionalDependencies() {
+	public ObservableList<StyleSheet> getConditionalDependencies() {
 		return theDependencies;
 	}
 
@@ -71,29 +46,12 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 		if(after == null)
 			idx = 0;
 		else {
-			idx = ArrayUtils.indexOf(theDependencies, after);
+			idx = theDependencies.indexOf(after);
 			if(idx < 0)
 				throw new IllegalArgumentException(after + " is not a dependency of " + this);
 			idx++;
 		}
-		theDependencies = ArrayUtils.add(theDependencies, depend, idx);
-		depend.addListener(theDependencyListener);
-		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				boolean foundOverride = false;
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
-					if(expr.getExpression() == sev.getExpression())
-						break;
-					if(expr.getExpression() == null
-						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-						foundOverride = true;
-						break;
-					}
-				}
-				if(!foundOverride)
-					styleChanged(attr, sev.getExpression(), null);
-			}
-		}
+		theDependController.add(idx, depend);
 	}
 
 	/**
@@ -102,47 +60,12 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	 * @param depend The dependency to add
 	 */
 	protected void addDependency(StyleSheet depend) {
-		theDependencies = ArrayUtils.add(theDependencies, depend);
-		depend.addListener(theDependencyListener);
-		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				boolean foundOverride = false;
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
-					if(expr.getExpression() == sev.getExpression())
-						break;
-					if(expr.getExpression() == null
-						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-						foundOverride = true;
-						break;
-					}
-				}
-				if(!foundOverride)
-					styleChanged(attr, sev.getExpression(), null);
-			}
-		}
+		theDependController.add(depend);
 	}
 
 	/** @param depend The dependency to remove */
 	protected void removeDependency(StyleSheet depend) {
-		int idx = ArrayUtils.indexOf(theDependencies, depend);
-		if(idx < 0)
-			return;
-		depend.removeListener(theDependencyListener);
-		theDependencies = ArrayUtils.remove(theDependencies, idx);
-		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				boolean foundOverride = false;
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
-					if(expr.getExpression() == null
-						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-						foundOverride = true;
-						break;
-					}
-				}
-				if(!foundOverride)
-					styleChanged(attr, sev.getExpression(), null);
-			}
-		}
+		theDependController.remove(depend);
 	}
 
 	/**
@@ -150,76 +73,9 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	 * @param depend The dependency to add in place of the given dependency to replace
 	 */
 	protected void replaceDependency(StyleSheet toReplace, StyleSheet depend) {
-		int idx = ArrayUtils.indexOf(theDependencies, depend);
+		int idx = theDependencies.indexOf(depend);
 		if(idx < 0)
 			throw new IllegalArgumentException(toReplace + " is not a dependency of " + this);
-		toReplace.removeListener(theDependencyListener);
-		java.util.HashSet<prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>> attrs = new java.util.HashSet<>();
-		for(StyleAttribute<?> attr : toReplace.allAttrs()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : toReplace.getExpressions(attr)) {
-				boolean foundOverride = false;
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
-					if(expr.getExpression() == sev.getExpression())
-						break;
-					if(expr.getExpression() == null
-						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-						foundOverride = true;
-						break;
-					}
-				}
-				if(!foundOverride) {
-					for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : depend.getExpressions(attr)) {
-						if(expr.getExpression() == null
-							|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-							foundOverride = true;
-							break;
-						}
-					}
-				}
-				if(!foundOverride)
-					attrs.add(new prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>(attr, sev.getExpression()));
-			}
-		}
-		theDependencies[idx] = depend;
-		depend.addListener(theDependencyListener);
-		for(StyleAttribute<?> attr : depend.allAttrs()) {
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : depend.getExpressions(attr)) {
-				boolean foundOverride = false;
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> expr : getExpressions(attr)) {
-					if(expr.getExpression() == sev.getExpression())
-						break;
-					if(expr.getExpression() == null
-						|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-						foundOverride = true;
-						break;
-					}
-				}
-				if(foundOverride)
-					attrs.add(new prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>>(attr, sev.getExpression()));
-			}
-		}
-		for(prisms.util.DualKey<StyleAttribute<?>, StateGroupTypeExpression<?>> attr : attrs)
-			styleChanged(attr.getKey1(), attr.getKey2(), null);
-	}
-
-	@Override
-	public Iterable<StyleAttribute<?>> allAttrs() {
-		StyleSheet [] deps = theDependencies;
-		Iterable<StyleAttribute<?>> [] iters = new Iterable[deps.length + 1];
-		iters[0] = allLocal();
-		for(int i = 0; i < deps.length; i++)
-			iters[i + 1] = deps[i].allAttrs();
-		return ArrayUtils.iterable(iters);
-	}
-
-	@Override
-	public <T> StyleExpressionValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] ret = getLocalExpressions(attr);
-		for(StyleSheet dep : theDependencies) {
-			StyleExpressionValue<StateGroupTypeExpression<?>, T> [] depRet = dep.getExpressions(attr);
-			if(depRet.length > 0)
-				ret = ArrayUtils.addAll(ret, depRet, org.muis.core.style.StyleValueHolder.STYLE_EXPRESSION_COMPARE);
-		}
-		return ret;
+		theDependController.set(idx, depend);
 	}
 }

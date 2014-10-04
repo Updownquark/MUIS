@@ -1,9 +1,12 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.*;
+import org.muis.core.rx.ObservableCollection;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
+import org.muis.core.rx.ObservableValue;
 
 /** Governs the set of properties that define how MUIS elements of different types render themselves */
-public interface MuisStyle extends Observable<StyleAttributeEvent<?>> {
+public interface MuisStyle {
 	/** @return The styles, in order, that this style depends on for attributes not set directly in this style */
 	ObservableList<MuisStyle> getDependencies();
 

@@ -32,7 +32,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultOb
 
 	/** @param value The initial expression value to hold */
 	protected StyleValueHolder(StyleExpressionValue<E, V> value) {
-		theController = control();
+		theController = control(null);
 		if(value != null)
 			theController.add(value);
 	}
@@ -92,7 +92,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultOb
 		} catch(CloneNotSupportedException e) {
 			throw new IllegalStateException(e);
 		}
-		ret.theController = ret.control();
+		ret.theController = ret.control(null);
 		return ret;
 	}
 }

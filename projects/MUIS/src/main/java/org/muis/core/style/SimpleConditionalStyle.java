@@ -2,7 +2,9 @@ package org.muis.core.style;
 
 import java.util.Set;
 
-import org.muis.core.rx.*;
+import org.muis.core.rx.DefaultObservableSet;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
 
 /**
  * Implements ConditionalStyle without dependencies
@@ -16,28 +18,18 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 
 	private java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, StyleValueHolder<E, ?>> theAttributes;
 
-	private DefaultObservable<StyleExpressionEvent<S, E, ?>> theExpressions;
-	private Observer<StyleExpressionEvent<S, E, ?>> theExprController;
-
 	private DefaultObservableSet<StyleAttribute<?>> theObservableAtts;
 	private Set<StyleAttribute<?>> theAttController;
 
 	/** Creates a SimpleStatefulStyle */
 	protected SimpleConditionalStyle() {
-		theExpressions = new DefaultObservable<>();
-		theExprController = theExpressions.control(null);
 		theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
 		theObservableAtts = new DefaultObservableSet<>();
-		theAttController = theObservableAtts.control();
+		theAttController = theObservableAtts.control(null);
 	}
 
 	@Override
-	public Observable<StyleExpressionEvent<S, E, ?>> expressions() {
-		return theExpressions;
-	}
-
-	@Override
-	public ObservableCollection<StyleAttribute<?>> allLocal() {
+	public ObservableSet<StyleAttribute<?>> allLocal() {
 		return theObservableAtts;
 	}
 
@@ -120,7 +112,6 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 			theObservableAtts.add(attr);
 		} else
 			holder.set(sev);
-		styleChanged(attr, exp, null);
 	}
 
 	/**
@@ -153,24 +144,12 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 */
 	protected void clear(StyleAttribute<?> attr, E exp) {
 		StyleValueHolder<E, ?> holder = theAttributes.get(attr);
-		if(holder != null && holder.remove(exp))
-			styleChanged(attr, exp, null);
+		if(holder != null)
+			holder.remove(exp);
 		if(holder.size() == 0) {
 			theAttributes.remove(attr);
 			theAttController.remove(attr);
 		}
-	}
-
-	/**
-	 * @param attr The attribute for which a style value has changed
-	 * @param expr The state expression for which a style value has changed
-	 * @param root The stateful style in which the style expression changed--may be this style or one of its dependencies or their
-	 *            dependencies, etc.
-	 */
-	protected void styleChanged(StyleAttribute<?> attr, E expr, S root) {
-		StyleExpressionEvent<S, E, ?> newEvent = new StyleExpressionEvent<>(root == null ? (S) this : root, (S) this,
-			(StyleAttribute<Object>) attr, expr);
-		theExprController.onNext(newEvent);
 	}
 
 	@Override
@@ -184,8 +163,6 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		ret.theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
 		for(java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<E, ?>> entry : theAttributes.entrySet())
 			ret.theAttributes.put(entry.getKey(), entry.getValue().clone());
-		ret.theExpressions = new DefaultObservable<>();
-		ret.theExprController = ret.theExpressions.control(null);
 		// Don't add the listeners--ret is a new style
 		return ret;
 	}

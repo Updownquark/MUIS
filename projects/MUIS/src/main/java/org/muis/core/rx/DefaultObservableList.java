@@ -21,6 +21,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
 	private DefaultObservable<Observable<E>> theBackingObservable;
 	private Observer<Observable<E>> theBackingController;
+	private DefaultObservable<Void> theChangeObservable;
+	private Observer<Void> theChangeController;
 
 	/** Creates the list */
 	public DefaultObservableList() {
@@ -29,12 +31,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 
 		theLock = new ReentrantReadWriteLock();
 		theBackingObservable = new DefaultObservable<>();
-		theBackingController = theBackingObservable.control(subscriber -> {
-			doLocked(() -> {
-				for(ObservableElement<E> el : theElements)
-					subscriber.onNext(el);
-			}, false);
-		});
+		theChangeObservable = new DefaultObservable<>();
+		theChangeController = theChangeObservable.control(null);
 	}
 
 	/**
@@ -46,6 +44,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		lock.lock();
 		try {
 			action.run();
+			theChangeController.onNext(null);
 		} finally {
 			lock.unlock();
 		}
@@ -57,10 +56,22 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	 *
 	 * @return The list to control this list's data.
 	 */
-	public List<E> control() {
+	public List<E> control(org.muis.core.rx.DefaultObservable.OnSubscribe<Observable<E>> onSubscribe) {
 		if(hasIssuedController.getAndSet(true))
 			throw new IllegalStateException("This observable set is already controlled");
+		theBackingController = theBackingObservable.control(subscriber -> {
+			doLocked(() -> {
+				for(ObservableElement<E> el : theElements)
+					subscriber.onNext(el);
+			}, false);
+			onSubscribe.onsubscribe(subscriber);
+		});
 		return new ObservableListController();
+	}
+
+	@Override
+	public Observable<Void> changes() {
+		return theChangeObservable;
 	}
 
 	@Override
@@ -97,12 +108,6 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		ret.theLock = new ReentrantReadWriteLock();
 		ret.hasIssuedController = new AtomicBoolean(false);
 		ret.theBackingObservable = new DefaultObservable<>();
-		ret.theBackingController = ret.theBackingObservable.control(subscriber -> {
-			doLocked(() -> {
-				for(ObservableElement<E> el : ret.theElements)
-					subscriber.onNext(el);
-			}, false);
-		});
 		return ret;
 	}
 

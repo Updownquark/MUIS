@@ -56,6 +56,11 @@ public class ComposedObservable<T> extends DefaultObservable<T> {
 		}
 	}
 
+	/** @return The observables that this observable uses as sources */
+	public Observable<?> [] getComposed() {
+		return theComposed.toArray(new Observable[theComposed.size()]);
+	}
+
 	private void fireNext() {
 		Object [] args = theInternalValues.toArray();
 		for(Object value : args)

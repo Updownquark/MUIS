@@ -3,9 +3,7 @@ package org.muis.core.style.stateful;
 import java.util.List;
 
 import org.muis.core.rx.DefaultObservableList;
-import org.muis.core.rx.Observable;
 import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.Observer;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 
@@ -51,100 +49,9 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 */
 	public AbstractStatefulStyle(StatefulStyle... dependencies) {
 		theDependencies = new DefaultObservableList<>();
-		theDependController=theDependencies.control();
+		theDependController = theDependencies.control(null);
 		for(StatefulStyle depend : dependencies)
 			theDependController.add(depend);
-
-		theDependencies.act((Observable<StatefulStyle> element) -> {
-			element.subscribe(new Observer<StatefulStyle>() {
-				StatefulStyle depend;
-
-				@Override
-				public <V extends StatefulStyle> void onNext(V value) {
-					java.util.HashSet<prisms.util.DualKey<StyleAttribute<Object>, StateExpression>> attrs = new java.util.HashSet<>();
-					if(depend != null) {
-						for(StyleAttribute<?> attr : depend.allAttrs()) {
-							for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-								boolean foundOverride = false;
-								for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
-									if(expr.getExpression() == sev.getExpression())
-										break;
-									if(expr.getExpression() == null
-										|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-										foundOverride = true;
-										break;
-									}
-								}
-								if(!foundOverride) {
-									for(StyleExpressionValue<StateExpression, ?> expr : value.getExpressions(attr)) {
-										if(expr.getExpression() == null
-											|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-											foundOverride = true;
-											break;
-										}
-									}
-								}
-								if(!foundOverride)
-									attrs.add(new prisms.util.DualKey<>((StyleAttribute<Object>) attr, sev.getExpression()));
-							}
-						}
-					}
-					depend = value;
-					depend
-						.expressions()
-						.takeUntil(element.completed())
-						.act(
-							event -> {
-								for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(event.getAttribute())) {
-									if(expr.getExpression() == event.getExpression())
-										break;
-									if(expr.getExpression() == null
-										|| (event.getExpression() != null && expr.getExpression().getWhenTrue(event.getExpression()) > 0))
-										return;
-								}
-								styleChanged(event.getAttribute(), event.getExpression(), event.getRootStyle());
-							});
-					for(StyleAttribute<?> attr : depend.allAttrs()) {
-						for(StyleExpressionValue<StateExpression, ?> sev : depend.getExpressions(attr)) {
-							boolean foundOverride = false;
-							for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
-								if(expr.getExpression() == sev.getExpression())
-									break;
-								if(expr.getExpression() == null
-									|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-									foundOverride = true;
-									break;
-								}
-							}
-							if(!foundOverride)
-								attrs.add(new prisms.util.DualKey<>((StyleAttribute<Object>) attr, sev.getExpression()));
-						}
-					}
-					for(prisms.util.DualKey<StyleAttribute<Object>, StateExpression> attr : attrs)
-						styleChanged(attr.getKey1(), attr.getKey2(), null);
-				}
-
-				@Override
-				public void onCompleted(StatefulStyle value) {
-					for(StyleAttribute<?> attr : value.allAttrs()) {
-						for(StyleExpressionValue<StateExpression, ?> sev : value.getExpressions(attr)) {
-							boolean foundOverride = false;
-							for(StyleExpressionValue<StateExpression, ?> expr : getExpressions(attr)) {
-								if(expr.getExpression() == sev.getExpression())
-									break;
-								if(expr.getExpression() == null
-									|| (sev.getExpression() != null && expr.getExpression().getWhenTrue(sev.getExpression()) > 0)) {
-									foundOverride = true;
-									break;
-								}
-							}
-							if(!foundOverride)
-								styleChanged(attr, sev.getExpression(), null);
-						}
-					}
-				}
-			});
-		});
 	}
 
 	@Override

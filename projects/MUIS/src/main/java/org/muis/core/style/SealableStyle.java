@@ -13,7 +13,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	private java.util.HashMap<StyleAttribute<?>, ObservableValue<?>> theValues;
 	private ObservableSet<StyleAttribute<?>> theObservableAttributes;
 
-	/** Always empty, just here so we can return the same value from the depenencies every time */
+	/** Always empty, just here so we can return the same value from the dependencies every time */
 	private final ObservableList<MuisStyle> theDepends;
 
 	private boolean isSealed;
@@ -120,22 +120,12 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		return ret;
 	}
 
-	@Override
-	public Subscription<StyleAttributeEvent<?>> subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
-		// Assume the style is sealed and immutable
-		return new Subscription<StyleAttributeEvent<?>>() {
-			@Override
-			public Subscription<StyleAttributeEvent<?>> subscribe(Observer<? super StyleAttributeEvent<?>> observer2) {
-				return this;
-			}
-
-			@Override
-			public void unsubscribe() {
-			}
-		};
-	}
-
 	class ConstantObservableSet extends AbstractSet<StyleAttribute<?>> implements ObservableSet<StyleAttribute<?>> {
+		@Override
+		public Observable<Void> changes() {
+			return (Observable<Void>) Observable.empty;
+		}
+
 		@Override
 		public Iterator<StyleAttribute<?>> iterator() {
 			if(isSealed)

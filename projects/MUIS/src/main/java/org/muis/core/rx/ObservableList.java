@@ -29,6 +29,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		ObservableList<E> outerList = this;
 		class MappedObservableList extends AbstractList<T> implements ObservableList<T> {
 			@Override
+			public Observable<Void> changes() {
+				return outerList.changes();
+			}
+
+			@Override
 			public int size() {
 				return outerList.size();
 			}
@@ -40,7 +45,10 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 			@Override
 			public int indexOf(Observable<T> obsEl) {
-				return outerList.indexOf(obsEl);
+				if(obsEl instanceof ComposedObservable)
+					return outerList.indexOf(((ComposedObservable<T>) obsEl).getComposed()[0]);
+				else
+					return -1;
 			}
 
 			@Override
@@ -78,28 +86,102 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		return new MappedObservableList();
 	}
 
+	default ObservableList<E> filterC(Function<E, Boolean> filter){
+		return filterMapC(value->{return filter.apply(value) ? value : null;});
+	}
+
+	@Override
+	default <T> ObservableList<T> filterMapC(Function<E, T> map){
+	}
+
 	default <T, V> ObservableList<V> combineC(Observable<T> arg, BiFunction<E, T, V> func) {
-		DefaultObservableList<V> ret = new DefaultObservableList<>();
-		List<V> controller = ret.control();
-		act(element -> {
-			element.subscribe(new Observer<E>() {
-				V theComposed;
+		ObservableList<E> outerList = this;
+		class CombinedObservableList extends AbstractList<V> implements ObservableList<V> {
+			private T theArgValue;
+			private boolean isArgSet;
 
-				@Override
-				public <V2 extends E> void onNext(V2 value) {
-					arg.takeUntil(element).act(value2 -> {
-						theComposed = func.apply(value, value2);
-						controller.add(theComposed);
-					});
-				}
+			@Override
+			public Observable<Void> changes() {
+				return outerList.changes();
+			}
 
-				@Override
-				public <V2 extends E> void onCompleted(V2 value) {
-					controller.remove(indexOf(element));
-				}
-			});
-		});
-		return ret;
+			@Override
+			public int size() {
+				return outerList.size();
+			}
+
+			@Override
+			public V get(int index) {
+				if(!isArgSet)
+					return null; // No way to poll the value
+				return func.apply(outerList.get(index), theArgValue);
+			}
+
+			@Override
+			public int indexOf(Observable<V> obsEl) {
+				if(obsEl instanceof ComposedObservable)
+					return outerList.indexOf(((ComposedObservable<T>) obsEl).getComposed()[0]);
+				else
+					return -1;
+			}
+
+			@Override
+			public Subscription<Observable<V>> subscribe(Observer<? super Observable<V>> observer) {
+				boolean [] complete = new boolean[1];
+				Subscription<Observable<E>> listSub = outerList.subscribe(new Observer<Observable<E>>() {
+					@Override
+					public <V2 extends Observable<E>> void onNext(V2 value) {
+						observer.onNext(value.combine(arg, func));
+					}
+
+					@Override
+					public <V2 extends Observable<E>> void onCompleted(V2 value) {
+						complete[0] = true;
+						observer.onCompleted(value.combine(arg, func));
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
+				if(complete[0])
+					return Observable.nullSubscribe(this);
+				Subscription<T> argSub = arg.subscribe(new Observer<T>() {
+					@Override
+					public <V2 extends T> void onNext(V2 value) {
+						theArgValue = value;
+						isArgSet = true;
+					}
+
+					@Override
+					public <V2 extends T> void onCompleted(V2 value) {
+						complete[0] = true;
+						observer.onCompleted(null);
+						listSub.unsubscribe();
+					}
+				});
+				if(complete[0])
+					return Observable.nullSubscribe(this);
+				return new Subscription<Observable<V>>() {
+					@Override
+					public Subscription<Observable<V>> subscribe(Observer<? super Observable<V>> observer2) {
+						if(complete[0])
+							return Observable.nullSubscribe(CombinedObservableList.this);
+						return CombinedObservableList.this.subscribe(observer2);
+					}
+
+					@Override
+					public void unsubscribe() {
+						if(complete[0])
+							return;
+						listSub.unsubscribe();
+						argSub.unsubscribe();
+					}
+				};
+			}
+		}
+		return new CombinedObservableList();
 	}
 
 	default <T, V> ObservableValue<V> first(Type type, Function<E, V> map) {
@@ -206,6 +288,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 				for(Observable<T> ob : obsEls)
 					observer.onNext(ob);
 				return Observable.nullSubscribe(this);
+			}
+
+			@Override
+			public Observable<Void> changes() {
+				return (Observable<Void>) Observable.empty;
 			}
 
 			@Override

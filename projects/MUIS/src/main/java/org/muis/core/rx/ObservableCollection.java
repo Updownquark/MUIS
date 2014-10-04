@@ -10,6 +10,8 @@ import java.util.function.Function;
  * @param <E> The type of element in the collection
  */
 public interface ObservableCollection<E> extends Collection<E>, Observable<Observable<E>> {
+	Observable<Void> changes();
+
 	/**
 	 * @param map The mapping function
 	 * @return An observable collection of a new type backed by this collection and the mapping function
@@ -17,6 +19,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	default <T> ObservableCollection<T> mapC(Function<E, T> map) {
 		ObservableCollection<E> outerColl = this;
 		class MappedObservableCollection extends java.util.AbstractCollection<T> implements ObservableCollection<T> {
+			@Override
+			public Observable<Void> changes() {
+				return outerColl.changes();
+			}
+
 			@Override
 			public int size() {
 				return outerColl.size();
@@ -86,6 +93,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	default <T> ObservableCollection<T> filterMapC(Function<E, T> filterMap) {
 		ObservableCollection<E> outerColl = this;
 		class MappedObservableCollection extends java.util.AbstractCollection<T> implements ObservableCollection<T> {
+			@Override
+			public Observable<Void> changes() {
+				return outerColl.changes();
+			}
+
 			@Override
 			public int size() {
 				int ret = 0;

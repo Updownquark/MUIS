@@ -20,6 +20,8 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
 	private DefaultObservable<Observable<E>> theBackingObservable;
 	private Observer<Observable<E>> theBackingController;
+	private DefaultObservable<Void> theChangeObservable;
+	private Observer<Void> theChangeController;
 
 	/** Creates the list */
 	public DefaultObservableSet() {
@@ -27,12 +29,8 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 
 		theLock = new ReentrantReadWriteLock();
 		theBackingObservable = new DefaultObservable<>();
-		theBackingController = theBackingObservable.control(subscriber -> {
-			doLocked(() -> {
-				for(ObservableElement<E> el : theValues.values())
-					subscriber.onNext(el);
-			}, false);
-		});
+		theChangeObservable = new DefaultObservable<>();
+		theChangeController = theChangeObservable.control(null);
 	}
 
 	/**
@@ -44,6 +42,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		lock.lock();
 		try {
 			action.run();
+			theChangeController.onNext(null);
 		} finally {
 			lock.unlock();
 		}
@@ -55,10 +54,22 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	 *
 	 * @return The list to control this list's data.
 	 */
-	public Set<E> control() {
+	public Set<E> control(org.muis.core.rx.DefaultObservable.OnSubscribe<Observable<E>> onSubscribe) {
 		if(hasIssuedController.getAndSet(true))
 			throw new IllegalStateException("This observable set is already controlled");
+		theBackingController = theBackingObservable.control(subscriber -> {
+			doLocked(() -> {
+				for(ObservableElement<E> el : theValues.values())
+					subscriber.onNext(el);
+			}, false);
+			onSubscribe.onsubscribe(subscriber);
+		});
 		return new ObservableSetController();
+	}
+
+	@Override
+	public Observable<Void> changes() {
+		return theChangeObservable;
 	}
 
 	@Override
@@ -105,12 +116,6 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		ret.theLock = new ReentrantReadWriteLock();
 		ret.hasIssuedController = new AtomicBoolean(false);
 		ret.theBackingObservable = new DefaultObservable<>();
-		ret.theBackingController = ret.theBackingObservable.control(subscriber -> {
-			doLocked(() -> {
-				for(ObservableElement<E> el : ret.theValues.values())
-					subscriber.onNext(el);
-			}, false);
-		});
 		return ret;
 	}
 

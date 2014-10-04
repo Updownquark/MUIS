@@ -1,12 +1,12 @@
 package org.muis.core.style.sheet;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import org.muis.core.MuisElement;
+import org.muis.core.rx.DefaultObservableSet;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionEvent;
-import org.muis.core.style.StyleExpressionListener;
 import org.muis.core.style.StyleExpressionValue;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
@@ -25,9 +25,8 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	private final Class<E> theType;
 
-	private TemplateRole [] theTemplatePaths;
-
-	private final java.util.concurrent.ConcurrentLinkedQueue<StyleExpressionListener<StatefulStyle, StateExpression>> theListeners;
+	private ObservableSet<TemplateRole> theTemplatePaths;
+	private Set<TemplateRole> theTPController;
 
 	/**
 	 * @param styleSheet The style sheet to get the style information from
@@ -35,17 +34,23 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 * @param type The element type to filter by
 	 */
 	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type) {
+		this(styleSheet, groupName, type, new DefaultObservableSet<>());
+		theTPController = ((DefaultObservableSet<TemplateRole>) theTemplatePaths).control(null);
+	}
+
+	/**
+	 * @param styleSheet The style sheet to get the style information from
+	 * @param groupName The group name to filter by
+	 * @param type The element type to filter by
+	 * @param roles The remotely-controlled set of template paths to filter by
+	 */
+	protected FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type, ObservableSet<TemplateRole> roles) {
 		theStyleSheet = styleSheet;
 		theGroupName = groupName;
 		if(type == null)
 			type = (Class<E>) MuisElement.class;
 		theType = type;
-		theTemplatePaths = new TemplateRole[0];
-		styleSheet.addListener(evt -> {
-			if(matchesFilter(evt.getExpression()))
-				styleChanged(evt.getAttribute(), evt.getExpression().getState());
-		});
-		theListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theTemplatePaths = roles;
 	}
 
 	/** @return The style sheet that this style gets its style information from */
@@ -64,26 +69,22 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	/** @return The template roles that this filter accepts */
-	public TemplateRole [] getTemplateRoles() {
-		return theTemplatePaths.clone();
+	public ObservableSet<TemplateRole> getTemplateRoles() {
+		return theTemplatePaths;
 	}
 
 	/** @param path The path to add to the filtering on this style sheet */
 	public void addTemplatePath(TemplateRole path) {
-		for(TemplateRole p : theTemplatePaths)
-			if(p.containsPath(path))
-				return;
-		TemplateRole [] paths = ArrayUtils.add(theTemplatePaths, path);
-		setTemplatePaths(paths);
+		if(theTPController == null)
+			throw new UnsupportedOperationException("This style sheet is not mutable");
+		theTPController.add(path);
 	}
 
 	/** @param path The path to remove from the filtering on this style sheet */
 	public void removeTemplatePath(TemplateRole path) {
-		int index = ArrayUtils.indexOf(theTemplatePaths, path);
-		if(index < 0)
-			return;
-		TemplateRole [] paths = ArrayUtils.remove(theTemplatePaths, index);
-		setTemplatePaths(paths);
+		if(theTPController == null)
+			throw new UnsupportedOperationException("This style sheet is not mutable");
+		theTPController.remove(path);
 	}
 
 	/**
@@ -91,54 +92,18 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 * @param newPath The path to add to the filtering on this style sheet
 	 */
 	public void replaceTemplatePath(TemplateRole oldPath, TemplateRole newPath) {
-		TemplateRole [] paths = theTemplatePaths;
-		boolean add = true;
-		for(TemplateRole p : paths)
-			if(p.containsPath(newPath)) {
-				add = false;
-				break;
-			}
-		int index = ArrayUtils.indexOf(paths, oldPath);
-		boolean remove = index >= 0;
-		if(remove) {
-			paths = ArrayUtils.remove(paths, index);
-			if(add)
-				paths = ArrayUtils.add(paths, newPath, index);
-		} else if(add)
-			paths = ArrayUtils.add(paths, newPath);
-		if(remove || add)
-			setTemplatePaths(paths);
+		if(theTPController == null)
+			throw new UnsupportedOperationException("This style sheet is not mutable");
+		theTPController.remove(oldPath);
+		theTPController.add(newPath);
 	}
 
 	/** @param newPaths The paths to set for the filtering on this style sheet */
 	protected void setTemplatePaths(TemplateRole [] newPaths) {
-		TemplateRole [] oldState = theTemplatePaths;
-		theTemplatePaths = newPaths;
-		Map<StyleAttribute<?>, List<StateExpression>> changedExprs = new java.util.HashMap<>();
-		for(StyleAttribute<?> attr : allLocal()) {
-			changedExprs.put(attr, new java.util.ArrayList<StateExpression>());
-			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : theStyleSheet.getExpressions(attr)) {
-				StateGroupTypeExpression<?> expr = sev.getExpression();
-				if(expr == null)
-					continue;
-				boolean oldMatch = matches(expr.getTemplateRole(), oldState);
-				boolean newMatch = matches(expr.getTemplateRole(), newPaths);
-				if(oldMatch != newMatch)
-					changedExprs.get(attr).add(expr.getState());
-			}
-		}
-		for(Map.Entry<StyleAttribute<?>, List<StateExpression>> value : changedExprs.entrySet())
-			for(StateExpression exp : value.getValue())
-				styleChanged(value.getKey(), exp);
-	}
-
-	private static boolean matches(TemplateRole path, TemplateRole [] paths) {
-		if(path == null)
-			return true;
-		for(TemplateRole p : paths)
-			if(p.containsPath(path))
-				return true;
-		return false;
+		if(theTPController == null)
+			throw new UnsupportedOperationException("This style sheet is not mutable");
+		theTPController.clear();
+		theTPController.addAll(java.util.Arrays.asList(newPaths));
 	}
 
 	/**
@@ -158,57 +123,27 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	@Override
-	public StatefulStyle [] getConditionalDependencies() {
-		return new StatefulStyle[0];
+	public ObservableList<StatefulStyle> getConditionalDependencies() {
+		return theStyleSheet.getConditionalDependencies().mapC(ss -> new FilteredStyleSheet<>(ss, theGroupName, theType, theTemplatePaths));
 	}
 
 	@Override
-	public Iterable<StyleAttribute<?>> allLocal() {
-		return () -> {
-			return ArrayUtils.conditionalIterator(theStyleSheet.allAttrs().iterator(), value-> {
-				for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> exp : theStyleSheet.getExpressions(value))
-					if(matchesFilter(exp.getExpression()))
-						return value;
+	public ObservableSet<StyleAttribute<?>> allLocal() {
+		ObservableSet<StyleAttribute<?>> ret = theStyleSheet.allLocal();
+		ret = ret.combineC(theTemplatePaths.changes(), (attr, v) -> attr);
+		ret = ret.filterC(attr -> {
+			return !getLocalExpressions(attr).isEmpty();
+		});
+		return ret;
+	}
+
+	@Override
+	public <T> ObservableList<StyleExpressionValue<StateExpression, T>> getLocalExpressions(StyleAttribute<T> attr) {
+		return theStyleSheet.getLocalExpressions(attr).combineC(theTemplatePaths.changes(), (sev, v) -> sev).filterMapC(sev -> {
+			if(matchesFilter(sev.getExpression()))
+				return new StyleExpressionValue<>(sev.getExpression().getState(), sev.getValue());
+			else
 				return null;
-			}, false);
-		};
-	}
-
-	@Override
-	public Iterable<StyleAttribute<?>> allAttrs() {
-		return allLocal();
-	}
-
-	@Override
-	public <T> StyleExpressionValue<StateExpression, T> [] getLocalExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] exprs = theStyleSheet.getExpressions(attr);
-		java.util.ArrayList<StyleExpressionValue<StateExpression, T>> ret = new java.util.ArrayList<>();
-		for(StyleExpressionValue<StateGroupTypeExpression<?>, T> exp : exprs)
-			if(matchesFilter(exp.getExpression()))
-				ret.add(new StyleExpressionValue<>(exp.getExpression().getState(), exp.getValue()));
-		return ret.toArray(new StyleExpressionValue[ret.size()]);
-	}
-
-	@Override
-	public <T> StyleExpressionValue<StateExpression, T> [] getExpressions(StyleAttribute<T> attr) {
-		return getLocalExpressions(attr);
-	}
-
-	@Override
-	public void addListener(StyleExpressionListener<StatefulStyle, StateExpression> listener) {
-		if(listener != null)
-			theListeners.add(listener);
-	}
-
-	@Override
-	public void removeListener(StyleExpressionListener<StatefulStyle, StateExpression> listener) {
-		theListeners.remove(listener);
-	}
-
-	void styleChanged(StyleAttribute<?> attr, StateExpression exp) {
-		StyleExpressionEvent<StatefulStyle, StateExpression, ?> evt = new StyleExpressionEvent<>(this, this, (StyleAttribute<Object>) attr,
-			exp);
-		for(StyleExpressionListener<StatefulStyle, StateExpression> listener : theListeners)
-			listener.eventOccurred(evt);
+		});
 	}
 }

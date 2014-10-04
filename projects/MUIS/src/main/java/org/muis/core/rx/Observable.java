@@ -259,6 +259,14 @@ public interface Observable<T> {
 		return ret;
 	}
 
+	/** An empty observable that never does anything */
+	public static Observable<?> empty = new Observable<Object>() {
+		@Override
+		public Subscription<Object> subscribe(Observer<? super Object> observer) {
+			return nullSubscribe(this);
+		}
+	};
+
 	/**
 	 * @param <T> The type of the observable to create
 	 * @param value The value for the observable

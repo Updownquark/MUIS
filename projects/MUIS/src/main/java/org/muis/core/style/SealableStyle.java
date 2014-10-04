@@ -77,12 +77,12 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	@Override
-	public ObservableCollection<StyleAttribute<?>> attributes() {
+	public ObservableSet<StyleAttribute<?>> attributes() {
 		return theObservableAttributes;
 	}
 
 	@Override
-	public ObservableCollection<StyleAttribute<?>> localAttributes() {
+	public ObservableSet<StyleAttribute<?>> localAttributes() {
 		return theObservableAttributes;
 	}
 

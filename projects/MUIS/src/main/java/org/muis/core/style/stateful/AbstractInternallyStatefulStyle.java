@@ -6,44 +6,28 @@ import java.util.Set;
 
 import org.muis.core.mgr.MuisState;
 import org.muis.core.model.MuisDocumentModel.StyleListener;
-import org.muis.core.rx.DefaultObservableValue;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
+import org.muis.core.rx.*;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
 
-import prisms.lang.Type;
 import prisms.util.ArrayUtils;
 
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
 	private MuisState [] theCurrentState;
 
-	private DefaultObservableValue<Set<MuisState>> theStates;
-	private Observer<ObservableValueEvent<Set<MuisState>>> theStateController;
+	private DefaultObservableSet<MuisState> theState;
+	private Set<MuisState> theStateController;
 
 	private final StyleListener theDependencyStyleListener;
 
 	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
 		theCurrentState = new MuisState[0];
-		theStates = new DefaultObservableValue<Set<MuisState>>() {
-			private final Type theType = new Type(Set.class, new Type(MuisState.class));
-
-			@Override
-			public Type getType() {
-				return theType;
-			}
-
-			@Override
-			public Set<MuisState> get() {
-				return toSet(theCurrentState);
-			}
-		};
-		theStateController = theStates.control(null);
+		theState = new DefaultObservableSet<>();
+		theStateController = theState.control();
 		expressions().act(evt -> {
 			if(evt.getExpression() != null && !evt.getExpression().matches(theCurrentState))
 				return;
@@ -66,8 +50,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	}
 
 	@Override
-	public ObservableValue<Set<MuisState>> states() {
-		return theStates;
+	public ObservableSet<MuisState> getState() {
+		return theState;
 	}
 
 	private static Set<MuisState> toSet(MuisState... states) {
@@ -107,12 +91,6 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			((InternallyStatefulStyle) depend).addListener(theDependencyStyleListener);
 	}
 
-	/** @return The current internal state of this style */
-	@Override
-	public MuisState [] getState() {
-		return theCurrentState.clone();
-	}
-
 	/**
 	 * Adds a state to this style's internal state set, firing appropriate events for style attributes that become active or inactive
 	 * consequently
@@ -120,9 +98,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	 * @param state The state to add
 	 */
 	protected void addState(MuisState state) {
-		if(ArrayUtils.contains(theCurrentState, state))
-			return;
-		setState(ArrayUtils.add(theCurrentState, state));
+		theStateController.add(state);
 	}
 
 	/**
@@ -132,10 +108,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	 * @param state The state to remove
 	 */
 	protected void removeState(MuisState state) {
-		MuisState [] newState = ArrayUtils.remove(theCurrentState, state);
-		if(newState == theCurrentState)
-			return;
-		setState(newState);
+		theStateController.remove(state);
 	}
 
 	/**
@@ -145,6 +118,9 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	 * @param newState The new state set for this style
 	 */
 	protected void setState(MuisState... newState) {
+		theStateController.clear();
+		theStateController.addAll(java.util.Arrays.asList(newState));
+		// TODO
 		MuisState [] oldState = theCurrentState;
 		StatefulStyle [] deps = getConditionalDependencies();
 		theCurrentState = newState;
@@ -199,53 +175,38 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	}
 
 	@Override
-	public MuisStyle [] getDependencies() {
-		StatefulStyle [] depends = getConditionalDependencies();
-		MuisState [] state = theCurrentState;
-		MuisStyle [] ret = new MuisStyle[depends.length];
-		for(int i = 0; i < ret.length; i++) {
-			if(depends[i] instanceof InternallyStatefulStyle)
-				ret[i] = (InternallyStatefulStyle) depends[i];
+	public ObservableList<MuisStyle> getDependencies() {
+		return getConditionalDependencies().mapC(depend -> {
+			if(depend instanceof InternallyStatefulStyle)
+				return (InternallyStatefulStyle) depend;
 			else
-				ret[i] = new StatefulStyleSample(depends[i], state);
-		}
-		return ret;
+				return new StatefulStyleSample(depend, theState);
+		});
 	}
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
 		for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(attr))
-			if(sev.getExpression() == null || sev.getExpression().matches(theCurrentState))
+			if(sev.getExpression() == null || sev.getExpression().matches(theState))
 				return true;
 		return false;
 	}
 
 	@Override
-	public boolean isSetDeep(StyleAttribute<?> attr) {
-		if(isSet(attr))
-			return true;
-		for(StatefulStyle dep : getConditionalDependencies()) {
-			if(dep instanceof InternallyStatefulStyle) {
-				if(((InternallyStatefulStyle) dep).isSetDeep(attr))
-					return true;
-			} else {
-				if(new StatefulStyleSample(dep, theCurrentState).isSetDeep(attr))
-					return true;
-			}
-		}
-		return false;
-	}
-
-	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		for(StyleExpressionValue<StateExpression, T> value : getLocalExpressions(attr))
-			if(value.getExpression() == null || value.getExpression().matches(theCurrentState))
-				return value.getValue();
-		return null;
+		return getLocalExpressions(attr).combineC(theState,
+			(StyleExpressionValue<StateExpression, T> sev, Observable<MuisState> state) -> {
+				if(sev.getExpression() == null || sev.getExpression().matches(theState))
+					return sev.getValue();
+				return null;
+			}).first(attr.getType().getType(), value -> {
+			return value != null ? value : null;
+		});
 	}
 
 	@Override
-	public Iterable<StyleAttribute<?>> localAttributes() {
+	public ObservableCollection<StyleAttribute<?>> localAttributes() {
+		return allLocal().filterC;
 		return () -> {
 			final MuisState [] stateCapture = theCurrentState;
 			return ArrayUtils.conditionalIterator(allLocal().iterator(), value -> {

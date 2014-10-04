@@ -83,6 +83,11 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	}
 
 	@Override
+	public int indexOf(Observable<E> obsEl) {
+		return theElements.indexOf(obsEl);
+	}
+
+	@Override
 	protected DefaultObservableList<E> clone() throws CloneNotSupportedException {
 		DefaultObservableList<E> ret = (DefaultObservableList<E>) super.clone();
 		ret.theValues = (ArrayList<E>) theValues.clone();

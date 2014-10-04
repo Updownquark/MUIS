@@ -89,7 +89,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 			@Override
 			public int size() {
 				int ret = 0;
-				for(E value : ObservableCollection.this)
+				for(E value : outerColl)
 					if(filterMap.apply(value) != null)
 						ret++;
 				return ret;
@@ -163,7 +163,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 
 	/**
 	 * @param coll The collection to flatten
-	 * @return A collection containing all elements of all colletions in the outer collection
+	 * @return A collection containing all elements of all collections in the outer collection
 	 */
 	public static <T> ObservableCollection<T> flatten(ObservableCollection<? extends ObservableCollection<T>> coll) {
 		CompoundObservableSet<T> ret = new CompoundObservableSet<>();

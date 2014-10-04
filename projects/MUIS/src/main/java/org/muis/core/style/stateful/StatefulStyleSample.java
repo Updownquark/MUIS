@@ -11,7 +11,7 @@ import org.muis.core.style.StyleExpressionValue;
 public class StatefulStyleSample implements MuisStyle {
 	private final StatefulStyle theStatefulStyle;
 
-	private final MuisState [] theState;
+	private final ObservableSet<MuisState> theState;
 
 	private Observable<StyleAttributeEvent<?>> theEventObservable;
 
@@ -19,12 +19,12 @@ public class StatefulStyleSample implements MuisStyle {
 	 * @param statefulStyle The stateful style to get the attribute information from
 	 * @param state The state to get the attribute information for
 	 */
-	public StatefulStyleSample(StatefulStyle statefulStyle, MuisState [] state) {
+	public StatefulStyleSample(StatefulStyle statefulStyle, ObservableSet<MuisState> state) {
 		theStatefulStyle = statefulStyle;
 		theState = state;
 		theEventObservable = theStatefulStyle.expressions().map(event -> {
 			StyleAttribute<Object> attr = (StyleAttribute<Object>) event.getAttribute();
-			return new StyleAttributeEvent<Object>(null, this, this, attr, get(attr, true).get());
+			return new StyleAttributeEvent<>(null, this, this, attr, get(attr, true).get());
 		});
 	}
 
@@ -34,7 +34,7 @@ public class StatefulStyleSample implements MuisStyle {
 	}
 
 	/** @return The state that this style gets its attribute information from its stateful style for */
-	public MuisState [] getState() {
+	public ObservableSet<MuisState> getState() {
 		return theState;
 	}
 
@@ -64,7 +64,7 @@ public class StatefulStyleSample implements MuisStyle {
 	}
 
 	@Override
-	public ObservableCollection<StyleAttribute<?>> localAttributes() {
+	public ObservableSet<StyleAttribute<?>> localAttributes() {
 		return theStatefulStyle.allLocal().filterMapC(attr -> {
 			for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(attr))
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))

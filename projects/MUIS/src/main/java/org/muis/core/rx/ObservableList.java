@@ -2,6 +2,7 @@ package org.muis.core.rx;
 
 import java.util.AbstractList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import prisms.lang.Type;
@@ -13,6 +14,12 @@ import prisms.lang.Type;
  * @param <E> The type of element in the list
  */
 public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
+	/**
+	 * @param obsEl The observable element in this list
+	 * @return The index of the given element in this list, or -1 if the element is not from this list
+	 */
+	int indexOf(Observable<E> obsEl);
+
 	/**
 	 * @param map The mapping function
 	 * @return An observable list of a new type backed by this list and the mapping function
@@ -29,6 +36,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			@Override
 			public T get(int index) {
 				return map.apply(outerList.get(index));
+			}
+
+			@Override
+			public int indexOf(Observable<T> obsEl) {
+				return outerList.indexOf(obsEl);
 			}
 
 			@Override
@@ -64,6 +76,30 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 		}
 		return new MappedObservableList();
+	}
+
+	default <T, V> ObservableList<V> combineC(Observable<T> arg, BiFunction<E, T, V> func) {
+		DefaultObservableList<V> ret = new DefaultObservableList<>();
+		List<V> controller = ret.control();
+		act(element -> {
+			element.subscribe(new Observer<E>() {
+				V theComposed;
+
+				@Override
+				public <V2 extends E> void onNext(V2 value) {
+					arg.takeUntil(element).act(value2 -> {
+						theComposed = func.apply(value, value2);
+						controller.add(theComposed);
+					});
+				}
+
+				@Override
+				public <V2 extends E> void onCompleted(V2 value) {
+					controller.remove(indexOf(element));
+				}
+			});
+		});
+		return ret;
 	}
 
 	default <T, V> ObservableValue<V> first(Type type, Function<E, V> map) {
@@ -161,15 +197,25 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	 */
 	public static <T> ObservableList<T> constant(List<T> list) {
 		List<T> constList = java.util.Collections.unmodifiableList(list);
+		List<Observable<T>> obsEls = new java.util.ArrayList<>();
+		for(T value : constList)
+			obsEls.add(Observable.constant(value));
 		class ConstantObservableList extends AbstractList<T> implements ObservableList<T> {
 			@Override
 			public Subscription<Observable<T>> subscribe(Observer<? super Observable<T>> observer) {
+				for(Observable<T> ob : obsEls)
+					observer.onNext(ob);
 				return Observable.nullSubscribe(this);
 			}
 
 			@Override
 			public T get(int index) {
 				return constList.get(index);
+			}
+
+			@Override
+			public int indexOf(Observable<T> obsEl) {
+				return obsEls.indexOf(obsEl);
 			}
 
 			@Override

@@ -1,6 +1,7 @@
 package org.muis.core.style.stateful;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -108,7 +109,7 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		}
 
 		@Override
-		public boolean matches(MuisState... states) {
+		public boolean matches(Set<MuisState> states) {
 			for(StateExpression exp : this)
 				if(!exp.matches(states))
 					return false;
@@ -230,7 +231,7 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		}
 
 		@Override
-		public boolean matches(MuisState... states) {
+		public boolean matches(Set<MuisState> states) {
 			for(StateExpression exp : this)
 				if(exp.matches(states))
 					return true;
@@ -325,7 +326,7 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		}
 
 		@Override
-		public boolean matches(MuisState... states) {
+		public boolean matches(Set<MuisState> states) {
 			return !theWrapped.matches(states);
 		}
 
@@ -390,8 +391,8 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		}
 
 		@Override
-		public boolean matches(MuisState... states) {
-			return prisms.util.ArrayUtils.contains(states, theState);
+		public boolean matches(Set<MuisState> states) {
+			return states.contains(theState);
 		}
 
 		@Override
@@ -450,11 +451,11 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 	 * @param states The state of the engine to evaluate against
 	 * @return Whether this expression returns true for the given state set
 	 */
-	public abstract boolean matches(MuisState... states);
+	public abstract boolean matches(Set<MuisState> states);
 
 	/**
 	 * @return A state expression that is always {@link #equals(Object) equal} to any state expression that returns the same values from
-	 *         {@link #matches(MuisState...)} for every possible set of states
+	 *         {@link #matches(Set)} for every possible set of states
 	 */
 	public abstract StateExpression getUnique();
 

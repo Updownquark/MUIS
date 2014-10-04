@@ -260,6 +260,22 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * @param <T> The type of the observable to create
+	 * @param value The value for the observable
+	 * @return An observable that pushes the given value as soon as it is subscribed to and never completes
+	 */
+	public static <T> Observable<T> constant(T value) {
+		return new Observable<T>() {
+			@Override
+			public Subscription<T> subscribe(Observer<? super T> observer) {
+				observer.onNext(value);
+				return nullSubscribe(this);
+			}
+		};
+	}
+
+	/**
+	 * @param <T> The type of value the observable returns
 	 * @param obs The observer to get compile-time type information for (not used)
 	 * @return A subscription that does nothing
 	 */

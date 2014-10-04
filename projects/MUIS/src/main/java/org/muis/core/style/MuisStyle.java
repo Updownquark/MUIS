@@ -1,9 +1,6 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.Observable;
-import org.muis.core.rx.ObservableCollection;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.*;
 
 /** Governs the set of properties that define how MUIS elements of different types render themselves */
 public interface MuisStyle extends Observable<StyleAttributeEvent<?>> {
@@ -24,7 +21,7 @@ public interface MuisStyle extends Observable<StyleAttributeEvent<?>> {
 	<T> ObservableValue<T> getLocal(StyleAttribute<T> attr);
 
 	/** @return Attributes set locally in this style */
-	ObservableCollection<StyleAttribute<?>> localAttributes();
+	ObservableSet<StyleAttribute<?>> localAttributes();
 
 	/**
 	 * @param attr The attribute to check
@@ -40,7 +37,7 @@ public interface MuisStyle extends Observable<StyleAttributeEvent<?>> {
 	}
 
 	/** @return Attributes set in this style or any of its dependencies */
-	default ObservableCollection<StyleAttribute<?>> attributes() {
+	default ObservableSet<StyleAttribute<?>> attributes() {
 		org.muis.core.rx.CompoundObservableSet<StyleAttribute<?>> ret = new org.muis.core.rx.CompoundObservableSet<>();
 		ret.addSet(localAttributes());
 		ret.addSet(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));

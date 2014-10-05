@@ -48,7 +48,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return theStatefulStyle.getLocalExpressions(attr).first(attr.getType().getType(),
+		return theStatefulStyle.getLocalExpressions(attr).find(attr.getType().getType(),
 			(
 			StyleExpressionValue<StateExpression, T> sev) -> {
 			if(sev.getExpression() == null || sev.getExpression().matches(theState))

@@ -184,7 +184,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		return new CombinedObservableList();
 	}
 
-	default <T, V> ObservableValue<V> first(Type type, Function<E, V> map) {
+	default <T, V> ObservableValue<V> find(Type type, Function<E, V> map) {
 		return new DefaultObservableValue<V>() {
 			private V theValue;
 

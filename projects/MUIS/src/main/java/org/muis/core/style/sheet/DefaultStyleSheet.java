@@ -1,22 +1,13 @@
 package org.muis.core.style.sheet;
 
+import org.muis.core.rx.ObservableList;
 import org.muis.core.style.StyleAttribute;
 
 /** A default dependency-less, mutable implementation of {@link StyleSheet} */
 public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleSheet {
 	@Override
-	public StyleSheet [] getConditionalDependencies() {
-		return new StyleSheet[0];
-	}
-
-	@Override
-	public Iterable<StyleAttribute<?>> allAttrs() {
-		return allLocal();
-	}
-
-	@Override
-	public <T> org.muis.core.style.StyleExpressionValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
-		return getLocalExpressions(attr);
+	public ObservableList<StyleSheet> getConditionalDependencies() {
+		return (ObservableList<StyleSheet>) org.muis.core.rx.Observable.empty;
 	}
 
 	@Override

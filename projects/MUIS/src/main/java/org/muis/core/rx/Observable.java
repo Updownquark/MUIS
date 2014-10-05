@@ -32,36 +32,79 @@ public interface Observable<T> {
 
 	/** @return An observable for this observable's errors */
 	default Observable<Throwable> error() {
-		DefaultObservable<Throwable> ret = new DefaultObservable<>();
-		Observer<Throwable> controller = ret.control(null);
-		subscribe(new Observer<T>() {
+		Observable<T> outer = this;
+		class ErrorObserver implements Observer<T> {
+			private final Observer<? super Throwable> wrapped;
+
+			ErrorObserver(Observer<? super Throwable> wrap) {
+				wrapped = wrap;
+			}
+
 			@Override
 			public <V extends T> void onNext(V value) {
 			}
 
 			@Override
 			public void onError(Throwable e) {
-				controller.onNext(e);
+				wrapped.onNext(e);
 			}
-		});
-		return ret;
+		}
+		return new Observable<Throwable>() {
+			@Override
+			public Subscription<Throwable> subscribe(Observer<? super Throwable> observer) {
+				Subscription<T> sub = outer.subscribe(new ErrorObserver(observer));
+				return new Subscription<Throwable>() {
+					@Override
+					public Subscription<Throwable> subscribe(Observer<? super Throwable> observer2) {
+						return sub.error().subscribe(observer2);
+					}
+
+					@Override
+					public void unsubscribe() {
+						sub.unsubscribe();
+					}
+				};
+			}
+		};
 	}
 
 	/** @return An observable that will fire once when this observable completes (the value will be null) */
 	default Observable<T> completed() {
-		DefaultObservable<T> ret = new DefaultObservable<>();
-		Observer<T> controller = ret.control(null);
-		subscribe(new Observer<T>() {
+		Observable<T> outer = this;
+		class CompleteObserver implements Observer<T> {
+			private final Observer<? super T> wrapped;
+
+			CompleteObserver(Observer<? super T> wrap) {
+				wrapped = wrap;
+			}
+
 			@Override
 			public <V extends T> void onNext(V value) {
 			}
 
 			@Override
 			public <V extends T> void onCompleted(V value) {
-				controller.onNext(value);
+				wrapped.onNext(value);
+				wrapped.onCompleted(value);
 			}
-		});
-		return ret;
+		}
+		return new Observable<T>() {
+			@Override
+			public Subscription<T> subscribe(Observer<? super T> observer) {
+				Subscription<T> sub = outer.subscribe(new CompleteObserver(observer));
+				return new Subscription<T>() {
+					@Override
+					public Subscription<T> subscribe(Observer<? super T> observer2) {
+						return sub.completed().subscribe(observer2);
+					}
+
+					@Override
+					public void unsubscribe() {
+						sub.unsubscribe();
+					}
+				};
+			}
+		};
 	}
 
 	/**

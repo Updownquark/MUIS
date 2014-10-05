@@ -70,4 +70,8 @@ public interface MuisStyle {
 				return null;
 		}, dependValue);
 	}
+
+	default org.muis.core.rx.Observable<StyleAttributeEvent<?>> allChanges(){
+		return attributes().mapC(attr->get(attr, true))
+	}
 }

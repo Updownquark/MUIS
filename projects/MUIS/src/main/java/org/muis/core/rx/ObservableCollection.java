@@ -194,4 +194,15 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		});
 		return ret;
 	}
+
+	public static <T> Observable<T> fold(ObservableCollection<? extends Observable<T>> coll) {
+		return new Observable<T>() {
+			@Override
+			public Subscription<T> subscribe(Observer<? super T> observer) {
+
+				// TODO Auto-generated method stub
+				return null;
+			}
+		};
+	}
 }

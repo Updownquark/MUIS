@@ -315,18 +315,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 * @param time The animation time to update with
 	 */
 	protected void setAnimationTime(long time) {
-		java.util.HashSet<String> changedVars = new java.util.HashSet<>();
-		for(AnimatedVariable var : theVariables.values()) {
+		for(AnimatedVariable var : theVariables.values())
 			var.setTime(time);
-		}
-		// Iterate through local attributes and fire events for variable-dependent values
-		// TODO This may not be necessary when styles are all rx-ified since things should be listening to the observable variables
-		for(StyleAttribute<?> attr : allLocal()) {
-			for(StyleExpressionEvalValue<StateGroupTypeExpression<?>, ?> sev : getLocalExpressions(attr)) {
-				if(hasVariable(sev.getValueExpression(), changedVars))
-					styleChanged(attr, sev.getExpression(), this);
-			}
-		}
 	}
 
 	/**
@@ -350,20 +340,6 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		return isPaused;
 	}
 
-	/**
-	 * @param value The expression to check
-	 * @param vars A set of variable names to check for. May be null to check for any variable.
-	 * @return Whether the given expression is dependent on the value of an external variable
-	 */
-	public static boolean hasVariable(ParsedItem value, java.util.Set<String> vars) {
-		if(value instanceof prisms.lang.types.ParsedIdentifier)
-			return vars == null || vars.contains(((prisms.lang.types.ParsedIdentifier) value).getName());
-		for(ParsedItem depend : value.getDependents())
-			if(hasVariable(depend, vars))
-				return true;
-		return false;
-	}
-
 	@Override
 	public Iterator<AnimatedVariable> iterator() {
 		return prisms.util.ArrayUtils.immutableIterator(theVariables.values().iterator());
@@ -376,7 +352,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			value = (T) new ConstantItem(attr.getType().getType(), null);
 		else if(!(value instanceof ParsedItem))
 			value = (T) new ConstantItem(new prisms.lang.Type(value.getClass()), value);
-		return new StyleExpressionEvalValue<>(this, attr, exp, (ParsedItem) value);
+		return new StyleExpressionValue<>(this, attr, exp, (ParsedItem) value);
 	}
 
 	/**

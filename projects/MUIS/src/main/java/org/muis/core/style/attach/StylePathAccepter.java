@@ -85,12 +85,12 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		}
 		java.util.HashSet<StyleAttribute<?>> clearStyleAtts = new java.util.HashSet<>();
 		if(event.getOldValue() != null)
-			for(StyleAttribute<?> styleAtt : event.getOldValue())
+			for(StyleAttribute<?> styleAtt : event.getOldValue().attributes())
 				clearStyleAtts.add(styleAtt);
 		if(event.getValue() != null)
-			for(StyleAttribute<?> styleAtt : event.getValue()) {
+			for(StyleAttribute<?> styleAtt : event.getValue().attributes()) {
 				clearStyleAtts.remove(styleAtt);
-				target.set((StyleAttribute<Object>) styleAtt, expr, event.getValue().get(styleAtt));
+				target.set((StyleAttribute<Object>) styleAtt, expr, event.getValue().get(styleAtt, true));
 			}
 		for(StyleAttribute<?> styleAtt : clearStyleAtts)
 			target.clear(styleAtt, expr);

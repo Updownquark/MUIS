@@ -80,7 +80,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))
 					return sev.getValue();
 				return null;
-			}).first(attr.getType().getType(), value -> {
+			}).find(attr.getType().getType(), value -> {
 			return value != null ? value : null;
 		});
 	}

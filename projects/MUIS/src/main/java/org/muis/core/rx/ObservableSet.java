@@ -6,23 +6,95 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import prisms.lang.Type;
+
 /**
  * A set whose content can be observed
  *
  * @param <E> The type of element in the set
  */
 public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
+	@Override
+	default ObservableValue<? extends ObservableSet<E>> changes() {
+		return new ObservableValue<ObservableSet<E>>() {
+			ObservableSet<E> coll = ObservableSet.this;
+
+			@Override
+			public Type getType() {
+				return new Type(ObservableSet.class, coll.getType());
+			}
+
+			@Override
+			public ObservableSet<E> get() {
+				return coll;
+			}
+
+			@Override
+			public Subscription<ObservableValueEvent<ObservableSet<E>>> subscribe(
+				Observer<? super ObservableValueEvent<ObservableSet<E>>> observer) {
+				ObservableValue<ObservableSet<E>> obsVal = this;
+				Subscription<ObservableElement<E>> outerSub = coll.subscribe(new Observer<ObservableElement<E>>() {
+					boolean [] finishedInitial = new boolean[1];
+
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V value) {
+						value.subscribe(new Observer<ObservableValueEvent<E>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onNext(V2 value2) {
+								if(finishedInitial[0])
+									observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
+							}
+
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 value2) {
+								observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
+							}
+
+							@Override
+							public void onError(Throwable e) {
+								observer.onError(e);
+							}
+						});
+						finishedInitial[0] = true;
+					}
+
+					@Override
+					public <V extends ObservableElement<E>> void onCompleted(V value) {
+						observer.onCompleted(new ObservableValueEvent<>(obsVal, null, coll, null));
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
+				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
+				return new DefaultSubscription<ObservableValueEvent<ObservableSet<E>>>(this) {
+					@Override
+					public void unsubscribeSelf() {
+						outerSub.unsubscribe();
+					}
+				};
+			}
+		};
+	}
+
 	/**
 	 * @param map The mapping function
 	 * @return An observable collection of a new type backed by this collection and the mapping function
 	 */
 	@Override
-	default <T> ObservableSet<T> mapC(Function<E, T> map) {
+	default <T> ObservableSet<T> mapC(Function<? super E, T> map) {
+		return mapC(ComposedObservableValue.getReturnType(map), map);
+	}
+
+	@Override
+	default <T> ObservableSet<T> mapC(Type type, Function<? super E, T> map) {
 		ObservableSet<E> outerSet = this;
 		class MappedObservableSet extends java.util.AbstractSet<T> implements ObservableSet<T> {
 			@Override
-			public Observable<Void> changes() {
-				return outerSet.changes();
+			public Type getType() {
+				return type;
 			}
 
 			@Override
@@ -53,16 +125,16 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<Observable<T>> subscribe(Observer<? super Observable<T>> observer) {
-				Subscription<Observable<E>> sub = outerSet.subscribe(new Observer<Observable<E>>() {
+			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
+				Subscription<ObservableElement<E>> sub = outerSet.subscribe(new Observer<ObservableElement<E>>() {
 					@Override
-					public <V extends Observable<E>> void onNext(V value) {
-						observer.onNext(value.map(map));
+					public <V extends ObservableElement<E>> void onNext(V value) {
+						observer.onNext(value.mapV(map));
 					}
 
 					@Override
-					public <V extends Observable<E>> void onCompleted(V value) {
-						observer.onCompleted(value.map(map));
+					public <V extends ObservableElement<E>> void onCompleted(V value) {
+						observer.onCompleted(value.mapV(map));
 					}
 
 					@Override
@@ -71,9 +143,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 					}
 				});
-				return new Subscription<Observable<T>>() {
+				return new Subscription<ObservableElement<T>>() {
 					@Override
-					public Subscription<Observable<T>> subscribe(Observer<? super Observable<T>> observer2) {
+					public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer2) {
 						return MappedObservableSet.this.subscribe(observer2);
 					}
 
@@ -87,23 +159,24 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new MappedObservableSet();
 	}
 
-	default ObservableSet<E> filterC(Function<E, Boolean> filter) {
+	default ObservableSet<E> filterC(Function<? super E, Boolean> filter) {
 		return filterMapC(value -> {
 			return filter.apply(value) ? value : null;
 		});
 	}
 
-	/**
-	 * @param filterMap The mapping function
-	 * @return An observable collection of a new type backed by this collection and the mapping function
-	 */
 	@Override
-	default <T> ObservableSet<T> filterMapC(Function<E, T> filterMap) {
+	default <T> ObservableSet<T> filterMapC(Function<? super E, T> filterMap) {
+		return filterMapC(ComposedObservableValue.getReturnType(filterMap), filterMap);
+	}
+
+	@Override
+	default <T> ObservableSet<T> filterMapC(Type type, Function<? super E, T> filterMap) {
 		ObservableSet<E> outerSet = this;
 		class MappedObservableSet extends java.util.AbstractSet<T> implements ObservableSet<T> {
 			@Override
-			public Observable<Void> changes() {
-				return outerSet.changes();
+			public Type getType() {
+				return type;
 			}
 
 			@Override
@@ -147,16 +220,16 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<Observable<T>> subscribe(Observer<? super Observable<T>> observer) {
-				Subscription<Observable<E>> sub = outerSet.subscribe(new Observer<Observable<E>>() {
+			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
+				Subscription<ObservableElement<E>> sub = outerSet.subscribe(new Observer<ObservableElement<E>>() {
 					@Override
-					public <V extends Observable<E>> void onNext(V value) {
-						observer.onNext(value.map(filterMap));
+					public <V extends ObservableElement<E>> void onNext(V value) {
+						observer.onNext(value.mapV(filterMap));
 					}
 
 					@Override
-					public <V extends Observable<E>> void onCompleted(V value) {
-						observer.onCompleted(value.map(filterMap));
+					public <V extends ObservableElement<E>> void onCompleted(V value) {
+						observer.onCompleted(value.mapV(filterMap));
 					}
 
 					@Override
@@ -165,9 +238,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 					}
 				});
-				return new Subscription<Observable<T>>() {
+				return new Subscription<ObservableElement<T>>() {
 					@Override
-					public Subscription<Observable<T>> subscribe(Observer<? super Observable<T>> observer2) {
+					public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer2) {
 						return MappedObservableSet.this.subscribe(observer2);
 					}
 
@@ -181,15 +254,16 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new MappedObservableSet();
 	}
 
-	default <T, V> ObservableSet<V> combineC(Observable<T> arg, BiFunction<E, T, V> func) {
+	default <T, V> ObservableSet<V> combineC(ObservableValue<T> arg, BiFunction<? super E, ? super T, V> func) {
+		return combineC(arg, ComposedObservableValue.getReturnType(func), func);
+	}
+
+	default <T, V> ObservableSet<V> combineC(ObservableValue<T> arg, Type type, BiFunction<? super E, ? super T, V> func) {
 		ObservableSet<E> outerSet = this;
 		class CombinedObservableSet extends AbstractSet<V> implements ObservableSet<V> {
-			private T theArgValue;
-			private boolean isArgSet;
-
 			@Override
-			public Observable<Void> changes() {
-				return outerSet.changes();
+			public Type getType() {
+				return type;
 			}
 
 			@Override
@@ -209,29 +283,24 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 					@Override
 					public V next() {
-						if(isArgSet)
-							return func.apply(backing.next(), theArgValue);
-						else {
-							backing.next();
-							return null;
-						}
+						return func.apply(backing.next(), arg.get());
 					}
 				};
 			}
 
 			@Override
-			public Subscription<Observable<V>> subscribe(Observer<? super Observable<V>> observer) {
+			public Subscription<ObservableElement<V>> subscribe(Observer<? super ObservableElement<V>> observer) {
 				boolean [] complete = new boolean[1];
-				Subscription<Observable<E>> setSub = outerSet.subscribe(new Observer<Observable<E>>() {
+				Subscription<ObservableElement<E>> setSub = outerSet.subscribe(new Observer<ObservableElement<E>>() {
 					@Override
-					public <V2 extends Observable<E>> void onNext(V2 value) {
-						observer.onNext(value.combine(arg, func));
+					public <V2 extends ObservableElement<E>> void onNext(V2 value) {
+						observer.onNext(value.combineV(func, arg));
 					}
 
 					@Override
-					public <V2 extends Observable<E>> void onCompleted(V2 value) {
+					public <V2 extends ObservableElement<E>> void onCompleted(V2 value) {
 						complete[0] = true;
-						observer.onCompleted(value.combine(arg, func));
+						observer.onCompleted(value.combineV(func, arg));
 					}
 
 					@Override
@@ -241,15 +310,13 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				});
 				if(complete[0])
 					return Observable.nullSubscribe(this);
-				Subscription<T> argSub = arg.subscribe(new Observer<T>() {
+				Subscription<ObservableValueEvent<T>> argSub = arg.subscribe(new Observer<ObservableValueEvent<T>>() {
 					@Override
-					public <V2 extends T> void onNext(V2 value) {
-						theArgValue = value;
-						isArgSet = true;
+					public <V2 extends ObservableValueEvent<T>> void onNext(V2 value) {
 					}
 
 					@Override
-					public <V2 extends T> void onCompleted(V2 value) {
+					public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 value) {
 						complete[0] = true;
 						observer.onCompleted(null);
 						setSub.unsubscribe();
@@ -257,16 +324,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				});
 				if(complete[0])
 					return Observable.nullSubscribe(this);
-				return new Subscription<Observable<V>>() {
+				return new DefaultSubscription<ObservableElement<V>>(this) {
 					@Override
-					public Subscription<Observable<V>> subscribe(Observer<? super Observable<V>> observer2) {
-						if(complete[0])
-							return Observable.nullSubscribe(CombinedObservableSet.this);
-						return CombinedObservableSet.this.subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
+					public void unsubscribeSelf() {
 						if(complete[0])
 							return;
 						setSub.unsubscribe();
@@ -278,20 +338,48 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new CombinedObservableSet();
 	}
 
-	public static <T> ObservableSet<T> constant(java.util.Collection<T> coll) {
+	public static <T> ObservableSet<T> constant(Type type, java.util.Collection<T> coll) {
 		Set<T> modSet = new java.util.LinkedHashSet<>(coll);
 		Set<T> constSet = java.util.Collections.unmodifiableSet(modSet);
+		java.util.List<ObservableElement<T>> els = new java.util.ArrayList<>();
+		for(T value : constSet)
+			els.add(new ObservableElement<T>() {
+				@Override
+				public Type getType() {
+					return type;
+				}
+
+				@Override
+				public T get() {
+					return value;
+				}
+
+				@Override
+				public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+					return Observable.nullSubscribe(this);
+				}
+
+				@Override
+				public ObservableValue<T> persistent() {
+					return this;
+				}
+			});
 		class ConstantObservableSet extends AbstractSet<T> implements ObservableSet<T> {
 			@Override
-			public Subscription<Observable<T>> subscribe(Observer<? super Observable<T>> observer) {
-				for(T value : constSet)
-					observer.onNext(Observable.constant(value));
+			public Type getType() {
+				return type;
+			}
+
+			@Override
+			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
+				for(ObservableElement<T> el : els)
+					observer.onNext(el);
 				return Observable.nullSubscribe(this);
 			}
 
 			@Override
-			public Observable<Void> changes() {
-				return (Observable<Void>) Observable.empty;
+			public ObservableValue<? extends ObservableSet<T>> changes() {
+				return ObservableValue.constant(new Type(ObservableValue.class, type), this);
 			}
 
 			@Override
@@ -305,5 +393,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 		}
 		return new ConstantObservableSet();
+	}
+
+	public static <T> ObservableSet<T> constant(Type type, T... values) {
+		return constant(type, java.util.Arrays.asList(values));
 	}
 }

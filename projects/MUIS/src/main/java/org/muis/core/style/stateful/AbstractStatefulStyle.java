@@ -48,7 +48,7 @@ public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	 * @param dependencies The initial set of dependencies for this style
 	 */
 	public AbstractStatefulStyle(StatefulStyle... dependencies) {
-		theDependencies = new DefaultObservableList<>();
+		theDependencies = new DefaultObservableList<>(new prisms.lang.Type(StatefulStyle.class));
 		theDependController = theDependencies.control(null);
 		for(StatefulStyle depend : dependencies)
 			theDependController.add(depend);

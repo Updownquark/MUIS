@@ -58,7 +58,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			});
 			atts().getHolder(ModelAttributes.value)
 				.tupleV(atts().getHolder(BaseAttributes.format),
-					atts().getHolder(BaseAttributes.document).composeV(ObservableValue.first(), atts().getHolder(BaseAttributes.rich))).act(event -> {
+					atts().getHolder(BaseAttributes.document).combineV(ObservableValue.first(), atts().getHolder(BaseAttributes.rich))).act(event -> {
 					if(theRegistration != null)
 						theRegistration.unregister();
 					TriTuple<ObservableValue<?>, MuisFormatter<?>, MuisDocumentModel> tuple = event.getValue();

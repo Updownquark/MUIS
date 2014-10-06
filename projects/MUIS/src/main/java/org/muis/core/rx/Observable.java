@@ -302,6 +302,45 @@ public interface Observable<T> {
 		return ret;
 	}
 
+	/**
+	 * @param obs The observables to combine
+	 * @return An observable that pushes a value each time any of the given observables pushes a value
+	 */
+	public static <V> Observable<V> or(Observable<? extends V>... obs) {
+		return new Observable<V>() {
+			@Override
+			public Subscription<V> subscribe(Observer<? super V> observer) {
+				Subscription<? extends V> [] subs = new Subscription[obs.length];
+				DefaultSubscription<V> ret = new DefaultSubscription<V>(this) {
+					@Override
+					public void unsubscribeSelf() {
+						for(Subscription<? extends V> sub : subs)
+							sub.unsubscribe();
+					}
+				};
+				for(int i = 0; i < subs.length; i++)
+					subs[i] = obs[i].subscribe(new Observer<V>() {
+						@Override
+						public <V2 extends V> void onNext(V2 value) {
+							observer.onNext(value);
+						}
+
+						@Override
+						public <V2 extends V> void onCompleted(V2 value) {
+							observer.onCompleted(value);
+							ret.unsubscribe();
+						}
+
+						@Override
+						public void onError(Throwable e) {
+							observer.onError(e);
+						}
+					});
+				return ret;
+			}
+		};
+	}
+
 	/** An empty observable that never does anything */
 	public static Observable<?> empty = new Observable<Object>() {
 		@Override

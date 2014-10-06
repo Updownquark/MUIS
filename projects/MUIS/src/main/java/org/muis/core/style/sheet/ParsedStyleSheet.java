@@ -1,7 +1,5 @@
 package org.muis.core.style.sheet;
 
-import org.muis.core.model.MuisValueReferenceParser;
-import org.muis.core.parser.MuisParseException;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.StyleAttribute;
 
@@ -10,11 +8,6 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 	private boolean isSealed;
 
 	private java.net.URL theLocation;
-
-	/** @see MutableAnimatedStyleSheet#MutableAnimatedStyleSheet(MuisValueReferenceParser) */
-	public ParsedStyleSheet(MuisValueReferenceParser modelParser) {
-		super(modelParser);
-	}
 
 	@Override
 	public boolean isSealed() {
@@ -47,12 +40,6 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 	}
 
 	@Override
-	public MuisValueReferenceParser getModelParser() {
-		assertUnsealed();
-		return super.getModelParser();
-	}
-
-	@Override
 	public void addVariable(AnimatedVariable var) {
 		assertUnsealed();
 		super.addVariable(var);
@@ -80,12 +67,6 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 	public <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
 		assertUnsealed();
 		super.setAnimatedValue(attr, expr, value);
-	}
-
-	@Override
-	public void setAnimatedValue(StyleAttribute<?> attr, StateGroupTypeExpression<?> expr, String parseableValue) throws MuisParseException {
-		assertUnsealed();
-		super.setAnimatedValue(attr, expr, parseableValue);
 	}
 
 	@Override

@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.muis.core.rx.DefaultObservableList;
 
+import prisms.lang.Type;
+
 /**
  * A utility class used by {@link SimpleConditionalStyle}
  *
@@ -32,6 +34,7 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultOb
 
 	/** @param value The initial expression value to hold */
 	protected StyleValueHolder(StyleExpressionValue<E, V> value) {
+		super(new Type(StyleExpressionValue.class, new Type(value.getExpression().getClass()), value.getType()));
 		theController = control(null);
 		if(value != null)
 			theController.add(value);

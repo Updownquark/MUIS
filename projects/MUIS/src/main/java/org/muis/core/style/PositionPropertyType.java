@@ -52,6 +52,15 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 	}
 
 	@Override
+	public boolean canCast(Type type) {
+		if(type.canAssignTo(Position.class))
+			return true;
+		if(type.isMathable() && !type.canAssignTo(Character.TYPE))
+			return true;
+		return false;
+	}
+
+	@Override
 	public Position cast(Object value) {
 		if(value instanceof Position)
 			return (Position) value;

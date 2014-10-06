@@ -5,6 +5,8 @@ import java.util.Iterator;
 
 import org.muis.core.rx.*;
 
+import prisms.lang.Type;
+
 /**
  * A style that can be sealed to be immutable. All observables returned by this style are just to satisfy the interface--the implementations
  * assume that the style is sealed and therefore that no changes occur.
@@ -21,7 +23,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	/** Creates a sealable style */
 	public SealableStyle() {
 		theValues = new java.util.HashMap<>();
-		theDepends = new DefaultObservableList<>();
+		theDepends = new DefaultObservableList<>(new Type(MuisStyle.class));
 		theObservableAttributes = new ConstantObservableSet();
 	}
 
@@ -121,9 +123,17 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	}
 
 	class ConstantObservableSet extends AbstractSet<StyleAttribute<?>> implements ObservableSet<StyleAttribute<?>> {
+		private Type theType = new Type(StyleAttribute.class, new Type(Object.class, true));
+
 		@Override
-		public Observable<Void> changes() {
-			return (Observable<Void>) Observable.empty;
+		public Type getType() {
+			return theType;
+		}
+
+		@Override
+		public ObservableValue<ObservableSet<StyleAttribute<?>>> changes() {
+			return ObservableValue.constant(new Type(ObservableSet.class, new Type(StyleAttribute.class, new Type(Object.class, true))),
+				this);
 		}
 
 		@Override
@@ -140,17 +150,32 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		}
 
 		@Override
-		public Subscription<Observable<StyleAttribute<?>>> subscribe(Observer<? super Observable<StyleAttribute<?>>> observer) {
-			return new Subscription<Observable<StyleAttribute<?>>>() {
-				@Override
-				public Subscription<Observable<StyleAttribute<?>>> subscribe(Observer<? super Observable<StyleAttribute<?>>> observer2) {
-					return this;
-				}
+		public Subscription<ObservableElement<StyleAttribute<?>>> subscribe(Observer<? super ObservableElement<StyleAttribute<?>>> observer) {
+			for(StyleAttribute<?> att : theValues.keySet())
+				observer.onNext(new ObservableElement<StyleAttribute<?>>() {
+					@Override
+					public Type getType() {
+						return theType;
+					}
 
-				@Override
-				public void unsubscribe() {
-				}
-			};
+					@Override
+					public StyleAttribute<?> get() {
+						return att;
+					}
+
+					@Override
+					public Subscription<ObservableValueEvent<StyleAttribute<?>>> subscribe(
+						Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
+						observer2.onNext(new ObservableValueEvent<>(this, null, att, null));
+						return Observable.nullSubscribe(this);
+					}
+
+					@Override
+					public ObservableValue<StyleAttribute<?>> persistent() {
+						return this;
+					}
+				});
+			return Observable.nullSubscribe(this);
 		}
 	}
 }

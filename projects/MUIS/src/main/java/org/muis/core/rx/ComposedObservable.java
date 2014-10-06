@@ -1,5 +1,6 @@
 package org.muis.core.rx;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -8,14 +9,10 @@ import java.util.function.Function;
  *
  * @param <T> The type of the composed observable
  */
-public class ComposedObservable<T> extends DefaultObservable<T> {
+public class ComposedObservable<T> implements Observable<T> {
 	private static final Object NONE = new Object();
 
-	private final Observer<T> theController;
 	private final List<Observable<?>> theComposed;
-	private final List<Observer<Object>> theInternalListeners;
-	private final List<Object> theInternalValues;
-	private final List<Subscription<?>> theInternalSubscriptions;
 	private final Function<Object [], T> theFunction;
 
 	/**
@@ -25,35 +22,11 @@ public class ComposedObservable<T> extends DefaultObservable<T> {
 	public ComposedObservable(Function<Object [], T> function, Observable<?>... composed) {
 		theFunction = function;
 		theComposed = new java.util.ArrayList<>(java.util.Arrays.asList(composed));
-		theInternalListeners=new java.util.ArrayList<>(composed.length);
-		theInternalValues=new java.util.ArrayList<>(composed.length);
-		theInternalSubscriptions=new java.util.ArrayList<>(composed.length);
-		theController = control(observer -> {
-			fireNext(observer);
-		});
-		for(int i=0;i<composed.length;i++){
-			final int index=i;
-			theInternalValues.add(NONE);
-			Observer<Object> listener=new Observer<Object>(){
-				@Override
-				public void onNext(Object value) {
-					theInternalValues.set(index, value);
-					fireNext();
-				}
+	}
 
-				@Override
-				public void onCompleted(Object value) {
-					fireComplete();
-				}
-
-				@Override
-				public void onError(Throwable e) {
-					theController.onError(e);
-				}
-			};
-			theInternalListeners.add(listener);
-			theInternalSubscriptions.add(theComposed.get(index).subscribe(listener));
-		}
+	@Override
+	public Subscription<T> subscribe(Observer<? super T> observer) {
+		return new ComposedSubscription(observer);
 	}
 
 	/** @return The observables that this observable uses as sources */
@@ -61,40 +34,58 @@ public class ComposedObservable<T> extends DefaultObservable<T> {
 		return theComposed.toArray(new Observable[theComposed.size()]);
 	}
 
-	private void fireNext() {
-		Object [] args = theInternalValues.toArray();
-		for(Object value : args)
-			if(value == NONE)
-				return;
-		T next;
-		try {
-			next = theFunction.apply(args);
-		} catch(Throwable e) {
-			theController.onError(e);
-			return;
-		}
-		theController.onNext(next);
-	}
+	private class ComposedSubscription extends DefaultSubscription<T> {
+		private List<Subscription<?>> theComposedSubs;
+		private List<Object> theInternalValues;
+		private Observer<T> theObserver;
 
-	private void fireNext(Observer<? super T> observer) {
-		Object [] args = theInternalValues.toArray();
-		for(Object value : args)
-			if(value == NONE)
-				return;
-		T latest;
-		try {
-			latest = theFunction.apply(args);
-		} catch(Throwable e) {
-			observer.onError(e);
-			return;
-		}
-		observer.onNext(latest);
-	}
+		ComposedSubscription(Observer<? super T> observer) {
+			super(ComposedObservable.this);
+			theComposedSubs = new ArrayList<>();
+			theInternalValues = new ArrayList<>();
+			for(int i = 0; i < theComposed.size(); i++) {
+				int index = i;
+				theInternalValues.add(NONE);
+				theComposedSubs.add(theComposed.get(i).subscribe(new Observer<Object>() {
+					@Override
+					public <V> void onNext(V value) {
+						theInternalValues.set(index, value);
+						Object next = getNext();
+						if(next != NONE)
+							theObserver.onNext((T) value);
+					}
 
-	private void fireComplete() {
-		theController.onCompleted(null);
-		for(Subscription<?> sub : theInternalSubscriptions.toArray(new Subscription[0]))
-			sub.unsubscribe();
-		theInternalSubscriptions.clear();
+					@Override
+					public <V> void onCompleted(V value) {
+						theInternalValues.set(index, value);
+						Object next = getNext();
+						if(next != NONE)
+							theObserver.onCompleted((T) value);
+						unsubscribe();
+					}
+
+					@Override
+					public void onError(Throwable error) {
+						theObserver.onError(error);
+					}
+				}));
+			}
+		}
+
+		private Object getNext() {
+			Object [] args = theInternalValues.toArray();
+			for(Object value : args)
+				if(value == NONE)
+					return NONE;
+			return theFunction.apply(args);
+		}
+
+		@Override
+		public void unsubscribeSelf() {
+			for(Subscription<?> sub : theComposedSubs)
+				sub.unsubscribe();
+			theComposedSubs.clear();
+			theInternalValues.clear();
+		}
 	}
 }

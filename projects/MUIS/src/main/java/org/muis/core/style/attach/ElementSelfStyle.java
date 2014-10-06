@@ -9,6 +9,8 @@ import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 
+import prisms.lang.Type;
+
 /** Represents a style set that applies only to a particular element and not to its descendants */
 public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
 	private final ElementStyle theElStyle;
@@ -19,37 +21,46 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	public ElementSelfStyle(ElementStyle elStyle) {
 		theElStyle = elStyle;
 		addDependency(elStyle);
-		theElStyle.getElement().life().runWhen(() -> {
-			theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle.getElement()
-				.getClass());
-			// Add listener to modify the filtered style sheet's template path
-			TemplatePathListener tpl = new TemplatePathListener();
-			tpl.addListener(new TemplatePathListener.Listener() {
-				@Override
-				public void pathAdded(TemplateRole path) {
-					theStyleSheet.addTemplatePath(path);
-				}
+		theElStyle
+			.getElement()
+			.life()
+			.runWhen(
+				() -> {
+					org.muis.core.rx.DefaultObservableSet<TemplateRole> templateRoles = new org.muis.core.rx.DefaultObservableSet<>(
+						new Type(TemplateRole.class));;
+					java.util.Set<TemplateRole> controller = templateRoles.control(null);
+					theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle
+						.getElement().getClass(), templateRoles);
+					// Add listener to modify the filtered style sheet's template path
+					TemplatePathListener tpl = new TemplatePathListener();
+					tpl.addListener(new TemplatePathListener.Listener() {
+						@Override
+						public void pathAdded(TemplateRole path) {
+							controller.add(path);
+						}
 
-				@Override
-				public void pathRemoved(TemplateRole path) {
-					theStyleSheet.removeTemplatePath(path);
-				}
+						@Override
+						public void pathRemoved(TemplateRole path) {
+							controller.remove(path);
+						}
 
-				@Override
-				public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
-					theStyleSheet.replaceTemplatePath(oldPath, newPath);
-				}
-			});
-			tpl.listen(theElStyle.getElement());
-			addDependency(theStyleSheet);
-			// Add a dependency for typed, non-grouped style sheet attributes
-			addListener((StyleAttributeEvent<?> event) -> {
-				StyleAttributeEvent<Object> evt = (StyleAttributeEvent<Object>) event;
-				evt = new StyleAttributeEvent<>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(),
-					evt.getAttribute(), evt.getValue());
-				theElStyle.getElement().events().fire(evt);
-			});
-		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
+						@Override
+						public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
+							controller.remove(oldPath);
+							controller.add(newPath);
+						}
+					});
+					tpl.listen(theElStyle.getElement());
+					addDependency(theStyleSheet);
+					// Add a dependency for typed, non-grouped style sheet attributes
+					allChanges().act(
+						(StyleAttributeEvent<?> event) -> {
+							StyleAttributeEvent<Object> evt = (StyleAttributeEvent<Object>) event;
+							evt = new StyleAttributeEvent<>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(), evt
+								.getAttribute(), evt.getValue());
+							theElStyle.getElement().events().fire(evt);
+						});
+				}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 
 	/** @return The element style that depends on this self-style */

@@ -11,11 +11,12 @@ import prisms.lang.Type;
  *
  * @param <T> The compile-time type of this observable's value
  */
-public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> {
+public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>, java.util.function.Supplier<T> {
 	/** @return The type of value this observable contains. May be null if this observable's value is always null. */
 	Type getType();
 
 	/** @return The current value of this observable */
+	@Override
 	T get();
 
 	/** @return An observable that just reports this observable value's value in an observable without the event */
@@ -57,8 +58,8 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param arg The other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
-	default <U, R> ObservableValue<R> composeV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
-		return composeV(null, function, arg);
+	default <U, R> ObservableValue<R> combineV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
+		return combineV(null, function, arg);
 	}
 
 	/**
@@ -71,7 +72,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param arg The other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
-	default <U, R> ObservableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
+	default <U, R> ObservableValue<R> combineV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1]);
 		}, this, arg);
@@ -83,7 +84,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @return An observable which broadcasts tuples of the latest values of this observable value and another
 	 */
 	default <U> ObservableValue<BiTuple<T, U>> tupleV(ObservableValue<U> arg) {
-		return composeV(BiTuple<T, U>::new, arg);
+		return combineV(BiTuple<T, U>::new, arg);
 	}
 
 	/**
@@ -94,7 +95,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @return An observable which broadcasts tuples of the latest values of this observable value and 2 others
 	 */
 	default <U, V> ObservableValue<TriTuple<T, U, V>> tupleV(ObservableValue<U> arg1, ObservableValue<V> arg2) {
-		return composeV(TriTuple<T, U, V>::new, arg1, arg2);
+		return combineV(TriTuple<T, U, V>::new, arg1, arg2);
 	}
 
 	/**
@@ -108,9 +109,9 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param arg3 The second other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
-	default <U, V, R> ObservableValue<R> composeV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
+	default <U, V, R> ObservableValue<R> combineV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
 		ObservableValue<V> arg3) {
-		return composeV(null, function, arg2, arg3);
+		return combineV(null, function, arg2, arg3);
 	}
 
 	/**
@@ -125,7 +126,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 	 * @param arg3 The second other observable to be composed
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
-	default <U, V, R> ObservableValue<R> composeV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
+	default <U, V, R> ObservableValue<R> combineV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
 		ObservableValue<U> arg2, ObservableValue<V> arg3) {
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1], (V) args[2]);
@@ -269,6 +270,56 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>> 
 						});
 		});
 		return ret;
+	}
+
+	public static <T> ObservableValue<T> assemble(Type type, java.util.function.Supplier<T> value, ObservableValue<?>... components) {
+		Type t = type == null ? ComposedObservableValue.getReturnType(supplier) : type;
+		return new ObservableValue<T>() {
+			@Override
+			public Type getType() {
+				return t;
+			}
+
+			@Override
+			public T get() {
+				return value.get();
+			}
+
+			@Override
+			public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				ObservableValue<T> outer = this;
+				Subscription<?> [] subSubs = new Subscription[components.length];
+				DefaultSubscription<ObservableValueEvent<T>> ret = new DefaultSubscription<ObservableValueEvent<T>>(this) {
+					@Override
+					public void unsubscribeSelf() {
+						for(Subscription<?> sub : subSubs)
+							sub.unsubscribe();
+					}
+				};
+				Object [] oldValue = new Object[1];
+				for(int i = 0; i < subSubs.length; i++)
+					subSubs[i] = components[i].subscribe(new Observer<ObservableValueEvent<?>>() {
+						@Override
+						public <V extends ObservableValueEvent<?>> void onNext(V value2) {
+							T newVal = value.get();
+							T oldVal = (T) oldValue[0];
+							oldValue[0] = newVal;
+							observer.onNext(new ObservableValueEvent<T>(outer, oldVal, newVal, value2.getCause()));
+						}
+
+						@Override
+						public <V extends ObservableValueEvent<?>> void onCompleted(V value) {
+							ret.unsubscribe();
+						}
+
+						@Override
+						public void onError(Throwable e) {
+							observer.onError(e);
+						}
+					});
+				return ret;
+			}
+		};
 	}
 
 	/**

@@ -573,13 +573,13 @@ public class StyleSheetParser {
 	public static class DomainScopedAssignment extends ParsedItem {
 		private String theAttrName;
 
-		private ParsedItem theValue;
+		private String theValue;
 
 		@Override
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
 			theAttrName = getStored("name").text;
-			theValue = parser.parseStructures(this, getStored("value"))[0];
+			theValue = getStored("value").text;
 		}
 
 		/** @return The name of the attribute to assign */
@@ -588,21 +588,18 @@ public class StyleSheetParser {
 		}
 
 		/** @return The value to assign to the attribute */
-		public ParsedItem getValue() {
+		public String getValue() {
 			return theValue;
 		}
 
 		@Override
 		public ParsedItem [] getDependents() {
-			return new ParsedItem[] {theValue};
+			return new ParsedItem[0];
 		}
 
 		@Override
 		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {
-			if(theValue == dependent)
-				theValue = toReplace;
-			else
-				throw new IllegalArgumentException("No such dependent " + dependent);
+			throw new IllegalArgumentException("No such dependent " + dependent);
 		}
 
 		@Override
@@ -892,8 +889,7 @@ public class StyleSheetParser {
 	 * @throws java.io.IOException If an error occurs reading the resource
 	 * @throws MuisParseException If an error occurs parsing the XML or interpreting it as a style sheet
 	 */
-	public ParsedStyleSheet parse(MuisParseEnv parseEnv, URL location, MuisEnvironment env)
-		throws java.io.IOException, MuisParseException {
+	public ParsedStyleSheet parse(MuisParseEnv parseEnv, URL location, MuisEnvironment env) throws java.io.IOException, MuisParseException {
 		StringBuilder text = new StringBuilder();
 		try (java.io.Reader reader = new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream()))) {
 			int read = reader.read();
@@ -909,7 +905,7 @@ public class StyleSheetParser {
 			throw new MuisParseException("Could not parse " + location, e);
 		}
 
-		ParsedStyleSheet ret = new ParsedStyleSheet(parseEnv.getValueParser());
+		ParsedStyleSheet ret = new ParsedStyleSheet();
 		ExpressionContextStack stack = new ExpressionContextStack();
 		boolean hadValues = false;
 		boolean hadAnimation = false;
@@ -940,7 +936,7 @@ public class StyleSheetParser {
 
 				ParsedAnimation anim = (ParsedAnimation) item;
 				try {
-					AnimatedStyleSheet.AnimationSegment[] segments = new AnimatedStyleSheet.AnimationSegment[anim.getTimeSteps()];
+					AnimatedStyleSheet.AnimationSegment [] segments = new AnimatedStyleSheet.AnimationSegment[anim.getTimeSteps()];
 					for(int i = 0; i < segments.length; i++)
 						segments[i] = new AnimatedStyleSheet.AnimationSegment(anim.getValue(i), anim.getStepSize(i), Math.round(anim
 							.getTimeStep(i) * 1000));
@@ -965,7 +961,7 @@ public class StyleSheetParser {
 				int [] lc = getLineChar(text.toString(), item.getMatch().index);
 				parseEnv.msg().error(
 					"Unrecognized content in style sheet " + location + ": \"" + item.getMatch().text + "\" at line " + (lc[0] + 1)
-					+ ", char " + (lc[1] + 1));
+						+ ", char " + (lc[1] + 1));
 			}
 		}
 		return ret;
@@ -996,7 +992,7 @@ public class StyleSheetParser {
 							int [] lc = getLineChar(section.getRoot().getFullCommand(), filter.getMatch().index);
 							env.msg().error(
 								"Could not load element type " + type + ": " + location + " at line " + (lc[0] + 1) + ", char "
-								+ (lc[1] + 1), e);
+									+ (lc[1] + 1), e);
 							return;
 						}
 					}
@@ -1116,7 +1112,7 @@ public class StyleSheetParser {
 		}
 	}
 
-	private void applyAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack, ParsedAssignment assign,
+	private <T> void applyAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack, ParsedAssignment assign,
 		URL location) {
 		StyleDomain domain;
 		try {
@@ -1125,28 +1121,28 @@ public class StyleSheetParser {
 			env.msg().error(e.getMessage(), e);
 			return;
 		}
-		StyleAttribute<?> attr = null;
+		StyleAttribute<T> attr = null;
 		for(StyleAttribute<?> att : domain) {
 			if(att.getName().equals(assign.getAttrName())) {
-				attr = att;
+				attr = (StyleAttribute<T>) att;
 				break;
 			}
 		}
-		if(attr == null)
-			env.msg()
-			.error(
+		if(attr == null) {
+			env.msg().error(
 				"No attribute " + assign.getAttrName() + " in domain "
-			+ (assign.getDomain().getNamespace() == null ? "" : assign.getDomain().getNamespace() + ":") + assign.getDomain().getName());
-		ParsedItem value;
+					+ (assign.getDomain().getNamespace() == null ? "" : assign.getDomain().getNamespace() + ":")
+					+ assign.getDomain().getName());
+			return;
+		}
+		org.muis.core.rx.ObservableValue<? extends T> value;
 		try {
-			value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, env);
+			value = attr.getType().parse(env, assign.getValue());
 		} catch(MuisException e) {
 			env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr, "value",
 				assign.getValue());
 			return;
 		}
-		if(!checkValidity(style, attr, value, env, location))
-			break;
 		if(stack.size() > 0)
 			for(StateGroupTypeExpression<?> expr : stack)
 				style.setAnimatedValue(attr, expr, value);
@@ -1154,7 +1150,7 @@ public class StyleSheetParser {
 			style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
 	}
 
-	private void applyDomainAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack,
+	private <T> void applyDomainAssignment(MuisParseEnv env, ParsedStyleSheet style, ExpressionContextStack stack,
 		ParsedDomainAssignment domainAssign, URL location) {
 		StyleDomain domain;
 		try {
@@ -1165,78 +1161,33 @@ public class StyleSheetParser {
 			return;
 		}
 		for(DomainScopedAssignment assign : domainAssign.getValues().getContents()) {
-			boolean found = false;
-			for(StyleAttribute<?> attr : domain) {
-				if(attr.getName().equals(assign.getAttrName())) {
-					found = true;
-					ParsedItem value;
-					try {
-						value = replaceIdentifiersAndStrings(assign.getValue(), style, attr, env);
-					} catch(MuisException e) {
-						env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr,
-							"value", assign.getValue());
-						break;
-					}
-					if(!checkValidity(style, attr, value, env, location))
-						break;
-					if(stack.size() > 0)
-						for(StateGroupTypeExpression<?> expr : stack)
-							style.setAnimatedValue(attr, expr, value);
-					else
-						style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
+			StyleAttribute<T> attr = null;
+			for(StyleAttribute<?> att : domain) {
+				if(att.getName().equals(assign.getAttrName())) {
+					attr = (StyleAttribute<T>) att;
 					break;
 				}
 			}
-			if(!found)
+			if(attr == null) {
 				env.msg().error(
 					"No attribute " + assign.getAttrName() + " in domain "
-					+ (domainAssign.getDomain().getNamespace() == null ? "" : domainAssign.getDomain().getNamespace() + ":")
-					+ domainAssign.getDomain().getName());
-		}
-	}
-
-	private boolean checkValidity(ParsedStyleSheet style, StyleAttribute<?> attr, ParsedItem value, MuisParseEnv env, URL location) {
-		EvaluationEnvironment evEnv = theEnv.scope(true);
-		// EvaluationResult typeRes;
-		try {
-			for(AnimatedStyleSheet.AnimatedVariable var : style) {
-				evEnv.declareVariable(var.getName(), new Type(Double.TYPE), false, value, 0);
+						+ (domainAssign.getDomain().getNamespace() == null ? "" : domainAssign.getDomain().getNamespace() + ":")
+						+ domainAssign.getDomain().getName());
+				return;
 			}
-			// typeRes = value.evaluate(evEnv, false, false);
-		} catch(EvaluationException e) {
-			env.msg().error("Could not evaluate value " + value + " for attribute " + attr, e, "attribute", attr, "value", value);
-			return false;
-		}
-		// This type checking is flawed because of the conversion ability in MUIS properties
-		/*Type attrType = new Type(attr.getType().getType());
-		if(!attrType.isAssignable(typeRes.getType())) {
-			env.msg().error(
-				"Value \"" + value + "\", resolving to type " + typeRes.getType() + " cannot be assigned to style attribute " + attr
-					+ ", type " + attrType);
-			return false;
-		}*/
-		return true;
-	}
-
-	ParsedItem replaceIdentifiersAndStrings(ParsedItem value, ParsedStyleSheet style, StyleAttribute<?> attr, MuisParseEnv env)
-		throws MuisException {
-		if(value instanceof prisms.lang.types.ParsedIdentifier) {
-			String text = ((prisms.lang.types.ParsedIdentifier) value).getName();
-			for(AnimatedStyleSheet.AnimatedVariable var : style) {
-				if(var.getName().equals(text))
-					return value;
+			org.muis.core.rx.ObservableValue<? extends T> value;
+			try {
+				value = attr.getType().parse(env, assign.getValue());
+			} catch(MuisException e) {
+				env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr, "value",
+					assign.getValue());
+				return;
 			}
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text).get());
-		} else if(value instanceof prisms.lang.types.ParsedString) {
-			String text = ((prisms.lang.types.ParsedString) value).getValue();
-			return new org.muis.core.style.sheet.ConstantItem(attr.getType().getType(), attr.getType().parse(env, text).get());
-		} else {
-			for(ParsedItem depend : value.getDependents()) {
-				ParsedItem replace = replaceIdentifiersAndStrings(depend, style, attr, env);
-				if(replace != depend)
-					value.replace(depend, replace);
-			}
-			return value;
+			if(stack.size() > 0)
+				for(StateGroupTypeExpression<?> expr : stack)
+					style.setAnimatedValue(attr, expr, value);
+			else
+				style.setAnimatedValue(attr, new StateGroupTypeExpression<>(null, null, null, null), value);
 		}
 	}
 }

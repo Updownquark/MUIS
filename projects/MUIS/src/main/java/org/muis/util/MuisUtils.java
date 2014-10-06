@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.event.UserEvent;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.ObservableValueEvent;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.FontStyle;
@@ -228,44 +229,64 @@ public class MuisUtils {
 	 * @param style The style to get the background color for
 	 * @return The background color to paint for the style
 	 */
-	public static Color getBackground(org.muis.core.style.MuisStyle style) {
-		return getColor(style.get(BackgroundStyle.color), style.get(BackgroundStyle.transparency));
+	public static ObservableValue<Color> getBackground(org.muis.core.style.MuisStyle style) {
+		return style.get(BackgroundStyle.color).combineV(MuisUtils::getColor, style.get(BackgroundStyle.transparency));
+	}
+
+	/**
+	 * Gets the (potentially partially transparent) font color for a style
+	 *
+	 * @param style The style to get the font color for
+	 * @return The font color to paint for the style
+	 */
+	public static ObservableValue<Color> getFontColor(org.muis.core.style.MuisStyle style) {
+		return style.get(FontStyle.color).combineV(MuisUtils::getColor, style.get(FontStyle.transparency));
 	}
 
 	/**
 	 * @param style The style to derive the font from
 	 * @return The font to use to render text in the specified style
 	 */
-	public static java.awt.Font getFont(org.muis.core.style.MuisStyle style) {
+	public static ObservableValue<java.awt.Font> getFont(org.muis.core.style.MuisStyle style) {
 		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
-		attribs.put(TextAttribute.FAMILY, style.get(FontStyle.family));
-		attribs.put(TextAttribute.BACKGROUND, org.muis.core.style.Colors.transparent);
-		attribs.put(TextAttribute.FOREGROUND, getColor(style.get(FontStyle.color), style.get(FontStyle.transparency)));
-		if(style.get(FontStyle.kerning))
-			attribs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);
-		if(style.get(FontStyle.ligatures))
-			attribs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
-		attribs.put(TextAttribute.SIZE, style.get(FontStyle.size));
-		switch (style.get(FontStyle.underline)) {
-		case none:
-			break;
-		case on:
-			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_ONE_PIXEL);
-			break;
-		case heavy:
-			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_TWO_PIXEL);
-			break;
-		case dashed:
-			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_DASHED);
-			break;
-		case dotted:
-			attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_DOTTED);
-			break;
-		}
-		attribs.put(TextAttribute.WEIGHT, style.get(FontStyle.weight));
-		attribs.put(TextAttribute.STRIKETHROUGH, style.get(FontStyle.strike));
-		attribs.put(TextAttribute.POSTURE, style.get(FontStyle.slant));
-		return java.awt.Font.getFont(attribs);
+		ObservableValue<String> family = style.get(FontStyle.family);
+		ObservableValue<Color> color = getFontColor(style);
+		ObservableValue<Boolean> kerning = style.get(FontStyle.kerning);
+		ObservableValue<Boolean> ligs = style.get(FontStyle.ligatures);
+		ObservableValue<FontStyle.Underline> underline = style.get(FontStyle.underline);
+		ObservableValue<Double> weight = style.get(FontStyle.weight);
+		ObservableValue<Boolean> strike = style.get(FontStyle.strike);
+		ObservableValue<Double> slant = style.get(FontStyle.slant);
+		return ObservableValue.assemble(new prisms.lang.Type(java.awt.Font.class), () -> {
+			attribs.put(TextAttribute.FAMILY, family.get());
+			attribs.put(TextAttribute.BACKGROUND, org.muis.core.style.Colors.transparent);
+			attribs.put(TextAttribute.FOREGROUND, color.get());
+			if(kerning.get())
+				attribs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);
+			if(ligs.get())
+				attribs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
+			attribs.put(TextAttribute.SIZE, style.get(FontStyle.size));
+			switch (underline.get()) {
+			case none:
+				break;
+			case on:
+				attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_ONE_PIXEL);
+				break;
+			case heavy:
+				attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_TWO_PIXEL);
+				break;
+			case dashed:
+				attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_DASHED);
+				break;
+			case dotted:
+				attribs.put(TextAttribute.INPUT_METHOD_UNDERLINE, TextAttribute.UNDERLINE_LOW_DOTTED);
+				break;
+			}
+			attribs.put(TextAttribute.WEIGHT, weight.get());
+			attribs.put(TextAttribute.STRIKETHROUGH, strike.get());
+			attribs.put(TextAttribute.POSTURE, slant.get());
+			return java.awt.Font.getFont(attribs);
+		}, family, color, kerning, ligs, underline, weight, strike, slant);
 	}
 
 	/**

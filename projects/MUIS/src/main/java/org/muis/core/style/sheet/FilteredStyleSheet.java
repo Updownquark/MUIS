@@ -1,9 +1,6 @@
 package org.muis.core.style.sheet;
 
-import java.util.Set;
-
 import org.muis.core.MuisElement;
-import org.muis.core.rx.DefaultObservableSet;
 import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.StyleAttribute;
@@ -26,17 +23,6 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	private final Class<E> theType;
 
 	private ObservableSet<TemplateRole> theTemplatePaths;
-	private Set<TemplateRole> theTPController;
-
-	/**
-	 * @param styleSheet The style sheet to get the style information from
-	 * @param groupName The group name to filter by
-	 * @param type The element type to filter by
-	 */
-	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type) {
-		this(styleSheet, groupName, type, new DefaultObservableSet<>());
-		theTPController = ((DefaultObservableSet<TemplateRole>) theTemplatePaths).control(null);
-	}
 
 	/**
 	 * @param styleSheet The style sheet to get the style information from
@@ -44,7 +30,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 * @param type The element type to filter by
 	 * @param roles The remotely-controlled set of template paths to filter by
 	 */
-	protected FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type, ObservableSet<TemplateRole> roles) {
+	public FilteredStyleSheet(StyleSheet styleSheet, String groupName, Class<E> type, ObservableSet<TemplateRole> roles) {
 		theStyleSheet = styleSheet;
 		theGroupName = groupName;
 		if(type == null)
@@ -71,39 +57,6 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	/** @return The template roles that this filter accepts */
 	public ObservableSet<TemplateRole> getTemplateRoles() {
 		return theTemplatePaths;
-	}
-
-	/** @param path The path to add to the filtering on this style sheet */
-	public void addTemplatePath(TemplateRole path) {
-		if(theTPController == null)
-			throw new UnsupportedOperationException("This style sheet is not mutable");
-		theTPController.add(path);
-	}
-
-	/** @param path The path to remove from the filtering on this style sheet */
-	public void removeTemplatePath(TemplateRole path) {
-		if(theTPController == null)
-			throw new UnsupportedOperationException("This style sheet is not mutable");
-		theTPController.remove(path);
-	}
-
-	/**
-	 * @param oldPath The path to remove from the filtering on this style sheet
-	 * @param newPath The path to add to the filtering on this style sheet
-	 */
-	public void replaceTemplatePath(TemplateRole oldPath, TemplateRole newPath) {
-		if(theTPController == null)
-			throw new UnsupportedOperationException("This style sheet is not mutable");
-		theTPController.remove(oldPath);
-		theTPController.add(newPath);
-	}
-
-	/** @param newPaths The paths to set for the filtering on this style sheet */
-	protected void setTemplatePaths(TemplateRole [] newPaths) {
-		if(theTPController == null)
-			throw new UnsupportedOperationException("This style sheet is not mutable");
-		theTPController.clear();
-		theTPController.addAll(java.util.Arrays.asList(newPaths));
 	}
 
 	/**
@@ -141,7 +94,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	public <T> ObservableList<StyleExpressionValue<StateExpression, T>> getLocalExpressions(StyleAttribute<T> attr) {
 		return theStyleSheet.getLocalExpressions(attr).combineC(theTemplatePaths.changes(), (sev, v) -> sev).filterMapC(sev -> {
 			if(matchesFilter(sev.getExpression()))
-				return new StyleExpressionValue<>(sev.getExpression().getState(), sev.getValue());
+				return new StyleExpressionValue<>(sev.getExpression().getState(), sev);
 			else
 				return null;
 		});

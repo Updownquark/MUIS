@@ -3,7 +3,10 @@ package org.muis.core.style.stateful;
 import java.util.Set;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.*;
+import org.muis.core.rx.DefaultObservableSet;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
@@ -15,7 +18,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
-		theState = new DefaultObservableSet<>();
+		theState = new DefaultObservableSet<>(new prisms.lang.Type(MuisState.class));
 		theStateController = theState.control(null);
 	}
 
@@ -75,19 +78,21 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return getLocalExpressions(attr).combineC(theState,
-			(StyleExpressionValue<StateExpression, T> sev, Observable<MuisState> state) -> {
-				if(sev.getExpression() == null || sev.getExpression().matches(theState))
-					return sev.getValue();
-				return null;
-			}).find(attr.getType().getType(), value -> {
-			return value != null ? value : null;
-		});
+		return ObservableValue.flatten(
+			attr.getType().getType(),
+			getLocalExpressions(attr).combineC(theState.changes(),
+				(StyleExpressionValue<StateExpression, T> sev, Set<MuisState> state) -> {
+					if(sev.getExpression() == null || sev.getExpression().matches(theState))
+						return sev;
+					return null;
+				}).find(attr.getType().getType(), value -> {
+				return value != null ? value : null;
+			}));
 	}
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return allLocal().combineC(theState.changes(), (StyleAttribute<?> attr, Void v) -> attr).filterMapC(attr -> {
+		return allLocal().combineC(theState.changes(), (StyleAttribute<?> attr, Set<MuisState> state) -> attr).filterMapC(attr -> {
 			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr))
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))
 					return attr;

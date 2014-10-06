@@ -2,17 +2,11 @@ package org.muis.core.style.sheet;
 
 import java.util.Iterator;
 
-import org.muis.core.eval.impl.ObservableEvaluator;
-import org.muis.core.eval.impl.ObservableItemEvaluator;
-import org.muis.core.model.MuisValueReferenceParser;
-import org.muis.core.parser.MuisParseException;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleExpressionValue;
 
-import prisms.lang.*;
-import prisms.lang.eval.PrismsEvaluator;
-import prisms.lang.types.ParsedIdentifier;
+import prisms.lang.Type;
+import prisms.lang.Variable;
 
 /** A style sheet whose values can be animated internally */
 public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<AnimatedStyleSheet.AnimatedVariable> {
@@ -195,64 +189,15 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		}
 	}
 
-	private final MuisValueReferenceParser theModelParser;
-
 	private java.util.LinkedHashMap<String, AnimatedVariable> theVariables;
 
 	private volatile long theStartTime;
 
 	private volatile boolean isPaused;
 
-	/** @param modelParser The model parser for this style sheet to get constants, function definitions, and other information from */
-	public AnimatedStyleSheet(MuisValueReferenceParser modelParser) {
-		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(modelParser, null) {
-			@Override
-			protected void applyModification() {
-				super.applyModification();
-				if(getEvaluationEnvironment() instanceof DefaultEvaluationEnvironment)
-					((DefaultEvaluationEnvironment) getEvaluationEnvironment()).addVariableSource(new VariableSource() {
-						@Override
-						public Variable [] getDeclaredVariables() {
-							return theVariables.values().toArray(new Variable[theVariables.size()]);
-						}
-
-						@Override
-						public Variable getDeclaredVariable(String name) {
-							return theVariables.get(name);
-						}
-					});
-
-				getEvaluator().addEvaluator(ParsedIdentifier.class, new ObservableItemEvaluator<ParsedIdentifier>() {
-					private final ObservableItemEvaluator<? super ParsedIdentifier> superEval = getEvaluator().getObservableEvaluatorFor(
-						ParsedIdentifier.class);
-
-					@Override
-					public ObservableValue<?> evaluateObservable(ParsedIdentifier item, ObservableEvaluator evaluator,
-						EvaluationEnvironment env, boolean asType) throws EvaluationException {
-						AnimatedVariable var = theVariables.get(item.getName());
-						if(var != null)
-							return var;
-						else if(superEval != null)
-							return superEval.evaluateObservable(item, evaluator, env, asType);
-						else
-							return null;
-					}
-				});
-				getEvaluator().addEvaluator(ConstantItem.class, new prisms.lang.eval.PrismsItemEvaluator<ConstantItem>() {
-					@Override
-					public EvaluationResult evaluate(ConstantItem item, PrismsEvaluator evaluator, EvaluationEnvironment env2,
-						boolean asType, boolean withValues) throws EvaluationException {
-						return item.get();
-					}
-				});
-			}
-		};
+	/** Creates the style sheet */
+	public AnimatedStyleSheet() {
 		theVariables = new java.util.LinkedHashMap<>();
-	}
-
-	/** @return The model parser that this style sheet uses */
-	protected MuisValueReferenceParser getModelParser() {
-		return theModelParser;
 	}
 
 	/** @param var The animation variable to add to this style sheet */
@@ -345,53 +290,16 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		return prisms.util.ArrayUtils.immutableIterator(theVariables.values().iterator());
 	}
 
-	@Override
-	protected <T> StyleExpressionValue<StateGroupTypeExpression<?>, T> createStyleExpressionValue(StyleAttribute<T> attr,
-		StateGroupTypeExpression<?> exp, T value) {
-		if(value == null)
-			value = (T) new ConstantItem(attr.getType().getType(), null);
-		else if(!(value instanceof ParsedItem))
-			value = (T) new ConstantItem(new prisms.lang.Type(value.getClass()), value);
-		return new StyleExpressionValue<>(this, attr, exp, (ParsedItem) value);
-	}
-
-	/**
-	 * @param attr The attribute to set the value for
-	 * @param expr The conditional expression for which the given value will be applied
-	 * @param value The value expression to be evaluated for the style attribute's value
-	 */
-	protected <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
-		super.set((StyleAttribute<Object>) attr, expr, value);
-	}
-
 	/**
 	 * @param attr The attribute to set the value for
 	 * @param expr The expression which must be true for the given value to apply
-	 * @param parseableValue The string to parse to get the value for the attribute
-	 * @throws MuisParseException If an error occurs parsing the attribute
+	 * @param value The observable value for the attribute
+	 * @throws ClassCastException If the value's type is not compatible with the attribute
 	 */
-	protected void setAnimatedValue(StyleAttribute<?> attr, StateGroupTypeExpression<?> expr, String parseableValue)
-		throws MuisParseException {
-		ObservableValue<?> value = theModelParser.parse(parseableValue, false);
-		if(!attr.getType().getType().isAssignable(value.getType()))
-			throw new MuisParseException("Parsed value's type is incompatible with style attribute " + attr + ": " + parseableValue);
-		setAnimatedValue((StyleAttribute<Object>) attr, expr, value);
-	}
-
-	@Override
-	public <T> StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] getLocalExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] array = super.getLocalExpressions(attr);
-		StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionEvalValue[array.length];
-		System.arraycopy(array, 0, ret, 0, array.length);
-		return ret;
-	}
-
-	@Override
-	public <T> StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] getExpressions(StyleAttribute<T> attr) {
-		StyleExpressionValue<StateGroupTypeExpression<?>, T> [] array = super.getExpressions(attr);
-		StyleExpressionEvalValue<StateGroupTypeExpression<?>, T> [] ret = new StyleExpressionEvalValue[array.length];
-		System.arraycopy(array, 0, ret, 0, array.length);
-		return ret;
+	protected <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
+		if(!attr.getType().canCast(value.getType()))
+			throw new ClassCastException("Value's type is incompatible with style attribute " + attr);
+		set(attr, expr, value);
 	}
 
 	@Override

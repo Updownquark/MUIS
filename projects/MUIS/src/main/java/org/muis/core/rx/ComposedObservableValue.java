@@ -1,6 +1,7 @@
 package org.muis.core.rx;
 
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import prisms.lang.Type;
@@ -66,6 +67,16 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 		return theType;
 	}
 
+	/** @return The observable values that compose this value */
+	public ObservableValue<?> [] getComposed() {
+		return theComposed.toArray(new ObservableValue[theComposed.size()]);
+	}
+
+	/** @return The function used to map this observable's composed values into its return value */
+	public Function<Object [], T> getFunction() {
+		return theFunction;
+	}
+
 	@Override
 	public T get() {
 		Object [] args = new Object[theComposed.size()];
@@ -85,8 +96,28 @@ public class ComposedObservableValue<T> extends DefaultObservableValue<T> {
 	 * @return The return type of the function
 	 */
 	public static Type getReturnType(Function<?, ?> function) {
+		return getReturnType(function, "apply", Object.class);
+	}
+
+	/**
+	 * @param function The function
+	 * @return The return type of the function
+	 */
+	public static Type getReturnType(BiFunction<?, ?, ?> function) {
+		return getReturnType(function, "apply", Object.class, Object.class);
+	}
+
+	/**
+	 * @param function The function
+	 * @return The return type of the function
+	 */
+	public static Type getReturnType(java.util.function.Supplier<?> function) {
+		return getReturnType(function, "get");
+	}
+
+	private static Type getReturnType(Object function, String methodName, Class<?>... types) {
 		try {
-			return new Type(function.getClass().getMethod("apply", Object.class).getGenericReturnType());
+			return new Type(function.getClass().getMethod(methodName, types).getGenericReturnType());
 		} catch(NoSuchMethodException | SecurityException e) {
 			throw new IllegalStateException("No apply method on a function?", e);
 		}

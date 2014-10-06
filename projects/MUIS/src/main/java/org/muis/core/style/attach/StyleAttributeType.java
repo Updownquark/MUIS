@@ -10,13 +10,14 @@ import org.muis.core.style.*;
 import prisms.lang.Type;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisStyle> implements
-	MuisProperty.PrintablePropertyType<MuisStyle> {
+public class StyleAttributeType extends MuisProperty.AbstractPropertyType<SealableStyle> implements
+	MuisProperty.PrintablePropertyType<SealableStyle> {
 	/** The instance to use for the element style */
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
 	/** The style attribute on MUIS elements */
-	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<>("style", ELEMENT_TYPE, null, new StylePathAccepter());
+	public static final MuisAttribute<SealableStyle> STYLE_ATTRIBUTE = new MuisAttribute<>("style", ELEMENT_TYPE, null,
+		new StylePathAccepter());
 
 	/** Creates a style attribute type */
 	protected StyleAttributeType() {
@@ -28,7 +29,7 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 	}
 
 	@Override
-	public ObservableValue<MuisStyle> parse(MuisParseEnv env, String value) throws MuisException {
+	public ObservableValue<SealableStyle> parse(MuisParseEnv env, String value) throws MuisException {
 		return ObservableValue.constant(parseStyle(env, value));
 	}
 
@@ -40,7 +41,7 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 	 * @return The parsed style
 	 * @throws MuisException If an unrecoverable error occurs
 	 */
-	public static MuisStyle parseStyle(MuisParseEnv env, String value) throws MuisException {
+	public static SealableStyle parseStyle(MuisParseEnv env, String value) throws MuisException {
 		SealableStyle ret = new SealableStyle();
 		String [] styles = StyleParsingUtils.splitStyles(value);
 		if(styles == null) {
@@ -110,12 +111,17 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 	}
 
 	@Override
-	public MuisStyle cast(Object value) {
+	public boolean canCast(Type type) {
+		return type.canAssignTo(SealableStyle.class);
+	}
+
+	@Override
+	public SealableStyle cast(Object value) {
 		return value instanceof SealableStyle ? (SealableStyle) value : null;
 	}
 
 	@Override
-	public String toString(MuisStyle value) {
+	public String toString(SealableStyle value) {
 		StringBuilder ret = new StringBuilder();
 		for(StyleAttribute<?> attr : value.localAttributes()) {
 			if(ret.length() > 0)

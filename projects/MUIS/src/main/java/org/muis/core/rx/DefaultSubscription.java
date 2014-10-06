@@ -3,15 +3,15 @@ package org.muis.core.rx;
 
 public abstract class DefaultSubscription<T> implements Subscription<T> {
 	private final Observable<T> theObservable;
-	private final java.util.concurrent.CopyOnWriteArrayList<Subscription<T>> theSubsciptions;
+	private final java.util.concurrent.CopyOnWriteArrayList<Subscription<T>> theSubscriptions;
 	private volatile boolean isAlive;
 
 	public DefaultSubscription(Observable<T> observable) {
 		theObservable = observable;
-		theSubsciptions = new java.util.concurrent.CopyOnWriteArrayList<>();
+		theSubscriptions = new java.util.concurrent.CopyOnWriteArrayList<>();
 		theSubscriptions.add(theObservable.completed().act(value -> {
 			isAlive = false;
-			theSubsciptions.clear();
+			theSubscriptions.clear();
 		}));
 	}
 
@@ -20,7 +20,7 @@ public abstract class DefaultSubscription<T> implements Subscription<T> {
 		if(!isAlive)
 			return theObservable.subscribe(observer);
 		Subscription<T> ret = theObservable.subscribe(observer);
-		theSubsciptions.add(ret);
+		theSubscriptions.add(ret);
 		return ret;
 	}
 
@@ -28,10 +28,8 @@ public abstract class DefaultSubscription<T> implements Subscription<T> {
 	public void unsubscribe() {
 		isAlive = false;
 		unsubscribeSelf();
-		Subscription<T> [] subs = theSubsciptions.toArray(new Subscription[theSubsciptions.size()]);
-		theSubsciptions.clear();
-		// TODO Auto-generated method stub
-
+		Subscription<T> [] subs = theSubscriptions.toArray(new Subscription[theSubscriptions.size()]);
+		theSubscriptions.clear();
 	}
 
 	public abstract void unsubscribeSelf();

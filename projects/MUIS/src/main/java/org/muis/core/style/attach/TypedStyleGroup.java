@@ -2,9 +2,12 @@ package org.muis.core.style.attach;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.sheet.FilteredStyleSheet;
+import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 
+import prisms.lang.Type;
 import prisms.util.ArrayUtils;
 
 /**
@@ -55,10 +58,11 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		 * 3) the parent type group, if it's not null
 		 */
 		NamedStyleGroup root = getRoot();
+		ObservableSet<TemplateRole> roles = ObservableSet.constant(new Type(TemplateRole.class));
 		if(root != null && root.getName() != null) // name==null Happens in the super constructor call for NamedStyleGroup
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type));
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type, roles));
 		else
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), name, type));
+			addDependency(new FilteredStyleSheet<>(doc.getStyle(), name, type, roles));
 		if(parent != null)
 			addDependency(parent, null);
 	}

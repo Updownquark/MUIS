@@ -5,32 +5,40 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import prisms.lang.Type;
+
 /**
  * A set whose content can be observed. This set is immutable in that none of its methods, including {@link Set} methods, can modify its
- * content (Set modification methods will throw {@link UnsupportedOperationException}). To modify the list content, use {@link #control()}
- * to obtain a set controller. This controller can be modified and these modifications will be reflected in this set and will be propagated
- * to subscribers.
+ * content (Set modification methods will throw {@link UnsupportedOperationException}). To modify the list content, use
+ * {@link #control(org.muis.core.rx.DefaultObservable.OnSubscribe)} to obtain a set controller. This controller can be modified and these
+ * modifications will be reflected in this set and will be propagated to subscribers.
  *
  * @param <E> The type of element in the set
  */
 public class DefaultObservableSet<E> extends AbstractSet<E> implements ObservableSet<E> {
-	private LinkedHashMap<E, ObservableElement<E>> theValues;
+	private final Type theType;
+	private LinkedHashMap<E, ObservableElementImpl<E>> theValues;
 
 	private ReentrantReadWriteLock theLock;
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
-	private DefaultObservable<Observable<E>> theBackingObservable;
-	private Observer<Observable<E>> theBackingController;
-	private DefaultObservable<Void> theChangeObservable;
-	private Observer<Void> theChangeController;
+	private org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> theOnSubscribe;
+	private java.util.concurrent.ConcurrentHashMap<Subscription<ObservableElement<E>>, Observer<? super ObservableElement<E>>> theObservers;
 
-	/** Creates the list */
-	public DefaultObservableSet() {
+	/**
+	 * Creates the list
+	 *
+	 * @param type The type of elements for this set
+	 */
+	public DefaultObservableSet(Type type) {
+		theType = type;
 		theValues = new LinkedHashMap<>();
 
 		theLock = new ReentrantReadWriteLock();
-		theBackingObservable = new DefaultObservable<>();
-		theChangeObservable = new DefaultObservable<>();
-		theChangeController = theChangeObservable.control(null);
+	}
+
+	@Override
+	public Type getType() {
+		return theType;
 	}
 
 	/**
@@ -42,7 +50,6 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		lock.lock();
 		try {
 			action.run();
-			theChangeController.onNext(null);
 		} finally {
 			lock.unlock();
 		}
@@ -52,29 +59,62 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	 * Obtains the controller for this list. Only one call can be made to this method. All calls after the first will throw an
 	 * {@link IllegalStateException}.
 	 *
+	 * @param onSubscribe The listener to be notified when new subscriptions to this collection are made
 	 * @return The list to control this list's data.
 	 */
-	public Set<E> control(org.muis.core.rx.DefaultObservable.OnSubscribe<Observable<E>> onSubscribe) {
+	public Set<E> control(org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> onSubscribe) {
 		if(hasIssuedController.getAndSet(true))
 			throw new IllegalStateException("This observable set is already controlled");
-		theBackingController = theBackingObservable.control(subscriber -> {
-			doLocked(() -> {
-				for(ObservableElement<E> el : theValues.values())
-					subscriber.onNext(el);
-			}, false);
-			onSubscribe.onsubscribe(subscriber);
-		});
+		theOnSubscribe = onSubscribe;
 		return new ObservableSetController();
 	}
 
 	@Override
-	public Observable<Void> changes() {
-		return theChangeObservable;
+	public Subscription<ObservableElement<E>> subscribe(Observer<? super ObservableElement<E>> observer) {
+		Subscription<ObservableElement<E>> sub [] = new Subscription[1];
+		sub[0] = new DefaultSubscription<ObservableElement<E>>(this) {
+			@Override
+			public void unsubscribeSelf() {
+				theObservers.remove(sub[0]);
+			}
+		};
+		theObservers.put(sub[0], observer);
+		doLocked(()->{
+			for(ObservableElementImpl<E> el : theValues.values())
+				observer.onNext(newValue(el, sub[0]));
+		}, false);
+		theOnSubscribe.onsubscribe(observer);
+		return sub[0];
 	}
 
-	@Override
-	public Subscription<Observable<E>> subscribe(Observer<? super Observable<E>> observer) {
-		return theBackingObservable.subscribe(observer);
+	private ObservableElement<E> newValue(ObservableElementImpl<E> el, Subscription<ObservableElement<E>> sub) {
+		return new ObservableElement<E>() {
+			@Override
+			public Type getType() {
+				return el.getType();
+			}
+
+			@Override
+			public E get() {
+				return el.get();
+			}
+
+			@Override
+			public Subscription<ObservableValueEvent<E>> subscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				return el.takeUntil(sub).subscribe(observer);
+			}
+
+			@Override
+			public ObservableValue<E> persistent() {
+				return el;
+			}
+		};
+	}
+
+	private void fireNewElement(ObservableElementImpl<E> el) {
+		for(Map.Entry<Subscription<ObservableElement<E>>, Observer<? super ObservableElement<E>>> entry : theObservers.entrySet()) {
+			entry.getValue().onNext(newValue(el, entry.getKey()));
+		}
 	}
 
 	@Override
@@ -110,12 +150,11 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	@Override
 	protected DefaultObservableSet<E> clone() throws CloneNotSupportedException {
 		DefaultObservableSet<E> ret = (DefaultObservableSet<E>) super.clone();
-		ret.theValues = (LinkedHashMap<E, ObservableElement<E>>) theValues.clone();
-		for(Map.Entry<E, ObservableElement<E>> entry : theValues.entrySet())
-			entry.setValue(new ObservableElement<>(entry.getKey()));
+		ret.theValues = (LinkedHashMap<E, ObservableElementImpl<E>>) theValues.clone();
+		for(Map.Entry<E, ObservableElementImpl<E>> entry : theValues.entrySet())
+			entry.setValue(new ObservableElementImpl<>(theType, entry.getKey()));
 		ret.theLock = new ReentrantReadWriteLock();
 		ret.hasIssuedController = new AtomicBoolean(false);
-		ret.theBackingObservable = new DefaultObservable<>();
 		return ret;
 	}
 
@@ -123,7 +162,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		@Override
 		public Iterator<E> iterator() {
 			return new Iterator<E>() {
-				private Iterator<Map.Entry<E, ObservableElement<E>>> backing = theValues.entrySet().iterator();
+				private Iterator<Map.Entry<E, ObservableElementImpl<E>>> backing = theValues.entrySet().iterator();
 
 				@Override
 				public boolean hasNext() {
@@ -200,9 +239,9 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 				if(!theValues.containsKey(e))
 					return;
 				ret[0] = true;
-				ObservableElement<E> el = new ObservableElement<>(e);
+				ObservableElementImpl<E> el = new ObservableElementImpl<>(theType, e);
 				theValues.put(e, el);
-				theBackingController.onNext(el);
+				fireNewElement(el);
 			}, true);
 			return ret[0];
 		}
@@ -211,7 +250,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		public boolean remove(Object o) {
 			boolean [] ret = new boolean[1];
 			doLocked(() -> {
-				ObservableElement<E> el = theValues.remove(o);
+				ObservableElementImpl<E> el = theValues.remove(o);
 				if(el == null)
 					return;
 				ret[0] = true;
@@ -225,7 +264,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 			boolean [] ret = new boolean[1];
 			doLocked(() -> {
 				for(Object o : c) {
-					ObservableElement<E> el = theValues.remove(o);
+					ObservableElementImpl<E> el = theValues.remove(o);
 					if(el == null)
 						continue;
 					ret[0] = true;
@@ -243,9 +282,9 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 					if(!theValues.containsKey(add))
 						continue;
 					ret[0] = true;
-					ObservableElement<E> el = new ObservableElement<>(add);
+					ObservableElementImpl<E> el = new ObservableElementImpl<>(theType, add);
 					theValues.put(add, el);
-					theBackingController.onNext(el);
+					fireNewElement(el);
 				}
 			}, true);
 			return ret[0];
@@ -255,13 +294,13 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		public boolean retainAll(Collection<?> c) {
 			boolean [] ret = new boolean[1];
 			doLocked(() -> {
-				Iterator<Map.Entry<E, ObservableElement<E>>> iter = theValues.entrySet().iterator();
+				Iterator<Map.Entry<E, ObservableElementImpl<E>>> iter = theValues.entrySet().iterator();
 				while(iter.hasNext()) {
-					Map.Entry<E, ObservableElement<E>> entry = iter.next();
+					Map.Entry<E, ObservableElementImpl<E>> entry = iter.next();
 					if(c.contains(entry.getKey()))
 						continue;
 					ret[0] = true;
-					ObservableElement<E> el = entry.getValue();
+					ObservableElementImpl<E> el = entry.getValue();
 					iter.remove();
 					el.remove();
 				}
@@ -272,9 +311,9 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		@Override
 		public void clear() {
 			doLocked(() -> {
-				Iterator<ObservableElement<E>> iter = theValues.values().iterator();
+				Iterator<ObservableElementImpl<E>> iter = theValues.values().iterator();
 				while(iter.hasNext()) {
-					ObservableElement<E> el = iter.next();
+					ObservableElementImpl<E> el = iter.next();
 					iter.remove();
 					el.remove();
 				}

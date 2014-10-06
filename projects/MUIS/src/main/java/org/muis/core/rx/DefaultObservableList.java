@@ -5,34 +5,44 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import prisms.lang.Type;
+
 /**
  * A list whose content can be observed. This list is immutable in that none of its methods, including {@link List} methods, can modify its
- * content (List modification methods will throw {@link UnsupportedOperationException}). To modify the list content, use {@link #control()}
- * to obtain a list controller. This controller can be modified and these modifications will be reflected in this list and will be
- * propagated to subscribers.
+ * content (List modification methods will throw {@link UnsupportedOperationException}). To modify the list content, use
+ * {@link #control(org.muis.core.rx.DefaultObservable.OnSubscribe)} to obtain a list controller. This controller can be modified and these
+ * modifications will be reflected in this list and will be propagated to subscribers.
  *
  * @param <E> The type of element in the list
  */
 public class DefaultObservableList<E> extends AbstractList<E> implements ObservableList<E>, RandomAccess {
+	private final Type theType;
 	private ArrayList<E> theValues;
-	private ArrayList<ObservableElement<E>> theElements;
+	private ArrayList<ObservableElementImpl<E>> theElements;
 
 	private ReentrantReadWriteLock theLock;
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
-	private DefaultObservable<Observable<E>> theBackingObservable;
-	private Observer<Observable<E>> theBackingController;
-	private DefaultObservable<Void> theChangeObservable;
-	private Observer<Void> theChangeController;
+	private org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> theOnSubscribe;
+	private java.util.concurrent.ConcurrentHashMap<Subscription<ObservableElement<E>>, Observer<? super ObservableElement<E>>> theObservers;
+	private volatile ObservableElementImpl<E> theRemovedElement;
+	private volatile int theRemovedElementIndex;
 
-	/** Creates the list */
-	public DefaultObservableList() {
+	/**
+	 * Creates the list
+	 *
+	 * @param type The type of elements for this list
+	 */
+	public DefaultObservableList(Type type) {
+		theType = type;
 		theValues = new ArrayList<>();
 		theElements = new ArrayList<>();
 
 		theLock = new ReentrantReadWriteLock();
-		theBackingObservable = new DefaultObservable<>();
-		theChangeObservable = new DefaultObservable<>();
-		theChangeController = theChangeObservable.control(null);
+	}
+
+	@Override
+	public Type getType() {
+		return theType;
 	}
 
 	/**
@@ -44,8 +54,11 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		lock.lock();
 		try {
 			action.run();
-			theChangeController.onNext(null);
 		} finally {
+			if(write) {
+				theRemovedElement = null;
+				theRemovedElementIndex = -1;
+			}
 			lock.unlock();
 		}
 	}
@@ -54,29 +67,74 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	 * Obtains the controller for this list. Only one call can be made to this method. All calls after the first will throw an
 	 * {@link IllegalStateException}.
 	 *
+	 * @param onSubscribe The listener to be notified when new subscriptions to this collection are made
 	 * @return The list to control this list's data.
 	 */
-	public List<E> control(org.muis.core.rx.DefaultObservable.OnSubscribe<Observable<E>> onSubscribe) {
+	public List<E> control(org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> onSubscribe) {
 		if(hasIssuedController.getAndSet(true))
-			throw new IllegalStateException("This observable set is already controlled");
-		theBackingController = theBackingObservable.control(subscriber -> {
-			doLocked(() -> {
-				for(ObservableElement<E> el : theElements)
-					subscriber.onNext(el);
-			}, false);
-			onSubscribe.onsubscribe(subscriber);
-		});
+			throw new IllegalStateException("This observable list is already controlled");
+		theOnSubscribe = onSubscribe;
 		return new ObservableListController();
 	}
 
 	@Override
-	public Observable<Void> changes() {
-		return theChangeObservable;
+	public Subscription<ObservableElement<E>> subscribe(Observer<? super ObservableElement<E>> observer) {
+		Subscription<ObservableElement<E>> sub [] = new Subscription[1];
+		sub[0] = new DefaultSubscription<ObservableElement<E>>(this) {
+			@Override
+			public void unsubscribeSelf() {
+				theObservers.remove(sub[0]);
+			}
+		};
+		theObservers.put(sub[0], observer);
+		doLocked(() -> {
+			for(ObservableElementImpl<E> el : theElements)
+				observer.onNext(newValue(el, sub[0]));
+		}, false);
+		theOnSubscribe.onsubscribe(observer);
+		return sub[0];
 	}
 
-	@Override
-	public Subscription<Observable<E>> subscribe(Observer<? super Observable<E>> observer) {
-		return theBackingObservable.subscribe(observer);
+	private ObservableListElement<E> newValue(ObservableElementImpl<E> el, Subscription<ObservableElement<E>> sub) {
+		return new ObservableListElement<E>() {
+			private int theRemovedIndex = -1;
+
+			@Override
+			public Type getType() {
+				return el.getType();
+			}
+
+			@Override
+			public E get() {
+				return el.get();
+			}
+
+			@Override
+			public Subscription<ObservableValueEvent<E>> subscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				return el.takeUntil(sub).subscribe(observer);
+			}
+
+			@Override
+			public ObservableValue<E> persistent() {
+				return el;
+			}
+
+			@Override
+			public int getIndex() {
+				int ret = theElements.indexOf(el);
+				if(ret < 0)
+					ret = theRemovedIndex;
+				if(ret < 0 && theRemovedElement == el)
+					ret = theRemovedIndex = theRemovedElementIndex;
+				return ret;
+			}
+		};
+	}
+
+	private void fireNewElement(ObservableElementImpl<E> el) {
+		for(Map.Entry<Subscription<ObservableElement<E>>, Observer<? super ObservableElement<E>>> entry : theObservers.entrySet()) {
+			entry.getValue().onNext(newValue(el, entry.getKey()));
+		}
 	}
 
 	@Override
@@ -94,20 +152,14 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	}
 
 	@Override
-	public int indexOf(Observable<E> obsEl) {
-		return theElements.indexOf(obsEl);
-	}
-
-	@Override
 	protected DefaultObservableList<E> clone() throws CloneNotSupportedException {
 		DefaultObservableList<E> ret = (DefaultObservableList<E>) super.clone();
 		ret.theValues = (ArrayList<E>) theValues.clone();
 		ret.theElements = new ArrayList<>();
 		for(E el : ret.theValues)
-			ret.theElements.add(new ObservableElement<>(el));
+			ret.theElements.add(new ObservableElementImpl<>(theType, el));
 		ret.theLock = new ReentrantReadWriteLock();
 		ret.hasIssuedController = new AtomicBoolean(false);
-		ret.theBackingObservable = new DefaultObservable<>();
 		return ret;
 	}
 
@@ -184,9 +236,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		public boolean add(E e) {
 			doLocked(() -> {
 				theValues.add(e);
-				ObservableElement<E> add = new ObservableElement<>(e);
+				ObservableElementImpl<E> add = new ObservableElementImpl<>(theType, e);
 				theElements.add(add);
-				theBackingController.onNext(add);
+				fireNewElement(add);
 			}, true);
 			return true;
 		}
@@ -202,7 +254,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 				}
 				ret[0] = true;
 				theValues.remove(idx);
-				theElements.remove(idx).remove();
+				theRemovedElement = theElements.remove(idx);
+				theRemovedElementIndex = idx;
+				theRemovedElement.remove();
 			}, true);
 			return ret[0];
 		}
@@ -214,9 +268,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 			doLocked(() -> {
 				for(E e : c) {
 					theValues.add(e);
-					ObservableElement<E> newWrapper = new ObservableElement<>(e);
+					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, e);
 					theElements.add(newWrapper);
-					theBackingController.onNext(newWrapper);
+					fireNewElement(newWrapper);
 				}
 			}, true);
 			return true;
@@ -232,15 +286,15 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 				int idx = index;
 				for(E e : c) {
 					theValues.add(idx, e);
-					ObservableElement<E> newWrapper = new ObservableElement<>(e);
+					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, e);
 					theElements.add(newWrapper);
-					theBackingController.onNext(newWrapper);
+					fireNewElement(newWrapper);
 					idx++;
 				}
 				for(int i = idx; i < theValues.size(); i++) {
-					ObservableElement<E> wrapper = new ObservableElement<>(theValues.get(i));
+					ObservableElementImpl<E> wrapper = new ObservableElementImpl<>(theType, theValues.get(i));
 					theElements.add(wrapper);
-					theBackingController.onNext(wrapper);
+					fireNewElement(wrapper);
 				}
 			}, true);
 			return true;
@@ -259,7 +313,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 							ret[0] = true;
 						}
 						theValues.remove(idx);
-						theElements.remove(idx).remove();
+						theRemovedElement = theElements.remove(idx);
+						theRemovedElementIndex = idx;
+						theRemovedElement.remove();
 					}
 				}
 			}, true);
@@ -286,7 +342,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 					for(int i = theValues.size() - 1; i >= 0; i--)
 						if(!keep.get(i)) {
 							theValues.remove(i);
-							theElements.remove(i).remove();
+							theRemovedElement = theElements.remove(i);
+							theRemovedElementIndex = i;
+							theRemovedElement.remove();
 						}
 				}
 			}, true);
@@ -297,11 +355,14 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		public void clear() {
 			doLocked(() -> {
 				theValues.clear();
-				ArrayList<ObservableElement<E>> remove = new ArrayList<>();
+				ArrayList<ObservableElementImpl<E>> remove = new ArrayList<>();
 				remove.addAll(theElements);
 				theElements.clear();
-				for(int i = remove.size() - 1; i >= 0; i--)
-					remove.get(i).remove();
+				for(int i = remove.size() - 1; i >= 0; i--) {
+					theRemovedElement = remove.get(i);
+					theRemovedElementIndex = i;
+					theRemovedElement.remove();
+				}
 			}, true);
 		}
 
@@ -322,14 +383,14 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 					theElements.remove(i).remove();
 				int idx = index;
 				theValues.add(idx, element);
-				ObservableElement<E> newWrapper = new ObservableElement<>(element);
+				ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, element);
 				theElements.add(newWrapper);
-				theBackingController.onNext(newWrapper);
+				fireNewElement(newWrapper);
 				idx++;
 				for(int i = idx; i < theValues.size(); i++) {
-					ObservableElement<E> wrapper = new ObservableElement<>(theValues.get(i));
+					ObservableElementImpl<E> wrapper = new ObservableElementImpl<>(theType, theValues.get(i));
 					theElements.add(wrapper);
-					theBackingController.onNext(wrapper);
+					fireNewElement(wrapper);
 				}
 			}, true);
 		}
@@ -339,7 +400,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 			Object [] ret = new Object[1];
 			doLocked(() -> {
 				ret[0] = theValues.remove(index);
-				theElements.remove(index).remove();
+				theRemovedElement = theElements.remove(index);
+				theRemovedElementIndex = index;
+				theRemovedElement.remove();
 			}, true);
 			return (E) ret[0];
 		}

@@ -48,6 +48,12 @@ public abstract class MuisProperty<T> {
 		ObservableValue<? extends T> parse(MuisParseEnv env, String value) throws MuisException;
 
 		/**
+		 * @param type The type to check
+		 * @return Whether objects of the given type can be cast or converted to items of this property's type
+		 */
+		boolean canCast(Type type);
+
+		/**
 		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
 		 * this property's type. This method may choose to convert liberally by creating new instances of this type corresponding to
 		 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type.
@@ -231,10 +237,7 @@ public abstract class MuisProperty<T> {
 		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws MuisException {
 		}
 
-		/**
-		 * @param type The type to check
-		 * @return Whether objects of the given type can be cast or converted to items of this property's type
-		 */
+		@Override
 		public boolean canCast(Type type) {
 			return theType.isAssignable(type);
 		}
@@ -364,9 +367,16 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
+		public boolean canCast(Type type) {
+			return type.canAssignTo(CharSequence.class);
+		}
+
+		@Override
 		public String cast(Object value) {
 			if(value instanceof String)
 				return (String) value;
+			else if(value instanceof CharSequence)
+				return value.toString();
 			else
 				return null;
 		}
@@ -496,6 +506,11 @@ public abstract class MuisProperty<T> {
 				}
 			}
 			return ObservableValue.constant(ret);
+		}
+
+		@Override
+		public boolean canCast(Type type) {
+			return type.isMathable() && type.getBaseType() != Character.TYPE && type.getBaseType() != Character.class;
 		}
 
 		@Override
@@ -728,6 +743,11 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
+		public boolean canCast(Type type) {
+			return type.canAssignTo(URL.class);
+		}
+
+		@Override
 		public URL cast(Object value) {
 			if(value instanceof URL)
 				return (URL) value;
@@ -864,6 +884,11 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
+		public boolean canCast(Type type) {
+			return type.canAssignTo(enumType);
+		}
+
+		@Override
 		public T cast(Object value) {
 			if(enumType.isInstance(value))
 				return (T) value;
@@ -967,6 +992,11 @@ public abstract class MuisProperty<T> {
 			if(theNamedValues.containsKey(value))
 				return ObservableValue.constant(theNamedValues.get(value));
 			return theWrapped.parse(env, value);
+		}
+
+		@Override
+		public boolean canCast(Type type) {
+			return theWrapped.canCast(type);
 		}
 
 		@Override

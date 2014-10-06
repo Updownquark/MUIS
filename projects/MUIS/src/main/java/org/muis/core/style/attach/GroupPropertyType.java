@@ -24,6 +24,11 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 	}
 
 	@Override
+	public boolean canCast(Type type) {
+		return type.canAssignTo(String.class) || type.isArray() && type.getComponentType().canAssignTo(String.class);
+	}
+
+	@Override
 	public String [] cast(Object value) {
 		if(value instanceof String [])
 			return (String []) value;

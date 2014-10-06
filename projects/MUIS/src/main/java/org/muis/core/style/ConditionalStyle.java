@@ -1,8 +1,8 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.ObservableCollection;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
+import org.muis.core.rx.*;
+
+import prisms.lang.Type;
 
 /**
  * An extension of MuisStyle that may have different attribute settings depending on a condition of some type.
@@ -29,10 +29,11 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 
 	/** @return All style attributes that are set for any condition in this style or any of its dependents */
 	default ObservableSet<StyleAttribute<?>> allAttrs() {
-		org.muis.core.rx.CompoundObservableSet<StyleAttribute<?>> ret = new org.muis.core.rx.CompoundObservableSet<>();
-		ret.addSet(allLocal());
-		ret.addSet(ObservableCollection.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
-		return ret;
+		ObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
+			StyleAttribute.class)));
+		ret.add(allLocal());
+		ret.add(ObservableCollection.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
+		return ObservableCollection.flatten(ret);
 	}
 
 	/**
@@ -41,9 +42,10 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 * @return The expression/value combinations that are set in this style or any of its dependencies for the given attribute
 	 */
 	default <T> ObservableList<StyleExpressionValue<E, T>> getExpressions(StyleAttribute<T> attr) {
-		org.muis.core.rx.CompoundObservableList<StyleExpressionValue<E, T>> ret = new org.muis.core.rx.CompoundObservableList<>();
-		ret.addList(getLocalExpressions(attr));
-		ret.addList(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
-		return ret;
+		ObservableList<ObservableList<StyleExpressionValue<E, T>>> ret = new DefaultObservableList<>(new Type(ObservableList.class,
+			new Type(StyleExpressionValue.class, new Type(Object.class, true), attr.getType().getType())));
+		ret.add(getLocalExpressions(attr));
+		ret.add(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
+		return ObservableList.flatten(ret);
 	}
 }

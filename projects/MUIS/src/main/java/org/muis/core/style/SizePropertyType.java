@@ -51,6 +51,15 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 	}
 
 	@Override
+	public boolean canCast(Type type) {
+		if(type.canAssignTo(Size.class))
+			return true;
+		if(type.isMathable() && !type.canAssignTo(Character.TYPE))
+			return true;
+		return false;
+	}
+
+	@Override
 	public Size cast(Object value) {
 		if(value instanceof Size)
 			return (Size) value;

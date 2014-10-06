@@ -5,6 +5,8 @@ import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableSet;
 import org.muis.core.rx.ObservableValue;
 
+import prisms.lang.Type;
+
 /** Governs the set of properties that define how MUIS elements of different types render themselves */
 public interface MuisStyle {
 	/** @return The styles, in order, that this style depends on for attributes not set directly in this style */
@@ -41,15 +43,17 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		org.muis.core.rx.CompoundObservableSet<StyleAttribute<?>> ret = new org.muis.core.rx.CompoundObservableSet<>();
-		ret.addSet(localAttributes());
-		ret.addSet(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));
-		return ret;
+		ObservableSet<ObservableSet<StyleAttribute<?>>> ret = new org.muis.core.rx.DefaultObservableSet<>(
+			new Type(ObservableSet.class, new Type(StyleAttribute.class)));
+		ret.add(localAttributes());
+		ret.add(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));
+		return ObservableCollection.flatten(ret);
 	}
 
 	/**
 	 * Gets the value of the attribute in this style or its dependencies. This style is checked first, then dependencies are checked. If the
-	 * attribute is not set in this style or its dependencies, then the attribute's default value is returned.
+	 * attribute is not set in this style or its dependencies and {@code withDefault} is true, then the attribute's default value is
+	 * returned.
 	 *
 	 * @param <T> The type of attribute to get the value of
 	 * @param attr The attribute to get the value of
@@ -59,7 +63,7 @@ public interface MuisStyle {
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<T> dependValue = org.muis.core.rx.ObservableUtils.first(attr.getType().getType(),
 			getDependencies().mapC(depend -> depend.get(attr, false)), (T val) -> val);
-		return getLocal(attr).composeV((T local, T depend) -> {
+		return getLocal(attr).combineV((T local, T depend) -> {
 			if(local != null)
 				return local;
 			else if(depend != null)
@@ -71,7 +75,23 @@ public interface MuisStyle {
 		}, dependValue);
 	}
 
+	/**
+	 * Gets the value of the attribute in this style or its dependencies. This style is checked first, then dependencies are checked. If the
+	 * attribute is not set in this style or its dependencies, then the attribute's default value is returned.
+	 *
+	 * @param <T> The type of attribute to get the value of
+	 * @param attr The attribute to get the value of
+	 * @param withDefault Whether to return the default value if no value is set for the attribute in this style or its dependencies
+	 * @return The observable value of the attribute in this style's scope
+	 */
+	default <T> ObservableValue<T> get(StyleAttribute<T> attr) {
+		return get(attr, true);
+	}
+
+	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
 	default org.muis.core.rx.Observable<StyleAttributeEvent<?>> allChanges(){
-		return attributes().mapC(attr->get(attr, true))
+		return org.muis.core.rx.Observable.or(
+			ObservableCollection.fold(attributes().mapC(attr -> get(attr))).map(event -> (StyleAttributeEvent<?>) event), attributes()
+				.removes().map(element -> new StyleAttributeEvent<>(null, null, this, element.get(), null)));
 	}
 }

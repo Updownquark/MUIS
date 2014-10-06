@@ -28,7 +28,7 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 
 	/** Creates the style sheet */
 	public AbstractStyleSheet() {
-		theDependencies = new DefaultObservableList<>();
+		theDependencies = new DefaultObservableList<>(new prisms.lang.Type(StyleSheet.class));
 		theDependController = theDependencies.control(null);
 	}
 

@@ -16,15 +16,15 @@ public class GrooveTexture implements org.muis.core.style.Texture {
 		Orientation orientation = element.atts().get(org.muis.core.layout.LayoutAttributes.orientation);
 		if(orientation == null)
 			orientation = Orientation.horizontal;
-		Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf());
+		Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf()).get();
 		if(bg.getAlpha() == 0)
 			return;
 		graphics.setColor(bg);
 		graphics.fillRect(0, 0, w, h);
-		float source = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
-		float maxShading = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.maxShadingAmount).floatValue();
-		Color light = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightColor);
-		Color shadow = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.shadowColor);
+		float source = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightSource).get().floatValue();
+		float maxShading = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.maxShadingAmount).get().floatValue();
+		Color light = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightColor).get();
+		Color shadow = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.shadowColor).get();
 
 		int crossDir = element.bounds().get(orientation.opposite()).getSize();
 		short [] shading = getShadeAmount(source, maxShading, crossDir, orientation);

@@ -190,7 +190,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 	}
 
 	private void up(MuisTextElement element, boolean shift) {
-		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap).get())
 			return;
 		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 			return;
@@ -211,7 +211,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 	}
 
 	private void down(MuisTextElement element, boolean shift) {
-		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap).get())
 			return;
 		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 			return;
@@ -246,7 +246,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			return;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		int newCursor;
-		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap).get())
 			newCursor = 0;
 		else {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
@@ -263,7 +263,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 			return;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		int newCursor;
-		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap))
+		if(!element.getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap).get())
 			newCursor = doc.length();
 		else {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());

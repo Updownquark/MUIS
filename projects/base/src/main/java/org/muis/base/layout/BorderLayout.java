@@ -111,8 +111,8 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
-				Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
+				Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
+				Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
 				LayoutSize ret = get(type, crossSize, csMax, 0, padding, null);
 				ret.add(margin);
 				ret.add(margin);
@@ -179,8 +179,8 @@ public class BorderLayout implements org.muis.core.MuisLayout {
 	public void layout(final MuisElement parent, final MuisElement [] children) {
 		final int parentWidth = parent.bounds().getWidth();
 		final int parentHeight = parent.bounds().getHeight();
-		final Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin);
-		final Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding);
+		final Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
+		final Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
 		LayoutUtils.LayoutInterpolation<int []> wResult = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<int []>() {
 			@Override
 			public int [] getLayoutValue(LayoutGuideType type) {

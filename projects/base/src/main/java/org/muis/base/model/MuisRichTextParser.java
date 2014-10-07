@@ -252,7 +252,7 @@ public class MuisRichTextParser {
 						throw new MuisParseException("Could not parse tag " + richText.substring(start - 1, end + 1) + " at index " + index
 							+ ": " + e.getMessage(), e.getCause());
 					}
-					for(StyleAttribute<?> att : style)
+					for(StyleAttribute<?> att : style.attributes())
 						set(model, att, style);
 				}
 			}
@@ -272,7 +272,7 @@ public class MuisRichTextParser {
 	}
 
 	private <T> void set(RichDocumentModel model, StyleAttribute<T> att, MuisStyle style) {
-		model.set(att, style.get(att));
+		model.set(att, style.get(att).get());
 	}
 
 	/**

@@ -52,6 +52,11 @@ public class ModelAttributes {
 			}
 
 			@Override
+			public boolean canCast(Type type) {
+				return type.canAssignTo(MuisActionListener.class);
+			}
+
+			@Override
 			public <V extends MuisActionListener> V cast(Object attValue) {
 				if(attValue instanceof MuisActionListener)
 					return (V) attValue;

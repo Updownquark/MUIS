@@ -51,8 +51,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getWSizer(MuisElement parent, MuisElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size marginSz = parent.getStyle().getSelf().get(margin);
-		Size paddingSz = parent.getStyle().getSelf().get(padding);
+		Size marginSz = parent.getStyle().getSelf().get(margin).get();
+		Size paddingSz = parent.getStyle().getSelf().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
 		boolean major = dir.getOrientation() == Orientation.horizontal;
 
@@ -62,8 +62,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public SizeGuide getHSizer(MuisElement parent, MuisElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size marginSz = parent.getStyle().getSelf().get(margin);
-		Size paddingSz = parent.getStyle().getSelf().get(padding);
+		Size marginSz = parent.getStyle().getSelf().get(margin).get();
+		Size paddingSz = parent.getStyle().getSelf().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
 		boolean major = dir.getOrientation() == vertical;
 
@@ -191,8 +191,8 @@ public class FlowLayout implements org.muis.core.MuisLayout {
 	@Override
 	public void layout(MuisElement parent, MuisElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size marginSz = parent.getStyle().getSelf().get(margin);
-		Size paddingSz = parent.getStyle().getSelf().get(padding);
+		Size marginSz = parent.getStyle().getSelf().get(margin).get();
+		Size paddingSz = parent.getStyle().getSelf().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
 		Alignment align = parent.atts().get(alignment, dir.getStartEnd() == End.leading ? Alignment.begin : Alignment.end);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.center);

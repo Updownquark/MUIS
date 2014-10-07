@@ -10,6 +10,7 @@ import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionEvent;
 import org.muis.core.model.MuisActionListener;
 import org.muis.core.rx.Action;
+import org.muis.core.style.BackgroundStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
@@ -67,7 +68,7 @@ public class Button extends org.muis.core.MuisTemplate {
 						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
 						int dx = click.x - unclick.x;
 						int dy = click.y - unclick.y;
-						double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyle.clickTolerance);
+						double tol = Button.this.getStyle().getSelf().get(org.muis.base.style.ButtonStyle.clickTolerance).get();
 						if(dx > tol || dy > tol)
 							return;
 						double dist2 = dx * dx + dy * dy;
@@ -98,6 +99,7 @@ public class Button extends org.muis.core.MuisTemplate {
 					action(event);
 				}
 			});
+			getStyle().getSelf().get(BackgroundStyle.cornerRadius).act(event -> relayout(false));
 		}, MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
@@ -124,7 +126,7 @@ public class Button extends org.muis.core.MuisTemplate {
 
 	@Override
 	public void doLayout() {
-		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
+		org.muis.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
 		int lOff = radius.evaluate(w);
@@ -134,13 +136,13 @@ public class Button extends org.muis.core.MuisTemplate {
 
 	@Override
 	public SizeGuide getWSizer() {
-		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
+		final org.muis.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
 		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
-		final org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
+		final org.muis.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
 		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
 	}
 

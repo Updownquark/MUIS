@@ -212,13 +212,6 @@ public abstract class MuisElement implements MuisParseEnv {
 			if(event.getValue().width != old.width || event.getValue().height != old.height)
 				relayout(false);
 		});
-		new CompoundStyleListener(this) {
-			@Override
-			public void styleChanged(MuisStyle style) {
-				if(theDocument != null)
-					theDocument.cursorChanged(MuisElement.this);
-			}
-		}.addAttribute(BackgroundStyle.cursor).add();
 		theLifeCycleManager.runWhen(() -> {
 			setGroups(theAttributeManager.get(GroupPropertyType.attribute));
 			repaint(null, false);
@@ -762,7 +755,7 @@ public abstract class MuisElement implements MuisParseEnv {
 
 	/** @return Whether this element is at least partially transparent */
 	public boolean isTransparent() {
-		return getStyle().getSelf().get(BackgroundStyle.transparency) > 0;
+		return getStyle().getSelf().get(BackgroundStyle.transparency).get() > 0;
 	}
 
 	/**
@@ -841,7 +834,7 @@ public abstract class MuisElement implements MuisParseEnv {
 	 * @param area The area to paint
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area) {
-		Texture tex = getStyle().getSelf().get(BackgroundStyle.texture);
+		Texture tex = getStyle().getSelf().get(BackgroundStyle.texture).get();
 		if(tex != null)
 			tex.render(graphics, this, area);
 	}

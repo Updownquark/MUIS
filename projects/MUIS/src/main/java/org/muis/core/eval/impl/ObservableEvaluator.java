@@ -89,6 +89,15 @@ public class ObservableEvaluator extends PrismsEvaluator {
 			depOb.subscribe(new Observer<ObservableValueEvent<?>>() {
 				@Override
 				public <V extends ObservableValueEvent<?>> void onNext(V value) {
+					controller.onNext(convertEvent(value));
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<?>> void onCompleted(V value) {
+					controller.onCompleted(convertEvent(value));
+				}
+
+				private <V extends ObservableValueEvent<?>> ObservableValueEvent<Object> convertEvent(V value) {
 					CachingSpoofingEvaluator spoof = new CachingSpoofingEvaluator();
 					for(int j = 0; j < depObs.length; j++) {
 						if(depObs[j] != depOb)
@@ -104,13 +113,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 					} catch(EvaluationException e) {
 						throw new IllegalStateException("Value evaluation failed", e);
 					}
-					ObservableValueEvent<Object> event = new ObservableValueEvent<>(ret, oldValue, newValue, value);
-					controller.onNext(event);
-				}
-
-				@Override
-				public void onCompleted() {
-					controller.onCompleted();
+					return new ObservableValueEvent<>(ret, oldValue, newValue, value);
 				}
 
 				@Override

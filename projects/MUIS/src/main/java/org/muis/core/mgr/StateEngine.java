@@ -54,6 +54,10 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 	private final MuisElement theElement;
 	private final ConcurrentHashMap<MuisState, StateValue> theStates;
+	private final DefaultObservableSet<MuisState> theStateSet;
+	private final DefaultObservableSet<MuisState> theActiveStates;
+	private final java.util.Set<MuisState> theStateSetController;
+	private final java.util.Set<MuisState> theActiveStateController;
 
 	private StateControllerImpl [] theStateControllers;
 
@@ -72,6 +76,11 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		theStates = new ConcurrentHashMap<>();
 		theStateControllers = new StateControllerImpl[0];
 		theStateControllerLock = new Object();
+
+		theStateSet = new DefaultObservableSet<>(new Type(MuisState.class));
+		theStateSetController = theStateSet.control(null);
+		theActiveStates = new DefaultObservableSet<>(theStateSet.getType());
+		theActiveStateController = theActiveStates.control(null);
 	}
 
 	@Override
@@ -150,6 +159,16 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		};
 	}
 
+	@Override
+	public ObservableSet<MuisState> allStates() {
+		return theStateSet;
+	}
+
+	@Override
+	public ObservableSet<MuisState> activeStates() {
+		return theActiveStates;
+	}
+
 	/**
 	 * @param state The state to add to this engine
 	 * @throws IllegalArgumentException If the given state is already recognized in this engine
@@ -160,6 +179,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		if(theStates.containsKey(state))
 			throw new IllegalArgumentException("The state \"" + state + "\" is already added to this engine");
 		theStates.put(state, new StateValue(false, new AtomicInteger()));
+		theStateSetController.add(state);
 	}
 
 	/**
@@ -199,6 +219,10 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 			}
 		};
 		theObservableController.onNext(sce);
+		if(active)
+			theActiveStateController.add(state);
+		else
+			theActiveStateController.remove(state);
 		theElement.events().fire(sce);
 	}
 

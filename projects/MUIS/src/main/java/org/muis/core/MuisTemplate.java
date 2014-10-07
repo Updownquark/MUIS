@@ -216,6 +216,11 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 
 			@Override
+			public boolean canCast(Type type) {
+				return type.canAssignTo(AttachPoint.class);
+			}
+
+			@Override
 			public <V extends AttachPoint> V cast(Object value) {
 				if(value instanceof AttachPoint)
 					return (V) value;
@@ -1196,14 +1201,14 @@ public abstract class MuisTemplate extends MuisElement {
 				boolean mod = false;
 				try {
 					templateStyle = StyleAttributeType.parseStyle(this, att.getValue());
-					for(StyleAttribute<?> styleAtt : templateStyle) {
+					for(StyleAttribute<?> styleAtt : templateStyle.attributes()) {
 						if(!elStyle.isSet(styleAtt)) {
 							mod = true;
 							newStyle.set((StyleAttribute<Object>) styleAtt, templateStyle.get(styleAtt));
 						}
 					}
 					if(mod) {
-						for(StyleAttribute<?> styleAtt : elStyle)
+						for(StyleAttribute<?> styleAtt : elStyle.attributes())
 							newStyle.set((StyleAttribute<Object>) styleAtt, elStyle.get(styleAtt));
 						atts().set(StyleAttributeType.STYLE_ATTRIBUTE, newStyle);
 					}

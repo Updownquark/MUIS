@@ -15,18 +15,18 @@ public class RaisedSquareTexture implements Texture
 	{
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
-		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
+		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius).get();
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
-		java.awt.Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf());
+		java.awt.Color bg = org.muis.util.MuisUtils.getBackground(element.getStyle().getSelf()).get();
 		if(bg.getAlpha() == 0)
 			return;
 		graphics.setColor(bg);
 		graphics.fillRect(0, 0, w, h);
-		float source = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightSource).floatValue();
-		float maxShading = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.maxShadingAmount).floatValue();
-		Color light = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightColor);
-		Color shadow = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.shadowColor);
+		float source = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightSource).get().floatValue();
+		float maxShading = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.maxShadingAmount).get().floatValue();
+		Color light = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.lightColor).get();
+		Color shadow = element.getStyle().getSelf().get(org.muis.core.style.LightedStyle.shadowColor).get();
 		int lightRGB = light.getRGB() & 0xffffff;
 		int shadowRGB = shadow.getRGB() & 0xffffff;
 		int sin = -(int) Math.round(255 * Math.sin(source * Math.PI / 180));

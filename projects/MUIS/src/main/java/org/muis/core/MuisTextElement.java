@@ -187,7 +187,7 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 		int max = Math.round(maxW);
 
 		int min;
-		boolean isWordWrap = getStyle().getSelf().get(wordWrap);
+		boolean isWordWrap = getStyle().getSelf().get(wordWrap).get();
 		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine));
 		if(isWordWrap || isMultiLine) {
 			maxW = 0;
@@ -216,9 +216,9 @@ public class MuisTextElement extends MuisLeaf implements org.muis.core.model.Doc
 	@Override
 	public SizeGuide getHSizer() {
 		if(theDocument.getDocumentModel().length() == 0) {
-			java.awt.Font font = org.muis.util.MuisUtils.getFont(getStyle().getSelf());
+			java.awt.Font font = org.muis.util.MuisUtils.getFont(getStyle().getSelf()).get();
 			java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
-				.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+				.get(org.muis.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 			java.awt.font.LineMetrics metrics = font.getLineMetrics("Iq", context);
 			int height = Math.round(metrics.getAscent() + metrics.getDescent());
 			return new SimpleSizeGuide(height, height, height, height, height);

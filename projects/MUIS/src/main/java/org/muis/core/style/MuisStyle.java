@@ -1,9 +1,6 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.ObservableCollection;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.*;
 
 import prisms.lang.Type;
 
@@ -43,8 +40,8 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		ObservableSet<ObservableSet<StyleAttribute<?>>> ret = new org.muis.core.rx.DefaultObservableSet<>(
-			new Type(ObservableSet.class, new Type(StyleAttribute.class)));
+		ObservableSet<ObservableSet<StyleAttribute<?>>> ret = new org.muis.core.rx.DefaultObservableSet<>(new Type(ObservableSet.class,
+			new Type(StyleAttribute.class)));
 		ret.add(localAttributes());
 		ret.add(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));
 		return ObservableCollection.flatten(ret);
@@ -89,9 +86,23 @@ public interface MuisStyle {
 	}
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
-	default org.muis.core.rx.Observable<StyleAttributeEvent<?>> allChanges(){
-		return org.muis.core.rx.Observable.or(
-			ObservableCollection.fold(attributes().mapC(attr -> get(attr))).map(event -> (StyleAttributeEvent<?>) event), attributes()
-				.removes().map(element -> new StyleAttributeEvent<>(null, null, this, element.get(), null)));
+	default Observable<StyleAttributeEvent<?>> allChanges() {
+		return Observable.or(
+		// Local changes
+			ObservableCollection.fold(localAttributes().mapC(attr -> get(attr))).map(event -> (StyleAttributeEvent<?>) event),
+			// Local removes
+			localAttributes().removes().map(element -> new StyleAttributeEvent<>(null, this, this, element.get(), null)),
+			// Dependency changes
+			ObservableCollection.fold(getDependencies().mapC(dep -> dep.allChanges())));
+	}
+
+	/**
+	 * @param attrs The attributes to watch
+	 * @return An observable that fires a {@link StyleAttributeEvent} for every change affecting the given attribute values in this style
+	 */
+	default <T> Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
+		return ObservableCollection.fold(
+			ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr))).map(
+			event -> (StyleAttributeEvent<?>) event);
 	}
 }

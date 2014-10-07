@@ -10,18 +10,18 @@ public class BorderTexture extends org.muis.core.style.BaseTexture {
 	@Override
 	public void render(Graphics2D graphics, MuisElement element, Rectangle area) {
 		super.render(graphics, element, area);
-		int thickness = element.getStyle().getSelf().get(BorderStyle.thickness).intValue();
+		int thickness = element.getStyle().getSelf().get(BorderStyle.thickness).get().intValue();
 		if(thickness == 0)
 			return;
-		int inset = element.getStyle().getSelf().get(BorderStyle.inset).intValue();
+		int inset = element.getStyle().getSelf().get(BorderStyle.inset).get().intValue();
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
-		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
+		org.muis.core.style.Size radius = element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius).get();
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
-		Color color = element.getStyle().getSelf().get(BorderStyle.color);
-		float dashLength = element.getStyle().getSelf().get(BorderStyle.dashLength).floatValue();
-		float dashInterim = element.getStyle().getSelf().get(BorderStyle.dashInterim).floatValue();
+		Color color = element.getStyle().getSelf().get(BorderStyle.color).get();
+		float dashLength = element.getStyle().getSelf().get(BorderStyle.dashLength).get().floatValue();
+		float dashInterim = element.getStyle().getSelf().get(BorderStyle.dashInterim).get().floatValue();
 		BasicStroke stroke;
 		if(dashInterim == 0)
 			stroke = new BasicStroke(thickness);

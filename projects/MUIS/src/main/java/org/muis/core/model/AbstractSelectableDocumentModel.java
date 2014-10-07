@@ -7,11 +7,16 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.muis.core.mgr.MuisState;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.util.Transaction;
 
+import prisms.lang.Type;
 import prisms.util.ArrayUtils;
 
 /** A base implementation of a selectable document model */
@@ -42,7 +47,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 
 		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
 		 * correctly because the cache may have the old color/size/etc */
-		theNormalStyle.addListener(event-> {
+		theNormalStyle.allChanges().act(event -> {
 			int minSel = theCursor;
 			int maxSel = theCursor;
 			if(theSelectionAnchor < minSel)
@@ -57,7 +62,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 			int evtEnd = maxSel == length() ? minSel : length();
 			fireStyleEvent(evtStart, evtEnd);
 		});
-		theSelectedStyle.addListener(event-> {
+		theSelectedStyle.allChanges().act(event -> {
 			if(theCursor == theSelectionAnchor) {
 				return; // No selected text
 			}
@@ -792,10 +797,12 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
 			addDependency(parent);
 			// TODO Not 100% sure I need this listener--maybe the dependency handles it automatically but I don't think so
-			parent.addStateChangeListener(evt -> {
-				setState(selected ? prisms.util.ArrayUtils.add(evt.getNewState(), TEXT_SELECTION) : evt.getNewState());
+			parent.getState().changes().act(evt -> {
+				MuisState [] state = evt.getValue().toArray(new MuisState[evt.getValue().size()]);
+				if(selected)
+					state = ArrayUtils.add(state, TEXT_SELECTION);
+				setState(state);
 			});
-			setState(selected ? prisms.util.ArrayUtils.add(parent.getState(), TEXT_SELECTION) : parent.getState());
 		}
 	}
 
@@ -805,6 +812,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		private final int theStart;
 		private final int theEnd;
 		private final MuisStyle theStyle;
+		private final ObservableList<MuisStyle> theDependencies;
 
 		StyledSequenceWrapper(StyledSequence toWrap, MuisStyle backup, int start, int end) {
 			theWrapped = toWrap;
@@ -815,22 +823,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
 			if(end < start || end > toWrap.length())
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
+			theDependencies = ObservableList.flatten(ObservableList.constant(new Type(ObservableList.class, new Type(MuisStyle.class)),
+				theWrapped.getStyle().getDependencies(), ObservableList.constant(new Type(MuisStyle.class), theBackup)));
 
 			theStyle = new MuisStyle() {
 				@Override
-				public Iterator<StyleAttribute<?>> iterator() {
-					if(theWrapped.getStyle() != null)
-						return ArrayUtils.iterator(theWrapped.getStyle().iterator(), theBackup.iterator());
-					else
-						return theBackup.iterator();
-				}
-
-				@Override
-				public MuisStyle [] getDependencies() {
-					if(theWrapped.getStyle() != null)
-						return ArrayUtils.add(theWrapped.getStyle().getDependencies(), theBackup);
-					else
-						return new MuisStyle[] {theBackup};
+				public ObservableList<MuisStyle> getDependencies() {
+					return theDependencies;
 				}
 
 				@Override
@@ -844,34 +843,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 				}
 
 				@Override
-				public <T> T getLocal(StyleAttribute<T> attr) {
-					return theWrapped.getStyle() == null ? null : theWrapped.getStyle().getLocal(attr);
+				public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
+					return theWrapped.getStyle().getLocal(attr);
 				}
 
 				@Override
-				public Iterable<StyleAttribute<?>> localAttributes() {
-					if(theWrapped.getStyle() != null)
-						return theWrapped.getStyle().localAttributes();
-					else
-						return java.util.Collections.EMPTY_LIST;
-				}
-
-				@Override
-				public <T> T get(StyleAttribute<T> attr) {
-					if(theWrapped.getStyle() != null && theWrapped.getStyle().isSetDeep(attr))
-						return theWrapped.getStyle().get(attr);
-					else
-						return theBackup.get(attr);
-				}
-
-				@Override
-				public void addListener(org.muis.core.style.StyleListener listener) {
-					throw new UnsupportedOperationException();
-				}
-
-				@Override
-				public void removeListener(org.muis.core.style.StyleListener listener) {
-					throw new UnsupportedOperationException();
+				public ObservableSet<StyleAttribute<?>> localAttributes() {
+					return theWrapped.getStyle().localAttributes();
 				}
 			};
 		}

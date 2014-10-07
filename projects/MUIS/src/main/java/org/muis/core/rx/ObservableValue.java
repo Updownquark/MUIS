@@ -272,8 +272,16 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 		return ret;
 	}
 
+	/**
+	 * Assembles an observable value, with changes occuring on the basis of changes to a set of components
+	 *
+	 * @param type The type of the new value
+	 * @param value The function to get the new value on demand
+	 * @param components The components whose changes require a new value to be produced
+	 * @return The new observable value
+	 */
 	public static <T> ObservableValue<T> assemble(Type type, java.util.function.Supplier<T> value, ObservableValue<?>... components) {
-		Type t = type == null ? ComposedObservableValue.getReturnType(supplier) : type;
+		Type t = type == null ? ComposedObservableValue.getReturnType(value) : type;
 		return new ObservableValue<T>() {
 			@Override
 			public Type getType() {
@@ -308,7 +316,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 						}
 
 						@Override
-						public <V extends ObservableValueEvent<?>> void onCompleted(V value) {
+						public <V extends ObservableValueEvent<?>> void onCompleted(V value2) {
 							ret.unsubscribe();
 						}
 

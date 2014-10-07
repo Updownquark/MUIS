@@ -1,7 +1,9 @@
 package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
+import org.muis.core.mgr.MuisState;
 import org.muis.core.rx.Action;
+import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
@@ -113,8 +115,8 @@ public class CompoundStyleListener {
 	 */
 	private void eventOccurred(GroupMemberEvent event) {
 		java.util.HashSet<StyleAttribute<?>> groupAttrs = new java.util.HashSet<>();
-		org.muis.core.mgr.MuisState[] state = theElement.getStateEngine().toArray();
-		for(StyleAttribute<?> attr : new StatefulStyleSample(event.getGroup().getGroupForType(theElement.getClass()), state))
+		ObservableSet<MuisState> state = theElement.getStateEngine().activeStates();
+		for(StyleAttribute<?> attr : new StatefulStyleSample(event.getGroup().getGroupForType(theElement.getClass()), state).attributes())
 			if(ArrayUtils.contains(theDomains, attr.getDomain()) || ArrayUtils.contains(theAttributes, attr))
 				groupAttrs.add(attr);
 		if(groupAttrs.isEmpty())
@@ -126,7 +128,7 @@ public class CompoundStyleListener {
 			for(TypedStyleGroup<?> g : theElement.getStyle().groups(false)) {
 				if(g == event.getGroup())
 					break;
-				for(StyleAttribute<?> attr : new StatefulStyleSample(g, state))
+				for(StyleAttribute<?> attr : new StatefulStyleSample(g, state).attributes())
 					groupAttrs.remove(attr);
 			}
 		else {
@@ -135,7 +137,7 @@ public class CompoundStyleListener {
 			while(iter.hasNext()) {
 				if(iter.nextIndex() <= event.getRemoveIndex())
 					break;
-				for(StyleAttribute<?> attr : new StatefulStyleSample(iter.next(), state))
+				for(StyleAttribute<?> attr : new StatefulStyleSample(iter.next(), state).attributes())
 					groupAttrs.remove(attr);
 			}
 		}
@@ -173,7 +175,7 @@ public class CompoundStyleListener {
 			for(TypedStyleGroup<?> g : theElement.getStyle().groups(false)) {
 				if(g == nsg)
 					break;
-				if(new StatefulStyleSample(g, theElement.getStateEngine().toArray()).isSet(event.getAttribute()))
+				if(new StatefulStyleSample(g, theElement.getStateEngine().activeStates()).isSet(event.getAttribute()))
 					return;
 			}
 		}

@@ -10,8 +10,7 @@ public abstract class DefaultSubscription<T> implements Subscription<T> {
 		theObservable = observable;
 		theSubscriptions = new java.util.concurrent.CopyOnWriteArrayList<>();
 		theSubscriptions.add(theObservable.completed().act(value -> {
-			isAlive = false;
-			theSubscriptions.clear();
+			unsubscribe();
 		}));
 	}
 

@@ -10,6 +10,8 @@ import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEventListener;
 import org.muis.core.rx.Action;
+import org.muis.core.rx.Observable;
+import org.muis.core.rx.Observer;
 import org.muis.core.rx.Subscription;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
@@ -307,6 +309,8 @@ public abstract class CompoundListener<T> {
 		private final ChangeListener theAllIndividualsChecker;
 
 		private final ChangeListener theIndividualChecker;
+		private Observable<Void> theDropObservable;
+		private Observer<Void> theDropController;
 
 		CompoundElementListener(MuisElement element, Object wanter) {
 			theElement = element;
@@ -318,6 +322,8 @@ public abstract class CompoundListener<T> {
 			theIndividualChecker = el -> {
 				theChildListener.updateIndividual(el);
 			};
+			theDropObservable = new org.muis.core.rx.DefaultObservable<>();
+			theDropController = ((org.muis.core.rx.DefaultObservable<Void>) theDropObservable).control(null);
 		}
 
 		/** @return The element that this listener is for */
@@ -354,8 +360,8 @@ public abstract class CompoundListener<T> {
 		@Override
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<>(this);
-			ret.attSubscription = theElement.events().filterMap(AttributeChangedEvent.base).act(ret.attListener);
-			theElement.getStyle().getSelf().addListener(ret.getStyleListener());
+			theElement.events().filterMap(AttributeChangedEvent.base).takeUntil(theDropObservable).act(ret.attListener);
+			theElement.getStyle().getSelf().allChanges().takeUntil(theDropObservable).act(ret.getStyleListener());
 			return ret;
 		}
 
@@ -375,15 +381,7 @@ public abstract class CompoundListener<T> {
 		/** Releases all resources and requirements associated with this compound listener */
 		@Override
 		public void drop() {
-			for(ChainedCompoundListener<?> chain : getAnonymousChains()) {
-				chain.attSubscription.unsubscribe();
-				theElement.getStyle().getSelf().removeListener(chain.getStyleListener());
-			}
-			for(String name : getChainNames()) {
-				ChainedCompoundListener<?> cl = (ChainedCompoundListener<?>) chain(name);
-				cl.attSubscription.unsubscribe();
-				theElement.getStyle().getSelf().removeListener(cl.getStyleListener());
-			}
+			theDropController.onNext(null);
 			super.drop();
 			theChildListener.drop();
 		}
@@ -443,9 +441,9 @@ public abstract class CompoundListener<T> {
 			};
 			theStyleListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
-					chain.styleListener.eventOccurred(event);
+					chain.styleListener.act(event);
 				for(String name : getChainNames())
-					((ChildChainedCompoundListener<?>) chain(name)).styleListener.eventOccurred(event);
+					((ChildChainedCompoundListener<?>) chain(name)).styleListener.act(event);
 			};
 			theAddSubscription = theElListener.getElement().events().filterMap(ChildEvent.child.add()).act(theAddedListener);
 			theRemoveSubscription = theElListener.getElement().events().filterMap(ChildEvent.child.remove()).act(theRemovedListener);
@@ -721,8 +719,7 @@ public abstract class CompoundListener<T> {
 		private boolean isDropped;
 
 		Action<AttributeChangedEvent<?>> attListener;
-		Subscription<?> attSubscription;
-		MuisEventListener<StyleAttributeEvent<?>> styleListener;
+		Action<StyleAttributeEvent<?>> styleListener;
 
 		ChainedCompoundListener() {
 			theChained = new java.util.LinkedHashMap<>();
@@ -785,7 +782,7 @@ public abstract class CompoundListener<T> {
 				doReject(attr);
 		}
 
-		org.muis.core.style.StyleListener getStyleListener() {
+		Action<StyleAttributeEvent<?>> getStyleListener() {
 			return event -> {
 				MuisElement element;
 				if(event.getLocalStyle() instanceof org.muis.core.style.attach.ElementStyle)
@@ -797,8 +794,7 @@ public abstract class CompoundListener<T> {
 				else
 					element = null;
 				if(element != null)
-					((MuisEventListener<StyleAttributeEvent<Object>>) (MuisEventListener<?>) styleListener)
-						.eventOccurred((StyleAttributeEvent<Object>) event);
+					styleListener.act(event);
 			};
 		}
 

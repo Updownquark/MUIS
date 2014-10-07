@@ -482,9 +482,9 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 		}
 
 		private void setMeasurer(StyledSequence seq) {
-			theFont = org.muis.util.MuisUtils.getFont(seq.getStyle());
+			theFont = org.muis.util.MuisUtils.getFont(seq.getStyle()).get();
 			theContext = new java.awt.font.FontRenderContext(theFont.getTransform(), seq.getStyle()
-				.get(org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+				.get(org.muis.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 			java.text.AttributedString attrStr = new java.text.AttributedString(seq.toString());
 			attrStr.addAttributes(theFont.getAttributes(), 0, seq.length());
 			theCurrentMeasurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(), java.text.BreakIterator.getWordInstance(),

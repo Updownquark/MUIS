@@ -140,9 +140,9 @@ public class TextEditLayout implements MuisLayout {
 							style = doc.getStyleAt(0);
 						else
 							style = children[0].getStyle().getSelf();
-						java.awt.Font font = org.muis.util.MuisUtils.getFont(style);
+						java.awt.Font font = org.muis.util.MuisUtils.getFont(style).get();
 						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style.get(
-							org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+org.muis.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 						return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
 					}
 				}
@@ -205,9 +205,9 @@ public class TextEditLayout implements MuisLayout {
 							style = doc.getStyleAt(0);
 						else
 							style = children[0].getStyle().getSelf();
-						java.awt.Font font = org.muis.util.MuisUtils.getFont(style);
-						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style.get(
-							org.muis.core.style.FontStyle.antiAlias).booleanValue(), false);
+						java.awt.Font font = org.muis.util.MuisUtils.getFont(style).get();
+						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style
+							.get(org.muis.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 						return (int) (rows * font.getStringBounds("00", ctx).getHeight());
 					}
 				}
@@ -231,7 +231,7 @@ public class TextEditLayout implements MuisLayout {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		boolean wrap = children[0].getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap);
+		boolean wrap = children[0].getStyle().getSelf().get(org.muis.core.style.FontStyle.wordWrap).get();
 		int w = wrap ? parent.bounds().getWidth() : children[0].bounds().getHorizontal().getGuide().getPreferred(Integer.MAX_VALUE, true);
 		int h = children[0].bounds().getVertical().getGuide().getPreferred(w, !wrap);
 

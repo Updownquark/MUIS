@@ -1,6 +1,7 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.muis.core;
 
+import java.awt.Cursor;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,6 +13,9 @@ import org.muis.core.model.MuisActionListener;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
+import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.attach.DocumentStyleSheet;
 import org.muis.core.style.attach.NamedStyleGroup;
 
@@ -49,7 +53,7 @@ public class MuisDocument implements MuisParseEnv {
 		java.awt.Graphics2D getGraphics();
 
 		/** @param cursor The cursor to set over the document */
-		void setCursor(java.awt.Cursor cursor);
+		void setCursor(Cursor cursor);
 	}
 
 	/** A listener to be notified when the rendering changes for a MUIS document */
@@ -83,6 +87,12 @@ public class MuisDocument implements MuisParseEnv {
 	private ScrollPolicy theScrollPolicy;
 
 	private MuisElement theFocus;
+	private ObservableValue<MuisElement> theObservableFocus;
+	private Observer<ObservableValueEvent<MuisElement>> theFocusController;
+
+	private MuisEventPositionCapture theMouseTarget;
+	private ObservableValue<MuisEventPositionCapture> theObservableTarget;
+	private Observer<ObservableValueEvent<MuisEventPositionCapture>> theTargetController;
 
 	private boolean hasMouse;
 
@@ -199,6 +209,38 @@ public class MuisDocument implements MuisParseEnv {
 		theRoot = new BodyElement();
 		theLocker = new MuisLocker();
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+
+		theObservableFocus = new org.muis.core.rx.DefaultObservableValue<MuisElement>() {
+			@Override
+			public Type getType() {
+				return new Type(MuisElement.class);
+			}
+
+			@Override
+			public MuisElement get() {
+				return theFocus;
+			}
+		};
+		theFocusController = ((org.muis.core.rx.DefaultObservableValue<MuisElement>) theObservableFocus).control(null);
+		theObservableTarget = new org.muis.core.rx.DefaultObservableValue<MuisEventPositionCapture>() {
+			@Override
+			public Type getType() {
+				return new Type(MuisElement.class);
+			}
+
+			@Override
+			public MuisEventPositionCapture get() {
+				return theMouseTarget;
+			}
+		};
+		theTargetController = ((org.muis.core.rx.DefaultObservableValue<MuisEventPositionCapture>) theObservableTarget).control(null);
+		ObservableValue.flatten(
+			new Type(Cursor.class),
+			theObservableTarget.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf()
+				.get(BackgroundStyle.cursor))).act(event -> {
+			if(event.getValue() != null && theGraphics != null)
+				theGraphics.setCursor(event.getValue());
+		});
 
 		applyHead();
 	}
@@ -374,6 +416,11 @@ public class MuisDocument implements MuisParseEnv {
 		return getMessageCenter();
 	}
 
+	/** @return The element that has focus in this document */
+	public ObservableValue<MuisElement> getFocus() {
+		return theObservableFocus;
+	}
+
 	/** @return The policy that this document uses to dispatch scroll events */
 	public ScrollPolicy getScrollPolicy() {
 		return theScrollPolicy;
@@ -499,29 +546,6 @@ public class MuisDocument implements MuisParseEnv {
 	}
 
 	/**
-	 * Called when an element detects that its cursor style may have changed
-	 *
-	 * @param element The element on which the change was detected
-	 */
-	public void cursorChanged(MuisElement element) {
-		if(theGraphics == null)
-			return;
-		MuisRendering rendering = theRendering;
-		if(rendering == null)
-			return;
-		MuisEventPositionCapture capture = rendering.capture(theMouseX, theMouseY);
-		if(capture.find(element) == null)
-			return;
-		setCursor(capture.getTarget().getElement());
-	}
-
-	private void setCursor(MuisElement element) {
-		if(theGraphics == null)
-			return;
-		theGraphics.setCursor(element.getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cursor));
-	}
-
-	/**
 	 * Emulates a mouse event on the document
 	 *
 	 * @param x The x-coordinate where the event occurred
@@ -532,8 +556,6 @@ public class MuisDocument implements MuisParseEnv {
 	 */
 	public void mouse(int x, int y, MouseEvent.MouseEventType type, MouseEvent.ButtonType buttonType, int clickCount) {
 		boolean oldHasMouse = hasMouse;
-		int oldX = theMouseX;
-		int oldY = theMouseY;
 		hasMouse = type != MouseEvent.MouseEventType.exited;
 		theMouseX = x;
 		theMouseY = y;
@@ -541,7 +563,9 @@ public class MuisDocument implements MuisParseEnv {
 		if(rendering == null)
 			return;
 		MuisEventPositionCapture newCapture = rendering.capture(x, y);
-		MuisEventPositionCapture oldCapture = rendering.capture(oldX, oldY);
+		MuisEventPositionCapture oldCapture = theMouseTarget;
+		theMouseTarget = newCapture;
+		theTargetController.onNext(new ObservableValueEvent<>(theObservableTarget, oldCapture, newCapture, null));
 		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, thePressedButtons,
 			thePressedKeys, newCapture);
 
@@ -628,7 +652,6 @@ public class MuisDocument implements MuisParseEnv {
 				thePressedButtons, thePressedKeys, mec);
 			MuisEventQueue.get().scheduleEvent(new MuisEventQueue.PositionQueueEvent(enter.getElement(), enter, false), true);
 		}
-		setCursor(newCapture.getTarget().getElement());
 	}
 
 	private void focusByMouse(MuisEventPositionCapture capture, UserEvent cause, java.util.List<MuisEventQueue.Event> events) {
@@ -662,6 +685,7 @@ public class MuisDocument implements MuisParseEnv {
 			if(theFocus != null)
 				events.add(new MuisEventQueue.UserQueueEvent(
 					new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true, cause), false));
+			theFocusController.onNext(new ObservableValueEvent<>(theObservableFocus, oldFocus, theFocus, null));
 		}
 	}
 

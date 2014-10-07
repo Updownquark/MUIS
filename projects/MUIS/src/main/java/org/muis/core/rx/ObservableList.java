@@ -1,7 +1,6 @@
 package org.muis.core.rx;
 
-import java.util.AbstractList;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -161,6 +160,132 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 	@Override
 	default <T> ObservableList<T> filterMapC(Type type, Function<? super E, T> map) {
+		ObservableList<E> outer = this;
+		class FilteredList extends AbstractList<T> implements ObservableList<T> {
+			@Override
+			public Type getType() {
+				return type;
+			}
+
+			@Override
+			public int size() {
+				int ret = 0;
+				for(E el : outer)
+					if(map.apply(el) != null)
+						ret++;
+				return ret;
+			}
+
+			@Override
+			public T get(int index) {
+				if(index < 0)
+					throw new IndexOutOfBoundsException("" + index);
+				int size = 0;
+				int idx = index;
+				for(E el : outer) {
+					T mapped = map.apply(el);
+					if(mapped != null) {
+						size++;
+						if(idx == 0)
+							return mapped;
+						else
+							idx--;
+					}
+				}
+				throw new IndexOutOfBoundsException(index + " of " + size);
+			}
+
+			@Override
+			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
+				Subscription<ObservableElement<E>> listSub = outer.subscribe(new Observer<ObservableElement<E>>() {
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V el) {
+						ObservableListElement<E> outerElement = (ObservableListElement<E>) el;
+						boolean [] exists = new boolean[1];
+						class InnerElement implements ObservableListElement<T> {
+							@Override
+							public ObservableValue<T> persistent() {
+								return outerElement.mapV(map);
+							}
+
+							@Override
+							public Type getType() {
+								return type;
+							}
+
+							@Override
+							public T get() {
+								return map.apply(outerElement.get());
+							}
+
+							@Override
+							public int getIndex() {
+								int outerIndex = outerElement.getIndex();
+								int ret = 0;
+								for(int i = 0; i < outerIndex; i++) {
+									if(map.apply(outer.get(i)) != null)
+										ret++;
+								}
+								return ret;
+							}
+
+							@Override
+							public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+								Subscription<ObservableValueEvent<E>> innerSub = outerElement
+									.subscribe(new Observer<ObservableValueEvent<E>>() {
+										@Override
+										public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+											T mapped = map.apply(elValue.getValue());
+											ObservableValueEvent<T> newEvent = new ObservableValueEvent<T>(InnerElement.this, map
+												.apply(elValue
+												.getOldValue()), mapped, elValue);
+											if(mapped == null) {
+												exists[0] = false;
+												observer2.onCompleted(newEvent);
+											} else
+												observer2.onNext(newEvent);
+										}
+
+										@Override
+										public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+											exists[0] = false;
+											observer2.onCompleted(new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+												.getOldValue()), map
+												.apply(elValue.getValue()), elValue));
+										}
+									});
+								return new DefaultSubscription<ObservableValueEvent<T>>(InnerElement.this) {
+									@Override
+									public void unsubscribeSelf() {
+										innerSub.unsubscribe();
+									}
+								};
+							}
+						};
+						ObservableListElement<T> retElement = new InnerElement();
+						outerElement.subscribe(new Observer<ObservableValueEvent<E>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+								if(!exists[0]) {
+									T mapped = map.apply(elValue.getValue());
+									if(mapped != null) {
+										exists[0] = true;
+										observer.onNext(retElement);
+									}
+								}
+							}
+						});
+					}
+				});
+				return new DefaultSubscription<ObservableElement<T>>(this) {
+					@Override
+					public void unsubscribeSelf() {
+						listSub.unsubscribe();
+					}
+				};
+			}
+		}
+		return new FilteredList();
 	}
 
 	default <T, V> ObservableList<V> combineC(ObservableValue<T> arg, BiFunction<? super E, ? super T, V> func) {
@@ -511,4 +636,85 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		}
 		return new ComposedObservableList();
 	}
+
+	@Override
+	public Subscription<ObservableElement<E>> subscribe(Observer<? super ObservableElement<E>> observer);
+
+	@Override
+	public int size();
+
+	@Override
+	public boolean isEmpty();
+
+	@Override
+	public boolean contains(Object o);
+
+	@Override
+	public Iterator<E> iterator();
+
+	@Override
+	public Object [] toArray();
+
+	@Override
+	public <T> T [] toArray(T [] a);
+
+	@Override
+	public boolean add(E e);
+
+	@Override
+	public boolean remove(Object o);
+
+	@Override
+	public boolean containsAll(Collection<?> c);
+
+	@Override
+	public boolean addAll(Collection<? extends E> c);
+
+	@Override
+	public boolean removeAll(Collection<?> c);
+
+	@Override
+	public boolean retainAll(Collection<?> c);
+
+	@Override
+	public void clear();
+
+	@Override
+	public boolean equals(Object o);
+
+	@Override
+	public int hashCode();
+
+	@Override
+	public boolean addAll(int index, Collection<? extends E> c);
+
+	@Override
+	public E get(int index);
+
+	@Override
+	public E set(int index, E element);
+
+	@Override
+	public void add(int index, E element);
+
+	@Override
+	public E remove(int index);
+
+	@Override
+	public int indexOf(Object o);
+
+	@Override
+	public int lastIndexOf(Object o);
+
+	@Override
+	public ListIterator<E> listIterator();
+
+	@Override
+	public ListIterator<E> listIterator(int index);
+
+	@Override
+	public List<E> subList(int fromIndex, int toIndex);
+
+	@Override
+	public Type getType();
 }

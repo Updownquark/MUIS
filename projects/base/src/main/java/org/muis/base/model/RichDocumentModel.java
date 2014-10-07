@@ -7,13 +7,15 @@ import java.util.List;
 import org.muis.core.model.MutableDocumentModel;
 import org.muis.core.model.MutableSelectableDocumentModel;
 import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
+import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.MutableStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.util.Transaction;
 
-import prisms.util.ArrayUtils;
+import prisms.lang.Type;
 
 /** A {@link MutableDocumentModel} that allows different styles for different sections of text */
 public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDocumentModel implements MutableSelectableDocumentModel {
@@ -60,7 +62,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 		@Override
 		public ObservableList<MuisStyle> getDependencies() {
-			return ObservableList.constant();
+			return ObservableList.constant(new Type(MuisStyle.class));
 		}
 
 		@Override
@@ -76,17 +78,17 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		}
 
 		@Override
-		public <T> T getLocal(StyleAttribute<T> attr) {
+		public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
 			try (Transaction t = holdForRead()) {
-				return (T) theStyles.get(attr);
+				return ObservableValue.constant(attr.getType().getType(), (T) theStyles.get(attr));
 			}
 		}
 
 		@Override
-		public Iterable<StyleAttribute<?>> localAttributes() {
+		public ObservableSet<StyleAttribute<?>> localAttributes() {
 			try (Transaction t = holdForRead()) {
-				return java.util.Collections.unmodifiableList(java.util.Arrays.asList((StyleAttribute<?> []) theStyles.keySet().toArray(
-					new StyleAttribute[theStyles.size()])));
+				return ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)),
+					java.util.Arrays.asList((StyleAttribute<?> []) theStyles.keySet().toArray(new StyleAttribute[theStyles.size()])));
 			}
 		}
 	}
@@ -201,7 +203,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 			RichStyleSequence newSeq = new RichStyleSequence();
 			RichStyleSequence last = theSequences.get(theSequences.size() - 1);
 			newSeq.theStyles.putAll(last.theStyles);
-			for(StyleAttribute<?> att : style)
+			for(StyleAttribute<?> att : style.attributes())
 				newSeq.theStyles.put(att, style.get(att));
 			newSeq.theContent.append(csq);
 			theSequences.add(newSeq);
@@ -230,7 +232,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 						splitSequence(i, offset - pos);
 					RichStyleSequence newSeq = new RichStyleSequence();
 					newSeq.theStyles.putAll(seq.theStyles);
-					for(StyleAttribute<?> att : style)
+					for(StyleAttribute<?> att : style.attributes())
 						newSeq.theStyles.put(att, style.get(att));
 					newSeq.theContent.append(csq);
 					theSequences.add(split ? i + 1 : 1, newSeq);
@@ -383,14 +385,17 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 			theEnd = end;
 		}
 
+		// TODO At the moment, this style does not support any listening. May want to add this. Also may want to convert the document
+		// architecture to be observable to support this more easily
+
 		@Override
-		public MuisStyle [] getDependencies() {
+		public ObservableList<MuisStyle> getDependencies() {
 			ArrayList<MuisStyle> ret = new ArrayList<>();
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle());
 			}
-			return ret.toArray(new MuisStyle[ret.size()]);
+			return ObservableList.constant(new Type(MuisStyle.class), ret);
 		}
 
 		@Override
@@ -409,7 +414,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		}
 
 		@Override
-		public <T> T getLocal(StyleAttribute<T> attr) {
+		public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					if(seq.getStyle().isSet(attr))
@@ -419,47 +424,14 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 		}
 
 		@Override
-		public Iterable<StyleAttribute<?>> localAttributes() {
-			ArrayList<Iterable<StyleAttribute<?>>> ret = new ArrayList<>();
+		public ObservableSet<StyleAttribute<?>> localAttributes() {
+			org.muis.core.rx.DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new org.muis.core.rx.DefaultObservableSet<>(
+				new Type(ObservableSet.class, new Type(StyleAttribute.class, new Type(Object.class, true))));
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().localAttributes());
 			}
-			return ArrayUtils.iterable((Iterable<StyleAttribute<?>> []) ret.toArray(new Iterable[ret.size()]));
-		}
-
-		@Override
-		public <T> T get(StyleAttribute<T> attr) {
-			StyledSequence first = null;
-			try (Transaction t = holdForRead()) {
-				for(StyledSequence seq : iterateFrom(theStart, theEnd)) {
-					if(first == null)
-						first = seq;
-					if(seq.getStyle().isSet(attr))
-						return seq.getStyle().get(attr);
-				}
-			}
-			return first == null ? attr.getDefault() : first.getStyle().get(attr);
-		}
-
-		@Override
-		public void addListener(org.muis.core.style.StyleListener listener) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void removeListener(org.muis.core.style.StyleListener listener) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public Iterator<StyleAttribute<?>> iterator() {
-			ArrayList<Iterator<StyleAttribute<?>>> ret = new ArrayList<>();
-			try (Transaction t = holdForRead()) {
-				for(StyledSequence seq : iterateFrom(theStart, theEnd))
-					ret.add(seq.getStyle().iterator());
-			}
-			return ArrayUtils.iterator((Iterator<StyleAttribute<?>> []) ret.toArray(new Iterator[ret.size()]));
+			return org.muis.core.rx.ObservableCollection.flatten(ret);
 		}
 
 		@Override

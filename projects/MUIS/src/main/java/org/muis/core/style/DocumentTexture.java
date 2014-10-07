@@ -22,7 +22,7 @@ public class DocumentTexture extends BaseTexture {
 			Rectangle mBound = new Rectangle(x, y, w, h);
 			if(area != null)
 				mBound = mBound.intersection(area);
-			java.awt.Color color = org.muis.util.MuisUtils.getBackground(metric.getStyle());
+			java.awt.Color color = org.muis.util.MuisUtils.getBackground(metric.getStyle()).get();
 			graphics.setColor(color);
 			graphics.fillRect(mBound.x, mBound.y, mBound.width, mBound.height);
 		}

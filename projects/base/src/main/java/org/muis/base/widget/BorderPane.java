@@ -1,11 +1,25 @@
 package org.muis.base.widget;
 
+import org.muis.base.style.BorderStyle;
 import org.muis.core.layout.SizeGuide;
+import org.muis.core.style.BackgroundStyle;
+import org.muis.core.style.MuisStyle;
+import org.muis.core.style.Size;
 import org.muis.core.tags.Template;
 
 /** Wraps an element (or set thereof) in a border */
 @Template(location = "../../../../simple-container.muis")
 public class BorderPane extends org.muis.core.MuisTemplate {
+	/** Creates a border pane */
+	public BorderPane() {
+		life().runWhen(
+			() -> {
+				MuisStyle selfStyle = getStyle().getSelf();
+				org.muis.core.rx.Observable.or(selfStyle.get(BackgroundStyle.cornerRadius), selfStyle.get(BorderStyle.thickness),
+					selfStyle.get(BorderStyle.inset)).act(event -> relayout(false));
+			}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
+	}
+
 	/** @return The panel containing the contents of this border */
 	public Block getContentPane() {
 		return (Block) getElement(getTemplate().getAttachPoint("contents"));
@@ -13,9 +27,10 @@ public class BorderPane extends org.muis.core.MuisTemplate {
 
 	@Override
 	public void doLayout() {
-		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
-		int thickness = getStyle().getSelf().get(org.muis.base.style.BorderStyle.thickness).intValue();
-		thickness += getStyle().getSelf().get(org.muis.base.style.BorderStyle.inset).intValue();
+		MuisStyle selfStyle = getStyle().getSelf();
+		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
+		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
+		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
 		int lOff = radius.evaluate(w) + thickness;
@@ -25,17 +40,19 @@ public class BorderPane extends org.muis.core.MuisTemplate {
 
 	@Override
 	public SizeGuide getWSizer() {
-		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
-		int thickness = getStyle().getSelf().get(org.muis.base.style.BorderStyle.thickness).intValue();
-		thickness += getStyle().getSelf().get(org.muis.base.style.BorderStyle.inset).intValue();
+		MuisStyle selfStyle = getStyle().getSelf();
+		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
+		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
+		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
 		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius, thickness);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
-		org.muis.core.style.Size radius = getStyle().getSelf().get(org.muis.core.style.BackgroundStyle.cornerRadius);
-		int thickness = getStyle().getSelf().get(org.muis.base.style.BorderStyle.thickness).intValue();
-		thickness += getStyle().getSelf().get(org.muis.base.style.BorderStyle.inset).intValue();
+		MuisStyle selfStyle = getStyle().getSelf();
+		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
+		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
+		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
 		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius, thickness);
 	}
 

@@ -6,10 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.rx.DefaultObservableValue;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
+import org.muis.core.rx.*;
 
 import prisms.lang.Type;
 
@@ -311,6 +308,17 @@ public class AttributeManager {
 	}
 
 	/**
+	 * @param attrs The attributes to watch
+	 * @return An observable that fires a {@link AttributeChangedEvent} for every change affecting the given attribute values in this
+	 *         element
+	 */
+	public Observable<AttributeChangedEvent<?>> watch(MuisAttribute<?>... attrs) {
+		return org.muis.core.rx.ObservableCollection.fold(
+			org.muis.core.rx.ObservableSet.constant(new Type(MuisAttribute.class, new Type(Object.class, true)), attrs).mapC(
+				attr -> getHolder(attr))).map(event -> (AttributeChangedEvent<?>) event);
+	}
+
+	/**
 	 * Sets an attribute typelessly
 	 *
 	 * @param attr The name of the attribute to set
@@ -541,14 +549,17 @@ public class AttributeManager {
 	 *
 	 * @param wanter The object that cares about the attributes
 	 * @param attrs The attributes that may be specified for this element
+	 * @return An observable that fires a {@link AttributeChangedEvent} for every change affecting the given attribute values in this
+	 *         element
 	 */
-	public final void accept(Object wanter, MuisAttribute<?>... attrs) {
+	public final Observable<AttributeChangedEvent<?>> accept(Object wanter, MuisAttribute<?>... attrs) {
 		for(MuisAttribute<?> attr : attrs)
 			try {
 				accept(wanter, false, attr, null);
 			} catch(MuisException e) {
 				throw new IllegalStateException("Should not throw MuisException with null initValue");
 			}
+		return watch(attrs);
 	}
 
 	/**

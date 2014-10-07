@@ -95,6 +95,11 @@ public class BackgroundStyle implements StyleDomain {
 		}
 
 		@Override
+		public boolean canCast(Type type) {
+			return type.canAssignTo(Cursor.class);
+		}
+
+		@Override
 		public Cursor cast(Object obj) {
 			if(obj instanceof Cursor)
 				return (Cursor) obj;

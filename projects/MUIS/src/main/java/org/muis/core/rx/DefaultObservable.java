@@ -59,33 +59,17 @@ public class DefaultObservable<T> implements Observable<T> {
 	}
 
 	@Override
-	public Subscription<T> subscribe(Observer<? super T> observer) {
+	public Runnable internalSubscribe(Observer<? super T> observer) {
 		if(!isAlive.get()) {
 			observer.onCompleted(null);
-			return new Subscription<T>() {
-				@Override
-				public Subscription<T> subscribe(Observer<? super T> observer2) {
-					return this;
-				}
-
-				@Override
-				public void unsubscribe() {
-				}
+			return () -> {
 			};
 		} else {
 			theListeners.add(observer);
 			if(theOnSubscribe != null)
 				theOnSubscribe.onsubscribe(observer);
-			return new Subscription<T>() {
-				@Override
-				public Subscription<T> subscribe(Observer<? super T> observer2) {
-					return DefaultObservable.this.subscribe(observer2);
-				}
-
-				@Override
-				public void unsubscribe() {
-					theListeners.remove(observer);
-				}
+			return () -> {
+				theListeners.remove(observer);
 			};
 		}
 	}

@@ -3,7 +3,6 @@ package org.muis.core.style;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.rx.ObservableValueEvent;
 import org.muis.core.rx.Observer;
-import org.muis.core.rx.Subscription;
 
 /**
  * A style value that is contingent upon a boolean expression of some type
@@ -48,8 +47,8 @@ public class StyleExpressionValue<E extends StyleExpression<E>, V> implements Ob
 	}
 
 	@Override
-	public Subscription<ObservableValueEvent<V>> subscribe(Observer<? super ObservableValueEvent<V>> observer) {
-		return theValue.mapV(value -> value).subscribe(observer);
+	public Runnable internalSubscribe(Observer<? super ObservableValueEvent<V>> observer) {
+		return theValue.mapV(value -> value).internalSubscribe(observer);
 	}
 
 	@Override

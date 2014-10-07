@@ -150,7 +150,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		}
 
 		@Override
-		public Subscription<ObservableElement<StyleAttribute<?>>> subscribe(Observer<? super ObservableElement<StyleAttribute<?>>> observer) {
+		public Runnable internalSubscribe(Observer<? super ObservableElement<StyleAttribute<?>>> observer) {
 			for(StyleAttribute<?> att : theValues.keySet())
 				observer.onNext(new ObservableElement<StyleAttribute<?>>() {
 					@Override
@@ -164,10 +164,10 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 					}
 
 					@Override
-					public Subscription<ObservableValueEvent<StyleAttribute<?>>> subscribe(
-						Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
+					public Runnable internalSubscribe(Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
 						observer2.onNext(new ObservableValueEvent<>(this, null, att, null));
-						return Observable.nullSubscribe(this);
+						return ()->{
+						};
 					}
 
 					@Override
@@ -175,7 +175,8 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 						return this;
 					}
 				});
-			return Observable.nullSubscribe(this);
+			return () -> {
+			};
 		}
 	}
 }

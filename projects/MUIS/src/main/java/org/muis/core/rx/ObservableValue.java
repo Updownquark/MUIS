@@ -294,19 +294,12 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 			}
 
 			@Override
-			public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
 				ObservableValue<T> outer = this;
-				Subscription<?> [] subSubs = new Subscription[components.length];
-				DefaultSubscription<ObservableValueEvent<T>> ret = new DefaultSubscription<ObservableValueEvent<T>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						for(Subscription<?> sub : subSubs)
-							sub.unsubscribe();
-					}
-				};
+				Runnable [] subSubs = new Runnable[components.length];
 				Object [] oldValue = new Object[1];
 				for(int i = 0; i < subSubs.length; i++)
-					subSubs[i] = components[i].subscribe(new Observer<ObservableValueEvent<?>>() {
+					subSubs[i] = components[i].internalSubscribe(new Observer<ObservableValueEvent<?>>() {
 						@Override
 						public <V extends ObservableValueEvent<?>> void onNext(V value2) {
 							T newVal = value.get();
@@ -317,7 +310,6 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 
 						@Override
 						public <V extends ObservableValueEvent<?>> void onCompleted(V value2) {
-							ret.unsubscribe();
 						}
 
 						@Override
@@ -325,7 +317,10 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 							observer.onError(e);
 						}
 					});
-				return ret;
+				return () -> {
+					for(Runnable sub : subSubs)
+						sub.run();
+				};
 			}
 		};
 	}
@@ -371,17 +366,9 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 		}
 
 		@Override
-		public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+		public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
 			observer.onNext(new ObservableValueEvent<>(this, theValue, theValue, null));
-			return new Subscription<ObservableValueEvent<T>>() {
-				@Override
-				public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-					return this;
-				}
-
-				@Override
-				public void unsubscribe() {
-				}
+			return () -> {
 			};
 		}
 

@@ -1,6 +1,7 @@
 package org.muis.core.rx;
 
-import java.util.*;
+import java.util.AbstractList;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -30,10 +31,9 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableValueEvent<ObservableList<E>>> subscribe(
-				Observer<? super ObservableValueEvent<ObservableList<E>>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<ObservableList<E>>> observer) {
 				ObservableValue<ObservableList<E>> obsVal = this;
-				Subscription<ObservableElement<E>> outerSub = coll.subscribe(new Observer<ObservableElement<E>>() {
+				Runnable outerSub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
 					boolean [] finishedInitial = new boolean[1];
 
 					@Override
@@ -69,11 +69,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 					}
 				});
 				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-				return new DefaultSubscription<ObservableValueEvent<ObservableList<E>>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						outerSub.unsubscribe();
-					}
+				return () -> {
+					outerSub.run();
 				};
 			}
 		};
@@ -113,8 +110,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
-				Subscription<ObservableElement<E>> sub = outerList.subscribe(new Observer<ObservableElement<E>>() {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				Runnable sub = outerList.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V value) {
 						observer.onNext(value.mapV(map));
@@ -131,16 +128,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 					}
 				});
-				return new Subscription<ObservableElement<T>>() {
-					@Override
-					public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer2) {
-						return MappedObservableList.this.subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
-						sub.unsubscribe();
-					}
+				return () -> {
+					sub.run();
 				};
 			}
 		}
@@ -196,8 +185,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
-				Subscription<ObservableElement<E>> listSub = outer.subscribe(new Observer<ObservableElement<E>>() {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				Runnable listSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V el) {
 						ObservableListElement<E> outerElement = (ObservableListElement<E>) el;
@@ -230,38 +219,32 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 							}
 
 							@Override
-							public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-								Subscription<ObservableValueEvent<E>> innerSub = outerElement
-									.subscribe(new Observer<ObservableValueEvent<E>>() {
-										@Override
-										public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-											T mapped = map.apply(elValue.getValue());
-											ObservableValueEvent<T> newEvent = new ObservableValueEvent<T>(InnerElement.this, map
-												.apply(elValue
-												.getOldValue()), mapped, elValue);
-											if(mapped == null) {
-												exists[0] = false;
-												observer2.onCompleted(newEvent);
-											} else
-												observer2.onNext(newEvent);
-										}
-
-										@Override
-										public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
-											exists[0] = false;
-											observer2.onCompleted(new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
-												.getOldValue()), map
-												.apply(elValue.getValue()), elValue));
-										}
-									});
-								return new DefaultSubscription<ObservableValueEvent<T>>(InnerElement.this) {
+							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+								Runnable innerSub = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
 									@Override
-									public void unsubscribeSelf() {
-										innerSub.unsubscribe();
+									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+										T mapped = map.apply(elValue.getValue());
+										ObservableValueEvent<T> newEvent = new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+											.getOldValue()), mapped, elValue);
+										if(mapped == null) {
+											exists[0] = false;
+											observer2.onCompleted(newEvent);
+										} else
+											observer2.onNext(newEvent);
 									}
+
+									@Override
+									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+										exists[0] = false;
+										observer2.onCompleted(new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+											.getOldValue()), map.apply(elValue.getValue()), elValue));
+									}
+								});
+								return () -> {
+									innerSub.run();
 								};
 							}
-						};
+						}
 						ObservableListElement<T> retElement = new InnerElement();
 						outerElement.subscribe(new Observer<ObservableValueEvent<E>>() {
 							@Override
@@ -277,11 +260,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 						});
 					}
 				});
-				return new DefaultSubscription<ObservableElement<T>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						listSub.unsubscribe();
-					}
+				return () -> {
+					listSub.run();
 				};
 			}
 		}
@@ -311,9 +291,9 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<V>> subscribe(Observer<? super ObservableElement<V>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<V>> observer) {
 				boolean [] complete = new boolean[1];
-				Subscription<ObservableElement<E>> listSub = outerList.subscribe(new Observer<ObservableElement<E>>() {
+				Runnable listSub = outerList.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V2 extends ObservableElement<E>> void onNext(V2 value) {
 						observer.onNext(value.combineV(func, arg));
@@ -331,8 +311,9 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 					}
 				});
 				if(complete[0])
-					return Observable.nullSubscribe(this);
-				Subscription<ObservableValueEvent<T>> argSub = arg.subscribe(new Observer<ObservableValueEvent<T>>() {
+					return () -> {
+					};
+				Runnable argSub = arg.internalSubscribe(new Observer<ObservableValueEvent<T>>() {
 					@Override
 					public <V2 extends ObservableValueEvent<T>> void onNext(V2 value) {
 					}
@@ -341,26 +322,15 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 					public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 value) {
 						complete[0] = true;
 						observer.onCompleted(null);
-						listSub.unsubscribe();
+						listSub.run();
 					}
 				});
 				if(complete[0])
-					return Observable.nullSubscribe(this);
-				return new Subscription<ObservableElement<V>>() {
-					@Override
-					public Subscription<ObservableElement<V>> subscribe(Observer<? super ObservableElement<V>> observer2) {
-						if(complete[0])
-							return Observable.nullSubscribe(CombinedObservableList.this);
-						return CombinedObservableList.this.subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
-						if(complete[0])
-							return;
-						listSub.unsubscribe();
-						argSub.unsubscribe();
-					}
+					return () -> {
+					};
+				return () -> {
+					listSub.run();
+					argSub.run();
 				};
 			}
 		}
@@ -452,17 +422,9 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
 				observer.onNext(new ObservableValueEvent<>(this, theValue, theValue, null));
-				return new Subscription<ObservableValueEvent<T>>() {
-					@Override
-					public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-						return this;
-					}
-
-					@Override
-					public void unsubscribe() {
-					}
+				return () -> {
 				};
 			}
 
@@ -497,10 +459,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
 				for(ObservableElement<T> ob : obsEls)
 					observer.onNext(ob);
-				return Observable.nullSubscribe(this);
+				return () -> {
+				};
 			}
 
 			@Override
@@ -559,162 +522,73 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
-				Subscription<? extends ObservableElement<? extends ObservableList<T>>> sub = list
-					.subscribe(new Observer<ObservableElement<? extends ObservableList<T>>>() {
-						private java.util.Map<ObservableList<T>, Subscription<ObservableElement<T>>> subListSubscriptions;
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				return list.internalSubscribe(new Observer<ObservableElement<? extends ObservableList<T>>>() {
+					private java.util.Map<ObservableList<T>, Subscription<ObservableElement<T>>> subListSubscriptions;
 
-						{
-							subListSubscriptions = new java.util.IdentityHashMap<>();
-						}
-
-						@Override
-						public <V extends ObservableElement<? extends ObservableList<T>>> void onNext(V subList) {
-							subList.subscribe(new Observer<ObservableValueEvent<? extends ObservableList<T>>>() {
-								@Override
-								public <V2 extends ObservableValueEvent<? extends ObservableList<T>>> void onNext(V2 subListEvent) {
-									if(subListEvent.getOldValue() != null && subListEvent.getOldValue() != subListEvent.getValue()) {
-										Subscription<ObservableElement<T>> subListSub = subListSubscriptions.get(subListEvent.getOldValue());
-										if(subListSub != null)
-											subListSub.unsubscribe();
-									}
-									Subscription<ObservableElement<T>> subListSub = subListEvent.getValue().takeUntil(subList)
-										.subscribe(new Observer<ObservableElement<T>>() {
-											@Override
-											public <V3 extends ObservableElement<T>> void onNext(V3 subElement) {
-												observer.onNext(new ObservableListElement<T>() {
-													@Override
-													public ObservableValue<T> persistent() {
-														return subElement;
-													}
-
-													@Override
-													public Type getType() {
-														return subElement.getType();
-													}
-
-													@Override
-													public T get() {
-														return subElement.get();
-													}
-
-													@Override
-													public int getIndex() {
-														int subListIndex = ((ObservableListElement<?>) subList).getIndex();
-														int ret = 0;
-														for(int i = 0; i < subListIndex; i++)
-															ret += list.get(i).size();
-														ret += ((ObservableListElement<T>) subElement).getIndex();
-														return ret;
-													}
-
-													@Override
-													public Subscription<ObservableValueEvent<T>> subscribe(
-														Observer<? super ObservableValueEvent<T>> observer2) {
-														return subElement.subscribe(observer2);
-													}
-												});
-											}
-										});
-									subListSubscriptions.put(subListEvent.getValue(), subListSub);
-								}
-							});
-						}
-
-						@Override
-						public void onError(Throwable e) {
-							observer.onError(e);
-						}
-					});
-				return new DefaultSubscription<ObservableElement<T>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						sub.unsubscribe();
+					{
+						subListSubscriptions = new java.util.IdentityHashMap<>();
 					}
-				};
+
+					@Override
+					public <V extends ObservableElement<? extends ObservableList<T>>> void onNext(V subList) {
+						subList.subscribe(new Observer<ObservableValueEvent<? extends ObservableList<T>>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<? extends ObservableList<T>>> void onNext(V2 subListEvent) {
+								if(subListEvent.getOldValue() != null && subListEvent.getOldValue() != subListEvent.getValue()) {
+									Subscription<ObservableElement<T>> subListSub = subListSubscriptions.get(subListEvent.getOldValue());
+									if(subListSub != null)
+										subListSub.unsubscribe();
+								}
+								Subscription<ObservableElement<T>> subListSub = subListEvent.getValue().takeUntil(subList)
+									.subscribe(new Observer<ObservableElement<T>>() {
+										@Override
+										public <V3 extends ObservableElement<T>> void onNext(V3 subElement) {
+											observer.onNext(new ObservableListElement<T>() {
+												@Override
+												public ObservableValue<T> persistent() {
+													return subElement;
+												}
+
+												@Override
+												public Type getType() {
+													return subElement.getType();
+												}
+
+												@Override
+												public T get() {
+													return subElement.get();
+												}
+
+												@Override
+												public int getIndex() {
+													int subListIndex = ((ObservableListElement<?>) subList).getIndex();
+													int ret = 0;
+													for(int i = 0; i < subListIndex; i++)
+														ret += list.get(i).size();
+													ret += ((ObservableListElement<T>) subElement).getIndex();
+													return ret;
+												}
+
+												@Override
+												public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+													return subElement.internalSubscribe(observer2);
+												}
+											});
+										}
+									});
+								subListSubscriptions.put(subListEvent.getValue(), subListSub);
+							}
+						});
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
 			}
 		}
 		return new ComposedObservableList();
 	}
-
-	@Override
-	public Subscription<ObservableElement<E>> subscribe(Observer<? super ObservableElement<E>> observer);
-
-	@Override
-	public int size();
-
-	@Override
-	public boolean isEmpty();
-
-	@Override
-	public boolean contains(Object o);
-
-	@Override
-	public Iterator<E> iterator();
-
-	@Override
-	public Object [] toArray();
-
-	@Override
-	public <T> T [] toArray(T [] a);
-
-	@Override
-	public boolean add(E e);
-
-	@Override
-	public boolean remove(Object o);
-
-	@Override
-	public boolean containsAll(Collection<?> c);
-
-	@Override
-	public boolean addAll(Collection<? extends E> c);
-
-	@Override
-	public boolean removeAll(Collection<?> c);
-
-	@Override
-	public boolean retainAll(Collection<?> c);
-
-	@Override
-	public void clear();
-
-	@Override
-	public boolean equals(Object o);
-
-	@Override
-	public int hashCode();
-
-	@Override
-	public boolean addAll(int index, Collection<? extends E> c);
-
-	@Override
-	public E get(int index);
-
-	@Override
-	public E set(int index, E element);
-
-	@Override
-	public void add(int index, E element);
-
-	@Override
-	public E remove(int index);
-
-	@Override
-	public int indexOf(Object o);
-
-	@Override
-	public int lastIndexOf(Object o);
-
-	@Override
-	public ListIterator<E> listIterator();
-
-	@Override
-	public ListIterator<E> listIterator(int index);
-
-	@Override
-	public List<E> subList(int fromIndex, int toIndex);
-
-	@Override
-	public Type getType();
 }

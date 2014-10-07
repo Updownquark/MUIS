@@ -15,7 +15,86 @@ public interface Observable<T> {
 	 * @param observer The observer to listen to this observable
 	 * @return A subscription to use to unsubscribe the listener from this observable
 	 */
-	Subscription<T> subscribe(Observer<? super T> observer);
+	default Subscription<T> subscribe(Observer<? super T> observer) {
+		Observable<T> outer = this;
+		class SubscriptionHolder {
+			boolean alive = true;
+			Subscription<T> subscription;
+			Runnable internalSub;
+			Observer<T> wrapper;
+			private java.util.concurrent.CopyOnWriteArrayList<Runnable> subSubscriptions;
+		}
+		SubscriptionHolder holder = new SubscriptionHolder();
+		holder.wrapper = new Observer<T>() {
+			@Override
+			public <V extends T> void onNext(V value) {
+				observer.onNext(value);
+			}
+
+			@Override
+			public <V extends T> void onCompleted(V value) {
+				if(!holder.alive)
+					return;
+				holder.alive = false;
+				if(holder.subscription != null)
+					holder.subscription.unsubscribe();
+				observer.onCompleted(value);
+			}
+
+			@Override
+			public void onError(Throwable e) {
+				observer.onError(e);
+			}
+		};
+		if(!holder.alive)
+			return new Subscription<T>() {
+				@Override
+				public Runnable internalSubscribe(Observer<? super T> observer2) {
+					observer2.onCompleted(null);
+					return () -> {
+					};
+				}
+
+				@Override
+				public void unsubscribe() {
+				}
+			};
+		holder.subscription = new Subscription<T>() {
+			@Override
+			public Runnable internalSubscribe(Observer<? super T> observer2) {
+				if(!holder.alive) {
+					observer2.onCompleted(null);
+					return () -> {
+					};
+				}
+				Runnable internalSubSub = outer.internalSubscribe(observer2);
+				if(holder.subSubscriptions == null)
+					holder.subSubscriptions = new java.util.concurrent.CopyOnWriteArrayList<>();
+				holder.subSubscriptions.add(internalSubSub);
+				return outer.internalSubscribe(observer2);
+			}
+
+			@Override
+			public void unsubscribe() {
+				holder.internalSub.run();
+				if(holder.subSubscriptions != null)
+					for(Runnable subSub : holder.subSubscriptions)
+						subSub.run();
+				holder.subSubscriptions = null;
+			}
+		};
+		holder.internalSub = internalSubscribe(holder.wrapper);
+		return holder.subscription;
+	}
+
+	/**
+	 * Adds the observer to the list of listeners to be notified of values. Typical applications will use {@link #subscribe(Observer)}
+	 * instead.
+	 *
+	 * @param observer The observer to be notified when new values are available from this observable
+	 * @return A runnable that, when invoked, will cease notifications to the observer
+	 */
+	Runnable internalSubscribe(Observer<? super T> observer);
 
 	/**
 	 * @param action The action to perform for each new value
@@ -51,19 +130,8 @@ public interface Observable<T> {
 		}
 		return new Observable<Throwable>() {
 			@Override
-			public Subscription<Throwable> subscribe(Observer<? super Throwable> observer) {
-				Subscription<T> sub = outer.subscribe(new ErrorObserver(observer));
-				return new Subscription<Throwable>() {
-					@Override
-					public Subscription<Throwable> subscribe(Observer<? super Throwable> observer2) {
-						return sub.error().subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
-						sub.unsubscribe();
-					}
-				};
+			public Runnable internalSubscribe(Observer<? super Throwable> observer) {
+				return outer.internalSubscribe(new ErrorObserver(observer));
 			}
 		};
 	}
@@ -90,19 +158,8 @@ public interface Observable<T> {
 		}
 		return new Observable<T>() {
 			@Override
-			public Subscription<T> subscribe(Observer<? super T> observer) {
-				Subscription<T> sub = outer.subscribe(new CompleteObserver(observer));
-				return new Subscription<T>() {
-					@Override
-					public Subscription<T> subscribe(Observer<? super T> observer2) {
-						return sub.completed().subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
-						sub.unsubscribe();
-					}
-				};
+			public Runnable internalSubscribe(Observer<? super T> observer) {
+				return outer.internalSubscribe(new CompleteObserver(observer));
 			}
 		};
 	}
@@ -309,17 +366,10 @@ public interface Observable<T> {
 	public static <V> Observable<V> or(Observable<? extends V>... obs) {
 		return new Observable<V>() {
 			@Override
-			public Subscription<V> subscribe(Observer<? super V> observer) {
-				Subscription<? extends V> [] subs = new Subscription[obs.length];
-				DefaultSubscription<V> ret = new DefaultSubscription<V>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						for(Subscription<? extends V> sub : subs)
-							sub.unsubscribe();
-					}
-				};
+			public Runnable internalSubscribe(Observer<? super V> observer) {
+				Runnable [] subs = new Runnable[obs.length];
 				for(int i = 0; i < subs.length; i++)
-					subs[i] = obs[i].subscribe(new Observer<V>() {
+					subs[i] = obs[i].internalSubscribe(new Observer<V>() {
 						@Override
 						public <V2 extends V> void onNext(V2 value) {
 							observer.onNext(value);
@@ -328,7 +378,6 @@ public interface Observable<T> {
 						@Override
 						public <V2 extends V> void onCompleted(V2 value) {
 							observer.onCompleted(value);
-							ret.unsubscribe();
 						}
 
 						@Override
@@ -336,7 +385,10 @@ public interface Observable<T> {
 							observer.onError(e);
 						}
 					});
-				return ret;
+				return () -> {
+					for(Runnable sub : subs)
+						sub.run();
+				};
 			}
 		};
 	}
@@ -344,8 +396,9 @@ public interface Observable<T> {
 	/** An empty observable that never does anything */
 	public static Observable<?> empty = new Observable<Object>() {
 		@Override
-		public Subscription<Object> subscribe(Observer<? super Object> observer) {
-			return nullSubscribe(this);
+		public Runnable internalSubscribe(Observer<? super Object> observer) {
+			return () -> {
+			};
 		}
 	};
 
@@ -357,27 +410,10 @@ public interface Observable<T> {
 	public static <T> Observable<T> constant(T value) {
 		return new Observable<T>() {
 			@Override
-			public Subscription<T> subscribe(Observer<? super T> observer) {
+			public Runnable internalSubscribe(Observer<? super T> observer) {
 				observer.onNext(value);
-				return nullSubscribe(this);
-			}
-		};
-	}
-
-	/**
-	 * @param <T> The type of value the observable returns
-	 * @param obs The observer to get compile-time type information for (not used)
-	 * @return A subscription that does nothing
-	 */
-	public static <T> Subscription<T> nullSubscribe(Observable<T> obs) {
-		return new Subscription<T>() {
-			@Override
-			public Subscription<T> subscribe(Observer<? super T> observer) {
-				return this;
-			}
-
-			@Override
-			public void unsubscribe() {
+				return () -> {
+				};
 			}
 		};
 	}

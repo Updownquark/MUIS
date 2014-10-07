@@ -5,7 +5,10 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
-import org.muis.core.rx.*;
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
+import org.muis.core.rx.Observer;
+import org.muis.core.rx.SettableValue;
 
 import prisms.lang.Type;
 
@@ -427,18 +430,10 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+		public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
 			theListeners.add(observer);
-			return new Subscription<ObservableValueEvent<T>>() {
-				@Override
-				public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-					return MuisMemberValue.this.subscribe(observer2);
-				}
-
-				@Override
-				public void unsubscribe() {
-					theListeners.remove(observer);
-				}
+			return () -> {
+				theListeners.remove(observer);
 			};
 		}
 	}

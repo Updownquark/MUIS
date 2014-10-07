@@ -1,6 +1,5 @@
 package org.muis.core.rx;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -25,67 +24,51 @@ public class ComposedObservable<T> implements Observable<T> {
 	}
 
 	@Override
-	public Subscription<T> subscribe(Observer<? super T> observer) {
-		return new ComposedSubscription(observer);
+	public Runnable internalSubscribe(Observer<? super T> observer) {
+		Runnable [] composedSubs = new Runnable[theComposed.size()];
+		Object [] values = new Object[theComposed.size()];
+		for(int i = 0; i < theComposed.size(); i++) {
+			int index = i;
+			values[i] = NONE;
+			composedSubs[i] = theComposed.get(i).internalSubscribe(new Observer<Object>() {
+				@Override
+				public <V> void onNext(V value) {
+					values[index] = value;
+					Object next = getNext();
+					if(next != NONE)
+						observer.onNext((T) value);
+				}
+
+				@Override
+				public <V> void onCompleted(V value) {
+					values[index] = value;
+					Object next = getNext();
+					if(next != NONE)
+						observer.onCompleted((T) value);
+				}
+
+				@Override
+				public void onError(Throwable error) {
+					observer.onError(error);
+				}
+
+				private Object getNext() {
+					Object [] args = values.clone();
+					for(Object value : args)
+						if(value == NONE)
+							return NONE;
+					return theFunction.apply(args);
+				}
+			});
+		}
+		return () -> {
+			for(Runnable sub : composedSubs)
+				sub.run();
+		};
 	}
 
 	/** @return The observables that this observable uses as sources */
 	public Observable<?> [] getComposed() {
 		return theComposed.toArray(new Observable[theComposed.size()]);
-	}
-
-	private class ComposedSubscription extends DefaultSubscription<T> {
-		private List<Subscription<?>> theComposedSubs;
-		private List<Object> theInternalValues;
-		private Observer<T> theObserver;
-
-		ComposedSubscription(Observer<? super T> observer) {
-			super(ComposedObservable.this);
-			theComposedSubs = new ArrayList<>();
-			theInternalValues = new ArrayList<>();
-			for(int i = 0; i < theComposed.size(); i++) {
-				int index = i;
-				theInternalValues.add(NONE);
-				theComposedSubs.add(theComposed.get(i).subscribe(new Observer<Object>() {
-					@Override
-					public <V> void onNext(V value) {
-						theInternalValues.set(index, value);
-						Object next = getNext();
-						if(next != NONE)
-							theObserver.onNext((T) value);
-					}
-
-					@Override
-					public <V> void onCompleted(V value) {
-						theInternalValues.set(index, value);
-						Object next = getNext();
-						if(next != NONE)
-							theObserver.onCompleted((T) value);
-						unsubscribe();
-					}
-
-					@Override
-					public void onError(Throwable error) {
-						theObserver.onError(error);
-					}
-				}));
-			}
-		}
-
-		private Object getNext() {
-			Object [] args = theInternalValues.toArray();
-			for(Object value : args)
-				if(value == NONE)
-					return NONE;
-			return theFunction.apply(args);
-		}
-
-		@Override
-		public void unsubscribeSelf() {
-			for(Subscription<?> sub : theComposedSubs)
-				sub.unsubscribe();
-			theComposedSubs.clear();
-			theInternalValues.clear();
-		}
 	}
 }

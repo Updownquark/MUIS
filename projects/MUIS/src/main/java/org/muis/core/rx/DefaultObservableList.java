@@ -23,7 +23,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	private ReentrantReadWriteLock theLock;
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
 	private org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> theOnSubscribe;
-	private java.util.concurrent.ConcurrentHashMap<Subscription<ObservableElement<E>>, Observer<? super ObservableElement<E>>> theObservers;
+	private java.util.concurrent.ConcurrentLinkedQueue<Observer<? super ObservableElement<E>>> theObservers;
 	private volatile ObservableElementImpl<E> theRemovedElement;
 	private volatile int theRemovedElementIndex;
 
@@ -37,6 +37,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		theValues = new ArrayList<>();
 		theElements = new ArrayList<>();
 
+		theObservers = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theLock = new ReentrantReadWriteLock();
 	}
 
@@ -78,24 +79,20 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	}
 
 	@Override
-	public Subscription<ObservableElement<E>> subscribe(Observer<? super ObservableElement<E>> observer) {
-		Subscription<ObservableElement<E>> sub [] = new Subscription[1];
-		sub[0] = new DefaultSubscription<ObservableElement<E>>(this) {
-			@Override
-			public void unsubscribeSelf() {
-				theObservers.remove(sub[0]);
-			}
-		};
-		theObservers.put(sub[0], observer);
+	public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+		theObservers.add(observer);
 		doLocked(() -> {
 			for(ObservableElementImpl<E> el : theElements)
-				observer.onNext(newValue(el, sub[0]));
+				observer.onNext(newValue(el));
 		}, false);
-		theOnSubscribe.onsubscribe(observer);
-		return sub[0];
+		if(theOnSubscribe != null)
+			theOnSubscribe.onsubscribe(observer);
+		return () -> {
+			theObservers.remove(observer);
+		};
 	}
 
-	private ObservableListElement<E> newValue(ObservableElementImpl<E> el, Subscription<ObservableElement<E>> sub) {
+	private ObservableListElement<E> newValue(ObservableElementImpl<E> el) {
 		return new ObservableListElement<E>() {
 			private int theRemovedIndex = -1;
 
@@ -110,8 +107,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 			}
 
 			@Override
-			public Subscription<ObservableValueEvent<E>> subscribe(Observer<? super ObservableValueEvent<E>> observer) {
-				return el.takeUntil(sub).subscribe(observer);
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				return el.takeUntil(el.completed()).internalSubscribe(observer);
 			}
 
 			@Override
@@ -132,8 +129,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	}
 
 	private void fireNewElement(ObservableElementImpl<E> el) {
-		for(Map.Entry<Subscription<ObservableElement<E>>, Observer<? super ObservableElement<E>>> entry : theObservers.entrySet()) {
-			entry.getValue().onNext(newValue(el, entry.getKey()));
+		for(Observer<? super ObservableElement<E>> observer : theObservers) {
+			observer.onNext(newValue(el));
 		}
 	}
 

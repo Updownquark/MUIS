@@ -19,7 +19,9 @@ import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
-import org.muis.core.rx.*;
+import org.muis.core.rx.DefaultObservableValue;
+import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.ObservableValueEvent;
 import org.muis.core.rx.Observer;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.attach.StyleAttributeType;
@@ -1435,17 +1437,9 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		@Override
-		public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer) {
+		public Runnable internalSubscribe(Observer<? super ChildEvent> observer) {
 			// TODO Listeners not supported yet
-			return new Subscription<ChildEvent>() {
-				@Override
-				public Subscription<ChildEvent> subscribe(Observer<? super ChildEvent> observer2) {
-					return this;
-				}
-
-				@Override
-				public void unsubscribe() {
-				}
+			return () -> {
 			};
 		}
 

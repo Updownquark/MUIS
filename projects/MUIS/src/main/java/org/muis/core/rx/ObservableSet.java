@@ -30,10 +30,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<ObservableValueEvent<ObservableSet<E>>> subscribe(
-				Observer<? super ObservableValueEvent<ObservableSet<E>>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<ObservableSet<E>>> observer) {
 				ObservableValue<ObservableSet<E>> obsVal = this;
-				Subscription<ObservableElement<E>> outerSub = coll.subscribe(new Observer<ObservableElement<E>>() {
+				Runnable outerSub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
 					boolean [] finishedInitial = new boolean[1];
 
 					@Override
@@ -69,12 +68,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 					}
 				});
 				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-				return new DefaultSubscription<ObservableValueEvent<ObservableSet<E>>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						outerSub.unsubscribe();
-					}
-				};
+				return outerSub;
 			}
 		};
 	}
@@ -125,8 +119,8 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
-				Subscription<ObservableElement<E>> sub = outerSet.subscribe(new Observer<ObservableElement<E>>() {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				Runnable sub = outerSet.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V value) {
 						observer.onNext(value.mapV(map));
@@ -143,17 +137,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 					}
 				});
-				return new Subscription<ObservableElement<T>>() {
-					@Override
-					public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer2) {
-						return MappedObservableSet.this.subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
-						sub.unsubscribe();
-					}
-				};
+				return sub;
 			}
 		}
 		return new MappedObservableSet();
@@ -220,8 +204,8 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
-				Subscription<ObservableElement<E>> sub = outerSet.subscribe(new Observer<ObservableElement<E>>() {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				return outerSet.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V value) {
 						observer.onNext(value.mapV(filterMap));
@@ -238,17 +222,6 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 					}
 				});
-				return new Subscription<ObservableElement<T>>() {
-					@Override
-					public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer2) {
-						return MappedObservableSet.this.subscribe(observer2);
-					}
-
-					@Override
-					public void unsubscribe() {
-						sub.unsubscribe();
-					}
-				};
 			}
 		}
 		return new MappedObservableSet();
@@ -289,9 +262,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<V>> subscribe(Observer<? super ObservableElement<V>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<V>> observer) {
 				boolean [] complete = new boolean[1];
-				Subscription<ObservableElement<E>> setSub = outerSet.subscribe(new Observer<ObservableElement<E>>() {
+				Runnable setSub = outerSet.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V2 extends ObservableElement<E>> void onNext(V2 value) {
 						observer.onNext(value.combineV(func, arg));
@@ -309,8 +282,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 					}
 				});
 				if(complete[0])
-					return Observable.nullSubscribe(this);
-				Subscription<ObservableValueEvent<T>> argSub = arg.subscribe(new Observer<ObservableValueEvent<T>>() {
+					return () -> {
+					};
+				Runnable argSub = arg.internalSubscribe(new Observer<ObservableValueEvent<T>>() {
 					@Override
 					public <V2 extends ObservableValueEvent<T>> void onNext(V2 value) {
 					}
@@ -319,19 +293,15 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 					public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 value) {
 						complete[0] = true;
 						observer.onCompleted(null);
-						setSub.unsubscribe();
+						setSub.run();
 					}
 				});
 				if(complete[0])
-					return Observable.nullSubscribe(this);
-				return new DefaultSubscription<ObservableElement<V>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						if(complete[0])
-							return;
-						setSub.unsubscribe();
-						argSub.unsubscribe();
-					}
+					return () -> {
+					};
+				return () -> {
+					setSub.run();
+					argSub.run();
 				};
 			}
 		}
@@ -355,8 +325,10 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				}
 
 				@Override
-				public Subscription<ObservableValueEvent<T>> subscribe(Observer<? super ObservableValueEvent<T>> observer) {
-					return Observable.nullSubscribe(this);
+				public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+					observer.onNext(new ObservableValueEvent<>(this, null, value, null));
+					return () -> {
+					};
 				}
 
 				@Override
@@ -371,10 +343,11 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public Subscription<ObservableElement<T>> subscribe(Observer<? super ObservableElement<T>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
 				for(ObservableElement<T> el : els)
 					observer.onNext(el);
-				return Observable.nullSubscribe(this);
+				return () -> {
+				};
 			}
 
 			@Override

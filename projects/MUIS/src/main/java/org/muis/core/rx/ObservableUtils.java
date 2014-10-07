@@ -23,10 +23,10 @@ public class ObservableUtils {
 			}
 
 			@Override
-			public Subscription<ObservableValueEvent<V>> subscribe(Observer<? super ObservableValueEvent<V>> observer) {
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<V>> observer) {
 				ObservableValue<V> outer = this;
 				boolean [] initialized = new boolean[1];
-				Subscription<?> listSub = list.subscribe(new Observer<ObservableElement<? extends ObservableValue<T>>>() {
+				Runnable ret = list.internalSubscribe(new Observer<ObservableElement<? extends ObservableValue<T>>>() {
 					int theIndex = -1;
 					V oldValue = null;
 
@@ -84,12 +84,8 @@ public class ObservableUtils {
 						});
 					}
 				});
-				return new DefaultSubscription<ObservableValueEvent<V>>(this) {
-					@Override
-					public void unsubscribeSelf() {
-						listSub.unsubscribe();
-					}
-				};
+				initialized[0] = true;
+				return ret;
 			}
 		};
 	}

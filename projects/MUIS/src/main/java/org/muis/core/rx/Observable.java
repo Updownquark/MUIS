@@ -1,6 +1,5 @@
 package org.muis.core.rx;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -71,11 +70,13 @@ public interface Observable<T> {
 				if(holder.subSubscriptions == null)
 					holder.subSubscriptions = new java.util.concurrent.CopyOnWriteArrayList<>();
 				holder.subSubscriptions.add(internalSubSub);
-				return outer.internalSubscribe(observer2);
+				return internalSubSub;
 			}
 
 			@Override
 			public void unsubscribe() {
+				if(!holder.alive)
+					return;
 				holder.internalSub.run();
 				if(holder.subSubscriptions != null)
 					for(Runnable subSub : holder.subSubscriptions)
@@ -169,26 +170,7 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable minus those that the filter function returns false for
 	 */
 	default Observable<T> filter(Function<? super T, Boolean> func) {
-		DefaultObservable<T> ret=new DefaultObservable<>();
-		Observer<T> controller=ret.control(null);
-		subscribe(new Observer<T>(){
-			@Override
-			public <V extends T> void onNext(V value) {
-				if(func.apply(value))
-					controller.onNext(value);
-			}
-
-			@Override
-			public <V extends T> void onCompleted(V value) {
-				controller.onCompleted(value);
-			}
-
-			@Override
-			public void onError(Throwable e) {
-				controller.onError(e);
-			}
-		});
-		return ret;
+		return filterMap(value -> func.apply(value) ? value : null);
 	}
 
 	/**
@@ -209,27 +191,34 @@ public interface Observable<T> {
 	 *         null
 	 */
 	default <R> Observable<R> filterMap(Function<? super T, R> func) {
-		DefaultObservable<R> ret = new DefaultObservable<>();
-		Observer<R> controller = ret.control(null);
-		subscribe(new Observer<T>() {
+		Observable<T> outer = this;
+		return new Observable<R>() {
 			@Override
-			public <V extends T> void onNext(V value) {
-				R newVal = func.apply(value);
-				if(newVal != null)
-					controller.onNext(newVal);
-			}
+			public Runnable internalSubscribe(Observer<? super R> observer) {
+				return outer.internalSubscribe(new Observer<T>() {
+					@Override
+					public <V extends T> void onNext(V value) {
+						R mapped = func.apply(value);
+						if(mapped != null)
+							observer.onNext(mapped);
+					}
 
-			@Override
-			public <V extends T> void onCompleted(V value) {
-				controller.onCompleted(func.apply(value));
-			}
+					@Override
+					public <V extends T> void onCompleted(V value) {
+						R mapped = func.apply(value);
+						if(mapped != null)
+							observer.onNext(mapped);
+						else
+							observer.onCompleted(null); // Gotta pass along the completion even if it doesn't include a value
+					}
 
-			@Override
-			public void onError(Throwable e) {
-				controller.onError(e);
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
 			}
-		});
-		return ret;
+		};
 	}
 
 	/**
@@ -250,69 +239,36 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable until the first value is observed from the given observable
 	 */
 	default Observable<T> takeUntil(Observable<?> until) {
-		AtomicBoolean check=new AtomicBoolean(false);
-		Observer<T> [] controller=new Observer[1];
-		Subscription<?> [] untilSub = new Subscription[1];
-		untilSub[0] = until.subscribe(new Observer<Object>() {
+		Observable<T> outer = this;
+		return new Observable<T>() {
 			@Override
-			public <V> void onNext(V value) {
-				if(check.getAndSet(true))
-					return;
-				if(controller[0]!=null)
-					controller[0].onCompleted(null);
-				if(untilSub[0] != null) {
-					untilSub[0].unsubscribe();
-					untilSub[0] = null;
-				}
-			}
-
-			@Override
-			public void onCompleted(Object value) {
-				if(check.getAndSet(true))
-					return;
-				if(controller[0]!=null)
-					controller[0].onCompleted(null);
-				if(untilSub[0] != null) {
-					untilSub[0].unsubscribe();
-					untilSub[0] = null;
-				}
-			}
-		});
-		if(check.get() && untilSub[0] != null) {
-			untilSub[0].unsubscribe();
-			untilSub[0] = null;
-		}
-
-		DefaultObservable<T> ret = new DefaultObservable<>();
-		controller[0] = ret.control(subscriber->{
-			if(check.get()) {
-				subscriber.onCompleted(null);
-				controller[0].onCompleted(null);
-				return;
-			}
-			Subscription<?> [] sub=new Subscription[1];
-			sub[0]=subscribe(new Observer<T>(){
-				@Override
-				public <V extends T> void onNext(V value) {
-					controller[0].onNext(value);
-				}
-
-				@Override
-				public <V extends T> void onCompleted(V value) {
-					controller[0].onCompleted(value);
-					if(untilSub[0] != null) {
-						untilSub[0].unsubscribe();
-						untilSub[0] = null;
+			public Runnable internalSubscribe(Observer<? super T> observer) {
+				Runnable outerSub = outer.internalSubscribe(observer);
+				boolean [] complete = new boolean[1];
+				Runnable untilSub = until.internalSubscribe(new Observer<Object>() {
+					@Override
+					public void onNext(Object value) {
+						complete[0] = true;
+						outerSub.run();
 					}
-				}
 
-				@Override
-				public void onError(Throwable e) {
-					controller[0].onError(e);
+					@Override
+					public void onCompleted(Object value) {
+						complete[0] = true;
+						outerSub.run();
+					}
+				});
+				if(complete[0]) {
+					untilSub.run();
+					return () -> {
+					};
 				}
-			});
-		});
-		return ret;
+				return () -> {
+					outerSub.run();
+					untilSub.run();
+				};
+			}
+		};
 	}
 
 	/**
@@ -320,43 +276,35 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable but completes after the given number of values
 	 */
 	default Observable<T> take(int times) {
-		DefaultObservable<T> ret = new DefaultObservable<>();
-		Observer<T> [] controller=new Observer[1];
-		controller[0] = ret.control(subscriber->{
-			AtomicInteger counter = new AtomicInteger(times);
-			Subscription<T> [] sub=new Subscription[1];
-			sub[0]=subscribe(new Observer<T>(){
-				private boolean isAlive(T value) {
-					int count = counter.getAndDecrement();
-					if(count == 0) {
-						controller[0].onCompleted(value);
+		Observable<T> outer = this;
+		return new Observable<T>() {
+			@Override
+			public Runnable internalSubscribe(Observer<? super T> observer) {
+				AtomicInteger counter = new AtomicInteger(times);
+				return outer.internalSubscribe(new Observer<T>() {
+					@Override
+					public <V extends T> void onNext(V value) {
+						int count = counter.decrementAndGet();
+						if(count >= 0)
+							observer.onNext(value);
+						if(count == 0)
+							observer.onCompleted(value);
 					}
-					if(count <= 0 && sub[0] != null) {
-						sub[0].unsubscribe();
-						sub[0] = null;
+
+					@Override
+					public <V extends T> void onCompleted(V value) {
+						if(counter.get() > 0)
+							observer.onCompleted(value);
 					}
-					return count > 0;
-				}
 
-				@Override
-				public <V extends T> void onNext(V value) {
-					if(isAlive(value))
-						controller[0].onNext(value);
-				}
-
-				@Override
-				public <V extends T> void onCompleted(V value) {
-					controller[0].onCompleted(value);
-				}
-
-				@Override
-				public void onError(Throwable e) {
-					if(isAlive(null))
-						controller[0].onError(e);
-				}
-			});
-		});
-		return ret;
+					@Override
+					public void onError(Throwable e) {
+						if(counter.get() > 0)
+							observer.onError(e);
+					}
+				});
+			}
+		};
 	}
 
 	/**

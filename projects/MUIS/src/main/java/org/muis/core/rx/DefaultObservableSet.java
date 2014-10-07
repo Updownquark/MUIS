@@ -22,7 +22,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	private ReentrantReadWriteLock theLock;
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
 	private org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> theOnSubscribe;
-	private java.util.concurrent.ConcurrentLinkedQueue<Observer<? super ObservableElement<E>>> theObservers;
+	private java.util.concurrent.ConcurrentHashMap<Observer<? super ObservableElement<E>>, java.util.concurrent.ConcurrentLinkedQueue<Runnable>> theObservers;
 
 	/**
 	 * Creates the list
@@ -33,7 +33,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 		theType = type;
 		theValues = new LinkedHashMap<>();
 
-		theObservers = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theObservers = new java.util.concurrent.ConcurrentHashMap<>();
 		theLock = new ReentrantReadWriteLock();
 	}
 
@@ -72,19 +72,22 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 
 	@Override
 	public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
-		theObservers.add(observer);
+		java.util.concurrent.ConcurrentLinkedQueue<Runnable> subSubscriptions = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theObservers.put(observer, subSubscriptions);
 		doLocked(() -> {
 			for(ObservableElementImpl<E> el : theValues.values())
-				observer.onNext(newValue(el));
+				observer.onNext(newValue(el, subSubscriptions));
 		}, false);
 		if(theOnSubscribe != null)
 			theOnSubscribe.onsubscribe(observer);
 		return () -> {
-			theObservers.remove(observer);
+			java.util.concurrent.ConcurrentLinkedQueue<Runnable> subs = theObservers.remove(observer);
+			for(Runnable sub : subs)
+				sub.run();
 		};
 	}
 
-	private ObservableElement<E> newValue(ObservableElementImpl<E> el) {
+	private ObservableElement<E> newValue(ObservableElementImpl<E> el, java.util.concurrent.ConcurrentLinkedQueue<Runnable> observers) {
 		return new ObservableElement<E>() {
 			@Override
 			public Type getType() {
@@ -98,7 +101,9 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
-				return el.takeUntil(el.completed()).internalSubscribe(observer);
+				Runnable ret = el.internalSubscribe(observer);
+				observers.add(ret);
+				return ret;
 			}
 
 			@Override
@@ -109,8 +114,9 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	}
 
 	private void fireNewElement(ObservableElementImpl<E> el) {
-		for(Observer<? super ObservableElement<E>> observer : theObservers) {
-			observer.onNext(newValue(el));
+		for(Map.Entry<Observer<? super ObservableElement<E>>, java.util.concurrent.ConcurrentLinkedQueue<Runnable>> observer : theObservers
+			.entrySet()) {
+			observer.getKey().onNext(newValue(el, observer.getValue()));
 		}
 	}
 

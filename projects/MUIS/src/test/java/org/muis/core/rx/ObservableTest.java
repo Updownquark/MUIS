@@ -185,6 +185,10 @@ public class ObservableTest {
 			assertEquals(compare1, compare2);
 		}
 		sub.unsubscribe();
+		for(int i = 30; i < 50; i++) {
+			controller.add(i);
+			assertEquals(compare1, compare2);
+		}
 		for(int i = 0; i < 30; i++) {
 			controller.remove(i);
 			assertEquals(compare1, compare2);

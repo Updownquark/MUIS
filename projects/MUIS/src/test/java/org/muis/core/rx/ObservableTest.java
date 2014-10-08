@@ -2,6 +2,8 @@ package org.muis.core.rx;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -27,7 +29,8 @@ public class ObservableTest {
 		SimpleSettableValue<Integer> obs = new SimpleSettableValue<>(Integer.TYPE, false);
 		obs.set(0, null);
 		int [] received = new int[] {0};
-		obs.mapV(value -> value * 10).act(value -> received[0] = value.getValue());
+		obs.mapV(value -> value * 10)
+		.act(value -> received[0] = value.getValue());
 
 		for(int i = 1; i < 10; i++) {
 			obs.set(i, null);
@@ -191,6 +194,56 @@ public class ObservableTest {
 		}
 		for(int i = 0; i < 30; i++) {
 			controller.remove(i);
+			assertEquals(compare1, compare2);
+		}
+	}
+
+	@Test
+	public void observableList() {
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		List<Integer> controller = list.control(null);
+		List<Integer> compare1 = new ArrayList<>();
+		List<Integer> compare2 = new ArrayList<>();
+		Subscription<?> sub = list.act(element -> {
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					compare1.add(((ObservableListElement<Integer>) value).getIndex(), value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(((ObservableListElement<Integer>) value).getIndex());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			compare2.add(i);
+			assertEquals(new ArrayList<>(list), compare1);
+			assertEquals(compare1, compare2);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove((Integer) i);
+			compare2.remove((Integer) i);
+			assertEquals(new TreeSet<>(list), compare1);
+			assertEquals(compare1, compare2);
+		}
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			compare2.add(i);
+			assertEquals(new ArrayList<>(list), compare1);
+			assertEquals(compare1, compare2);
+		}
+		sub.unsubscribe();
+		for(int i = 30; i < 50; i++) {
+			controller.add(i);
+			assertEquals(compare1, compare2);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove((Integer) i);
 			assertEquals(compare1, compare2);
 		}
 	}

@@ -14,7 +14,7 @@ public interface Observer<T> {
 
 	/**
 	 * Signals that the observable has no more values
-	 * 
+	 *
 	 * @param value The final value, or null if not applicable
 	 */
 	default <V extends T> void onCompleted(V value) {
@@ -22,5 +22,6 @@ public interface Observer<T> {
 
 	/** @param e The error that occured in the observable */
 	default void onError(Throwable e) {
+		throw new ObservableErrorException(e);
 	}
 }

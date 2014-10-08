@@ -1,6 +1,7 @@
 package org.muis.core.rx;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -23,7 +24,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	private ReentrantReadWriteLock theLock;
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
 	private org.muis.core.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> theOnSubscribe;
-	private java.util.concurrent.ConcurrentLinkedQueue<Observer<? super ObservableElement<E>>> theObservers;
+	private java.util.concurrent.ConcurrentHashMap<Observer<? super ObservableElement<E>>, ConcurrentLinkedQueue<Runnable>> theObservers;
 	private volatile ObservableElementImpl<E> theRemovedElement;
 	private volatile int theRemovedElementIndex;
 
@@ -37,7 +38,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		theValues = new ArrayList<>();
 		theElements = new ArrayList<>();
 
-		theObservers = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theObservers = new java.util.concurrent.ConcurrentHashMap<>();
 		theLock = new ReentrantReadWriteLock();
 	}
 
@@ -80,19 +81,22 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 
 	@Override
 	public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
-		theObservers.add(observer);
+		ConcurrentLinkedQueue<Runnable> subSubscriptions = new ConcurrentLinkedQueue<>();
+		theObservers.put(observer, subSubscriptions);
 		doLocked(() -> {
 			for(ObservableElementImpl<E> el : theElements)
-				observer.onNext(newValue(el));
+				observer.onNext(newValue(el, subSubscriptions));
 		}, false);
 		if(theOnSubscribe != null)
 			theOnSubscribe.onsubscribe(observer);
 		return () -> {
-			theObservers.remove(observer);
+			ConcurrentLinkedQueue<Runnable> subs = theObservers.remove(observer);
+			for(Runnable sub : subs)
+				sub.run();
 		};
 	}
 
-	private ObservableListElement<E> newValue(ObservableElementImpl<E> el) {
+	private ObservableListElement<E> newValue(ObservableElementImpl<E> el, ConcurrentLinkedQueue<Runnable> observers) {
 		return new ObservableListElement<E>() {
 			private int theRemovedIndex = -1;
 
@@ -108,7 +112,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
-				return el.takeUntil(el.completed()).internalSubscribe(observer);
+				Runnable ret = el.internalSubscribe(observer);
+				observers.add(ret);
+				return ret;
 			}
 
 			@Override
@@ -129,8 +135,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	}
 
 	private void fireNewElement(ObservableElementImpl<E> el) {
-		for(Observer<? super ObservableElement<E>> observer : theObservers) {
-			observer.onNext(newValue(el));
+		for(Map.Entry<Observer<? super ObservableElement<E>>, ConcurrentLinkedQueue<Runnable>> observer : theObservers.entrySet()) {
+			observer.getKey().onNext(newValue(el, observer.getValue()));
 		}
 	}
 

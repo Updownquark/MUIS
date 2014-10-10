@@ -50,7 +50,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @return The mapped settable value
 	 */
 	public default <R> SettableValue<R> mapV(Function<? super T, R> function, Function<? super R, ? extends T> reverse) {
-		return mapV(null, function, reverse);
+		return mapV(null, function, reverse, false);
 	}
 
 	/**
@@ -60,11 +60,12 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @param reverse The function to map the other value to this one
 	 * @return The mapped settable value
 	 */
-	public default <R> SettableValue<R> mapV(Type type, Function<? super T, R> function, Function<? super R, ? extends T> reverse) {
+	public default <R> SettableValue<R> mapV(Type type, Function<? super T, R> function, Function<? super R, ? extends T> reverse,
+		boolean combineNull) {
 		SettableValue<T> root = this;
 		return new ComposedSettableValue<R>(type, args -> {
 			return function.apply((T) args[0]);
-		}, this) {
+		}, combineNull, this) {
 			@Override
 			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
 				root.set(reverse.apply(value), cause);
@@ -95,7 +96,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 */
 	public default <U, R> SettableValue<R> composeV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
 		BiFunction<? super R, ? super U, ? extends T> reverse) {
-		return composeV(null, function, arg, reverse);
+		return composeV(null, function, arg, reverse, false);
 	}
 
 	/**
@@ -110,11 +111,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @return The composed settable value
 	 */
 	public default <U, R> SettableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
-		BiFunction<? super R, ? super U, ? extends T> reverse) {
+		BiFunction<? super R, ? super U, ? extends T> reverse, boolean combineNull) {
 		SettableValue<T> root = this;
 		return new ComposedSettableValue<R>(type, args -> {
 			return function.apply((T) args[0], (U) args[1]);
-		}, this) {
+		}, combineNull, this) {
 			@Override
 			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
 				root.set(reverse.apply(value, arg.get()), cause);
@@ -146,11 +147,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @return The composed settable value
 	 */
 	public default <U, R> SettableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
-		BiFunction<? super R, ? super U, String> accept, BiFunction<? super R, ? super U, ? extends T> reverse) {
+		BiFunction<? super R, ? super U, String> accept, BiFunction<? super R, ? super U, ? extends T> reverse, boolean combineNull) {
 		SettableValue<T> root = this;
 		return new ComposedSettableValue<R>(type, args -> {
 			return function.apply((T) args[0], (U) args[1]);
-		}, this) {
+		}, combineNull, this) {
 			@Override
 			public <V extends R> SettableValue<R> set(V value, Object cause) throws IllegalArgumentException {
 				root.set(reverse.apply(value, arg.get()), cause);
@@ -187,7 +188,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 */
 	public default <U, V, R> SettableValue<R> composeV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
 		ObservableValue<V> arg3, TriFunction<? super R, ? super U, ? super V, ? extends T> reverse) {
-		return composeV(null, function, arg2, arg3, reverse);
+		return composeV(null, function, arg2, arg3, reverse, false);
 	}
 
 	/**
@@ -204,11 +205,12 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @return The composed settable value
 	 */
 	public default <U, V, R> SettableValue<R> composeV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
-		ObservableValue<U> arg2, ObservableValue<V> arg3, TriFunction<? super R, ? super U, ? super V, ? extends T> reverse) {
+		ObservableValue<U> arg2, ObservableValue<V> arg3, TriFunction<? super R, ? super U, ? super V, ? extends T> reverse,
+		boolean combineNull) {
 		SettableValue<T> root = this;
 		return new ComposedSettableValue<R>(type, args -> {
 			return function.apply((T) args[0], (U) args[1], (V) args[2]);
-		}, this) {
+		}, combineNull, this) {
 			@Override
 			public <V2 extends R> SettableValue<R> set(V2 value, Object cause) throws IllegalArgumentException {
 				root.set(reverse.apply(value, arg2.get(), arg3.get()), cause);
@@ -229,11 +231,11 @@ public interface SettableValue<T> extends ObservableValue<T> {
 }
 
 abstract class ComposedSettableValue<T> extends ComposedObservableValue<T> implements SettableValue<T> {
-	public ComposedSettableValue(Function<Object [], T> function, ObservableValue<?> [] composed) {
-		super(function, composed);
+	public ComposedSettableValue(Function<Object [], T> function, boolean combineNull, ObservableValue<?> [] composed) {
+		super(function, combineNull, composed);
 	}
 
-	public ComposedSettableValue(Type type, Function<Object [], T> function, ObservableValue<?>... composed) {
-		super(type, function, composed);
+	public ComposedSettableValue(Type type, Function<Object [], T> function, boolean combineNull, ObservableValue<?>... composed) {
+		super(type, function, combineNull, composed);
 	}
 }

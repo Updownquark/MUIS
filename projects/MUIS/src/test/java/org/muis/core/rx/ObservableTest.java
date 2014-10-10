@@ -205,15 +205,16 @@ public class ObservableTest {
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> compare2 = new ArrayList<>();
 		Subscription<?> sub = list.act(element -> {
+			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
-					compare1.add(((ObservableListElement<Integer>) value).getIndex(), value.getValue());
+					compare1.add(listEl.getIndex(), value.getValue());
 				}
 
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
-					compare1.remove(((ObservableListElement<Integer>) value).getIndex());
+					compare1.remove(listEl.getIndex());
 				}
 			});
 		});
@@ -227,7 +228,7 @@ public class ObservableTest {
 		for(int i = 0; i < 30; i++) {
 			controller.remove((Integer) i);
 			compare2.remove((Integer) i);
-			assertEquals(new TreeSet<>(list), compare1);
+			assertEquals(new ArrayList<>(list), compare1);
 			assertEquals(compare1, compare2);
 		}
 
@@ -247,4 +248,131 @@ public class ObservableTest {
 			assertEquals(compare1, compare2);
 		}
 	}
+
+	@Test
+	public void observableSetMap() {
+		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
+		Set<Integer> controller = set.control(null);
+		Set<Integer> compare1 = new TreeSet<>();
+		Set<Integer> compare2 = new TreeSet<>();
+		set.mapC(value -> value * 10).act(element -> {
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					compare1.add(value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(value.getValue());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			compare2.add(i * 10);
+			assertEquals(compare1, compare2);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			compare2.remove(i * 10);
+			assertEquals(compare1, compare2);
+		}
+	}
+
+	@Test
+	public void observableSetFilter() {
+		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
+		Set<Integer> controller = set.control(null);
+		Set<Integer> compare1 = new TreeSet<>();
+		Set<Integer> compare2 = new TreeSet<>();
+		set.filterC(value -> value != null && value % 2 == 0).act(element -> {
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					compare1.add(value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(value.getValue());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			if(i % 2 == 0)
+				compare2.add(i);
+			assertEquals(compare1, compare2);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			if(i % 2 == 0)
+				compare2.remove(i);
+			assertEquals(compare1, compare2);
+		}
+	}
+
+	@Test
+	public void observableSetCombine() {
+		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
+		SimpleSettableValue<Integer> obs1 = new SimpleSettableValue<>(Integer.TYPE, false);
+		obs1.set(1, null);
+		Set<Integer> controller = set.control(null);
+		List<Integer> compare1 = new ArrayList<>();
+		Set<Integer> compare2 = new TreeSet<>();
+		set.combineC(obs1, (v1, v2) -> v1 * v2).filterC(value -> value != null && value % 3 == 0).act(element -> {
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					if(value.getOldValue() != null)
+						compare1.remove(value.getOldValue());
+					compare1.add(value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(value.getValue());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			int value = i * obs1.get();
+			if(value % 3 == 0)
+				compare2.add(value);
+			assertEquals(new TreeSet<>(compare1), compare2);
+		}
+
+		obs1.set(3, null);
+		compare2.clear();
+		for(int i = 0; i < 30; i++) {
+			int value = i * obs1.get();
+			if(value % 3 == 0)
+				compare2.add(value);
+		}
+		assertEquals(new TreeSet<>(compare1), compare2);
+
+		obs1.set(10, null);
+		compare2.clear();
+		for(int i = 0; i < 30; i++) {
+			int value = i * obs1.get();
+			if(value % 3 == 0)
+				compare2.add(value);
+		}
+		assertEquals(new TreeSet<>(compare1), compare2);
+
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			int value = i * obs1.get();
+			if(value % 3 == 0)
+				compare2.remove(value);
+			assertEquals(new TreeSet<>(compare1), compare2);
+		}
+	}
+
+	// TODO Tests for collection map, filter, combine, find, first, etc. operations
 }

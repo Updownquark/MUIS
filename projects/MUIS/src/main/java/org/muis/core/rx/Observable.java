@@ -34,10 +34,13 @@ public interface Observable<T> {
 			public <V extends T> void onCompleted(V value) {
 				if(!holder.alive)
 					return;
-				holder.alive = false;
-				if(holder.subscription != null)
-					holder.subscription.unsubscribe();
-				observer.onCompleted(value);
+				try {
+					if(holder.subscription != null)
+						holder.subscription.unsubscribe();
+					observer.onCompleted(value);
+				} finally {
+					holder.alive = false;
+				}
 			}
 
 			@Override
@@ -77,11 +80,15 @@ public interface Observable<T> {
 			public void unsubscribe() {
 				if(!holder.alive)
 					return;
-				holder.internalSub.run();
-				if(holder.subSubscriptions != null)
-					for(Runnable subSub : holder.subSubscriptions)
-						subSub.run();
-				holder.subSubscriptions = null;
+				try {
+					holder.internalSub.run();
+					if(holder.subSubscriptions != null)
+						for(Runnable subSub : holder.subSubscriptions)
+							subSub.run();
+					holder.subSubscriptions = null;
+				} finally {
+					holder.alive = false;
+				}
 			}
 		};
 		holder.internalSub = internalSubscribe(holder.wrapper);

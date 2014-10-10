@@ -155,9 +155,9 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	}
 
 	@Override
-	default <T> ObservableSet<T> filterMapC(Type type, Function<? super E, T> filterMap) {
-		ObservableSet<E> outerSet = this;
-		class MappedObservableSet extends java.util.AbstractSet<T> implements ObservableSet<T> {
+	default <T> ObservableSet<T> filterMapC(Type type, Function<? super E, T> map) {
+		ObservableSet<E> outer = this;
+		class FilteredSet extends AbstractSet<T> implements ObservableSet<T> {
 			@Override
 			public Type getType() {
 				return type;
@@ -166,8 +166,8 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			@Override
 			public int size() {
 				int ret = 0;
-				for(E value : outerSet)
-					if(filterMap.apply(value) != null)
+				for(E el : outer)
+					if(map.apply(el) != null)
 						ret++;
 				return ret;
 			}
@@ -175,14 +175,14 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			@Override
 			public Iterator<T> iterator() {
 				return new Iterator<T>() {
-					private final Iterator<E> backing = outerSet.iterator();
+					private final Iterator<E> backing = outer.iterator();
 
 					private T theNext;
 
 					@Override
 					public boolean hasNext() {
 						while(theNext == null && backing.hasNext()) {
-							theNext = filterMap.apply(backing.next());
+							theNext = map.apply(backing.next());
 						}
 						return theNext != null;
 					}
@@ -205,26 +205,74 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
-				return outerSet.internalSubscribe(new Observer<ObservableElement<E>>() {
+				Runnable outerSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
-					public <V extends ObservableElement<E>> void onNext(V value) {
-						observer.onNext(value.mapV(filterMap));
-					}
+					public <V extends ObservableElement<E>> void onNext(V outerElement) {
+						boolean [] exists = new boolean[1];
+						class InnerElement implements ObservableElement<T> {
+							@Override
+							public ObservableValue<T> persistent() {
+								return outerElement.mapV(map);
+							}
 
-					@Override
-					public <V extends ObservableElement<E>> void onCompleted(V value) {
-						observer.onCompleted(value.mapV(filterMap));
-					}
+							@Override
+							public Type getType() {
+								return type;
+							}
 
-					@Override
-					public void onError(Throwable e) {
-						observer.onError(e);
+							@Override
+							public T get() {
+								return map.apply(outerElement.get());
+							}
 
+							@Override
+							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+								Runnable innerSub = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+									@Override
+									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+										T mapped = map.apply(elValue.getValue());
+										ObservableValueEvent<T> newEvent = new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+											.getOldValue()), mapped, elValue);
+										if(mapped == null) {
+											exists[0] = false;
+											observer2.onCompleted(newEvent);
+										} else
+											observer2.onNext(newEvent);
+									}
+
+									@Override
+									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+										exists[0] = false;
+										observer2.onCompleted(new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+											.getOldValue()), map.apply(elValue.getValue()), elValue));
+									}
+								});
+								return () -> {
+									innerSub.run();
+								};
+							}
+						}
+						ObservableElement<T> retElement = new InnerElement();
+						outerElement.subscribe(new Observer<ObservableValueEvent<E>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+								if(!exists[0]) {
+									T mapped = map.apply(elValue.getValue());
+									if(mapped != null) {
+										exists[0] = true;
+										observer.onNext(retElement);
+									}
+								}
+							}
+						});
 					}
 				});
+				return () -> {
+					outerSub.run();
+				};
 			}
 		}
-		return new MappedObservableSet();
+		return new FilteredSet();
 	}
 
 	default <T, V> ObservableSet<V> combineC(ObservableValue<T> arg, BiFunction<? super E, ? super T, V> func) {

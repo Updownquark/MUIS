@@ -44,9 +44,22 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @return The new observable whose value is a function of this observable's value
 	 */
 	default <R> ObservableValue<R> mapV(Type type, Function<? super T, R> function) {
+		return mapV(type, function, false);
+	}
+
+	/**
+	 * Composes this observable into another observable that depends on this one
+	 *
+	 * @param <R> The type of the new observable
+	 * @param type The run-time type of the new observable
+	 * @param function The function to apply to this observable's value
+	 * @param filterNull Whether to apply the filter to null values or simply preserve the null
+	 * @return The new observable whose value is a function of this observable's value
+	 */
+	default <R> ObservableValue<R> mapV(Type type, Function<? super T, R> function, boolean filterNull) {
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0]);
-		}, this);
+		}, filterNull, this);
 	};
 
 	/**
@@ -59,7 +72,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
 	default <U, R> ObservableValue<R> combineV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
-		return combineV(null, function, arg);
+		return combineV(null, function, arg, false);
 	}
 
 	/**
@@ -70,12 +83,15 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @param type The run-time type of the new observable
 	 * @param function The function to apply to the values of the observables
 	 * @param arg The other observable to be composed
+	 * @param combineNull Whether to apply the combination function if the arguments are null. If false and any arguments are null, the
+	 *            result will be null.
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
-	default <U, R> ObservableValue<R> combineV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
+	default <U, R> ObservableValue<R> combineV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
+		boolean combineNull) {
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1]);
-		}, this, arg);
+		}, combineNull, this, arg);
 	}
 
 	/**
@@ -84,7 +100,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @return An observable which broadcasts tuples of the latest values of this observable value and another
 	 */
 	default <U> ObservableValue<BiTuple<T, U>> tupleV(ObservableValue<U> arg) {
-		return combineV(BiTuple<T, U>::new, arg);
+		return combineV(null, BiTuple<T, U>::new, arg, true);
 	}
 
 	/**
@@ -95,7 +111,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @return An observable which broadcasts tuples of the latest values of this observable value and 2 others
 	 */
 	default <U, V> ObservableValue<TriTuple<T, U, V>> tupleV(ObservableValue<U> arg1, ObservableValue<V> arg2) {
-		return combineV(TriTuple<T, U, V>::new, arg1, arg2);
+		return combineV(null, TriTuple<T, U, V>::new, arg1, arg2, true);
 	}
 
 	/**
@@ -111,7 +127,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 */
 	default <U, V, R> ObservableValue<R> combineV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
 		ObservableValue<V> arg3) {
-		return combineV(null, function, arg2, arg3);
+		return combineV(null, function, arg2, arg3, false);
 	}
 
 	/**
@@ -124,13 +140,15 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @param function The function to apply to the values of the observables
 	 * @param arg2 The first other observable to be composed
 	 * @param arg3 The second other observable to be composed
+	 * @param combineNull Whether to apply the combination function if the arguments are null. If false and any arguments are null, the
+	 *            result will be null.
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
 	default <U, V, R> ObservableValue<R> combineV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
-		ObservableValue<U> arg2, ObservableValue<V> arg3) {
+		ObservableValue<U> arg2, ObservableValue<V> arg3, boolean combineNull) {
 		return new ComposedObservableValue<>(type, args -> {
 			return function.apply((T) args[0], (U) args[1], (V) args[2]);
-		}, this, arg2, arg3);
+		}, combineNull, this, arg2, arg3);
 	}
 
 	@Override

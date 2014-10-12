@@ -70,4 +70,9 @@ public class SimpleSettableValue<T> extends DefaultSettableValue<T> {
 	public ObservableValue<Boolean> isEnabled() {
 		return ObservableValue.constant(true);
 	}
+
+	@Override
+	public String toString() {
+		return "simple value " + theValue;
+	}
 }

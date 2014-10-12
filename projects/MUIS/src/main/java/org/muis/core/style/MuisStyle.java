@@ -100,7 +100,7 @@ public interface MuisStyle {
 	 * @param attrs The attributes to watch
 	 * @return An observable that fires a {@link StyleAttributeEvent} for every change affecting the given attribute values in this style
 	 */
-	default <T> Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
+	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
 		return ObservableCollection.fold(
 			ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr))).map(
 			event -> (StyleAttributeEvent<?>) event);

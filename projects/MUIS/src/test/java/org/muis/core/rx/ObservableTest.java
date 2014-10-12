@@ -323,18 +323,23 @@ public class ObservableTest {
 		Set<Integer> controller = set.control(null);
 		List<Integer> compare1 = new ArrayList<>();
 		Set<Integer> compare2 = new TreeSet<>();
+		boolean [] print = new boolean[1];
 		set.combineC(obs1, (v1, v2) -> v1 * v2).filterC(value -> value != null && value % 3 == 0).act(element -> {
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
-				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
-					if(value.getOldValue() != null)
-						compare1.remove(value.getOldValue());
-					compare1.add(value.getValue());
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(print[0])
+						System.out.println("Value change: " + event);
+					if(event.getOldValue() != null)
+						compare1.remove(event.getOldValue());
+					compare1.add(event.getValue());
 				}
 
 				@Override
-				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
-					compare1.remove(value.getValue());
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					if(print[0])
+						System.out.println("Value removed: " + event.getValue());
+					compare1.remove(event.getValue());
 				}
 			});
 		});
@@ -356,7 +361,9 @@ public class ObservableTest {
 		}
 		assertEquals(new TreeSet<>(compare1), compare2);
 
+		print[0] = true;
 		obs1.set(10, null);
+		print[0] = false;
 		compare2.clear();
 		for(int i = 0; i < 30; i++) {
 			int value = i * obs1.get();
@@ -374,5 +381,24 @@ public class ObservableTest {
 		}
 	}
 
-	// TODO Tests for collection map, filter, combine, find, first, etc. operations
+	public void observableSetFlatten() {
+	}
+
+	public void observableSetFold() {
+	}
+
+	public void observableListMap() {
+	}
+
+	public void observableListFilter() {
+	}
+
+	public void observableListCombine() {
+	}
+
+	public void observableListFind() {
+	}
+
+	public void observableListFlatten() {
+	}
 }

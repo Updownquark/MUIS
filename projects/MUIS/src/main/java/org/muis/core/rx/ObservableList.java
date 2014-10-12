@@ -224,7 +224,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
 										T mapped = map.apply(elValue.getValue());
-										ObservableValueEvent<T> newEvent = new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+										ObservableValueEvent<T> newEvent = new ObservableValueEvent<>(InnerElement.this, map.apply(elValue
 											.getOldValue()), mapped, elValue);
 										if(mapped == null) {
 											exists[0] = false;
@@ -236,7 +236,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
 										exists[0] = false;
-										observer2.onCompleted(new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this,
+											map.apply(elValue
 											.getOldValue()), map.apply(elValue.getValue()), elValue));
 									}
 								});
@@ -405,6 +406,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	}
 
 	/**
+	 * @param <T> The type of the value to wrap
 	 * @param type The type of the elements in the list
 	 * @param list The list of items for the new list
 	 * @return An observable list whose contents are given and never changes
@@ -446,6 +448,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			@Override
 			public T get() {
 				return theValue;
+			}
+
+			@Override
+			public String toString() {
+				return "" + theValue;
 			}
 		}
 		List<T> constList = java.util.Collections.unmodifiableList(list);

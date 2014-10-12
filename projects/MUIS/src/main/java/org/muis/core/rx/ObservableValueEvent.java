@@ -44,4 +44,9 @@ public class ObservableValueEvent<T> {
 	public Object getCause() {
 		return theCause;
 	}
+
+	@Override
+	public String toString(){
+		return theObservable + ": " + theOldValue + "->" + theNewValue;
+	}
 }

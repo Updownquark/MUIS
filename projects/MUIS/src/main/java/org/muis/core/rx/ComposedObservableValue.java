@@ -124,6 +124,11 @@ public class ComposedObservableValue<T> implements ObservableValue<T> {
 		};
 	}
 
+	@Override
+	public String toString() {
+		return theComposed.toString();
+	}
+
 	/**
 	 * @param function The function
 	 * @return The return type of the function

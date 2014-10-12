@@ -227,15 +227,20 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 							@Override
 							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-								Runnable innerSub = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+								Runnable [] innerSub = new Runnable[1];
+								innerSub[0] = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
 										T mapped = map.apply(elValue.getValue());
-										ObservableValueEvent<T> newEvent = new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+										ObservableValueEvent<T> newEvent = new ObservableValueEvent<>(InnerElement.this, map.apply(elValue
 											.getOldValue()), mapped, elValue);
 										if(mapped == null) {
 											exists[0] = false;
 											observer2.onCompleted(newEvent);
+											if(innerSub[0] != null) {
+												innerSub[0].run();
+												innerSub[0] = null;
+											}
 										} else
 											observer2.onNext(newEvent);
 									}
@@ -243,13 +248,23 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
 										exists[0] = false;
-										observer2.onCompleted(new ObservableValueEvent<T>(InnerElement.this, map.apply(elValue
+										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this,
+											map.apply(elValue
 											.getOldValue()), map.apply(elValue.getValue()), elValue));
 									}
 								});
+								if(!exists[0]) {
+									return () -> {
+									};
+								}
 								return () -> {
-									innerSub.run();
+									innerSub[0].run();
 								};
+							}
+
+							@Override
+							public String toString() {
+								return outerElement + "%%";
 							}
 						}
 						ObservableElement<T> retElement = new InnerElement();

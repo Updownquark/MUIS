@@ -291,6 +291,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	}
 
 	/**
+	 * @param <T> The type of the attribute to set the value for
 	 * @param attr The attribute to set the value for
 	 * @param expr The expression which must be true for the given value to apply
 	 * @param value The observable value for the attribute

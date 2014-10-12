@@ -98,7 +98,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 				for(int i = 0; i < str.length; i++)
 					str[i] = (String) args[i];
 				return str;
-			}, splitObs);
+			}, false, splitObs);
 	}
 
 	@Override

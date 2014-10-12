@@ -291,8 +291,9 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	}
 
 	/**
-	 * Assembles an observable value, with changes occuring on the basis of changes to a set of components
-	 *
+	 * Assembles an observable value, with changes occurring on the basis of changes to a set of components
+	 * 
+	 * @param <T> The type of the value to produce
 	 * @param type The type of the new value
 	 * @param value The function to get the new value on demand
 	 * @param components The components whose changes require a new value to be produced
@@ -323,7 +324,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 							T newVal = value.get();
 							T oldVal = (T) oldValue[0];
 							oldValue[0] = newVal;
-							observer.onNext(new ObservableValueEvent<T>(outer, oldVal, newVal, value2.getCause()));
+							observer.onNext(new ObservableValueEvent<>(outer, oldVal, newVal, value2.getCause()));
 						}
 
 						@Override
@@ -398,6 +399,11 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 		@Override
 		public T get() {
 			return theValue;
+		}
+
+		@Override
+		public String toString() {
+			return "" + theValue;
 		}
 	}
 }

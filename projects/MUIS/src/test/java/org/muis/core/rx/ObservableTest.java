@@ -29,8 +29,7 @@ public class ObservableTest {
 		SimpleSettableValue<Integer> obs = new SimpleSettableValue<>(Integer.TYPE, false);
 		obs.set(0, null);
 		int [] received = new int[] {0};
-		obs.mapV(value -> value * 10)
-		.act(value -> received[0] = value.getValue());
+		obs.mapV(value -> value * 10).act(value -> received[0] = value.getValue());
 
 		for(int i = 1; i < 10; i++) {
 			obs.set(i, null);
@@ -132,6 +131,7 @@ public class ObservableTest {
 
 	@Test
 	public void combine() {
+		int [] events = new int[1];
 		SimpleSettableValue<Integer> obs1 = new SimpleSettableValue<>(Integer.TYPE, false);
 		obs1.set(0, null);
 		SimpleSettableValue<Integer> obs2 = new SimpleSettableValue<>(Integer.TYPE, false);
@@ -139,11 +139,15 @@ public class ObservableTest {
 		SimpleSettableValue<Integer> obs3 = new SimpleSettableValue<>(Integer.TYPE, false);
 		obs3.set(0, null);
 		int [] received = new int[] {0};
-		obs1.combineV((arg1, arg2, arg3) -> arg1 * arg2 + arg3, obs2, obs3).act(event -> received[0] = event.getValue());
+		obs1.combineV((arg1, arg2, arg3) -> arg1 * arg2 + arg3, obs2, obs3).act(event -> {
+			events[0]++;
+			received[0] = event.getValue();
+		});
 		for(int i = 1; i < 10; i++) {
 			obs1.set(i + 3, null);
 			obs2.set(i * 10, null);
 			obs3.set(i, null);
+			assertEquals(i * 3 + 1, events[0]);
 			assertEquals((i + 3) * i * 10 + i, received[0]);
 		}
 	}
@@ -323,13 +327,10 @@ public class ObservableTest {
 		Set<Integer> controller = set.control(null);
 		List<Integer> compare1 = new ArrayList<>();
 		Set<Integer> compare2 = new TreeSet<>();
-		boolean [] print = new boolean[1];
 		set.combineC(obs1, (v1, v2) -> v1 * v2).filterC(value -> value != null && value % 3 == 0).act(element -> {
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
-					if(print[0])
-						System.out.println("Value change: " + event);
 					if(event.getOldValue() != null)
 						compare1.remove(event.getOldValue());
 					compare1.add(event.getValue());
@@ -337,8 +338,6 @@ public class ObservableTest {
 
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
-					if(print[0])
-						System.out.println("Value removed: " + event.getValue());
 					compare1.remove(event.getValue());
 				}
 			});
@@ -349,7 +348,8 @@ public class ObservableTest {
 			int value = i * obs1.get();
 			if(value % 3 == 0)
 				compare2.add(value);
-			assertEquals(new TreeSet<>(compare1), compare2);
+			assertEquals(compare2, new TreeSet<>(compare1));
+			assertEquals(compare2.size(), compare1.size());
 		}
 
 		obs1.set(3, null);
@@ -359,25 +359,26 @@ public class ObservableTest {
 			if(value % 3 == 0)
 				compare2.add(value);
 		}
-		assertEquals(new TreeSet<>(compare1), compare2);
+		assertEquals(compare2, new TreeSet<>(compare1));
+		assertEquals(compare2.size(), compare1.size());
 
-		print[0] = true;
 		obs1.set(10, null);
-		print[0] = false;
 		compare2.clear();
 		for(int i = 0; i < 30; i++) {
 			int value = i * obs1.get();
 			if(value % 3 == 0)
 				compare2.add(value);
 		}
-		assertEquals(new TreeSet<>(compare1), compare2);
+		assertEquals(compare2, new TreeSet<>(compare1));
+		assertEquals(compare2.size(), compare1.size());
 
 		for(int i = 0; i < 30; i++) {
 			controller.remove(i);
 			int value = i * obs1.get();
 			if(value % 3 == 0)
 				compare2.remove(value);
-			assertEquals(new TreeSet<>(compare1), compare2);
+			assertEquals(compare2, new TreeSet<>(compare1));
+			assertEquals(compare2.size(), compare1.size());
 		}
 	}
 

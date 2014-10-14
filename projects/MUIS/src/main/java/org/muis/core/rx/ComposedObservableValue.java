@@ -85,15 +85,20 @@ public class ComposedObservableValue<T> implements ObservableValue<T> {
 	public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
 		Runnable [] subs = new Runnable[theComposed.size()];
 		Object [] args = new Object[theComposed.size()];
-		for(int i = 0; i < args.length; i++)
-			args[i] = theComposed.get(i).get();
-		Object [] oldValue = new Object[] {combine(args)};
+		/*Don't need to initialize this explicitly, because these will be populated when the components are subscribed to
+		 * for(int i = 0; i < args.length; i++)
+		 * 	args[i] = theComposed.get(i).get(); */
+		Object [] oldValue = new Object[1];
+		boolean [] initialized = new boolean[1];
+		boolean [] completed = new boolean[1];
 		for(int i = 0; i < args.length; i++) {
 			int index = i;
 			subs[i] = theComposed.get(i).internalSubscribe(new Observer<ObservableValueEvent<?>>() {
 				@Override
 				public <V extends ObservableValueEvent<?>> void onNext(V event) {
 					args[index] = event.getValue();
+					if(!initialized[0])
+						return;
 					T newValue = combine(args);
 					ObservableValueEvent<T> toFire = new ObservableValueEvent<>(ComposedObservableValue.this, (T) oldValue[0], newValue,
 						event);
@@ -104,6 +109,9 @@ public class ComposedObservableValue<T> implements ObservableValue<T> {
 				@Override
 				public <V extends ObservableValueEvent<?>> void onCompleted(V event) {
 					args[index] = event.getValue();
+					completed[0] = true;
+					if(!initialized[0])
+						return;
 					T newValue = combine(args);
 					ObservableValueEvent<T> toFire = new ObservableValueEvent<>(ComposedObservableValue.this, (T) oldValue[0], newValue,
 						event);
@@ -117,7 +125,12 @@ public class ComposedObservableValue<T> implements ObservableValue<T> {
 				}
 			});
 		}
-		observer.onNext(new ObservableValueEvent<>(this, null, (T) oldValue[0], null));
+		oldValue[0] = combine(args);
+		if(completed[0])
+			observer.onCompleted(new ObservableValueEvent<>(this, null, (T) oldValue[0], null));
+		else
+			observer.onNext(new ObservableValueEvent<>(this, null, (T) oldValue[0], null));
+		initialized[0] = true;
 		return () -> {
 			for(Runnable sub : subs)
 				sub.run();

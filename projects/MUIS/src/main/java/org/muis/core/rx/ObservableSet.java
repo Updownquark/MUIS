@@ -232,17 +232,18 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
 										T mapped = map.apply(elValue.getValue());
-										ObservableValueEvent<T> newEvent = new ObservableValueEvent<>(InnerElement.this, map.apply(elValue
-											.getOldValue()), mapped, elValue);
 										if(mapped == null) {
 											exists[0] = false;
-											observer2.onCompleted(newEvent);
+											T oldValue = map.apply(elValue.getOldValue());
+											observer2
+												.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldValue, oldValue, elValue));
 											if(innerSub[0] != null) {
 												innerSub[0].run();
 												innerSub[0] = null;
 											}
 										} else
-											observer2.onNext(newEvent);
+											observer2.onNext(new ObservableValueEvent<>(InnerElement.this,
+												map.apply(elValue.getOldValue()), mapped, elValue));
 									}
 
 									@Override

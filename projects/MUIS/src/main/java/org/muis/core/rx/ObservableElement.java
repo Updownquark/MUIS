@@ -5,7 +5,15 @@ import java.util.function.Function;
 
 import prisms.lang.Type;
 
+/**
+ * An observable wrapper around an element in a {@link ObservableCollection}. This observable will call its observers'
+ * {@link Observer#onCompleted(Object)} method when the element is removed from the collection. This element will also complete when the
+ * subscription used to subscribe to the outer collection is {@link Subscription#unsubscribe() unsubscribed}.
+ *
+ * @param <T> The type of the element
+ */
 public interface ObservableElement<T> extends ObservableValue<T> {
+	/** @return An observable value that */
 	ObservableValue<T> persistent();
 
 	@Override
@@ -15,7 +23,7 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 
 	@Override
 	default <R> ObservableElement<R> mapV(Type type, Function<? super T, R> function, boolean combineNull) {
-		return new ComposedObservableElement<R>(this, type, args -> {
+		return new ComposedObservableElement<>(this, type, args -> {
 			return function.apply((T) args[0]);
 		}, combineNull, this);
 	};
@@ -57,6 +65,7 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 		}, combineNull, this, arg2, arg3);
 	}
 
+	/** @param <T> The type of the element */
 	class ComposedObservableElement<T> extends ComposedObservableValue<T> implements ObservableElement<T> {
 		private final ObservableElement<?> theRoot;
 

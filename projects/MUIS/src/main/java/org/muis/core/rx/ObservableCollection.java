@@ -15,6 +15,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	/** @return The type of elements in this collection */
 	Type getType();
 
+	/** @return An observable that returns this collection whenever any elements in it change */
 	default ObservableValue<? extends ObservableCollection<E>> changes() {
 		return new ObservableValue<ObservableCollection<E>>() {
 			ObservableCollection<E> coll = ObservableCollection.this;
@@ -75,6 +76,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		};
 	}
 
+	/** @return An observable that returns all elements removed from the collection */
 	default Observable<ObservableElement<E>> removes() {
 		ObservableCollection<E> coll = this;
 		return new Observable<ObservableElement<E>>() {
@@ -94,6 +96,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
+	 * @param <T> The type of the new collection
 	 * @param map The mapping function
 	 * @return An observable collection of a new type backed by this collection and the mapping function
 	 */
@@ -101,6 +104,12 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		return mapC(ComposedObservableValue.getReturnType(map), map);
 	}
 
+	/**
+	 * @param <T> The type of the mapped collection
+	 * @param type The run-time type for the mapped collection (may be null)
+	 * @param map The mapping function to map the elements of this collection
+	 * @return The mapped collection
+	 */
 	default <T> ObservableCollection<T> mapC(Type type, Function<? super E, T> map) {
 		ObservableCollection<E> outerColl = this;
 		class MappedObservableCollection extends java.util.AbstractCollection<T> implements ObservableCollection<T> {
@@ -164,6 +173,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
+	 * @param <T> The type of the mapped collection
 	 * @param filterMap The mapping function
 	 * @return An observable collection of a new type backed by this collection and the mapping function
 	 */
@@ -171,6 +181,12 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		return filterMapC(ComposedObservableValue.getReturnType(filterMap), filterMap);
 	}
 
+	/**
+	 * @param <T> The type of the mapped collection
+	 * @param type The run-time type of the mapped collection
+	 * @param filterMap The mapping function
+	 * @return A collection containing every element in this collection for which the mapping function returns a non-null value
+	 */
 	default <T> ObservableCollection<T> filterMapC(Type type, Function<? super E, T> filterMap) {
 		ObservableCollection<E> outerColl = this;
 		class MappedObservableCollection extends java.util.AbstractCollection<T> implements ObservableCollection<T> {
@@ -247,6 +263,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
+	 * @param <T> An observable set that contains all elements in all collection in the wrapping collection
 	 * @param coll The collection to flatten
 	 * @return A collection containing all elements of all collections in the outer collection
 	 */
@@ -354,6 +371,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		return new ComposedObservableSet();
 	}
 
+	/**
+	 * @param <T> The type of the folded observable
+	 * @param coll The collection to fold
+	 * @return An observable that is notified for every event on any observable in the collection
+	 */
 	public static <T> Observable<T> fold(ObservableCollection<? extends Observable<T>> coll) {
 		return new Observable<T>() {
 			@Override

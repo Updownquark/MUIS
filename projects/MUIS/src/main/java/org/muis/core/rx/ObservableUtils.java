@@ -4,7 +4,16 @@ import java.util.function.Function;
 
 import prisms.lang.Type;
 
+/** Utility methods for observables */
 public class ObservableUtils {
+	/**
+	 * @param <T> The type of
+	 * @param <V>
+	 * @param type
+	 * @param list
+	 * @param map
+	 * @return
+	 */
 	public static <T, V> ObservableValue<V> first(Type type, ObservableList<? extends ObservableValue<T>> list, Function<T, V> map) {
 		return new ObservableValue<V>() {
 			@Override

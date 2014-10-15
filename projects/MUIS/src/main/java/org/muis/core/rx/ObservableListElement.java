@@ -5,7 +5,13 @@ import java.util.function.Function;
 
 import prisms.lang.Type;
 
+/**
+ * An observable element that knows its position in the list
+ *
+ * @param <T> The type of the element
+ */
 public interface ObservableListElement<T> extends ObservableElement<T> {
+	/** @return The index of this element within its list */
 	int getIndex();
 
 	/**
@@ -30,7 +36,7 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 */
 	@Override
 	default <R> ObservableListElement<R> mapV(Type type, Function<? super T, R> function, boolean combineNull) {
-		return new ComposedObservableListElement<R>(this, type, args -> {
+		return new ComposedObservableListElement<>(this, type, args -> {
 			return function.apply((T) args[0]);
 		}, combineNull, this);
 	};
@@ -126,6 +132,7 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 		}, combineNull, this, arg2, arg3);
 	}
 
+	/** @param <T> The type of the element */
 	class ComposedObservableListElement<T> extends ComposedObservableValue<T> implements ObservableListElement<T> {
 		private final ObservableListElement<?> theRoot;
 

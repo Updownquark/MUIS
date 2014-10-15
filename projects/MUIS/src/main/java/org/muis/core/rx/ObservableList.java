@@ -136,6 +136,10 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		return new MappedObservableList();
 	}
 
+	/**
+	 * @param filter The filter function
+	 * @return A list containing all elements of this list that pass the given test
+	 */
 	default ObservableList<E> filterC(Function<? super E, Boolean> filter) {
 		return filterMapC(getType(), (E value) -> {
 			return filter.apply(value) ? value : null;
@@ -269,10 +273,25 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		return new FilteredList();
 	}
 
+	/**
+	 * @param <T> The type of the argument value
+	 * @param <V> The type of the new observable list
+	 * @param arg The value to combine with each of this list's elements
+	 * @param func The combination function to apply to this list's elements and the given value
+	 * @return An observable list containing this list's elements combined with the given argument
+	 */
 	default <T, V> ObservableList<V> combineC(ObservableValue<T> arg, BiFunction<? super E, ? super T, V> func) {
 		return combineC(arg, ComposedObservableValue.getReturnType(func), func);
 	}
 
+	/**
+	 * @param <T> The type of the argument value
+	 * @param <V> The type of the new observable list
+	 * @param arg The value to combine with each of this list's elements
+	 * @param type The type for the new list
+	 * @param func The combination function to apply to this list's elements and the given value
+	 * @return An observable list containing this list's elements combined with the given argument
+	 */
 	default <T, V> ObservableList<V> combineC(ObservableValue<T> arg, Type type, BiFunction<? super E, ? super T, V> func) {
 		ObservableList<E> outerList = this;
 		class CombinedObservableList extends AbstractList<V> implements ObservableList<V> {
@@ -338,7 +357,13 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		return new CombinedObservableList();
 	}
 
-	default <T, V> ObservableValue<V> find(Type type, Function<E, V> map) {
+	/**
+	 * @param <V> Type of the observable value to return
+	 * @param type The run-time type of the value to return
+	 * @param map The mapping function
+	 * @return The first non-null mapped value in this list, or null if none of this list's elements map to a non-null value
+	 */
+	default <V> ObservableValue<V> find(Type type, Function<E, V> map) {
 		return new DefaultObservableValue<V>() {
 			private V theValue;
 
@@ -492,6 +517,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	}
 
 	/**
+	 * @param <T> The type of the elements
 	 * @param type The type of the elements in the list
 	 * @param list The array of items for the new list
 	 * @return An observable list whose contents are given and never changes
@@ -501,6 +527,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	}
 
 	/**
+	 * @param <T> The super-type of all lists in the wrapping list
 	 * @param list The list to flatten
 	 * @return A list containing all elements of all lists in the outer list
 	 */

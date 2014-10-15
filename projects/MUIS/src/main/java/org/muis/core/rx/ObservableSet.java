@@ -143,6 +143,10 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new MappedObservableSet();
 	}
 
+	/**
+	 * @param filter The filter function
+	 * @return A set containing all elements passing the given test
+	 */
 	default ObservableSet<E> filterC(Function<? super E, Boolean> filter) {
 		return filterMapC(value -> {
 			return filter.apply(value) ? value : null;
@@ -291,10 +295,25 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new FilteredSet();
 	}
 
+	/**
+	 * @param <T> The type of the argument value
+	 * @param <V> The type of the new observable set
+	 * @param arg The value to combine with each of this set's elements
+	 * @param func The combination function to apply to this set's elements and the given value
+	 * @return An observable set containing this set's elements combined with the given argument
+	 */
 	default <T, V> ObservableSet<V> combineC(ObservableValue<T> arg, BiFunction<? super E, ? super T, V> func) {
 		return combineC(arg, ComposedObservableValue.getReturnType(func), func);
 	}
 
+	/**
+	 * @param <T> The type of the argument value
+	 * @param <V> The type of the new observable set
+	 * @param arg The value to combine with each of this set's elements
+	 * @param type The type for the new set
+	 * @param func The combination function to apply to this set's elements and the given value
+	 * @return An observable set containing this set's elements combined with the given argument
+	 */
 	default <T, V> ObservableSet<V> combineC(ObservableValue<T> arg, Type type, BiFunction<? super E, ? super T, V> func) {
 		ObservableSet<E> outerSet = this;
 		class CombinedObservableSet extends AbstractSet<V> implements ObservableSet<V> {
@@ -372,6 +391,12 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new CombinedObservableSet();
 	}
 
+	/**
+	 * @param <T> The type of the collection
+	 * @param type The run-time type of the collection
+	 * @param coll The collection with elements to wrap
+	 * @return A collection containing the given elements that cannot be changed
+	 */
 	public static <T> ObservableSet<T> constant(Type type, java.util.Collection<T> coll) {
 		Set<T> modSet = new java.util.LinkedHashSet<>(coll);
 		Set<T> constSet = java.util.Collections.unmodifiableSet(modSet);
@@ -432,6 +457,12 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		return new ConstantObservableSet();
 	}
 
+	/**
+	 * @param <T> The type of the collection
+	 * @param type The run-time type of the collection
+	 * @param values The array with elements to wrap
+	 * @return A collection containing the given elements that cannot be changed
+	 */
 	public static <T> ObservableSet<T> constant(Type type, T... values) {
 		return constant(type, java.util.Arrays.asList(values));
 	}

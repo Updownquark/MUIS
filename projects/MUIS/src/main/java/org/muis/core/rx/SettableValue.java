@@ -58,6 +58,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @param type The type for the new value
 	 * @param function The function to map this value to another
 	 * @param reverse The function to map the other value to this one
+	 * @param combineNull Whether to apply the combination function if the arguments are null. If false and any arguments are null, the
+	 *            result will be null.
 	 * @return The mapped settable value
 	 */
 	public default <R> SettableValue<R> mapV(Type type, Function<? super T, R> function, Function<? super R, ? extends T> reverse,
@@ -108,6 +110,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @param function The function to combine the values into another value
 	 * @param arg The value to combine this value with
 	 * @param reverse The function to reverse the transformation
+	 * @param combineNull Whether to apply the combination function if the arguments are null. If false and any arguments are null, the
+	 *            result will be null.
 	 * @return The composed settable value
 	 */
 	public default <U, R> SettableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
@@ -144,6 +148,7 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @param arg The value to combine this value with
 	 * @param accept The function to filter acceptance of values for the new value
 	 * @param reverse The function to reverse the transformation
+	 * @param combineNull Whether to apply the filter to null values or simply preserve the null
 	 * @return The composed settable value
 	 */
 	public default <U, R> SettableValue<R> composeV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
@@ -202,6 +207,8 @@ public interface SettableValue<T> extends ObservableValue<T> {
 	 * @param arg2 The first other value to combine this value with
 	 * @param arg3 The second other value to combine this value with
 	 * @param reverse The function to reverse the transformation
+	 * @param combineNull Whether to apply the combination function if the arguments are null. If false and any arguments are null, the
+	 *            result will be null.
 	 * @return The composed settable value
 	 */
 	public default <U, V, R> SettableValue<R> composeV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,

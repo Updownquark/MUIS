@@ -315,6 +315,7 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * @param <V> The super-type of all observables to or
 	 * @param obs The observables to combine
 	 * @return An observable that pushes a value each time any of the given observables pushes a value
 	 */

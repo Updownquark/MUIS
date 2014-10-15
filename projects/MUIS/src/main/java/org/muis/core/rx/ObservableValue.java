@@ -7,7 +7,8 @@ import java.util.function.Function;
 import prisms.lang.Type;
 
 /**
- * A value holder that can notify listeners when the value changes
+ * A value holder that can notify listeners when the value changes. This type of observable will always notify subscribers with an event
+ * whose old value is null and whose new value is this holder's current value before the {@link #subscribe(Observer)} method exits.
  *
  * @param <T> The compile-time type of this observable's value
  */
@@ -292,7 +293,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 
 	/**
 	 * Assembles an observable value, with changes occurring on the basis of changes to a set of components
-	 * 
+	 *
 	 * @param <T> The type of the value to produce
 	 * @param type The type of the new value
 	 * @param value The function to get the new value on demand

@@ -482,32 +482,318 @@ public class ObservableTest {
 	}
 
 	public void observableSetFold() {
-		SimpleSettableValue<Integer> value1 = new SimpleSettableValue<>(Integer.TYPE, false);
-		SimpleSettableValue<Integer> value2 = new SimpleSettableValue<>(Integer.TYPE, false);
-		SimpleSettableValue<Integer> value3 = new SimpleSettableValue<>(Integer.TYPE, false);
-		value1.set(1, null);
-		value2.set(2, null);
-		value3.set(3, null);
-		DefaultObservableSet<ObservableValue<Integer>> set = new DefaultObservableSet<>(new Type(ObservableValue.class, new Type(
+		DefaultObservable<Integer> obs1 = new DefaultObservable<>();
+		DefaultObservable<Integer> obs2 = new DefaultObservable<>();
+		DefaultObservable<Integer> obs3 = new DefaultObservable<>();
+		Observer<Integer> controller1 = obs1.control(null);
+		Observer<Integer> controller2 = obs2.control(null);
+		Observer<Integer> controller3 = obs3.control(null);
+		DefaultObservableSet<Observable<Integer>> set = new DefaultObservableSet<>(new Type(Observable.class, new Type(
 			Integer.TYPE)));
-		Set<ObservableValue<Integer>> controller = set.control(null);
-		controller.add(value1);
-		controller.add(value2);
-		// TODO Not done here
+		Set<Observable<Integer>> controller = set.control(null);
+		controller.add(obs1);
+		controller.add(obs2);
+		Observable<Integer> folded = ObservableCollection.fold(set);
+		int [] received = new int[1];
+		folded.act(value -> received[0] = value);
+
+		controller1.onNext(1);
+		assertEquals(1, received[0]);
+		controller2.onNext(2);
+		assertEquals(2, received[0]);
+		controller3.onNext(3);
+		assertEquals(2, received[0]);
+		set.add(obs3);
+		controller3.onNext(4);
+		assertEquals(4, received[0]);
+		set.remove(obs2);
+		controller2.onNext(5);
+		assertEquals(4, received[0]);
 	}
 
 	public void observableListMap() {
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		List<Integer> controller = list.control(null);
+		List<Integer> compare1 = new ArrayList<>();
+		List<Integer> correct = new ArrayList<>();
+		list.mapC(value -> value * 10).act(element -> {
+			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					if(value.getOldValue() != null)
+						compare1.set(listEl.getIndex(), value.getValue());
+					else
+						compare1.add(listEl.getIndex(), value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(listEl.getIndex());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			correct.add(i * 10);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			correct.add(i * 10);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			correct.remove(i * 10);
+			assertEquals(correct, compare1);
+		}
 	}
 
 	public void observableListFilter() {
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		List<Integer> controller = list.control(null);
+		List<Integer> compare1 = new ArrayList<>();
+		List<Integer> correct = new ArrayList<>();
+		list.filterC(value -> value != null && value % 2 == 0).act(element -> {
+			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					if(value.getOldValue() != null)
+						compare1.set(listEl.getIndex(), value.getValue());
+					else
+						compare1.add(listEl.getIndex(), value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(listEl.getIndex());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			if(i % 2 == 0)
+				correct.add(i);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			if(i % 2 == 0)
+				correct.add(i);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			if(i % 2 == 0)
+				correct.remove(i);
+			assertEquals(correct, compare1);
+		}
 	}
 
 	public void observableListCombine() {
-	}
+		DefaultObservableList<Integer> set = new DefaultObservableList<>(new Type(Integer.TYPE));
+		SimpleSettableValue<Integer> value1 = new SimpleSettableValue<>(Integer.TYPE, false);
+		value1.set(1, null);
+		List<Integer> controller = set.control(null);
+		List<Integer> compare1 = new ArrayList<>();
+		List<Integer> correct = new ArrayList<>();
+		set.combineC(value1, (v1, v2) -> v1 * v2).filterC(value -> value != null && value % 3 == 0).act(element -> {
+			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(event.getOldValue() != null)
+						compare1.set(listEl.getIndex(), event.getOldValue());
+					else
+						compare1.add(listEl.getIndex(), event.getValue());
+				}
 
-	public void observableListFind() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					compare1.remove(listEl.getIndex());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			int value = i * value1.get();
+			if(value % 3 == 0)
+				correct.add(value);
+			assertEquals(correct, compare1);
+			assertEquals(correct.size(), compare1.size());
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			int value = i * value1.get();
+			if(value % 3 == 0)
+				correct.add(value);
+			assertEquals(correct, compare1);
+			assertEquals(correct.size(), compare1.size());
+		}
+
+		value1.set(3, null);
+		correct.clear();
+		for(int i = 0; i < 30; i++) {
+			int value = i * value1.get();
+			if(value % 3 == 0)
+				correct.add(value);
+		}
+		assertEquals(correct, compare1);
+		assertEquals(correct.size(), compare1.size());
+
+		value1.set(10, null);
+		correct.clear();
+		for(int i = 0; i < 30; i++) {
+			int value = i * value1.get();
+			if(value % 3 == 0)
+				correct.add(value);
+		}
+		assertEquals(correct, compare1);
+		assertEquals(correct.size(), compare1.size());
+
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			int value = i * value1.get();
+			if(value % 3 == 0)
+				correct.remove(value);
+			assertEquals(correct, compare1);
+			assertEquals(correct.size(), compare1.size());
+		}
 	}
 
 	public void observableListFlatten() {
+		DefaultObservableList<Integer> set1 = new DefaultObservableList<>(new Type(Integer.TYPE));
+		DefaultObservableList<Integer> set2 = new DefaultObservableList<>(new Type(Integer.TYPE));
+		DefaultObservableList<Integer> set3 = new DefaultObservableList<>(new Type(Integer.TYPE));
+		DefaultObservableList<ObservableList<Integer>> outer = new DefaultObservableList<>(new Type(ObservableList.class, new Type(
+			Integer.TYPE)));
+		outer.add(set1);
+		outer.add(set2);
+		ObservableList<Integer> flat = ObservableList.flatten(outer);
+		List<Integer> compare1 = new ArrayList<>();
+		List<Integer> filtered = new ArrayList<>();
+		flat.act(element -> {
+			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(event.getOldValue() != null)
+						compare1.set(listEl.getIndex(), event.getOldValue());
+					else
+						compare1.add(listEl.getIndex(), event.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					compare1.remove(listEl.getIndex());
+				}
+			});
+		});
+		flat.filterC(value -> value != null && value % 3 == 0).act(element -> {
+			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(event.getOldValue() != null)
+						filtered.set(listEl.getIndex(), event.getOldValue());
+					else
+						filtered.add(listEl.getIndex(), event.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					filtered.remove(listEl.getIndex());
+				}
+			});
+		});
+		List<Integer> controller1 = set1.control(null);
+		List<Integer> controller2 = set2.control(null);
+		List<Integer> controller3 = set3.control(null);
+
+		List<Integer> correct = new ArrayList<>();
+		List<Integer> filteredCorrect = new ArrayList<>();
+
+		for(int i = 0; i < 30; i++) {
+			controller1.add(i);
+			controller2.add(i * 10);
+			controller3.add(i * 100);
+			correct.add(i);
+			correct.add(i * 10);
+			if(i % 3 == 0) {
+				filteredCorrect.add(i);
+				filteredCorrect.add(i * 10);
+			}
+			assertEquals(flat, compare1);
+			assertEquals(flat.size(), compare1.size());
+			assertEquals(correct, compare1);
+			assertEquals(correct.size(), compare1.size());
+			assertEquals(filteredCorrect, filtered);
+			assertEquals(filteredCorrect.size(), filtered.size());
+		}
+
+		outer.add(set3);
+		for(int i = 0; i < 30; i++) {
+			correct.add(i * 100);
+			if(i % 3 == 0) {
+				filteredCorrect.add(i * 100);
+			}
+		}
+		assertEquals(flat, compare1);
+		assertEquals(flat.size(), compare1.size());
+		assertEquals(correct, compare1);
+		assertEquals(correct.size(), compare1.size());
+		assertEquals(filteredCorrect, filtered);
+		assertEquals(filteredCorrect.size(), filtered.size());
+
+		outer.remove(set2);
+		correct.clear();
+		filteredCorrect.clear();
+		for(int i = 0; i < 30; i++) {
+			correct.add(i);
+			correct.add(i * 100);
+			if(i % 3 == 0) {
+				filteredCorrect.add(i);
+				filteredCorrect.add(i * 100);
+			}
+		}
+		assertEquals(flat, compare1);
+		assertEquals(flat.size(), compare1.size());
+		assertEquals(correct, compare1);
+		assertEquals(correct.size(), compare1.size());
+		assertEquals(filteredCorrect, filtered);
+		assertEquals(filteredCorrect.size(), filtered.size());
+	}
+
+	public void observableListFind() {
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		ObservableValue<Integer> found = list.find(new Type(Integer.TYPE), value -> value % 3 == 0 ? value : null);
+		Integer [] received = new Integer[] {0};
+		found.act(value -> received[0] = value.getValue());
+		Integer [] correct = new Integer[] {null};
+
+		assertEquals(correct[1], received[0]);
+		assertEquals(correct[1], found.get());
+		for(int i = 1; i < 30; i++) {
+			list.add(i);
+			if(i % 3 == 0 && correct[0] == null)
+				correct[0] = i;
+			assertEquals(correct[1], received[0]);
+			assertEquals(correct[1], found.get());
+		}
+		for(int i = 1; i < 30; i++) {
+			list.remove(i);
+			if(i % 3 == 0) {
+				correct[0] += 3;
+				if(correct[0] >= 30)
+					correct[0] = null;
+			}
+			assertEquals(correct[1], received[0]);
+			assertEquals(correct[1], found.get());
+		}
 	}
 }

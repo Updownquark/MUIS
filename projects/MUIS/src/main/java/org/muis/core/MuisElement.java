@@ -209,7 +209,7 @@ public abstract class MuisElement implements MuisParseEnv {
 		});
 		bounds().act(event -> {
 			Rectangle old = event.getOldValue();
-			if(event.getValue().width != old.width || event.getValue().height != old.height)
+			if(old == null || event.getValue().width != old.width || event.getValue().height != old.height)
 				relayout(false);
 		});
 		theLifeCycleManager.runWhen(() -> {
@@ -311,6 +311,8 @@ public abstract class MuisElement implements MuisParseEnv {
 	}
 
 	private void setGroups(String [] groupNames) {
+		if(getDocument() == null)
+			return;
 		if(groupNames == null)
 			groupNames = new String[0];
 		ArrayList<NamedStyleGroup> groups = new ArrayList<>();

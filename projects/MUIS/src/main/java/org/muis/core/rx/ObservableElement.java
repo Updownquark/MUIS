@@ -13,7 +13,7 @@ import prisms.lang.Type;
  * @param <T> The type of the element
  */
 public interface ObservableElement<T> extends ObservableValue<T> {
-	/** @return An observable value that */
+	/** @return An observable value that keeps reporting updates after the subscription to the parent collection is unsubscribed */
 	ObservableValue<T> persistent();
 
 	@Override

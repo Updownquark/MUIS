@@ -6,13 +6,94 @@ import prisms.lang.Type;
 
 /** Utility methods for observables */
 public class ObservableUtils {
+	public static <T> ObservableList<T> flatten(Type type, ObservableList<? extends ObservableValue<T>> list) {
+		class FlattenedList extends java.util.AbstractList<T> implements ObservableList<T> {
+			@Override
+			public Type getType() {
+				return type;
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				Runnable listSub = list.internalSubscribe(new Observer<ObservableElement<? extends ObservableValue<T>>>() {
+					@Override
+					public <V extends ObservableElement<? extends ObservableValue<T>>> void onNext(V element) {
+						ObservableListElement<? extends ObservableValue<T>> listElement = (ObservableListElement<? extends ObservableValue<T>>) element;
+						class FlattenedElement implements ObservableListElement<T>{
+							@Override
+							public ObservableValue<T> persistent() {
+								return listElement.get();
+							}
+
+							@Override
+							public Type getType() {
+								return type;
+							}
+
+							@Override
+							public T get() {
+								return listElement.get().get();
+							}
+
+							@Override
+							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+								Runnable elSub=element.internalSubscribe(new Observer<ObservableValueEvent<? extends ObservableValue<T>>>(){
+									Runnable sub;
+									@Override
+									public <V2 extends ObservableValueEvent<? extends ObservableValue<T>>> void onNext(V2 value) {
+										sub=value.getValue().takeUntil(element).internalSubscribe(event->
+										// TODO Auto-generated method stub
+
+									}
+
+									@Override
+									public void onError(Throwable e){
+										observer.onError(e);
+									}
+								});
+								// TODO Auto-generated method stub
+								return null;
+							}
+
+							@Override
+							public int getIndex() {
+								return listElement.getIndex();
+							}
+						};
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public T get(int index) {
+				return list.get(index).get();
+			}
+
+			@Override
+			public int size() {
+				return list.size();
+			}
+		}
+		return new FlattenedList();
+	}
+
 	/**
-	 * @param <T> The type of
-	 * @param <V>
-	 * @param type
-	 * @param list
-	 * @param map
-	 * @return
+	 * This method differst from {@link ObservableList#find(Type, Function)} in that the elements of the list argument for this function are
+	 * themselves observable values.
+	 *
+	 * @param <T> The type of observable values in the list
+	 * @param <V> The type of the mapped value to return
+	 * @param type The run-time type of the mapped value to return
+	 * @param list The list of observable values
+	 * @param map The mapping function
+	 * @return An observable value which is the first non-null mapped value in the list, or null if there is nones
 	 */
 	public static <T, V> ObservableValue<V> first(Type type, ObservableList<? extends ObservableValue<T>> list, Function<T, V> map) {
 		return new ObservableValue<V>() {

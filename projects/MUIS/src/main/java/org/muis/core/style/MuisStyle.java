@@ -61,8 +61,8 @@ public interface MuisStyle {
 	 * @return The observable value of the attribute in this style's scope
 	 */
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<T> dependValue = org.muis.core.rx.ObservableUtils.first(attr.getType().getType(),
-			getDependencies().mapC(depend -> depend.get(attr, false)), (T val) -> val);
+		ObservableValue<T> dependValue = ObservableUtils.flatten(attr.getType().getType(),
+			getDependencies().mapC(depend -> depend.get(attr, false))).find(attr.getType().getType(), val -> val);
 		return getLocal(attr).combineV((T local, T depend) -> {
 			if(local != null)
 				return local;

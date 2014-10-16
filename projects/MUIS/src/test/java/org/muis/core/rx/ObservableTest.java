@@ -153,6 +153,31 @@ public class ObservableTest {
 	}
 
 	@Test
+	public void observableValueFlatten() {
+		SimpleSettableValue<ObservableValue<Integer>> outer = new SimpleSettableValue<>(new Type(ObservableValue.class, new Type(
+			Integer.TYPE)), false);
+		SimpleSettableValue<Integer> inner1 = new SimpleSettableValue<>(Integer.TYPE, false);
+		inner1.set(1, null);
+		outer.set(inner1, null);
+		SimpleSettableValue<Integer> inner2 = new SimpleSettableValue<>(Integer.TYPE, false);
+		inner2.set(2, null);
+		int [] received = new int[1];
+		ObservableValue.flatten(new Type(Integer.TYPE), outer).act(value -> received[0] = value.getValue());
+
+		assertEquals(1, received[0]);
+		inner1.set(3, null);
+		assertEquals(3, received[0]);
+		inner2.set(4, null);
+		assertEquals(3, received[0]);
+		outer.set(inner2, null);
+		assertEquals(4, received[0]);
+		inner1.set(5, null);
+		assertEquals(4, received[0]);
+		inner2.set(6, null);
+		assertEquals(6, received[0]);
+	}
+
+	@Test
 	public void observableSet() {
 		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
 		Set<Integer> controller = set.control(null);
@@ -797,7 +822,33 @@ public class ObservableTest {
 		}
 	}
 
-	public void utilsFirst() {
-		// TODO
+	public void utilsListFlatten() {
+		DefaultObservableList<ObservableValue<Integer>> list = new DefaultObservableList<>(new Type(ObservableValue.class, new Type(
+			Integer.TYPE)));
+		List<ObservableValue<Integer>> listControl = list.control(null);
+		SimpleSettableValue<Integer> value1 = new SimpleSettableValue<>(Integer.TYPE, false);
+		value1.set(1, null);
+		SimpleSettableValue<Integer> value2 = new SimpleSettableValue<>(Integer.TYPE, false);
+		value2.set(2, null);
+		SimpleSettableValue<Integer> value3 = new SimpleSettableValue<>(Integer.TYPE, false);
+		value3.set(3, null);
+		SimpleSettableValue<Integer> value4 = new SimpleSettableValue<>(Integer.TYPE, false);
+		value4.set(4, null);
+		SimpleSettableValue<Integer> value5 = new SimpleSettableValue<>(Integer.TYPE, false);
+		value5.set(9, null);
+		list.addAll(java.util.Arrays.asList(value1, value2, value3, value4));
+
+		Integer [] received = new Integer[1];
+		ObservableUtils.flatten(new Type(Integer.TYPE), list).find(new Type(Integer.TYPE), value -> value % 3 == 0 ? value : null).value()
+			.act(value -> received[0] = value);
+		assertEquals(Integer.valueOf(3), received[0]);
+		value3.set(4, null);
+		assertEquals(null, received[0]);
+		value4.set(6, null);
+		assertEquals(Integer.valueOf(6), received[0]);
+		listControl.remove(value4);
+		assertEquals(null, received[0]);
+		listControl.add(value5);
+		assertEquals(Integer.valueOf(9), received[0]);
 	}
 }

@@ -257,38 +257,76 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @return An observable value whose value is the value of <code>ov.get()</code>
 	 */
 	public static <T> ObservableValue<T> flatten(final Type type, final ObservableValue<? extends ObservableValue<? extends T>> ov) {
-		DefaultObservableValue<T> ret = new DefaultObservableValue<T>() {
+		return new ObservableValue<T>() {
 			@Override
 			public Type getType() {
-				if(type != null)
-					return type;
-				else
-					return ov.get().getType();
+				return type != null ? type : ov.get().getType();
 			}
 
 			@Override
 			public T get() {
-				ObservableValue<? extends T> contained = ov.get();
-				return contained == null ? null : contained.get();
+				return get(ov.get());
+			}
+
+			private T get(ObservableValue<? extends T> value) {
+				return value == null ? null : value.get();
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				ObservableValue<T> retObs = this;
+				Runnable [] innerSub = new Runnable[1];
+				Runnable outerSub = ov.internalSubscribe(new Observer<ObservableValueEvent<? extends ObservableValue<? extends T>>>() {
+					@Override
+					public <V extends ObservableValueEvent<? extends ObservableValue<? extends T>>> void onNext(V value) {
+						if(innerSub[0] != null) {
+							innerSub[0].run();
+							innerSub[0] = null;
+						}
+						T old = get(value.getOldValue());
+						if(value.getValue() != null) {
+							boolean [] init = new boolean[] {true};
+							innerSub[0] = value.getValue().internalSubscribe(new Observer<ObservableValueEvent<? extends T>>() {
+								@Override
+								public <V2 extends ObservableValueEvent<? extends T>> void onNext(V2 value2) {
+									T innerOld;
+									if(init[0]) {
+										init[0] = false;
+										innerOld = old;
+									} else
+										innerOld = value2.getValue();
+									observer.onNext(new ObservableValueEvent<>(retObs, innerOld, value2.getValue(), value2.getCause()));
+								}
+
+								@Override
+								public void onError(Throwable e) {
+									observer.onError(e);
+								}
+							});
+						} else
+							observer.onNext(new ObservableValueEvent<>(retObs, old, null, value.getCause()));
+					}
+
+					@Override
+					public <V extends ObservableValueEvent<? extends ObservableValue<? extends T>>> void onCompleted(V value) {
+						observer.onCompleted(new ObservableValueEvent<>(retObs, get(value.getOldValue()), get(value.getValue()), value
+							.getCause()));
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
+				return () -> {
+					outerSub.run();
+					if(innerSub[0] != null) {
+						innerSub[0].run();
+						innerSub[0] = null;
+					}
+				};
 			}
 		};
-		Observer<ObservableValueEvent<T>> controller = ret.control(null);
-		ov.act(value -> {
-			ObservableValueEvent<T> evt = new ObservableValueEvent<>(ret, value.getOldValue() == null ? null : value.getOldValue().get(),
-				value.getValue() == null ? null : value.getValue().get(), value.getCause());
-			controller.onNext(evt);
-			if(value.getValue() != null)
-				value
-					.getValue()
-					.takeUntil(ov)
-					.act(
-						value2 -> {
-							ObservableValueEvent<T> evt2 = new ObservableValueEvent<>(ret, value2.getOldValue(), value2.getValue(), value2
-								.getCause());
-							controller.onNext(evt2);
-						});
-		});
-		return ret;
 	}
 
 	/**

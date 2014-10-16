@@ -281,7 +281,7 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		try {
 			return loaded.asSubclass(superClass);
 		} catch(ClassCastException e) {
-			throw new MuisException("Class " + loaded.getName() + " is not an instance of " + superClass.getName());
+			throw new MuisException("Class " + loaded.getName() + " is not an instance of " + superClass.getName(), e);
 		}
 	}
 

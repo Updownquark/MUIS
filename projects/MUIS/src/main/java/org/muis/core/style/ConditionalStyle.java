@@ -11,6 +11,9 @@ import prisms.lang.Type;
  * @param <E> The type of expression the style set supports
  */
 public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends StyleExpression<E>> {
+	/** @return The type of expressions that this conditional style uses */
+	Type getExpressionType();
+
 	/**
 	 * @return The styles that this style depends on for attribute values when an attribute's value is not set in this style directly for a
 	 *         state

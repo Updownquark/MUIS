@@ -382,7 +382,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 		 */
 		public ConstantObservableValue(Type type, T value) {
 			theType = type;
-			theValue = value;
+			theValue = (T) type.cast(value);
 		}
 
 		@Override

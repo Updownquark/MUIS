@@ -10,13 +10,13 @@ import org.muis.core.style.*;
 import prisms.lang.Type;
 
 /** The attribute type to parse styles */
-public class StyleAttributeType extends MuisProperty.AbstractPropertyType<SealableStyle> implements
-	MuisProperty.PrintablePropertyType<SealableStyle> {
+public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisStyle> implements
+	MuisProperty.PrintablePropertyType<MuisStyle> {
 	/** The instance to use for the element style */
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
 	/** The style attribute on MUIS elements */
-	public static final MuisAttribute<SealableStyle> STYLE_ATTRIBUTE = new MuisAttribute<>("style", ELEMENT_TYPE, null,
+	public static final MuisAttribute<MuisStyle> STYLE_ATTRIBUTE = new MuisAttribute<>("style", ELEMENT_TYPE, null,
 		new StylePathAccepter());
 
 	/** Creates a style attribute type */
@@ -25,11 +25,11 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<Sealab
 
 	@Override
 	public Type getType() {
-		return new Type(ElementStyle.class);
+		return new Type(MuisStyle.class);
 	}
 
 	@Override
-	public ObservableValue<SealableStyle> parse(MuisParseEnv env, String value) throws MuisException {
+	public ObservableValue<MuisStyle> parse(MuisParseEnv env, String value) throws MuisException {
 		return ObservableValue.constant(parseStyle(env, value));
 	}
 
@@ -41,7 +41,7 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<Sealab
 	 * @return The parsed style
 	 * @throws MuisException If an unrecoverable error occurs
 	 */
-	public static SealableStyle parseStyle(MuisParseEnv env, String value) throws MuisException {
+	public static MuisStyle parseStyle(MuisParseEnv env, String value) throws MuisException {
 		SealableStyle ret = new SealableStyle();
 		String [] styles = StyleParsingUtils.splitStyles(value);
 		if(styles == null) {
@@ -121,7 +121,7 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<Sealab
 	}
 
 	@Override
-	public String toString(SealableStyle value) {
+	public String toString(MuisStyle value) {
 		StringBuilder ret = new StringBuilder();
 		for(StyleAttribute<?> attr : value.localAttributes()) {
 			if(ret.length() > 0)

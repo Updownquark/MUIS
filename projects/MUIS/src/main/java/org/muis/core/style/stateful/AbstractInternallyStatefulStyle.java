@@ -11,6 +11,8 @@ import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 
+import prisms.lang.Type;
+
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
 	private DefaultObservableSet<MuisState> theState;
@@ -85,14 +87,16 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 					if(sev.getExpression() == null || sev.getExpression().matches(theState))
 						return sev;
 					return null;
-				}).find(attr.getType().getType(), value -> {
-				return value != null ? value : null;
-			}));
+				}).find(new Type(StyleExpressionValue.class, new Type(StateExpression.class), attr.getType().getType()), value -> {
+					return value != null ? value : null;
+				}));
 	}
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
 		return allLocal().combineC(theState.changes(), (StyleAttribute<?> attr, Set<MuisState> state) -> attr).filterMapC(attr -> {
+			if(attr == null)
+				return null;
 			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr))
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))
 					return attr;

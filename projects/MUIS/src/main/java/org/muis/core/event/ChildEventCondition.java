@@ -30,7 +30,7 @@ public class ChildEventCondition implements MuisEventCondition<ChildEvent>, Clon
 		if(!(event instanceof ChildEvent))
 			return null;
 		ChildEvent chEvt = (ChildEvent) event;
-		if(!theTypes.isEmpty() && !theTypes.contains(chEvt.getType()))
+		if(theTypes != null && !theTypes.contains(chEvt.getType()))
 			return null;
 		if(theChild != null && theChild != chEvt.getChild())
 			return null;

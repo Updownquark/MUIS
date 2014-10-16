@@ -398,10 +398,10 @@ public abstract class MuisProperty<T> {
 	};
 
 	/** A boolean property type--values must be either true or false */
-	public static final AbstractPropertyType<Boolean> boolAttr = new PrismsParsedPropertyType<>(new Type(Boolean.TYPE));
+	public static final AbstractPropertyType<Boolean> boolAttr = new PrismsParsedPropertyType<>(new Type(Boolean.class));
 
 	/** An integer property type--values must be valid integers */
-	public static final AbstractPropertyType<Long> intAttr = new PrismsParsedPropertyType<Long>(new Type(Long.TYPE)) {
+	public static final AbstractPropertyType<Long> intAttr = new PrismsParsedPropertyType<Long>(new Type(Long.class)) {
 		@Override
 		public String toString() {
 			return "int";
@@ -426,7 +426,7 @@ public abstract class MuisProperty<T> {
 	};
 
 	/** A floating-point property type--values must be valid real numbers */
-	public static final AbstractPropertyType<Double> floatAttr = new PrismsParsedPropertyType<Double>(new Type(Double.TYPE)) {
+	public static final AbstractPropertyType<Double> floatAttr = new PrismsParsedPropertyType<Double>(new Type(Double.class)) {
 		@Override
 		public String toString() {
 			return "float";

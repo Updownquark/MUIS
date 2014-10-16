@@ -45,8 +45,7 @@ public class AttributeManager {
 				@Override
 				public Type getType() {
 					if(theType == null)
-						theType = new Type(DefaultObservableValue.class, new Type(ObservableValue.class, new Type(theAttr.getType()
-							.getType(), true)));
+						theType = new Type(ObservableValue.class, new Type(theAttr.getType().getType(), true));
 					return theType;
 				}
 

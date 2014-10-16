@@ -1,5 +1,7 @@
 package org.muis.core.style;
 
+import java.util.Set;
+
 import org.muis.core.rx.*;
 
 import prisms.lang.Type;
@@ -40,10 +42,11 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		ObservableSet<ObservableSet<StyleAttribute<?>>> ret = new org.muis.core.rx.DefaultObservableSet<>(new Type(ObservableSet.class,
+		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class,
 			new Type(StyleAttribute.class)));
-		ret.add(localAttributes());
-		ret.add(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));
+		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
+		controller.add(localAttributes());
+		controller.add(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));
 		return ObservableCollection.flatten(ret);
 	}
 
@@ -88,8 +91,9 @@ public interface MuisStyle {
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
 	default Observable<StyleAttributeEvent<?>> allChanges() {
 		return Observable.or(
-		// Local changes
-			ObservableCollection.fold(localAttributes().mapC(attr -> get(attr))).map(event -> (StyleAttributeEvent<?>) event),
+			// Local changes
+			ObservableCollection.fold(localAttributes().mapC(attr -> get(attr))).skip(localAttributes().size())
+				.map(event -> (StyleAttributeEvent<?>) event),
 			// Local removes
 			localAttributes().removes().map(element -> new StyleAttributeEvent<>(null, this, this, element.get(), null)),
 			// Dependency changes

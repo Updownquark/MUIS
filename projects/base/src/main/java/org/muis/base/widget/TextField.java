@@ -72,7 +72,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 						setDocument(tuple.getValue3());
 				});
 			atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
-		}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
+			}, org.muis.core.MuisConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 		life().runWhen(() -> {
 			initDocument();
 			new org.muis.util.MuisAttributeExposer(TextField.this, getValueElement(), msg(), multiLine);

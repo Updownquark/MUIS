@@ -3,13 +3,13 @@ package org.muis.core.style.attach;
 import org.muis.core.MuisAttribute;
 import org.muis.core.MuisElement;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.core.style.SealableStyle;
+import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 
 /** Accepts paths for the style attribute */
-public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, org.muis.core.rx.Action<AttributeChangedEvent<SealableStyle>> {
+public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, org.muis.core.rx.Action<AttributeChangedEvent<MuisStyle>> {
 	/** The attribute path name for an element's self-style */
 	public static final String SELF_STYLE = "self";
 
@@ -34,15 +34,15 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 	}
 
 	@Override
-	public void act(AttributeChangedEvent<SealableStyle> event) {
-		MuisAttribute<SealableStyle> attr = event.getAttribute();
+	public void act(AttributeChangedEvent<MuisStyle> event) {
+		MuisAttribute<MuisStyle> attr = event.getAttribute();
 		MuisElement element = event.getElement();
 		MutableStatefulStyle target;
 		StateExpression expr = null;
 		if(!(attr instanceof org.muis.core.MuisPathedAttribute)) {
 			target = element.getStyle();
 		} else {
-			org.muis.core.MuisPathedAttribute<SealableStyle> pathed = (org.muis.core.MuisPathedAttribute<SealableStyle>) attr;
+			org.muis.core.MuisPathedAttribute<MuisStyle> pathed = (org.muis.core.MuisPathedAttribute<MuisStyle>) attr;
 			int idx = 0;
 			if(pathed.getPath()[0].equals(SELF_STYLE)) {
 				target = element.getStyle().getSelf();
@@ -90,7 +90,7 @@ public class StylePathAccepter implements MuisAttribute.PropertyPathAccepter, or
 		if(event.getValue() != null)
 			for(StyleAttribute<?> styleAtt : event.getValue().attributes()) {
 				clearStyleAtts.remove(styleAtt);
-				target.set((StyleAttribute<Object>) styleAtt, expr, event.getValue().get(styleAtt, true));
+				target.set((StyleAttribute<Object>) styleAtt, expr, event.getValue().get(styleAtt, true).get());
 			}
 		for(StyleAttribute<?> styleAtt : clearStyleAtts)
 			target.clear(styleAtt, expr);

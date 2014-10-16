@@ -32,9 +32,12 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultOb
 
 	private List<StyleExpressionValue<E, V>> theController;
 
-	/** @param value The initial expression value to hold */
-	protected StyleValueHolder(StyleExpressionValue<E, V> value) {
-		super(new Type(StyleExpressionValue.class, new Type(value.getExpression().getClass()), value.getType()));
+	/**
+	 * @param expressionType The type of style expression that this holder holds
+	 * @param value The initial expression value to hold
+	 */
+	protected StyleValueHolder(Type expressionType, StyleExpressionValue<E, V> value) {
+		super(new Type(StyleExpressionValue.class, expressionType, new Type(Object.class, true)));
 		theController = control(null);
 		if(value != null)
 			theController.add(value);

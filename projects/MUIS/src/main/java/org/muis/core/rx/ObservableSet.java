@@ -441,7 +441,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 			@Override
 			public ObservableValue<? extends ObservableSet<T>> changes() {
-				return ObservableValue.constant(new Type(ObservableValue.class, type), this);
+				return ObservableValue.constant(new Type(ObservableSet.class, type), this);
 			}
 
 			@Override

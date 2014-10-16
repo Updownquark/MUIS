@@ -20,8 +20,10 @@ public class ObservableValueEvent<T> {
 	 */
 	public ObservableValueEvent(ObservableValue<T> observable, T oldValue, T newValue, Object cause) {
 		theObservable = observable;
+		if(oldValue != null) // Allow null for old value even for primitive types
+			oldValue = (T) observable.getType().cast(oldValue);
 		theOldValue = oldValue;
-		theNewValue = newValue;
+		theNewValue = (T) observable.getType().cast(newValue);
 		theCause = cause;
 	}
 

@@ -81,7 +81,8 @@ public interface Observable<T> {
 				if(!holder.alive)
 					return;
 				try {
-					holder.internalSub.run();
+					if(holder.internalSub != null)
+						holder.internalSub.run();
 					if(holder.subSubscriptions != null)
 						for(Runnable subSub : holder.subSubscriptions)
 							subSub.run();
@@ -92,6 +93,8 @@ public interface Observable<T> {
 			}
 		};
 		holder.internalSub = internalSubscribe(holder.wrapper);
+		if(holder.internalSub == null)
+			throw new NullPointerException();
 		return holder.subscription;
 	}
 
@@ -307,6 +310,39 @@ public interface Observable<T> {
 					@Override
 					public void onError(Throwable e) {
 						if(counter.get() > 0)
+							observer.onError(e);
+					}
+				});
+			}
+		};
+	}
+
+	/**
+	 * @param times The number of values to skip from this observable
+	 * @return An observable that provides the same values as this observable but ignores the first {@code times} values
+	 */
+	default Observable<T> skip(int times) {
+		Observable<T> outer = this;
+		return new Observable<T>() {
+			@Override
+			public Runnable internalSubscribe(Observer<? super T> observer) {
+				AtomicInteger counter = new AtomicInteger(times);
+				return outer.internalSubscribe(new Observer<T>() {
+					@Override
+					public <V extends T> void onNext(V value) {
+						int count = counter.getAndDecrement();
+						if(count < 0)
+							observer.onNext(value);
+					}
+
+					@Override
+					public <V extends T> void onCompleted(V value) {
+						observer.onCompleted(value);
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						if(counter.get() < 0)
 							observer.onError(e);
 					}
 				});

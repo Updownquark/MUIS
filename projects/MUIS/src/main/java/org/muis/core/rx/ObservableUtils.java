@@ -7,7 +7,8 @@ public class ObservableUtils {
 	/**
 	 * Turns a list of observable values into a list composed of those holders' values
 	 * 
-	 * @param type The type of elements held in the values
+	 * @param <T> The type of elements held in the values
+	 * @param type The run-time type of elements held in the values
 	 * @param list The list to flatten
 	 * @return The flattened list
 	 */

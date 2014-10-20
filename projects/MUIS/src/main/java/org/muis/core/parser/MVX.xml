@@ -281,7 +281,7 @@
 			<op type="identifier|primitive" storeAs="name" />
 		</option>
 	</entity>
-	<entity name="muis-identifier" order="1000" priority="-1000" impl="prisms.lang.types.ParsedIdentifier">
+	<entity name="muis-identifier" order="1000" priority="201" impl="prisms.lang.types.ParsedIdentifier">
 		<charset pattern="[_a-zA-Z][_\-a-zA-Z0-9]*" storeAs="name" />
 	</entity>
 	<entity name="type" priority="-1" impl="prisms.lang.types.ParsedType">

@@ -11,8 +11,6 @@ import java.util.Map;
 import org.muis.core.eval.impl.ObservableEvaluator;
 import org.muis.core.eval.impl.ParsedColor;
 import org.muis.core.parser.MuisParseException;
-import org.muis.core.parser.WrappingObservableEvaluator;
-import org.muis.core.parser.WrappingPrismsParser;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.Colors;
 import org.muis.util.MuisUtils;
@@ -178,35 +176,24 @@ public abstract class MuisProperty<T> {
 
 		@Override
 		public ObservableValue<? extends T> parse(MuisParseEnv env, String value) throws MuisException {
-			WrappingPrismsParser parser = new WrappingPrismsParser(env.getValueParser().getParser());
-			WrappingObservableEvaluator evaluator = new WrappingObservableEvaluator(env.getValueParser().getEvaluator());
-			EvaluationEnvironment evalEnv = env.getValueParser().getEvaluationEnvironment().scope(true);
-			mutate(parser, evaluator, evalEnv);
-			parser.validateConfig();
-			evaluator.seal();
-
-			ParsedItem item;
+			org.muis.core.parser.DefaultModelValueReferenceParser parser;
 			try {
-				prisms.lang.ParseMatch [] matches = parser.parseMatches(value);
-				if(matches.length > 1)
-					throw new MuisParseException("A single value is required for this property: " + value);
-				item = parser.parseStructures(new prisms.lang.ParseStructRoot(value), matches)[0];
-				if(matches[0].getError() != null)
-					throw new MuisParseException("Parsing failed for this property: " + value, new prisms.lang.EvaluationException(
-						matches[0].getError(), item, matches[0].getErrorMatch().index));
-				if(!matches[0].isComplete())
-					throw new MuisParseException("Parsing failed for this property: " + value, new prisms.lang.EvaluationException(
-						"Incomplete", item, matches[0].getIncompleteMatch().index));
-			} catch(prisms.lang.ParseException e) {
-				throw new MuisParseException("Parsing failed for property type " + getClass().getSimpleName() + ": " + value, e);
+				parser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser(), null) {
+					@Override
+					protected void applyModification() {
+						super.applyModification();
+						try {
+							mutate(getParser(), getEvaluator(), getEvaluationEnvironment());
+						} catch(MuisException e) {
+							throw new org.muis.util.ExceptionWrapper(e);
+						}
+					}
+				};
+			} catch(org.muis.util.ExceptionWrapper e) {
+				throw (MuisException) e.getCause();
 			}
 
-			ObservableValue<?> ret;
-			try {
-				ret = evaluator.evaluateObservable(item, evalEnv, evalAsType);
-			} catch(EvaluationException e) {
-				throw new MuisParseException("Evaluation failed for property type " + getClass().getSimpleName() + ": " + value, e);
-			}
+			ObservableValue<?> ret = parser.parse(value, evalAsType);
 			if(theType.equals(ret.getType()))
 				return (ObservableValue<? extends T>) ret;
 			else if(canCast(ret.getType()))

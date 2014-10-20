@@ -231,7 +231,11 @@
 		<op type="identifier" storeAs="name" />
 		<literal>=</literal>
 		
-		<charset pattern=".*" storeAs="value" />
+		<charset pattern=".*" storeAs="value">
+			<exclude>\u000a</exclude>
+			<exclude>\u000d</exclude>
+			<exclude>;</exclude>
+		</charset>
 		<option>
 			<literal>;</literal>
 		</option>
@@ -239,7 +243,7 @@
 	<operator name="domain assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedDomainAssignment">
 		<op type="muis type" storeAs="domain" />
 		<literal>=</literal>
-		<op type="domain-scoped block" storeAs="value" />
+		<op type="domain-scoped-block" storeAs="value" />
 	</operator>
 	<operator name="domain-scoped-block" priority="-1" impl="org.muis.core.parser.StyleSheetParser$DomainScopedBlock">
 		<literal>{</literal>
@@ -254,7 +258,11 @@
 	<operator name="domain-scoped assignment" priority="-1" impl="org.muis.core.parser.StyleSheetParser$DomainScopedAssignment">
 		<op type="identifier" storeAs="name" />
 		<literal>=</literal>
-		<charset pattern=".*" storeAs="value" />
+		<charset pattern=".*" storeAs="value">
+			<exclude>\u000a</exclude>
+			<exclude>\u000d</exclude>
+			<exclude>;</exclude>
+		</charset>
 	</operator>
 	<operator name="function" order="1000" impl="prisms.lang.types.ParsedMethod">
 		<op type="identifier" storeAs="name" />

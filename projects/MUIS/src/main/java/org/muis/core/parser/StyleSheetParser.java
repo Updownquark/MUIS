@@ -1179,6 +1179,10 @@ public class StyleSheetParser {
 			try {
 				value = attr.getType().parse(env, assign.getValue());
 			} catch(MuisException e) {
+				try { // Debugging
+					value = attr.getType().parse(env, assign.getValue());
+				} catch(MuisException e2) {
+				}
 				env.msg().error("Could not interpret value " + assign.getValue() + " for attribute " + attr, e, "attribute", attr, "value",
 					assign.getValue());
 				return;

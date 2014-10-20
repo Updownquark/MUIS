@@ -36,7 +36,7 @@ public class ComposedObservable<T> implements Observable<T> {
 					values[index] = value;
 					Object next = getNext();
 					if(next != NONE)
-						observer.onNext((T) value);
+						observer.onNext((T) next);
 				}
 
 				@Override
@@ -44,7 +44,7 @@ public class ComposedObservable<T> implements Observable<T> {
 					values[index] = value;
 					Object next = getNext();
 					if(next != NONE)
-						observer.onCompleted((T) value);
+						observer.onCompleted((T) next);
 				}
 
 				@Override

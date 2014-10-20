@@ -15,6 +15,8 @@ import org.muis.core.model.*;
 import org.muis.core.rx.ObservableValue;
 import org.muis.util.Transaction;
 
+import prisms.lang.Type;
+
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
  * different (flow by default) and its style sheet attributes may be different (margin and padding are typically 0)
@@ -45,9 +47,9 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 					if(modelValue instanceof WidgetRegister)
 						theRegistration = ((WidgetRegister) modelValue).register(Label.this);
 				});
-				ObservableValue.flatten(null, atts().getHolder(ModelAttributes.value))
-					.tupleV(atts().getHolder(format).mapV(null, Formats.defNullCatch)).value().act(tuple -> {
-						if(atts().getHolder(ModelAttributes.value) == null)
+				ObservableValue.flatten(new Type(Object.class), atts().getHolder(ModelAttributes.value))
+					.tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).value().act(tuple -> {
+						if(tuple.getValue1() == null)
 							return;
 						MuisDocumentModel doc = getDocumentModel();
 						if(!(doc instanceof MutableDocumentModel)) {

@@ -257,10 +257,17 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	 * @return An observable value whose value is the value of <code>ov.get()</code>
 	 */
 	public static <T> ObservableValue<T> flatten(final Type type, final ObservableValue<? extends ObservableValue<? extends T>> ov) {
+		if(ov == null)
+			throw new NullPointerException("Null observable");
 		return new ObservableValue<T>() {
 			@Override
 			public Type getType() {
-				return type != null ? type : ov.get().getType();
+				if(type != null)
+					return type;
+				ObservableValue<? extends T> outerVal = ov.get();
+				if(outerVal == null)
+					throw new IllegalStateException("Flattened observable is null and no type given: " + ov);
+				return outerVal.getType();
 			}
 
 			@Override

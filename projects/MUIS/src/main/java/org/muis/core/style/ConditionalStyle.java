@@ -45,10 +45,11 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 * @return The expression/value combinations that are set in this style or any of its dependencies for the given attribute
 	 */
 	default <T> ObservableList<StyleExpressionValue<E, T>> getExpressions(StyleAttribute<T> attr) {
-		ObservableList<ObservableList<StyleExpressionValue<E, T>>> ret = new DefaultObservableList<>(new Type(ObservableList.class,
+		DefaultObservableList<ObservableList<StyleExpressionValue<E, T>>> ret = new DefaultObservableList<>(new Type(ObservableList.class,
 			new Type(StyleExpressionValue.class, new Type(Object.class, true), attr.getType().getType())));
-		ret.add(getLocalExpressions(attr));
-		ret.add(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
+		java.util.List<ObservableList<StyleExpressionValue<E, T>>> controller = ret.control(null);
+		controller.add(getLocalExpressions(attr));
+		controller.add(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
 		return ObservableList.flatten(ret);
 	}
 }

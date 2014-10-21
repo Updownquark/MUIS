@@ -63,6 +63,8 @@ public class StatefulStyleSample implements MuisStyle {
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
 		return theStatefulStyle.allLocal().filterMapC(attr -> {
+			if(attr == null)
+				return null;
 			for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(attr))
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))
 					return attr;

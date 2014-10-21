@@ -149,7 +149,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 */
 	default ObservableSet<E> filterC(Function<? super E, Boolean> filter) {
 		return filterMapC(value -> {
-			return filter.apply(value) ? value : null;
+			return (value != null && filter.apply(value)) ? value : null;
 		});
 	}
 

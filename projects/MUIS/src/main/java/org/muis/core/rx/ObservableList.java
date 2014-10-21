@@ -142,7 +142,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	 */
 	default ObservableList<E> filterC(Function<? super E, Boolean> filter) {
 		return filterMapC(getType(), (E value) -> {
-			return filter.apply(value) ? value : null;
+			return (value != null && filter.apply(value)) ? value : null;
 		});
 	}
 
@@ -364,68 +364,78 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	 * @return The first non-null mapped value in this list, or null if none of this list's elements map to a non-null value
 	 */
 	default <V> ObservableValue<V> find(Type type, Function<E, V> map) {
-		return new DefaultObservableValue<V>() {
-			private V theValue;
-
-			private int theIndex;
-
-			private Observer<ObservableValueEvent<V>> theController;
-
-			{
-				theController = control(null);
-				theIndex = -1;
-				ObservableList.this.act(element -> {
-					element.subscribe(new Observer<ObservableValueEvent<E>>() {
-						@Override
-						public <V2 extends ObservableValueEvent<E>> void onNext(V2 value) {
-							{
-								int listIndex = indexOf(value);
-								if(theIndex < 0 || listIndex <= theIndex) {
-									V mapped = map.apply(value.getValue());
-									if(mapped != null)
-										newBest(mapped, listIndex);
-								}
-							}
-						}
-
-						@Override
-						public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 value) {
-							int listIndex = indexOf(value);
-							if(listIndex == theIndex) {
-								boolean found = false;
-								for(int i = listIndex; i < size(); i++) {
-									E val = ObservableList.this.get(i);
-									V mapped = map.apply(val);
-									if(mapped != null) {
-										found = true;
-										newBest(mapped, i);
-										break;
-									}
-								}
-								if(!found)
-									newBest(null, -1);
-							} else if(listIndex < theIndex)
-								theIndex--;
-						}
-					});
-				});
-			}
-
+		final Type fType;
+		if(type != null)
+			fType = type;
+		else
+			fType = ComposedObservableValue.getReturnType(map);
+		return new ObservableValue<V>() {
 			@Override
 			public Type getType() {
-				return type;
+				return fType;
 			}
 
 			@Override
 			public V get() {
-				return theValue;
+				for(E element : ObservableList.this) {
+					V mapped = map.apply(element);
+					if(mapped != null)
+						return mapped;
+				}
+				return null;
 			}
 
-			void newBest(V value, int index) {
-				V oldValue = theValue;
-				theValue = value;
-				theIndex = index;
-				theController.onNext(new ObservableValueEvent<>(this, oldValue, theValue, null));
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<V>> observer) {
+				ObservableValue<V> observableVal = this;
+				return ObservableList.this.internalSubscribe(new Observer<ObservableElement<E>>() {
+					private V theValue;
+					private int theIndex;
+
+					@Override
+					public <V2 extends ObservableElement<E>> void onNext(V2 element) {
+						element.subscribe(new Observer<ObservableValueEvent<E>>() {
+							@Override
+							public <V3 extends ObservableValueEvent<E>> void onNext(V3 value) {
+								{
+									int listIndex = indexOf(value);
+									if(theIndex < 0 || listIndex <= theIndex) {
+										V mapped = map.apply(value.getValue());
+										if(mapped != null)
+											newBest(mapped, listIndex);
+									}
+								}
+							}
+
+							@Override
+							public <V3 extends ObservableValueEvent<E>> void onCompleted(V3 value) {
+								int listIndex = indexOf(value);
+								if(listIndex == theIndex) {
+									boolean found = false;
+									for(int i = listIndex; i < size(); i++) {
+										E val = ObservableList.this.get(i);
+										V mapped = map.apply(val);
+										if(mapped != null) {
+											found = true;
+											newBest(mapped, i);
+											break;
+										}
+									}
+									if(!found)
+										newBest(null, -1);
+								} else if(listIndex < theIndex)
+									theIndex--;
+							}
+						});
+					}
+
+					void newBest(V value, int index) {
+						V oldValue = theValue;
+						theValue = value;
+						theIndex = index;
+						observer.onNext(new ObservableValueEvent<>(observableVal, oldValue, theValue, null));
+					}
+				});
 			}
 		};
 	}

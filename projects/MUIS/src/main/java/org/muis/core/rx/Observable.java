@@ -180,7 +180,7 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable minus those that the filter function returns false for
 	 */
 	default Observable<T> filter(Function<? super T, Boolean> func) {
-		return filterMap(value -> func.apply(value) ? value : null);
+		return filterMap(value -> (value != null && func.apply(value)) ? value : null);
 	}
 
 	/**

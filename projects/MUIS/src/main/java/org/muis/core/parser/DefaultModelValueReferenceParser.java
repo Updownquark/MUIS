@@ -12,6 +12,7 @@ import org.muis.core.rx.ObservableValue;
 import prisms.lang.*;
 import prisms.lang.eval.PrismsEvaluator;
 import prisms.lang.eval.PrismsItemEvaluator;
+import prisms.lang.types.ParsedIdentifier;
 import prisms.lang.types.ParsedType;
 
 /** The default implementation of {@link MuisValueReferenceParser} */
@@ -89,20 +90,20 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 	 */
 	public DefaultModelValueReferenceParser(MuisValueReferenceParser superParser, MuisClassView classView) {
 		theSuperParser = superParser;
+		theClassView = classView;
 		theParser = new WrappingPrismsParser(superParser != null ? superParser.getParser() : MVX_PARSER);
 		theEvaluator = new WrappingObservableEvaluator(superParser != null ? superParser.getEvaluator() : MVX_EVALUATOR);
 		theEnv = (superParser != null ? superParser.getEvaluationEnvironment() : MVX_ENV).scope(true);
 		applyModification();
 		theParser.validateConfig();
 		theEvaluator.seal();
-		theClassView = classView;
 	}
 
 	/** Allows subclasses to modify their parser, evaluator, and environment before being used */
 	protected void applyModification() {
 		if(theClassView != null) {
 			// Add evaluation capability for namespace-qualified or unqualified tag types
-			PrismsItemEvaluator<? super ParsedType> superEval = getEvaluator().getEvaluatorFor(ParsedType.class);
+			PrismsItemEvaluator<? super ParsedType> typeSuperEval = getEvaluator().getEvaluatorFor(ParsedType.class);
 			getEvaluator().addEvaluator(ParsedType.class, new PrismsItemEvaluator<ParsedType>() {
 				@Override
 				public EvaluationResult evaluate(ParsedType item, PrismsEvaluator evaluator, EvaluationEnvironment env, boolean asType,
@@ -110,14 +111,35 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 					ParseMatch namespace = item.getStored("namespace");
 					String tagName = item.getName();
 					String className = theClassView.getMappedClass(namespace == null ? null : namespace.text, tagName);
-					if(className != null)
+					if(className != null) {
+						String qName = tagName;
+						if(namespace != null)
+							qName = namespace + ":" + qName;
 						try {
-							return new EvaluationResult(new Type(theClassView.loadMappedClass(className, Object.class)));
+							return new EvaluationResult(new Type(theClassView.loadMappedClass(qName, Object.class)));
 						} catch(MuisException e) {
 							// Need access to a message center?
 							e.printStackTrace();
 						}
-					return superEval.evaluate(item, evaluator, env, asType, withValues);
+					}
+					return typeSuperEval.evaluate(item, evaluator, env, asType, withValues);
+				}
+			});
+			PrismsItemEvaluator<? super ParsedIdentifier> idSuperEval = getEvaluator().getEvaluatorFor(ParsedIdentifier.class);
+			getEvaluator().addEvaluator(ParsedIdentifier.class, new PrismsItemEvaluator<ParsedIdentifier>() {
+				@Override
+				public EvaluationResult evaluate(ParsedIdentifier item, PrismsEvaluator evaluator, EvaluationEnvironment env,
+					boolean asType, boolean withValues) throws EvaluationException {
+					String tagName = item.getName();
+					String className = theClassView.getMappedClass(null, tagName);
+					if(className != null)
+						try {
+							return new EvaluationResult(new Type(theClassView.loadMappedClass(tagName, Object.class)));
+						} catch(MuisException e) {
+							// Need access to a message center?
+							e.printStackTrace();
+						}
+					return idSuperEval.evaluate(item, evaluator, env, asType, withValues);
 				}
 			});
 		}

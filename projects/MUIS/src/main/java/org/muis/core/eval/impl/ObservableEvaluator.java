@@ -54,13 +54,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 		org.muis.core.rx.DefaultObservableValue<Object> ret = new org.muis.core.rx.DefaultObservableValue<Object>() {
 			@Override
 			public Type getType() {
-				if(type.canAssignTo(ObservableValue.class)) {
-					if(type.getParamTypes().length > 0)
-						return type.getParamTypes()[0];
-					else
-						return new Type(Object.class);
-				} else
-					return type;
+				return type;
 			}
 
 			@Override
@@ -71,9 +65,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 				} catch(EvaluationException e) {
 					throw new IllegalStateException("Value evaluation failed", e);
 				}
-				if(type.canAssignTo(ObservableValue.class))
-					return ((ObservableValue<?>) result.getValue()).get();
-				else if(asType)
+				if(asType)
 					return result.getType();
 				else
 					return result.getValue();

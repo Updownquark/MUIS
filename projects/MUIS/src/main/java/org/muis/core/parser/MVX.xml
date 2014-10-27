@@ -35,7 +35,7 @@
 		</option>
 		<select>
 			<option>
-				<charset pattern="[1-9][_0-9]*" storeAs="integer" />
+				<charset pattern="[0-9][_0-9]*" storeAs="integer" />
 				<whitespace type="forbid" />
 				<literal>.</literal>
 				<option>

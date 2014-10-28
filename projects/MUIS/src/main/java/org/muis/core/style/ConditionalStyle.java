@@ -32,10 +32,11 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 
 	/** @return All style attributes that are set for any condition in this style or any of its dependents */
 	default ObservableSet<StyleAttribute<?>> allAttrs() {
-		ObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
+		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
 			StyleAttribute.class)));
-		ret.add(allLocal());
-		ret.add(ObservableCollection.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
+		java.util.Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
+		controller.add(allLocal());
+		controller.add(ObservableCollection.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
 		return ObservableCollection.flatten(ret);
 	}
 

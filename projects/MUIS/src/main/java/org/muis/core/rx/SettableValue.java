@@ -43,6 +43,26 @@ public interface SettableValue<T> extends ObservableValue<T> {
 		});
 	}
 
+	/** @return This value, but not settable */
+	default ObservableValue<T> unsettable() {
+		return new ObservableValue<T>() {
+			@Override
+			public Type getType() {
+				return SettableValue.this.getType();
+			}
+
+			@Override
+			public T get() {
+				return SettableValue.this.get();
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				return SettableValue.this.internalSubscribe(observer);
+			}
+		};
+	}
+
 	/**
 	 * @param <R> The type of the new settable value to create
 	 * @param function The function to map this value to another

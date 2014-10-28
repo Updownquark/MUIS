@@ -57,10 +57,11 @@ public abstract class MuisProperty<T> {
 		 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type.
 		 *
 		 * @param <V> The type of value cast by this property type
+		 * @param type The run-time type of the value to cast
 		 * @param value The value to cast
 		 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
 		 */
-		<V extends T> V cast(Object value);
+		<V extends T> V cast(Type type, Object value);
 	}
 
 	/**
@@ -198,15 +199,15 @@ public abstract class MuisProperty<T> {
 				return (ObservableValue<? extends T>) ret;
 			else if(canCast(ret.getType()))
 				return ret.mapV(theType, v -> {
-					return cast(v);
-				});
+					return cast(ret.getType(), v);
+				}, true);
 			else if(ret.getType().canAssignTo(ObservableValue.class)){
 				ObservableValue<?> contained=(ObservableValue<?>) ret.get();
 				if(theType.equals(contained.getType()))
 					return ObservableValue.flatten(theType, (ObservableValue<? extends ObservableValue<? extends T>>) ret);
 				else if(canCast(contained.getType()))
 					return ObservableValue.flatten(contained.getType(), (ObservableValue<? extends ObservableValue<?>>) ret).mapV(v -> {
-						return cast(v);
+						return cast(contained.getType(), v);
 					});
 			}
 			throw new MuisException("The given value of type " + ret.getType() + " is not compatible with this property's type (" + theType
@@ -230,11 +231,11 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public <V extends T> V cast(Object value) {
+		public <V extends T> V cast(Type type, Object value) {
 			if(value == null)
 				return null;
-			if(theType.isAssignableFrom(value.getClass()))
-				return (V) value;
+			if(theType.isAssignable(type))
+				return (V) theType.cast(value);
 			return null;
 		}
 
@@ -359,7 +360,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public String cast(Object value) {
+		public String cast(Type type, Object value) {
 			if(value instanceof String)
 				return (String) value;
 			else if(value instanceof CharSequence)
@@ -400,7 +401,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public Long cast(Object value) {
+		public Long cast(Type type, Object value) {
 			if(value instanceof Long)
 				return (Long) value;
 			else if(value instanceof Number)
@@ -425,7 +426,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public Double cast(Object value) {
+		public Double cast(Type type, Object value) {
 			if(value instanceof Double)
 				return (Double) value;
 			else if(value instanceof Number)
@@ -501,7 +502,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public Long cast(Object value) {
+		public Long cast(Type type, Object value) {
 			if(value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte)
 				return ((Number) value).longValue();
 			else if(value instanceof Double || value instanceof Float)
@@ -628,14 +629,14 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public <V extends Color> V cast(Object value) {
+		public <V extends Color> V cast(Type type, Object value) {
 			if(value instanceof String)
 				try {
 					return (V) Colors.parseIfColor((String) value);
 				} catch(MuisException e) {
 					return null;
 				}
-			return super.cast(value);
+			return super.cast(type, value);
 		}
 
 		@Override
@@ -735,7 +736,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public URL cast(Object value) {
+		public URL cast(Type type, Object value) {
 			if(value instanceof URL)
 				return (URL) value;
 			else
@@ -791,24 +792,20 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public <V extends T> V cast(Object value) {
-			if(value == null)
-				return null;
-			if(getType().isAssignableFrom(value.getClass()))
+		public <V extends T> V cast(Type type, Object value) {
+			if(value == null) {
+				if(type.getBaseType() != null)
+					try {
+						return (V) getType().cast(type.getBaseType().newInstance());
+					} catch(Exception e) {
+						throw new IllegalStateException("Could not instantiate type " + type, e);
+					}
+				else
+					throw new IllegalStateException("Could not instantiate type " + type);
+			} else if(getType().isAssignable(type))
 				return (V) getType().cast(value);
-			else if(value instanceof Class && getType().isAssignableFrom((Class<?>) value)) {
-				try {
-					return (V) getType().cast(((Class<?>) value).newInstance());
-				} catch(InstantiationException e) {
-					throw new IllegalStateException(propName() + ": Could not instantiate type " + ((Class<?>) value).getName(), e);
-				} catch(IllegalAccessException e) {
-					throw new IllegalStateException(propName() + ": Could not access default constructor of type "
-						+ ((Class<?>) value).getName(), e);
-				}
-			}
-			if(!getType().isAssignableFrom(value.getClass()))
+			else
 				return null;
-			return (V) getType().cast(value);
 		}
 	}
 
@@ -876,7 +873,7 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public T cast(Object value) {
+		public T cast(Type type, Object value) {
 			if(enumType.isInstance(value))
 				return (T) value;
 			else
@@ -987,8 +984,8 @@ public abstract class MuisProperty<T> {
 		}
 
 		@Override
-		public <V extends T> V cast(Object value) {
-			return theWrapped.cast(value);
+		public <V extends T> V cast(Type type, Object value) {
+			return theWrapped.cast(type, value);
 		}
 
 		@Override

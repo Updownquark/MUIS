@@ -151,7 +151,7 @@ public class AttributeManager {
 			if(value == null && isRequired())
 				throw new MuisException("Attribute " + theAttr + " is required--cannot be set to null");
 			if(value != null) {
-				T newValue = theAttr.getType().cast(value);
+				T newValue = theAttr.getType().cast(Type.typeOf(value), value);
 				if(newValue == null)
 					throw new MuisException("Value " + value + ", type " + value.getClass().getName() + " is not valid for atribute "
 						+ theAttr);
@@ -163,7 +163,8 @@ public class AttributeManager {
 		private void fire(T oldValue, T value) {
 			theStackChecker++;
 			final int stackCheck = theStackChecker;
-			AttributeChangedEvent<T> evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(oldValue), value,
+			AttributeChangedEvent<T> evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(
+				Type.typeOf(oldValue), oldValue), value,
 				null) {
 				@Override
 				public boolean isOverridden() {

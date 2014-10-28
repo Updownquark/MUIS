@@ -26,7 +26,7 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 
 	@Override
 	protected Iterator<StyledSequence> internalIterator() {
-		return prisms.util.ArrayUtils.iterator(new StyledSequence[] {new SimpleStyledSequence(theContent.toString(), null)}, true);
+		return prisms.util.ArrayUtils.iterator(new StyledSequence[] {new SimpleStyledSequence(theContent.toString(), getStyleAt(0))}, true);
 	}
 
 	/*@Override

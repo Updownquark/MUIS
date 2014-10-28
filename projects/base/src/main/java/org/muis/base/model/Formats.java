@@ -43,9 +43,9 @@ public class Formats {
 	};
 
 	/** Formats integers (type long) */
-	public static final MuisFormatter<Long> integer = new MuisFormatter<Long>() {
+	public static final MuisFormatter<Number> integer = new MuisFormatter<Number>() {
 		@Override
-		public void append(Long value, MutableDocumentModel doc) {
+		public void append(Number value, MutableDocumentModel doc) {
 			if(value != null)
 				doc.append(value.toString());
 		}

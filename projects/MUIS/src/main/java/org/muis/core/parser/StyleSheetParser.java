@@ -1,6 +1,5 @@
 package org.muis.core.parser;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 
@@ -15,8 +14,10 @@ import org.muis.core.style.sheet.StateGroupTypeExpression;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.StateExpression;
 
-import prisms.lang.*;
-import prisms.lang.eval.PrismsEvaluator;
+import prisms.lang.ParseException;
+import prisms.lang.ParseMatch;
+import prisms.lang.ParsedItem;
+import prisms.lang.PrismsParser;
 import prisms.lang.types.ParsedStatementBlock;
 
 /** Parses MUIS style sheets using a custom format */
@@ -831,7 +832,6 @@ public class StyleSheetParser {
 	}
 
 	private PrismsParser theParser;
-	private EvaluationEnvironment theEnv;
 
 	/** Creates a style sheet parser */
 	public StyleSheetParser() {
@@ -841,41 +841,13 @@ public class StyleSheetParser {
 		} catch(java.io.IOException e) {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}
-		theEnv = new DefaultEvaluationEnvironment();
 
-		// Use the default prisms.lang Grammar.xml to implement some setup declarations to prepare the environment
-		PrismsParser setupParser = new PrismsParser();
-		try {
-			setupParser.configure(PrismsParser.class.getResource("Grammar.xml"));
-		} catch(IOException e) {
-			throw new IllegalStateException("Could not configure style sheet setup parser", e);
-		}
-		PrismsEvaluator setupEvaluator = new PrismsEvaluator();
-		prisms.lang.eval.DefaultEvaluation.initializeDefaults(setupEvaluator);
 		if(DEBUG) {
 			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
 			theParser.setDebugger(debugger);
-			setupParser.setDebugger(debugger);
 			javax.swing.JFrame frame = prisms.lang.debug.PrismsParserDebugGUI.getDebuggerFrame(debugger);
 			frame.pack();
 			frame.setLocationRelativeTo(null);
-		}
-
-		ArrayList<String> commands = new ArrayList<>();
-		// Add constants and functions like rgb(r, g, b) here
-		commands.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");
-		commands.add("java.awt.Color hsb(int h, int s, int b){return " + org.muis.core.style.Colors.class.getName() + ".hsb(h, s, b);}");
-		commands.add("int round(double n){return (int) Math.round(n);}");
-		// TODO Add more constants and functions
-		for(String command : commands) {
-			try {
-				setupEvaluator.evaluate(
-					setupParser.parseStructures(new prisms.lang.ParseStructRoot(command), setupParser.parseMatches(command))[0], theEnv,
-					false, true);
-			} catch(ParseException | EvaluationException e) {
-				System.err.println("Could not execute XML stylesheet parser setup expression: " + command);
-				e.printStackTrace();
-			}
 		}
 	}
 

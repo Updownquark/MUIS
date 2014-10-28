@@ -1,7 +1,6 @@
 package org.muis.core.parser;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.muis.core.MuisClassView;
 import org.muis.core.MuisException;
@@ -32,19 +31,9 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 		}
 		MVX_ENV = new DefaultEvaluationEnvironment();
 
-		// Use the default prisms.lang Grammar.xml to implement some setup declarations to prepare the environment
-		PrismsParser setupParser = new PrismsParser();
-		try {
-			setupParser.configure(PrismsParser.class.getResource("Grammar.xml"));
-		} catch(IOException e) {
-			throw new IllegalStateException("Could not configure style sheet setup parser", e);
-		}
-		prisms.lang.eval.PrismsEvaluator setupEvaluator = new prisms.lang.eval.PrismsEvaluator();
-		prisms.lang.eval.DefaultEvaluation.initializeDefaults(setupEvaluator);
 		if(DEBUG) {
 			prisms.lang.debug.PrismsParserDebugGUI debugger = new prisms.lang.debug.PrismsParserDebugGUI();
 			MVX_PARSER.setDebugger(debugger);
-			setupParser.setDebugger(debugger);
 			javax.swing.JFrame frame = prisms.lang.debug.PrismsParserDebugGUI.getDebuggerFrame(debugger);
 			frame.pack();
 			frame.setLocationRelativeTo(null);
@@ -55,24 +44,6 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 		prisms.lang.eval.DefaultEvaluation.initializeBasics(MVX_EVALUATOR);
 		prisms.lang.eval.DefaultEvaluation.initializeConstructors(MVX_EVALUATOR);
 		MVX_EVALUATOR.seal();
-
-		ArrayList<String> commands = new ArrayList<>();
-		// Add constants and functions like rgb(r, g, b) here
-		commands.add("java.awt.Color rgb(int r, int g, int b){return " + org.muis.core.style.Colors.class.getName() + ".rgb(r, g, b);}");
-		commands.add("java.awt.Color hsb(int h, int s, int b){return " + org.muis.core.style.Colors.class.getName() + ".hsb(h, s, b);}");
-		commands.add("int round(double n){return (int) Math.round(n);}");
-		commands.add("String toString(java.awt.Color c){return " + org.muis.core.style.Colors.class.getName() + ".toString(c);}");
-		// TODO Add more constants and functions
-		for(String command : commands) {
-			try {
-				setupEvaluator.evaluate(
-					setupParser.parseStructures(new prisms.lang.ParseStructRoot(command), setupParser.parseMatches(command))[0], MVX_ENV,
-					false, true);
-			} catch(ParseException | EvaluationException e) {
-				System.err.println("Could not execute XML stylesheet parser setup expression: " + command);
-				e.printStackTrace();
-			}
-		}
 	}
 
 	/** The base of all model parsers in MUIS */
@@ -132,13 +103,14 @@ public class DefaultModelValueReferenceParser implements MuisValueReferenceParse
 					boolean asType, boolean withValues) throws EvaluationException {
 					String tagName = item.getName();
 					String className = theClassView.getMappedClass(null, tagName);
-					if(className != null)
+					if(className != null){
 						try {
 							return new EvaluationResult(new Type(theClassView.loadMappedClass(tagName, Object.class)));
 						} catch(MuisException e) {
 							// Need access to a message center?
 							e.printStackTrace();
 						}
+					}
 					return idSuperEval.evaluate(item, evaluator, env, asType, withValues);
 				}
 			});

@@ -129,7 +129,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	private void setValue(ObservableValue<?> value, MuisFormatter<?> formatter, org.muis.core.rx.ObservableValueEvent<?> event) {
 		register(value);
 		MutableDocumentModel editModel = (MutableDocumentModel) getDocumentModel();
-		boolean rich = atts().get(BaseAttributes.rich) == true;
+		boolean rich = atts().get(BaseAttributes.rich) == Boolean.TRUE;
 		if(isDocOverridden || (rich && !(editModel instanceof RichDocumentModel)) || (!rich && !(editModel instanceof SimpleDocumentModel))) {
 			editModel=rich ? new RichDocumentModel(getStyle().getSelf()) : new SimpleDocumentModel(getStyle().getSelf());
 			setEditModel(editModel);
@@ -139,7 +139,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		try (Transaction t = editModel.holdForWrite()) {
 			editModel.clear();
 			if(formatter != null)
-				((MuisFormatter<Object>) formatter).append(value, editModel);
+				((MuisFormatter<Object>) formatter).append(value.get(), editModel);
 			else
 				editModel.append("" + value);
 		} finally {

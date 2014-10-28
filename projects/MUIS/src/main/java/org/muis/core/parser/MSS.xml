@@ -52,66 +52,6 @@
 			</forbid>
 		</option>
 	</entity>
-	<entity name="hex int" order="1" impl="prisms.lang.types.ParsedNumber">
-		<literal storeAs="hex">0x</literal>
-		<whitespace type="forbid" />
-		<charset pattern="[_0-9a-fA-F]+" storeAs="value" />
-		<option>
-			<whitespace type="forbid" />
-			<literal pattern="[lL]" storeAs="longType" />
-		</option>
-		<forbid>
-			<whitespace type="forbid" />
-			<charset pattern="[_a-zA-Z0-9]" />
-		</forbid>
-	</entity>
-	<entity name="octal int" order="1" impl="prisms.lang.types.ParsedNumber">
-		<literal storeAs="oct">0</literal>
-		<whitespace type="forbid" />
-		<charset pattern="[_0-9]+" storeAs="value" />
-		<option>
-			<whitespace type="forbid" />
-			<literal pattern="[lL]" storeAs="longType" />
-			<forbid>
-				<whitespace type="forbid" />
-				<charset pattern="[_a-zA-Z0-9]" />
-			</forbid>
-		</option>
-	</entity>
-	<entity name="binary int" order="1" impl="prisms.lang.types.ParsedNumber">
-		<literal storeAs="binary">0b</literal>
-		<whitespace type="forbid" />
-		<charset pattern="[_0-9]*" storeAs="value" />
-		<option>
-			<whitespace type="forbid" />
-			<literal pattern="[lL]" storeAs="longType" />
-			<forbid>
-				<whitespace type="forbid" />
-				<charset pattern="[_a-zA-Z0-9]" />
-			</forbid>
-		</option>
-	</entity>
-	<entity name="boolean" order="1" impl="prisms.lang.types.ParsedBoolean">
-		<select>
-			<option>
-				<charset pattern="[_a-zA-Z][_a-zA-Z0-9]*" storeAs="value">
-					<match>true</match>
-				</charset>
-			</option>
-			<option>
-				<charset pattern="[_a-zA-Z][_a-zA-Z0-9]*" storeAs="value">
-					<match>false</match>
-				</charset>
-			</option>
-		</select>
-	</entity>
-	<entity name="string" order="1" impl="prisms.lang.types.ParsedString">
-		<literal>&quot;</literal>
-		<charset storeAs="value" pattern=".*">
-			<exclude escape="\&quot;">&quot;</exclude>
-		</charset>
-		<literal>&quot;</literal>
-	</entity>
 
 	<op name="line comment" ignorable="true" order="0" impl="prisms.lang.types.ParsedComment">
 		<literal>//</literal>
@@ -186,7 +126,7 @@
 					</option>
 				</option>
 				<option>
-					<op type="domain assignment" storeAs="content" />
+					<op type="domain-assignment" storeAs="content" />
 				</option>
 				<option>
 					<op type="section" storeAs="content" />
@@ -240,7 +180,7 @@
 			<literal>;</literal>
 		</option>
 	</operator>
-	<operator name="domain assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedDomainAssignment">
+	<operator name="domain-assignment" order="1" impl="org.muis.core.parser.StyleSheetParser$ParsedDomainAssignment">
 		<op type="muis type" storeAs="domain" />
 		<literal>=</literal>
 		<op type="domain-scoped-block" storeAs="value" />
@@ -248,14 +188,14 @@
 	<operator name="domain-scoped-block" priority="-1" impl="org.muis.core.parser.StyleSheetParser$DomainScopedBlock">
 		<literal>{</literal>
 		<option min="0">
-			<op type="domain-scoped assignment" storeAs="content" />
+			<op type="domain-scoped-assignment" storeAs="content" />
 			<option>
 				<literal>;</literal>
 			</option>
 		</option>
 		<literal>}</literal>
 	</operator>
-	<operator name="domain-scoped assignment" priority="-1" impl="org.muis.core.parser.StyleSheetParser$DomainScopedAssignment">
+	<operator name="domain-scoped-assignment" priority="-1" impl="org.muis.core.parser.StyleSheetParser$DomainScopedAssignment">
 		<op type="identifier" storeAs="name" />
 		<literal>=</literal>
 		<charset pattern=".*" storeAs="value">
@@ -264,157 +204,8 @@
 			<exclude>;</exclude>
 		</charset>
 	</operator>
-	<operator name="function" order="1000" impl="prisms.lang.types.ParsedMethod">
-		<op type="identifier" storeAs="name" />
-		<literal storeAs="method">(</literal>
-		<option>
-			<op storeAs="parameter" />
-			<option min="0">
-				<literal>,</literal>
-				<op storeAs="parameter" />
-			</option>
-		</option>
-		<literal>)</literal>
-	</operator>
-	
-	<entity name="primitive" order="998" impl="prisms.lang.types.ParsedKeyword">
-		<charset pattern="[_a-zA-Z][_a-zA-Z0-9]*" storeAs="name">
-			<!--<match>void</match>-->
-			<match>null</match>
-			<!--<match>boolean</match>-->
-			<match>true</match>
-			<match>false</match>
-			<!--<match>char</match>
-			<match>byte</match>
-			<match>short</match>
-			<match>int</match>
-			<match>long</match>
-			<match>float</match>
-			<match>double</match>-->
-		</charset>
-	</entity>
+
 	<entity name="identifier" order="1000" impl="prisms.lang.types.ParsedIdentifier">
 		<charset pattern="[_a-zA-Z][_a-zA-Z0-9\-]*" storeAs="name" />
 	</entity>
-
-	<!-- Ternary conditional -->
-	<operator name="conditional" order="50" priority="110" impl="prisms.lang.types.ParsedConditional">
-		<op storeAs="condition" />
-		<literal>?</literal>
-		<op storeAs="affirmative" />
-		<literal>:</literal>
-		<op storeAs="negative" />
-	</operator>
-
-	<!-- Logical -->
-	<operator name="or" order="50" priority="120" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">||</literal>
-		<op />
-	</operator>
-	<operator name="and" order="50" priority="130" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">&amp;&amp;</literal>
-		<op />
-	</operator>
-
-	<!-- Bitwise -->
-	<operator name="binary or" order="50" priority="140" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">|</literal>
-		<op />
-	</operator>
-	<operator name="binary xor" order="50" priority="150" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">^</literal>
-		<op />
-	</operator>
-	<operator name="binary and" order="50" priority="160" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">&amp;</literal>
-		<op />
-	</operator>
-
-	<!-- Equality -->
-	<operator name="equal" order="50" priority="170" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">==</literal>
-		<op />
-	</operator>
-	<operator name="not equal" order="50" priority="170" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">!=</literal>
-		<op />
-	</operator>
-
-	<!-- Comparison -->
-	<operator name="less than" order="50" priority="180" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">&lt;</literal>
-		<op />
-	</operator>
-	<operator name="less than equal" order="50" priority="180" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">&lt;=</literal>
-		<op />
-	</operator>
-	<operator name="greater than" order="50" priority="180" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">&gt;</literal>
-		<op />
-	</operator>
-	<operator name="greater than equal" order="50" priority="180" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">&gt;=</literal>
-		<op />
-	</operator>
-
-	<!-- Additive -->
-	<operator name="add" order="50" priority="200" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">+</literal>
-		<op />
-	</operator>
-	<operator name="subtract" order="50" priority="200" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">-</literal>
-		<op />
-	</operator>
-
-	<!-- Multiplicative -->
-	<operator name="multiply" order="50" priority="210" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">*</literal>
-		<op />
-	</operator>
-	<operator name="divide" order="50" priority="210" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">/</literal>
-		<op />
-	</operator>
-	<operator name="modulo" order="50" priority="210" impl="prisms.lang.types.ParsedBinaryOp">
-		<op />
-		<literal storeAs="name">%</literal>
-		<op />
-	</operator>
-
-	<!-- Unary pre -->
-	<operator name="posit" order="50" priority="220" impl="prisms.lang.types.ParsedUnaryOp">
-		<literal storeAs="name">+</literal>
-		<op />
-	</operator>
-	<operator name="negate" order="50" priority="220" impl="prisms.lang.types.ParsedUnaryOp">
-		<literal storeAs="name">-</literal>
-		<op />
-	</operator>
-	<operator name="not" order="50" priority="220" impl="prisms.lang.types.ParsedUnaryOp">
-		<literal storeAs="name">!</literal>
-		<op />
-	</operator>
-	<!-- Others -->
-	<operator name="parenthetic" order="50" priority="250" impl="prisms.lang.types.ParsedParenthetic">
-		<literal>(</literal>
-		<op storeAs="content" />
-		<literal>)</literal>
-	</operator>
 </grammar>

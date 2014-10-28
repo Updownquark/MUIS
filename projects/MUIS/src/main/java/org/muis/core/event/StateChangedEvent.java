@@ -62,7 +62,7 @@ public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	 * @param cause The event that was the cause of the state change--may be null
 	 */
 	public StateChangedEvent(MuisElement element, MuisState state, boolean newValue, MuisEvent cause) {
-		super(element, null, !newValue, newValue, cause);
+		super(element, element.state().observe(state), !newValue, newValue, cause);
 		theState = state;
 		theCause = cause;
 	}

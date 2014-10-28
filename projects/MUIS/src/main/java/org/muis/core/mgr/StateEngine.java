@@ -88,6 +88,14 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		return isActive(theStates.get(state));
 	}
 
+	@Override
+	public ObservableValue<Boolean> observe(MuisState state) {
+		for(StateController control : theStateControllers)
+			if(control.getState().equals(state))
+				return control.unsettable();
+		return ObservableValue.constant(null, false);
+	}
+
 	private static boolean isActive(StateValue stateValue) {
 		return stateValue != null && stateValue.isActive();
 	}

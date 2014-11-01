@@ -57,7 +57,7 @@ public class ModelAttributes {
 			}
 
 			@Override
-			public <V extends MuisActionListener> V cast(Object attValue) {
+			public <V extends MuisActionListener> V cast(Type type, Object attValue) {
 				if(attValue instanceof MuisActionListener)
 					return (V) attValue;
 				else

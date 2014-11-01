@@ -116,7 +116,7 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 	}
 
 	@Override
-	public SealableStyle cast(Object value) {
+	public SealableStyle cast(Type type, Object value) {
 		return value instanceof SealableStyle ? (SealableStyle) value : null;
 	}
 

@@ -115,7 +115,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 				return this;
 
 			RichStyleSequence seq = getEmptyLast();
-			value = attr.getType().cast(value);
+			value = attr.getType().cast(attr.getType().getType(), value);
 			if(attr.getValidator() != null)
 				try {
 					attr.getValidator().assertValid(value);

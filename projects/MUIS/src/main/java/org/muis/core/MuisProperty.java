@@ -794,6 +794,8 @@ public abstract class MuisProperty<T> {
 		@Override
 		public <V extends T> V cast(Type type, Object value) {
 			if(value == null) {
+				if(type == Type.NULL)
+					return null;
 				if(type.getBaseType() != null)
 					try {
 						return (V) getType().cast(type.getBaseType().newInstance());

@@ -163,14 +163,18 @@ public class AttributeManager {
 		private void fire(T oldValue, T value) {
 			theStackChecker++;
 			final int stackCheck = theStackChecker;
-			AttributeChangedEvent<T> evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(
-				Type.typeOf(oldValue), oldValue), value,
-				null) {
-				@Override
-				public boolean isOverridden() {
-					return stackCheck != theStackChecker;
-				}
-			};
+			AttributeChangedEvent<T> evt;
+			try {
+				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(
+					Type.typeOf(oldValue), oldValue), value, null) {
+					@Override
+					public boolean isOverridden() {
+						return stackCheck != theStackChecker;
+					}
+				};
+			} catch(Exception e) {
+				throw new IllegalStateException(toString() + ": " + e, e);
+			}
 			theController.onNext(evt);
 			theElement.events().fire(evt);
 		}
@@ -245,6 +249,11 @@ public class AttributeManager {
 		RawAttributeValue(String val, MuisParseEnv ctx) {
 			value = val;
 			context = ctx;
+		}
+
+		@Override
+		public String toString() {
+			return value;
 		}
 	}
 

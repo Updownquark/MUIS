@@ -458,7 +458,10 @@ public abstract class AbstractMuisDocumentModel implements MuisDocumentModel {
 				float width = theBreakWidth - theLineOffset;
 				if(width <= 0)
 					width = 1;
-				theCurrentLayout = theCurrentMeasurer.nextLayout(width);
+				if(theCurrentMeasurer == null)
+					theCurrentLayout = null;
+				else
+					theCurrentLayout = theCurrentMeasurer.nextLayout(width);
 			}
 			return theCurrentLayout != null;
 		}

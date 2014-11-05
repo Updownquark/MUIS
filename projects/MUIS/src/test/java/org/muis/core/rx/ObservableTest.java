@@ -11,7 +11,9 @@ import org.junit.Test;
 
 import prisms.lang.Type;
 
+/** Tests observable classes in the org.muis.core.rx package */
 public class ObservableTest {
+	/** Tests simple {@link SimpleSettableValue} functionality */
 	@Test
 	public void settableValue() {
 		SimpleSettableValue<Integer> obs = new SimpleSettableValue<>(Integer.TYPE, false);
@@ -24,6 +26,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableValue#mapV(java.util.function.Function)} */
 	@Test
 	public void valueMap() {
 		SimpleSettableValue<Integer> obs = new SimpleSettableValue<>(Integer.TYPE, false);
@@ -37,6 +40,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link Observable#filter(java.util.function.Function)} */
 	@Test
 	public void filter() {
 		DefaultObservable<Integer> obs = new DefaultObservable<>();
@@ -50,6 +54,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link Observable#take(int)} */
 	@Test
 	public void takeNumber() {
 		DefaultObservable<Integer> obs = new DefaultObservable<>();
@@ -66,6 +71,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link Observable#takeUntil(Observable)} */
 	@Test
 	public void takeUntil() {
 		DefaultObservable<Integer> obs = new DefaultObservable<>();
@@ -87,6 +93,10 @@ public class ObservableTest {
 		}
 	}
 
+	/**
+	 * Tests {@link Subscription} as an observable to ensure that it is closed (and its observers notified) when
+	 * {@link Subscription#unsubscribe()} is called
+	 */
 	@Test
 	public void subSubscription() {
 		DefaultObservable<Integer> obs = new DefaultObservable<>();
@@ -114,6 +124,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link Observable#completed()} */
 	@Test
 	public void completed() {
 		DefaultObservable<Integer> obs = new DefaultObservable<>();
@@ -129,6 +140,7 @@ public class ObservableTest {
 		assertEquals(10, received[0]);
 	}
 
+	/** Tests {@link ObservableValue#combineV(TriFunction, ObservableValue, ObservableValue)} */
 	@Test
 	public void combine() {
 		int [] events = new int[1];
@@ -152,6 +164,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableValue#flatten(Type, ObservableValue)} */
 	@Test
 	public void observableValueFlatten() {
 		SimpleSettableValue<ObservableValue<Integer>> outer = new SimpleSettableValue<>(new Type(ObservableValue.class, new Type(
@@ -177,6 +190,7 @@ public class ObservableTest {
 		assertEquals(6, received[0]);
 	}
 
+	/** Tests basic {@link ObservableSet} functionality */
 	@Test
 	public void observableSet() {
 		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
@@ -227,6 +241,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests basic {@link ObservableList} functionality */
 	@Test
 	public void observableList() {
 		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
@@ -278,6 +293,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableSet#mapC(java.util.function.Function)} */
 	@Test
 	public void observableSetMap() {
 		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
@@ -310,6 +326,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableSet#filterC(java.util.function.Function)} */
 	@Test
 	public void observableSetFilter() {
 		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
@@ -344,6 +361,7 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableSet#combineC(ObservableValue, java.util.function.BiFunction)} */
 	@Test
 	public void observableSetCombine() {
 		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
@@ -407,6 +425,8 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableCollection#flatten(ObservableCollection)} */
+	@Test
 	public void observableSetFlatten() {
 		DefaultObservableSet<Integer> set1 = new DefaultObservableSet<>(new Type(Integer.TYPE));
 		DefaultObservableSet<Integer> set2 = new DefaultObservableSet<>(new Type(Integer.TYPE));
@@ -506,6 +526,8 @@ public class ObservableTest {
 		assertEquals(filteredCorrect.size(), filtered.size());
 	}
 
+	/** Tests {@link ObservableCollection#fold(ObservableCollection)} */
+	@Test
 	public void observableSetFold() {
 		DefaultObservable<Integer> obs1 = new DefaultObservable<>();
 		DefaultObservable<Integer> obs2 = new DefaultObservable<>();
@@ -536,6 +558,8 @@ public class ObservableTest {
 		assertEquals(4, received[0]);
 	}
 
+	/** Tests {@link ObservableList#mapC(java.util.function.Function)} */
+	@Test
 	public void observableListMap() {
 		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
 		List<Integer> controller = list.control(null);
@@ -576,6 +600,8 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableList#filter(java.util.function.Function)} */
+	@Test
 	public void observableListFilter() {
 		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
 		List<Integer> controller = list.control(null);
@@ -619,6 +645,8 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableList#combineC(ObservableValue, java.util.function.BiFunction)} */
+	@Test
 	public void observableListCombine() {
 		DefaultObservableList<Integer> set = new DefaultObservableList<>(new Type(Integer.TYPE));
 		SimpleSettableValue<Integer> value1 = new SimpleSettableValue<>(Integer.TYPE, false);
@@ -691,6 +719,8 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableList#flatten(ObservableList)} */
+	@Test
 	public void observableListFlatten() {
 		DefaultObservableList<Integer> set1 = new DefaultObservableList<>(new Type(Integer.TYPE));
 		DefaultObservableList<Integer> set2 = new DefaultObservableList<>(new Type(Integer.TYPE));
@@ -794,6 +824,8 @@ public class ObservableTest {
 		assertEquals(filteredCorrect.size(), filtered.size());
 	}
 
+	/** Tests {@link ObservableList#find(Type, java.util.function.Function)} */
+	@Test
 	public void observableListFind() {
 		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
 		ObservableValue<Integer> found = list.find(new Type(Integer.TYPE), value -> value % 3 == 0 ? value : null);
@@ -822,6 +854,8 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableUtils#flatten(Type, ObservableList)} */
+	@Test
 	public void utilsListFlatten() {
 		DefaultObservableList<ObservableValue<Integer>> list = new DefaultObservableList<>(new Type(ObservableValue.class, new Type(
 			Integer.TYPE)));

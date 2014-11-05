@@ -100,7 +100,7 @@ public class BackgroundStyle implements StyleDomain {
 		}
 
 		@Override
-		public Cursor cast(Object obj) {
+		public Cursor cast(Type type, Object obj) {
 			if(obj instanceof Cursor)
 				return (Cursor) obj;
 			else

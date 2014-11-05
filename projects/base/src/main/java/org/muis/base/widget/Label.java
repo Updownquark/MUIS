@@ -60,6 +60,11 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 						try (Transaction trans = mutableDoc.holdForWrite()) {
 							mutableDoc.clear();
 							((MuisFormatter<Object>) tuple.getValue2()).append(tuple.getValue1(), mutableDoc);
+							} catch(ClassCastException e) {
+								msg()
+									.error(
+										"Formatter instance " + tuple.getValue2() + " is incompatible with model value "
+											+ tuple.getValue1(), e);
 						}
 					});
 

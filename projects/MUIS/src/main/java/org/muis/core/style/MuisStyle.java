@@ -63,7 +63,7 @@ public interface MuisStyle {
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<T> dependValue = ObservableUtils.flatten(attr.getType().getType(),
 			getDependencies().mapC(depend -> depend.get(attr, false))).find(attr.getType().getType(), val -> val);
-		return getLocal(attr).combineV((T local, T depend) -> {
+		return getLocal(attr).combineV(null, (T local, T depend) -> {
 			if(local != null)
 				return local;
 			else if(depend != null)
@@ -72,7 +72,7 @@ public interface MuisStyle {
 				return attr.getDefault();
 			else
 				return null;
-		}, dependValue);
+		}, dependValue, true);
 	}
 
 	/**

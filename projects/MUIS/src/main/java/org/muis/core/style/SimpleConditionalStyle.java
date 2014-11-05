@@ -114,7 +114,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 * @throws IllegalArgumentException If the given value is not valid for the attribute
 	 */
 	protected <T> T castAndValidate(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
-		T value2 = attr.getType().cast(value);
+		T value2 = attr.getType().cast(attr.getType().getType(), value);
 		if(value2 == null)
 			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
 				+ " of type " + attr.getType());

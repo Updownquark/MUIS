@@ -61,7 +61,7 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 	}
 
 	@Override
-	public Position cast(Object value) {
+	public Position cast(Type type, Object value) {
 		if(value instanceof Position)
 			return (Position) value;
 		else if(value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Byte)

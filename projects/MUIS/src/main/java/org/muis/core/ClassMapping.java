@@ -32,4 +32,9 @@ public class ClassMapping {
 	public String getClassName() {
 		return theClassName;
 	}
+
+	@Override
+	public String toString() {
+		return theName + "->" + theClassName;
+	}
 }

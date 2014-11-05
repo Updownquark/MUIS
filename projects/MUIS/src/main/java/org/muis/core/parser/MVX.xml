@@ -35,7 +35,7 @@
 		</option>
 		<select>
 			<option>
-				<charset pattern="[1-9][_0-9]*" storeAs="integer" />
+				<charset pattern="[0-9][_0-9]*" storeAs="integer" />
 				<whitespace type="forbid" />
 				<literal>.</literal>
 				<option>
@@ -206,69 +206,6 @@
 			<match>long</match>
 			<match>float</match>
 			<match>double</match>
-		</charset>
-	</entity>
-	<entity name="keyword" order="999" impl="prisms.lang.types.ParsedKeyword">
-		<charset pattern="[_a-zA-Z][_a-zA-Z0-9]*" storeAs="name">
-			<match>package</match>
-			<match>import</match>
-			<match>class</match>
-			<match>interface</match>
-			<match>enum</match>
-			<match>abstract</match>
-			<match>extends</match>
-			<match>implements</match>
-			<match>public</match>
-			<match>protected</match>
-			<match>private</match>
-			<match>static</match>
-			<match>synchronized</match>
-			<match>transient</match>
-			<match>volatile</match>
-			<match>native</match>
-			<match>strictfp</match>
-			<match>final</match>
-			<match>throws</match>
-			<match>super</match>
-			<match>this</match>
-
-			<match>if</match>
-			<match>else</match>
-			<match>for</match>
-			<match>do</match>
-			<match>while</match>
-			<match>switch</match>
-			<match>case</match>
-			<match>default</match>
-			<match>break</match>
-			<match>continue</match>
-			<match>try</match>
-			<match>catch</match>
-			<match>finally</match>
-			<match>return</match>
-			<match>throw</match>
-
-			<match>void</match>
-			<match>null</match>
-			<match>boolean</match>
-			<match>true</match>
-			<match>false</match>
-			<match>char</match>
-			<match>byte</match>
-			<match>short</match>
-			<match>int</match>
-			<match>long</match>
-			<match>float</match>
-			<match>double</match>
-
-			<match>new</match>
-			<match>instanceof</match>
-			<match>assert</match>
-
-			<match>goto</match>
-			<match>const</match>
-
-			<match>drop</match>
 		</charset>
 	</entity>
 	<entity name="identifier" order="1000" impl="prisms.lang.types.ParsedIdentifier">
@@ -523,7 +460,7 @@
 	<operator name="member method" order="50" priority="250" impl="prisms.lang.types.ParsedMethod">
 		<op storeAs="context" />
 		<literal storeAs="dot">.</literal>
-		<op type="identifier|keyword" storeAs="name" />
+		<op type="identifier" storeAs="name" />
 		<literal storeAs="method">(</literal>
 		<option>
 			<op storeAs="parameter" />

@@ -223,7 +223,7 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 
 			@Override
-			public <V extends AttachPoint> V cast(Object value) {
+			public <V extends AttachPoint> V cast(Type type, Object value) {
 				if(value instanceof AttachPoint)
 					return (V) value;
 				return null;

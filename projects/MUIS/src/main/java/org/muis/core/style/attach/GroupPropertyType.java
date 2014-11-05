@@ -29,7 +29,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 	}
 
 	@Override
-	public String [] cast(Object value) {
+	public String [] cast(Type type, Object value) {
 		if(value instanceof String [])
 			return (String []) value;
 		else if(value instanceof String)

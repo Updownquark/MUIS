@@ -55,7 +55,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
-		T value2 = attr.getType().cast(value);
+		T value2 = attr.getType().cast(attr.getType().getType(), value);
 		if(value2 == null)
 			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
 				+ " of type " + attr.getType());

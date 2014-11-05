@@ -60,7 +60,7 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 	}
 
 	@Override
-	public Size cast(Object value) {
+	public Size cast(Type type, Object value) {
 		if(value instanceof Size)
 			return (Size) value;
 		else if(value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Byte)

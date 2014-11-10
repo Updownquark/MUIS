@@ -239,6 +239,9 @@ public class ObservableTest {
 			controller.remove(i);
 			assertEquals(correct, compare1);
 		}
+		sub.unsubscribe();
+		correct.clear();
+		assertEquals(correct, compare1);
 	}
 
 	/** Tests basic {@link ObservableList} functionality */
@@ -291,6 +294,9 @@ public class ObservableTest {
 			controller.remove((Integer) i);
 			assertEquals(correct, compare1);
 		}
+		sub.unsubscribe();
+		correct.clear();
+		assertEquals(correct, compare1);
 	}
 
 	/** Tests {@link ObservableSet#mapC(java.util.function.Function)} */
@@ -772,6 +778,9 @@ public class ObservableTest {
 		List<Integer> controller2 = set2.control(null);
 		List<Integer> controller3 = set3.control(null);
 
+		List<Integer> correct1 = new ArrayList<>();
+		List<Integer> correct2 = new ArrayList<>();
+		List<Integer> correct3 = new ArrayList<>();
 		List<Integer> correct = new ArrayList<>();
 		List<Integer> filteredCorrect = new ArrayList<>();
 
@@ -779,12 +788,19 @@ public class ObservableTest {
 			controller1.add(i);
 			controller2.add(i * 10);
 			controller3.add(i * 100);
-			correct.add(i);
-			correct.add(i * 10);
-			if(i % 3 == 0) {
-				filteredCorrect.add(i);
-				filteredCorrect.add(i * 10);
-			}
+			correct1.add(i);
+			correct2.add(i * 10);
+			correct3.add(i * 100);
+			correct.clear();
+			correct.addAll(correct1);
+			correct.addAll(correct2);
+			filteredCorrect.clear();
+			for(int j : correct1)
+				if(j % 3 == 0)
+					filteredCorrect.add(j);
+			for(int j : correct2)
+				if(j % 3 == 0)
+					filteredCorrect.add(j);
 			assertEquals(flat, compare1);
 			assertEquals(flat.size(), compare1.size());
 			assertEquals(correct, compare1);
@@ -794,12 +810,21 @@ public class ObservableTest {
 		}
 
 		outerControl.add(set3);
-		for(int i = 0; i < 30; i++) {
-			correct.add(i * 100);
-			if(i % 3 == 0) {
-				filteredCorrect.add(i * 100);
-			}
-		}
+		correct.clear();
+		correct.addAll(correct1);
+		correct.addAll(correct2);
+		correct.addAll(correct3);
+		filteredCorrect.clear();
+		for(int j : correct1)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+		for(int j : correct2)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+		for(int j : correct3)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+
 		assertEquals(flat, compare1);
 		assertEquals(flat.size(), compare1.size());
 		assertEquals(correct, compare1);
@@ -809,15 +834,16 @@ public class ObservableTest {
 
 		outerControl.remove(set2);
 		correct.clear();
+		correct.addAll(correct1);
+		correct.addAll(correct3);
 		filteredCorrect.clear();
-		for(int i = 0; i < 30; i++) {
-			correct.add(i);
-			correct.add(i * 100);
-			if(i % 3 == 0) {
-				filteredCorrect.add(i);
-				filteredCorrect.add(i * 100);
-			}
-		}
+		for(int j : correct1)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+		for(int j : correct3)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+
 		assertEquals(flat, compare1);
 		assertEquals(flat.size(), compare1.size());
 		assertEquals(correct, compare1);

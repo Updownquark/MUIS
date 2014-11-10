@@ -255,27 +255,38 @@ public interface Observable<T> {
 			public Runnable internalSubscribe(Observer<? super T> observer) {
 				Runnable outerSub = outer.internalSubscribe(observer);
 				boolean [] complete = new boolean[1];
-				Runnable untilSub = until.internalSubscribe(new Observer<Object>() {
+				Runnable [] untilSub = new Runnable[1];
+				untilSub[0] = until.internalSubscribe(new Observer<Object>() {
 					@Override
 					public void onNext(Object value) {
-						complete[0] = true;
-						outerSub.run();
+						if(!complete[0]) {
+							complete[0] = true;
+							outerSub.run();
+							if(untilSub[0] != null)
+								untilSub[0].run();
+						}
 					}
 
 					@Override
 					public void onCompleted(Object value) {
-						complete[0] = true;
-						outerSub.run();
+						if(!complete[0]) {
+							complete[0] = true;
+							outerSub.run();
+							if(untilSub[0] != null)
+								untilSub[0].run();
+						}
 					}
 				});
 				if(complete[0]) {
-					untilSub.run();
+					if(untilSub[0] != null)
+						untilSub[0].run();
 					return () -> {
 					};
 				}
 				return () -> {
 					outerSub.run();
-					untilSub.run();
+					if(untilSub[0] != null)
+						untilSub[0].run();
 				};
 			}
 		};

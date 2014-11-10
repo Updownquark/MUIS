@@ -551,9 +551,12 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			@Override
 			public T get(int index) {
 				int idx = index;
-				for(ObservableList<T> subList : list)
-					if(idx < list.size())
+				for(ObservableList<T> subList : list) {
+					if(idx < subList.size())
 						return subList.get(idx);
+					else
+						idx -= subList.size();
+				}
 				throw new IndexOutOfBoundsException(index + " out of " + size());
 			}
 
@@ -584,7 +587,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									if(subListSub != null)
 										subListSub.unsubscribe();
 								}
-								Subscription<ObservableElement<T>> subListSub = subListEvent.getValue().takeUntil(subList)
+								Subscription<ObservableElement<T>> subListSub = subListEvent.getValue().takeUntil(subList.completed())
 									.subscribe(new Observer<ObservableElement<T>>() {
 										@Override
 										public <V3 extends ObservableElement<T>> void onNext(V3 subElement) {
@@ -622,6 +625,16 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 										}
 									});
 								subListSubscriptions.put(subListEvent.getValue(), subListSub);
+							}
+
+							@Override
+							public <V2 extends ObservableValueEvent<? extends ObservableList<T>>> void onCompleted(V2 subListEvent) {
+								subListSubscriptions.remove(subListEvent.getValue()).unsubscribe();
+							}
+
+							@Override
+							public void onError(Throwable e) {
+								observer.onError(e);
 							}
 						});
 					}

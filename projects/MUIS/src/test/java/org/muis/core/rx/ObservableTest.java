@@ -79,17 +79,23 @@ public class ObservableTest {
 		DefaultObservable<Boolean> stop = new DefaultObservable<>();
 		Observer<Boolean> stopControl = stop.control(null);
 		int [] received = new int[] {0};
-		obs.takeUntil(stop).act(value -> received[0] = value);
+		int [] count = new int[1];
+		obs.takeUntil(stop).act(value -> {
+			count[0]++;
+			received[0] = value;
+		});
 
-		for(int i = 1; i < 30; i++) {
+		for(int i = 1; i <= 30; i++) {
 			controller.onNext(i);
 			assertEquals(i, received[0]);
+			assertEquals(i, count[0]);
 		}
 		stopControl.onNext(true);
 		final int finalValue = received[0];
-		for(int i = 1; i < 30; i++) {
+		for(int i = 1; i <= 30; i++) {
 			controller.onNext(i);
 			assertEquals(finalValue, received[0]);
+			assertEquals(30, count[0]);
 		}
 	}
 
@@ -239,9 +245,6 @@ public class ObservableTest {
 			controller.remove(i);
 			assertEquals(correct, compare1);
 		}
-		sub.unsubscribe();
-		correct.clear();
-		assertEquals(correct, compare1);
 	}
 
 	/** Tests basic {@link ObservableList} functionality */
@@ -294,9 +297,6 @@ public class ObservableTest {
 			controller.remove((Integer) i);
 			assertEquals(correct, compare1);
 		}
-		sub.unsubscribe();
-		correct.clear();
-		assertEquals(correct, compare1);
 	}
 
 	/** Tests {@link ObservableSet#mapC(java.util.function.Function)} */
@@ -667,7 +667,7 @@ public class ObservableTest {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
 					if(event.getOldValue() != null)
-						compare1.set(listEl.getIndex(), event.getOldValue());
+						compare1.set(listEl.getIndex(), event.getValue());
 					else
 						compare1.add(listEl.getIndex(), event.getValue());
 				}
@@ -679,14 +679,6 @@ public class ObservableTest {
 			});
 		});
 
-		for(int i = 0; i < 30; i++) {
-			controller.add(i);
-			int value = i * value1.get();
-			if(value % 3 == 0)
-				correct.add(value);
-			assertEquals(correct, compare1);
-			assertEquals(correct.size(), compare1.size());
-		}
 		for(int i = 0; i < 30; i++) {
 			controller.add(i);
 			int value = i * value1.get();
@@ -762,14 +754,18 @@ public class ObservableTest {
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
-					if(event.getOldValue() != null)
-						filtered.set(listEl.getIndex(), event.getOldValue());
-					else
+					if(event.getOldValue() != null) {
+						// System.out.println("Set " + event.getValue() + " at " + listEl.getIndex());
+						filtered.set(listEl.getIndex(), event.getValue());
+					} else {
+						// System.out.println("Add " + event.getValue() + " at " + listEl.getIndex());
 						filtered.add(listEl.getIndex(), event.getValue());
+					}
 				}
 
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					// System.out.println("Remove " + event.getValue() + " at " + listEl.getIndex());
 					filtered.remove(listEl.getIndex());
 				}
 			});
@@ -832,6 +828,7 @@ public class ObservableTest {
 		assertEquals(filteredCorrect, filtered);
 		assertEquals(filteredCorrect.size(), filtered.size());
 
+
 		outerControl.remove(set2);
 		correct.clear();
 		correct.addAll(correct1);
@@ -850,6 +847,31 @@ public class ObservableTest {
 		assertEquals(correct.size(), compare1.size());
 		assertEquals(filteredCorrect, filtered);
 		assertEquals(filteredCorrect.size(), filtered.size());
+
+		for(int i = 0; i < 30; i++) {
+			controller1.remove(i);
+			controller2.remove(i * 10);
+			controller3.remove(i * 100);
+			correct1.remove(i);
+			correct2.remove(i * 10);
+			correct3.remove(i * 100);
+			correct.clear();
+			correct.addAll(correct1);
+			correct.addAll(correct3);
+			filteredCorrect.clear();
+			for(int j : correct1)
+				if(j % 3 == 0)
+					filteredCorrect.remove(j);
+			for(int j : correct3)
+				if(j % 3 == 0)
+					filteredCorrect.remove(j);
+			assertEquals(flat, compare1);
+			assertEquals(flat.size(), compare1.size());
+			assertEquals(correct, compare1);
+			assertEquals(correct.size(), compare1.size());
+			assertEquals(filteredCorrect, filtered);
+			assertEquals(filteredCorrect.size(), filtered.size());
+		}
 	}
 
 	/** Tests {@link ObservableList#find(Type, java.util.function.Function)} */

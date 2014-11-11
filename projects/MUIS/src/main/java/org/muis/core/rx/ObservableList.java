@@ -240,9 +240,15 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
 										exists[0] = false;
-										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this,
-											map.apply(elValue
-											.getOldValue()), map.apply(elValue.getValue()), elValue));
+										T oldVal, newVal;
+										if(elValue != null) {
+											oldVal = map.apply(elValue.getOldValue());
+											newVal = map.apply(elValue.getValue());
+										} else {
+											oldVal = get();
+											newVal = oldVal;
+										}
+										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldVal, newVal, elValue));
 									}
 								});
 								return () -> {
@@ -587,8 +593,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									if(subListSub != null)
 										subListSub.unsubscribe();
 								}
-								Subscription<ObservableElement<T>> subListSub = subListEvent.getValue().takeUntil(subList.completed())
-									.subscribe(new Observer<ObservableElement<T>>() {
+								Subscription<ObservableElement<T>> subListSub = subListEvent.getValue().subscribe(
+									new Observer<ObservableElement<T>>() {
 										@Override
 										public <V3 extends ObservableElement<T>> void onNext(V3 subElement) {
 											observer.onNext(new ObservableListElement<T>() {
@@ -619,7 +625,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 												@Override
 												public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-													return subElement.internalSubscribe(observer2);
+													return subElement.takeUntil(subList.completed()).internalSubscribe(observer2);
 												}
 											});
 										}

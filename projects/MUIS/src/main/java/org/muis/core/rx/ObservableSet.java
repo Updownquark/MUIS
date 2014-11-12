@@ -253,9 +253,15 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
 										exists[0] = false;
-										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this,
-											map.apply(elValue
-											.getOldValue()), map.apply(elValue.getValue()), elValue));
+										T oldVal, newVal;
+										if(elValue != null) {
+											oldVal = map.apply(elValue.getOldValue());
+											newVal = map.apply(elValue.getValue());
+										} else {
+											oldVal = get();
+											newVal = oldVal;
+										}
+										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldVal, newVal, elValue));
 									}
 								});
 								if(!exists[0]) {

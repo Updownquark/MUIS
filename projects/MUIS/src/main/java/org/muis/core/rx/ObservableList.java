@@ -224,17 +224,23 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 							@Override
 							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-								Runnable innerSub = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+								Runnable [] innerSub = new Runnable[1];
+								innerSub[0] = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
 									@Override
 									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
 										T mapped = map.apply(elValue.getValue());
-										ObservableValueEvent<T> newEvent = new ObservableValueEvent<>(InnerElement.this, map.apply(elValue
-											.getOldValue()), mapped, elValue);
 										if(mapped == null) {
 											exists[0] = false;
-											observer2.onCompleted(newEvent);
+											T oldValue = map.apply(elValue.getOldValue());
+											observer2
+												.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldValue, oldValue, elValue));
+											if(innerSub[0] != null) {
+												innerSub[0].run();
+												innerSub[0] = null;
+											}
 										} else
-											observer2.onNext(newEvent);
+											observer2.onNext(new ObservableValueEvent<>(InnerElement.this,
+												map.apply(elValue.getOldValue()), mapped, elValue));
 									}
 
 									@Override
@@ -251,9 +257,18 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldVal, newVal, elValue));
 									}
 								});
+								if(!exists[0]) {
+									return () -> {
+									};
+								}
 								return () -> {
-									innerSub.run();
+									innerSub[0].run();
 								};
+							}
+
+							@Override
+							public String toString() {
+								return outerElement + "%%";
 							}
 						}
 						ObservableListElement<T> retElement = new InnerElement();

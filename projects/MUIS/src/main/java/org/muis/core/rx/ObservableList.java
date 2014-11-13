@@ -418,6 +418,8 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<V>> observer) {
+				if(isEmpty())
+					observer.onNext(new ObservableValueEvent<>(this, null, null, null));
 				ObservableValue<V> observableVal = this;
 				return ObservableList.this.internalSubscribe(new Observer<ObservableElement<E>>() {
 					private V theValue;
@@ -429,7 +431,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 							@Override
 							public <V3 extends ObservableValueEvent<E>> void onNext(V3 value) {
 								{
-									int listIndex = indexOf(value);
+									int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
 									if(theIndex < 0 || listIndex <= theIndex) {
 										V mapped = map.apply(value.getValue());
 										if(mapped != null)
@@ -440,7 +442,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 							@Override
 							public <V3 extends ObservableValueEvent<E>> void onCompleted(V3 value) {
-								int listIndex = indexOf(value);
+								int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
 								if(listIndex == theIndex) {
 									boolean found = false;
 									for(int i = listIndex; i < size(); i++) {
@@ -467,6 +469,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 						observer.onNext(new ObservableValueEvent<>(observableVal, oldValue, theValue, null));
 					}
 				});
+			}
+
+			@Override
+			public String toString() {
+				return "find " + type + " in " + this;
 			}
 		};
 	}

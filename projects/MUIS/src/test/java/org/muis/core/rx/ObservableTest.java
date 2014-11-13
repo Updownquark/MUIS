@@ -601,8 +601,8 @@ public class ObservableTest {
 			assertEquals(correct, compare1);
 		}
 		for(int i = 0; i < 30; i++) {
-			controller.remove(i);
-			correct.remove(i * 10);
+			controller.remove(Integer.valueOf(i));
+			correct.remove(Integer.valueOf(i * 10));
 			assertEquals(correct, compare1);
 		}
 	}
@@ -645,9 +645,9 @@ public class ObservableTest {
 			assertEquals(correct, compare1);
 		}
 		for(int i = 0; i < 30; i++) {
-			controller.remove(i);
+			controller.remove(Integer.valueOf(i));
 			if(i % 2 == 0)
-				correct.remove(i);
+				correct.remove(Integer.valueOf(i));
 			assertEquals(correct, compare1);
 		}
 	}
@@ -878,7 +878,8 @@ public class ObservableTest {
 	@Test
 	public void observableListFind() {
 		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
-		ObservableValue<Integer> found = list.find(new Type(Integer.TYPE), value -> value % 3 == 0 ? value : null);
+		List<Integer> controller = list.control(null);
+		ObservableValue<Integer> found = list.find(new Type(Integer.class), value -> value % 3 == 0 ? value : null);
 		Integer [] received = new Integer[] {0};
 		found.act(value -> received[0] = value.getValue());
 		Integer [] correct = new Integer[] {null};
@@ -886,14 +887,14 @@ public class ObservableTest {
 		assertEquals(correct[0], received[0]);
 		assertEquals(correct[0], found.get());
 		for(int i = 1; i < 30; i++) {
-			list.add(i);
+			controller.add(i);
 			if(i % 3 == 0 && correct[0] == null)
 				correct[0] = i;
 			assertEquals(correct[0], received[0]);
 			assertEquals(correct[0], found.get());
 		}
 		for(int i = 1; i < 30; i++) {
-			list.remove(i);
+			controller.remove(Integer.valueOf(i));
 			if(i % 3 == 0) {
 				correct[0] += 3;
 				if(correct[0] >= 30)

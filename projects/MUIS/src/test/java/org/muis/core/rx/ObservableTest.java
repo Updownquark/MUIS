@@ -709,10 +709,10 @@ public class ObservableTest {
 		assertEquals(correct.size(), compare1.size());
 
 		for(int i = 0; i < 30; i++) {
-			controller.remove(i);
+			controller.remove(Integer.valueOf(i));
 			int value = i * value1.get();
 			if(value % 3 == 0)
-				correct.remove(value);
+				correct.remove(Integer.valueOf(value));
 			assertEquals(correct, compare1);
 			assertEquals(correct.size(), compare1.size());
 		}

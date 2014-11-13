@@ -131,6 +131,11 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 					ret = theRemovedIndex = theRemovedElementIndex;
 				return ret;
 			}
+
+			@Override
+			public String toString() {
+				return getType() + " list[" + getIndex() + "]";
+			}
 		};
 	}
 

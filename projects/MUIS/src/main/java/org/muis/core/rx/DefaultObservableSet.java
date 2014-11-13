@@ -111,6 +111,11 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 			public ObservableValue<E> persistent() {
 				return el;
 			}
+
+			@Override
+			public String toString() {
+				return getType() + " set element (" + get() + ")";
+			}
 		};
 	}
 

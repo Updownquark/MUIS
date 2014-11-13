@@ -268,9 +268,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 									return () -> {
 									};
 								}
-								return () -> {
-									innerSub[0].run();
-								};
+								return innerSub[0];
 							}
 
 							@Override
@@ -279,15 +277,12 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 							}
 						}
 						ObservableElement<T> retElement = new InnerElement();
-						outerElement.subscribe(new Observer<ObservableValueEvent<E>>() {
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-								if(!exists[0]) {
-									T mapped = map.apply(elValue.getValue());
-									if(mapped != null) {
-										exists[0] = true;
-										observer.onNext(retElement);
-									}
+						outerElement.act(elValue -> {
+							if(!exists[0]) {
+								T mapped = map.apply(elValue.getValue());
+								if(mapped != null) {
+									exists[0] = true;
+									observer.onNext(retElement);
 								}
 							}
 						});

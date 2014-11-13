@@ -154,7 +154,98 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	@Override
 	default <T> ObservableList<T> filterMapC(Type type, Function<? super E, T> map) {
 		ObservableList<E> outer = this;
+		class FilteredElement implements ObservableListElement<T> {
+			private ObservableListElement<E> theWrappedElement;
+			private List<FilteredElement> theFilteredElements;
+			private boolean exists;
+
+			FilteredElement(ObservableListElement<E> wrapped, List<FilteredElement> filteredEls) {
+				theWrappedElement = wrapped;
+				theFilteredElements = filteredEls;
+			}
+
+			@Override
+			public ObservableValue<T> persistent() {
+				return theWrappedElement.mapV(map);
+			}
+
+			@Override
+			public Type getType() {
+				return type;
+			}
+
+			@Override
+			public T get() {
+				return map.apply(theWrappedElement.get());
+			}
+
+			@Override
+			public int getIndex() {
+				int ret = 0;
+				for(FilteredElement el : theFilteredElements) {
+					if(el == this)
+						break;
+					else if(el.exists)
+						ret++;
+				}
+				return ret;
+			}
+
+			boolean exists() {
+				return exists;
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+				Runnable [] innerSub = new Runnable[1];
+				innerSub[0] = theWrappedElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+					@Override
+					public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+						T mapped = map.apply(elValue.getValue());
+						if(mapped == null) {
+							exists = false;
+							T oldValue = map.apply(elValue.getOldValue());
+							observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldValue, oldValue, elValue));
+							if(innerSub[0] != null) {
+								innerSub[0].run();
+								innerSub[0] = null;
+							}
+						} else {
+							exists = true;
+							observer2.onNext(new ObservableValueEvent<>(FilteredElement.this, map.apply(elValue.getOldValue()), mapped,
+								elValue));
+						}
+					}
+
+					@Override
+					public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+						exists = false;
+						T oldVal, newVal;
+						if(elValue != null) {
+							oldVal = map.apply(elValue.getOldValue());
+							newVal = map.apply(elValue.getValue());
+						} else {
+							oldVal = get();
+							newVal = oldVal;
+						}
+						observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldVal, newVal, elValue));
+					}
+				});
+				if(!exists) {
+					return () -> {
+					};
+				}
+				return innerSub[0];
+			}
+
+			@Override
+			public String toString() {
+				return "filter(" + theWrappedElement + ")";
+			}
+		}
 		class FilteredList extends AbstractList<T> implements ObservableList<T> {
+			private List<FilteredElement> theFilteredElements = new java.util.ArrayList<>();
+
 			@Override
 			public Type getType() {
 				return type;
@@ -194,94 +285,13 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V el) {
 						ObservableListElement<E> outerElement = (ObservableListElement<E>) el;
-						boolean [] exists = new boolean[1];
-						class InnerElement implements ObservableListElement<T> {
-							@Override
-							public ObservableValue<T> persistent() {
-								return outerElement.mapV(map);
-							}
-
-							@Override
-							public Type getType() {
-								return type;
-							}
-
-							@Override
-							public T get() {
-								return map.apply(outerElement.get());
-							}
-
-							@Override
-							public int getIndex() {
-								int outerIndex = outerElement.getIndex();
-								int ret = 0;
-								for(int i = 0; i < outerIndex; i++) {
-									if(map.apply(outer.get(i)) != null)
-										ret++;
-								}
-								return ret;
-							}
-
-							@Override
-							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-								Runnable [] innerSub = new Runnable[1];
-								innerSub[0] = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
-									@Override
-									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-										T mapped = map.apply(elValue.getValue());
-										if(mapped == null) {
-											exists[0] = false;
-											T oldValue = map.apply(elValue.getOldValue());
-											observer2
-												.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldValue, oldValue, elValue));
-											if(innerSub[0] != null) {
-												innerSub[0].run();
-												innerSub[0] = null;
-											}
-										} else
-											observer2.onNext(new ObservableValueEvent<>(InnerElement.this,
-												map.apply(elValue.getOldValue()), mapped, elValue));
-									}
-
-									@Override
-									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
-										exists[0] = false;
-										T oldVal, newVal;
-										if(elValue != null) {
-											oldVal = map.apply(elValue.getOldValue());
-											newVal = map.apply(elValue.getValue());
-										} else {
-											oldVal = get();
-											newVal = oldVal;
-										}
-										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldVal, newVal, elValue));
-									}
-								});
-								if(!exists[0]) {
-									return () -> {
-									};
-								}
-								return () -> {
-									innerSub[0].run();
-								};
-							}
-
-							@Override
-							public String toString() {
-								return outerElement + "%%";
-							}
-						}
-						ObservableListElement<T> retElement = new InnerElement();
-						outerElement.subscribe(new Observer<ObservableValueEvent<E>>() {
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-								if(!exists[0]) {
-									T mapped = map.apply(elValue.getValue());
-									if(mapped != null) {
-										exists[0] = true;
-										observer.onNext(retElement);
-									}
-								}
+						FilteredElement retElement = new FilteredElement(outerElement, theFilteredElements);
+						theFilteredElements.add(outerElement.getIndex(), retElement);
+						outerElement.act(elValue -> {
+							if(!retElement.exists()) {
+								T mapped = map.apply(elValue.getValue());
+								if(mapped != null)
+									observer.onNext(retElement);
 							}
 						});
 					}

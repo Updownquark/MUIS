@@ -483,6 +483,80 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 * @return A set containing all unique elements of the given collection
 	 */
 	public static <T> ObservableSet<T> enforceUnique(ObservableCollection<T> coll) {
+		class FilteredElement implements ObservableElement<T> {
+			private ObservableElement<T> theWrappedElement;
+			private boolean isIncluded;
+
+			FilteredElement(ObservableElement<T> wrapped) {
+				theWrappedElement = wrapped;
+			}
+
+			@Override
+			public ObservableValue<T> persistent() {
+				return theWrappedElement.mapV(map);
+			}
+
+			@Override
+			public Type getType() {
+				return type;
+			}
+
+			@Override
+			public T get() {
+				return map.apply(theWrappedElement.get());
+			}
+
+			boolean isIncluded() {
+				return isIncluded;
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+				Runnable [] innerSub = new Runnable[1];
+				innerSub[0] = theWrappedElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+					@Override
+					public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+						T mapped = map.apply(elValue.getValue());
+						if(mapped == null) {
+							isIncluded = false;
+							T oldValue = map.apply(elValue.getOldValue());
+							observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldValue, oldValue, elValue));
+							if(innerSub[0] != null) {
+								innerSub[0].run();
+								innerSub[0] = null;
+							}
+						} else {
+							isIncluded = true;
+							observer2.onNext(new ObservableValueEvent<>(FilteredElement.this, map.apply(elValue.getOldValue()), mapped,
+								elValue));
+						}
+					}
+
+					@Override
+					public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+						T oldVal, newVal;
+						if(elValue != null) {
+							oldVal = map.apply(elValue.getOldValue());
+							newVal = map.apply(elValue.getValue());
+						} else {
+							oldVal = get();
+							newVal = oldVal;
+						}
+						observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldVal, newVal, elValue));
+					}
+				});
+				if(!isIncluded) {
+					return () -> {
+					};
+				}
+				return innerSub[0];
+			}
+
+			@Override
+			public String toString() {
+				return "filter(" + theWrappedElement + ")";
+			}
+		}
 		class UniqueSet extends AbstractSet<T> implements ObservableSet<T> {
 			@Override
 			public Type getType() {
@@ -532,6 +606,27 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+				Runnable listSub = coll.internalSubscribe(new Observer<ObservableElement<T>>() {
+					@Override
+					public <V extends ObservableElement<T>> void onNext(V el) {
+						FilteredElement retElement = new FilteredElement(el);
+						el.act(elValue -> {
+							if(!retElement.isIncluded()) {
+								T mapped = map.apply(elValue.getValue());
+								if(mapped != null)
+									observer.onNext(retElement);
+							}
+						});
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
+				return () -> {
+					listSub.run();
+				};
 			}
 		}
 		return new UniqueSet();

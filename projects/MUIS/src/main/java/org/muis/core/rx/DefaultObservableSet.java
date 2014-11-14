@@ -102,7 +102,23 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
-				Runnable ret = el.internalSubscribe(observer);
+				ObservableValue<E> element = this;
+				Runnable ret = el.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+					@Override
+					public <V extends ObservableValueEvent<E>> void onNext(V event) {
+						observer.onNext(new ObservableValueEvent<>(element, event.getOldValue(), event.getValue(), event.getCause()));
+					}
+
+					@Override
+					public <V extends ObservableValueEvent<E>> void onCompleted(V event) {
+						observer.onCompleted(new ObservableValueEvent<>(element, event.getOldValue(), event.getValue(), event.getCause()));
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
+				});
 				observers.add(ret);
 				return ret;
 			}

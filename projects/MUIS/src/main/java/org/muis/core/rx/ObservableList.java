@@ -423,20 +423,18 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 				ObservableValue<V> observableVal = this;
 				return ObservableList.this.internalSubscribe(new Observer<ObservableElement<E>>() {
 					private V theValue;
-					private int theIndex;
+					private int theIndex = -1;
 
 					@Override
 					public <V2 extends ObservableElement<E>> void onNext(V2 element) {
 						element.subscribe(new Observer<ObservableValueEvent<E>>() {
 							@Override
 							public <V3 extends ObservableValueEvent<E>> void onNext(V3 value) {
-								{
-									int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
-									if(theIndex < 0 || listIndex <= theIndex) {
-										V mapped = map.apply(value.getValue());
-										if(mapped != null)
-											newBest(mapped, listIndex);
-									}
+								int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
+								if(theIndex < 0 || listIndex <= theIndex) {
+									V mapped = map.apply(value.getValue());
+									if(mapped != null)
+										newBest(mapped, listIndex);
 								}
 							}
 

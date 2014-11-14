@@ -657,6 +657,11 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 												public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
 													return subElement.takeUntil(subList.completed()).internalSubscribe(observer2);
 												}
+
+												@Override
+												public String toString() {
+													return "flattened(" + subElement.toString() + ")";
+												}
 											});
 										}
 									});

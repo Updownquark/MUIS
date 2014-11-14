@@ -1,6 +1,5 @@
 package org.muis.core.rx;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -154,41 +153,47 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 
 	@Override
 	default ObservableValue<T> takeUntil(Observable<?> until) {
-		AtomicBoolean check = new AtomicBoolean(false);
-		Observer<ObservableValueEvent<T>> [] controller = new Observer[1];
-		Subscription<?> [] untilSub = new Subscription[1];
-		untilSub[0] = until.subscribe(new Observer<Object>() {
-			@Override
-			public <V> void onNext(V value) {
-				if(check.getAndSet(true))
-					return;
-				if(controller[0] != null)
-					controller[0].onCompleted(null);
-				if(untilSub[0] != null) {
-					untilSub[0].unsubscribe();
-					untilSub[0] = null;
-				}
-			}
-
-			@Override
-			public void onCompleted(Object value) {
-				if(check.getAndSet(true))
-					return;
-				if(controller[0] != null)
-					controller[0].onCompleted(null);
-				if(untilSub[0] != null) {
-					untilSub[0].unsubscribe();
-					untilSub[0] = null;
-				}
-			}
-		});
-		if(check.get() && untilSub[0] != null) {
-			untilSub[0].unsubscribe();
-			untilSub[0] = null;
-		}
-
 		ObservableValue<T> outer = this;
-		DefaultObservableValue<T> ret = new DefaultObservableValue<T>() {
+		return new ObservableValue<T>() {
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				Runnable outerSub = outer.internalSubscribe(observer);
+				boolean [] complete = new boolean[1];
+				Runnable [] untilSub = new Runnable[1];
+				untilSub[0] = until.internalSubscribe(new Observer<Object>() {
+					@Override
+					public void onNext(Object value) {
+						if(!complete[0]) {
+							complete[0] = true;
+							outerSub.run();
+							if(untilSub[0] != null)
+								untilSub[0].run();
+						}
+					}
+
+					@Override
+					public void onCompleted(Object value) {
+						if(!complete[0]) {
+							complete[0] = true;
+							outerSub.run();
+							if(untilSub[0] != null)
+								untilSub[0].run();
+						}
+					}
+				});
+				if(complete[0]) {
+					if(untilSub[0] != null)
+						untilSub[0].run();
+					return () -> {
+					};
+				}
+				return () -> {
+					outerSub.run();
+					if(untilSub[0] != null)
+						untilSub[0].run();
+				};
+			}
+
 			@Override
 			public Type getType() {
 				return outer.getType();
@@ -199,35 +204,6 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 				return outer.get();
 			}
 		};
-		controller[0] = ret.control(subscriber -> {
-			if(check.get()) {
-				subscriber.onCompleted(null);
-				controller[0].onCompleted(null);
-				return;
-			}
-			Subscription<?> [] sub = new Subscription[1];
-			sub[0] = subscribe(new Observer<ObservableValueEvent<T>>() {
-				@Override
-				public <V extends ObservableValueEvent<T>> void onNext(V value) {
-					controller[0].onNext(value);
-				}
-
-				@Override
-				public <V extends ObservableValueEvent<T>> void onCompleted(V value) {
-					controller[0].onCompleted(value);
-					if(untilSub[0] != null) {
-						untilSub[0].unsubscribe();
-						untilSub[0] = null;
-					}
-				}
-
-				@Override
-				public void onError(Throwable e) {
-					controller[0].onError(e);
-				}
-			});
-		});
-		return ret;
 	}
 
 	/**

@@ -99,6 +99,34 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableValue#takeUntil(Observable)} */
+	@Test
+	public void valueTakeUntil() {
+		SimpleSettableValue<Integer> obs = new SimpleSettableValue<>(Integer.TYPE, false);
+		obs.set(0, null);
+		DefaultObservable<Boolean> stop = new DefaultObservable<>();
+		Observer<Boolean> stopControl = stop.control(null);
+		int [] received = new int[] {0};
+		int [] count = new int[1];
+		obs.takeUntil(stop).act(value -> {
+			count[0]++;
+			received[0] = value.getValue();
+		});
+
+		for(int i = 1; i <= 30; i++) {
+			obs.set(i, null);
+			assertEquals(i, received[0]);
+			assertEquals(i + 1, count[0]); // Plus 1 because of the initialization
+		}
+		stopControl.onNext(true);
+		final int finalValue = received[0];
+		for(int i = 1; i <= 30; i++) {
+			obs.set(i, null);
+			assertEquals(finalValue, received[0]);
+			assertEquals(31, count[0]);
+		}
+	}
+
 	/**
 	 * Tests {@link Subscription} as an observable to ensure that it is closed (and its observers notified) when
 	 * {@link Subscription#unsubscribe()} is called

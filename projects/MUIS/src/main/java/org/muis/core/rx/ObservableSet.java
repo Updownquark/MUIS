@@ -163,6 +163,80 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	@Override
 	default <T> ObservableSet<T> filterMapC(Type type, Function<? super E, T> map) {
 		ObservableSet<E> outer = this;
+		class FilteredElement implements ObservableElement<T> {
+			private ObservableElement<E> theWrappedElement;
+			private boolean isIncluded;
+
+			FilteredElement(ObservableElement<E> wrapped) {
+				theWrappedElement = wrapped;
+			}
+
+			@Override
+			public ObservableValue<T> persistent() {
+				return theWrappedElement.mapV(map);
+			}
+
+			@Override
+			public Type getType() {
+				return type;
+			}
+
+			@Override
+			public T get() {
+				return map.apply(theWrappedElement.get());
+			}
+
+			boolean isIncluded() {
+				return isIncluded;
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+				Runnable [] innerSub = new Runnable[1];
+				innerSub[0] = theWrappedElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+					@Override
+					public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+						T mapped = map.apply(elValue.getValue());
+						if(mapped == null) {
+							isIncluded = false;
+							T oldValue = map.apply(elValue.getOldValue());
+							observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldValue, oldValue, elValue));
+							if(innerSub[0] != null) {
+								innerSub[0].run();
+								innerSub[0] = null;
+							}
+						} else {
+							isIncluded = true;
+							observer2.onNext(new ObservableValueEvent<>(FilteredElement.this, map.apply(elValue.getOldValue()), mapped,
+								elValue));
+						}
+					}
+
+					@Override
+					public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+						T oldVal, newVal;
+						if(elValue != null) {
+							oldVal = map.apply(elValue.getOldValue());
+							newVal = map.apply(elValue.getValue());
+						} else {
+							oldVal = get();
+							newVal = oldVal;
+						}
+						observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldVal, newVal, elValue));
+					}
+				});
+				if(!isIncluded) {
+					return () -> {
+					};
+				}
+				return innerSub[0];
+			}
+
+			@Override
+			public String toString() {
+				return "filter(" + theWrappedElement + ")";
+			}
+		}
 		class FilteredSet extends AbstractSet<T> implements ObservableSet<T> {
 			@Override
 			public Type getType() {
@@ -182,116 +256,49 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			public Iterator<T> iterator() {
 				return new Iterator<T>() {
 					private final Iterator<E> backing = outer.iterator();
-
-					private T theNext;
+					private T nextVal;
 
 					@Override
 					public boolean hasNext() {
-						while(theNext == null && backing.hasNext()) {
-							theNext = map.apply(backing.next());
+						while(nextVal == null && backing.hasNext()) {
+							nextVal = map.apply(backing.next());
 						}
-						return theNext != null;
+						return nextVal != null;
 					}
 
 					@Override
 					public T next() {
-						if(theNext == null && !hasNext())
+						if(nextVal == null && !hasNext())
 							throw new java.util.NoSuchElementException();
-						T ret = theNext;
-						theNext = null;
+						T ret = nextVal;
+						nextVal = null;
 						return ret;
-					}
-
-					@Override
-					public void remove() {
-						backing.remove();
 					}
 				};
 			}
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
-				Runnable outerSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
+				Runnable listSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
-					public <V extends ObservableElement<E>> void onNext(V outerElement) {
-						boolean [] exists = new boolean[1];
-						class InnerElement implements ObservableElement<T> {
-							@Override
-							public ObservableValue<T> persistent() {
-								return outerElement.mapV(map);
-							}
-
-							@Override
-							public Type getType() {
-								return type;
-							}
-
-							@Override
-							public T get() {
-								return map.apply(outerElement.get());
-							}
-
-							@Override
-							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-								Runnable [] innerSub = new Runnable[1];
-								innerSub[0] = outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
-									@Override
-									public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-										T mapped = map.apply(elValue.getValue());
-										if(mapped == null) {
-											exists[0] = false;
-											T oldValue = map.apply(elValue.getOldValue());
-											observer2
-												.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldValue, oldValue, elValue));
-											if(innerSub[0] != null) {
-												innerSub[0].run();
-												innerSub[0] = null;
-											}
-										} else
-											observer2.onNext(new ObservableValueEvent<>(InnerElement.this,
-												map.apply(elValue.getOldValue()), mapped, elValue));
-									}
-
-									@Override
-									public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
-										exists[0] = false;
-										T oldVal, newVal;
-										if(elValue != null) {
-											oldVal = map.apply(elValue.getOldValue());
-											newVal = map.apply(elValue.getValue());
-										} else {
-											oldVal = get();
-											newVal = oldVal;
-										}
-										observer2.onCompleted(new ObservableValueEvent<>(InnerElement.this, oldVal, newVal, elValue));
-									}
-								});
-								if(!exists[0]) {
-									return () -> {
-									};
-								}
-								return innerSub[0];
-							}
-
-							@Override
-							public String toString() {
-								return outerElement + "%%";
-							}
-						}
-						ObservableElement<T> retElement = new InnerElement();
-						outerElement.act(elValue -> {
-							if(!exists[0]) {
+					public <V extends ObservableElement<E>> void onNext(V el) {
+						FilteredElement retElement = new FilteredElement(el);
+						el.act(elValue -> {
+							if(!retElement.isIncluded()) {
 								T mapped = map.apply(elValue.getValue());
-								if(mapped != null) {
-									exists[0] = true;
+								if(mapped != null)
 									observer.onNext(retElement);
-								}
 							}
 						});
 					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
+					}
 				});
 				return () -> {
-					outerSub.run();
+					listSub.run();
 				};
 			}
 		}

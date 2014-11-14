@@ -1,6 +1,7 @@
 package org.muis.core.rx;
 
 import java.util.AbstractSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -147,6 +148,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 * @param filter The filter function
 	 * @return A set containing all elements passing the given test
 	 */
+	@Override
 	default ObservableSet<E> filterC(Function<? super E, Boolean> filter) {
 		return filterMapC(value -> {
 			return (value != null && filter.apply(value)) ? value : null;
@@ -466,5 +468,74 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 */
 	public static <T> ObservableSet<T> constant(Type type, T... values) {
 		return constant(type, java.util.Arrays.asList(values));
+	}
+
+	/**
+	 * @param <T> The type of the collection
+	 * @param coll The collection to turn into a set
+	 * @return A set containing all unique elements of the given collection
+	 */
+	public static <T> ObservableSet<T> enforceUnique(ObservableCollection<T> coll) {
+		class UniqueSet extends AbstractSet<T> implements ObservableSet<T> {
+			@Override
+			public Type getType() {
+				return coll.getType().getParamTypes().length == 0 ? new Type(Object.class) : coll.getType().getParamTypes()[0];
+			}
+
+			@Override
+			public int size() {
+				HashSet<T> set = new HashSet<>();
+				for(T val : coll)
+					set.add(val);
+				return set.size();
+			}
+
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					private final Iterator<T> backing = coll.iterator();
+					private final HashSet<T> set = new HashSet<>();
+					private T nextVal;
+
+					@Override
+					public boolean hasNext() {
+						while(nextVal == null && backing.hasNext()) {
+							nextVal = backing.next();
+							if(!set.add(nextVal))
+								nextVal = null;
+						}
+						return nextVal != null;
+					}
+
+					@Override
+					public T next() {
+						if(nextVal == null && !hasNext())
+							throw new java.util.NoSuchElementException();
+						T ret = nextVal;
+						nextVal = null;
+						return ret;
+					}
+
+					@Override
+					public void remove() {
+						backing.remove();
+					}
+				};
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
+			}
+		}
+		return new UniqueSet();
+	}
+
+	/**
+	 * @param <T> An observable set that contains all elements in all collections in the wrapping collection
+	 * @param coll The collection to flatten
+	 * @return A collection containing all elements of all collections in the outer collection
+	 */
+	public static <T> ObservableSet<T> flatten(ObservableCollection<? extends ObservableCollection<T>> coll) {
+		return enforceUnique(ObservableCollection.flatten(coll));
 	}
 }

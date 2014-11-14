@@ -431,7 +431,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().localAttributes());
 			}
-			return org.muis.core.rx.ObservableCollection.flatten(ret);
+			return ObservableSet.flatten(ret);
 		}
 
 		@Override

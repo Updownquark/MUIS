@@ -1,6 +1,9 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.*;
+import org.muis.core.rx.DefaultObservableList;
+import org.muis.core.rx.DefaultObservableSet;
+import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
 
 import prisms.lang.Type;
 
@@ -36,8 +39,8 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 			StyleAttribute.class)));
 		java.util.Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(allLocal());
-		controller.add(ObservableCollection.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
-		return ObservableCollection.flatten(ret);
+		controller.add(ObservableSet.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
+		return ObservableSet.flatten(ret);
 	}
 
 	/**

@@ -46,8 +46,8 @@ public interface MuisStyle {
 			new Type(StyleAttribute.class)));
 		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
-		controller.add(ObservableCollection.flatten(getDependencies().mapC(depend -> depend.attributes())));
-		return ObservableCollection.flatten(ret);
+		controller.add(ObservableSet.flatten(getDependencies().mapC(depend -> depend.attributes())));
+		return ObservableSet.flatten(ret);
 	}
 
 	/**

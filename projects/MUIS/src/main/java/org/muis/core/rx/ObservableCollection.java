@@ -173,6 +173,16 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
+	 * @param filter The filter function
+	 * @return A collection containing all elements passing the given test
+	 */
+	default ObservableCollection<E> filterC(Function<? super E, Boolean> filter) {
+		return filterMapC(value -> {
+			return (value != null && filter.apply(value)) ? value : null;
+		});
+	}
+
+	/**
 	 * @param <T> The type of the mapped collection
 	 * @param filterMap The mapping function
 	 * @return An observable collection of a new type backed by this collection and the mapping function
@@ -263,12 +273,12 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
-	 * @param <T> An observable set that contains all elements in all collection in the wrapping collection
+	 * @param <T> An observable collection that contains all elements in all collections in the wrapping collection
 	 * @param coll The collection to flatten
 	 * @return A collection containing all elements of all collections in the outer collection
 	 */
-	public static <T> ObservableSet<T> flatten(ObservableCollection<? extends ObservableCollection<T>> coll) {
-		class ComposedObservableSet extends java.util.AbstractSet<T> implements ObservableSet<T> {
+	public static <T> ObservableCollection<T> flatten(ObservableCollection<? extends ObservableCollection<T>> coll) {
+		class ComposedObservableCollection extends java.util.AbstractCollection<T> implements ObservableCollection<T> {
 			@Override
 			public Type getType() {
 				return coll.getType().getParamTypes().length == 0 ? new Type(Object.class) : coll.getType().getParamTypes()[0];
@@ -368,7 +378,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 				};
 			}
 		}
-		return new ComposedObservableSet();
+		return new ComposedObservableCollection();
 	}
 
 	/**

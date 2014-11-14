@@ -60,14 +60,20 @@ public class ObservableTest {
 		DefaultObservable<Integer> obs = new DefaultObservable<>();
 		Observer<Integer> controller = obs.control(null);
 		int [] received = new int[] {0};
-		obs.take(10).act(value -> received[0] = value);
+		boolean [] complete = new boolean[1];
+		Observable<Integer> take = obs.take(10);
+		take.act(value -> received[0] = value);
+		take.completed().act(value -> complete[0] = true);
 
 		for(int i = 1; i < 30; i++) {
 			controller.onNext(i);
-			if(i <= 10)
+			if(i < 10) {
 				assertEquals(i, received[0]);
-			else
+				assertEquals(false, complete[0]);
+			} else {
 				assertEquals(10, received[0]);
+				assertEquals(true, complete[0]);
+			}
 		}
 	}
 
@@ -80,10 +86,13 @@ public class ObservableTest {
 		Observer<Boolean> stopControl = stop.control(null);
 		int [] received = new int[] {0};
 		int [] count = new int[1];
-		obs.takeUntil(stop).act(value -> {
+		boolean [] complete = new boolean[1];
+		Observable<Integer> take = obs.takeUntil(stop);
+		take.act(value -> {
 			count[0]++;
 			received[0] = value;
 		});
+		take.completed().act(value -> complete[0] = true);
 
 		for(int i = 1; i <= 30; i++) {
 			controller.onNext(i);
@@ -91,12 +100,26 @@ public class ObservableTest {
 			assertEquals(i, count[0]);
 		}
 		stopControl.onNext(true);
+		assertEquals(true, complete[0]);
 		final int finalValue = received[0];
 		for(int i = 1; i <= 30; i++) {
 			controller.onNext(i);
 			assertEquals(finalValue, received[0]);
 			assertEquals(30, count[0]);
 		}
+
+		complete[0] = false;
+		controller.onCompleted(0);
+		assertEquals(false, complete[0]);
+
+		obs = new DefaultObservable<>();
+		controller = obs.control(null);
+		complete[0] = false;
+		take = obs.takeUntil(stop);
+		take.completed().act(value -> complete[0] = true);
+
+		controller.onCompleted(0);
+		assertEquals(true, complete[0]);
 	}
 
 	/** Tests {@link ObservableValue#takeUntil(Observable)} */
@@ -108,10 +131,13 @@ public class ObservableTest {
 		Observer<Boolean> stopControl = stop.control(null);
 		int [] received = new int[] {0};
 		int [] count = new int[1];
-		obs.takeUntil(stop).act(value -> {
+		boolean [] complete = new boolean[1];
+		ObservableValue<Integer> take = obs.takeUntil(stop);
+		take.act(value -> {
 			count[0]++;
 			received[0] = value.getValue();
 		});
+		take.completed().act(value -> complete[0] = true);
 
 		for(int i = 1; i <= 30; i++) {
 			obs.set(i, null);
@@ -119,6 +145,7 @@ public class ObservableTest {
 			assertEquals(i + 1, count[0]); // Plus 1 because of the initialization
 		}
 		stopControl.onNext(true);
+		assertEquals(true, complete[0]);
 		final int finalValue = received[0];
 		for(int i = 1; i <= 30; i++) {
 			obs.set(i, null);
@@ -459,9 +486,15 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableSet#enforceUnique(ObservableCollection)} */
+	@Test
+	public void observableSetUnique() {
+		int todo = todo;
+	}
+
 	/** Tests {@link ObservableCollection#flatten(ObservableCollection)} */
 	@Test
-	public void observableSetFlatten() {
+	public void observableCollectionFlatten() {
 		DefaultObservableSet<Integer> set1 = new DefaultObservableSet<>(new Type(Integer.TYPE));
 		DefaultObservableSet<Integer> set2 = new DefaultObservableSet<>(new Type(Integer.TYPE));
 		DefaultObservableSet<Integer> set3 = new DefaultObservableSet<>(new Type(Integer.TYPE));
@@ -470,7 +503,7 @@ public class ObservableTest {
 		Set<ObservableSet<Integer>> outerControl = outer.control(null);
 		outerControl.add(set1);
 		outerControl.add(set2);
-		ObservableSet<Integer> flat = ObservableCollection.flatten(outer);
+		ObservableCollection<Integer> flat = ObservableCollection.flatten(outer);
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> filtered = new ArrayList<>();
 		flat.act(element -> {
@@ -563,7 +596,7 @@ public class ObservableTest {
 
 	/** Tests {@link ObservableCollection#fold(ObservableCollection)} */
 	@Test
-	public void observableSetFold() {
+	public void observableCollectionFold() {
 		DefaultObservable<Integer> obs1 = new DefaultObservable<>();
 		DefaultObservable<Integer> obs2 = new DefaultObservable<>();
 		DefaultObservable<Integer> obs3 = new DefaultObservable<>();
@@ -783,17 +816,14 @@ public class ObservableTest {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
 					if(event.getOldValue() != null) {
-						// System.out.println("Set " + event.getValue() + " at " + listEl.getIndex());
 						filtered.set(listEl.getIndex(), event.getValue());
 					} else {
-						// System.out.println("Add " + event.getValue() + " at " + listEl.getIndex());
 						filtered.add(listEl.getIndex(), event.getValue());
 					}
 				}
 
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
-					// System.out.println("Remove " + event.getValue() + " at " + listEl.getIndex());
 					filtered.remove(listEl.getIndex());
 				}
 			});
@@ -877,22 +907,22 @@ public class ObservableTest {
 		assertEquals(filteredCorrect.size(), filtered.size());
 
 		for(int i = 0; i < 30; i++) {
-			controller1.remove(i);
-			controller2.remove(i * 10);
-			controller3.remove(i * 100);
-			correct1.remove(i);
-			correct2.remove(i * 10);
-			correct3.remove(i * 100);
+			controller1.remove((Integer) i);
+			controller2.remove((Integer) (i * 10));
+			controller3.remove((Integer) (i * 100));
+			correct1.remove((Integer) i);
+			correct2.remove((Integer) (i * 10));
+			correct3.remove((Integer) (i * 100));
 			correct.clear();
 			correct.addAll(correct1);
 			correct.addAll(correct3);
 			filteredCorrect.clear();
 			for(int j : correct1)
 				if(j % 3 == 0)
-					filteredCorrect.remove(j);
+					filteredCorrect.add(j);
 			for(int j : correct3)
 				if(j % 3 == 0)
-					filteredCorrect.remove(j);
+					filteredCorrect.add(j);
 			assertEquals(flat, compare1);
 			assertEquals(flat.size(), compare1.size());
 			assertEquals(correct, compare1);

@@ -262,8 +262,10 @@ public interface Observable<T> {
 						if(!complete[0]) {
 							complete[0] = true;
 							outerSub.run();
-							if(untilSub[0] != null)
+							if(untilSub[0] != null) {
 								untilSub[0].run();
+								observer.onCompleted(null);
+							}
 						}
 					}
 
@@ -272,8 +274,10 @@ public interface Observable<T> {
 						if(!complete[0]) {
 							complete[0] = true;
 							outerSub.run();
-							if(untilSub[0] != null)
+							if(untilSub[0] != null) {
 								untilSub[0].run();
+								observer.onCompleted(null);
+							}
 						}
 					}
 				});
@@ -284,6 +288,7 @@ public interface Observable<T> {
 					};
 				}
 				return () -> {
+					complete[0] = true;
 					outerSub.run();
 					if(untilSub[0] != null)
 						untilSub[0].run();

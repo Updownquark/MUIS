@@ -157,7 +157,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		class FilteredElement implements ObservableListElement<T> {
 			private ObservableListElement<E> theWrappedElement;
 			private List<FilteredElement> theFilteredElements;
-			private boolean exists;
+			private boolean isIncluded;
 
 			FilteredElement(ObservableListElement<E> wrapped, List<FilteredElement> filteredEls) {
 				theWrappedElement = wrapped;
@@ -182,17 +182,15 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			@Override
 			public int getIndex() {
 				int ret = 0;
-				for(FilteredElement el : theFilteredElements) {
-					if(el == this)
-						break;
-					else if(el.exists)
+				int outerIdx = theWrappedElement.getIndex();
+				for(int i = 0; i < outerIdx; i++)
+					if(theFilteredElements.get(i).isIncluded)
 						ret++;
-				}
 				return ret;
 			}
 
-			boolean exists() {
-				return exists;
+			boolean isIncluded() {
+				return isIncluded;
 			}
 
 			@Override
@@ -203,7 +201,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 					public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
 						T mapped = map.apply(elValue.getValue());
 						if(mapped == null) {
-							exists = false;
+							isIncluded = false;
 							T oldValue = map.apply(elValue.getOldValue());
 							observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldValue, oldValue, elValue));
 							if(innerSub[0] != null) {
@@ -211,7 +209,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 								innerSub[0] = null;
 							}
 						} else {
-							exists = true;
+							isIncluded = true;
 							observer2.onNext(new ObservableValueEvent<>(FilteredElement.this, map.apply(elValue.getOldValue()), mapped,
 								elValue));
 						}
@@ -219,7 +217,6 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 					@Override
 					public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
-						exists = false;
 						T oldVal, newVal;
 						if(elValue != null) {
 							oldVal = map.apply(elValue.getOldValue());
@@ -231,7 +228,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 						observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldVal, newVal, elValue));
 					}
 				});
-				if(!exists) {
+				if(!isIncluded) {
 					return () -> {
 					};
 				}
@@ -287,13 +284,19 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 						ObservableListElement<E> outerElement = (ObservableListElement<E>) el;
 						FilteredElement retElement = new FilteredElement(outerElement, theFilteredElements);
 						theFilteredElements.add(outerElement.getIndex(), retElement);
+						outerElement.completed().act(elValue -> theFilteredElements.remove(outerElement.getIndex()));
 						outerElement.act(elValue -> {
-							if(!retElement.exists()) {
+							if(!retElement.isIncluded()) {
 								T mapped = map.apply(elValue.getValue());
 								if(mapped != null)
 									observer.onNext(retElement);
 							}
 						});
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
 					}
 				});
 				return () -> {
@@ -615,7 +618,58 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 					@Override
 					public <V extends ObservableElement<? extends ObservableList<T>>> void onNext(V subList) {
+						class FlattenedElement implements ObservableListElement<T> {
+							private final ObservableListElement<T> subElement;
+							private final List<FlattenedElement> subListElements;
+							private boolean isRemoved;
+
+							FlattenedElement(ObservableListElement<T> subEl, List<FlattenedElement> subListEls) {
+								subElement = subEl;
+								subListElements = subListEls;
+								subList.completed().act(value -> isRemoved = true);
+							}
+
+							@Override
+							public ObservableValue<T> persistent() {
+								return subElement;
+							}
+
+							@Override
+							public Type getType() {
+								return subElement.getType();
+							}
+
+							@Override
+							public T get() {
+								return subElement.get();
+							}
+
+							@Override
+							public int getIndex() {
+								int subListIndex = ((ObservableListElement<?>) subList).getIndex();
+								int ret = 0;
+								for(int i = 0; i < subListIndex; i++)
+									ret += list.get(i).size();
+								int innerIndex = subElement.getIndex();
+								for(int i = 0; i < innerIndex; i++)
+									if(!subListElements.get(i).isRemoved)
+										ret++;
+								return ret;
+							}
+
+							@Override
+							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
+								return subElement.takeUntil(subList.completed()).internalSubscribe(observer2);
+							}
+
+							@Override
+							public String toString() {
+								return "flattened(" + subElement.toString() + ")";
+							}
+						}
 						subList.subscribe(new Observer<ObservableValueEvent<? extends ObservableList<T>>>() {
+							private List<FlattenedElement> subListEls = new java.util.ArrayList<>();
+
 							@Override
 							public <V2 extends ObservableValueEvent<? extends ObservableList<T>>> void onNext(V2 subListEvent) {
 								if(subListEvent.getOldValue() != null && subListEvent.getOldValue() != subListEvent.getValue()) {
@@ -627,42 +681,16 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									new Observer<ObservableElement<T>>() {
 										@Override
 										public <V3 extends ObservableElement<T>> void onNext(V3 subElement) {
-											observer.onNext(new ObservableListElement<T>() {
-												@Override
-												public ObservableValue<T> persistent() {
-													return subElement;
-												}
+											ObservableListElement<T> subListEl = (ObservableListElement<T>) subElement;
+											FlattenedElement flatEl = new FlattenedElement(subListEl, subListEls);
+											subListEls.add(subListEl.getIndex(), flatEl);
+											subListEl.completed().act(x -> subListEls.remove(subListEl.getIndex()));
+											observer.onNext(flatEl);
+										}
 
-												@Override
-												public Type getType() {
-													return subElement.getType();
-												}
-
-												@Override
-												public T get() {
-													return subElement.get();
-												}
-
-												@Override
-												public int getIndex() {
-													int subListIndex = ((ObservableListElement<?>) subList).getIndex();
-													int ret = 0;
-													for(int i = 0; i < subListIndex; i++)
-														ret += list.get(i).size();
-													ret += ((ObservableListElement<T>) subElement).getIndex();
-													return ret;
-												}
-
-												@Override
-												public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-													return subElement.takeUntil(subList.completed()).internalSubscribe(observer2);
-												}
-
-												@Override
-												public String toString() {
-													return "flattened(" + subElement.toString() + ")";
-												}
-											});
+										@Override
+										public void onError(Throwable e) {
+											observer.onError(e);
 										}
 									});
 								subListSubscriptions.put(subListEvent.getValue(), subListSub);

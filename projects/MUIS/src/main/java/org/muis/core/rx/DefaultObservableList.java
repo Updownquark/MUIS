@@ -150,7 +150,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 
 			@Override
 			public String toString() {
-				return getType() + " list[" + getIndex() + "]";
+				return getType() + " list[" + getIndex() + "]=" + get();
 			}
 		};
 	}

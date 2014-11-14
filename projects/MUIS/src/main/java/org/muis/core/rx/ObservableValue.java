@@ -166,8 +166,10 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 						if(!complete[0]) {
 							complete[0] = true;
 							outerSub.run();
-							if(untilSub[0] != null)
+							if(untilSub[0] != null) {
 								untilSub[0].run();
+								observer.onCompleted(new ObservableValueEvent<>(outer, outer.get(), outer.get(), value));
+							}
 						}
 					}
 
@@ -176,8 +178,10 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 						if(!complete[0]) {
 							complete[0] = true;
 							outerSub.run();
-							if(untilSub[0] != null)
+							if(untilSub[0] != null) {
 								untilSub[0].run();
+								observer.onCompleted(new ObservableValueEvent<>(outer, outer.get(), outer.get(), value));
+							}
 						}
 					}
 				});
@@ -188,6 +192,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 					};
 				}
 				return () -> {
+					complete[0] = true;
 					outerSub.run();
 					if(untilSub[0] != null)
 						untilSub[0].run();

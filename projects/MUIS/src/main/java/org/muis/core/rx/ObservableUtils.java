@@ -6,7 +6,7 @@ import prisms.lang.Type;
 public class ObservableUtils {
 	/**
 	 * Turns a list of observable values into a list composed of those holders' values
-	 * 
+	 *
 	 * @param <T> The type of elements held in the values
 	 * @param type The run-time type of elements held in the values
 	 * @param list The list to flatten
@@ -25,7 +25,7 @@ public class ObservableUtils {
 					@Override
 					public <V extends ObservableElement<? extends ObservableValue<T>>> void onNext(V element) {
 						ObservableListElement<? extends ObservableValue<T>> listElement = (ObservableListElement<? extends ObservableValue<T>>) element;
-						new ObservableListElement<T>() {
+						observer.onNext(new ObservableListElement<T>() {
 							@Override
 							public Type getType() {
 								return type != null ? type : element.get().getType();
@@ -113,7 +113,7 @@ public class ObservableUtils {
 									}
 								};
 							}
-						};
+						});
 					}
 
 					@Override

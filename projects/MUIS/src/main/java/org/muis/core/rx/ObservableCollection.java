@@ -375,7 +375,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		return new Observable<T>() {
 			@Override
 			public Runnable internalSubscribe(Observer<? super T> observer) {
-				Runnable collSub = coll.internalSubscribe(new Observer<ObservableElement<? extends Observable<T>>>() {
+				return coll.internalSubscribe(new Observer<ObservableElement<? extends Observable<T>>>() {
 					@Override
 					public <V extends ObservableElement<? extends Observable<T>>> void onNext(V element) {
 						element.subscribe(new Observer<ObservableValueEvent<? extends Observable<T>>>() {
@@ -385,7 +385,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 							public <V2 extends ObservableValueEvent<? extends Observable<T>>> void onNext(V2 value) {
 								if(elSub != null)
 									elSub.unsubscribe();
-								elSub = value.getValue().takeUntil(element).subscribe(new Observer<T>() {
+								elSub = value.getValue().takeUntil(element.completed()).subscribe(new Observer<T>() {
 									@Override
 									public <V3 extends T> void onNext(V3 value3) {
 										observer.onNext(value3);
@@ -410,9 +410,6 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 						observer.onError(e);
 					}
 				});
-				return () -> {
-					collSub.run();
-				};
 			}
 		};
 	}

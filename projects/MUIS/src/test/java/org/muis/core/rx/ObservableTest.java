@@ -728,10 +728,10 @@ public class ObservableTest {
 		assertEquals(2, received[0]);
 		controller3.onNext(3);
 		assertEquals(2, received[0]);
-		set.add(obs3);
+		controller.add(obs3);
 		controller3.onNext(4);
 		assertEquals(4, received[0]);
-		set.remove(obs2);
+		controller.remove(obs2);
 		controller2.onNext(5);
 		assertEquals(4, received[0]);
 	}

@@ -1,9 +1,6 @@
 package org.muis.core.rx;
 
-import java.util.AbstractSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -163,80 +160,6 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	@Override
 	default <T> ObservableSet<T> filterMapC(Type type, Function<? super E, T> map) {
 		ObservableSet<E> outer = this;
-		class FilteredElement implements ObservableElement<T> {
-			private ObservableElement<E> theWrappedElement;
-			private boolean isIncluded;
-
-			FilteredElement(ObservableElement<E> wrapped) {
-				theWrappedElement = wrapped;
-			}
-
-			@Override
-			public ObservableValue<T> persistent() {
-				return theWrappedElement.mapV(map);
-			}
-
-			@Override
-			public Type getType() {
-				return type;
-			}
-
-			@Override
-			public T get() {
-				return map.apply(theWrappedElement.get());
-			}
-
-			boolean isIncluded() {
-				return isIncluded;
-			}
-
-			@Override
-			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-				Runnable [] innerSub = new Runnable[1];
-				innerSub[0] = theWrappedElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
-					@Override
-					public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-						T mapped = map.apply(elValue.getValue());
-						if(mapped == null) {
-							isIncluded = false;
-							T oldValue = map.apply(elValue.getOldValue());
-							observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldValue, oldValue, elValue));
-							if(innerSub[0] != null) {
-								innerSub[0].run();
-								innerSub[0] = null;
-							}
-						} else {
-							isIncluded = true;
-							observer2.onNext(new ObservableValueEvent<>(FilteredElement.this, map.apply(elValue.getOldValue()), mapped,
-								elValue));
-						}
-					}
-
-					@Override
-					public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
-						T oldVal, newVal;
-						if(elValue != null) {
-							oldVal = map.apply(elValue.getOldValue());
-							newVal = map.apply(elValue.getValue());
-						} else {
-							oldVal = get();
-							newVal = oldVal;
-						}
-						observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldVal, newVal, elValue));
-					}
-				});
-				if(!isIncluded) {
-					return () -> {
-					};
-				}
-				return innerSub[0];
-			}
-
-			@Override
-			public String toString() {
-				return "filter(" + theWrappedElement + ")";
-			}
-		}
 		class FilteredSet extends AbstractSet<T> implements ObservableSet<T> {
 			@Override
 			public Type getType() {
@@ -282,7 +205,7 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				Runnable listSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V el) {
-						FilteredElement retElement = new FilteredElement(el);
+						FilteredElement<T, E> retElement = new FilteredElement<>(el, map, type);
 						el.act(elValue -> {
 							if(!retElement.isIncluded()) {
 								T mapped = map.apply(elValue.getValue());
@@ -482,67 +405,76 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 * @param coll The collection to turn into a set
 	 * @return A set containing all unique elements of the given collection
 	 */
-	public static <T> ObservableSet<T> enforceUnique(ObservableCollection<T> coll) {
-		class FilteredElement implements ObservableElement<T> {
+	public static <T> ObservableSet<T> unique(ObservableCollection<T> coll) {
+		class UniqueFilteredElement implements ObservableElement<T> {
 			private ObservableElement<T> theWrappedElement;
+			private Set<UniqueFilteredElement> theElements;
 			private boolean isIncluded;
 
-			FilteredElement(ObservableElement<T> wrapped) {
+			UniqueFilteredElement(ObservableElement<T> wrapped, Set<UniqueFilteredElement> elements) {
 				theWrappedElement = wrapped;
+				theElements = elements;
 			}
 
 			@Override
 			public ObservableValue<T> persistent() {
-				return theWrappedElement.mapV(map);
+				return theWrappedElement.persistent();
 			}
 
 			@Override
 			public Type getType() {
-				return type;
+				return coll.getType();
 			}
 
 			@Override
 			public T get() {
-				return map.apply(theWrappedElement.get());
+				return theWrappedElement.get();
 			}
 
 			boolean isIncluded() {
 				return isIncluded;
 			}
 
+			boolean shouldBeIncluded(T value) {
+				for(UniqueFilteredElement el : theElements)
+					if(el != this && el.isIncluded && Objects.equals(el.get(), value))
+						return false;
+				return true;
+			}
+
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
 				Runnable [] innerSub = new Runnable[1];
-				innerSub[0] = theWrappedElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+				innerSub[0] = theWrappedElement.internalSubscribe(new Observer<ObservableValueEvent<T>>() {
 					@Override
-					public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
-						T mapped = map.apply(elValue.getValue());
-						if(mapped == null) {
+					public <V2 extends ObservableValueEvent<T>> void onNext(V2 elValue) {
+						boolean shouldBe = shouldBeIncluded(elValue.getValue());
+						if(isIncluded && !shouldBe) {
 							isIncluded = false;
-							T oldValue = map.apply(elValue.getOldValue());
-							observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldValue, oldValue, elValue));
+							observer2.onCompleted(new ObservableValueEvent<>(UniqueFilteredElement.this, elValue.getOldValue(), elValue
+								.getValue(), elValue));
 							if(innerSub[0] != null) {
 								innerSub[0].run();
 								innerSub[0] = null;
 							}
-						} else {
+						} else if(!isIncluded && shouldBe) {
 							isIncluded = true;
-							observer2.onNext(new ObservableValueEvent<>(FilteredElement.this, map.apply(elValue.getOldValue()), mapped,
-								elValue));
+							observer2.onNext(new ObservableValueEvent<>(UniqueFilteredElement.this, elValue.getOldValue(), elValue
+								.getValue(), elValue));
 						}
 					}
 
 					@Override
-					public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+					public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 elValue) {
 						T oldVal, newVal;
 						if(elValue != null) {
-							oldVal = map.apply(elValue.getOldValue());
-							newVal = map.apply(elValue.getValue());
+							oldVal = elValue.getOldValue();
+							newVal = elValue.getValue();
 						} else {
 							oldVal = get();
 							newVal = oldVal;
 						}
-						observer2.onCompleted(new ObservableValueEvent<>(FilteredElement.this, oldVal, newVal, elValue));
+						observer2.onCompleted(new ObservableValueEvent<>(UniqueFilteredElement.this, oldVal, newVal, elValue));
 					}
 				});
 				if(!isIncluded) {
@@ -558,6 +490,8 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 		}
 		class UniqueSet extends AbstractSet<T> implements ObservableSet<T> {
+			private java.util.concurrent.ConcurrentHashMap<UniqueFilteredElement, Object> theElements = new java.util.concurrent.ConcurrentHashMap<>();
+
 			@Override
 			public Type getType() {
 				return coll.getType().getParamTypes().length == 0 ? new Type(Object.class) : coll.getType().getParamTypes()[0];
@@ -609,12 +543,29 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				Runnable listSub = coll.internalSubscribe(new Observer<ObservableElement<T>>() {
 					@Override
 					public <V extends ObservableElement<T>> void onNext(V el) {
-						FilteredElement retElement = new FilteredElement(el);
-						el.act(elValue -> {
-							if(!retElement.isIncluded()) {
-								T mapped = map.apply(elValue.getValue());
-								if(mapped != null)
+						UniqueFilteredElement retElement = new UniqueFilteredElement(el, theElements.keySet());
+						theElements.put(retElement, 0);
+						el.subscribe(new Observer<ObservableValueEvent<T>>(){
+							@Override
+							public <V2 extends ObservableValueEvent<T>> void onNext(V2 elValue){
+								if(!retElement.isIncluded() && retElement.shouldBeIncluded(elValue.getValue())) {
 									observer.onNext(retElement);
+								}
+							}
+
+							@Override
+							public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 elValue){
+								theElements.remove(retElement);
+								if(retElement.isIncluded()) {
+									for(UniqueFilteredElement el2 : theElements.keySet()) {
+										if(el2 == retElement)
+											continue;
+										if(!el2.isIncluded() && Objects.equals(el2.get(), elValue.getOldValue())) {
+											observer.onNext(el2);
+											break;
+										}
+									}
+								}
 							}
 						});
 					}
@@ -638,6 +589,6 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 * @return A collection containing all elements of all collections in the outer collection
 	 */
 	public static <T> ObservableSet<T> flatten(ObservableCollection<? extends ObservableCollection<T>> coll) {
-		return enforceUnique(ObservableCollection.flatten(coll));
+		return unique(ObservableCollection.flatten(coll));
 	}
 }

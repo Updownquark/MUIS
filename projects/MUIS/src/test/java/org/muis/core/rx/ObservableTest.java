@@ -486,10 +486,74 @@ public class ObservableTest {
 		}
 	}
 
-	/** Tests {@link ObservableSet#enforceUnique(ObservableCollection)} */
+	/** Tests {@link ObservableSet#unique(ObservableCollection)} */
 	@Test
 	public void observableSetUnique() {
-		int todo = todo;
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		List<Integer> controller = list.control(null);
+		ObservableSet<Integer> unique = ObservableSet.unique(list);
+		List<Integer> compare1 = new ArrayList<>();
+		Set<Integer> correct = new TreeSet<>();
+
+		unique.act(element -> {
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(event.getOldValue() != null)
+						compare1.remove(event.getOldValue());
+					compare1.add(event.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					compare1.remove(event.getValue());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			correct.add(i);
+		}
+		assertEquals(correct, new TreeSet<>(unique));
+		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(correct.size(), compare1.size());
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+		}
+		assertEquals(correct, new TreeSet<>(unique));
+		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(correct.size(), compare1.size());
+
+		for(int i = 29; i >= 0; i--) {
+			controller.remove(30 + i);
+		}
+		assertEquals(correct, new TreeSet<>(unique));
+		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(correct.size(), compare1.size());
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+		}
+		assertEquals(correct, new TreeSet<>(unique));
+		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(correct.size(), compare1.size());
+
+		for(int i = 29; i >= 0; i--) {
+			controller.remove(i);
+		}
+		assertEquals(correct, new TreeSet<>(unique));
+		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(correct.size(), compare1.size());
+
+		for(int i = 29; i >= 0; i--) {
+			controller.remove(i);
+			correct.remove(i);
+		}
+		assertEquals(correct, new TreeSet<>(unique));
+		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(correct.size(), compare1.size());
 	}
 
 	/** Tests {@link ObservableCollection#flatten(ObservableCollection)} */
@@ -498,9 +562,9 @@ public class ObservableTest {
 		DefaultObservableSet<Integer> set1 = new DefaultObservableSet<>(new Type(Integer.TYPE));
 		DefaultObservableSet<Integer> set2 = new DefaultObservableSet<>(new Type(Integer.TYPE));
 		DefaultObservableSet<Integer> set3 = new DefaultObservableSet<>(new Type(Integer.TYPE));
-		DefaultObservableSet<ObservableSet<Integer>> outer = new DefaultObservableSet<>(new Type(ObservableSet.class,
+		DefaultObservableList<ObservableSet<Integer>> outer = new DefaultObservableList<>(new Type(ObservableSet.class,
 			new Type(Integer.TYPE)));
-		Set<ObservableSet<Integer>> outerControl = outer.control(null);
+		List<ObservableSet<Integer>> outerControl = outer.control(null);
 		outerControl.add(set1);
 		outerControl.add(set2);
 		ObservableCollection<Integer> flat = ObservableCollection.flatten(outer);
@@ -540,58 +604,104 @@ public class ObservableTest {
 		Set<Integer> controller2 = set2.control(null);
 		Set<Integer> controller3 = set3.control(null);
 
-		Set<Integer> correct = new TreeSet<>();
-		Set<Integer> filteredCorrect = new TreeSet<>();
+		List<Integer> correct1 = new ArrayList<>();
+		List<Integer> correct2 = new ArrayList<>();
+		List<Integer> correct3 = new ArrayList<>();
+		List<Integer> correct = new ArrayList<>();
+		List<Integer> filteredCorrect = new ArrayList<>();
 
 		for(int i = 0; i < 30; i++) {
 			controller1.add(i);
 			controller2.add(i * 10);
 			controller3.add(i * 100);
-			correct.add(i);
-			correct.add(i * 10);
-			if(i % 3 == 0) {
-				filteredCorrect.add(i);
-				filteredCorrect.add(i * 10);
-			}
+			correct1.add(i);
+			correct2.add(i * 10);
+			correct3.add(i * 100);
+			correct.clear();
+			correct.addAll(correct1);
+			correct.addAll(correct2);
+			filteredCorrect.clear();
+			for(int j : correct1)
+				if(j % 3 == 0)
+					filteredCorrect.add(j);
+			for(int j : correct2)
+				if(j % 3 == 0)
+					filteredCorrect.add(j);
 			assertEquals(new TreeSet<>(flat), new TreeSet<>(compare1));
 			assertEquals(flat.size(), compare1.size());
-			assertEquals(correct, new TreeSet<>(compare1));
+			assertEquals(new TreeSet<>(correct), new TreeSet<>(compare1));
 			assertEquals(correct.size(), compare1.size());
-			assertEquals(filteredCorrect, new TreeSet<>(filtered));
+			assertEquals(new TreeSet<>(filteredCorrect), new TreeSet<>(filtered));
 			assertEquals(filteredCorrect.size(), filtered.size());
 		}
 
 		outerControl.add(set3);
-		for(int i = 0; i < 30; i++) {
-			correct.add(i * 100);
-			if(i % 3 == 0) {
-				filteredCorrect.add(i * 100);
-			}
-		}
+		correct.clear();
+		correct.addAll(correct1);
+		correct.addAll(correct2);
+		correct.addAll(correct3);
+		filteredCorrect.clear();
+		for(int j : correct1)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+		for(int j : correct2)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+		for(int j : correct3)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+
 		assertEquals(new TreeSet<>(flat), new TreeSet<>(compare1));
 		assertEquals(flat.size(), compare1.size());
-		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(new TreeSet<>(correct), new TreeSet<>(compare1));
 		assertEquals(correct.size(), compare1.size());
-		assertEquals(filteredCorrect, new TreeSet<>(filtered));
+		assertEquals(new TreeSet<>(filteredCorrect), new TreeSet<>(filtered));
 		assertEquals(filteredCorrect.size(), filtered.size());
 
 		outerControl.remove(set2);
 		correct.clear();
+		correct.addAll(correct1);
+		correct.addAll(correct3);
 		filteredCorrect.clear();
-		for(int i = 0; i < 30; i++) {
-			correct.add(i);
-			correct.add(i * 100);
-			if(i % 3 == 0) {
-				filteredCorrect.add(i);
-				filteredCorrect.add(i * 100);
-			}
-		}
+		for(int j : correct1)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+		for(int j : correct3)
+			if(j % 3 == 0)
+				filteredCorrect.add(j);
+
 		assertEquals(new TreeSet<>(flat), new TreeSet<>(compare1));
 		assertEquals(flat.size(), compare1.size());
-		assertEquals(correct, new TreeSet<>(compare1));
+		assertEquals(new TreeSet<>(correct), new TreeSet<>(compare1));
 		assertEquals(correct.size(), compare1.size());
-		assertEquals(filteredCorrect, new TreeSet<>(filtered));
+		assertEquals(new TreeSet<>(filteredCorrect), new TreeSet<>(filtered));
 		assertEquals(filteredCorrect.size(), filtered.size());
+
+		for(int i = 0; i < 30; i++) {
+			controller1.remove(i);
+			controller2.remove(i * 10);
+			controller3.remove(i * 100);
+			correct1.remove((Integer) i);
+			correct2.remove((Integer) (i * 10));
+			correct3.remove((Integer) (i * 100));
+			correct.clear();
+			correct.addAll(correct1);
+			correct.addAll(correct3);
+			filteredCorrect.clear();
+			for(int j : correct1)
+				if(j % 3 == 0)
+					filteredCorrect.add(j);
+			for(int j : correct3)
+				if(j % 3 == 0)
+					filteredCorrect.add(j);
+
+			assertEquals(new TreeSet<>(flat), new TreeSet<>(compare1));
+			assertEquals(flat.size(), compare1.size());
+			assertEquals(new TreeSet<>(correct), new TreeSet<>(compare1));
+			assertEquals(correct.size(), compare1.size());
+			assertEquals(new TreeSet<>(filteredCorrect), new TreeSet<>(filtered));
+			assertEquals(filteredCorrect.size(), filtered.size());
+		}
 	}
 
 	/** Tests {@link ObservableCollection#fold(ObservableCollection)} */

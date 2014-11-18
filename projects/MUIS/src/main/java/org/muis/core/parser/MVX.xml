@@ -242,7 +242,7 @@
 			<op type="muis-type" storeAs="base" />
 		</option>
 	</entity>
-	<entity name="muis-type" priority="-1" impl="prisms.lang.types.ParsedType">
+	<entity name="muis-type" priority="0" impl="prisms.lang.types.ParsedType">
 		<!-- MUIS-type namespace-qualified tag type.  Capture this separately so we can assign higher priority to override subtraction. -->
 		<option>
 			<op type="muis-identifier" storeAs="namespace" />

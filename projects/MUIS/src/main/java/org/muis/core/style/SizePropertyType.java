@@ -85,4 +85,9 @@ public class SizePropertyType extends MuisProperty.AbstractPropertyType<Size> im
 		ret.append(value.getUnit().attrValue);
 		return ret.toString();
 	}
+
+	@Override
+	public String toString() {
+		return "size";
+	}
 }

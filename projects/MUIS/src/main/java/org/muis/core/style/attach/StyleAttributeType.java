@@ -137,4 +137,9 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 		}
 		return ret.toString();
 	}
+
+	@Override
+	public String toString() {
+		return "style";
+	}
 }

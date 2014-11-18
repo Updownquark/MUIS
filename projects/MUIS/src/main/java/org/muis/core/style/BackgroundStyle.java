@@ -106,6 +106,11 @@ public class BackgroundStyle implements StyleDomain {
 			else
 				return null;
 		}
+
+		@Override
+		public String toString() {
+			return "cursor";
+		}
 	};
 
 	private StyleAttribute<?> [] theAttributes;

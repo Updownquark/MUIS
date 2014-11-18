@@ -225,7 +225,7 @@ public class MuisDocument implements MuisParseEnv {
 		theObservableTarget = new org.muis.core.rx.DefaultObservableValue<MuisEventPositionCapture>() {
 			@Override
 			public Type getType() {
-				return new Type(MuisElement.class);
+				return new Type(MuisEventPositionCapture.class);
 			}
 
 			@Override

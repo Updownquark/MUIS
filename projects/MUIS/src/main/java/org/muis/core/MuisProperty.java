@@ -761,6 +761,11 @@ public abstract class MuisProperty<T> {
 		public int hashCode() {
 			return getClass().hashCode();
 		}
+
+		@Override
+		public String toString() {
+			return "url";
+		}
 	};
 
 	/**
@@ -900,6 +905,11 @@ public abstract class MuisProperty<T> {
 		public int hashCode() {
 			return getClass().hashCode() * 7 + enumType.hashCode();
 		}
+
+		@Override
+		public String toString() {
+			return enumType.getSimpleName();
+		}
 	}
 
 	/**
@@ -1005,6 +1015,11 @@ public abstract class MuisProperty<T> {
 		@Override
 		public int hashCode() {
 			return theHashCode;
+		}
+
+		@Override
+		public String toString() {
+			return theWrapped.toString();
 		}
 	}
 

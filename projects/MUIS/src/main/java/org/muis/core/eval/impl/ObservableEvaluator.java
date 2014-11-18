@@ -70,6 +70,11 @@ public class ObservableEvaluator extends PrismsEvaluator {
 				else
 					return result.getValue();
 			}
+
+			@Override
+			public String toString() {
+				return item.toString();
+			}
 		};
 		Observer<ObservableValueEvent<Object>> controller = ret.control(null);
 		ParsedItem [] deps = item.getDependents();

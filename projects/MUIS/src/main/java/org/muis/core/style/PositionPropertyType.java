@@ -86,4 +86,9 @@ public class PositionPropertyType extends MuisProperty.AbstractPropertyType<Posi
 		ret.append(value.getUnit().attrValue);
 		return ret.toString();
 	}
+
+	@Override
+	public String toString() {
+		return "position";
+	}
 }

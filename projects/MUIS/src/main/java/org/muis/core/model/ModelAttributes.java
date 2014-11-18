@@ -63,9 +63,26 @@ public class ModelAttributes {
 				else
 					return null;
 			}
+
+			@Override
+			public String toString() {
+				return "action";
+			}
 		};
-		valueType = new MuisProperty.PrismsParsedPropertyType<>(new Type(ObservableValue.class, new Type(new Type(Object.class), true)));
-		modelType = new MuisProperty.PrismsParsedPropertyType<>(new Type(MuisAppModel.class, new Type(new Type(MuisAppModel.class), true)));
+		valueType = new MuisProperty.PrismsParsedPropertyType<ObservableValue<?>>(new Type(ObservableValue.class, new Type(new Type(
+			Object.class), true))) {
+			@Override
+			public String toString() {
+				return "model value";
+			}
+		};
+		modelType = new MuisProperty.PrismsParsedPropertyType<MuisAppModel>(new Type(MuisAppModel.class, new Type(new Type(
+			MuisAppModel.class), true))) {
+			@Override
+			public String toString() {
+				return "model";
+			}
+		};
 
 		action = new MuisAttribute<>("action", actionType);
 		value = new MuisAttribute<>("value", valueType);

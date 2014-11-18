@@ -57,6 +57,11 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
 				return outer.map(eventMap).internalSubscribe(observer);
 			}
+
+			@Override
+			public String toString() {
+				return outer.toString();
+			}
 		};
 	}
 
@@ -244,6 +249,11 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 			public T get() {
 				return outer.get();
 			}
+
+			@Override
+			public String toString() {
+				return "Take " + outer + " until " + until;
+			}
 		};
 	}
 
@@ -350,6 +360,11 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 					}
 				};
 			}
+
+			@Override
+			public String toString() {
+				return "flat(" + ov + ")";
+			}
 		};
 	}
 
@@ -403,6 +418,11 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 					for(Runnable sub : subSubs)
 						sub.run();
 				};
+			}
+
+			@Override
+			public String toString(){
+				return "Assembled " + type;
 			}
 		};
 	}

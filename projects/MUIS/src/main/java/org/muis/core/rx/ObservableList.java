@@ -400,7 +400,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 			@Override
 			public String toString() {
-				return "find " + fType + " in " + this;
+				return "find " + fType + " in " + ObservableList.this;
 			}
 		};
 	}

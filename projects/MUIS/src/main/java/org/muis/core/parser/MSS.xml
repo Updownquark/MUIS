@@ -208,4 +208,40 @@
 	<entity name="identifier" order="1000" impl="prisms.lang.types.ParsedIdentifier">
 		<charset pattern="[_a-zA-Z][_a-zA-Z0-9\-]*" storeAs="name" />
 	</entity>
+	
+	<!-- Logical -->
+	<operator name="or" order="50" priority="120" impl="prisms.lang.types.ParsedBinaryOp">
+		<op />
+		<literal storeAs="name">||</literal>
+		<op />
+	</operator>
+	<operator name="and" order="50" priority="130" impl="prisms.lang.types.ParsedBinaryOp">
+		<op />
+		<literal storeAs="name">&amp;&amp;</literal>
+		<op />
+	</operator>
+	<operator name="binary or" order="50" priority="140" impl="prisms.lang.types.ParsedBinaryOp">
+		<op />
+		<literal storeAs="name">|</literal>
+		<op />
+	</operator>
+	<operator name="binary xor" order="50" priority="150" impl="prisms.lang.types.ParsedBinaryOp">
+		<op />
+		<literal storeAs="name">^</literal>
+		<op />
+	</operator>
+	<operator name="binary and" order="50" priority="160" impl="prisms.lang.types.ParsedBinaryOp">
+		<op />
+		<literal storeAs="name">&amp;</literal>
+		<op />
+	</operator>
+	<operator name="not" order="50" priority="220" impl="prisms.lang.types.ParsedUnaryOp">
+		<literal storeAs="name">!</literal>
+		<op />
+	</operator>
+	<operator name="parenthetic" order="50" priority="250" impl="prisms.lang.types.ParsedParenthetic">
+		<literal>(</literal>
+		<op storeAs="content" />
+		<literal>)</literal>
+	</operator>
 </grammar>

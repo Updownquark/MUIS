@@ -568,6 +568,10 @@ public abstract class MuisProperty<T> {
 		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws MuisException {
 			parser.insertOperator(theColorOp);
 			eval.addEvaluator(ParsedColor.class, new org.muis.core.eval.impl.ColorEvaluator());
+			eval.addEvaluator(prisms.lang.types.ParsedDeclaration.class, new prisms.lang.eval.DeclarationEvaluator());
+			eval.addEvaluator(ParsedFunctionDeclaration.class, new prisms.lang.eval.FunctionDeclarationEvaluator());
+			eval.addEvaluator(prisms.lang.types.ParsedStatementBlock.class, new prisms.lang.eval.StatementBlockEvaluator());
+			eval.addEvaluator(prisms.lang.types.ParsedReturn.class, new prisms.lang.eval.ReturnEvaluator());
 
 			for(ParsedFunctionDeclaration func : theFunctions)
 				env.declareFunction(func);

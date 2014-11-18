@@ -106,4 +106,9 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 		return new StyleAttributeEvent<>(theElStyle.getElement(), superMap.getRootStyle(), this, attr, superMap.getOldValue(),
 			superMap.getValue(), superMap.getCause());
 	}
+
+	@Override
+	public String toString() {
+		return "style.self of " + theElStyle.getElement();
+	}
 }

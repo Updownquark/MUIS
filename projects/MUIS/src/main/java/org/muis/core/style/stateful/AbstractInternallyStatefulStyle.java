@@ -62,12 +62,17 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableList<MuisStyle> getDependencies() {
-		return getConditionalDependencies().mapC(depend -> {
+		return new org.muis.util.ObservableListWrapper<MuisStyle>(getConditionalDependencies().mapC(depend -> {
 			if(depend instanceof InternallyStatefulStyle)
 				return (InternallyStatefulStyle) depend;
 			else
 				return new StatefulStyleSample(depend, theState);
-		});
+		})) {
+			@Override
+			public String toString() {
+				return "Dependencies of " + AbstractInternallyStatefulStyle.this;
+			}
+		};
 	}
 
 	@Override
@@ -80,7 +85,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return ObservableValue.flatten(
+		return new org.muis.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
 			getLocalExpressions(attr).combineC(theState.changes(),
 				(StyleExpressionValue<StateExpression, T> sev, Set<MuisState> state) -> {
@@ -89,18 +94,29 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 					return null;
 				}).find(new Type(StyleExpressionValue.class, new Type(StateExpression.class), attr.getType().getType()), value -> {
 					return value != null ? value : null;
-				})).mapEvent(event -> mapEvent(attr, event));
+			})).mapEvent(event -> mapEvent(attr, event))) {
+			@Override
+			public String toString() {
+				return AbstractInternallyStatefulStyle.this + ".getLocal(" + attr + ")";
+			}
+		};
 	}
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return allLocal().combineC(theState.changes(), (StyleAttribute<?> attr, Set<MuisState> state) -> attr).filterMapC(attr -> {
+		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().combineC(theState.changes(),
+			(StyleAttribute<?> attr, Set<MuisState> state) -> attr).filterMapC(attr -> {
 			if(attr == null)
 				return null;
 			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr))
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))
 					return attr;
 			return null;
-		});
+		})) {
+			@Override
+			public String toString() {
+				return "Local attributes of " + AbstractInternallyStatefulStyle.this;
+			}
+		};
 	}
 }

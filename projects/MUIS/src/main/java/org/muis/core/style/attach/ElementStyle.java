@@ -160,6 +160,11 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			superMap.getCause());
 	}
 
+	@Override
+	public String toString() {
+		return "style of " + theElement;
+	}
+
 	private class NamedStyleIterator implements java.util.ListIterator<TypedStyleGroup<?>> {
 		private TypedStyleGroup<?> [] theGroups;
 

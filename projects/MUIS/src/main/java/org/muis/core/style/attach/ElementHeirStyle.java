@@ -58,4 +58,9 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 	public void clear(StyleAttribute<?> attr, StateExpression exp) {
 		super.clear(attr, exp);
 	}
+
+	@Override
+	public String toString() {
+		return "style.heir of " + theElStyle.getElement();
+	}
 }

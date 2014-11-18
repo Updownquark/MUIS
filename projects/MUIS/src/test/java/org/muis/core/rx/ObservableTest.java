@@ -1073,9 +1073,9 @@ public class ObservableTest {
 		}
 	}
 
-	/** Tests {@link ObservableUtils#flatten(Type, ObservableList)} */
+	/** Tests {@link ObservableUtils#flattenListValues(Type, ObservableList)} */
 	@Test
-	public void utilsListFlatten() {
+	public void flattenListValues() {
 		DefaultObservableList<ObservableValue<Integer>> list = new DefaultObservableList<>(new Type(ObservableValue.class, new Type(
 			Integer.TYPE)));
 		List<ObservableValue<Integer>> listControl = list.control(null);
@@ -1092,7 +1092,7 @@ public class ObservableTest {
 		listControl.addAll(java.util.Arrays.asList(value1, value2, value3, value4));
 
 		Integer [] received = new Integer[1];
-		ObservableUtils.flatten(new Type(Integer.TYPE), list).find(new Type(Integer.class), value -> value % 3 == 0 ? value : null).value()
+		ObservableUtils.flattenListValues(new Type(Integer.TYPE), list).find(new Type(Integer.class), value -> value % 3 == 0 ? value : null).value()
 			.act(value -> received[0] = value);
 		assertEquals(Integer.valueOf(3), received[0]);
 		value3.set(4, null);

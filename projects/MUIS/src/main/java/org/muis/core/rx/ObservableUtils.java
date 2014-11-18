@@ -12,7 +12,7 @@ public class ObservableUtils {
 	 * @param list The list to flatten
 	 * @return The flattened list
 	 */
-	public static <T> ObservableList<T> flatten(Type type, ObservableList<? extends ObservableValue<T>> list) {
+	public static <T> ObservableList<T> flattenListValues(Type type, ObservableList<? extends ObservableValue<T>> list) {
 		class FlattenedList extends java.util.AbstractList<T> implements ObservableList<T> {
 			@Override
 			public Type getType() {
@@ -103,6 +103,11 @@ public class ObservableUtils {
 			@Override
 			public int size() {
 				return list.size();
+			}
+
+			@Override
+			public String toString() {
+				return "flatValue(" + list + ")";
 			}
 		}
 		return new FlattenedList();

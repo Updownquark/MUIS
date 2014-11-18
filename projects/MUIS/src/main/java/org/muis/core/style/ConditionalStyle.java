@@ -40,7 +40,12 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 		java.util.Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(allLocal());
 		controller.add(ObservableSet.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
-		return ObservableSet.flatten(ret);
+		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
+			@Override
+			public String toString() {
+				return "All attributes for " + ConditionalStyle.this;
+			}
+		};
 	}
 
 	/**
@@ -54,6 +59,11 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 		java.util.List<ObservableList<StyleExpressionValue<E, T>>> controller = ret.control(null);
 		controller.add(getLocalExpressions(attr));
 		controller.add(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
-		return ObservableList.flatten(ret);
+		return new org.muis.util.ObservableListWrapper<StyleExpressionValue<E, T>>(ObservableList.flatten(ret)) {
+			@Override
+			public String toString() {
+				return attr + " expressions for " + ConditionalStyle.this;
+			}
+		};
 	}
 }

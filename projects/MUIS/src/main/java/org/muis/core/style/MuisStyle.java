@@ -70,7 +70,12 @@ public interface MuisStyle {
 		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
 		controller.add(ObservableSet.flatten(getDependencies().mapC(depend -> depend.attributes())));
-		return ObservableSet.flatten(ret);
+		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
+			@Override
+			public String toString() {
+				return "All attributes for " + MuisStyle.this;
+			}
+		};
 	}
 
 	/**
@@ -84,9 +89,9 @@ public interface MuisStyle {
 	 * @return The observable value of the attribute in this style's scope
 	 */
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<T> dependValue = ObservableUtils.flatten(attr.getType().getType(),
+		ObservableValue<T> dependValue = ObservableUtils.flattenListValues(attr.getType().getType(),
 			getDependencies().mapC(depend -> depend.get(attr, false))).find(attr.getType().getType(), val -> val);
-		return getLocal(attr).combineV(null, (T local, T depend) -> {
+		return new org.muis.util.ObservableValueWrapper<T>(getLocal(attr).combineV(null, (T local, T depend) -> {
 			if(local != null)
 				return local;
 			else if(depend != null)
@@ -95,7 +100,12 @@ public interface MuisStyle {
 				return attr.getDefault();
 			else
 				return null;
-		}, dependValue, true).mapEvent(event -> mapEvent(attr, event));
+		}, dependValue, true).mapEvent(event -> mapEvent(attr, event))) {
+			@Override
+			public String toString() {
+				return MuisStyle.this + ".get(" + attr + ")";
+			}
+		};
 	}
 
 	/**
@@ -143,7 +153,12 @@ public interface MuisStyle {
 					return new StyleAttributeEvent<>(null, event.getRootStyle(), this, (StyleAttribute<Object>) event.getAttribute(), event
 						.getOldValue(), event.getValue(), event);
 				});
-		return Observable.or(localChanges, localRemoves, depends);
+		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(Observable.or(localChanges, localRemoves, depends)) {
+			@Override
+			public String toString() {
+				return "All changes in " + MuisStyle.this;
+			}
+		};
 	}
 
 	/**
@@ -151,8 +166,21 @@ public interface MuisStyle {
 	 * @return An observable that fires a {@link StyleAttributeEvent} for every change affecting the given attribute values in this style
 	 */
 	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
-		return ObservableCollection.fold(
+		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection.fold(
 			ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr))).map(
-			event -> (StyleAttributeEvent<?>) event);
+			event -> (StyleAttributeEvent<?>) event)) {
+			@Override
+			public String toString() {
+				StringBuilder ret = new StringBuilder();
+				ret.append(MuisStyle.this).append(".watch(");
+				for(int i = 0; i < attrs.length; i++) {
+					if(i < attrs.length - 1)
+						ret.append(", ");
+					ret.append(attrs[i]);
+				}
+				ret.append(')');
+				return ret.toString();
+			}
+		};
 	}
 }

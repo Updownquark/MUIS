@@ -172,7 +172,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			else
 				value = getDocumentModel().toString();
 			parsed = true;
-			if(BaseAttributes.validator != null) {
+			if(val != null) {
 				String valMsg = ((Validator<Object>) val).validate(value);
 				if(valMsg != null) {
 					// TODO Do something with the message

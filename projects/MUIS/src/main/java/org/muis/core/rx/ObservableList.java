@@ -313,11 +313,15 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	 * @return The first non-null mapped value in this list, or null if none of this list's elements map to a non-null value
 	 */
 	default <V> ObservableValue<V> find(Type type, Function<E, V> map) {
+		if(type != null && type.isPrimitive())
+			throw new IllegalArgumentException("Types passed to find() must be nullable");
 		final Type fType;
-		if(type != null)
-			fType = type;
-		else
-			fType = ComposedObservableValue.getReturnType(map);
+		if(type == null) {
+			type = ComposedObservableValue.getReturnType(map);
+			if(type.isPrimitive())
+				type = new Type(Type.getWrapperType(type.getBaseType()));
+		}
+		fType = type;
 		return new ObservableValue<V>() {
 			@Override
 			public Type getType() {
@@ -353,6 +357,9 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									V mapped = map.apply(value.getValue());
 									if(mapped != null)
 										newBest(mapped, listIndex);
+									else if(listIndex == theIndex) {
+										findNextBest(listIndex + 1);
+									}
 								}
 							}
 
@@ -360,20 +367,24 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 							public <V3 extends ObservableValueEvent<E>> void onCompleted(V3 value) {
 								int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
 								if(listIndex == theIndex) {
-									boolean found = false;
-									for(int i = listIndex; i < size(); i++) {
-										E val = ObservableList.this.get(i);
-										V mapped = map.apply(val);
-										if(mapped != null) {
-											found = true;
-											newBest(mapped, i);
-											break;
-										}
-									}
-									if(!found)
-										newBest(null, -1);
+									findNextBest(listIndex + 1);
 								} else if(listIndex < theIndex)
 									theIndex--;
+							}
+
+							private void findNextBest(int index) {
+								boolean found = false;
+								for(int i = index; i < size(); i++) {
+									E val = ObservableList.this.get(i);
+									V mapped = map.apply(val);
+									if(mapped != null) {
+										found = true;
+										newBest(mapped, i);
+										break;
+									}
+								}
+								if(!found)
+									newBest(null, -1);
 							}
 						});
 					}
@@ -389,7 +400,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 			@Override
 			public String toString() {
-				return "find " + type + " in " + this;
+				return "find " + fType + " in " + this;
 			}
 		};
 	}

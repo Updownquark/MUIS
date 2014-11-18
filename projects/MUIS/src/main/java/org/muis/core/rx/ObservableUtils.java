@@ -24,7 +24,6 @@ public class ObservableUtils {
 				return list.internalSubscribe(new Observer<ObservableElement<? extends ObservableValue<T>>>() {
 					@Override
 					public <V extends ObservableElement<? extends ObservableValue<T>>> void onNext(V element) {
-						ObservableListElement<? extends ObservableValue<T>> listElement = (ObservableListElement<? extends ObservableValue<T>>) element;
 						observer.onNext(new ObservableListElement<T>() {
 							@Override
 							public Type getType() {
@@ -38,7 +37,7 @@ public class ObservableUtils {
 
 							@Override
 							public int getIndex() {
-								return listElement.getIndex();
+								return ((ObservableListElement<?>) element).getIndex();
 							}
 
 							@Override
@@ -53,49 +52,29 @@ public class ObservableUtils {
 							@Override
 							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
 								ObservableListElement<T> retObs = this;
-								Runnable [] innerSub = new Runnable[1];
-								Runnable outerSub = element
+								return element
 									.internalSubscribe(new Observer<ObservableValueEvent<? extends ObservableValue<? extends T>>>() {
 										@Override
 										public <V2 extends ObservableValueEvent<? extends ObservableValue<? extends T>>> void onNext(
 											V2 value) {
-											if(innerSub[0] != null) {
-												innerSub[0].run();
-												innerSub[0] = null;
-											}
-											T old = get(value.getOldValue());
 											if(value.getValue() != null) {
-												boolean [] init = new boolean[] {true};
-												innerSub[0] = value.getValue().internalSubscribe(
-													new Observer<ObservableValueEvent<? extends T>>() {
-														@Override
-														public <V3 extends ObservableValueEvent<? extends T>> void onNext(V3 value2) {
-															T innerOld;
-															if(init[0]) {
-																init[0] = false;
-																innerOld = old;
-															} else
-																innerOld = value2.getValue();
-															observer2.onNext(new ObservableValueEvent<>(retObs, innerOld,
-																value2.getValue(), value2.getCause()));
-														}
-
-														@Override
-														public void onError(Throwable e) {
-															observer.onError(e);
-														}
-													});
-											} else
-												observer2.onNext(new ObservableValueEvent<>(retObs, old, null, value.getCause()));
+												value
+													.getValue()
+													.takeUntil(element.skip(1))
+													.act(
+														innerEvent -> {
+															observer2.onNext(new ObservableValueEvent<>(retObs, innerEvent.getOldValue(),
+																innerEvent.getValue(), innerEvent));
+														});
+											} else {
+												observer2.onNext(new ObservableValueEvent<>(retObs, get(value.getOldValue()), null, value
+													.getCause()));
+											}
 										}
 
 										@Override
 										public <V2 extends ObservableValueEvent<? extends ObservableValue<? extends T>>> void onCompleted(
 											V2 value) {
-											if(innerSub[0] != null) {
-												innerSub[0].run();
-												innerSub[0] = null;
-											}
 											observer2.onCompleted(new ObservableValueEvent<>(retObs, get(value.getOldValue()), get(value
 												.getValue()), value.getCause()));
 										}
@@ -105,13 +84,6 @@ public class ObservableUtils {
 											observer.onError(e);
 										}
 									});
-								return () -> {
-									outerSub.run();
-									if(innerSub[0] != null) {
-										innerSub[0].run();
-										innerSub[0] = null;
-									}
-								};
 							}
 						});
 					}

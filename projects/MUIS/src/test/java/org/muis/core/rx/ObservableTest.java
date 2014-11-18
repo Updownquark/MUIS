@@ -1092,7 +1092,7 @@ public class ObservableTest {
 		listControl.addAll(java.util.Arrays.asList(value1, value2, value3, value4));
 
 		Integer [] received = new Integer[1];
-		ObservableUtils.flatten(new Type(Integer.TYPE), list).find(new Type(Integer.TYPE), value -> value % 3 == 0 ? value : null).value()
+		ObservableUtils.flatten(new Type(Integer.TYPE), list).find(new Type(Integer.class), value -> value % 3 == 0 ? value : null).value()
 			.act(value -> received[0] = value);
 		assertEquals(Integer.valueOf(3), received[0]);
 		value3.set(4, null);

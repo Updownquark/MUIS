@@ -77,21 +77,18 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		};
 	}
 
-	/** @return An observable that returns all elements removed from the collection */
-	default Observable<ObservableElement<E>> removes() {
+	/** @return An observable that passes along only events for removal of elements from the collection */
+	default Observable<ObservableValueEvent<E>> removes() {
 		ObservableCollection<E> coll = this;
-		return new Observable<ObservableElement<E>>() {
+		return new Observable<ObservableValueEvent<E>>() {
 			@Override
-			public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
-				Runnable sub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				return coll.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V element) {
-						element.completed().act(value -> observer.onNext(element));
+						element.completed().act(value -> observer.onNext(value));
 					}
 				});
-				return () -> {
-					sub.run();
-				};
 			}
 		};
 	}

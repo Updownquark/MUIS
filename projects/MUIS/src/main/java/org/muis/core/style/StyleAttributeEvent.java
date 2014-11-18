@@ -72,10 +72,13 @@ public class StyleAttributeEvent<T> extends org.muis.core.event.MuisPropertyEven
 	 * @param root The style that the change was in
 	 * @param local The style that is firing the event
 	 * @param attr The attribute whose value was changed
+	 * @param oldValue The previous value of the attribute in the style
 	 * @param value The new value of the attribute in the style
+	 * @param cause The cause of the change
 	 */
-	public StyleAttributeEvent(MuisElement element, MuisStyle root, MuisStyle local, StyleAttribute<T> attr, T value) {
-		super(element, null, null, value, null);
+	public StyleAttributeEvent(MuisElement element, MuisStyle root, MuisStyle local, StyleAttribute<T> attr, T oldValue, T value,
+		MuisEvent cause) {
+		super(element, local.get(attr), oldValue, value, cause);
 		theRootStyle = root;
 		theLocalStyle = local;
 		theAttribute = attr;

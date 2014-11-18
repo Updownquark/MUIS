@@ -259,8 +259,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		@Override
 		public boolean add(E e) {
 			doLocked(() -> {
-				theValues.add(e);
-				ObservableElementImpl<E> add = new ObservableElementImpl<>(theType, e);
+				E val = (E) theType.cast(e);
+				theValues.add(val);
+				ObservableElementImpl<E> add = new ObservableElementImpl<>(theType, val);
 				theElements.add(add);
 				fireNewElement(add);
 			}, true);
@@ -291,8 +292,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 				return false;
 			doLocked(() -> {
 				for(E e : c) {
-					theValues.add(e);
-					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, e);
+					E val = (E) theType.cast(e);
+					theValues.add(val);
+					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
 					theElements.add(newWrapper);
 					fireNewElement(newWrapper);
 				}
@@ -309,8 +311,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 					theElements.remove(i).remove();
 				int idx = index;
 				for(E e : c) {
-					theValues.add(idx, e);
-					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, e);
+					E val = (E) theType.cast(e);
+					theValues.add(idx, val);
+					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
 					theElements.add(newWrapper);
 					fireNewElement(newWrapper);
 					idx++;
@@ -394,8 +397,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		public E set(int index, E element) {
 			Object [] ret = new Object[1];
 			doLocked(() -> {
-				ret[0] = theValues.set(index, element);
-				theElements.get(index).set(element);
+				E val = (E) theType.cast(element);
+				ret[0] = theValues.set(index, val);
+				theElements.get(index).set(val);
 			}, true);
 			return (E) ret[0];
 		}
@@ -406,8 +410,9 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 				for(int i = theValues.size() - 1; i >= index; i--)
 					theElements.remove(i).remove();
 				int idx = index;
-				theValues.add(idx, element);
-				ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, element);
+				E val = (E) theType.cast(element);
+				theValues.add(idx, val);
+				ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
 				theElements.add(newWrapper);
 				fireNewElement(newWrapper);
 				idx++;

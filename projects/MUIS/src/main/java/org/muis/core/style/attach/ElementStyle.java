@@ -4,13 +4,14 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 
 /** A style controlling the appearance of a specific element */
-public class ElementStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
+public class ElementStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, org.muis.core.style.MuisStyle {
 	private final MuisElement theElement;
 
 	private ElementStyle theParentStyle;
@@ -150,6 +151,13 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		return () -> {
 			return new NamedStyleIterator(theStyleGroups, forward);
 		};
+	}
+
+	@Override
+	public <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, org.muis.core.rx.ObservableValueEvent<T> event) {
+		StyleAttributeEvent<T> superMap = org.muis.core.style.MuisStyle.super.mapEvent(attr, event);
+		return new StyleAttributeEvent<>(theElement, superMap.getRootStyle(), this, attr, superMap.getOldValue(), superMap.getValue(),
+			superMap.getCause());
 	}
 
 	private class NamedStyleIterator implements java.util.ListIterator<TypedStyleGroup<?>> {

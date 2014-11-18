@@ -2,6 +2,7 @@ package org.muis.core.style;
 
 import java.util.Set;
 
+import org.muis.core.event.MuisEvent;
 import org.muis.core.rx.*;
 
 import prisms.lang.Type;
@@ -26,6 +27,28 @@ public interface MuisStyle {
 
 	/** @return Attributes set locally in this style */
 	ObservableSet<StyleAttribute<?>> localAttributes();
+
+	/**
+	 * @param <T> The type of the event to map
+	 * @param attr The style attribute to map the event for
+	 * @param event The observable event representing a change to the attribute in this style
+	 * @return The style attribute event to fire for the change
+	 */
+	default <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, ObservableValueEvent<T> event) {
+		MuisStyle root;
+		if(event instanceof StyleAttributeEvent)
+			root = ((StyleAttributeEvent<T>) event).getRootStyle();
+		else if(event.getCause() instanceof StyleAttributeEvent)
+			root = ((StyleAttributeEvent<T>) event.getCause()).getRootStyle();
+		else
+			root = this;
+		MuisEvent cause = null;
+		if(event instanceof MuisEvent)
+			cause = (MuisEvent) event;
+		else if(event.getCause() instanceof MuisEvent)
+			cause = (MuisEvent) event.getCause();
+		return new StyleAttributeEvent<>(null, root, this, attr, event.getOldValue(), event.getValue(), cause);
+	}
 
 	/**
 	 * @param attr The attribute to check
@@ -72,7 +95,7 @@ public interface MuisStyle {
 				return attr.getDefault();
 			else
 				return null;
-		}, dependValue, true);
+		}, dependValue, true).mapEvent(event -> mapEvent(attr, event));
 	}
 
 	/**
@@ -90,14 +113,37 @@ public interface MuisStyle {
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
 	default Observable<StyleAttributeEvent<?>> allChanges() {
-		return Observable.or(
-			// Local changes
-			ObservableCollection.fold(localAttributes().mapC(attr -> get(attr))).skip(localAttributes().size())
-				.map(event -> (StyleAttributeEvent<?>) event),
-			// Local removes
-			localAttributes().removes().map(element -> new StyleAttributeEvent<>(null, this, this, element.get(), null)),
-			// Dependency changes
-			ObservableCollection.fold(getDependencies().mapC(dep -> dep.allChanges())));
+		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> get(attr)))
+			.skip(localAttributes().size()).map(event -> (StyleAttributeEvent<?>) event);
+		Observable<StyleAttributeEvent<?>> localRemoves = localAttributes().removes().map(event -> {
+			MuisStyle root;
+			StyleAttribute<Object> attr;
+			Object oldVal;
+			if(event.getCause() instanceof StyleAttributeEvent) {
+				StyleAttributeEvent<Object> sae = (StyleAttributeEvent<Object>) event.getCause();
+				root = sae.getRootStyle();
+				attr = sae.getAttribute();
+				oldVal = sae.getOldValue();
+			} else
+				throw new IllegalStateException("Cannot convert to StyleAttributeEvent: " + event);
+			root = this;
+			MuisEvent cause = null;
+			if(event instanceof MuisEvent)
+				cause = (MuisEvent) event;
+			else if(event.getCause() instanceof MuisEvent)
+				cause = (MuisEvent) event.getCause();
+			return new StyleAttributeEvent<>(null, root, this, attr, oldVal, get(attr).get(), cause);
+		});
+		Observable<StyleAttributeEvent<?>> depends = ObservableCollection
+			.fold(getDependencies().mapC(dep -> dep.allChanges()))
+			// Don't propagate dependency changes that are overridden in this style
+			.filter(event -> get(event.getAttribute(), false) == null)
+			.map(
+				event -> {
+					return new StyleAttributeEvent<>(null, event.getRootStyle(), this, (StyleAttribute<Object>) event.getAttribute(), event
+						.getOldValue(), event.getValue(), event);
+				});
+		return Observable.or(localChanges, localRemoves, depends);
 	}
 
 	/**

@@ -8,6 +8,8 @@ import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 
+import prisms.lang.Type;
+
 /** A {@link MuisStyle} implementation that gets all its information from a {@link StatefulStyle} for a particular state */
 public class StatefulStyleSample implements MuisStyle {
 	private final StatefulStyle theStatefulStyle;
@@ -48,16 +50,17 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
+		Type t = new Type(StyleExpressionValue.class, new Type(StateExpression.class), attr.getType().getType());
 		return ObservableValue.flatten(
 			attr.getType().getType(),
 			theStatefulStyle.getLocalExpressions(attr)
-			.combineC(theState.changes(), (StyleExpressionValue<StateExpression, T> exprs, ObservableSet<MuisState> state) -> exprs)
-			.find(attr.getType().getType(), (StyleExpressionValue<StateExpression, T> sev) -> {
-				if(sev.getExpression() == null || sev.getExpression().matches(theState))
+				.combineC(theState.changes(), (StyleExpressionValue<StateExpression, T> exprs, ObservableSet<MuisState> state) -> exprs)
+				.find(t, (StyleExpressionValue<StateExpression, T> sev) -> {
+					if(sev.getExpression() == null || sev.getExpression().matches(theState))
 						return sev;
-				else
-					return null;
-				}));
+					else
+						return null;
+				})).mapEvent(event -> mapEvent(attr, event));
 	}
 
 	@Override

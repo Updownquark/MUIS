@@ -89,7 +89,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 					return null;
 				}).find(new Type(StyleExpressionValue.class, new Type(StateExpression.class), attr.getType().getType()), value -> {
 					return value != null ? value : null;
-				}));
+				})).mapEvent(event -> mapEvent(attr, event));
 	}
 
 	@Override

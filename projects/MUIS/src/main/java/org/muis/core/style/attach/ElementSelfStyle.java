@@ -12,7 +12,7 @@ import org.muis.core.style.stateful.StateExpression;
 import prisms.lang.Type;
 
 /** Represents a style set that applies only to a particular element and not to its descendants */
-public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
+public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, org.muis.core.style.MuisStyle {
 	private final ElementStyle theElStyle;
 
 	private FilteredStyleSheet<?> theStyleSheet;
@@ -53,13 +53,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 					tpl.listen(theElStyle.getElement());
 					addDependency(theStyleSheet);
 					// Add a dependency for typed, non-grouped style sheet attributes
-					allChanges().act(
-						(StyleAttributeEvent<?> event) -> {
-							StyleAttributeEvent<Object> evt = (StyleAttributeEvent<Object>) event;
-							evt = new StyleAttributeEvent<>(theElStyle.getElement(), evt.getRootStyle(), evt.getLocalStyle(), evt
-								.getAttribute(), evt.getValue());
-							theElStyle.getElement().events().fire(evt);
-						});
+					allChanges().act(event -> theElStyle.getElement().events().fire(event));
 				}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 
@@ -104,5 +98,12 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	@Override
 	public void clear(StyleAttribute<?> attr, StateExpression exp) {
 		super.clear(attr, exp);
+	}
+
+	@Override
+	public <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, org.muis.core.rx.ObservableValueEvent<T> event) {
+		StyleAttributeEvent<T> superMap = org.muis.core.style.MuisStyle.super.mapEvent(attr, event);
+		return new StyleAttributeEvent<>(theElStyle.getElement(), superMap.getRootStyle(), this, attr, superMap.getOldValue(),
+			superMap.getValue(), superMap.getCause());
 	}
 }

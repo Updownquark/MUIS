@@ -25,6 +25,42 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	}
 
 	/**
+	 * Creates an {@link ObservableValueEvent} to propagate a change to this observable's value
+	 *
+	 * @param oldVal The previous value of this observable
+	 * @param newVal The new value of this observable
+	 * @param cause The cause of the change
+	 * @return New event to propagate
+	 */
+	default ObservableValueEvent<T> createEvent(T oldVal, T newVal, Object cause) {
+		return new ObservableValueEvent<>(this, oldVal, newVal, cause);
+	}
+
+	/**
+	 * @param eventMap The mapping function that intercepts value events from this value and creates new, equivalent events
+	 * @return An observable value identical to this one but whose change events are mapped by the given function
+	 */
+	default ObservableValue<T> mapEvent(Function<? super ObservableValueEvent<T>, ? extends ObservableValueEvent<T>> eventMap) {
+		ObservableValue<T> outer = this;
+		return new ObservableValue<T>() {
+			@Override
+			public Type getType() {
+				return outer.getType();
+			}
+
+			@Override
+			public T get() {
+				return outer.get();
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				return outer.map(eventMap).internalSubscribe(observer);
+			}
+		};
+	}
+
+	/**
 	 * Composes this observable into another observable that depends on this one
 	 *
 	 * @param <R> The type of the new observable
@@ -168,7 +204,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 							outerSub.run();
 							if(untilSub[0] != null) {
 								untilSub[0].run();
-								observer.onCompleted(new ObservableValueEvent<>(outer, outer.get(), outer.get(), value));
+								observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
 							}
 						}
 					}
@@ -180,7 +216,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 							outerSub.run();
 							if(untilSub[0] != null) {
 								untilSub[0].run();
-								observer.onCompleted(new ObservableValueEvent<>(outer, outer.get(), outer.get(), value));
+								observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
 							}
 						}
 					}
@@ -292,12 +328,12 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 								}
 							});
 						} else
-							observer.onNext(new ObservableValueEvent<>(retObs, old, null, value.getCause()));
+							observer.onNext(retObs.createEvent(old, null, value.getCause()));
 					}
 
 					@Override
 					public <V extends ObservableValueEvent<? extends ObservableValue<? extends T>>> void onCompleted(V value) {
-						observer.onCompleted(new ObservableValueEvent<>(retObs, get(value.getOldValue()), get(value.getValue()), value
+						observer.onCompleted(retObs.createEvent(get(value.getOldValue()), get(value.getValue()), value
 							.getCause()));
 					}
 
@@ -351,7 +387,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 							T newVal = value.get();
 							T oldVal = (T) oldValue[0];
 							oldValue[0] = newVal;
-							observer.onNext(new ObservableValueEvent<>(outer, oldVal, newVal, value2.getCause()));
+							observer.onNext(outer.createEvent(oldVal, newVal, value2.getCause()));
 						}
 
 						@Override
@@ -413,7 +449,7 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 
 		@Override
 		public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
-			observer.onNext(new ObservableValueEvent<>(this, theValue, theValue, null));
+			observer.onNext(createEvent(theValue, theValue, null));
 			return () -> {
 			};
 		}

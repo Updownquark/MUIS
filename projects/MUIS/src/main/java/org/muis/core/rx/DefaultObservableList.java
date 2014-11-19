@@ -96,8 +96,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		};
 	}
 
-	private ObservableListElement<E> newValue(ObservableElementImpl<E> el, ConcurrentLinkedQueue<Runnable> observers) {
-		return new ObservableListElement<E>() {
+	private OrderedObservableElement<E> newValue(ObservableElementImpl<E> el, ConcurrentLinkedQueue<Runnable> observers) {
+		return new OrderedObservableElement<E>() {
 			private int theRemovedIndex = -1;
 
 			@Override

@@ -2,6 +2,7 @@ package org.muis.core.style.sheet;
 
 import org.muis.core.MuisElement;
 import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableOrderedCollection;
 import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
@@ -79,7 +80,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	@Override
 	public ObservableList<StatefulStyle> getConditionalDependencies() {
-		return theStyleSheet.getConditionalDependencies().mapC(ss -> new FilteredStyleSheet<>(ss, theGroupName, theType, theTemplatePaths));
+		return ObservableList.constant(new prisms.lang.Type(StatefulStyle.class));
 	}
 
 	@Override
@@ -93,8 +94,8 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	}
 
 	@Override
-	public <T> ObservableList<StyleExpressionValue<StateExpression, T>> getLocalExpressions(StyleAttribute<T> attr) {
-		return theStyleSheet.getLocalExpressions(attr).combineC(theTemplatePaths.changes(), (sev, v) -> sev).filterMapC(sev -> {
+	public <T> ObservableOrderedCollection<StyleExpressionValue<StateExpression, T>> getLocalExpressions(StyleAttribute<T> attr) {
+		return theStyleSheet.getExpressions(attr).refireWhen(theTemplatePaths.changes()).filterMapC(sev -> {
 			if(sev == null)
 				return null;
 			if(matchesFilter(sev.getExpression()))

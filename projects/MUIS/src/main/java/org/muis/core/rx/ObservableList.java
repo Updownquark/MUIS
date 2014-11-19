@@ -2,6 +2,7 @@ package org.muis.core.rx;
 
 import java.util.AbstractList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -10,11 +11,11 @@ import prisms.lang.Type;
 /**
  * A list whose content can be observed. This list is immutable in that none of its methods, including {@link List} methods, can modify its
  * content (List modification methods will throw {@link UnsupportedOperationException}). All {@link ObservableElement}s returned by this
- * observable will be instances of {@link ObservableListElement}.
+ * observable will be instances of {@link OrderedObservableElement}.
  *
  * @param <E> The type of element in the list
  */
-public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
+public interface ObservableList<E> extends ObservableOrderedCollection<E>, List<E> {
 	@Override
 	default ObservableValue<? extends ObservableList<E>> changes() {
 		return new ObservableValue<ObservableList<E>>() {
@@ -196,7 +197,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 				Runnable listSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V el) {
-						ObservableListElement<E> outerElement = (ObservableListElement<E>) el;
+						OrderedObservableElement<E> outerElement = (OrderedObservableElement<E>) el;
 						FilteredListElement<T, E> retElement = new FilteredListElement<>(outerElement, map, type, theFilteredElements);
 						theFilteredElements.add(outerElement.getIndex(), retElement);
 						outerElement.completed().act(elValue -> theFilteredElements.remove(outerElement.getIndex()));
@@ -307,116 +308,13 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	}
 
 	/**
-	 * @param <V> Type of the observable value to return
-	 * @param type The run-time type of the value to return
-	 * @param map The mapping function
-	 * @return The first non-null mapped value in this list, or null if none of this list's elements map to a non-null value
-	 */
-	default <V> ObservableValue<V> find(Type type, Function<E, V> map) {
-		if(type != null && type.isPrimitive())
-			throw new IllegalArgumentException("Types passed to find() must be nullable");
-		final Type fType;
-		if(type == null) {
-			type = ComposedObservableValue.getReturnType(map);
-			if(type.isPrimitive())
-				type = new Type(Type.getWrapperType(type.getBaseType()));
-		}
-		fType = type;
-		return new ObservableValue<V>() {
-			@Override
-			public Type getType() {
-				return fType;
-			}
-
-			@Override
-			public V get() {
-				for(E element : ObservableList.this) {
-					V mapped = map.apply(element);
-					if(mapped != null)
-						return mapped;
-				}
-				return null;
-			}
-
-			@Override
-			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<V>> observer) {
-				if(isEmpty())
-					observer.onNext(new ObservableValueEvent<>(this, null, null, null));
-				ObservableValue<V> observableVal = this;
-				return ObservableList.this.internalSubscribe(new Observer<ObservableElement<E>>() {
-					private V theValue;
-					private int theIndex = -1;
-
-					@Override
-					public <V2 extends ObservableElement<E>> void onNext(V2 element) {
-						element.subscribe(new Observer<ObservableValueEvent<E>>() {
-							@Override
-							public <V3 extends ObservableValueEvent<E>> void onNext(V3 value) {
-								int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
-								if(theIndex < 0 || listIndex <= theIndex) {
-									V mapped = map.apply(value.getValue());
-									if(mapped != null)
-										newBest(mapped, listIndex);
-									else if(listIndex == theIndex) {
-										findNextBest(listIndex + 1);
-									}
-								}
-							}
-
-							@Override
-							public <V3 extends ObservableValueEvent<E>> void onCompleted(V3 value) {
-								int listIndex = ((ObservableListElement<?>) value.getObservable()).getIndex();
-								if(listIndex == theIndex) {
-									findNextBest(listIndex + 1);
-								} else if(listIndex < theIndex)
-									theIndex--;
-							}
-
-							private void findNextBest(int index) {
-								boolean found = false;
-								for(int i = index; i < size(); i++) {
-									E val = ObservableList.this.get(i);
-									V mapped = map.apply(val);
-									if(mapped != null) {
-										found = true;
-										newBest(mapped, i);
-										break;
-									}
-								}
-								if(!found)
-									newBest(null, -1);
-							}
-						});
-					}
-
-					void newBest(V value, int index) {
-						V oldValue = theValue;
-						theValue = value;
-						theIndex = index;
-						observer.onNext(new ObservableValueEvent<>(observableVal, oldValue, theValue, null));
-					}
-				});
-			}
-
-			@Override
-			public String toString() {
-				return "find " + fType + " in " + ObservableList.this;
-			}
-		};
-	}
-
-	default ObservableList<E> sortBy(java.util.Comparator<? super E> compare) {
-
-	}
-
-	/**
 	 * @param <T> The type of the value to wrap
 	 * @param type The type of the elements in the list
 	 * @param list The list of items for the new list
 	 * @return An observable list whose contents are given and never changes
 	 */
 	public static <T> ObservableList<T> constant(Type type, List<T> list) {
-		class ConstantObservableElement implements ObservableListElement<T> {
+		class ConstantObservableElement implements OrderedObservableElement<T> {
 			private final Type theType;
 			private final T theValue;
 			private final int theIndex;
@@ -511,7 +409,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	 * @return A list containing all elements of all lists in the outer list
 	 */
 	public static <T> ObservableList<T> flatten(ObservableList<? extends ObservableList<T>> list) {
-		class ComposedObservableList extends AbstractList<T> implements ObservableList<T> {
+		class FlattenedObservableList extends AbstractList<T> implements ObservableList<T> {
 			@Override
 			public Type getType() {
 				return list.getType().getParamTypes().length == 0 ? new Type(Object.class) : list.getType().getParamTypes()[0];
@@ -540,7 +438,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableElement<T>> observer) {
 				return list.internalSubscribe(new Observer<ObservableElement<? extends ObservableList<T>>>() {
-					private java.util.Map<ObservableList<T>, Subscription<ObservableElement<T>>> subListSubscriptions;
+					private Map<ObservableList<T>, Subscription<ObservableElement<T>>> subListSubscriptions;
 
 					{
 						subListSubscriptions = new org.muis.util.ConcurrentIdentityHashMap<>();
@@ -548,22 +446,22 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 
 					@Override
 					public <V extends ObservableElement<? extends ObservableList<T>>> void onNext(V subList) {
-						class FlattenedListElement extends FlattenedElement<T> implements ObservableListElement<T> {
+						class FlattenedListElement extends FlattenedElement<T> implements OrderedObservableElement<T> {
 							private final List<FlattenedListElement> subListElements;
 
-							FlattenedListElement(ObservableListElement<T> subEl, List<FlattenedListElement> subListEls) {
+							FlattenedListElement(OrderedObservableElement<T> subEl, List<FlattenedListElement> subListEls) {
 								super(subEl, subList);
 								subListElements = subListEls;
 							}
 
 							@Override
-							protected ObservableListElement<T> getSubElement() {
-								return (ObservableListElement<T>) super.getSubElement();
+							protected OrderedObservableElement<T> getSubElement() {
+								return (OrderedObservableElement<T>) super.getSubElement();
 							}
 
 							@Override
 							public int getIndex() {
-								int subListIndex = ((ObservableListElement<?>) subList).getIndex();
+								int subListIndex = ((OrderedObservableElement<?>) subList).getIndex();
 								int ret = 0;
 								for(int i = 0; i < subListIndex; i++)
 									ret += list.get(i).size();
@@ -588,7 +486,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 									new Observer<ObservableElement<T>>() {
 										@Override
 										public <V3 extends ObservableElement<T>> void onNext(V3 subElement) {
-											ObservableListElement<T> subListEl = (ObservableListElement<T>) subElement;
+											OrderedObservableElement<T> subListEl = (OrderedObservableElement<T>) subElement;
 											FlattenedListElement flatEl = new FlattenedListElement(subListEl, subListEls);
 											subListEls.add(subListEl.getIndex(), flatEl);
 											subListEl.completed().act(x -> subListEls.remove(subListEl.getIndex()));
@@ -622,7 +520,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 				});
 			}
 		}
-		return new ComposedObservableList();
+		return new FlattenedObservableList();
 	}
 
 	/**
@@ -631,18 +529,18 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 	 * @param <T> The type of this element
 	 * @param <E> The type of element wrapped by this element
 	 */
-	class FilteredListElement<T, E> extends FilteredElement<T, E> implements ObservableListElement<T> {
+	class FilteredListElement<T, E> extends FilteredElement<T, E> implements OrderedObservableElement<T> {
 		private List<FilteredListElement<T, E>> theFilteredElements;
 
-		FilteredListElement(ObservableListElement<E> wrapped, Function<? super E, T> map, Type type,
+		FilteredListElement(OrderedObservableElement<E> wrapped, Function<? super E, T> map, Type type,
 			List<FilteredListElement<T, E>> filteredEls) {
 			super(wrapped, map, type);
 			theFilteredElements = filteredEls;
 		}
 
 		@Override
-		protected ObservableListElement<E> getWrapped() {
-			return (ObservableListElement<E>) super.getWrapped();
+		protected OrderedObservableElement<E> getWrapped() {
+			return (OrderedObservableElement<E>) super.getWrapped();
 		}
 
 		@Override

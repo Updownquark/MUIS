@@ -1,5 +1,7 @@
 package org.muis.core.style;
 
+import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
+
 import java.util.List;
 
 import org.muis.core.rx.DefaultObservableList;
@@ -14,22 +16,6 @@ import prisms.lang.Type;
  */
 public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultObservableList<StyleExpressionValue<E, V>> implements
 	Cloneable {
-	/** Compares style expressions such that higher priority ones come out first */
-	public static final java.util.Comparator<StyleExpressionValue<? extends StyleExpression<?>, ?>> STYLE_EXPRESSION_COMPARE;
-
-	static {
-		STYLE_EXPRESSION_COMPARE = (StyleExpressionValue<? extends StyleExpression<?>, ?> o1,
-			StyleExpressionValue<? extends StyleExpression<?>, ?> o2) -> {
-				StyleExpression<?> exp1 = o1.getExpression();
-				StyleExpression<?> exp2 = o2.getExpression();
-				if(exp1 == null)
-					return exp2 == null ? 0 : 1;
-				if(exp2 == null)
-					return -1;
-				return exp2.getPriority() - exp1.getPriority();
-			};
-	}
-
 	private List<StyleExpressionValue<E, V>> theController;
 
 	/**

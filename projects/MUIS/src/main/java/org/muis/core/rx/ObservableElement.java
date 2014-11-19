@@ -65,6 +65,42 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 		}, combineNull, this, arg2, arg3);
 	}
 
+	@Override
+	default ObservableElement<T> refireWhen(Observable<?> observable) {
+		ObservableElement<T> outer = this;
+		return new ObservableElement<T>() {
+			@Override
+			public Type getType() {
+				return outer.getType();
+			}
+
+			@Override
+			public T get() {
+				return outer.get();
+			}
+
+			@Override
+			public ObservableValue<T> persistent() {
+				return outer.persistent().refireWhen(observable);
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				Runnable outerSub = outer.internalSubscribe(observer);
+				Runnable refireSub = observable.internalSubscribe(new Observer<Object>() {
+					@Override
+					public <V> void onNext(V value) {
+						observer.onNext(createEvent(get(), get(), value));
+					}
+				});
+				return () -> {
+					outerSub.run();
+					refireSub.run();
+				};
+			}
+		};
+	}
+
 	/** @param <T> The type of the element */
 	class ComposedObservableElement<T> extends ComposedObservableValue<T> implements ObservableElement<T> {
 		private final ObservableElement<?> theRoot;

@@ -24,7 +24,7 @@ public class ObservableUtils {
 				return list.internalSubscribe(new Observer<ObservableElement<? extends ObservableValue<T>>>() {
 					@Override
 					public <V extends ObservableElement<? extends ObservableValue<T>>> void onNext(V element) {
-						observer.onNext(new ObservableListElement<T>() {
+						observer.onNext(new OrderedObservableElement<T>() {
 							@Override
 							public Type getType() {
 								return type != null ? type : element.get().getType();
@@ -37,7 +37,7 @@ public class ObservableUtils {
 
 							@Override
 							public int getIndex() {
-								return ((ObservableListElement<?>) element).getIndex();
+								return ((OrderedObservableElement<?>) element).getIndex();
 							}
 
 							@Override
@@ -51,7 +51,7 @@ public class ObservableUtils {
 
 							@Override
 							public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer2) {
-								ObservableListElement<T> retObs = this;
+								OrderedObservableElement<T> retObs = this;
 								return element
 									.internalSubscribe(new Observer<ObservableValueEvent<? extends ObservableValue<? extends T>>>() {
 										@Override

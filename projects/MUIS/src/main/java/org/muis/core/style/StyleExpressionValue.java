@@ -11,6 +11,22 @@ import org.muis.core.rx.Observer;
  * @param <V> The type of style value
  */
 public class StyleExpressionValue<E extends StyleExpression<E>, V> implements ObservableValue<V> {
+	/** Compares style expressions such that higher priority ones come out first */
+	public static final java.util.Comparator<StyleExpressionValue<? extends StyleExpression<?>, ?>> STYLE_EXPRESSION_COMPARE;
+
+	static {
+		STYLE_EXPRESSION_COMPARE = (StyleExpressionValue<? extends StyleExpression<?>, ?> o1,
+			StyleExpressionValue<? extends StyleExpression<?>, ?> o2) -> {
+			StyleExpression<?> exp1 = o1.getExpression();
+			StyleExpression<?> exp2 = o2.getExpression();
+			if(exp1 == null)
+				return exp2 == null ? 0 : 1;
+			if(exp2 == null)
+				return -1;
+			return exp2.getPriority() - exp1.getPriority();
+		};
+	}
+
 	private final E theExpression;
 	private final ObservableValue<? extends V> theValue;
 

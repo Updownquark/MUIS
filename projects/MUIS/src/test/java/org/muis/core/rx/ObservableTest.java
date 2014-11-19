@@ -310,7 +310,7 @@ public class ObservableTest {
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> correct = new ArrayList<>();
 		Subscription<?> sub = list.act(element -> {
-			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
@@ -744,7 +744,7 @@ public class ObservableTest {
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> correct = new ArrayList<>();
 		list.mapC(value -> value * 10).act(element -> {
-			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
@@ -786,7 +786,7 @@ public class ObservableTest {
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> correct = new ArrayList<>();
 		list.filterC(value -> value != null && value % 2 == 0).act(element -> {
-			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
@@ -833,7 +833,7 @@ public class ObservableTest {
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> correct = new ArrayList<>();
 		set.combineC(value1, (v1, v2) -> v1 * v2).filterC(value -> value != null && value % 3 == 0).act(element -> {
-			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
@@ -904,7 +904,7 @@ public class ObservableTest {
 		List<Integer> compare1 = new ArrayList<>();
 		List<Integer> filtered = new ArrayList<>();
 		flat.act(element -> {
-			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
@@ -921,7 +921,7 @@ public class ObservableTest {
 			});
 		});
 		flat.filterC(value -> value != null && value % 3 == 0).act(element -> {
-			ObservableListElement<Integer> listEl = (ObservableListElement<Integer>) element;
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
 				@Override
 				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
@@ -1103,5 +1103,121 @@ public class ObservableTest {
 		assertEquals(null, received[0]);
 		listControl.add(value5);
 		assertEquals(Integer.valueOf(9), received[0]);
+	}
+
+	/** Tests {@link ObservableOrderedCollection#sort(ObservableCollection, java.util.Comparator)} */
+	@Test
+	public void sortedObservableList() {
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		List<Integer> controller = list.control(null);
+
+		List<Integer> compare = new ArrayList<>();
+		ObservableOrderedCollection.sort(list, null).act(element -> {
+			OrderedObservableElement<Integer> orderedEl = (OrderedObservableElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(event.getOldValue() == null)
+						compare.add(orderedEl.getIndex(), event.getValue());
+					else
+						compare.set(orderedEl.getIndex(), event.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					compare.remove(orderedEl.getIndex());
+				}
+			});
+		});
+
+		List<Integer> correct = new ArrayList<>();
+
+		for(int i = 30; i >= 0; i--) {
+			controller.add(i);
+			correct.add(i);
+		}
+
+		java.util.Collections.sort(correct);
+		assertEquals(correct, compare);
+
+		for(int i = 30; i >= 0; i--) {
+			controller.remove((Integer) i);
+			correct.remove((Integer) i);
+
+			assertEquals(correct, compare);
+		}
+	}
+
+	/** Tests {@link ObservableOrderedCollection#flatten(ObservableOrderedCollection, java.util.Comparator)} */
+	@Test
+	public void observableOrderedFlatten() {
+		DefaultObservableList<ObservableList<Integer>> outer = new DefaultObservableList<>(new Type(ObservableList.class, new Type(
+			Integer.TYPE)));
+		DefaultObservableList<Integer> list1 = new DefaultObservableList<>(new Type(Integer.TYPE));
+		DefaultObservableList<Integer> list2 = new DefaultObservableList<>(new Type(Integer.TYPE));
+		DefaultObservableList<Integer> list3 = new DefaultObservableList<>(new Type(Integer.TYPE));
+
+		List<ObservableList<Integer>> outerControl = outer.control(null);
+		List<Integer> control1 = list1.control(null);
+		List<Integer> control2 = list2.control(null);
+		List<Integer> control3 = list3.control(null);
+
+		outerControl.add(list1);
+		outerControl.add(list2);
+
+		ArrayList<Integer> compare = new ArrayList<>();
+		ObservableOrderedCollection.flatten(outer, null).act(element -> {
+			OrderedObservableElement<Integer> orderedEl = (OrderedObservableElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V event) {
+					if(event.getOldValue() == null)
+						compare.add(orderedEl.getIndex(), event.getValue());
+					else
+						compare.set(orderedEl.getIndex(), event.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V event) {
+					compare.remove(orderedEl.getIndex());
+				}
+			});
+		});
+
+		ArrayList<Integer> correct = new ArrayList<>();
+
+		for(int i = 0; i <= 30; i++) {
+			if(i % 3 == 0) {
+				control1.add(i);
+				correct.add(i);
+			} else if(i % 3 == 1) {
+				control2.add(i);
+				correct.add(i);
+			} else {
+				control3.add(i);
+			}
+
+			assertEquals(correct, compare);
+		}
+
+		outerControl.add(list3);
+		correct.clear();
+		for(int i = 0; i <= 30; i++)
+			correct.add(i);
+		assertEquals(correct, compare);
+
+		outerControl.remove(list2);
+		correct.clear();
+		for(int i = 0; i <= 30; i++)
+			if(i % 3 != 1)
+				correct.add(i);
+		assertEquals(correct, compare);
+
+		control1.remove((Integer) 15);
+		correct.remove((Integer) 15);
+		assertEquals(correct, compare);
+		control1.add(control1.indexOf(18), 15);
+		correct.add(correct.indexOf(17), 15);
+		assertEquals(correct, compare);
 	}
 }

@@ -258,6 +258,40 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 	}
 
 	/**
+	 * @param observable The observer to duplicate event firing for
+	 * @return An observable value that fires additional value events when the given observable fires
+	 */
+	default ObservableValue<T> refireWhen(Observable<?> observable) {
+		ObservableValue<T> outer = this;
+		return new ObservableValue<T>() {
+			@Override
+			public Type getType() {
+				return outer.getType();
+			}
+
+			@Override
+			public T get() {
+				return outer.get();
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				Runnable outerSub = outer.internalSubscribe(observer);
+				Runnable refireSub = observable.internalSubscribe(new Observer<Object>() {
+					@Override
+					public <V> void onNext(V value) {
+						observer.onNext(createEvent(get(), get(), value));
+					}
+				});
+				return () -> {
+					outerSub.run();
+					refireSub.run();
+				};
+			}
+		};
+	}
+
+	/**
 	 * @param <X> The type of the value to wrap
 	 * @param value The value to wrap
 	 * @return An observable that always returns the given value

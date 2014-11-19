@@ -1,9 +1,8 @@
 package org.muis.core.style;
 
-import org.muis.core.rx.DefaultObservableList;
-import org.muis.core.rx.DefaultObservableSet;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
+import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
+
+import org.muis.core.rx.*;
 
 import prisms.lang.Type;
 
@@ -31,7 +30,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 * @param attr The attribute to get the expressions for
 	 * @return The expression/value combinations that are set in this style locally for the given attribute, sorted by decreasing priority
 	 */
-	<T> ObservableList<StyleExpressionValue<E, T>> getLocalExpressions(StyleAttribute<T> attr);
+	<T> ObservableOrderedCollection<StyleExpressionValue<E, T>> getLocalExpressions(StyleAttribute<T> attr);
 
 	/** @return All style attributes that are set for any condition in this style or any of its dependents */
 	default ObservableSet<StyleAttribute<?>> allAttrs() {
@@ -54,13 +53,16 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 * @return The expression/value combinations that are set in this style or any of its dependencies for the given attribute, sorted by
 	 *         decreasing priority
 	 */
-	default <T> ObservableList<StyleExpressionValue<E, T>> getExpressions(StyleAttribute<T> attr) {
-		DefaultObservableList<ObservableList<StyleExpressionValue<E, T>>> ret = new DefaultObservableList<>(new Type(ObservableList.class,
-			new Type(StyleExpressionValue.class, new Type(Object.class, true), attr.getType().getType())));
-		java.util.List<ObservableList<StyleExpressionValue<E, T>>> controller = ret.control(null);
+	default <T> ObservableOrderedCollection<StyleExpressionValue<E, T>> getExpressions(StyleAttribute<T> attr) {
+		DefaultObservableList<ObservableOrderedCollection<StyleExpressionValue<E, T>>> ret = new DefaultObservableList<>(
+			new Type(ObservableOrderedCollection.class, new Type(StyleExpressionValue.class, new Type(Object.class, true), attr.getType()
+				.getType())));
+		java.util.List<ObservableOrderedCollection<StyleExpressionValue<E, T>>> controller = ret.control(null);
 		controller.add(getLocalExpressions(attr));
-		controller.add(ObservableList.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr))));
-		return new org.muis.util.ObservableListWrapper<StyleExpressionValue<E, T>>(ObservableList.flatten(ret)) {
+		controller.add(ObservableOrderedCollection.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr)),
+			STYLE_EXPRESSION_COMPARE));
+		return new org.muis.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret,
+			STYLE_EXPRESSION_COMPARE)) {
 			@Override
 			public String toString() {
 				return attr + " expressions for " + ConditionalStyle.this;

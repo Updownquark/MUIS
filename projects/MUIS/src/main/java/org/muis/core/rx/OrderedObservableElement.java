@@ -6,11 +6,11 @@ import java.util.function.Function;
 import prisms.lang.Type;
 
 /**
- * An observable element that knows its position in the list
+ * An observable element that knows its position in the collection
  *
- * @param <T> The type of the element
+ * @param <E> The type of the element
  */
-public interface ObservableListElement<T> extends ObservableElement<T> {
+public interface OrderedObservableElement<E> extends ObservableElement<E> {
 	/** @return The index of this element within its list */
 	int getIndex();
 
@@ -22,7 +22,7 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return The new observable whose value is a function of this observable's value
 	 */
 	@Override
-	default <R> ObservableListElement<R> mapV(Function<? super T, R> function) {
+	default <R> OrderedObservableElement<R> mapV(Function<? super E, R> function) {
 		return mapV(null, function, false);
 	};
 
@@ -35,9 +35,9 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return The new observable whose value is a function of this observable's value
 	 */
 	@Override
-	default <R> ObservableListElement<R> mapV(Type type, Function<? super T, R> function, boolean combineNull) {
+	default <R> OrderedObservableElement<R> mapV(Type type, Function<? super E, R> function, boolean combineNull) {
 		return new ComposedObservableListElement<>(this, type, args -> {
-			return function.apply((T) args[0]);
+			return function.apply((E) args[0]);
 		}, combineNull, this);
 	};
 
@@ -51,7 +51,7 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
 	@Override
-	default <U, R> ObservableListElement<R> combineV(BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg) {
+	default <U, R> OrderedObservableElement<R> combineV(BiFunction<? super E, ? super U, R> function, ObservableValue<U> arg) {
 		return combineV(null, function, arg, false);
 	}
 
@@ -66,10 +66,10 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return The new observable whose value is a function of this observable's value and the other's
 	 */
 	@Override
-	default <U, R> ObservableListElement<R> combineV(Type type, BiFunction<? super T, ? super U, R> function, ObservableValue<U> arg,
+	default <U, R> OrderedObservableElement<R> combineV(Type type, BiFunction<? super E, ? super U, R> function, ObservableValue<U> arg,
 		boolean combineNull) {
 		return new ComposedObservableListElement<>(this, type, args -> {
-			return function.apply((T) args[0], (U) args[1]);
+			return function.apply((E) args[0], (U) args[1]);
 		}, combineNull, this, arg);
 	}
 
@@ -79,8 +79,8 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return An observable which broadcasts tuples of the latest values of this observable value and another
 	 */
 	@Override
-	default <U> ObservableListElement<BiTuple<T, U>> tupleV(ObservableValue<U> arg) {
-		return combineV(BiTuple<T, U>::new, arg);
+	default <U> OrderedObservableElement<BiTuple<E, U>> tupleV(ObservableValue<U> arg) {
+		return combineV(BiTuple<E, U>::new, arg);
 	}
 
 	/**
@@ -91,8 +91,8 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return An observable which broadcasts tuples of the latest values of this observable value and 2 others
 	 */
 	@Override
-	default <U, V> ObservableListElement<TriTuple<T, U, V>> tupleV(ObservableValue<U> arg1, ObservableValue<V> arg2) {
-		return combineV(TriTuple<T, U, V>::new, arg1, arg2);
+	default <U, V> OrderedObservableElement<TriTuple<E, U, V>> tupleV(ObservableValue<U> arg1, ObservableValue<V> arg2) {
+		return combineV(TriTuple<E, U, V>::new, arg1, arg2);
 	}
 
 	/**
@@ -107,7 +107,7 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
 	@Override
-	default <U, V, R> ObservableListElement<R> combineV(TriFunction<? super T, ? super U, ? super V, R> function, ObservableValue<U> arg2,
+	default <U, V, R> OrderedObservableElement<R> combineV(TriFunction<? super E, ? super U, ? super V, R> function, ObservableValue<U> arg2,
 		ObservableValue<V> arg3) {
 		return combineV(null, function, arg2, arg3, false);
 	}
@@ -125,18 +125,59 @@ public interface ObservableListElement<T> extends ObservableElement<T> {
 	 * @return The new observable whose value is a function of this observable's value and the others'
 	 */
 	@Override
-	default <U, V, R> ObservableListElement<R> combineV(Type type, TriFunction<? super T, ? super U, ? super V, R> function,
+	default <U, V, R> OrderedObservableElement<R> combineV(Type type, TriFunction<? super E, ? super U, ? super V, R> function,
 		ObservableValue<U> arg2, ObservableValue<V> arg3, boolean combineNull) {
 		return new ComposedObservableListElement<>(this, type, args -> {
-			return function.apply((T) args[0], (U) args[1], (V) args[2]);
+			return function.apply((E) args[0], (U) args[1], (V) args[2]);
 		}, combineNull, this, arg2, arg3);
 	}
 
-	/** @param <T> The type of the element */
-	class ComposedObservableListElement<T> extends ComposedObservableValue<T> implements ObservableListElement<T> {
-		private final ObservableListElement<?> theRoot;
+	@Override
+	default OrderedObservableElement<E> refireWhen(Observable<?> observable) {
+		OrderedObservableElement<E> outer = this;
+		return new OrderedObservableElement<E>() {
+			@Override
+			public Type getType() {
+				return outer.getType();
+			}
 
-		public ComposedObservableListElement(ObservableListElement<?> root, Type t, Function<Object [], T> f, boolean combineNull,
+			@Override
+			public E get() {
+				return outer.get();
+			}
+
+			@Override
+			public int getIndex() {
+				return outer.getIndex();
+			}
+
+			@Override
+			public ObservableValue<E> persistent() {
+				return outer.persistent().refireWhen(observable);
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				Runnable outerSub = outer.internalSubscribe(observer);
+				Runnable refireSub = observable.internalSubscribe(new Observer<Object>() {
+					@Override
+					public <V> void onNext(V value) {
+						observer.onNext(createEvent(get(), get(), value));
+					}
+				});
+				return () -> {
+					outerSub.run();
+					refireSub.run();
+				};
+			}
+		};
+	}
+
+	/** @param <T> The type of the element */
+	class ComposedObservableListElement<T> extends ComposedObservableValue<T> implements OrderedObservableElement<T> {
+		private final OrderedObservableElement<?> theRoot;
+
+		public ComposedObservableListElement(OrderedObservableElement<?> root, Type t, Function<Object [], T> f, boolean combineNull,
 			ObservableValue<?>... composed) {
 			super(t, f, combineNull, composed);
 			theRoot = root;

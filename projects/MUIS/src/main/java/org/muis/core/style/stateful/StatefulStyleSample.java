@@ -37,18 +37,12 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public ObservableList<MuisStyle> getDependencies() {
-		return new org.muis.util.ObservableListWrapper<MuisStyle>(theStatefulStyle.getConditionalDependencies().mapC(
-			depend -> new StatefulStyleSample(depend, theState))) {
-			@Override
-			public String toString() {
-				return "Dependencies of " + StatefulStyleSample.this;
-			}
-		};
+		return ObservableList.constant(new Type(MuisStyle.class)); // Empty list
 	}
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
-		for(StyleExpressionValue<StateExpression, ?> value : theStatefulStyle.getLocalExpressions(attr))
+		for(StyleExpressionValue<StateExpression, ?> value : theStatefulStyle.getExpressions(attr))
 			if(value.getExpression() == null || value.getExpression().matches(theState))
 				return true;
 		return false;
@@ -59,8 +53,7 @@ public class StatefulStyleSample implements MuisStyle {
 		Type t = new Type(StyleExpressionValue.class, new Type(StateExpression.class), attr.getType().getType());
 		return new org.muis.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
-			theStatefulStyle.getLocalExpressions(attr)
-				.combineC(theState.changes(), (StyleExpressionValue<StateExpression, T> exprs, ObservableSet<MuisState> state) -> exprs)
+			theStatefulStyle.getExpressions(attr).refireWhen(theState.changes())
 				.find(t, (StyleExpressionValue<StateExpression, T> sev) -> {
 					if(sev.getExpression() == null || sev.getExpression().matches(theState))
 						return sev;
@@ -76,7 +69,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(theStatefulStyle.allLocal().filterMapC(attr -> {
+		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(theStatefulStyle.allAttrs().filterMapC(attr -> {
 			if(attr == null)
 				return null;
 			for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(attr))

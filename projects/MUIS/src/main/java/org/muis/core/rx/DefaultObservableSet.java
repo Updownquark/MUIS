@@ -26,7 +26,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 	private java.util.concurrent.ConcurrentHashMap<Observer<? super ObservableElement<E>>, ConcurrentLinkedQueue<Runnable>> theObservers;
 
 	/**
-	 * Creates the list
+	 * Creates the set
 	 *
 	 * @param type The type of elements for this set
 	 */

@@ -405,6 +405,10 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 		};
 	}
 
+	default ObservableList<E> sortBy(java.util.Comparator<? super E> compare) {
+
+	}
+
 	/**
 	 * @param <T> The type of the value to wrap
 	 * @param type The type of the elements in the list
@@ -539,7 +543,7 @@ public interface ObservableList<E> extends ObservableCollection<E>, List<E> {
 					private java.util.Map<ObservableList<T>, Subscription<ObservableElement<T>>> subListSubscriptions;
 
 					{
-						subListSubscriptions = new java.util.IdentityHashMap<>();
+						subListSubscriptions = new org.muis.util.ConcurrentIdentityHashMap<>();
 					}
 
 					@Override

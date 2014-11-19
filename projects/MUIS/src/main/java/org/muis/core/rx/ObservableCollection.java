@@ -313,7 +313,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 					private java.util.Map<ObservableCollection<T>, Subscription<ObservableElement<T>>> subCollSubscriptions;
 
 					{
-						subCollSubscriptions = new java.util.IdentityHashMap<>();
+						subCollSubscriptions = new org.muis.util.ConcurrentIdentityHashMap<>();
 					}
 
 					@Override

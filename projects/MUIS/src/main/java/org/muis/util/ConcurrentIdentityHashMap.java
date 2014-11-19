@@ -28,7 +28,7 @@ public class ConcurrentIdentityHashMap<K, V> implements Map<K, V> {
 
 		@Override
 		public boolean equals(Object obj) {
-			return wrapped == obj;
+			return obj instanceof IdentityWrapper && wrapped == ((IdentityWrapper<?>) obj).wrapped;
 		}
 
 		@Override

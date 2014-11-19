@@ -65,7 +65,9 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	 *         value will be exposed from this style's {@link StatefulStyle} methods
 	 */
 	public boolean matchesFilter(StateGroupTypeExpression<?> expr) {
-		if(!ArrayUtils.equals(expr.getGroupName(), theGroupName) || !expr.getType().isAssignableFrom(theType))
+		if(expr.getGroupName() != null && !ArrayUtils.equals(expr.getGroupName(), theGroupName))
+			return false;
+		if(!expr.getType().isAssignableFrom(theType))
 			return false;
 		if(expr.getTemplateRole() == null)
 			return true;
@@ -100,5 +102,10 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 			else
 				return null;
 		});
+	}
+
+	@Override
+	public String toString() {
+		return theStyleSheet + ".filter(" + theType.getSimpleName() + ", " + theGroupName + ", " + theTemplatePaths + ")";
 	}
 }

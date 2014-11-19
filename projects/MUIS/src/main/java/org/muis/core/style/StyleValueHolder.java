@@ -76,13 +76,18 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultOb
 	}
 
 	void set(StyleExpressionValue<E, V> sev) {
-		boolean found = true;
+		boolean found = false;
 		java.util.ListIterator<StyleExpressionValue<E, V>> iter = theController.listIterator();
 		while(iter.hasNext()) {
 			StyleExpressionValue<E, V> next = iter.next();
 			if(java.util.Objects.equals(sev.getExpression(), next.getExpression())) {
 				found = true;
 				iter.set(sev);
+				break;
+			} else if(STYLE_EXPRESSION_COMPARE.compare(sev, next) < 0) {
+				iter.previous();
+				iter.add(sev);
+				found = true;
 				break;
 			}
 		}

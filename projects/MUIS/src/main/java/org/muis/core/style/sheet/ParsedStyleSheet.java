@@ -96,6 +96,10 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 
 	@Override
 	public String toString() {
-		return theLocation.getFile();
+		String path = theLocation.getPath();
+		int lastSlash = path.lastIndexOf('/');
+		if(lastSlash >= 0)
+			path = path.substring(lastSlash + 1);
+		return path;
 	}
 }

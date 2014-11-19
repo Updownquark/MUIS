@@ -17,6 +17,11 @@ public class MuisEnvironment implements MuisParseEnv {
 		protected void addDependency(StyleSheet depend) {
 			super.addDependency(depend);
 		}
+
+		@Override
+		public String toString() {
+			return "Muis Env Style";
+		}
 	}
 
 	private MuisParser theParser;

@@ -194,4 +194,9 @@ public class SimpleLayout implements MuisLayout {
 		}
 		child.bounds().setBounds(x, y, w, h);
 	}
+
+	@Override
+	public String toString() {
+		return "simple";
+	}
 }

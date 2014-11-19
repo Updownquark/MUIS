@@ -318,4 +318,9 @@ public class BoxLayout implements MuisLayout {
 		for(int c = 0; c < children.length; c++)
 			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
 	}
+
+	@Override
+	public String toString() {
+		return "box";
+	}
 }

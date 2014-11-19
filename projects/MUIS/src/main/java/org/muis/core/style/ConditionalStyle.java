@@ -29,7 +29,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	/**
 	 * @param <T> The type of the attribute
 	 * @param attr The attribute to get the expressions for
-	 * @return The expression/value combinations that are set in this style locally for the given attribute
+	 * @return The expression/value combinations that are set in this style locally for the given attribute, sorted by decreasing priority
 	 */
 	<T> ObservableList<StyleExpressionValue<E, T>> getLocalExpressions(StyleAttribute<T> attr);
 

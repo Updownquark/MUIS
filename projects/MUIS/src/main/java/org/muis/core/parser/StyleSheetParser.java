@@ -878,6 +878,7 @@ public class StyleSheetParser {
 		}
 
 		ParsedStyleSheet ret = new ParsedStyleSheet();
+		ret.setLocation(location);
 		ExpressionContextStack stack = new ExpressionContextStack();
 		boolean hadValues = false;
 		boolean hadAnimation = false;

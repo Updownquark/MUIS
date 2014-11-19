@@ -30,4 +30,13 @@ public class DocumentStyleSheet extends AbstractStyleSheet {
 	public void removeStyleSheet(StyleSheet styleSheet) {
 		removeDependency(styleSheet);
 	}
+
+	@Override
+	public String toString() {
+		String path = theDoc.getLocation().getPath();
+		int lastSlash = path.lastIndexOf('/');
+		if(lastSlash >= 0)
+			path = path.substring(lastSlash + 1);
+		return "Style sheet for " + path;
+	}
 }

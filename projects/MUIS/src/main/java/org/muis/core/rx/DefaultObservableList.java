@@ -407,20 +407,11 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		@Override
 		public void add(int index, E element) {
 			doLocked(() -> {
-				for(int i = theValues.size() - 1; i >= index; i--)
-					theElements.remove(i).remove();
-				int idx = index;
 				E val = (E) theType.cast(element);
-				theValues.add(idx, val);
+				theValues.add(index, val);
 				ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
-				theElements.add(newWrapper);
+				theElements.add(index, newWrapper);
 				fireNewElement(newWrapper);
-				idx++;
-				for(int i = idx; i < theValues.size(); i++) {
-					ObservableElementImpl<E> wrapper = new ObservableElementImpl<>(theType, theValues.get(i));
-					theElements.add(wrapper);
-					fireNewElement(wrapper);
-				}
 			}, true);
 		}
 

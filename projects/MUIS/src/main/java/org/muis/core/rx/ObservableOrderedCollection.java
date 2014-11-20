@@ -217,8 +217,10 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 
 	@Override
 	default <T> ObservableOrderedCollection<T> filterMapC(Type type, Function<? super E, T> map) {
-		ObservableCollection<E> outer = this;
-		class FilteredCollection extends AbstractCollection<T> implements ObservableOrderedCollection<T> {
+		ObservableOrderedCollection<E> outer = this;
+		class FilteredOrderedCollection extends AbstractCollection<T> implements ObservableOrderedCollection<T> {
+			private List<FilteredOrderedElement<T, E>> theFilteredElements = new java.util.ArrayList<>();
+
 			@Override
 			public Type getType() {
 				return type;
@@ -263,8 +265,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 				Runnable listSub = outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V el) {
-						FilteredElement<T, E> retElement = new FilteredElement<>(el, map, type);
-						el.act(elValue -> {
+						OrderedObservableElement<E> outerElement = (OrderedObservableElement<E>) el;
+						FilteredOrderedElement<T, E> retElement = new FilteredOrderedElement<>(outerElement, map, type, theFilteredElements);
+						theFilteredElements.add(outerElement.getIndex(), retElement);
+						outerElement.completed().act(elValue -> theFilteredElements.remove(outerElement.getIndex()));
+						outerElement.act(elValue -> {
 							if(!retElement.isIncluded()) {
 								T mapped = map.apply(elValue.getValue());
 								if(mapped != null)
@@ -283,7 +288,7 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 				};
 			}
 		}
-		return new FilteredCollection();
+		return new FilteredOrderedCollection();
 	}
 
 	/**
@@ -345,38 +350,15 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 
 					@Override
 					public boolean hasNext() {
-						if(!initialized) {
-							for(int i = 0; i < subValues.length; i++) {
-								if(iters.get(i).hasNext()) {
-									subValues[i] = iters.get(i).next();
-									indexes.add(i);
-								}
-							}
-							prisms.util.ArrayUtils.sort(subValues, new prisms.util.ArrayUtils.SortListener<Object>() {
-								@Override
-								public int compare(Object o1, Object o2) {
-									if(o1 == null && o2 == null)
-										return 0;
-									else if(o1 == null)
-										return -1;
-									else if(o2 == null)
-										return 1;
-									return fCompare.compare((E) o1, (E) o2);
-								}
-
-								@Override
-								public void swapped(Object o1, int idx1, Object o2, int idx2) {
-									int firstIdx = indexes.get(idx1);
-									indexes.set(idx1, indexes.get(idx2));
-									indexes.set(idx2, firstIdx);
-								}
-							});
-						}
+						if(!initialized)
+							init();
 						return !indexes.isEmpty();
 					}
 
 					@Override
 					public E next() {
+						if(!initialized)
+							init();
 						if(indexes.isEmpty())
 							throw new java.util.NoSuchElementException();
 						int nextIndex = indexes.remove(0);
@@ -396,6 +378,43 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 						} else
 							subValues[nextIndex] = null;
 						return ret;
+					}
+
+					private void init() {
+						initialized = true;
+						for(int i = 0; i < subValues.length; i++) {
+							if(iters.get(i).hasNext()) {
+								subValues[i] = iters.get(i).next();
+								indexes.add(i);
+							} else
+								indexes.add(-1);
+						}
+						prisms.util.ArrayUtils.sort(subValues.clone(), new prisms.util.ArrayUtils.SortListener<Object>() {
+							@Override
+							public int compare(Object o1, Object o2) {
+								if(o1 == null && o2 == null)
+									return 0;
+								// Place nulls last
+								else if(o1 == null)
+									return 1;
+								else if(o2 == null)
+									return -1;
+								return fCompare.compare((E) o1, (E) o2);
+							}
+
+							@Override
+							public void swapped(Object o1, int idx1, Object o2, int idx2) {
+								int firstIdx = indexes.get(idx1);
+								indexes.set(idx1, indexes.get(idx2));
+								indexes.set(idx2, firstIdx);
+							}
+						});
+						for(int i = 0; i < indexes.size(); i++) {
+							if(indexes.get(i) < 0) {
+								indexes.remove(i);
+								i--;
+							}
+						}
 					}
 				};
 			}
@@ -513,6 +532,37 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 			}
 		}
 		return new FlattenedObservableOrderedCollection();
+	}
+
+	/**
+	 * The type of element in filtered ordered collections
+	 *
+	 * @param <T> The type of this element
+	 * @param <E> The type of element wrapped by this element
+	 */
+	class FilteredOrderedElement<T, E> extends FilteredElement<T, E> implements OrderedObservableElement<T> {
+		private List<FilteredOrderedElement<T, E>> theFilteredElements;
+
+		FilteredOrderedElement(OrderedObservableElement<E> wrapped, Function<? super E, T> map, Type type,
+			List<FilteredOrderedElement<T, E>> filteredEls) {
+			super(wrapped, map, type);
+			theFilteredElements = filteredEls;
+		}
+
+		@Override
+		protected OrderedObservableElement<E> getWrapped() {
+			return (OrderedObservableElement<E>) super.getWrapped();
+		}
+
+		@Override
+		public int getIndex() {
+			int ret = 0;
+			int outerIdx = getWrapped().getIndex();
+			for(int i = 0; i < outerIdx; i++)
+				if(theFilteredElements.get(i).isIncluded())
+					ret++;
+			return ret;
+		}
 	}
 
 	/**

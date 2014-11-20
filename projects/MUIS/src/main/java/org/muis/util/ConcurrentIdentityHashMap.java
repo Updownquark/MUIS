@@ -217,4 +217,9 @@ public class ConcurrentIdentityHashMap<K, V> implements Map<K, V> {
 			}
 		};
 	}
+
+	@Override
+	public String toString() {
+		return theBacking.toString();
+	}
 }

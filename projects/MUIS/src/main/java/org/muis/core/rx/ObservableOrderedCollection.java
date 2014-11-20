@@ -355,6 +355,12 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 							prisms.util.ArrayUtils.sort(subValues, new prisms.util.ArrayUtils.SortListener<Object>() {
 								@Override
 								public int compare(Object o1, Object o2) {
+									if(o1 == null && o2 == null)
+										return 0;
+									else if(o1 == null)
+										return -1;
+									else if(o2 == null)
+										return 1;
 									return fCompare.compare((E) o1, (E) o2);
 								}
 
@@ -522,8 +528,7 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 		SortedElementWrapper<E> theRight;
 
 		SortedElementWrapper(SortedObservableCollectionWrapper<E> list, ObservableElement<E> wrap,
-			SortedObservableWrapperObserver<E> parentObs,
-			SortedElementWrapper<E> anchor) {
+			SortedObservableWrapperObserver<E> parentObs, SortedElementWrapper<E> anchor) {
 			theList = list;
 			theWrapped = wrap;
 			theParentObserver = parentObs;

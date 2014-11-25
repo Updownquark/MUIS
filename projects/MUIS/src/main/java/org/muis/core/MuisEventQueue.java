@@ -211,6 +211,9 @@ public class MuisEventQueue {
 				area.y += docPos.y;
 				element = doc.getRoot();
 			}
+			if(area.getX() == 0 && area.getY() == 0 && area.getWidth() >= element.bounds().getWidth()
+				&& area.getHeight() >= element.bounds().getHeight())
+				area = null;
 			if(element == doc.getRoot() && area == null) {
 				MuisRendering render = new MuisRendering(element.bounds().getWidth(), element.bounds().getHeight());
 				Graphics2D graphics = (Graphics2D) render.getImage().getGraphics();

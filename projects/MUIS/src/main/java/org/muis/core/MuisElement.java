@@ -125,7 +125,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				break;
 			case REMOVE:
 				// Need to repaint where the element left even if nothing changes as a result of the layout
-			unregisterChild(event.getChild());
+				unregisterChild(event.getChild());
 				repaint(event.getChild().theBounds.getBounds(), false);
 				break;
 			case MOVE:

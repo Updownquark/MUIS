@@ -18,30 +18,34 @@ import prisms.util.ArrayUtils;
  * @param <E> The type of elements in the list
  */
 public abstract class AbstractElementList<E extends MuisElement> extends DefaultObservable<ChildEvent> implements ElementList<E> {
+	private final Observer<ChildEvent> theController;
 	private final DefaultObservable<MuisEvent> theEvents;
-	private final Observer<MuisEvent> theController;
+	private final Observer<MuisEvent> theEventController;
 
 	private final MuisElement theParent;
 
 	/** @param parent The parent to manage the children of */
 	public AbstractElementList(MuisElement parent) {
 		theParent = parent;
+		theController = control(null);
 		theEvents = new DefaultObservable<>();
-		theController = theEvents.control(null);
+		theEventController = theEvents.control(null);
 		// On child add, subscribe to child events until the child is removed
-		filterMap(ChildEvent.child.add()).act(evt -> {
-			evt.getChild().events().takeUntil(filterMap(ChildEvent.child.forChild(evt.getChild()))).subscribe(new Observer<MuisEvent>() {
-				@Override
-				public <V extends MuisEvent> void onNext(V value) {
-					theController.onNext(value);
-				}
+		filterMap(ChildEvent.child.add()).act(
+			evt -> {
+				evt.getChild().events().takeUntil(filterMap(ChildEvent.child.remove().forChild(evt.getChild())))
+					.subscribe(new Observer<MuisEvent>() {
+						@Override
+						public <V extends MuisEvent> void onNext(V value) {
+							theEventController.onNext(value);
+						}
 
-				@Override
-				public void onError(Throwable e) {
-					theController.onError(e);
-				}
+						@Override
+						public void onError(Throwable e) {
+							theEventController.onError(e);
+						}
+					});
 			});
-		});
 	}
 
 	@Override

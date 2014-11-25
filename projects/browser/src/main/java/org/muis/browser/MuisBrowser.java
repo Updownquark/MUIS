@@ -75,7 +75,8 @@ public class MuisBrowser extends javax.swing.JPanel {
 		try {
 			org.muis.core.parser.MuisDocumentStructure docStruct = env.getParser().parseDocument(env, url,
 				new java.io.InputStreamReader(url.openStream()));
-			muisDoc = new MuisDocument(env, env.getParser(), docStruct.getLocation(), docStruct.getHead());
+			muisDoc = new MuisDocument(env, env.getParser(), docStruct.getLocation(), docStruct.getHead(), docStruct.getContent()
+				.getClassView());
 			muisDoc.setGraphics(new MuisDocument.GraphicsGetter() {
 				@Override
 				public Graphics2D getGraphics() {
@@ -136,7 +137,7 @@ public class MuisBrowser extends javax.swing.JPanel {
 			if(msg.exception != null)
 				msg.exception.printStackTrace();
 			break;
-		case INFO:
+		default:
 			System.out.println((msg.element == null ? "" : msg.element.toString() + "\n\t") + msg.type + ": " + msg.text);
 			if(msg.exception != null)
 				msg.exception.printStackTrace(System.out);

@@ -125,12 +125,15 @@ public class MuisDocument implements MuisParseEnv {
 	 * @param parser The parser that created this document
 	 * @param location The location of the file that this document was generated from
 	 * @param head The head section for this document
+	 * @param classView The class view for the document
 	 */
-	public MuisDocument(MuisEnvironment env, org.muis.core.parser.MuisParser parser, java.net.URL location, MuisHeadSection head) {
+	public MuisDocument(MuisEnvironment env, org.muis.core.parser.MuisParser parser, java.net.URL location, MuisHeadSection head,
+		MuisClassView classView) {
 		theEnvironment = env;
 		theParser = parser;
 		theLocation = location;
 		theHead = head;
+		theClassView = classView;
 		theModelParser = new org.muis.core.parser.DefaultModelValueReferenceParser(env.getValueParser(), theClassView) {
 			@Override
 			protected void applyModification() {
@@ -248,13 +251,6 @@ public class MuisDocument implements MuisParseEnv {
 	private void applyHead() {
 		for(org.muis.core.style.sheet.ParsedStyleSheet styleSheet : theHead.getStyleSheets())
 			theDocumentStyle.addStyleSheet(styleSheet);
-	}
-
-	/** @param classView The class view for the document */
-	public void setClassView(MuisClassView classView) {
-		if(theClassView != null)
-			throw new IllegalStateException("A document's class view may only be set once");
-		theClassView = classView;
 	}
 
 	/** @param graphics The getter for graphics to be redrawn when the rendering is updated */

@@ -79,15 +79,15 @@ public class MuisClassView {
 	/** @return The toolkits that may be used without specifying a namespace */
 	public MuisToolkit [] getScopedToolkits() {
 		java.util.LinkedHashSet<MuisToolkit> ret = new java.util.LinkedHashSet<>();
+		if(theMemberToolkit != null)
+			ret.add(theMemberToolkit);
+		for(MuisToolkit tk : theNamespaces.values())
+			ret.add(tk);
 		if(theParent != null) {
 			for(MuisToolkit tk : theParent.getScopedToolkits())
 				ret.add(tk);
 		} else
 			ret.add(theEnvironment.getCoreToolkit());
-		for(MuisToolkit tk : theNamespaces.values())
-			ret.add(tk);
-		if(theMemberToolkit != null)
-			ret.add(theMemberToolkit);
 		return ret.toArray(new MuisToolkit[ret.size()]);
 	}
 

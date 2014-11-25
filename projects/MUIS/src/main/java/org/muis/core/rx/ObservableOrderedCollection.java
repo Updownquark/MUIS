@@ -8,8 +8,11 @@ import org.muis.util.ObservableOrderedCollectionWrapper;
 import prisms.lang.Type;
 
 /**
- * An ordered collection whose content can be observed. All {@link ObservableElement}s * returned by this observable will be instances of
- * {@link OrderedObservableElement}.
+ * An ordered collection whose content can be observed. All {@link ObservableElement}s returned by this observable will be instances of
+ * {@link OrderedObservableElement}. In addition, it is guaranteed that the {@link OrderedObservableElement#getIndex() index} of an element
+ * given to the observer passed to {@link #subscribe(Observer)} or {@link #internalSubscribe(Observer)} will be less than or equal to the
+ * number of uncompleted elements previously passed to the observer. This means that, for example, the first element passed to an observer
+ * will always be index 0. The second may be 0 or 1. If one of these is then completed, the next element may be 0 or 1 as well.
  *
  * @param <E> The type of element in the collection
  */
@@ -323,6 +326,47 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 			compare = (Comparator<? super E>) (Comparable<Comparable<?>> o1, Comparable<Comparable<?>> o2) -> o1.compareTo(o2);
 		}
 		Comparator<? super E> fCompare = compare;
+		class FlattenedOrderedElement extends FlattenedElement<E> implements OrderedObservableElement<E> {
+			FlattenedOrderedElement(OrderedObservableElement<E> subEl, ObservableElement<? extends ObservableOrderedCollection<E>> subList) {
+				super(subEl, subList);
+			}
+
+			@Override
+			protected OrderedObservableElement<? extends ObservableOrderedCollection<E>> getSubCollectionElement() {
+				return (OrderedObservableElement<? extends ObservableOrderedCollection<E>>) super.getSubCollectionElement();
+			}
+
+			@Override
+			protected OrderedObservableElement<E> getSubElement() {
+				return (OrderedObservableElement<E>) super.getSubElement();
+			}
+
+			@Override
+			public int getIndex() {
+				E value = get();
+				int subListIndex = getSubCollectionElement().getIndex();
+				int subElIdx = getSubElement().getIndex();
+				int ret = 0;
+				int index = 0;
+				for(ObservableOrderedCollection<E> sub : list) {
+					if(index == subListIndex) {
+						ret += subElIdx;
+						index++;
+						continue;
+					}
+					for(E el : sub) {
+						int comp = fCompare.compare(value, el);
+						if(comp < 0)
+							break;
+						if(index > subListIndex && comp == 0)
+							break;
+						ret++;
+					}
+					index++;
+				}
+				return ret;
+			}
+		}
 		class FlattenedObservableOrderedCollection extends AbstractCollection<E> implements ObservableOrderedCollection<E> {
 			@Override
 			public Type getType() {
@@ -443,7 +487,15 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
-				return list.internalSubscribe(new Observer<ObservableElement<? extends ObservableOrderedCollection<E>>>() {
+				/* This has to be handled a little differently.  If the initial elements were simply handed to the observer, they could be
+				 * out of order, since the first sub-collection might contain elements that compare greater to elements in a following
+				 * sub-collection.  Thus, for example, the first element fed to the observer might have non-zero index.  This violates the
+				 * contract of an ordered collection and will frequently cause problems in the observer.
+				 * Thus, we compile an ordered list of the initial elements and then send them all to the observer after all the lists have
+				 * delivered their initial elements.  Subsequent elements can be delivered in the normal way. */
+				final List<FlattenedOrderedElement> initialElements = new ArrayList<>();
+				final boolean [] initializing = new boolean[] {true};
+				Runnable ret = list.internalSubscribe(new Observer<ObservableElement<? extends ObservableOrderedCollection<E>>>() {
 					private Map<ObservableOrderedCollection<E>, Subscription<ObservableElement<E>>> subListSubscriptions;
 
 					{
@@ -452,40 +504,6 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 
 					@Override
 					public <V extends ObservableElement<? extends ObservableOrderedCollection<E>>> void onNext(V subList) {
-						class FlattenedOrderedElement extends FlattenedElement<E> implements OrderedObservableElement<E> {
-							FlattenedOrderedElement(OrderedObservableElement<E> subEl) {
-								super(subEl, subList);
-							}
-
-							@Override
-							protected OrderedObservableElement<E> getSubElement() {
-								return (OrderedObservableElement<E>) super.getSubElement();
-							}
-
-							@Override
-							public int getIndex() {
-								E value = get();
-								int subElIdx = getSubElement().getIndex();
-								int ret = 0;
-								boolean passedMe = false;
-								for(ObservableOrderedCollection<E> sub : list) {
-									if(sub == subList.get()) {
-										passedMe = true;
-										ret += subElIdx;
-										continue;
-									}
-									for(E el : sub) {
-										int comp = fCompare.compare(value, el);
-										if(comp < 0)
-											break;
-										if(passedMe && comp == 0)
-											break;
-										ret++;
-									}
-								}
-								return ret;
-							}
-						}
 						subList.subscribe(new Observer<ObservableValueEvent<? extends ObservableOrderedCollection<E>>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<? extends ObservableOrderedCollection<E>>> void onNext(V2 subListEvent) {
@@ -499,8 +517,14 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 										@Override
 										public <V3 extends ObservableElement<E>> void onNext(V3 subElement) {
 											OrderedObservableElement<E> subListEl = (OrderedObservableElement<E>) subElement;
-											FlattenedOrderedElement flatEl = new FlattenedOrderedElement(subListEl);
-											observer.onNext(flatEl);
+											FlattenedOrderedElement flatEl = new FlattenedOrderedElement(subListEl, subList);
+											if(initializing[0]) {
+												int index = flatEl.getIndex();
+												while(initialElements.size() <= index)
+													initialElements.add(null);
+												initialElements.set(index, flatEl);
+											} else
+												observer.onNext(flatEl);
 										}
 
 										@Override
@@ -529,6 +553,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 						observer.onError(e);
 					}
 				});
+				initializing[0] = false;
+				for(FlattenedOrderedElement el : initialElements)
+					observer.onNext(el);
+				initialElements.clear();
+				return ret;
 			}
 		}
 		return new FlattenedObservableOrderedCollection();

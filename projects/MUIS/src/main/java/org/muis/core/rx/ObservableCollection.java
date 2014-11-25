@@ -527,9 +527,16 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		 * @param subColl The element containing the sub-collection
 		 */
 		protected FlattenedElement(ObservableElement<T> subEl, ObservableElement<? extends ObservableCollection<T>> subColl) {
+			if(subEl == null)
+				throw new NullPointerException();
 			subElement = subEl;
 			subCollectionEl = subColl;
 			subColl.completed().act(value -> isRemoved = true);
+		}
+
+		/** @return The element in the outer collection containing the inner collection that contains this element's wrapped element */
+		protected ObservableElement<? extends ObservableCollection<T>> getSubCollectionElement() {
+			return subCollectionEl;
 		}
 
 		/** @return The wrapped sub-collection element */

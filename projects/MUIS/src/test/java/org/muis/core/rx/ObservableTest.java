@@ -1166,6 +1166,21 @@ public class ObservableTest {
 		outerControl.add(list2);
 
 		ArrayList<Integer> compare = new ArrayList<>();
+
+		ArrayList<Integer> correct = new ArrayList<>();
+
+		for(int i = 0; i <= 30; i++) {
+			if(i % 3 == 1) {
+				control1.add(i);
+				correct.add(i);
+			} else if(i % 3 == 0) {
+				control2.add(i);
+				correct.add(i);
+			} else {
+				control3.add(i);
+			}
+		}
+
 		ObservableOrderedCollection.flatten(outer, null).act(element -> {
 			OrderedObservableElement<Integer> orderedEl = (OrderedObservableElement<Integer>) element;
 			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
@@ -1183,22 +1198,7 @@ public class ObservableTest {
 				}
 			});
 		});
-
-		ArrayList<Integer> correct = new ArrayList<>();
-
-		for(int i = 0; i <= 30; i++) {
-			if(i % 3 == 0) {
-				control1.add(i);
-				correct.add(i);
-			} else if(i % 3 == 1) {
-				control2.add(i);
-				correct.add(i);
-			} else {
-				control3.add(i);
-			}
-
-			assertEquals(correct, compare);
-		}
+		assertEquals(correct, compare);
 
 		outerControl.add(list3);
 		correct.clear();
@@ -1209,15 +1209,15 @@ public class ObservableTest {
 		outerControl.remove(list2);
 		correct.clear();
 		for(int i = 0; i <= 30; i++)
-			if(i % 3 != 1)
+			if(i % 3 != 0)
 				correct.add(i);
 		assertEquals(correct, compare);
 
-		control1.remove((Integer) 15);
-		correct.remove((Integer) 15);
+		control1.remove((Integer) 16);
+		correct.remove((Integer) 16);
 		assertEquals(correct, compare);
-		control1.add(control1.indexOf(18), 15);
-		correct.add(correct.indexOf(17), 15);
+		control1.add(control1.indexOf(19), 16);
+		correct.add(correct.indexOf(17), 16);
 		assertEquals(correct, compare);
 	}
 }

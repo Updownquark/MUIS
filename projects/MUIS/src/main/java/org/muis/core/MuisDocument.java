@@ -615,8 +615,9 @@ public class MuisDocument implements MuisParseEnv {
 		LinkedHashSet<MuisEventPositionCapture> oldSet = new LinkedHashSet<>();
 		LinkedHashSet<MuisEventPositionCapture> newSet = new LinkedHashSet<>();
 		LinkedHashSet<MuisEventPositionCapture> common = new LinkedHashSet<>();
-		for(MuisEventPositionCapture mec : oldCapture.iterate(true))
-			oldSet.add(mec);
+		if(oldCapture != null)
+			for(MuisEventPositionCapture mec : oldCapture.iterate(true))
+				oldSet.add(mec);
 		for(MuisEventPositionCapture mec : newCapture.iterate(true))
 			if(oldSet.remove(mec))
 				common.add(mec);

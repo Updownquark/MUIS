@@ -221,7 +221,8 @@ public class ElementBounds extends org.muis.core.rx.DefaultObservableValue<Recta
 
 	@Override
 	public String toString() {
-		return new StringBuilder("(").append(theX).append(',').append(theY).append("){").append(theW).append(',').append(theH).append('}')
+		return new StringBuilder(theElement.getTagName()).append(" bounds=(").append(theX).append(',').append(theY).append("){")
+			.append(theW).append(',').append(theH).append('}')
 			.toString();
 	}
 
@@ -275,6 +276,12 @@ public class ElementBounds extends org.muis.core.rx.DefaultObservableValue<Recta
 		@Override
 		public SizeGuide getGuide() {
 			return isVertical ? theElement.getHSizer() : theElement.getWSizer();
+		}
+
+		@Override
+		public String toString() {
+			return new StringBuilder(theElement.getTagName()).append(" ").append(isVertical ? "v" : "h").append("-bounds=(")
+				.append(getPosition()).append("){").append(getSize()).append("}").toString();
 		}
 	}
 }

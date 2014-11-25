@@ -13,15 +13,17 @@ import org.muis.core.MuisException;
 import org.muis.core.MuisTextElement;
 import org.muis.core.model.*;
 import org.muis.core.rx.ObservableValue;
+import org.muis.core.tags.Template;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;
 
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
- * different (flow by default) and its style sheet attributes may be different (margin and padding are typically 0)
+ * different and its style sheet attributes may be different (margin and padding are typically 0)
  */
-public class Label extends org.muis.core.LayoutContainer implements org.muis.core.model.DocumentedElement {
+@Template(location = "../../../../label.muis")
+public class Label extends org.muis.core.MuisTemplate implements org.muis.core.model.DocumentedElement {
 	private org.muis.core.model.WidgetRegistration theRegistration;
 
 	/** Creates the label */
@@ -39,7 +41,7 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
 					else
 						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle()));
-					});
+				});
 				atts().getHolder(ModelAttributes.value).value().act(modelValue -> {
 					if(theRegistration != null)
 						theRegistration.unregister();
@@ -47,26 +49,30 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 					if(modelValue instanceof WidgetRegister)
 						theRegistration = ((WidgetRegister) modelValue).register(Label.this);
 				});
-				ObservableValue.flatten(new Type(Object.class), atts().getHolder(ModelAttributes.value))
-					.tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).value().act(tuple -> {
-						if(tuple.getValue1() == null)
-							return;
-						MuisDocumentModel doc = getDocumentModel();
-						if(!(doc instanceof MutableDocumentModel)) {
-							msg().error("Model value specified with a non-mutable document model");
-							return;
-						}
-						MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
-						try (Transaction trans = mutableDoc.holdForWrite()) {
-							mutableDoc.clear();
-							((MuisFormatter<Object>) tuple.getValue2()).append(tuple.getValue1(), mutableDoc);
+				ObservableValue
+					.flatten(new Type(Object.class), atts().getHolder(ModelAttributes.value))
+					.tupleV(atts().getHolder(format).mapV(Formats.defNullCatch))
+					.value()
+					.act(
+						tuple -> {
+							if(tuple.getValue1() == null)
+								return;
+							MuisDocumentModel doc = getDocumentModel();
+							if(!(doc instanceof MutableDocumentModel)) {
+								msg().error("Model value specified with a non-mutable document model");
+								return;
+							}
+							MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
+							try (Transaction trans = mutableDoc.holdForWrite()) {
+								mutableDoc.clear();
+								((MuisFormatter<Object>) tuple.getValue2()).append(tuple.getValue1(), mutableDoc);
 							} catch(ClassCastException e) {
 								msg()
 									.error(
 										"Formatter instance " + tuple.getValue2() + " is incompatible with model value "
 											+ tuple.getValue1(), e);
-						}
-					});
+							}
+						});
 
 				/* Don't think this code is needed anymore
 				if(Boolean.TRUE.equals(atts().get(BaseAttributes.rich))) {
@@ -97,11 +103,12 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 
 	/** @return The text displayed by this label, or null if this label contains no */
 	public String getText() {
-		if(getChildren().isEmpty())
-			return "";
-		if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
-			return null;
-		return ((MuisTextElement) getChildren().get(0)).getText();
+		return getValue().getText();
+	}
+
+	/** @return The text element containing this label's text */
+	protected MuisTextElement getValue() {
+		return (MuisTextElement) getElement(getTemplate().getAttachPoint("value"));
 	}
 
 	/**
@@ -123,32 +130,18 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 			} catch(MuisException e) {
 				msg().error("Could not parse rich text", e);
 			}
-		} else {
-			if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement)) {
-				msg().warn("Label: Replacing content widgets with text");
-				getChildren().clear();
-				getChildren().add(new MuisTextElement(text));
-			} else
-				((MuisTextElement) getChildren().get(0)).setText(text);
-		}
+		} else
+			getValue().setText(text);
 	}
 
 	@Override
 	public MuisDocumentModel getDocumentModel() {
-		if(getChildren().isEmpty())
-			return null;
-		if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
-			return null;
-		return ((MuisTextElement) getChildren().get(0)).getDocumentModel();
+		return getValue().getDocumentModel();
 	}
 
 	/** @return The actual document model backing this label */
 	public MuisDocumentModel getWrappedModel() {
-		if(getChildren().isEmpty())
-			return null;
-		if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement))
-			return null;
-		return ((MuisTextElement) getChildren().get(0)).getWrappedModel();
+		return getValue().getWrappedModel();
 	}
 
 	private org.muis.core.style.stateful.InternallyStatefulStyle getDocumentBackingStyle() {
@@ -157,33 +150,12 @@ public class Label extends org.muis.core.LayoutContainer implements org.muis.cor
 			getChildManager().add(newText);
 			return newText.getStyle().getSelf();
 		} else {
-			if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement)) {
-				msg().warn("Label: Replacing content widgets with text");
-				getChildren().clear();
-				MuisTextElement newText = new MuisTextElement();
-				getChildManager().add(newText);
-				return newText.getStyle().getSelf();
-			} else
-				return ((MuisTextElement) getChildren().get(0)).getStyle().getSelf();
+			return getValue().getStyle().getSelf();
 		}
 	}
 
 	/** @param doc The document model for this label */
 	protected void setDocumentModel(MuisDocumentModel doc) {
-		if(getChildren().isEmpty())
-			getChildManager().add(new MuisTextElement(doc));
-		else {
-			if(getChildren().size() > 1 || !(getChildren().get(0) instanceof MuisTextElement)) {
-				msg().warn("Label: Replacing content widgets with text");
-				getChildren().clear();
-				getChildren().add(new MuisTextElement(doc));
-			} else
-				((MuisTextElement) getChildren().get(0)).setDocumentModel(doc);
-		}
-	}
-
-	@Override
-	protected org.muis.core.MuisLayout getDefaultLayout() {
-		return new org.muis.base.layout.FlowLayout();
+		getValue().setDocumentModel(doc);
 	}
 }

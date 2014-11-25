@@ -66,4 +66,16 @@ public class AttributeAcceptedEvent implements MuisEvent {
 	public boolean isOverridden() {
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		String action;
+		if(!isAccepted)
+			action = "rejected";
+		else if(isRequired)
+			action = "required";
+		else
+			action = "accepted";
+		return theAttribute + " " + action + " in " + theElement;
+	}
 }

@@ -60,4 +60,9 @@ public class SizeNeedsChangedEvent implements MuisEvent {
 	public boolean isOverridden() {
 		return isHandled;
 	}
+
+	@Override
+	public String toString() {
+		return "Size needs changed for " + theElement;
+	}
 }

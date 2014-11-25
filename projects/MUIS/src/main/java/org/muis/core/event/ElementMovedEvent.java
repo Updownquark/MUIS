@@ -49,4 +49,14 @@ public class ElementMovedEvent implements MuisEvent {
 	public boolean isOverridden() {
 		return theElement.getParent() != theNewParent;
 	}
+
+	@Override
+	public String toString() {
+		if(theOldParent == null)
+			return theElement + " added to " + theNewParent;
+		else if(theNewParent == null)
+			return theElement + " removed from " + theOldParent;
+		else
+			return theElement + " moved from " + theOldParent + " to " + theNewParent;
+	}
 }

@@ -113,4 +113,17 @@ public class ChildEvent implements MuisEvent {
 	public boolean isOverridden() {
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		switch (theType) {
+		case ADD:
+			return theChild + " added at index " + theIndex + " to " + theParent;
+		case REMOVE:
+			return theChild + " removed at index " + theIndex + " from " + theParent;
+		case MOVE:
+			return theChild + " moved from " + theMoveFromIndex + " to " + theIndex + " in " + theParent;
+		}
+		throw new IllegalStateException("Unrecognized type: " + theType);
+	}
 }

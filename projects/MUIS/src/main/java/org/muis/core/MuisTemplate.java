@@ -957,10 +957,10 @@ public abstract class MuisTemplate extends MuisElement {
 			try {
 				MuisEnvironment env = getDocument().getEnvironment();
 				theTemplateStructure = TemplateStructure.getTemplateStructure(env, MuisTemplate.this.getClass());
+				initModels(theTemplateStructure);
 			} catch(MuisException e) {
 				msg().fatal("Could not generate template structure", e);
 			}
-			initModels(theTemplateStructure);
 		}, MuisConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
 			for(Class<? extends MuisBehavior<?>> behaviorClass : theTemplateStructure.getBehaviors()) {

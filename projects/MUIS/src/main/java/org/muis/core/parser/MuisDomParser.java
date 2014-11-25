@@ -458,17 +458,9 @@ public class MuisDomParser implements MuisParser {
 			return Character.class;
 		else if(typeName.equals("boolean"))
 			return Boolean.class;
-		else if(typeName.equals("byte"))
-			return Byte.class;
-		else if(typeName.equals("short"))
-			return Short.class;
 		else if(typeName.equals("int"))
-			return Integer.class;
-		else if(typeName.equals("long"))
 			return Long.class;
 		else if(typeName.equals("float"))
-			return Float.class;
-		else if(typeName.equals("double"))
 			return Double.class;
 		else if(typeName.equals("string"))
 			return String.class;

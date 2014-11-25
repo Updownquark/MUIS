@@ -206,4 +206,9 @@ public class LayerLayout implements org.muis.core.MuisLayout {
 	@Override
 	public void remove(MuisElement parent) {
 	}
+
+	@Override
+	public String toString() {
+		return "layer";
+	}
 }

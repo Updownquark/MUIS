@@ -750,7 +750,7 @@ public class AttributeManager {
 			}
 		}
 		for(java.util.Map.Entry<String, RawAttributeValue> attr : theRawAttributes.entrySet())
-			theElement.msg().error("No attribute named " + attr.getKey() + " is not accepted in this element", "value",
+			theElement.msg().error("No attribute named " + attr.getKey() + " is accepted in this element", "value",
 				attr.getValue().value);
 		theRawAttributes = null;
 	}

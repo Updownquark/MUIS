@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<template>
+	<head>
+	</head>
+	<body layout="box">
+		<template-text template-attach-point="value" template-external="true" template-default="true" template-implementation="true"
+			template-multiple="false" />
+	</body>
+</template>

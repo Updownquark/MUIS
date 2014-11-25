@@ -211,7 +211,7 @@ public class MuisEventQueue {
 				area.y += docPos.y;
 				element = doc.getRoot();
 			}
-			if(element == doc.getRoot()) {
+			if(element == doc.getRoot() && area == null) {
 				MuisRendering render = new MuisRendering(element.bounds().getWidth(), element.bounds().getHeight());
 				Graphics2D graphics = (Graphics2D) render.getImage().getGraphics();
 				if(doc.getDebugGraphics() != null)
@@ -220,7 +220,7 @@ public class MuisEventQueue {
 				doc.setRender(render);
 				Graphics2D docGraphics = doc.getGraphics();
 				if(docGraphics != null)
-					docGraphics.drawImage(render.getImage(), null, 0, 0);
+					docGraphics.drawImage(render.getImage(), 0, 0, null);
 				return;
 			}
 			MuisRendering render = element.getDocument().getRender();
@@ -265,7 +265,7 @@ public class MuisEventQueue {
 				((java.util.List<MuisElementCapture>) bound.getParent().getChildren()).set(bound.getParent().getChildren().indexOf(bound),
 					newBound);
 			else
-				render.setRoot(newBound);
+				newRender.setRoot(newBound);
 			element.getDocument().setRender(newRender);
 		}
 

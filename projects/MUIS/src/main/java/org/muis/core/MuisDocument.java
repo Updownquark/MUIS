@@ -460,7 +460,7 @@ public class MuisDocument implements MuisParseEnv {
 	public void paint(java.awt.Graphics2D graphics) {
 		MuisRendering rendering = theRendering;
 		if(rendering != null)
-			graphics.drawImage(rendering.getImage(), null, 0, 0);
+			graphics.drawImage(rendering.getImage(), 0, 0, null);
 	}
 
 	/** @return Whether the mouse is over this document */

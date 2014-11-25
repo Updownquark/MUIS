@@ -303,7 +303,7 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 			boolean [] ret = new boolean[1];
 			doLocked(() -> {
 				for(E add : c) {
-					if(!theValues.containsKey(add))
+					if(theValues.containsKey(add))
 						continue;
 					ret[0] = true;
 					ObservableElementImpl<E> el = new ObservableElementImpl<>(theType, add);

@@ -246,13 +246,25 @@ public class MuisMessageCenter implements Iterable<MuisMessage> {
 	}
 
 	/**
-	 * Records a warning in this message center. Short-hand for {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
+	 * Records an information message in this message center. Short-hand for
+	 * {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
 	 *
-	 * @param text A description of the warning
-	 * @param params Any parameters that may be relevant to the warning
+	 * @param text A description of the message
+	 * @param params Any parameters that may be relevant to the message
 	 */
 	public void info(String text, Object... params) {
 		message(MuisMessage.Type.INFO, text, null, null, params);
+	}
+
+	/**
+	 * Records a debugging message in this message center. Short-hand for
+	 * {@link #message(MuisMessage.Type, String, MuisEvent, Throwable, Object...)}
+	 *
+	 * @param text A description of the message
+	 * @param params Any parameters that may be relevant to the message
+	 */
+	public void debug(String text, Object... params) {
+		message(MuisMessage.Type.DEBUG, text, null, null, params);
 	}
 
 	/** @return The worst type of message associated with this message center */

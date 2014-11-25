@@ -9,6 +9,8 @@ import org.muis.core.MuisEnvironment;
 public class MuisMessage {
 	/** The types of element messages available */
 	public static enum Type {
+		/** Represents a debugging message */
+		DEBUG,
 		/** Represents an information message */
 		INFO,
 		/** Represents a warning message */

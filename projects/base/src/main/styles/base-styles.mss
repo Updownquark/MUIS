@@ -57,9 +57,13 @@
 	#value{
 		font.word-wrap=false
 	}
-	.error#value{
-		bg.color=rgb(255, 192, 192)
-		font.color=red
+	.error{
+		#value{
+			font.color=red
+		}
+		#border{
+			bg.color=rgb(255, 192, 192)
+		}
 	}
 	text-edit-style.cursor-blink=1000
 }

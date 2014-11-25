@@ -113,7 +113,8 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	protected void initDocument() {
 		new org.muis.base.model.SimpleTextEditing().install(this);
 		getValueElement().getDocumentModel().onContentStyleChange(() -> {
-			setDocDirty();
+			if(theCallbackLock == 0)
+				setDocDirty();
 		});
 	}
 
@@ -175,6 +176,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 			if(val != null) {
 				String valMsg = ((Validator<Object>) val).validate(value);
 				if(valMsg != null) {
+					msg().debug(valMsg);
 					// TODO Do something with the message
 					theErrorController.set(true, null);
 					return;
@@ -183,6 +185,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 			String error = ((SettableValue<Object>) mv).isAcceptable(value);
 			if(error != null) {
+				msg().debug(error);
 				// TODO Do something with the message
 				theErrorController.set(true, null);
 				return;
@@ -190,6 +193,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 
 			theErrorController.set(false, null);
 		} catch(MuisParseException e) {
+			msg().message(org.muis.core.mgr.MuisMessage.Type.DEBUG, e.getMessage(), null, e);
 			// TODO Do something with the message and the positions
 			theErrorController.set(true, e);
 			return;
@@ -222,7 +226,12 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 	private void pushChanges() {
 		if(!isDocDirty || theCallbackLock > 0 || isDocOverridden)
 			return;
-		validateValue(true);
+		theCallbackLock++;
+		try {
+			validateValue(true);
+		} finally {
+			theCallbackLock--;
+		}
 		resetDocument();
 	}
 

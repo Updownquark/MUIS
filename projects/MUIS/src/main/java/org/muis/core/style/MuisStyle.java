@@ -146,8 +146,8 @@ public interface MuisStyle {
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
 	default Observable<StyleAttributeEvent<?>> allChanges() {
-		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> get(attr)))
-			.skip(localAttributes().size()).map(event -> (StyleAttributeEvent<?>) event);
+		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> get(attr).skip(1))).map(
+			event -> (StyleAttributeEvent<?>) event);
 		Observable<StyleAttributeEvent<?>> depends = ObservableCollection
 			.fold(getDependencies().mapC(dep -> dep.allChanges()))
 			// Don't propagate dependency changes that are overridden in this style

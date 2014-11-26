@@ -121,11 +121,9 @@ public interface MuisStyle {
 		return get(attr, true);
 	}
 
-	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
-	default Observable<StyleAttributeEvent<?>> allChanges() {
-		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> get(attr)))
-			.skip(localAttributes().size()).map(event -> (StyleAttributeEvent<?>) event);
-		Observable<StyleAttributeEvent<?>> localRemoves = localAttributes().removes().map(event -> {
+	/** @return An observable that fires a {@link StyleAttributeEvent} for every attribute whose value is cleared from this style locally */
+	default Observable<StyleAttributeEvent<?>> localRemoves() {
+		return localAttributes().removes().map(event -> {
 			MuisStyle root;
 			StyleAttribute<Object> attr;
 			Object oldVal;
@@ -144,6 +142,12 @@ public interface MuisStyle {
 				cause = (MuisEvent) event.getCause();
 			return new StyleAttributeEvent<>(null, root, this, attr, oldVal, get(attr).get(), cause);
 		});
+	}
+
+	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
+	default Observable<StyleAttributeEvent<?>> allChanges() {
+		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> get(attr)))
+			.skip(localAttributes().size()).map(event -> (StyleAttributeEvent<?>) event);
 		Observable<StyleAttributeEvent<?>> depends = ObservableCollection
 			.fold(getDependencies().mapC(dep -> dep.allChanges()))
 			// Don't propagate dependency changes that are overridden in this style
@@ -153,7 +157,7 @@ public interface MuisStyle {
 					return new StyleAttributeEvent<>(null, event.getRootStyle(), this, (StyleAttribute<Object>) event.getAttribute(), event
 						.getOldValue(), event.getValue(), event);
 				});
-		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(Observable.or(localChanges, localRemoves, depends)) {
+		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(Observable.or(localChanges, localRemoves(), depends)) {
 			@Override
 			public String toString() {
 				return "All changes in " + MuisStyle.this;

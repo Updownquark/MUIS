@@ -325,6 +325,26 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	}
 
 	/**
+	 * @param observable The observable to re-fire events on
+	 * @return A collection whose elements fire additional value events when the given observable fires
+	 */
+	@Override
+	default ObservableSet<E> refireWhen(Observable<?> observable) {
+		ObservableSet<E> outer = this;
+		return new org.muis.util.ObservableSetWrapper<E>(this) {
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+				return outer.internalSubscribe(new Observer<ObservableElement<E>>() {
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V value) {
+						observer.onNext(value.refireWhen(observable));
+					}
+				});
+			}
+		};
+	}
+
+	/**
 	 * @param <T> The type of the collection
 	 * @param type The run-time type of the collection
 	 * @param coll The collection with elements to wrap

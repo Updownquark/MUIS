@@ -124,6 +124,7 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 	 * @param observable The observable to re-fire events on
 	 * @return A collection whose elements fire additional value events when the given observable fires
 	 */
+	@Override
 	default ObservableOrderedCollection<E> refireWhen(Observable<?> observable) {
 		ObservableOrderedCollection<E> outer = this;
 		return new ObservableOrderedCollectionWrapper<E>(this) {

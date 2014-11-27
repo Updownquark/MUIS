@@ -228,6 +228,11 @@ public interface Observable<T> {
 					}
 				});
 			}
+
+			@Override
+			public String toString() {
+				return "filterMap(" + outer + ")";
+			}
 		};
 	}
 
@@ -397,6 +402,17 @@ public interface Observable<T> {
 					for(Runnable sub : subs)
 						sub.run();
 				};
+			}
+
+			@Override
+			public String toString() {
+				StringBuilder ret = new StringBuilder("or(");
+				for(int i = 0; i < obs.length; i++) {
+					if(i > 0)
+						ret.append(", ");
+					ret.append(obs[i]);
+				}
+				return ret.toString();
 			}
 		};
 	}

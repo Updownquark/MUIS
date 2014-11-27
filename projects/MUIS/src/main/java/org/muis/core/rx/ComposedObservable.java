@@ -71,4 +71,9 @@ public class ComposedObservable<T> implements Observable<T> {
 	public Observable<?> [] getComposed() {
 		return theComposed.toArray(new Observable[theComposed.size()]);
 	}
+
+	@Override
+	public String toString() {
+		return theComposed.toString();
+	}
 }

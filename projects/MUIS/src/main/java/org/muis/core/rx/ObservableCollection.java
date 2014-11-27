@@ -90,6 +90,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 					}
 				});
 			}
+
+			@Override
+			public String toString() {
+				return "removes(" + coll + ")";
+			}
 		};
 	}
 
@@ -266,6 +271,25 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
+	 * @param observable The observable to re-fire events on
+	 * @return A collection whose elements fire additional value events when the given observable fires
+	 */
+	default ObservableCollection<E> refireWhen(Observable<?> observable) {
+		ObservableCollection<E> outer = this;
+		return new org.muis.util.ObservableCollectionWrapper<E>(this) {
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+				return outer.internalSubscribe(new Observer<ObservableElement<E>>() {
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V value) {
+						observer.onNext(value.refireWhen(observable));
+					}
+				});
+			}
+		};
+	}
+
+	/**
 	 * @param <T> An observable collection that contains all elements in all collections in the wrapping collection
 	 * @param coll The collection to flatten
 	 * @return A collection containing all elements of all collections in the outer collection
@@ -407,6 +431,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 						observer.onError(e);
 					}
 				});
+			}
+
+			@Override
+			public String toString() {
+				return "fold(" + coll + ")";
 			}
 		};
 	}

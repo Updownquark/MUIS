@@ -85,10 +85,13 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> allLocal() {
-		ObservableSet<StyleAttribute<?>> ret = theStyleSheet.allLocal();
-		ret = ret.combineC(theTemplatePaths.changes(), (attr, v) -> attr);
+		ObservableSet<StyleAttribute<?>> ret = theStyleSheet.allAttrs();
+		ret = ret.refireWhen(theTemplatePaths.changes());
 		ret = ret.filterC(attr -> {
-			return !getLocalExpressions(attr).isEmpty();
+			for(StyleExpressionValue<StateGroupTypeExpression<?>, ?> sev : theStyleSheet.getExpressions(attr))
+				if(matchesFilter(sev.getExpression()))
+					return true;
+			return false;
 		});
 		return ret;
 	}

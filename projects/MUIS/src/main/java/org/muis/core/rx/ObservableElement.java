@@ -90,7 +90,7 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 				Runnable refireSub = observable.internalSubscribe(new Observer<Object>() {
 					@Override
 					public <V> void onNext(V value) {
-						observer.onNext(createEvent(get(), get(), value));
+						observer.onNext(outer.createEvent(outer.get(), outer.get(), value));
 					}
 				});
 				return () -> {

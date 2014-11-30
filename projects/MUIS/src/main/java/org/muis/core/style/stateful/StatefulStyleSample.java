@@ -55,6 +55,7 @@ public class StatefulStyleSample implements MuisStyle {
 			attr.getType().getType(),
 			theStatefulStyle.getExpressions(attr).refireWhen(theState.changes())
 				.find(t, (StyleExpressionValue<StateExpression, T> sev) -> {
+					System.out.println("Checking " + sev.getExpression() + " for " + attr);
 					if(sev.getExpression() == null || sev.getExpression().matches(theState))
 						return sev;
 					else

@@ -15,13 +15,19 @@ import prisms.lang.Type;
 
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
-	private DefaultObservableSet<MuisState> theState;
+	private ObservableSet<MuisState> theState;
 	private Set<MuisState> theStateController;
 
 	/** Creates the style */
 	public AbstractInternallyStatefulStyle() {
-		theState = new DefaultObservableSet<>(new prisms.lang.Type(MuisState.class));
-		theStateController = theState.control(null);
+		DefaultObservableSet<MuisState> state = new DefaultObservableSet<>(new prisms.lang.Type(MuisState.class));
+		theStateController = state.control(null);
+		theState = new org.muis.util.ObservableSetWrapper<MuisState>(state) {
+			@Override
+			public String toString() {
+				return "state(" + AbstractInternallyStatefulStyle.this + ")=" + super.toString();
+			}
+		};
 	}
 
 	@Override

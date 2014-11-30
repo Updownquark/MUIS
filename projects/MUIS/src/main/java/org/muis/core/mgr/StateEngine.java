@@ -54,8 +54,8 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 	private final MuisElement theElement;
 	private final ConcurrentHashMap<MuisState, StateValue> theStates;
-	private final DefaultObservableSet<MuisState> theStateSet;
-	private final DefaultObservableSet<MuisState> theActiveStates;
+	private final ObservableSet<MuisState> theStateSet;
+	private final ObservableSet<MuisState> theActiveStates;
 	private final java.util.Set<MuisState> theStateSetController;
 	private final java.util.Set<MuisState> theActiveStateController;
 
@@ -77,10 +77,22 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		theStateControllers = new StateControllerImpl[0];
 		theStateControllerLock = new Object();
 
-		theStateSet = new DefaultObservableSet<>(new Type(MuisState.class));
-		theStateSetController = theStateSet.control(null);
-		theActiveStates = new DefaultObservableSet<>(theStateSet.getType());
-		theActiveStateController = theActiveStates.control(null);
+		DefaultObservableSet<MuisState> allStates = new DefaultObservableSet<>(new Type(MuisState.class));
+		theStateSetController = allStates.control(null);
+		theStateSet = new org.muis.util.ObservableSetWrapper<MuisState>(allStates) {
+			@Override
+			public String toString() {
+				return "allStates(" + theElement.getTagName() + ")";
+			}
+		};
+		DefaultObservableSet<MuisState> activeStates = new DefaultObservableSet<>(theStateSet.getType());
+		theActiveStateController = activeStates.control(null);
+		theActiveStates = new org.muis.util.ObservableSetWrapper<MuisState>(activeStates) {
+			@Override
+			public String toString() {
+				return "activeStates(" + theElement.getTagName() + ")=" + super.toString();
+			}
+		};
 	}
 
 	@Override

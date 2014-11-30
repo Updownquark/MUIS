@@ -99,6 +99,7 @@ public class FilteredStyleSheet<E extends MuisElement> implements StatefulStyle 
 	@Override
 	public <T> ObservableOrderedCollection<StyleExpressionValue<StateExpression, T>> getLocalExpressions(StyleAttribute<T> attr) {
 		return theStyleSheet.getExpressions(attr).refireWhen(theTemplatePaths.changes()).filterMapC(sev -> {
+			StyleAttribute<T> att = attr;
 			if(sev == null)
 				return null;
 			if(matchesFilter(sev.getExpression()))

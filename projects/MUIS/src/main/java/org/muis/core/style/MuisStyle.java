@@ -149,11 +149,11 @@ public interface MuisStyle {
 		 //Work-around for a ridiculous build error in eclipse
 		@SuppressWarnings("cast")
 		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(
-			localAttributes().mapC(attr -> (Observable<?>) get(attr).skip(1))).map(event -> (StyleAttributeEvent<?>) event);
+			localAttributes().mapC(attr -> (Observable<?>) getLocal(attr).skip(1))).map(event -> (StyleAttributeEvent<?>) event);
 		Observable<StyleAttributeEvent<?>> depends = ObservableCollection
 			.fold(getDependencies().mapC(dep -> dep.allChanges()))
 			// Don't propagate dependency changes that are overridden in this style
-			.filter(event -> get(event.getAttribute(), false) == null)
+			.filter(event -> !isSet(event.getAttribute()))
 			.map(
 				event -> {
 					return new StyleAttributeEvent<>(null, event.getRootStyle(), this, (StyleAttribute<Object>) event.getAttribute(), event

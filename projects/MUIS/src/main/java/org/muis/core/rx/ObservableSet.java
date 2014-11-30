@@ -68,6 +68,11 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
 				return outerSub;
 			}
+
+			@Override
+			public String toString() {
+				return "changes(" + coll + ")";
+			}
 		};
 	}
 

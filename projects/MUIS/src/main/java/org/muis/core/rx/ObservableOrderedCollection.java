@@ -120,6 +120,54 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 		};
 	}
 
+	/** @return The first value in this list, or null if this list is empty */
+	default ObservableValue<E> first() {
+		return new ObservableValue<E>() {
+			@Override
+			public Type getType() {
+				return ObservableOrderedCollection.this.getType();
+			}
+
+			@Override
+			public E get() {
+				Iterator<E> iter = iterator();
+				if(!iter.hasNext())
+					return null;
+				return iter.next();
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				return ObservableOrderedCollection.this.internalSubscribe(new Observer<ObservableElement<E>>() {
+					E oldValue;
+
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V el) {
+						OrderedObservableElement<E> element = (OrderedObservableElement<E>) el;
+						element.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onNext(V2 event) {
+								if(element.getIndex() != 0)
+									return;
+								observer.onNext(createEvent(oldValue, event.getValue(), event));
+								oldValue = event.getValue();
+							}
+
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 event) {
+								if(element.getIndex() != 0)
+									return;
+								E newValue = get();
+								observer.onNext(createEvent(oldValue, newValue, event));
+								oldValue = newValue;
+							}
+						});
+					}
+				});
+			}
+		};
+	}
+
 	/**
 	 * @param observable The observable to re-fire events on
 	 * @return A collection whose elements fire additional value events when the given observable fires

@@ -3,7 +3,6 @@ package org.muis.core.style.stateful;
 import java.util.Set;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.DefaultObservableSet;
 import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableSet;
 import org.muis.core.rx.ObservableValue;
@@ -16,54 +15,19 @@ import prisms.lang.Type;
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
 	private ObservableSet<MuisState> theState;
-	private Set<MuisState> theStateController;
 
-	/** Creates the style */
-	public AbstractInternallyStatefulStyle() {
-		DefaultObservableSet<MuisState> state = new DefaultObservableSet<>(new prisms.lang.Type(MuisState.class));
-		theStateController = state.control(null);
-		theState = new org.muis.util.ObservableSetWrapper<MuisState>(state) {
-			@Override
-			public String toString() {
-				return "state(" + AbstractInternallyStatefulStyle.this + ")=" + super.toString();
-			}
-		};
+	/**
+	 * Creates the style
+	 * 
+	 * @param state The state for the style
+	 */
+	public AbstractInternallyStatefulStyle(ObservableSet<MuisState> state) {
+		theState = state;
 	}
 
 	@Override
 	public ObservableSet<MuisState> getState() {
 		return theState;
-	}
-
-	/**
-	 * Adds a state to this style's internal state set, firing appropriate events for style attributes that become active or inactive
-	 * consequently
-	 *
-	 * @param state The state to add
-	 */
-	protected void addState(MuisState state) {
-		theStateController.add(state);
-	}
-
-	/**
-	 * Removes a state from this style's internal state set, firing appropriate events for style attributes that become active or inactive
-	 * consequently
-	 *
-	 * @param state The state to remove
-	 */
-	protected void removeState(MuisState state) {
-		theStateController.remove(state);
-	}
-
-	/**
-	 * Sets this style's internal state set and marks it has having an internal state. This method fires appropriate events for style
-	 * attributes that become active or inactive as a result of the state set changing
-	 *
-	 * @param newState The new state set for this style
-	 */
-	protected void setState(MuisState... newState) {
-		theStateController.clear();
-		theStateController.addAll(java.util.Arrays.asList(newState));
 	}
 
 	@Override

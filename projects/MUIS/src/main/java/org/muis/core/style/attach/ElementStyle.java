@@ -2,7 +2,6 @@ package org.muis.core.style.attach;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
-import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
@@ -28,6 +27,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 * @param element The element that this style is for
 	 */
 	public ElementStyle(MuisElement element) {
+		super(element.state().activeStates());
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
@@ -55,22 +55,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			} else if(event.getNewParent() != null) {
 				theParentStyle = event.getNewParent().getStyle();
 				addDependency(theParentStyle.getHeir(), null);
-			}
-		});
-		MuisState [] currentState = theElement.state().toArray();
-		setState(currentState);
-		theSelfStyle.setState(currentState);
-		theHeirStyle.setState(currentState);
-		theElement.events().filterMap(org.muis.core.event.StateChangedEvent.base).act(event -> {
-			MuisState state = event.getState();
-			if(event.getValue()) {
-				addState(state);
-				theSelfStyle.addState(state);
-				theHeirStyle.addState(state);
-			} else {
-				removeState(state);
-				theSelfStyle.removeState(state);
-				theHeirStyle.removeState(state);
 			}
 		});
 	}

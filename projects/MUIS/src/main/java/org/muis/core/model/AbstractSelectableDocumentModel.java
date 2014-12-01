@@ -1,13 +1,10 @@
 package org.muis.core.model;
 
-import static org.muis.core.MuisConstants.States.TEXT_SELECTION;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.muis.core.mgr.MuisState;
 import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableSet;
 import org.muis.core.rx.ObservableValue;
@@ -17,7 +14,6 @@ import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;
-import prisms.util.ArrayUtils;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocumentModel implements SelectableDocumentModel {
@@ -795,14 +791,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		 * @param selected Whether this is to be the selected or deselected style
 		 */
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
+			super(parent.getState());
 			addDependency(parent);
-			// TODO Not 100% sure I need this listener--maybe the dependency handles it automatically but I don't think so
-			parent.getState().changes().act(evt -> {
-				MuisState [] state = evt.getValue().toArray(new MuisState[evt.getValue().size()]);
-				if(selected)
-					state = ArrayUtils.add(state, TEXT_SELECTION);
-				setState(state);
-			});
 		}
 	}
 

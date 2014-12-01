@@ -1,6 +1,5 @@
 package org.muis.core.style.attach;
 
-import org.muis.core.mgr.MuisState;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
@@ -12,6 +11,7 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 
 	/** @param elStyle The element style that this heir style is for */
 	public ElementHeirStyle(ElementStyle elStyle) {
+		super(elStyle.getElement().state().activeStates());
 		theElStyle = elStyle;
 		addDependency(elStyle);
 	}
@@ -21,39 +21,25 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 		return theElStyle;
 	}
 
-	/* Overridden to enable access by ElementStyle */
-	@Override
-	protected void setState(MuisState... newState) {
-		super.setState(newState);
-	}
-
-	/* Overridden to enable access by ElementStyle */
-	@Override
-	protected void addState(MuisState state) {
-		super.addState(state);
-	}
-
-	/* Overridden to enable access by ElementStyle */
-	@Override
-	protected void removeState(MuisState state) {
-		super.removeState(state);
-	}
-
+	/** Overridden for public access */
 	@Override
 	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 	}
 
+	/** Overridden for public access */
 	@Override
 	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
 	}
 
+	/** Overridden for public access */
 	@Override
 	public void clear(StyleAttribute<?> attr) {
 		super.clear(attr);
 	}
 
+	/** Overridden for public access */
 	@Override
 	public void clear(StyleAttribute<?> attr, StateExpression exp) {
 		super.clear(attr, exp);

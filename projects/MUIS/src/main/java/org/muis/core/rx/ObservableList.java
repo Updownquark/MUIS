@@ -16,67 +16,6 @@ import prisms.lang.Type;
  * @param <E> The type of element in the list
  */
 public interface ObservableList<E> extends ObservableOrderedCollection<E>, List<E> {
-	@Override
-	default ObservableValue<? extends ObservableList<E>> changes() {
-		return new ObservableValue<ObservableList<E>>() {
-			ObservableList<E> coll = ObservableList.this;
-
-			@Override
-			public Type getType() {
-				return new Type(ObservableList.class, coll.getType());
-			}
-
-			@Override
-			public ObservableList<E> get() {
-				return coll;
-			}
-
-			@Override
-			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<ObservableList<E>>> observer) {
-				ObservableValue<ObservableList<E>> obsVal = this;
-				Runnable outerSub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
-					boolean [] finishedInitial = new boolean[1];
-
-					@Override
-					public <V extends ObservableElement<E>> void onNext(V value) {
-						value.subscribe(new Observer<ObservableValueEvent<E>>() {
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onNext(V2 value2) {
-								if(finishedInitial[0])
-									observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-							}
-
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 value2) {
-								observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-							}
-
-							@Override
-							public void onError(Throwable e) {
-								observer.onError(e);
-							}
-						});
-						finishedInitial[0] = true;
-					}
-
-					@Override
-					public <V extends ObservableElement<E>> void onCompleted(V value) {
-						observer.onCompleted(new ObservableValueEvent<>(obsVal, null, coll, null));
-					}
-
-					@Override
-					public void onError(Throwable e) {
-						observer.onError(e);
-					}
-				});
-				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-				return () -> {
-					outerSub.run();
-				};
-			}
-		};
-	}
-
 	/**
 	 * @param map The mapping function
 	 * @return An observable list of a new type backed by this list and the mapping function
@@ -393,11 +332,6 @@ public interface ObservableList<E> extends ObservableOrderedCollection<E>, List<
 					observer.onNext(ob);
 				return () -> {
 				};
-			}
-
-			@Override
-			public ObservableValue<ObservableList<T>> changes() {
-				return ObservableValue.constant(new Type(ObservableList.class, type), this);
 			}
 
 			@Override

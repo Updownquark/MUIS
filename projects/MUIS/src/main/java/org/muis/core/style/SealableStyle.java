@@ -131,12 +131,6 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		}
 
 		@Override
-		public ObservableValue<ObservableSet<StyleAttribute<?>>> changes() {
-			return ObservableValue.constant(new Type(ObservableSet.class, new Type(StyleAttribute.class, new Type(Object.class, true))),
-				this);
-		}
-
-		@Override
 		public Iterator<StyleAttribute<?>> iterator() {
 			if(isSealed)
 				return theValues.keySet().iterator();

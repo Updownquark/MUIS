@@ -12,70 +12,6 @@ import prisms.lang.Type;
  * @param <E> The type of element in the set
  */
 public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
-	@Override
-	default ObservableValue<? extends ObservableSet<E>> changes() {
-		return new ObservableValue<ObservableSet<E>>() {
-			ObservableSet<E> coll = ObservableSet.this;
-
-			@Override
-			public Type getType() {
-				return new Type(ObservableSet.class, coll.getType());
-			}
-
-			@Override
-			public ObservableSet<E> get() {
-				return coll;
-			}
-
-			@Override
-			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<ObservableSet<E>>> observer) {
-				ObservableValue<ObservableSet<E>> obsVal = this;
-				Runnable outerSub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
-					boolean [] finishedInitial = new boolean[1];
-
-					@Override
-					public <V extends ObservableElement<E>> void onNext(V value) {
-						value.subscribe(new Observer<ObservableValueEvent<E>>() {
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onNext(V2 value2) {
-								if(finishedInitial[0])
-									observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-							}
-
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 value2) {
-								observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-							}
-
-							@Override
-							public void onError(Throwable e) {
-								observer.onError(e);
-							}
-						});
-						finishedInitial[0] = true;
-					}
-
-					@Override
-					public <V extends ObservableElement<E>> void onCompleted(V value) {
-						observer.onCompleted(new ObservableValueEvent<>(obsVal, null, coll, null));
-					}
-
-					@Override
-					public void onError(Throwable e) {
-						observer.onError(e);
-					}
-				});
-				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-				return outerSub;
-			}
-
-			@Override
-			public String toString() {
-				return "changes(" + coll + ")";
-			}
-		};
-	}
-
 	/**
 	 * @param map The mapping function
 	 * @return An observable collection of a new type backed by this collection and the mapping function
@@ -398,11 +334,6 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 			}
 
 			@Override
-			public ObservableValue<? extends ObservableSet<T>> changes() {
-				return ObservableValue.constant(new Type(ObservableSet.class, type), this);
-			}
-
-			@Override
 			public int size() {
 				return constSet.size();
 			}
@@ -570,16 +501,16 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 					public <V extends ObservableElement<T>> void onNext(V el) {
 						UniqueFilteredElement retElement = new UniqueFilteredElement(el, theElements.keySet());
 						theElements.put(retElement, 0);
-						el.subscribe(new Observer<ObservableValueEvent<T>>(){
+						el.subscribe(new Observer<ObservableValueEvent<T>>() {
 							@Override
-							public <V2 extends ObservableValueEvent<T>> void onNext(V2 elValue){
+							public <V2 extends ObservableValueEvent<T>> void onNext(V2 elValue) {
 								if(!retElement.isIncluded() && retElement.shouldBeIncluded(elValue.getValue())) {
 									observer.onNext(retElement);
 								}
 							}
 
 							@Override
-							public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 elValue){
+							public <V2 extends ObservableValueEvent<T>> void onCompleted(V2 elValue) {
 								theElements.remove(retElement);
 								if(retElement.isIncluded()) {
 									for(UniqueFilteredElement el2 : theElements.keySet()) {

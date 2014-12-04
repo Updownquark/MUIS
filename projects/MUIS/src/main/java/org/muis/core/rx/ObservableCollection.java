@@ -16,39 +16,27 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	/** @return The type of elements in this collection */
 	Type getType();
 
-	/** @return An observable that returns this collection whenever any elements in it change */
-	default ObservableValue<? extends ObservableCollection<E>> changes() {
-		return new ObservableValue<ObservableCollection<E>>() {
+	/** @return An observable that returns null whenever any elements in it are added, removed or changed */
+	default Observable<Void> changes() {
+		return new Observable<Void>() {
 			ObservableCollection<E> coll = ObservableCollection.this;
 
 			@Override
-			public Type getType() {
-				return new Type(ObservableCollection.class, coll.getType());
-			}
-
-			@Override
-			public ObservableCollection<E> get() {
-				return coll;
-			}
-
-			@Override
-			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<ObservableCollection<E>>> observer) {
-				ObservableValue<ObservableCollection<E>> obsVal = this;
+			public Runnable internalSubscribe(Observer<? super Void> observer) {
+				boolean [] finishedInitial = new boolean[1];
 				Runnable outerSub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
-					boolean [] finishedInitial = new boolean[1];
-
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V value) {
 						value.subscribe(new Observer<ObservableValueEvent<E>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<E>> void onNext(V2 value2) {
 								if(finishedInitial[0])
-									observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
+									observer.onNext(null);
 							}
 
 							@Override
 							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 value2) {
-								observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
+								observer.onNext(null);
 							}
 
 							@Override
@@ -56,12 +44,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 								observer.onError(e);
 							}
 						});
-						finishedInitial[0] = true;
 					}
 
 					@Override
 					public <V extends ObservableElement<E>> void onCompleted(V value) {
-						observer.onCompleted(new ObservableValueEvent<>(obsVal, null, coll, null));
+						observer.onCompleted(null);
 					}
 
 					@Override
@@ -69,10 +56,13 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 						observer.onError(e);
 					}
 				});
-				observer.onNext(new ObservableValueEvent<>(obsVal, null, coll, null));
-				return () -> {
-					outerSub.run();
-				};
+				finishedInitial[0] = true;
+				return outerSub;
+			}
+
+			@Override
+			public String toString() {
+				return "changes(" + coll + ")";
 			}
 		};
 	}

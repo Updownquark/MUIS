@@ -616,4 +616,13 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	public static <T> ObservableSet<T> flatten(ObservableCollection<? extends ObservableCollection<T>> coll) {
 		return unique(ObservableCollection.flatten(coll));
 	}
+
+	/**
+	 * @param <T> An observable set that contains all elements the given collections
+	 * @param colls The collections to flatten
+	 * @return A collection containing all elements of the given collections
+	 */
+	public static <T> ObservableSet<T> flattenCollections(ObservableCollection<T>... colls) {
+		return flatten(ObservableList.constant(new Type(ObservableCollection.class, new Type(Object.class, true)), colls));
+	}
 }

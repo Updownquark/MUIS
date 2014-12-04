@@ -2,7 +2,6 @@ package org.muis.core.style.attach;
 
 import java.util.List;
 
-import org.muis.core.mgr.MuisState;
 import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
@@ -18,7 +17,7 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 
 	/** @param elStyle The element style that this heir style is for */
 	public ElementHeirStyle(ElementStyle elStyle) {
-		super(new DefaultObservableList<>(new prisms.lang.Type(StatefulStyle.class)));
+		super(new DefaultObservableList<>(new prisms.lang.Type(StatefulStyle.class)), elStyle.getElement().state().activeStates());
 		theDependencyController = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
 		theElStyle = elStyle;
 		theDependencyController.add(elStyle);
@@ -27,24 +26,6 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 	/** @return The element style that this heir style depends on */
 	public ElementStyle getElementStyle() {
 		return theElStyle;
-	}
-
-	/* Overridden to enable access by ElementStyle */
-	@Override
-	protected void setState(MuisState... newState) {
-		super.setState(newState);
-	}
-
-	/* Overridden to enable access by ElementStyle */
-	@Override
-	protected void addState(MuisState state) {
-		super.addState(state);
-	}
-
-	/* Overridden to enable access by ElementStyle */
-	@Override
-	protected void removeState(MuisState state) {
-		super.removeState(state);
 	}
 
 	@Override

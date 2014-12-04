@@ -18,7 +18,6 @@ import org.muis.core.style.stateful.StatefulStyle;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;
-import prisms.util.ArrayUtils;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocumentModel implements SelectableDocumentModel {
@@ -57,26 +56,26 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 				maxSel = theSelectionAnchor;
 			if(minSel == 0 && maxSel == length()) {
 				return; // No unselected text
-			}
-			clearCache();
-			int evtStart = minSel == 0 ? maxSel : 0;
-			int evtEnd = maxSel == length() ? minSel : length();
-			fireStyleEvent(evtStart, evtEnd);
-		});
+		}
+		clearCache();
+		int evtStart = minSel == 0 ? maxSel : 0;
+		int evtEnd = maxSel == length() ? minSel : length();
+		fireStyleEvent(evtStart, evtEnd);
+	}	);
 		theSelectedStyle.allChanges().act(event -> {
 			if(theCursor == theSelectionAnchor) {
 				return; // No selected text
-			}
-			clearCache();
-			int evtStart = theSelectionAnchor;
-			int evtEnd = theCursor;
-			if(evtStart > evtEnd) {
-				int temp = evtStart;
-				evtStart = evtEnd;
-				evtEnd = temp;
-			}
-			fireStyleEvent(evtStart, evtEnd);
-		});
+		}
+		clearCache();
+		int evtStart = theSelectionAnchor;
+		int evtEnd = theCursor;
+		if(evtStart > evtEnd) {
+			int temp = evtStart;
+			evtStart = evtEnd;
+			evtEnd = temp;
+		}
+		fireStyleEvent(evtStart, evtEnd);
+	}	);
 	}
 
 	/** @return This document's parent's style */
@@ -766,8 +765,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		 * @param remove Whether this change represents a removal or an addition
 		 */
 		ContentAndSelectionChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int index, boolean remove,
-			int cursor,
-			int anchor) {
+			int cursor, int anchor) {
 			super(model, value, change, index, remove);
 			theCursor = cursor;
 			theAnchor = anchor;
@@ -796,14 +794,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		 * @param selected Whether this is to be the selected or deselected style
 		 */
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
-			super(ObservableList.constant(new Type(StatefulStyle.class), (StatefulStyle) parent));
-			// TODO Not 100% sure I need this listener--maybe the dependency handles it automatically but I don't think so
-			parent.getState().changes().act(evt -> {
-				MuisState [] state = evt.getValue().toArray(new MuisState[evt.getValue().size()]);
-				if(selected)
-					state = ArrayUtils.add(state, TEXT_SELECTION);
-				setState(state);
-			});
+			super(ObservableList.constant(new Type(StatefulStyle.class), (StatefulStyle) parent), selected ? ObservableSet
+				.flattenCollections(parent.getState(), ObservableSet.constant(new Type(MuisState.class), TEXT_SELECTION)) : parent
+				.getState());
 		}
 	}
 

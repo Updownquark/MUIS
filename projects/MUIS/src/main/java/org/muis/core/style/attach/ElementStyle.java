@@ -32,6 +32,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 */
 	public ElementStyle(MuisElement element) {
 		super(new DefaultObservableList<>(new Type(StatefulStyle.class)), element.state().activeStates());
+		theDependencyController = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);

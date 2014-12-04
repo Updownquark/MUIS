@@ -18,8 +18,13 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	private ObservableSet<MuisState> theState;
 	private Set<MuisState> theStateController;
 
-	/** Creates the style */
-	public AbstractInternallyStatefulStyle() {
+	/**
+	 * Creates the style
+	 * 
+	 * @param dependencies The stateful styles that this style inherits style information from
+	 */
+	public AbstractInternallyStatefulStyle(ObservableList<StatefulStyle> dependencies) {
+		super(dependencies);
 		DefaultObservableSet<MuisState> state = new DefaultObservableSet<>(new prisms.lang.Type(MuisState.class));
 		theStateController = state.control(null);
 		theState = new org.muis.util.ObservableSetWrapper<MuisState>(state) {

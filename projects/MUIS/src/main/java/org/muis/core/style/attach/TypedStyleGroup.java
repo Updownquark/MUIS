@@ -1,11 +1,15 @@
 package org.muis.core.style.attach;
 
+import java.util.List;
+
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
+import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
+import org.muis.core.style.stateful.StatefulStyle;
 
 import prisms.lang.Type;
 import prisms.util.ArrayUtils;
@@ -27,6 +31,8 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 
 	private E [] theMembers;
 
+	private List<StatefulStyle> theDependenyController;
+
 	/**
 	 * Creates a typed style group
 	 *
@@ -47,6 +53,8 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 * @param name The name of the root
 	 */
 	protected TypedStyleGroup(MuisDocument doc, TypedStyleGroup<? super E> parent, Class<E> type, String name) {
+		super(new DefaultObservableList<>(new Type(StatefulStyle.class)));
+		theDependenyController = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
 		theDocument = doc;
 		theParent = parent;
 		theType = type;
@@ -60,11 +68,11 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		NamedStyleGroup root = getRoot();
 		ObservableSet<TemplateRole> roles = ObservableSet.constant(new Type(TemplateRole.class));
 		if(root != null && root.getName() != null) // name==null Happens in the super constructor call for NamedStyleGroup
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type, roles));
+			theDependenyController.add(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type, roles));
 		else
-			addDependency(new FilteredStyleSheet<>(doc.getStyle(), name, type, roles));
+			theDependenyController.add(new FilteredStyleSheet<>(doc.getStyle(), name, type, roles));
 		if(parent != null)
-			addDependency(parent, null);
+			theDependenyController.add(0, parent);
 	}
 
 	/** @return The document that this group exists in */
@@ -132,8 +140,8 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 		for(int c = 0; c < children.length; c++)
 			if(type.isAssignableFrom(children[c].getType())) {
 				ret.theChildren = ArrayUtils.add(ret.theChildren, children[c]);
-				children[c].removeDependency(this);
-				children[c].addDependency(ret);
+				children[c].theDependenyController.remove(this);
+				children[c].theDependenyController.add(ret);
 				children[c].theParent = ret;
 				children = ArrayUtils.remove(children, c);
 				c--;

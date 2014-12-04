@@ -1,14 +1,16 @@
 package org.muis.core.style.attach;
 
+import java.util.List;
+
 import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.mgr.MuisState;
+import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
-import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
-import org.muis.core.style.stateful.AbstractStatefulStyle;
-import org.muis.core.style.stateful.MutableStatefulStyle;
-import org.muis.core.style.stateful.StateExpression;
+import org.muis.core.style.stateful.*;
+
+import prisms.lang.Type;
 
 /** A style controlling the appearance of a specific element */
 public class ElementStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, org.muis.core.style.MuisStyle {
@@ -22,12 +24,15 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 
 	private TypedStyleGroup<?> [] theStyleGroups;
 
+	private List<StatefulStyle> theDependencyController;
+
 	/**
 	 * Creates an element style
 	 *
 	 * @param element The element that this style is for
 	 */
 	public ElementStyle(MuisElement element) {
+		super(new DefaultObservableList<>(new Type(StatefulStyle.class)));
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);
@@ -40,21 +45,22 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	private void addDependencies() {
 		if(theElement.getParent() != null) {
 			theParentStyle = theElement.getParent().getStyle();
-			addDependency(theParentStyle.getHeir(), null);
+			theDependencyController.add(0, theParentStyle.getHeir());
 		}
 		theElement.events().filterMap(ElementMovedEvent.moved).act(event -> {
 			ElementStyle oldParentStyle = theParentStyle;
 			if(oldParentStyle != null) {
 				if(event.getNewParent() != null) {
 					theParentStyle = event.getNewParent().getStyle();
-					replaceDependency(oldParentStyle.getHeir(), theParentStyle.getHeir());
+					int index = theDependencyController.indexOf(oldParentStyle.getHeir());
+					theDependencyController.set(index, theParentStyle.getHeir());
 				} else {
 					theParentStyle = null;
-					removeDependency(oldParentStyle.getHeir());
+					theDependencyController.remove(oldParentStyle.getHeir());
 				}
 			} else if(event.getNewParent() != null) {
 				theParentStyle = event.getNewParent().getStyle();
-				addDependency(theParentStyle.getHeir(), null);
+				theDependencyController.add(0, theParentStyle.getHeir());
 			}
 		});
 		MuisState [] currentState = theElement.state().toArray();
@@ -125,7 +131,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			after = theParentStyle.getHeir();
 		else
 			after = null;
-		addDependency(typedGroup, after);
+		int index = theDependencyController.indexOf(after);
+		theDependencyController.add(index < 0 ? theDependencyController.size() : index + 1, typedGroup);
 		if(!prisms.util.ArrayUtils.contains(theStyleGroups, typedGroup))
 			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, typedGroup);
 		theElement.events().fire(new GroupMemberEvent(theElement, group, -1));
@@ -134,7 +141,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	/** @param group The named style group to remove from this element style */
 	public void removeGroup(NamedStyleGroup group) {
 		TypedStyleGroup<?> typedGroup = group.getGroupForType(theElement.getClass());
-		removeDependency(typedGroup);
+		theDependencyController.remove(typedGroup);
 		group.removeMember(theElement);
 		int index = prisms.util.ArrayUtils.indexOf(theStyleGroups, typedGroup);
 		if(index < 0)

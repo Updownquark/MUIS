@@ -14,6 +14,7 @@ import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
+import org.muis.core.style.stateful.StatefulStyle;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;
@@ -795,7 +796,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		 * @param selected Whether this is to be the selected or deselected style
 		 */
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
-			addDependency(parent);
+			super(ObservableList.constant(new Type(StatefulStyle.class), (StatefulStyle) parent));
 			// TODO Not 100% sure I need this listener--maybe the dependency handles it automatically but I don't think so
 			parent.getState().changes().act(evt -> {
 				MuisState [] state = evt.getValue().toArray(new MuisState[evt.getValue().size()]);

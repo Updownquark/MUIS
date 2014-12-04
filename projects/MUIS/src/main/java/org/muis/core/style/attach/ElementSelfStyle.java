@@ -1,6 +1,9 @@
 package org.muis.core.style.attach;
 
+import java.util.List;
+
 import org.muis.core.mgr.MuisState;
+import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.sheet.FilteredStyleSheet;
@@ -8,6 +11,7 @@ import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
+import org.muis.core.style.stateful.StatefulStyle;
 
 import prisms.lang.Type;
 
@@ -17,10 +21,14 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 
 	private FilteredStyleSheet<?> theStyleSheet;
 
+	private List<StatefulStyle> theDependencyController;
+
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
+		super(new DefaultObservableList<>(new Type(StatefulStyle.class)));
+		theDependencyController = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
 		theElStyle = elStyle;
-		addDependency(elStyle);
+		theDependencyController.add(elStyle);
 		theElStyle
 			.getElement()
 			.life()
@@ -51,7 +59,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 						}
 					});
 					tpl.listen(theElStyle.getElement());
-					addDependency(theStyleSheet);
+					theDependencyController.add(theStyleSheet);
 					// Add a dependency for typed, non-grouped style sheet attributes
 					allChanges().act(event -> theElStyle.getElement().events().fire(event));
 				}, org.muis.core.MuisConstants.CoreStage.INIT_SELF.toString(), 1);

@@ -1,10 +1,13 @@
 package org.muis.core;
 
+import java.util.List;
+
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContentCreator;
 import org.muis.core.parser.MuisParser;
+import org.muis.core.rx.ObservableList;
 import org.muis.core.style.sheet.StyleSheet;
 
 /** The environment that MUIS documents operate in */
@@ -13,9 +16,8 @@ public class MuisEnvironment implements MuisParseEnv {
 	public static final java.net.URL CORE_TOOLKIT = MuisEnvironment.class.getResource("/MuisRegistry.xml");
 
 	private static class EnvironmentStyle extends org.muis.core.style.sheet.AbstractStyleSheet {
-		@Override
-		protected void addDependency(StyleSheet depend) {
-			super.addDependency(depend);
+		EnvironmentStyle(ObservableList<StyleSheet> dependencies) {
+			super(dependencies);
 		}
 
 		@Override
@@ -40,12 +42,17 @@ public class MuisEnvironment implements MuisParseEnv {
 
 	private DefaultModelValueReferenceParser theMVP;
 
+	private List<StyleSheet> theStyleDependencyController;
+
 	/** Creates a MUIS environment */
 	public MuisEnvironment() {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new MuisMessageCenter(this, null, null);
 		theCache = new MuisCache();
-		theStyle = new EnvironmentStyle();
+		org.muis.core.rx.DefaultObservableList<StyleSheet> styleDepends = new org.muis.core.rx.DefaultObservableList<>(
+			new prisms.lang.Type(StyleSheet.class));
+		theStyle = new EnvironmentStyle(styleDepends);
+		theStyleDependencyController = styleDepends.control(null);
 		theToolkitLock = new Object();
 		theMVP = new DefaultModelValueReferenceParser(DefaultModelValueReferenceParser.BASE, null);
 	}
@@ -134,7 +141,7 @@ public class MuisEnvironment implements MuisParseEnv {
 				return ret;
 			ret = new MuisToolkit(this, location);
 			theParser.fillToolkit(ret);
-			theStyle.addDependency(ret.getStyle());
+			theStyleDependencyController.add(ret.getStyle());
 			theToolkits.put(location.toString(), ret);
 			theParser.fillToolkitStyles(ret);
 			ret.seal();

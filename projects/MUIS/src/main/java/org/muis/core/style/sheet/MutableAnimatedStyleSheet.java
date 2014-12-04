@@ -1,10 +1,16 @@
 package org.muis.core.style.sheet;
 
+import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.StyleAttribute;
 
 /** An AnimatedStyleSheet whose modification methods are exposed */
 public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {
+	/** @param depends The style sheets that this style sheet inherits style information from */
+	public MutableAnimatedStyleSheet(ObservableList<StyleSheet> depends) {
+		super(depends);
+	}
+
 	@Override
 	public void addVariable(AnimatedVariable var) {
 		super.addVariable(var);

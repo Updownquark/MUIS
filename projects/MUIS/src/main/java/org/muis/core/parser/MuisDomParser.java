@@ -183,9 +183,8 @@ public class MuisDomParser implements MuisParser {
 		for(Element el : rootEl.getChildren("style-sheet")) {
 			ParsedStyleSheet styleSheet = parseStyleSheet(el, toolkit.getURI(), new MuisClassView(theEnvironment, null, toolkit),
 				theEnvironment.msg());
-			if(styleSheet != null) {
-				toolkit.getStyle().addDependency(styleSheet);
-			}
+			if(styleSheet != null)
+				toolkit.addStyleSheet(styleSheet);
 		}
 	}
 

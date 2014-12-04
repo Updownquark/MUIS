@@ -4,7 +4,7 @@ package org.muis.core.style;
  * An extension of CondtionalStyle that allows setting of attribute values
  *
  * @param <S> The type of style set
- * @param <E> The type of expression supported by the stle set
+ * @param <E> The type of expression supported by the style set
  */
 public interface MutableConditionalStyle<S extends ConditionalStyle<S, E>, E extends StyleExpression<E>> extends ConditionalStyle<S, E> {
 	/**

@@ -1,6 +1,5 @@
 package org.muis.core.style;
 
-
 /** An extension of MuisStyle that allows setting of attribute values */
 public interface MutableStyle extends MuisStyle {
 	/**

@@ -9,11 +9,14 @@ import org.muis.core.style.sheet.StyleSheet;
  */
 public class DocumentStyleSheet extends AbstractStyleSheet {
 	private final org.muis.core.MuisDocument theDoc;
+	private final java.util.List<StyleSheet> theDependencyController;
 
 	/** @param doc The document that the style sheet is for */
 	public DocumentStyleSheet(org.muis.core.MuisDocument doc) {
+		super(new org.muis.core.rx.DefaultObservableList<>(new prisms.lang.Type(StyleSheet.class)));
+		theDependencyController = ((org.muis.core.rx.DefaultObservableList<StyleSheet>) getConditionalDependencies()).control(null);
 		theDoc = doc;
-		addDependency(theDoc.getEnvironment().getStyle(), null);
+		theDependencyController.add(0, theDoc.getEnvironment().getStyle());
 	}
 
 	/** @return The document that this style is for */
@@ -23,12 +26,12 @@ public class DocumentStyleSheet extends AbstractStyleSheet {
 
 	/** @param styleSheet The style sheet to add to the document */
 	public void addStyleSheet(StyleSheet styleSheet) {
-		addDependency(styleSheet, null);
+		theDependencyController.add(styleSheet);
 	}
 
 	/** @param styleSheet The style sheet to add to the document */
 	public void removeStyleSheet(StyleSheet styleSheet) {
-		removeDependency(styleSheet);
+		theDependencyController.remove(styleSheet);
 	}
 
 	@Override

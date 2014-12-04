@@ -1,7 +1,9 @@
 package org.muis.core;
 
 import java.net.URL;
+import java.util.List;
 
+import org.muis.core.rx.ObservableList;
 import org.muis.core.style.sheet.StyleSheet;
 
 import prisms.util.ArrayUtils;
@@ -10,53 +12,9 @@ import prisms.util.Sealable.SealedException;
 /** Represents a toolkit that contains resources for use in a MUIS document */
 public class MuisToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
-	public class ToolkitStyleSheet extends org.muis.core.style.sheet.AbstractStyleSheet implements prisms.util.Sealable {
-		@Override
-		public void addDependency(StyleSheet depend) {
-			if(isSealed())
-				throw new SealedException("Cannot modify the styles of a sealed toolkit");
-			if(!theURI.equals(MuisEnvironment.CORE_TOOLKIT) && !(depend instanceof ToolkitStyleSheet)) {
-				for(org.muis.core.style.StyleAttribute<?> attr : depend.allAttrs()) {
-					if(attr.getDomain().getClass().getClassLoader() == MuisToolkit.this)
-						continue;
-					for(org.muis.core.style.StyleExpressionValue<org.muis.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : depend
-						.getExpressions(attr)) {
-						boolean isSpecific = false;
-						org.muis.core.style.sheet.TemplateRole role = sev.getExpression().getTemplateRole();
-						while(role != null) {
-							if(role.getRole().template.getDefiner().getClassLoader() == MuisToolkit.this) {
-								isSpecific = true;
-								break;
-							}
-							role = role.getParent();
-						}
-						if(!isSpecific
-							&& (sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != MuisToolkit.this)) {
-							String msg = "Toolkit " + theURI + ": Style sheet";
-							if(depend instanceof org.muis.core.style.sheet.ParsedStyleSheet)
-								msg += " defined in " + ((org.muis.core.style.sheet.ParsedStyleSheet) depend).getLocation();
-							msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
-							if(!(depend instanceof org.muis.core.style.sheet.MutableStyleSheet))
-								throw new IllegalStateException(msg);
-							else {
-								theEnvironment.msg().error(msg);
-								((org.muis.core.style.sheet.MutableStyleSheet) depend).clear(attr, sev.getExpression());
-							}
-						}
-					}
-				}
-			}
-			super.addDependency(depend);
-		}
-
-		@Override
-		public boolean isSealed() {
-			return MuisToolkit.this.isSealed();
-		}
-
-		@Override
-		public void seal() {
-			throw new IllegalStateException("Toolkit style sheets cannot be sealed--the toolkit seals it");
+	public class ToolkitStyleSheet extends org.muis.core.style.sheet.AbstractStyleSheet {
+		ToolkitStyleSheet(ObservableList<StyleSheet> dependencies) {
+			super(dependencies);
 		}
 
 		@Override
@@ -87,6 +45,8 @@ public class MuisToolkit extends java.net.URLClassLoader {
 
 	private ToolkitStyleSheet theStyle;
 
+	private List<StyleSheet> theStyleDependencyController;
+
 	/**
 	 * Creates a MUIS toolkit
 	 *
@@ -100,7 +60,10 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		theClassMappings = new ClassMapping[0];
 		theDependencies = new MuisToolkit[0];
 		thePermissions = new MuisPermission[0];
-		theStyle = new ToolkitStyleSheet();
+		org.muis.core.rx.DefaultObservableList<StyleSheet> styleDepends = new org.muis.core.rx.DefaultObservableList<>(
+			new prisms.lang.Type(StyleSheet.class));
+		theStyle = new ToolkitStyleSheet(styleDepends);
+		theStyleDependencyController = styleDepends.control(null);
 	}
 
 	/** @return The environment that this toolkit is for */
@@ -201,6 +164,42 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		thePermissions = ArrayUtils.add(thePermissions, perm);
 	}
 
+	/** @param styleSheet The style sheet to use with this toolkit */
+	public void addStyleSheet(StyleSheet styleSheet) {
+		assertUnsealed();
+		if(!theURI.equals(MuisEnvironment.CORE_TOOLKIT) && !(styleSheet instanceof ToolkitStyleSheet)) {
+			for(org.muis.core.style.StyleAttribute<?> attr : styleSheet.allAttrs()) {
+				if(attr.getDomain().getClass().getClassLoader() == MuisToolkit.this)
+					continue;
+				for(org.muis.core.style.StyleExpressionValue<org.muis.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : styleSheet
+					.getExpressions(attr)) {
+					boolean isSpecific = false;
+					org.muis.core.style.sheet.TemplateRole role = sev.getExpression().getTemplateRole();
+					while(role != null) {
+						if(role.getRole().template.getDefiner().getClassLoader() == this) {
+							isSpecific = true;
+							break;
+						}
+						role = role.getParent();
+					}
+					if(!isSpecific && (sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != this)) {
+						String msg = "Toolkit " + theURI + ": Style sheet";
+						if(styleSheet instanceof org.muis.core.style.sheet.ParsedStyleSheet)
+							msg += " defined in " + ((org.muis.core.style.sheet.ParsedStyleSheet) styleSheet).getLocation();
+						msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
+						if(!(styleSheet instanceof org.muis.core.style.sheet.MutableStyleSheet))
+							throw new IllegalStateException(msg);
+						else {
+							theEnvironment.msg().error(msg);
+							((org.muis.core.style.sheet.MutableStyleSheet) styleSheet).clear(attr, sev.getExpression());
+						}
+					}
+				}
+			}
+		}
+		theStyleDependencyController.add(styleSheet);
+	}
+
 	/** @return Whether this toolkit has been sealed or not */
 	public final boolean isSealed() {
 		return isSealed;
@@ -209,8 +208,9 @@ public class MuisToolkit extends java.net.URLClassLoader {
 	/** Seals this toolkit such that it cannot be modified */
 	public final void seal() {
 		for(MuisToolkit dep : theDependencies)
-			theStyle.addDependency(dep.getStyle());
+			theStyleDependencyController.add(dep.getStyle());
 		isSealed = true;
+		theStyleDependencyController = null; // No need for this anymore
 	}
 
 	/** @return All tag names mapped to classes in this toolkit (not including dependencies) */

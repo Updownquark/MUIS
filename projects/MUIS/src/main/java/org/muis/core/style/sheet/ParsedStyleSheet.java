@@ -1,5 +1,6 @@
 package org.muis.core.style.sheet;
 
+import org.muis.core.rx.ObservableList;
 import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.StyleAttribute;
 
@@ -8,6 +9,11 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 	private boolean isSealed;
 
 	private java.net.URL theLocation;
+
+	/** @param depends The style sheets that this style sheet inherits style information from */
+	public ParsedStyleSheet(ObservableList<StyleSheet> depends) {
+		super(depends);
+	}
 
 	@Override
 	public boolean isSealed() {

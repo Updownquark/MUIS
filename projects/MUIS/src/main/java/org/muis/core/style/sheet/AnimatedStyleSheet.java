@@ -195,8 +195,13 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	private volatile boolean isPaused;
 
-	/** Creates the style sheet */
-	public AnimatedStyleSheet() {
+	/**
+	 * Creates the style sheet
+	 * 
+	 * @param depends The style sheets that this style sheet inherits style information from
+	 */
+	public AnimatedStyleSheet(org.muis.core.rx.ObservableList<StyleSheet> depends) {
+		super(depends);
 		theVariables = new java.util.LinkedHashMap<>();
 	}
 

@@ -877,7 +877,8 @@ public class StyleSheetParser {
 			throw new MuisParseException("Could not parse " + location, e);
 		}
 
-		ParsedStyleSheet ret = new ParsedStyleSheet();
+		ParsedStyleSheet ret = new ParsedStyleSheet(org.muis.core.rx.ObservableList.constant(new prisms.lang.Type(
+			org.muis.core.style.sheet.StyleSheet.class)));
 		ret.setLocation(location);
 		ExpressionContextStack stack = new ExpressionContextStack();
 		boolean hadValues = false;

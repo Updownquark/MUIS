@@ -50,11 +50,12 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 *      {@link MutableConditionalStyle}
 	 * @param attr The attribute to set the value of
 	 * @param value The value to set for the attribute
+	 * @return This style, for chaining
 	 * @throws ClassCastException If the given value is not recognized by the attribute
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	protected <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
-		set(attr, null, value);
+	protected <T> SimpleConditionalStyle<S, E> set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+		return set(attr, null, value);
 	}
 
 	/**
@@ -64,18 +65,21 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 * @param attr The attribute to set the value of
 	 * @param exp The state expression for the value to be active for
 	 * @param value The value to set for the attribute
+	 * @return This style, for chaining
 	 * @throws ClassCastException If the given value is not recognized by the attribute
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	protected <T> void set(StyleAttribute<T> attr, E exp, T value) throws ClassCastException, IllegalArgumentException {
+	protected <T> SimpleConditionalStyle<S, E> set(StyleAttribute<T> attr, E exp, T value) throws ClassCastException,
+		IllegalArgumentException {
 		if(value == null) {
 			clear(attr, exp);
-			return;
+			return this;
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
 		value = castAndValidate(attr, value);
 		setValue(attr, exp, ObservableValue.constant(attr.getType().getType(), value));
+		return this;
 	}
 
 	/**
@@ -85,14 +89,15 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 * @param attr The attribute to set the value of
 	 * @param exp The state expression for the value to be active for
 	 * @param value The value to set for the attribute
+	 * @return This style, for chaining
 	 * @throws ClassCastException If the given value is not recognized by the attribute
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	protected <T> void set(StyleAttribute<T> attr, E exp, ObservableValue<? extends T> value) throws ClassCastException,
-		IllegalArgumentException {
+	protected <T> SimpleConditionalStyle<S, E> set(StyleAttribute<T> attr, E exp, ObservableValue<? extends T> value)
+		throws ClassCastException, IllegalArgumentException {
 		if(value == null) {
 			clear(attr, exp);
-			return;
+			return this;
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
@@ -101,6 +106,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 				+ attr.getType());
 		value = value.mapV(v -> castAndValidate(attr, v));
 		setValue(attr, exp, value);
+		return this;
 	}
 
 	/**
@@ -168,9 +174,10 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 * @see MutableConditionalStyle#clear(StyleAttribute, StyleExpression) Implemented to make extensions of this class easily support
 	 *      MutableConditionalStyle
 	 * @param attr The attribute to clear the value of
+	 * @return This style, for chaining
 	 */
-	protected void clear(StyleAttribute<?> attr) {
-		clear(attr, null);
+	protected SimpleConditionalStyle<S, E> clear(StyleAttribute<?> attr) {
+		return clear(attr, null);
 	}
 
 	/**
@@ -178,8 +185,9 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	 *      MutableConditionalStyle
 	 * @param attr The attribute to clear the value of
 	 * @param exp The state expression to clear the value for
+	 * @return This style, for chaining
 	 */
-	protected void clear(StyleAttribute<?> attr, E exp) {
+	protected SimpleConditionalStyle<S, E> clear(StyleAttribute<?> attr, E exp) {
 		StyleValueHolder<E, ?> holder = theAttributes.get(attr);
 		if(holder != null)
 			holder.remove(exp);
@@ -187,6 +195,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 			theAttributes.remove(attr);
 			theAttController.remove(attr);
 		}
+		return this;
 	}
 
 	@Override

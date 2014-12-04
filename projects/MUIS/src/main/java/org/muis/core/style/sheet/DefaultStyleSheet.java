@@ -11,13 +11,15 @@ public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleS
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
+	public <T> DefaultStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
 		IllegalArgumentException {
 		super.set(attr, exp, value);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
+	public DefaultStyleSheet clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
 		super.clear(attr, exp);
+		return this;
 	}
 }

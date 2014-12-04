@@ -12,13 +12,15 @@ public interface MutableConditionalStyle<S extends ConditionalStyle<S, E>, E ext
 	 * @param attr The attribute to set the value of
 	 * @param expr The expression for the value to be active for
 	 * @param value The value to set for the attribute
+	 * @return This style, for chaining
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	<T> void set(StyleAttribute<T> attr, E expr, T value);
+	<T> MutableConditionalStyle<S, E> set(StyleAttribute<T> attr, E expr, T value);
 
 	/**
 	 * @param attr The attribute to clear the value of
 	 * @param expr The expression to clear the value for
+	 * @return This style, for chaining
 	 */
-	void clear(StyleAttribute<?> attr, E expr);
+	MutableConditionalStyle<S, E> clear(StyleAttribute<?> attr, E expr);
 }

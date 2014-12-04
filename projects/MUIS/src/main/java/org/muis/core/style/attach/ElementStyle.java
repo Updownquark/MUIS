@@ -81,23 +81,27 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementStyle set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
+		return this;
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementStyle set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr) {
+	public ElementStyle clear(StyleAttribute<?> attr) {
 		super.clear(attr);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr, StateExpression exp) {
+	public ElementStyle clear(StyleAttribute<?> attr, StateExpression exp) {
 		super.clear(attr, exp);
+		return this;
 	}
 
 	/** @return The number of named style groups in this element style */

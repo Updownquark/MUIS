@@ -197,7 +197,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	/**
 	 * Creates the style sheet
-	 * 
+	 *
 	 * @param depends The style sheets that this style sheet inherits style information from
 	 */
 	public AnimatedStyleSheet(org.muis.core.rx.ObservableList<StyleSheet> depends) {
@@ -300,17 +300,21 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 * @param attr The attribute to set the value for
 	 * @param expr The expression which must be true for the given value to apply
 	 * @param value The observable value for the attribute
+	 * @return This style, for chaining
 	 * @throws ClassCastException If the value's type is not compatible with the attribute
 	 */
-	protected <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
+	protected <T> AnimatedStyleSheet setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr,
+		ObservableValue<? extends T> value) {
 		if(!attr.getType().canCast(value.getType()))
 			throw new ClassCastException("Value's type is incompatible with style attribute " + attr);
 		set(attr, expr, value);
+		return this;
 	}
 
 	@Override
-	protected <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
+	protected <T> AnimatedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
 		IllegalArgumentException {
 		super.set(attr, exp, (T) new ConstantItem(attr.getType().getType(), value));
+		return this;
 	}
 }

@@ -70,34 +70,40 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prism
 	}
 
 	@Override
-	public <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
+	public <T> ParsedStyleSheet setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr,
+		ObservableValue<? extends T> value) {
 		assertUnsealed();
 		super.setAnimatedValue(attr, expr, value);
+		return this;
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
+	public <T> ParsedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
 		IllegalArgumentException {
 		assertUnsealed();
 		super.set(attr, exp, value);
+		return this;
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ParsedStyleSheet set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		assertUnsealed();
 		super.set(attr, value);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr) {
+	public ParsedStyleSheet clear(StyleAttribute<?> attr) {
 		assertUnsealed();
 		super.clear(attr);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
+	public ParsedStyleSheet clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
 		assertUnsealed();
 		super.clear(attr, exp);
+		return this;
 	}
 
 	@Override

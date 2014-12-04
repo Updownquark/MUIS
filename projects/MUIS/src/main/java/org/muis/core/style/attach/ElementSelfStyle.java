@@ -70,23 +70,28 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementSelfStyle set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
+		return this;
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementSelfStyle set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException,
+		IllegalArgumentException {
 		super.set(attr, exp, value);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr) {
+	public ElementSelfStyle clear(StyleAttribute<?> attr) {
 		super.clear(attr);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr, StateExpression exp) {
+	public ElementSelfStyle clear(StyleAttribute<?> attr, StateExpression exp) {
 		super.clear(attr, exp);
+		return this;
 	}
 
 	@Override

@@ -32,28 +32,34 @@ public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {
 	}
 
 	@Override
-	public <T> void setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr, ObservableValue<? extends T> value) {
+	public <T> MutableAnimatedStyleSheet setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr,
+		ObservableValue<? extends T> value) {
 		super.setAnimatedValue(attr, expr, value);
+		return this;
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
+	public <T> MutableAnimatedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
 		IllegalArgumentException {
 		super.set(attr, exp, value);
+		return this;
 	}
 
 	@Override
-	public <T> void set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> MutableAnimatedStyleSheet set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr) {
+	public MutableAnimatedStyleSheet clear(StyleAttribute<?> attr) {
 		super.clear(attr);
+		return this;
 	}
 
 	@Override
-	public void clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
+	public MutableAnimatedStyleSheet clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
 		super.clear(attr, exp);
+		return this;
 	}
 }

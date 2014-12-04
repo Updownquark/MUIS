@@ -1,25 +1,24 @@
 package org.muis.core.style;
 
 /** Represents a 1-dimensional size along an axis */
-public class Size implements Comparable<Size>
-{
+public class Size implements Comparable<Size> {
 	private float theValue;
 
 	private LengthUnit theUnit;
 
 	/** Creates a Size (0px) */
-	public Size()
-	{
+	public Size() {
 		theValue = 0;
 		theUnit = LengthUnit.pixels;
 	}
 
-	/** Creates a size with the given value and unit
+	/**
+	 * Creates a size with the given value and unit
 	 *
 	 * @param value The value for the size
-	 * @param unit The unit for the size */
-	public Size(float value, LengthUnit unit)
-	{
+	 * @param unit The unit for the size
+	 */
+	public Size(float value, LengthUnit unit) {
 		theValue = value;
 		if(!unit.isSize())
 			throw new IllegalArgumentException(unit + " is not a size unit");
@@ -27,37 +26,33 @@ public class Size implements Comparable<Size>
 	}
 
 	/** @return This size's value */
-	public float getValue()
-	{
+	public float getValue() {
 		return theValue;
 	}
 
 	/** @return This length's unit */
-	public LengthUnit getUnit()
-	{
+	public LengthUnit getUnit() {
 		return theUnit;
 	}
 
 	/** @param value The value for this size */
-	public void setValue(float value)
-	{
+	public void setValue(float value) {
 		theValue = value;
 	}
 
 	/** @param unit The unit for this size */
-	public void setUnit(LengthUnit unit)
-	{
+	public void setUnit(LengthUnit unit) {
 		theUnit = unit;
 	}
 
-	/** Evaluates a size for a particular case
+	/**
+	 * Evaluates a size for a particular case
 	 *
 	 * @param totalSize The size of the element to use if this size is relative.
-	 * @return The number of pixels that this size represents in the given case */
-	public int evaluate(int totalSize)
-	{
-		switch (theUnit)
-		{
+	 * @return The number of pixels that this size represents in the given case
+	 */
+	public int evaluate(int totalSize) {
+		switch (theUnit) {
 		case pixels:
 			return Math.round(theValue);
 		case percent:
@@ -69,15 +64,12 @@ public class Size implements Comparable<Size>
 	}
 
 	@Override
-	public int compareTo(Size o)
-	{
+	public int compareTo(Size o) {
 		if(theUnit == o.theUnit)
 			return Float.compare(theValue, o.theValue);
-		switch (theUnit)
-		{
+		switch (theUnit) {
 		case pixels:
-			switch (o.theUnit)
-			{
+			switch (o.theUnit) {
 			case pixels:
 				return Float.compare(theValue, o.theValue);
 			case percent:
@@ -90,8 +82,7 @@ public class Size implements Comparable<Size>
 			}
 			break;
 		case percent:
-			switch (o.theUnit)
-			{
+			switch (o.theUnit) {
 			case pixels:
 				if(theValue == 0)
 					return Float.compare(theValue, o.theValue);
@@ -110,8 +101,31 @@ public class Size implements Comparable<Size>
 	}
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return theValue + " " + theUnit;
+	}
+
+	/**
+	 * @param pixels The number of pixels to create the size for
+	 * @return The new size
+	 */
+	public static Size pix(float pixels) {
+		return new Size(pixels, LengthUnit.pixels);
+	}
+
+	/**
+	 * @param percent The percent size to create the size for
+	 * @return The new size
+	 */
+	public static Size pc(float percent) {
+		return new Size(percent, LengthUnit.percent);
+	}
+
+	/**
+	 * @param lexips The number of pixels less than the maximum to create the size for
+	 * @return The new size
+	 */
+	public static Size lx(float lexips) {
+		return new Size(lexips, LengthUnit.lexips);
 	}
 }

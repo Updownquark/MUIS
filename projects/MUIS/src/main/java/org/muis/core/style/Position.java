@@ -1,61 +1,56 @@
 package org.muis.core.style;
 
 /** Represents a 1-dimensional position along an axis */
-public class Position implements Comparable<Position>
-{
+public class Position implements Comparable<Position> {
 	private float theValue;
 
 	private LengthUnit theUnit;
 
 	/** Creates a Position (0px) */
-	public Position()
-	{
+	public Position() {
 		theValue = 0;
 		theUnit = LengthUnit.pixels;
 	}
 
-	/** Creates a position with the given value and unit
+	/**
+	 * Creates a position with the given value and unit
 	 *
 	 * @param value The value for the position
-	 * @param unit The unit for the position */
-	public Position(float value, LengthUnit unit)
-	{
+	 * @param unit The unit for the position
+	 */
+	public Position(float value, LengthUnit unit) {
 		theValue = value;
 		theUnit = unit;
 	}
 
 	/** @return This position's value */
-	public float getValue()
-	{
+	public float getValue() {
 		return theValue;
 	}
 
 	/** @return This position's unit */
-	public LengthUnit getUnit()
-	{
+	public LengthUnit getUnit() {
 		return theUnit;
 	}
 
 	/** @param value The value for this position */
-	public void setValue(float value)
-	{
+	public void setValue(float value) {
 		theValue = value;
 	}
 
 	/** @param unit The unit for this position */
-	public void setUnit(LengthUnit unit)
-	{
+	public void setUnit(LengthUnit unit) {
 		theUnit = unit;
 	}
 
-	/** Evaluates a position for a particular case
+	/**
+	 * Evaluates a position for a particular case
 	 *
 	 * @param totalSize The size of the element to use if this position is relative.
-	 * @return The number of pixels that this position represents in the given case */
-	public int evaluate(int totalSize)
-	{
-		switch (theUnit)
-		{
+	 * @return The number of pixels that this position represents in the given case
+	 */
+	public int evaluate(int totalSize) {
+		switch (theUnit) {
 		case pixels:
 			return Math.round(theValue);
 		case percent:
@@ -67,15 +62,12 @@ public class Position implements Comparable<Position>
 	}
 
 	@Override
-	public int compareTo(Position o)
-	{
+	public int compareTo(Position o) {
 		if(theUnit == o.theUnit)
 			return Float.compare(theValue, o.theValue);
-		switch (theUnit)
-		{
+		switch (theUnit) {
 		case pixels:
-			switch (o.theUnit)
-			{
+			switch (o.theUnit) {
 			case pixels:
 				return Float.compare(theValue, o.theValue);
 			case percent:
@@ -88,8 +80,7 @@ public class Position implements Comparable<Position>
 			}
 			break;
 		case percent:
-			switch (o.theUnit)
-			{
+			switch (o.theUnit) {
 			case pixels:
 				if(theValue == 0)
 					return Float.compare(theValue, o.theValue);
@@ -108,8 +99,31 @@ public class Position implements Comparable<Position>
 	}
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return theValue + " " + theUnit;
+	}
+
+	/**
+	 * @param pixels The number of pixels to create the position for
+	 * @return The new position
+	 */
+	public static Position pix(float pixels) {
+		return new Position(pixels, LengthUnit.pixels);
+	}
+
+	/**
+	 * @param percent The percent size to create the position for
+	 * @return The new position
+	 */
+	public static Position pc(float percent) {
+		return new Position(percent, LengthUnit.percent);
+	}
+
+	/**
+	 * @param lexips The number of pixels less than the maximum to create the position for
+	 * @return The new position
+	 */
+	public static Position lx(float lexips) {
+		return new Position(lexips, LengthUnit.lexips);
 	}
 }

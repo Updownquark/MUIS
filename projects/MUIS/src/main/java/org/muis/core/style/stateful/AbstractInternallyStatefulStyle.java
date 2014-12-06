@@ -56,9 +56,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		return new org.muis.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
 			getLocalExpressions(attr).refireWhen(theState.changes()).filterC(sev -> {
-					if(sev.getExpression() == null || sev.getExpression().matches(theState))
-					return true;
-				return false;
+				return sev.getExpression() == null || sev.getExpression().matches(theState);
 			}).first()).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
 			public String toString() {

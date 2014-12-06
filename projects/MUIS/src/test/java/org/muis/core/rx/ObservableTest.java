@@ -154,6 +154,22 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link Observable#skip(int)} */
+	@Test
+	public void skip() {
+		DefaultObservable<Integer> obs = new DefaultObservable<>();
+		Observer<Integer> controller = obs.control(null);
+
+		int [] received = new int[1];
+		obs.skip(5).act(value -> received[0] = value);
+
+		for(int i = 0; i < 10; i++) {
+			controller.onNext(i);
+			int correct = i < 5 ? 0 : i;
+			assertEquals(correct, received[0]);
+		}
+	}
+
 	/**
 	 * Tests {@link Subscription} as an observable to ensure that it is closed (and its observers notified) when
 	 * {@link Subscription#unsubscribe()} is called

@@ -390,13 +390,9 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 					@Override
 					public <V extends ObservableElement<? extends Observable<T>>> void onNext(V element) {
 						element.subscribe(new Observer<ObservableValueEvent<? extends Observable<T>>>() {
-							private Subscription<?> elSub;
-
 							@Override
 							public <V2 extends ObservableValueEvent<? extends Observable<T>>> void onNext(V2 value) {
-								if(elSub != null)
-									elSub.unsubscribe();
-								elSub = value.getValue().takeUntil(element.completed()).subscribe(new Observer<T>() {
+								value.getValue().takeUntil(element.skip(1)).subscribe(new Observer<T>() {
 									@Override
 									public <V3 extends T> void onNext(V3 value3) {
 										observer.onNext(value3);

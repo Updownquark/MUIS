@@ -65,8 +65,8 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class,
-			new Type(StyleAttribute.class)));
+		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
+			StyleAttribute.class)));
 		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
 		controller.add(ObservableSet.flatten(getDependencies().mapC(depend -> depend.attributes())));
@@ -121,6 +121,15 @@ public interface MuisStyle {
 		return get(attr, true);
 	}
 
+	/** @return An observable that fires a {@link StyleAttributeEvent} for every local attribute change in this style */
+	default Observable<StyleAttributeEvent<?>> localChanges() {
+		// Work-around for a ridiculous build error in eclipse
+		@SuppressWarnings("cast")
+		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(
+			localAttributes().mapC(attr -> (Observable<?>) getLocal(attr).skip(1))).map(event -> (StyleAttributeEvent<?>) event);
+		return localChanges;
+	}
+
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every attribute whose value is cleared from this style locally */
 	default Observable<StyleAttributeEvent<?>> localRemoves() {
 		return localAttributes().removes().map(event -> {
@@ -146,7 +155,7 @@ public interface MuisStyle {
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
 	default Observable<StyleAttributeEvent<?>> allChanges() {
-		 //Work-around for a ridiculous build error in eclipse
+		// Work-around for a ridiculous build error in eclipse
 		@SuppressWarnings("cast")
 		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(
 			localAttributes().mapC(attr -> (Observable<?>) getLocal(attr).skip(1))).map(event -> (StyleAttributeEvent<?>) event);

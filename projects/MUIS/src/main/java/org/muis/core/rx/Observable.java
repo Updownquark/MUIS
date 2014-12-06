@@ -351,8 +351,7 @@ public interface Observable<T> {
 				return outer.internalSubscribe(new Observer<T>() {
 					@Override
 					public <V extends T> void onNext(V value) {
-						int count = counter.getAndDecrement();
-						if(count < 0)
+						if(counter.get() <= 0 || counter.getAndDecrement() <= 0)
 							observer.onNext(value);
 					}
 
@@ -363,7 +362,7 @@ public interface Observable<T> {
 
 					@Override
 					public void onError(Throwable e) {
-						if(counter.get() < 0)
+						if(counter.get() <= 0)
 							observer.onError(e);
 					}
 				});

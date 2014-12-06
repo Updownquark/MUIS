@@ -139,12 +139,19 @@ public interface ObservableList<E> extends ObservableOrderedCollection<E>, List<
 						OrderedObservableElement<E> outerElement = (OrderedObservableElement<E>) el;
 						FilteredListElement<T, E> retElement = new FilteredListElement<>(outerElement, map, type, theFilteredElements);
 						theFilteredElements.add(outerElement.getIndex(), retElement);
-						outerElement.completed().act(elValue -> theFilteredElements.remove(outerElement.getIndex()));
-						outerElement.act(elValue -> {
-							if(!retElement.isIncluded()) {
-								T mapped = map.apply(elValue.getValue());
-								if(mapped != null)
-									observer.onNext(retElement);
+						outerElement.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onNext(V2 elValue) {
+								if(!retElement.isIncluded()) {
+									T mapped = map.apply(elValue.getValue());
+									if(mapped != null)
+										observer.onNext(retElement);
+								}
+							}
+
+							@Override
+							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 elValue) {
+								theFilteredElements.remove(outerElement.getIndex());
 							}
 						});
 					}

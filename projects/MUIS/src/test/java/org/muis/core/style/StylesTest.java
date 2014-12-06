@@ -9,11 +9,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
+import org.muis.core.MuisElement;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.rx.DefaultObservableSet;
 import org.muis.core.rx.ObservableCollection;
 import org.muis.core.rx.ObservableList;
+import org.muis.core.rx.ObservableSet;
+import org.muis.core.style.sheet.*;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
@@ -55,6 +58,34 @@ public class StylesTest {
 
 		@Override
 		public TestStatefulStyle clear(StyleAttribute<?> attr, StateExpression exp) {
+			super.clear(attr, exp);
+			return this;
+		}
+	}
+
+	private static class TestStyleSheet extends AbstractStyleSheet implements MutableStyleSheet {
+		final List<StyleSheet> dependControl;
+
+		public TestStyleSheet() {
+			super(new DefaultObservableList<>(new Type(StyleSheet.class)));
+			dependControl = ((DefaultObservableList<StyleSheet>) getConditionalDependencies()).control(null);
+		}
+
+		@Override
+		public <T> TestStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
+			IllegalArgumentException {
+			super.set(attr, exp, value);
+			return this;
+		}
+
+		@Override
+		public TestStyleSheet clear(StyleAttribute<?> attr) {
+			super.clear(attr);
+			return this;
+		}
+
+		@Override
+		public TestStyleSheet clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
 			super.clear(attr, exp);
 			return this;
 		}
@@ -111,6 +142,9 @@ public class StylesTest {
 	/** Tests functionality of style sheets in org.muis.core.style.sheet */
 	// @Test
 	public void testStyleSheet() {
+		TestStyleSheet sheet = new TestStyleSheet();
+		FilteredStyleSheet<MuisElement> filter = new FilteredStyleSheet<>(sheet, null, MuisElement.class,
+			ObservableSet.constant(new Type(TemplateRole.class)));
 	}
 
 	/** Tests style inheritance */

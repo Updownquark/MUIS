@@ -176,6 +176,40 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * @return An observable that returns the same values as this one except that any initialization events (for cold observables) will be
+	 *         ignored.
+	 */
+	default Observable<T> noInit() {
+		Observable<T> outer = this;
+		return new Observable<T>() {
+			@Override
+			public Runnable internalSubscribe(Observer<? super T> observer) {
+				boolean [] initialized = new boolean[1];
+				Runnable ret = outer.internalSubscribe(new Observer<T>() {
+					@Override
+					public <V extends T> void onNext(V value) {
+						if(initialized[0])
+							observer.onNext(value);
+					}
+
+					@Override
+					public <V extends T> void onCompleted(V value) {
+						observer.onCompleted(value);
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						if(initialized[0])
+							observer.onError(e);
+					}
+				});
+				initialized[0] = true;
+				return ret;
+			}
+		};
+	}
+
+	/**
 	 * @param func The filter function
 	 * @return An observable that provides the same values as this observable minus those that the filter function returns false for
 	 */
@@ -343,11 +377,24 @@ public interface Observable<T> {
 	 * @return An observable that provides the same values as this observable but ignores the first {@code times} values
 	 */
 	default Observable<T> skip(int times) {
+		return skip(() -> {
+			return times;
+		});
+	}
+
+	/**
+	 * Like {@link #skip(int)}, but the number of times to skip is retrieved when the observable is subscribed to instead of when it is
+	 * created.
+	 *
+	 * @param times A supplier that returns the number of values to skip from this observable.
+	 * @return An observable that provides the same values as this observable but ignores the first {@code times} values
+	 */
+	default Observable<T> skip(java.util.function.Supplier<Integer> times) {
 		Observable<T> outer = this;
 		return new Observable<T>() {
 			@Override
 			public Runnable internalSubscribe(Observer<? super T> observer) {
-				AtomicInteger counter = new AtomicInteger(times);
+				AtomicInteger counter = new AtomicInteger(times.get());
 				return outer.internalSubscribe(new Observer<T>() {
 					@Override
 					public <V extends T> void onNext(V value) {

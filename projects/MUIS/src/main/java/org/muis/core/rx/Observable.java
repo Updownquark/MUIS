@@ -35,8 +35,8 @@ public interface Observable<T> {
 				if(!holder.alive)
 					return;
 				try {
-					if(holder.subscription != null)
-						holder.subscription.unsubscribe();
+					// if(holder.subscription != null) //Looks like this can only cause double-unsubscribe errors in correct code
+					// holder.subscription.unsubscribe();
 					observer.onCompleted(value);
 				} finally {
 					holder.alive = false;
@@ -78,11 +78,11 @@ public interface Observable<T> {
 
 			@Override
 			public void unsubscribe() {
-				if(!holder.alive)
-					return;
 				try {
 					if(holder.internalSub != null)
 						holder.internalSub.run();
+					if(!holder.alive)
+						return;
 					if(holder.subSubscriptions != null)
 						for(Runnable subSub : holder.subSubscriptions)
 							subSub.run();
@@ -394,8 +394,9 @@ public interface Observable<T> {
 		return new Observable<T>() {
 			@Override
 			public Runnable internalSubscribe(Observer<? super T> observer) {
-				AtomicInteger counter = new AtomicInteger(times.get());
 				return outer.internalSubscribe(new Observer<T>() {
+					private final AtomicInteger counter = new AtomicInteger(times.get());
+
 					@Override
 					public <V extends T> void onNext(V value) {
 						if(counter.get() <= 0 || counter.getAndDecrement() <= 0)
@@ -413,6 +414,11 @@ public interface Observable<T> {
 							observer.onError(e);
 					}
 				});
+			}
+
+			@Override
+			public String toString() {
+				return outer + ".skip(" + times + ")";
 			}
 		};
 	}

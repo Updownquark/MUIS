@@ -98,6 +98,11 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 					refireSub.run();
 				};
 			}
+
+			@Override
+			public String toString() {
+				return outer + ".refireWhen(" + observable + ")";
+			}
 		};
 	}
 

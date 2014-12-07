@@ -36,12 +36,15 @@ public interface MuisStyle {
 	 */
 	default <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, ObservableValueEvent<T> event) {
 		MuisStyle root;
-		if(event instanceof StyleAttributeEvent)
+		if(event instanceof StyleAttributeEvent) {
 			root = ((StyleAttributeEvent<T>) event).getRootStyle();
-		else if(event.getCause() instanceof StyleAttributeEvent)
+			attr = ((StyleAttributeEvent<T>) event).getAttribute();
+		} else if(event.getCause() instanceof StyleAttributeEvent)
 			root = ((StyleAttributeEvent<T>) event.getCause()).getRootStyle();
 		else
 			root = this;
+		if(attr == null)
+			return null;
 		MuisEvent cause = null;
 		if(event instanceof MuisEvent)
 			cause = (MuisEvent) event;
@@ -130,25 +133,7 @@ public interface MuisStyle {
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every attribute whose value is cleared from this style locally */
 	default Observable<StyleAttributeEvent<?>> localRemoves() {
-		return localAttributes().removes().map(event -> {
-			MuisStyle root;
-			StyleAttribute<Object> attr;
-			Object oldVal;
-			if(event.getCause() instanceof StyleAttributeEvent) {
-				StyleAttributeEvent<Object> sae = (StyleAttributeEvent<Object>) event.getCause();
-				root = sae.getRootStyle();
-				attr = sae.getAttribute();
-				oldVal = sae.getOldValue();
-			} else
-				throw new IllegalStateException("Cannot convert to StyleAttributeEvent: " + event);
-			root = this;
-			MuisEvent cause = null;
-			if(event instanceof MuisEvent)
-				cause = (MuisEvent) event;
-			else if(event.getCause() instanceof MuisEvent)
-				cause = (MuisEvent) event.getCause();
-			return new StyleAttributeEvent<>(null, root, this, attr, oldVal, get(attr).get(), cause);
-		});
+		return localAttributes().removes().map(event -> mapEvent(null, event));
 	}
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */

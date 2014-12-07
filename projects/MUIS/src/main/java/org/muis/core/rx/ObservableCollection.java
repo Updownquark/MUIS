@@ -392,7 +392,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 						element.subscribe(new Observer<ObservableValueEvent<? extends Observable<T>>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<? extends Observable<T>>> void onNext(V2 value) {
-								value.getValue().takeUntil(element.skip(1)).subscribe(new Observer<T>() {
+								value.getValue().takeUntil(element.noInit()).subscribe(new Observer<T>() {
 									@Override
 									public <V3 extends T> void onNext(V3 value3) {
 										observer.onNext(value3);

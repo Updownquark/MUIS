@@ -204,39 +204,23 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 				untilSub[0] = until.internalSubscribe(new Observer<Object>() {
 					@Override
 					public void onNext(Object value) {
-						if(!complete[0]) {
-							complete[0] = true;
-							outerSub.run();
-							if(untilSub[0] != null) {
-								untilSub[0].run();
-								observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
-							}
-						}
+						if(!complete[0])
+							observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
 					}
 
 					@Override
 					public void onCompleted(Object value) {
-						if(!complete[0]) {
-							complete[0] = true;
-							outerSub.run();
-							if(untilSub[0] != null) {
-								untilSub[0].run();
-								observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
-							}
-						}
+						if(!complete[0])
+							observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
 					}
 				});
-				if(complete[0]) {
-					if(untilSub[0] != null)
-						untilSub[0].run();
-					return () -> {
-					};
-				}
 				return () -> {
-					complete[0] = true;
-					outerSub.run();
-					if(untilSub[0] != null)
-						untilSub[0].run();
+					if(!complete[0]) {
+						complete[0] = true;
+						outerSub.run();
+						if(untilSub[0] != null)
+							untilSub[0].run();
+					}
 				};
 			}
 

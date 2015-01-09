@@ -485,4 +485,14 @@ public abstract class StateExpression implements org.muis.core.style.StyleExpres
 		System.arraycopy(exprs, 0, wrap, 1, exprs.length);
 		return new And(wrap);
 	}
+
+	/**
+	 * A shortcut for new Simple(state)
+	 * 
+	 * @param state The state to create the expression for
+	 * @return The state expression matching the given state
+	 */
+	public static Simple forState(MuisState state) {
+		return new Simple(state);
+	}
 }

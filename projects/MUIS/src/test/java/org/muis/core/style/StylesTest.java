@@ -9,16 +9,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
+import org.muis.core.BodyElement;
 import org.muis.core.MuisElement;
 import org.muis.core.mgr.MuisState;
 import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.rx.DefaultObservableSet;
-import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.sheet.*;
-import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
-import org.muis.core.style.stateful.MutableStatefulStyle;
-import org.muis.core.style.stateful.StateExpression;
-import org.muis.core.style.stateful.StatefulStyle;
+import org.muis.core.style.stateful.*;
 
 import prisms.lang.Type;
 
@@ -62,6 +59,7 @@ public class StylesTest {
 	}
 
 	private static class TestStyleSheet extends AbstractStyleSheet implements MutableStyleSheet {
+		@SuppressWarnings("unused")
 		final List<StyleSheet> dependControl;
 
 		public TestStyleSheet() {
@@ -125,11 +123,50 @@ public class StylesTest {
 	}
 
 	/** Tests functionality of style sheets in org.muis.core.style.sheet */
-	// @Test
+	@Test
 	public void testStyleSheet() {
+		// Create the styles and supporting collections
+		DefaultObservableSet<MuisState> state = new DefaultObservableSet<>(new Type(MuisState.class));
+		Set<MuisState> stateControl = state.control(null);
+		DefaultObservableSet<TemplateRole> roles = new DefaultObservableSet<>(new Type(TemplateRole.class));
+		@SuppressWarnings("unused")
+		Set<TemplateRole> roleControl = roles.control(null);
 		TestStyleSheet sheet = new TestStyleSheet();
-		FilteredStyleSheet<MuisElement> filter = new FilteredStyleSheet<>(sheet, null, MuisElement.class,
-			ObservableSet.constant(new Type(TemplateRole.class)));
+		FilteredStyleSheet<MuisElement> filter = new FilteredStyleSheet<>(sheet, null, MuisElement.class, roles);
+		StatefulStyleSample sample=new StatefulStyleSample(filter, state);
+		FilteredStyleSheet<BodyElement> bodyFilter = new FilteredStyleSheet<>(sheet, null, BodyElement.class, roles);
+		StatefulStyleSample bodySample = new StatefulStyleSample(bodyFilter, state);
+
+		// Test default values
+		Size [] reported = new Size[1];
+		Size [] bodyReported = new Size[1];
+		sample.get(cornerRadius, false).value().act(value -> reported[0] = value);
+		bodySample.get(cornerRadius, false).value().act(value -> bodyReported[0] = value);
+		assertEquals(null, sample.get(cornerRadius, false).get());
+		assertEquals(cornerRadius.getDefault(), sample.get(cornerRadius, true).get());
+		assertEquals(null, bodySample.get(cornerRadius, false).get());
+		assertEquals(cornerRadius.getDefault(), bodySample.get(cornerRadius, true).get());
+
+		// Set up values
+		Size clickSize = new Size(100, pixels);
+		sheet.set(cornerRadius, new StateGroupTypeExpression<>(StateExpression.forState(CLICK), null, MuisElement.class, null), clickSize);
+		Size noClickSize = new Size(1000, pixels);
+		sheet.set(cornerRadius, new StateGroupTypeExpression<>(StateExpression.forState(CLICK).not(), null, MuisElement.class, null),
+			noClickSize);
+		Size bodyClickSize = new Size(101, pixels);
+		sheet.set(cornerRadius, new StateGroupTypeExpression<>(StateExpression.forState(CLICK), null, BodyElement.class, null),
+			bodyClickSize);
+
+		// Test clean values (no states or roles set)
+		assertEquals(noClickSize, sample.get(cornerRadius, false).get());
+		assertEquals(noClickSize, bodySample.get(cornerRadius, false).get());
+
+		// Test stateful properties of style sheets
+		stateControl.add(CLICK);
+		assertEquals(clickSize, sample.get(cornerRadius, false).get());
+		assertEquals(clickSize, reported[0]);
+		assertEquals(bodyClickSize, bodySample.get(cornerRadius, false).get());
+		assertEquals(bodyClickSize, bodyReported[0]);
 	}
 
 	/** Tests style inheritance */

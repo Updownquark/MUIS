@@ -160,4 +160,59 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 		theBaseline = baseline;
 		return this;
 	}
+
+	/**
+	 * @param min The value to get a max of with this guide's minimum
+	 * @param minPref The value to get a max of with this guide's minimum preferred
+	 * @param pref The value to get a max of with this guide's preferred
+	 * @param maxPref The value to get a max of with this guide's maximum preferred
+	 * @param max The value to get a max of with this guide's maximum
+	 * @return Whether this guide was changed as a result of the call
+	 */
+	public boolean max(int min, int minPref, int pref, int maxPref, int max) {
+		boolean ret = false;
+		if(min > theMin) {
+			theMin = min;
+			ret = true;
+		}
+		if(minPref > theMinPref) {
+			theMinPref = minPref;
+			ret = true;
+		}
+		if(pref > thePref) {
+			thePref = pref;
+			ret = true;
+		}
+		if(maxPref > theMaxPref) {
+			theMaxPref = maxPref;
+			ret = true;
+		}
+		if(max > theMax) {
+			theMax = max;
+			ret = true;
+		}
+		return ret;
+	}
+
+	/**
+	 * @param min The value to add to this guide's minimum
+	 * @param minPref The value to add to this guide's minimum preferred
+	 * @param pref The value to add to this guide's preferred
+	 * @param maxPref The value to add to this guide's maximum preferred
+	 * @param max The value to add to this guide's maximum
+	 */
+	public void add(int min, int minPref, int pref, int maxPref, int max) {
+		theMin = add(theMin, min);
+		theMinPref = add(theMinPref, minPref);
+		thePref = add(thePref, pref);
+		theMaxPref = add(theMaxPref, maxPref);
+		theMax = add(theMax, max);
+	}
+
+	private static int add(int i1, int i2) {
+		int ret = i1 + i2;
+		if(ret < i1)
+			ret = Integer.MAX_VALUE;
+		return ret;
+	}
 }

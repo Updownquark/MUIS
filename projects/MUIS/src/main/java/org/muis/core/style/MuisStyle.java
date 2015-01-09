@@ -36,12 +36,15 @@ public interface MuisStyle {
 	 */
 	default <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, ObservableValueEvent<T> event) {
 		MuisStyle root;
-		if(event instanceof StyleAttributeEvent)
+		if(event instanceof StyleAttributeEvent) {
 			root = ((StyleAttributeEvent<T>) event).getRootStyle();
-		else if(event.getCause() instanceof StyleAttributeEvent)
+			attr = ((StyleAttributeEvent<T>) event).getAttribute();
+		} else if(event.getCause() instanceof StyleAttributeEvent)
 			root = ((StyleAttributeEvent<T>) event.getCause()).getRootStyle();
 		else
 			root = this;
+		if(attr == null)
+			return null;
 		MuisEvent cause = null;
 		if(event instanceof MuisEvent)
 			cause = (MuisEvent) event;
@@ -65,8 +68,8 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class,
-			new Type(StyleAttribute.class)));
+		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
+			StyleAttribute.class)));
 		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
 		controller.add(ObservableSet.flatten(getDependencies().mapC(depend -> depend.attributes())));
@@ -121,35 +124,21 @@ public interface MuisStyle {
 		return get(attr, true);
 	}
 
+	/** @return An observable that fires a {@link StyleAttributeEvent} for every local attribute change in this style */
+	default Observable<StyleAttributeEvent<?>> localChanges() {
+		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> getLocal(attr)))
+			.noInit().map(event -> (StyleAttributeEvent<?>) event);
+		return localChanges;
+	}
+
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every attribute whose value is cleared from this style locally */
 	default Observable<StyleAttributeEvent<?>> localRemoves() {
-		return localAttributes().removes().map(event -> {
-			MuisStyle root;
-			StyleAttribute<Object> attr;
-			Object oldVal;
-			if(event.getCause() instanceof StyleAttributeEvent) {
-				StyleAttributeEvent<Object> sae = (StyleAttributeEvent<Object>) event.getCause();
-				root = sae.getRootStyle();
-				attr = sae.getAttribute();
-				oldVal = sae.getOldValue();
-			} else
-				throw new IllegalStateException("Cannot convert to StyleAttributeEvent: " + event);
-			root = this;
-			MuisEvent cause = null;
-			if(event instanceof MuisEvent)
-				cause = (MuisEvent) event;
-			else if(event.getCause() instanceof MuisEvent)
-				cause = (MuisEvent) event.getCause();
-			return new StyleAttributeEvent<>(null, root, this, attr, oldVal, get(attr).get(), cause);
-		});
+		return localAttributes().removes().map(event -> mapEvent(null, event));
 	}
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every change affecting attribute values in this style */
 	default Observable<StyleAttributeEvent<?>> allChanges() {
-		 //Work-around for a ridiculous build error in eclipse
-		@SuppressWarnings("cast")
-		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(
-			localAttributes().mapC(attr -> (Observable<?>) getLocal(attr).skip(1))).map(event -> (StyleAttributeEvent<?>) event);
+		Observable<StyleAttributeEvent<?>> localChanges = localChanges();
 		Observable<StyleAttributeEvent<?>> depends = ObservableCollection
 			.fold(getDependencies().mapC(dep -> dep.allChanges()))
 			// Don't propagate dependency changes that are overridden in this style
@@ -172,9 +161,9 @@ public interface MuisStyle {
 	 * @return An observable that fires a {@link StyleAttributeEvent} for every change affecting the given attribute values in this style
 	 */
 	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
-		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection.fold(
-			ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr))).map(
-			event -> (StyleAttributeEvent<?>) event)) {
+		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection
+			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr)))
+			.noInit().map(event -> (StyleAttributeEvent<?>) event)) {
 			@Override
 			public String toString() {
 				StringBuilder ret = new StringBuilder();

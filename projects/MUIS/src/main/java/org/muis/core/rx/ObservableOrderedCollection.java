@@ -138,6 +138,8 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<E>> observer) {
+				if(isEmpty())
+					observer.onNext(new ObservableValueEvent<>(this, null, null, null));
 				return ObservableOrderedCollection.this.internalSubscribe(new Observer<ObservableElement<E>>() {
 					E oldValue;
 

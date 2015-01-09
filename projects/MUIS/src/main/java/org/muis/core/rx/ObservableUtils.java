@@ -60,7 +60,7 @@ public class ObservableUtils {
 											if(value.getValue() != null) {
 												value
 													.getValue()
-													.takeUntil(element.skip(1))
+													.takeUntil(element.noInit())
 													.act(
 														innerEvent -> {
 															observer2.onNext(new ObservableValueEvent<>(retObs, innerEvent.getOldValue(),

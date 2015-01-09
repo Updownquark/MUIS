@@ -1,6 +1,7 @@
 package org.muis.core.style;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.muis.core.MuisConstants.States.CLICK;
 import static org.muis.core.style.BackgroundStyle.cornerRadius;
 import static org.muis.core.style.LengthUnit.pixels;
@@ -92,34 +93,49 @@ public class StylesTest {
 	public void testStatefulStyles() {
 		TestStatefulStyle style = new TestStatefulStyle();
 
-		Size [] reported = new Size[1];
+		Size [] reported=new Size[1];
+		int [] changes = new int[1];
+		int lastChanges = 0;
 		style.get(cornerRadius, false).value().act(value -> reported[0] = value);
+		style.allChanges().act(event -> changes[0]++);
+
 		assertEquals(null, style.get(cornerRadius, false).get());
 		assertEquals(cornerRadius.getDefault(), style.get(cornerRadius, true).get());
+		assertEquals(0, changes[0]);
 
 		Size clickSize = new Size(100, pixels);
 		style.set(cornerRadius, new StateExpression.Simple(CLICK), clickSize);
 		assertEquals(null, style.get(cornerRadius, false).get());
 		assertEquals(cornerRadius.getDefault(), style.get(cornerRadius, true).get());
 		assertEquals(null, reported[0]);
+		assertEquals(0, changes[0]);
 
-		style.stateControl.add(CLICK);
+		style.stateControl.add(CLICK); // 2 fold events, no Local events
 		assertEquals(clickSize, style.get(cornerRadius, false).get());
 		assertEquals(clickSize, reported[0]);
+		assertTrue(changes[0] > lastChanges);
+		lastChanges = changes[0];
 		style.stateControl.remove(CLICK);
 		assertEquals(null, style.get(cornerRadius, false).get());
 		assertEquals(null, reported[0]);
+		assertTrue(changes[0] > lastChanges);
+		lastChanges = changes[0];
 
 		Size noClickSize = new Size(1000, pixels);
 		style.set(cornerRadius, new StateExpression.Simple(CLICK).not(), noClickSize);
 		assertEquals(noClickSize, style.get(cornerRadius, false).get());
 		assertEquals(noClickSize, reported[0]);
+		assertTrue(changes[0] > lastChanges);
 		style.stateControl.add(CLICK);
 		assertEquals(clickSize, style.get(cornerRadius, false).get());
 		assertEquals(clickSize, reported[0]);
+		assertTrue(changes[0] > lastChanges);
+		lastChanges = changes[0];
 		style.stateControl.remove(CLICK);
 		assertEquals(noClickSize, style.get(cornerRadius, false).get());
 		assertEquals(noClickSize, reported[0]);
+		assertTrue(changes[0] > lastChanges);
+		lastChanges = changes[0];
 	}
 
 	/** Tests functionality of style sheets in org.muis.core.style.sheet */

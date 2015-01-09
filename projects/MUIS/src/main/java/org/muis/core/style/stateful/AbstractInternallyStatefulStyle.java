@@ -1,11 +1,10 @@
 package org.muis.core.style.stateful;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
+import org.muis.core.rx.*;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
+import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
 
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
@@ -56,9 +55,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		return new org.muis.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
 			getLocalExpressions(attr).refireWhen(theState.changes()).filterC(sev -> {
-					if(sev.getExpression() == null || sev.getExpression().matches(theState))
-					return true;
-				return false;
+				return sev.getExpression() == null || sev.getExpression().matches(theState);
 			}).first()).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
 			public String toString() {
@@ -82,5 +79,36 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;
 			}
 		};
+	}
+
+	/** Need a little custom code here */
+	@Override
+	public Observable<StyleAttributeEvent<?>> localRemoves() {
+		Observable<StyleAttributeEvent<?>> superLocal = InternallyStatefulStyle.super.localRemoves();
+		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>(){
+			@Override
+			public Runnable internalSubscribe(Observer<? super StyleAttributeEvent<?>> observer) {
+				return theState.internalSubscribe(new Observer<ObservableElement<MuisState>>() {
+					@Override
+					public <V extends ObservableElement<MuisState>> void onNext(V elValue) {
+						elValue.internalSubscribe(new Observer<ObservableValueEvent<MuisState>>() {
+							@Override
+							public <V2 extends ObservableValueEvent<MuisState>> void onNext(V2 value) {
+								/* Find attributes that have expressions matching the state set *without* the new state but none *with*
+								 * the new state */
+								// TODO
+							}
+
+							@Override
+							public <V2 extends ObservableValueEvent<MuisState>> void onCompleted(V2 value) {
+								/* Find attributes that have expressions matching the state set *with* the removed state but none *without*
+								 * the removed state */
+								// TODO
+							}
+						});
+					}
+				});
+			}
+		});
 	}
 }

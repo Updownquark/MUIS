@@ -40,6 +40,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		if(holder == null) {
 			holder = new StyleValueHolder<>(getExpressionType(), null);
 			theAttributes.put(attr, holder);
+			theAttController.add(attr);
 		}
 		return holder;
 	}

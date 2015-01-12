@@ -52,4 +52,47 @@ public interface SizeGuide {
 	 * @return The location of the baseline in this dimension
 	 */
 	int getBaseline(int size);
+
+	/**
+	 * @param size The size to check
+	 * @param crossSize The size of the widget in the opposite dimension
+	 * @return 0 if the given size is within this guide's preferred range, -1 if the size is below minPreferred, 1 if the size is above
+	 *         maxPreferred
+	 */
+	default int compareToPreferred(int size, int crossSize) {
+		if(size < getMinPreferred(crossSize, false))
+			return -1;
+		else if(size <= getMaxPreferred(crossSize, false))
+			return 0;
+		else
+			return 1;
+	}
+
+	/**
+	 * @param size The size to check
+	 * @param crossSize The size of the widget in the opposite dimension
+	 * @return 0 if the given size is within this guide's extremity range, -1 if the size is below min, 1 if the size is above max
+	 */
+	default int compareToMinMax(int size, int crossSize) {
+		if(size < getMin(crossSize, false))
+			return -1;
+		else if(size <= getMax(crossSize, false))
+			return 0;
+		else
+			return 1;
+	}
+
+	/**
+	 * A utility for adding 2 numbers, the sum of which may be greater than an integer's capacity
+	 *
+	 * @param i1 The first number to add
+	 * @param i2 The second number to add
+	 * @return The added result, or {@link Integer#MAX_VALUE} if the result is too great for the capacity of an integer
+	 */
+	public static int add(int i1, int i2) {
+		int ret = i1 + i2;
+		if(ret < i1)
+			return Integer.MAX_VALUE;
+		return ret;
+	}
 }

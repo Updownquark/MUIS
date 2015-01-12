@@ -20,6 +20,8 @@
         <type tag="border">org.muis.base.widget.BorderPane</type>
         <type tag="text-cursor-overlay">org.muis.base.widget.DocumentCursorOverlay</type>
         <type tag="text-field">org.muis.base.widget.TextField</type>
+        <type tag="tree">org.muis.base.widget.Tree</type>
+        <type tag="value-renderer">org.muis.base.widget.ValueRenderer</type>
         
 		<!-- Layouts -->
         <type tag="simple">org.muis.base.layout.SimpleLayout</type>
@@ -45,6 +47,8 @@
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>
 		<resource tag="img-load-failed-icon">src/main/resources/imageLoadFailed.png</resource>
+		<resource tag="tree-expand-icon">src/main/resources/treeExpandIcon.png</resource>
+		<resource tag="tree-collapse-icon">src/main/resources/treeCollapseIcon.png</resource>
 	</resources>
 	<security />
 </registry>

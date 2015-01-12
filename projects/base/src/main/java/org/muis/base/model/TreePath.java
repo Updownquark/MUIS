@@ -2,25 +2,31 @@ package org.muis.base.model;
 
 import java.util.AbstractList;
 
+import org.muis.core.rx.ObservableTree;
+
 /**
  * A path from the root of a tree, through nested intermediate nodes, down to a target node
  *
  * @param <E> The type of elements in the tree
  */
-public class TreePath<E> extends AbstractList<E> {
-	private final Object [] theElements;
+public class TreePath<E> extends AbstractList<ObservableTree<E>> {
+	private final ObservableTree<E> [] theElements;
 
-	public TreePath(E [] elements) {
+	public TreePath(ObservableTree<E> root) {
+		theElements = new ObservableTree[] {root};
+	}
+
+	public TreePath(ObservableTree<E> [] elements) {
 		theElements = elements;
 	}
 
-	public TreePath(java.util.List<E> elements) {
-		theElements = elements.toArray();
+	public TreePath(java.util.List<ObservableTree<E>> elements) {
+		theElements = elements.toArray(new ObservableTree[elements.size()]);
 	}
 
 	@Override
-	public E get(int index) {
-		return (E) theElements[index];
+	public ObservableTree<E> get(int index) {
+		return theElements[index];
 	}
 
 	@Override
@@ -29,8 +35,8 @@ public class TreePath<E> extends AbstractList<E> {
 	}
 
 	/** @return The last element in this tree path */
-	public E target() {
-		return (E) theElements[theElements.length - 1];
+	public ObservableTree<E> target() {
+		return theElements[theElements.length - 1];
 	}
 
 	@Override

@@ -819,7 +819,7 @@ public abstract class MuisTemplate extends MuisElement {
 		/** @return A container for the elements occupying the multiple-enabled attach point */
 		public MuisContainer<MuisElement> getContainer() {
 			if(!attachPoint.multiple)
-				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
+				throw new IllegalStateException("The " + attachPoint.name + " attach point does not allow multiple elements");
 			return theContainer;
 		}
 	}

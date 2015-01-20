@@ -6,7 +6,6 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.stateful.*;
 
 import prisms.lang.Type;
@@ -66,6 +65,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	/** @return The element that this style is for */
+	@Override
 	public MuisElement getElement() {
 		return theElement;
 	}
@@ -146,13 +146,6 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		return () -> {
 			return new NamedStyleIterator(theStyleGroups, forward);
 		};
-	}
-
-	@Override
-	public <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, org.muis.core.rx.ObservableValueEvent<T> event) {
-		StyleAttributeEvent<T> superMap = org.muis.core.style.MuisStyle.super.mapEvent(attr, event);
-		return new StyleAttributeEvent<>(theElement, superMap.getRootStyle(), this, attr, superMap.getOldValue(), superMap.getValue(),
-			superMap.getCause());
 	}
 
 	@Override

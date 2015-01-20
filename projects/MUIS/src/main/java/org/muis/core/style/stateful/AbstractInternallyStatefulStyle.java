@@ -1,5 +1,8 @@
 package org.muis.core.style.stateful;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.muis.core.mgr.MuisState;
 import org.muis.core.rx.*;
 import org.muis.core.style.MuisStyle;
@@ -96,14 +99,44 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 							public <V2 extends ObservableValueEvent<MuisState>> void onNext(V2 value) {
 								/* Find attributes that have expressions matching the state set *without* the new state but none *with*
 								 * the new state */
-								// TODO
+								Set<MuisState> with = new HashSet<>(theState);
+								Set<MuisState> without = new HashSet<>(with);
+								without.remove(value.getValue());
+								seekAtts(without, with);
 							}
 
 							@Override
 							public <V2 extends ObservableValueEvent<MuisState>> void onCompleted(V2 value) {
 								/* Find attributes that have expressions matching the state set *with* the removed state but none *without*
 								 * the removed state */
-								// TODO
+								Set<MuisState> with = new HashSet<>(theState);
+								Set<MuisState> without = new HashSet<>(with);
+								with.add(value.getValue());
+								seekAtts(with, without);
+							}
+
+							private void seekAtts(Set<MuisState> matching, Set<MuisState> notMatching) {
+								for(StyleAttribute<?> att : localAttributes()) {
+									boolean hasMatch = false;
+									boolean hasNoMatch = false;
+									StyleExpressionValue<StateExpression, ?> matchExp = null;
+									for(StyleExpressionValue<StateExpression, ?> exp : getLocalExpressions(att)) {
+										boolean expMatch = exp.getExpression().matches(matching);
+										boolean expNotMatch = exp.getExpression().matches(notMatching);
+										if(expNotMatch) {
+											hasNoMatch = true;
+											break;
+										} else if(expMatch) {
+											hasMatch = true;
+											if(matchExp == null)
+												matchExp = exp;
+											// No break
+										}
+									}
+									if(hasMatch && !hasNoMatch)
+										observer.onNext(new StyleAttributeEvent<>(getElement(), AbstractInternallyStatefulStyle.this,
+											AbstractInternallyStatefulStyle.this, (StyleAttribute<Object>) att, matchExp.get(), null, null));
+								}
 							}
 						});
 					}

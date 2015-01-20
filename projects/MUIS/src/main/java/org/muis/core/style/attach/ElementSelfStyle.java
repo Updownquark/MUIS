@@ -2,9 +2,9 @@ package org.muis.core.style.attach;
 
 import java.util.List;
 
+import org.muis.core.MuisElement;
 import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
-import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
@@ -70,6 +70,11 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	}
 
 	@Override
+	public MuisElement getElement() {
+		return theElStyle.getElement();
+	}
+
+	@Override
 	public <T> ElementSelfStyle set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 		return this;
@@ -92,13 +97,6 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	public ElementSelfStyle clear(StyleAttribute<?> attr, StateExpression exp) {
 		super.clear(attr, exp);
 		return this;
-	}
-
-	@Override
-	public <T> StyleAttributeEvent<T> mapEvent(StyleAttribute<T> attr, org.muis.core.rx.ObservableValueEvent<T> event) {
-		StyleAttributeEvent<T> superMap = org.muis.core.style.MuisStyle.super.mapEvent(attr, event);
-		return new StyleAttributeEvent<>(theElStyle.getElement(), superMap.getRootStyle(), this, attr, superMap.getOldValue(),
-			superMap.getValue(), superMap.getCause());
 	}
 
 	@Override

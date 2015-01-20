@@ -2,6 +2,7 @@ package org.muis.core.style.attach;
 
 import java.util.List;
 
+import org.muis.core.MuisElement;
 import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
@@ -26,6 +27,11 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 	/** @return The element style that this heir style depends on */
 	public ElementStyle getElementStyle() {
 		return theElStyle;
+	}
+
+	@Override
+	public MuisElement getElement() {
+		return theElStyle.getElement();
 	}
 
 	@Override

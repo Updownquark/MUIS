@@ -2,6 +2,7 @@ package org.muis.core.style;
 
 import java.util.Set;
 
+import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.rx.*;
 
@@ -28,6 +29,11 @@ public interface MuisStyle {
 	/** @return Attributes set locally in this style */
 	ObservableSet<StyleAttribute<?>> localAttributes();
 
+	/** @return The element that this style belongs to. May be null. */
+	default MuisElement getElement() {
+		return null;
+	}
+
 	/**
 	 * @param <T> The type of the event to map
 	 * @param attr The style attribute to map the event for
@@ -50,7 +56,7 @@ public interface MuisStyle {
 			cause = (MuisEvent) event;
 		else if(event.getCause() instanceof MuisEvent)
 			cause = (MuisEvent) event.getCause();
-		return new StyleAttributeEvent<>(null, root, this, attr, event.getOldValue(), event.getValue(), cause);
+		return new StyleAttributeEvent<>(getElement(), root, this, attr, event.getOldValue(), event.getValue(), cause);
 	}
 
 	/**

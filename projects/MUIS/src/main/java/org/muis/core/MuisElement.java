@@ -134,7 +134,7 @@ public abstract class MuisElement implements MuisParseEnv {
 				break;
 			}
 		});
-		theChildren.events().filterMap(BoundsChangedEvent.bounds).act(event -> {
+		theChildren.events().filterMap(BoundsChangedEvent.bounds).filter(event -> !isStamp(event.getElement())).act(event -> {
 			Rectangle paintRect = event.getValue().union(event.getOldValue());
 			repaint(paintRect, false);
 		});
@@ -590,6 +590,14 @@ public abstract class MuisElement implements MuisParseEnv {
 	/** @return An augmented, modifiable {@link List} of this element's children */
 	protected ChildList getChildManager() {
 		return theChildren;
+	}
+
+	/**
+	 * @param child The child element of this element to check
+	 * @return Whether the given child is being used as a stamp for rendering
+	 */
+	protected boolean isStamp(MuisElement child) {
+		return false;
 	}
 
 	// End hierarchy methods

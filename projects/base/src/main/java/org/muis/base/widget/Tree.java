@@ -101,10 +101,8 @@ public class Tree extends MuisTemplate {
 		/* TODO
 		 * * Add attribute and element listeners to re-render when anything changes
 		 * * Add model listeners to re-render when the model changes
-		 * * Need to suppress the default behavior of MuisElement that will call repaint whenever the renderer's bounds change (which will
-		 * 		happen every time is renderFor method is called for each visible node all the time). Similar for the collapse and expand
-		 * 		images.
 		 * * Need to manage selection
+		 * * Need to manage expansion
 		 */
 		life().runWhen(
 			() -> {
@@ -325,6 +323,12 @@ public class Tree extends MuisTemplate {
 		if(ret == null)
 			ret = getHover();
 		return ret;
+	}
+
+	@Override
+	protected boolean isStamp(MuisElement child) {
+		AttachPoint role = child.atts().get(getTemplate().role);
+		return role != null && (role.name.equals("renderer") || role.name.equals("hover"));
 	}
 
 	public TreePath<?> getHoverNode() {

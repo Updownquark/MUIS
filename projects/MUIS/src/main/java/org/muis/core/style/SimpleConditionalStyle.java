@@ -38,7 +38,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	public <T> ObservableList<StyleExpressionValue<E, T>> getLocalExpressions(StyleAttribute<T> attr) {
 		StyleValueHolder<E, T> holder = (StyleValueHolder<E, T>) theAttributes.get(attr);
 		if(holder == null) {
-			holder = new StyleValueHolder<>(getExpressionType(), null);
+			holder = new StyleValueHolder<>(this, attr, getExpressionType(), null);
 			theAttributes.put(attr, holder);
 			theAttController.add(attr);
 		}
@@ -138,7 +138,7 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 		StyleExpressionValue<E, T> sev = createStyleExpressionValue(attr, exp, value);
 		StyleValueHolder<E, T> holder = (StyleValueHolder<E, T>) theAttributes.get(attr);
 		if(holder == null) {
-			holder = new StyleValueHolder<>(getExpressionType(), sev);
+			holder = new StyleValueHolder<>(this, attr, getExpressionType(), sev);
 			theAttributes.put(attr, holder);
 			theAttController.add(attr);
 		} else

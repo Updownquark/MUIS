@@ -13,8 +13,7 @@ import org.junit.Test;
 import org.muis.core.BodyElement;
 import org.muis.core.MuisElement;
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.DefaultObservableList;
-import org.muis.core.rx.DefaultObservableSet;
+import org.muis.core.rx.*;
 import org.muis.core.style.sheet.*;
 import org.muis.core.style.stateful.*;
 
@@ -93,11 +92,32 @@ public class StylesTest {
 	public void testStatefulStyles() {
 		TestStatefulStyle style = new TestStatefulStyle();
 
-		Size [] reported=new Size[1];
+		Size [] reported = new Size[1];
 		int [] changes = new int[1];
 		int lastChanges = 0;
 		style.get(cornerRadius, false).value().act(value -> reported[0] = value);
 		style.allChanges().act(event -> changes[0]++);
+		ObservableCollection<BiTuple<StyleAttribute<?>, ObservableValue<?>>> values = style.localAttributes().mapC(
+			attr -> new BiTuple<>(attr, style.getLocal(attr)));
+		values.internalSubscribe(new Observer<ObservableElement<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
+			@Override
+			public <V extends ObservableElement<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V value) {
+				System.out.println("New attribute " + value.get().getValue1() + "=" + value.get().getValue2().get());
+				value.internalSubscribe(new Observer<ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
+					@Override
+					public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V2 value2) {
+						value2.getValue().getValue2().value().noInit().takeUntil(value.noInit()).act(value3 -> {
+							System.out.println(value2.getValue().getValue1() + "=" + value3);
+						});
+					}
+
+					@Override
+					public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onCompleted(V2 value2) {
+						System.out.println(value2.getOldValue().getValue1() + " removed");
+					}
+				});
+			}
+		});
 
 		assertEquals(null, style.get(cornerRadius, false).get());
 		assertEquals(cornerRadius.getDefault(), style.get(cornerRadius, true).get());
@@ -149,7 +169,7 @@ public class StylesTest {
 		Set<TemplateRole> roleControl = roles.control(null);
 		TestStyleSheet sheet = new TestStyleSheet();
 		FilteredStyleSheet<MuisElement> filter = new FilteredStyleSheet<>(sheet, null, MuisElement.class, roles);
-		StatefulStyleSample sample=new StatefulStyleSample(filter, state);
+		StatefulStyleSample sample = new StatefulStyleSample(filter, state);
 		FilteredStyleSheet<BodyElement> bodyFilter = new FilteredStyleSheet<>(sheet, null, BodyElement.class, roles);
 		StatefulStyleSample bodySample = new StatefulStyleSample(bodyFilter, state);
 

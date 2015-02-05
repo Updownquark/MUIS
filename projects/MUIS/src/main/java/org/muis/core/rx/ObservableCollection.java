@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Function;
 
+import org.muis.core.rx.ObservableDebug.D;
+
 import prisms.lang.Type;
 
 /**
@@ -280,6 +282,25 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	}
 
 	/**
+	 * @param refire A function that supplies a refire observable as a function of element value
+	 * @return A collection whose values individually refire when the observable returned by the given function fires
+	 */
+	default ObservableCollection<E> refireWhenEach(Function<? super E, Observable<?>> refire) {
+		ObservableCollection<E> outer = this;
+		return new org.muis.util.ObservableCollectionWrapper<E>(this) {
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+				return outer.internalSubscribe(new Observer<ObservableElement<E>>() {
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V element) {
+						observer.onNext(element.refireWhenForValue(refire));
+					}
+				});
+			}
+		};
+	}
+
+	/**
 	 * @param <T> An observable collection that contains all elements in all collections in the wrapping collection
 	 * @param coll The collection to flatten
 	 * @return A collection containing all elements of all collections in the outer collection
@@ -386,16 +407,22 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		return new Observable<T>() {
 			@Override
 			public Runnable internalSubscribe(Observer<? super T> observer) {
-				return coll.internalSubscribe(new Observer<ObservableElement<? extends Observable<T>>>() {
+				Observable<T> outer = this;
+				D d = ObservableDebug.onSubscribe(this, "fold", null);
+				Runnable ret = coll.internalSubscribe(new Observer<ObservableElement<? extends Observable<T>>>() {
 					@Override
 					public <V extends ObservableElement<? extends Observable<T>>> void onNext(V element) {
+						D d2 = ObservableDebug.onNext(outer, "fold", null);
 						element.subscribe(new Observer<ObservableValueEvent<? extends Observable<T>>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<? extends Observable<T>>> void onNext(V2 value) {
+								D d3 = ObservableDebug.onNext(outer, "fold/element", null);
 								value.getValue().takeUntil(element.noInit()).subscribe(new Observer<T>() {
 									@Override
 									public <V3 extends T> void onNext(V3 value3) {
+										D d4 = ObservableDebug.onNext(outer, "fold/element/value", null);
 										observer.onNext(value3);
+										d4.done(null);
 									}
 
 									@Override
@@ -403,6 +430,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 										observer.onError(e);
 									}
 								});
+								d3.done(null);
 							}
 
 							@Override
@@ -410,6 +438,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 								observer.onError(e);
 							}
 						});
+						d2.done(null);
 					}
 
 					@Override
@@ -417,6 +446,8 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 						observer.onError(e);
 					}
 				});
+				d.done(null);
+				return ret;
 			}
 
 			@Override

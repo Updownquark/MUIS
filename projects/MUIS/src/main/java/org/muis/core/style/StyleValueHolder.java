@@ -16,14 +16,21 @@ import prisms.lang.Type;
  */
 public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultObservableList<StyleExpressionValue<E, V>> implements
 	Cloneable {
+	private final ConditionalStyle<?, E> theStyle;
+	private final StyleAttribute<V> theAttribute;
+
 	private List<StyleExpressionValue<E, V>> theController;
 
 	/**
+	 * @param style The style that this object will hold expressions for
+	 * @param attr The attribute that this object will hold expressions for
 	 * @param expressionType The type of style expression that this holder holds
 	 * @param value The initial expression value to hold
 	 */
-	protected StyleValueHolder(Type expressionType, StyleExpressionValue<E, V> value) {
+	protected StyleValueHolder(ConditionalStyle<?, E> style, StyleAttribute<V> attr, Type expressionType, StyleExpressionValue<E, V> value) {
 		super(new Type(StyleExpressionValue.class, expressionType, new Type(Object.class, true)));
+		theStyle = style;
+		theAttribute = attr;
 		theController = control(null);
 		if(value != null)
 			theController.add(value);
@@ -79,6 +86,11 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultOb
 		}
 		if(!found)
 			iter.add(sev);
+	}
+
+	@Override
+	public String toString() {
+		return theStyle + ".localExpressions(" + theAttribute + ")=" + super.toString();
 	}
 
 	@Override

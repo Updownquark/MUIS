@@ -67,6 +67,14 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 
 	@Override
 	default ObservableElement<T> refireWhen(Observable<?> observable) {
+		return refireWhenForValue(value -> observable);
+	}
+
+	/**
+	 * @param observable A function providing an observable to refire on as a function of a value
+	 * @return An observable element that refires its value when the observable returned by the given function fires
+	 */
+	default ObservableElement<T> refireWhenForValue(Function<? super T, Observable<?>> observable) {
 		ObservableElement<T> outer = this;
 		return new ObservableElement<T>() {
 			@Override
@@ -81,21 +89,52 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 
 			@Override
 			public ObservableValue<T> persistent() {
-				return outer.persistent().refireWhen(observable);
+				return outer.persistent().refireWhen(observable.apply(get()));
 			}
 
 			@Override
 			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
-				Runnable outerSub = outer.internalSubscribe(observer);
-				Runnable refireSub = observable.internalSubscribe(new Observer<Object>() {
+				Runnable [] refireSub = new Runnable[1];
+				Observer<Object> refireObs = new Observer<Object>() {
 					@Override
 					public <V> void onNext(V value) {
-						observer.onNext(outer.createEvent(outer.get(), outer.get(), value));
+						T outerVal = get();
+						ObservableValueEvent<T> event2 = outer.createEvent(outerVal, outerVal, value);
+						observer.onNext(event2);
+					}
+
+					@Override
+					public <V> void onCompleted(V value) {
+						T outerVal = get();
+						ObservableValueEvent<T> event2 = outer.createEvent(outerVal, outerVal, value);
+						observer.onNext(event2);
+						refireSub[0] = null;
+					}
+				};
+				Runnable outerSub = outer.internalSubscribe(new Observer<ObservableValueEvent<T>>() {
+					@Override
+					public <V extends ObservableValueEvent<T>> void onNext(V value) {
+						refireSub[0] = observable.apply(value.getValue()).noInit().takeUntil(outer).internalSubscribe(refireObs);
+						observer.onNext(value);
+					}
+
+					@Override
+					public <V extends ObservableValueEvent<T>> void onCompleted(V value) {
+						if(refireSub[0] != null)
+							refireSub[0].run();
+						observer.onCompleted(value);
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						observer.onError(e);
 					}
 				});
+				refireSub[0] = observable.apply(outer.get()).takeUntil(outer).internalSubscribe(refireObs);
 				return () -> {
 					outerSub.run();
-					refireSub.run();
+					if(refireSub[0] != null)
+						refireSub[0].run();
 				};
 			}
 

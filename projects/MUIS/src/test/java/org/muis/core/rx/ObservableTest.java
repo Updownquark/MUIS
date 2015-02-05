@@ -438,6 +438,45 @@ public class ObservableTest {
 		}
 	}
 
+	/** Tests {@link ObservableSet#filterMapC(java.util.function.Function)} */
+	@Test
+	public void observableSetFilterMap() {
+		DefaultObservableSet<Integer> set = new DefaultObservableSet<>(new Type(Integer.TYPE));
+		Set<Integer> controller = set.control(null);
+		Set<Integer> compare1 = new TreeSet<>();
+		Set<Integer> correct = new TreeSet<>();
+		set.filterMapC(value -> {
+			if(value == null || value % 2 != 0)
+				return null;
+			return value / 2;
+		}).act(element -> {
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					compare1.add(value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(value.getValue());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			if(i % 2 == 0)
+				correct.add(i / 2);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove(i);
+			if(i % 2 == 0)
+				correct.remove(i / 2);
+			assertEquals(correct, compare1);
+		}
+	}
+
 	/** Tests {@link ObservableSet#combineC(ObservableValue, java.util.function.BiFunction)} */
 	@Test
 	public void observableSetCombine() {
@@ -723,32 +762,30 @@ public class ObservableTest {
 	/** Tests {@link ObservableCollection#fold(ObservableCollection)} */
 	@Test
 	public void observableCollectionFold() {
-		DefaultObservable<Integer> obs1 = new DefaultObservable<>();
-		DefaultObservable<Integer> obs2 = new DefaultObservable<>();
-		DefaultObservable<Integer> obs3 = new DefaultObservable<>();
-		Observer<Integer> controller1 = obs1.control(null);
-		Observer<Integer> controller2 = obs2.control(null);
-		Observer<Integer> controller3 = obs3.control(null);
-		DefaultObservableSet<Observable<Integer>> set = new DefaultObservableSet<>(new Type(Observable.class, new Type(
+		SimpleSettableValue<Integer> obs1 = new SimpleSettableValue<>(Integer.class, true);
+		SimpleSettableValue<Integer> obs2 = new SimpleSettableValue<>(Integer.class, true);
+		SimpleSettableValue<Integer> obs3 = new SimpleSettableValue<>(Integer.class, true);
+		DefaultObservableSet<ObservableValue<Integer>> set = new DefaultObservableSet<>(new Type(Observable.class, new Type(
 			Integer.TYPE)));
-		Set<Observable<Integer>> controller = set.control(null);
+		Set<ObservableValue<Integer>> controller = set.control(null);
 		controller.add(obs1);
 		controller.add(obs2);
-		Observable<Integer> folded = ObservableCollection.fold(set);
+		Observable<Integer> folded = ObservableCollection.fold(set.mapC(value -> value.value()));
 		int [] received = new int[1];
-		folded.act(value -> received[0] = value);
+		folded.noInit().act(value -> received[0] = value);
 
-		controller1.onNext(1);
+		obs1.set(1, null);
 		assertEquals(1, received[0]);
-		controller2.onNext(2);
+		obs2.set(2, null);
 		assertEquals(2, received[0]);
-		controller3.onNext(3);
+		obs3.set(3, null);
 		assertEquals(2, received[0]);
 		controller.add(obs3);
-		controller3.onNext(4);
+		assertEquals(3, received[0]); // Initial value fired
+		obs3.set(4, null);
 		assertEquals(4, received[0]);
 		controller.remove(obs2);
-		controller2.onNext(5);
+		obs2.set(5, null);
 		assertEquals(4, received[0]);
 	}
 
@@ -794,7 +831,7 @@ public class ObservableTest {
 		}
 	}
 
-	/** Tests {@link ObservableList#filter(java.util.function.Function)} */
+	/** Tests {@link ObservableList#filterC(java.util.function.Function)} */
 	@Test
 	public void observableListFilter() {
 		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
@@ -835,6 +872,55 @@ public class ObservableTest {
 			controller.remove(Integer.valueOf(i));
 			if(i % 2 == 0)
 				correct.remove(Integer.valueOf(i));
+			assertEquals(correct, compare1);
+		}
+	}
+
+	/** Tests {@link ObservableList#filterMapC(java.util.function.Function)} */
+	@Test
+	public void observableListFilterMap() {
+		DefaultObservableList<Integer> list = new DefaultObservableList<>(new Type(Integer.TYPE));
+		List<Integer> controller = list.control(null);
+		List<Integer> compare1 = new ArrayList<>();
+		List<Integer> correct = new ArrayList<>();
+		list.filterMapC(value -> {
+			if(value == null || value % 2 != 0)
+				return null;
+			return value / 2;
+		}).act(element -> {
+			OrderedObservableElement<Integer> listEl = (OrderedObservableElement<Integer>) element;
+			element.subscribe(new Observer<ObservableValueEvent<Integer>>() {
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onNext(V value) {
+					if(value.getOldValue() != null)
+						compare1.set(listEl.getIndex(), value.getValue());
+					else
+						compare1.add(listEl.getIndex(), value.getValue());
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<Integer>> void onCompleted(V value) {
+					compare1.remove(listEl.getIndex());
+				}
+			});
+		});
+
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			if(i % 2 == 0)
+				correct.add(i / 2);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.add(i);
+			if(i % 2 == 0)
+				correct.add(i / 2);
+			assertEquals(correct, compare1);
+		}
+		for(int i = 0; i < 30; i++) {
+			controller.remove(Integer.valueOf(i));
+			if(i % 2 == 0)
+				correct.remove(Integer.valueOf(i / 2));
 			assertEquals(correct, compare1);
 		}
 	}

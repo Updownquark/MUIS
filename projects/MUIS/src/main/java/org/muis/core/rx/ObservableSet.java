@@ -4,6 +4,8 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.muis.core.rx.ObservableDebug.D;
+
 import prisms.lang.Type;
 
 /**
@@ -165,6 +167,11 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 					listSub.run();
 				};
 			}
+
+			@Override
+			public String toString() {
+				return "filter(" + outer + ")";
+			}
 		}
 		return new FilteredSet();
 	}
@@ -278,7 +285,29 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 				return outer.internalSubscribe(new Observer<ObservableElement<E>>() {
 					@Override
 					public <V extends ObservableElement<E>> void onNext(V value) {
+						D d = ObservableDebug.onNext(outer, "refireWhen", null);
 						observer.onNext(value.refireWhen(observable));
+						d.done(null);
+					}
+				});
+			}
+		};
+	}
+
+	/**
+	 * @param refire A function that supplies a refire observable as a function of element value
+	 * @return A collection whose values individually refire when the observable returned by the given function fires
+	 */
+	@Override
+	default ObservableSet<E> refireWhenEach(Function<? super E, Observable<?>> refire) {
+		ObservableCollection<E> outer = this;
+		return new org.muis.util.ObservableSetWrapper<E>(this) {
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+				return outer.internalSubscribe(new Observer<ObservableElement<E>>() {
+					@Override
+					public <V extends ObservableElement<E>> void onNext(V element) {
+						observer.onNext(element.refireWhenForValue(refire));
 					}
 				});
 			}

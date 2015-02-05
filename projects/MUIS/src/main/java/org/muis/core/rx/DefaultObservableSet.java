@@ -83,6 +83,8 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 			theOnSubscribe.onsubscribe(observer);
 		return () -> {
 			ConcurrentLinkedQueue<Runnable> subs = theObservers.remove(observer);
+			if(subs == null)
+				return;
 			for(Runnable sub : subs)
 				sub.run();
 		};
@@ -106,12 +108,16 @@ public class DefaultObservableSet<E> extends AbstractSet<E> implements Observabl
 				Runnable ret = el.internalSubscribe(new Observer<ObservableValueEvent<E>>() {
 					@Override
 					public <V extends ObservableValueEvent<E>> void onNext(V event) {
-						observer.onNext(new ObservableValueEvent<>(element, event.getOldValue(), event.getValue(), event.getCause()));
+						ObservableValueEvent<E> event2 = new ObservableValueEvent<>(element, event.getOldValue(), event.getValue(), event
+							.getCause());
+						observer.onNext(event2);
 					}
 
 					@Override
 					public <V extends ObservableValueEvent<E>> void onCompleted(V event) {
-						observer.onCompleted(new ObservableValueEvent<>(element, event.getOldValue(), event.getValue(), event.getCause()));
+						ObservableValueEvent<E> event2 = new ObservableValueEvent<>(element, event.getOldValue(), event.getValue(), event
+							.getCause());
+						observer.onCompleted(event2);
 					}
 
 					@Override

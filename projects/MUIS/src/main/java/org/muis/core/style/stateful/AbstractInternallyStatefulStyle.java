@@ -47,6 +47,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
+		if(attr == null)
+			return false;
 		for(StyleExpressionValue<StateExpression, ?> sev : getExpressions(attr))
 			if(sev.getExpression() == null || sev.getExpression().matches(theState))
 				return true;
@@ -58,7 +60,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		return new org.muis.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
 			getLocalExpressions(attr).refireWhen(theState.changes()).filterC(sev -> {
-				return sev.getExpression() == null || sev.getExpression().matches(theState);
+				return stateMatches(sev.getExpression());
 			}).first()).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
 			public String toString() {
@@ -67,16 +69,18 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		};
 	}
 
+	/**
+	 * @param expr The state expression to test
+	 * @return Whether the expression matches this style's internal state
+	 */
+	public boolean stateMatches(StateExpression expr) {
+		return expr == null || expr.matches(theState);
+	}
+
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhen(theState.changes()).filterMapC(attr -> {
-			if(attr == null)
-				return null;
-			for(StyleExpressionValue<StateExpression, ?> sev : getLocalExpressions(attr))
-				if(sev.getExpression() == null || sev.getExpression().matches(theState))
-					return attr;
-			return null;
-		})) {
+		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal)
+			.refireWhen(theState.changes()).filterC(this::isSet)) {
 			@Override
 			public String toString() {
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;

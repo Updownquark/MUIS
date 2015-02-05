@@ -199,8 +199,7 @@ public interface Observable<T> {
 
 					@Override
 					public void onError(Throwable e) {
-						if(initialized[0])
-							observer.onError(e);
+						observer.onError(e);
 					}
 				});
 				initialized[0] = true;
@@ -298,39 +297,24 @@ public interface Observable<T> {
 				untilSub[0] = until.internalSubscribe(new Observer<Object>() {
 					@Override
 					public void onNext(Object value) {
-						if(!complete[0]) {
-							complete[0] = true;
-							outerSub.run();
-							if(untilSub[0] != null) {
-								untilSub[0].run();
-								observer.onCompleted(null);
-							}
-						}
+						onCompleted(value);
 					}
 
 					@Override
 					public void onCompleted(Object value) {
-						if(!complete[0]) {
-							complete[0] = true;
-							outerSub.run();
-							if(untilSub[0] != null) {
-								untilSub[0].run();
-								observer.onCompleted(null);
-							}
-						}
+						if(complete[0])
+							return;
+						complete[0] = true;
+						outerSub.run();
+						observer.onCompleted(null);
 					}
 				});
-				if(complete[0]) {
-					if(untilSub[0] != null)
-						untilSub[0].run();
-					return () -> {
-					};
-				}
 				return () -> {
+					if(complete[0])
+						return;
 					complete[0] = true;
 					outerSub.run();
-					if(untilSub[0] != null)
-						untilSub[0].run();
+					untilSub[0].run();
 				};
 			}
 		};

@@ -21,7 +21,27 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 
 	/** @return An observable that just reports this observable value's value in an observable without the event */
 	default Observable<T> value() {
-		return map(event -> event.getValue());
+		return new Observable<T>() {
+			@Override
+			public Runnable internalSubscribe(Observer<? super T> observer) {
+				return ObservableValue.this.internalSubscribe(new Observer<ObservableValueEvent<T>>() {
+					@Override
+					public <V extends ObservableValueEvent<T>> void onNext(V value) {
+						observer.onNext(value.getValue());
+					}
+
+					@Override
+					public <V extends ObservableValueEvent<T>> void onCompleted(V value) {
+						observer.onCompleted(value.getValue());
+					}
+				});
+			}
+
+			@Override
+			public String toString() {
+				return ObservableValue.this.toString() + ".value()";
+			}
+		};
 	}
 
 	/**
@@ -204,23 +224,24 @@ public interface ObservableValue<T> extends Observable<ObservableValueEvent<T>>,
 				untilSub[0] = until.internalSubscribe(new Observer<Object>() {
 					@Override
 					public void onNext(Object value) {
-						if(!complete[0])
-							observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
+						onCompleted(value);
 					}
 
 					@Override
 					public void onCompleted(Object value) {
-						if(!complete[0])
-							observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
+						if(complete[0])
+							return;
+						complete[0] = true;
+						outerSub.run();
+						observer.onCompleted(outer.createEvent(outer.get(), outer.get(), value));
 					}
 				});
 				return () -> {
-					if(!complete[0]) {
-						complete[0] = true;
-						outerSub.run();
-						if(untilSub[0] != null)
-							untilSub[0].run();
-					}
+					if(complete[0])
+						return;
+					complete[0] = true;
+					outerSub.run();
+					untilSub[0].run();
 				};
 			}
 

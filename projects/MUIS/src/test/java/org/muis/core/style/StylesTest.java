@@ -113,7 +113,8 @@ public class StylesTest {
 
 					@Override
 					public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onCompleted(V2 value2) {
-						System.out.println(value2.getOldValue().getValue1() + " removed");
+						if(value2.getOldValue() != null) // Don't know why this is fired twice, once with null
+							System.out.println(value2.getOldValue().getValue1() + " removed");
 					}
 				});
 			}

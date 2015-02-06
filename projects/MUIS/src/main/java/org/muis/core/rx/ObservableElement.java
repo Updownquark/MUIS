@@ -67,7 +67,44 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 
 	@Override
 	default ObservableElement<T> refireWhen(Observable<?> observable) {
-		return refireWhenForValue(value -> observable);
+		ObservableElement<T> outer = this;
+		return new ObservableElement<T>() {
+			@Override
+			public Type getType() {
+				return outer.getType();
+			}
+
+			@Override
+			public T get() {
+				return outer.get();
+			}
+
+			@Override
+			public ObservableValue<T> persistent() {
+				return outer.persistent().refireWhen(observable);
+			}
+
+			@Override
+			public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+				Runnable outerSub = outer.internalSubscribe(observer);
+				Runnable refireSub = observable.internalSubscribe(new Observer<Object>() {
+					@Override
+					public <V> void onNext(V value) {
+						ObservableValueEvent<T> event2 = outer.createEvent(outer.get(), outer.get(), value);
+						observer.onNext(event2);
+					}
+				});
+				return () -> {
+					outerSub.run();
+					refireSub.run();
+				};
+			}
+
+			@Override
+			public String toString() {
+				return outer + ".refireWhen(" + observable + ")";
+			}
+		};
 	}
 
 	/**
@@ -130,7 +167,7 @@ public interface ObservableElement<T> extends ObservableValue<T> {
 						observer.onError(e);
 					}
 				});
-				refireSub[0] = observable.apply(outer.get()).takeUntil(outer).internalSubscribe(refireObs);
+				refireSub[0] = observable.apply(outer.get()).noInit().takeUntil(outer).internalSubscribe(refireObs);
 				return () -> {
 					outerSub.run();
 					if(refireSub[0] != null)

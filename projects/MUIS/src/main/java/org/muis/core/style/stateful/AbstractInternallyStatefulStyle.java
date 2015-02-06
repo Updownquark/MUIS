@@ -79,8 +79,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal)
-			.refireWhen(theState.changes()).filterC(this::isSet)) {
+		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filterC(this::isSet)) {
 			@Override
 			public String toString() {
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;

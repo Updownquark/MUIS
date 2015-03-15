@@ -11,8 +11,8 @@ import java.util.Map;
 import org.muis.core.eval.impl.ObservableEvaluator;
 import org.muis.core.eval.impl.ParsedColor;
 import org.muis.core.parser.MuisParseException;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.Colors;
+import org.muis.rx.ObservableValue;
 import org.muis.util.MuisUtils;
 
 import prisms.arch.PrismsConfig;

@@ -8,13 +8,13 @@ import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.core.style.stateful.StatefulStyle;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableSet;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;

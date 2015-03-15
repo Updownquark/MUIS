@@ -21,7 +21,7 @@ public abstract class FilteredElementList<E extends MuisElement> extends org.mui
 	public FilteredElementList(MuisElement parent, ElementList<? extends E> backing) {
 		super(parent);
 		theBacking = backing;
-		theBacking.act(new org.muis.core.rx.Action<ChildEvent>() {
+		theBacking.act(new org.muis.rx.Action<ChildEvent>() {
 			@Override
 			public void act(ChildEvent evt) {
 				int index = -1;

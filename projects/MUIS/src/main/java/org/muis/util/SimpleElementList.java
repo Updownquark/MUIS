@@ -5,7 +5,7 @@ import java.util.*;
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.mgr.AbstractElementList;
-import org.muis.core.rx.Observer;
+import org.muis.rx.Observer;
 
 /**
  * A simple element list

@@ -13,13 +13,13 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.mgr.*;
 import org.muis.core.mgr.MuisLifeCycleManager.Controller;
 import org.muis.core.model.MuisValueReferenceParser;
-import org.muis.core.rx.Action;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.Texture;
 import org.muis.core.style.attach.*;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
+import org.muis.rx.Action;
 
 import prisms.util.ArrayUtils;
 

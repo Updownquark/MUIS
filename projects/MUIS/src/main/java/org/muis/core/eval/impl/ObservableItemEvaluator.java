@@ -1,6 +1,6 @@
 package org.muis.core.eval.impl;
 
-import org.muis.core.rx.ObservableValue;
+import org.muis.rx.ObservableValue;
 
 import prisms.lang.EvaluationEnvironment;
 import prisms.lang.EvaluationException;

@@ -1,10 +1,10 @@
 package org.muis.core.model;
 
 import org.muis.core.mgr.MuisMessageCenter;
-import org.muis.core.rx.Action;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.SettableValue;
-import org.muis.core.rx.Subscription;
+import org.muis.rx.Action;
+import org.muis.rx.ObservableValueEvent;
+import org.muis.rx.SettableValue;
+import org.muis.rx.Subscription;
 
 /**
  * Links 2 values via converters

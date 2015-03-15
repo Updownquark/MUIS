@@ -19,13 +19,13 @@ import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContent;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.parser.WidgetStructure;
-import org.muis.core.rx.DefaultObservableValue;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
+import org.muis.rx.DefaultObservableValue;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.ObservableValueEvent;
+import org.muis.rx.Observer;
 import org.muis.util.MuisUtils;
 
 import prisms.lang.*;
@@ -210,11 +210,11 @@ public abstract class MuisTemplate extends MuisElement {
 			}
 
 			@Override
-			public org.muis.core.rx.ObservableValue<AttachPoint> parse(MuisParseEnv env, String value) throws MuisException {
+			public org.muis.rx.ObservableValue<AttachPoint> parse(MuisParseEnv env, String value) throws MuisException {
 				AttachPoint ret = theTemplate.getAttachPoint(value);
 				if(ret == null)
 					throw new MuisException("No such attach point \"" + value + "\" in template " + theTemplate.getDefiner().getName());
-				return org.muis.core.rx.ObservableValue.constant(ret);
+				return org.muis.rx.ObservableValue.constant(ret);
 			}
 
 			@Override

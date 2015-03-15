@@ -1,8 +1,8 @@
 package org.muis.core.style.stateful;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.MuisStyle;
+import org.muis.rx.collect.ObservableSet;
 
 /**
  * Represents a {@link StatefulStyle} that also contains an internal state, meaning it can provide {@link MuisStyle} functionality by

@@ -1,7 +1,7 @@
 package org.muis.core.mgr;
 
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.collect.ObservableSet;
 
 /** Represents a set of active states */
 public interface StateSet extends Iterable<MuisState> {

@@ -3,7 +3,6 @@ package org.muis.core.style.attach;
 import java.util.List;
 
 import org.muis.core.MuisElement;
-import org.muis.core.rx.DefaultObservableList;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
@@ -11,6 +10,7 @@ import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
+import org.muis.rx.collect.DefaultObservableList;
 
 import prisms.lang.Type;
 
@@ -33,7 +33,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 			.life()
 			.runWhen(
 				() -> {
-					org.muis.core.rx.DefaultObservableSet<TemplateRole> templateRoles = new org.muis.core.rx.DefaultObservableSet<>(
+					org.muis.rx.collect.DefaultObservableSet<TemplateRole> templateRoles = new org.muis.rx.collect.DefaultObservableSet<>(
 						new Type(TemplateRole.class));;
 					java.util.Set<TemplateRole> controller = templateRoles.control(null);
 					theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle

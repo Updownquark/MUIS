@@ -1,6 +1,6 @@
 package org.muis.core.model;
 
-import org.muis.core.rx.ObservableValue;
+import org.muis.rx.ObservableValue;
 
 /** Listens for a MUIS action */
 public interface MuisActionListener {

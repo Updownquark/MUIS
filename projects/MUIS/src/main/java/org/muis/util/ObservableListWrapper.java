@@ -5,9 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import org.muis.core.rx.ObservableElement;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.Observer;
+import org.muis.rx.Observer;
+import org.muis.rx.collect.ObservableElement;
+import org.muis.rx.collect.ObservableList;
 
 import prisms.lang.Type;
 

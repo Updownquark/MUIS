@@ -3,9 +3,9 @@ package org.muis.util;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.muis.core.rx.ObservableCollection;
-import org.muis.core.rx.ObservableElement;
-import org.muis.core.rx.Observer;
+import org.muis.rx.Observer;
+import org.muis.rx.collect.ObservableCollection;
+import org.muis.rx.collect.ObservableElement;
 
 import prisms.lang.Type;
 

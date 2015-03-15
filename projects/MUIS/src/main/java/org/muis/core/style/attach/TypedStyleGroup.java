@@ -4,12 +4,12 @@ import java.util.List;
 
 import org.muis.core.MuisDocument;
 import org.muis.core.MuisElement;
-import org.muis.core.rx.DefaultObservableList;
-import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 import org.muis.core.style.stateful.StatefulStyle;
+import org.muis.rx.collect.DefaultObservableList;
+import org.muis.rx.collect.ObservableSet;
 
 import prisms.lang.Type;
 import prisms.util.ArrayUtils;

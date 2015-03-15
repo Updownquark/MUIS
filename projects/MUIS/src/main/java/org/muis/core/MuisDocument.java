@@ -12,12 +12,12 @@ import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisActionListener;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisValueReferenceParser;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.attach.DocumentStyleSheet;
 import org.muis.core.style.attach.NamedStyleGroup;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.ObservableValueEvent;
+import org.muis.rx.Observer;
 
 import prisms.lang.*;
 import prisms.lang.EvaluationEnvironment.VariableImpl;
@@ -213,7 +213,7 @@ public class MuisDocument implements MuisParseEnv {
 		theLocker = new MuisLocker();
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-		theObservableFocus = new org.muis.core.rx.DefaultObservableValue<MuisElement>() {
+		theObservableFocus = new org.muis.rx.DefaultObservableValue<MuisElement>() {
 			@Override
 			public Type getType() {
 				return new Type(MuisElement.class);
@@ -224,8 +224,8 @@ public class MuisDocument implements MuisParseEnv {
 				return theFocus;
 			}
 		};
-		theFocusController = ((org.muis.core.rx.DefaultObservableValue<MuisElement>) theObservableFocus).control(null);
-		theObservableTarget = new org.muis.core.rx.DefaultObservableValue<MuisEventPositionCapture>() {
+		theFocusController = ((org.muis.rx.DefaultObservableValue<MuisElement>) theObservableFocus).control(null);
+		theObservableTarget = new org.muis.rx.DefaultObservableValue<MuisEventPositionCapture>() {
 			@Override
 			public Type getType() {
 				return new Type(MuisEventPositionCapture.class);
@@ -236,7 +236,7 @@ public class MuisDocument implements MuisParseEnv {
 				return theMouseTarget;
 			}
 		};
-		theTargetController = ((org.muis.core.rx.DefaultObservableValue<MuisEventPositionCapture>) theObservableTarget).control(null);
+		theTargetController = ((org.muis.rx.DefaultObservableValue<MuisEventPositionCapture>) theObservableTarget).control(null);
 		ObservableValue.flatten(
 			new Type(Cursor.class),
 			theObservableTarget.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf()

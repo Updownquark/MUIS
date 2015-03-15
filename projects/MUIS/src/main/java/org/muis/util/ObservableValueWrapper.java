@@ -1,8 +1,8 @@
 package org.muis.util;
 
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
-import org.muis.core.rx.Observer;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.ObservableValueEvent;
+import org.muis.rx.Observer;
 
 import prisms.lang.Type;
 

@@ -1,8 +1,8 @@
 package org.muis.core.style.sheet;
 
-import org.muis.core.rx.ObservableList;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
+import org.muis.rx.collect.ObservableList;
 
 /** Implements dependencies on top of {@link SimpleStyleSheet} */
 public abstract class AbstractStyleSheet extends SimpleStyleSheet {

@@ -13,9 +13,13 @@ import org.junit.Test;
 import org.muis.core.BodyElement;
 import org.muis.core.MuisElement;
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.*;
 import org.muis.core.style.sheet.*;
 import org.muis.core.style.stateful.*;
+import org.muis.rx.*;
+import org.muis.rx.collect.DefaultObservableList;
+import org.muis.rx.collect.DefaultObservableSet;
+import org.muis.rx.collect.ObservableCollection;
+import org.muis.rx.collect.ObservableElement;
 
 import prisms.lang.Type;
 

@@ -6,7 +6,7 @@ import org.muis.core.MuisClassView;
 import org.muis.core.MuisException;
 import org.muis.core.eval.impl.ObservableEvaluator;
 import org.muis.core.model.MuisValueReferenceParser;
-import org.muis.core.rx.ObservableValue;
+import org.muis.rx.ObservableValue;
 
 import prisms.lang.*;
 import prisms.lang.eval.PrismsEvaluator;

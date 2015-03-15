@@ -8,8 +8,8 @@ import java.util.ListIterator;
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEvent;
-import org.muis.core.rx.Observable;
-import org.muis.core.rx.Observer;
+import org.muis.rx.Observable;
+import org.muis.rx.Observer;
 
 /**
  * An augmented, immutable list of elements

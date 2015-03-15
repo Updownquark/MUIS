@@ -4,7 +4,8 @@ import java.util.Set;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
-import org.muis.core.rx.*;
+import org.muis.rx.*;
+import org.muis.rx.collect.*;
 
 import prisms.lang.Type;
 

@@ -4,9 +4,9 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 
 /** Manages events for an element */
-public class MuisEventManager extends org.muis.core.rx.DefaultObservable<MuisEvent> {
+public class MuisEventManager extends org.muis.rx.DefaultObservable<MuisEvent> {
 	private final MuisElement theElement;
-	private org.muis.core.rx.Observer<MuisEvent> theController;
+	private org.muis.rx.Observer<MuisEvent> theController;
 
 	/** @param element The element that events are being managed for */
 	public MuisEventManager(MuisElement element) {

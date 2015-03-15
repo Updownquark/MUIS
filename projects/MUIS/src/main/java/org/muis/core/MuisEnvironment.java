@@ -7,8 +7,8 @@ import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.DefaultModelValueReferenceParser;
 import org.muis.core.parser.MuisContentCreator;
 import org.muis.core.parser.MuisParser;
-import org.muis.core.rx.ObservableList;
 import org.muis.core.style.sheet.StyleSheet;
+import org.muis.rx.collect.ObservableList;
 
 /** The environment that MUIS documents operate in */
 public class MuisEnvironment implements MuisParseEnv {
@@ -49,7 +49,7 @@ public class MuisEnvironment implements MuisParseEnv {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new MuisMessageCenter(this, null, null);
 		theCache = new MuisCache();
-		org.muis.core.rx.DefaultObservableList<StyleSheet> styleDepends = new org.muis.core.rx.DefaultObservableList<>(
+		org.muis.rx.collect.DefaultObservableList<StyleSheet> styleDepends = new org.muis.rx.collect.DefaultObservableList<>(
 			new prisms.lang.Type(StyleSheet.class));
 		theStyle = new EnvironmentStyle(styleDepends);
 		theStyleDependencyController = styleDepends.control(null);

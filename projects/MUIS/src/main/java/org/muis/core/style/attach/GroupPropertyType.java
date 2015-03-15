@@ -6,7 +6,7 @@ import org.muis.core.MuisAttribute;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
-import org.muis.core.rx.ObservableValue;
+import org.muis.rx.ObservableValue;
 
 import prisms.lang.Type;
 
@@ -93,7 +93,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 		if(split.length == 0)
 			return ObservableValue.constant(new String[0]);
 		else
-			return new org.muis.core.rx.ComposedObservableValue<>(new Type(String [].class), args -> {
+			return new org.muis.rx.ComposedObservableValue<>(new Type(String [].class), args -> {
 				String [] str = new String[args.length];
 				for(int i = 0; i < str.length; i++)
 					str[i] = (String) args[i];

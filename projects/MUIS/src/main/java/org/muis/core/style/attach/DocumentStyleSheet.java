@@ -13,8 +13,8 @@ public class DocumentStyleSheet extends AbstractStyleSheet {
 
 	/** @param doc The document that the style sheet is for */
 	public DocumentStyleSheet(org.muis.core.MuisDocument doc) {
-		super(new org.muis.core.rx.DefaultObservableList<>(new prisms.lang.Type(StyleSheet.class)));
-		theDependencyController = ((org.muis.core.rx.DefaultObservableList<StyleSheet>) getConditionalDependencies()).control(null);
+		super(new org.muis.rx.collect.DefaultObservableList<>(new prisms.lang.Type(StyleSheet.class)));
+		theDependencyController = ((org.muis.rx.collect.DefaultObservableList<StyleSheet>) getConditionalDependencies()).control(null);
 		theDoc = doc;
 		theDependencyController.add(0, theDoc.getEnvironment().getStyle());
 	}

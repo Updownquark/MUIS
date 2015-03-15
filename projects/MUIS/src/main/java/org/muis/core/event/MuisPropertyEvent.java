@@ -3,8 +3,8 @@ package org.muis.core.event;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.boole.TypedPredicate;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.ObservableValueEvent;
 
 /**
  * Represents an event that occurs when a property changes value.

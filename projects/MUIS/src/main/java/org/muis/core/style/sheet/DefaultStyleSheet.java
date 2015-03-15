@@ -1,13 +1,13 @@
 package org.muis.core.style.sheet;
 
-import org.muis.core.rx.ObservableList;
 import org.muis.core.style.StyleAttribute;
+import org.muis.rx.collect.ObservableList;
 
 /** A default dependency-less, mutable implementation of {@link StyleSheet} */
 public class DefaultStyleSheet extends SimpleStyleSheet implements MutableStyleSheet {
 	@Override
 	public ObservableList<StyleSheet> getConditionalDependencies() {
-		return (ObservableList<StyleSheet>) org.muis.core.rx.Observable.empty;
+		return (ObservableList<StyleSheet>) org.muis.rx.Observable.empty;
 	}
 
 	@Override

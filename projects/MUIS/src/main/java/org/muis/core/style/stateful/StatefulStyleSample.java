@@ -1,12 +1,12 @@
 package org.muis.core.style.stateful;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableSet;
 
 import prisms.lang.Type;
 

@@ -4,11 +4,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.muis.core.mgr.MuisState;
-import org.muis.core.rx.*;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
+import org.muis.rx.*;
+import org.muis.rx.collect.ObservableElement;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableSet;
 
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {

@@ -4,8 +4,8 @@ import org.muis.core.MuisAttribute;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.*;
+import org.muis.rx.ObservableValue;
 
 import prisms.lang.Type;
 

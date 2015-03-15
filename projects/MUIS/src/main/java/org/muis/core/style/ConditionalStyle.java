@@ -2,7 +2,8 @@ package org.muis.core.style;
 
 import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
 
-import org.muis.core.rx.*;
+import org.muis.rx.*;
+import org.muis.rx.collect.*;
 
 import prisms.lang.Type;
 

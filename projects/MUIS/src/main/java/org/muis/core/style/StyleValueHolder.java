@@ -4,7 +4,7 @@ import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
 
 import java.util.List;
 
-import org.muis.core.rx.DefaultObservableList;
+import org.muis.rx.collect.DefaultObservableList;
 
 import prisms.lang.Type;
 

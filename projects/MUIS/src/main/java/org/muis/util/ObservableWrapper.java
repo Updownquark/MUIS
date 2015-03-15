@@ -1,7 +1,7 @@
 package org.muis.util;
 
-import org.muis.core.rx.Observable;
-import org.muis.core.rx.Observer;
+import org.muis.rx.Observable;
+import org.muis.rx.Observer;
 
 /**
  * Wraps an observable

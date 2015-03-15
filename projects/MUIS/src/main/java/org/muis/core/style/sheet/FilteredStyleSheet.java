@@ -1,13 +1,13 @@
 package org.muis.core.style.sheet;
 
 import org.muis.core.MuisElement;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableOrderedCollection;
-import org.muis.core.rx.ObservableSet;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableOrderedCollection;
+import org.muis.rx.collect.ObservableSet;
 
 import prisms.util.ArrayUtils;
 

@@ -3,7 +3,11 @@ package org.muis.core.style;
 import java.util.AbstractSet;
 import java.util.Iterator;
 
-import org.muis.core.rx.*;
+import org.muis.rx.*;
+import org.muis.rx.collect.DefaultObservableList;
+import org.muis.rx.collect.ObservableElement;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableSet;
 
 import prisms.lang.Type;
 

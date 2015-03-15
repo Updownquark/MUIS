@@ -10,12 +10,12 @@ import java.util.ArrayList;
 import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.event.UserEvent;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.ObservableValueEvent;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.FontStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.ObservableValueEvent;
 
 import prisms.util.ArrayUtils;
 

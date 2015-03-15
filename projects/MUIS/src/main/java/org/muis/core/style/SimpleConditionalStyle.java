@@ -2,10 +2,10 @@ package org.muis.core.style;
 
 import java.util.Set;
 
-import org.muis.core.rx.DefaultObservableSet;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.collect.DefaultObservableSet;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableSet;
 
 import prisms.lang.Type;
 

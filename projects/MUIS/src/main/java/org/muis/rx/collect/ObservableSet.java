@@ -5,9 +5,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.muis.rx.*;
+import org.muis.rx.ObservableDebug.D;
 import org.muis.rx.Observable;
 import org.muis.rx.Observer;
-import org.muis.rx.ObservableDebug.D;
 
 import prisms.lang.Type;
 
@@ -317,6 +317,11 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 		};
 	}
 
+	@Override
+	default ObservableSet<E> immutable() {
+		return new Immutable<>(this);
+	}
+
 	/**
 	 * @param <T> The type of the collection
 	 * @param type The run-time type of the collection
@@ -587,5 +592,44 @@ public interface ObservableSet<E> extends ObservableCollection<E>, Set<E> {
 	 */
 	public static <T> ObservableSet<T> flattenCollections(ObservableCollection<T>... colls) {
 		return flatten(ObservableList.constant(new Type(ObservableCollection.class, new Type(Object.class, true)), colls));
+	}
+
+	/**
+	 * An observable set that cannot be modified directly, but reflects the value of a wrapped set as it changes
+	 *
+	 * @param <E> The type of elements in the set
+	 */
+	public static class Immutable<E> extends AbstractSet<E> implements ObservableSet<E> {
+		private final ObservableSet<E> theWrapped;
+
+		/** @param wrap The set to wrap */
+		public Immutable(ObservableSet<E> wrap) {
+			theWrapped = wrap;
+		}
+
+		@Override
+		public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+			return theWrapped.internalSubscribe(observer);
+		}
+
+		@Override
+		public Type getType() {
+			return theWrapped.getType();
+		}
+
+		@Override
+		public Iterator<E> iterator() {
+			return prisms.util.ArrayUtils.immutableIterator(theWrapped.iterator());
+		}
+
+		@Override
+		public int size() {
+			return theWrapped.size();
+		}
+
+		@Override
+		public Immutable<E> immutable() {
+			return this;
+		}
 	}
 }

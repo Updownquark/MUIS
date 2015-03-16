@@ -1,6 +1,7 @@
 package org.muis.rx.collect;
 
 import java.util.AbstractList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -275,6 +276,11 @@ public interface ObservableList<E> extends ObservableOrderedCollection<E>, List<
 		};
 	}
 
+	@Override
+	default ObservableList<E> immutable() {
+		return new Immutable<>(this);
+	}
+
 	/**
 	 * @param <T> The type of the value to wrap
 	 * @param type The type of the elements in the list
@@ -514,6 +520,50 @@ public interface ObservableList<E> extends ObservableOrderedCollection<E>, List<
 				if(theFilteredElements.get(i).isIncluded())
 					ret++;
 			return ret;
+		}
+	}
+
+	/**
+	 * An observable list that cannot be modified directly, but reflects the value of a wrapped list as it changes
+	 *
+	 * @param <E> The type of elements in the list
+	 */
+	public static class Immutable<E> extends AbstractList<E> implements ObservableList<E> {
+		private final ObservableList<E> theWrapped;
+
+		/** @param wrap The collection to wrap */
+		public Immutable(ObservableList<E> wrap) {
+			theWrapped = wrap;
+		}
+
+		@Override
+		public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+			return theWrapped.internalSubscribe(observer);
+		}
+
+		@Override
+		public Type getType() {
+			return theWrapped.getType();
+		}
+
+		@Override
+		public E get(int index) {
+			return theWrapped.get(index);
+		}
+
+		@Override
+		public Iterator<E> iterator() {
+			return prisms.util.ArrayUtils.immutableIterator(theWrapped.iterator());
+		}
+
+		@Override
+		public int size() {
+			return theWrapped.size();
+		}
+
+		@Override
+		public Immutable<E> immutable() {
+			return this;
 		}
 	}
 }

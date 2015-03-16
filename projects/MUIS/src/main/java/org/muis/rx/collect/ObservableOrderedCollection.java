@@ -348,6 +348,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 		return new FilteredOrderedCollection();
 	}
 
+	@Override
+	default ObservableOrderedCollection<E> immutable() {
+		return new Immutable<>(this);
+	}
+
 	/**
 	 * @param <E> The type of the collection to sort
 	 * @param coll The collection whose elements to sort
@@ -852,6 +857,45 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 		@Override
 		public void onError(Throwable e) {
 			theOuterObserver.onError(e);
+		}
+	}
+
+	/**
+	 * An observable ordered collection that cannot be modified directly, but reflects the value of a wrapped collection as it changes
+	 *
+	 * @param <E> The type of elements in the collection
+	 */
+	public static class Immutable<E> extends AbstractCollection<E> implements ObservableOrderedCollection<E> {
+		private final ObservableOrderedCollection<E> theWrapped;
+
+		/** @param wrap The collection to wrap */
+		public Immutable(ObservableOrderedCollection<E> wrap) {
+			theWrapped = wrap;
+		}
+
+		@Override
+		public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+			return theWrapped.internalSubscribe(observer);
+		}
+
+		@Override
+		public Type getType() {
+			return theWrapped.getType();
+		}
+
+		@Override
+		public Iterator<E> iterator() {
+			return prisms.util.ArrayUtils.immutableIterator(theWrapped.iterator());
+		}
+
+		@Override
+		public int size() {
+			return theWrapped.size();
+		}
+
+		@Override
+		public Immutable<E> immutable() {
+			return this;
 		}
 	}
 }

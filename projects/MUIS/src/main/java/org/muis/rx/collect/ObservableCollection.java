@@ -301,6 +301,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		};
 	}
 
+	/** @return An observable collection that cannot be modified directly but reflects the value of this collection as it changes */
+	default ObservableCollection<E> immutable() {
+		return new Immutable<>(this);
+	}
+
 	/**
 	 * @param <T> An observable collection that contains all elements in all collections in the wrapping collection
 	 * @param coll The collection to flatten
@@ -619,6 +624,45 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		@Override
 		public String toString() {
 			return "flattened(" + subElement.toString() + ")";
+		}
+	}
+
+	/**
+	 * An observable collection that cannot be modified directly, but reflects the value of a wrapped collection as it changes
+	 * 
+	 * @param <E> The type of elements in the collection
+	 */
+	public static class Immutable<E> extends AbstractCollection<E> implements ObservableCollection<E> {
+		private final ObservableCollection<E> theWrapped;
+
+		/** @param wrap The collection to wrap */
+		public Immutable(ObservableCollection<E> wrap) {
+			theWrapped = wrap;
+		}
+
+		@Override
+		public Runnable internalSubscribe(Observer<? super ObservableElement<E>> observer) {
+			return theWrapped.internalSubscribe(observer);
+		}
+
+		@Override
+		public Type getType() {
+			return theWrapped.getType();
+		}
+
+		@Override
+		public Iterator<E> iterator() {
+			return prisms.util.ArrayUtils.immutableIterator(theWrapped.iterator());
+		}
+
+		@Override
+		public int size() {
+			return theWrapped.size();
+		}
+
+		@Override
+		public Immutable<E> immutable() {
+			return this;
 		}
 	}
 }

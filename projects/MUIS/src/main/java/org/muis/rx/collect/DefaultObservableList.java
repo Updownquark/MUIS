@@ -6,11 +6,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.muis.rx.DefaultObservable;
+import org.muis.rx.DefaultObservable.OnSubscribe;
 import org.muis.rx.ObservableValue;
 import org.muis.rx.ObservableValueEvent;
 import org.muis.rx.Observer;
-import org.muis.rx.DefaultObservable.OnSubscribe;
 
 import prisms.lang.Type;
 
@@ -29,7 +28,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 
 	private ReentrantReadWriteLock theLock;
 	private AtomicBoolean hasIssuedController = new AtomicBoolean(false);
-	private org.muis.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> theOnSubscribe;
+	private OnSubscribe<ObservableElement<E>> theOnSubscribe;
 	private java.util.concurrent.ConcurrentHashMap<Observer<? super ObservableElement<E>>, ConcurrentLinkedQueue<Runnable>> theObservers;
 	private volatile ObservableElementImpl<E> theRemovedElement;
 	private volatile int theRemovedElementIndex;
@@ -56,8 +55,11 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	/**
 	 * @param action The action to perform under a lock
 	 * @param write Whether to perform the action under a write lock or a read lock
+	 * @param errIfControlled Whether to throw an exception if this list is controlled
 	 */
-	protected void doLocked(Runnable action, boolean write) {
+	protected void doLocked(Runnable action, boolean write, boolean errIfControlled) {
+		if(errIfControlled && hasIssuedController.get())
+			throw new IllegalStateException("Controlled default observable collections cannot be modified directly");
 		Lock lock = write ? theLock.writeLock() : theLock.readLock();
 		lock.lock();
 		try {
@@ -72,13 +74,14 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 	}
 
 	/**
-	 * Obtains the controller for this list. Only one call can be made to this method. All calls after the first will throw an
-	 * {@link IllegalStateException}.
+	 * Obtains the controller for this list. Once this is called, the observable list cannot be modified directly, but only through the
+	 * controller. Modification methods to this list after this call will throw an {@link IllegalStateException}. Only one call can be made
+	 * to this method. All calls after the first will throw an {@link IllegalStateException}.
 	 *
 	 * @param onSubscribe The listener to be notified when new subscriptions to this collection are made
 	 * @return The list to control this list's data.
 	 */
-	public List<E> control(org.muis.rx.DefaultObservable.OnSubscribe<ObservableElement<E>> onSubscribe) {
+	public List<E> control(OnSubscribe<ObservableElement<E>> onSubscribe) {
 		if(hasIssuedController.getAndSet(true))
 			throw new IllegalStateException("This observable list is already controlled");
 		theOnSubscribe = onSubscribe;
@@ -92,7 +95,7 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		doLocked(() -> {
 			for(ObservableElementImpl<E> el : theElements)
 				observer.onNext(newValue(el, subSubscriptions));
-		}, false);
+		}, false, false);
 		if(theOnSubscribe != null)
 			theOnSubscribe.onsubscribe(observer);
 		return () -> {
@@ -172,13 +175,274 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		Object [] ret = new Object[1];
 		doLocked(() -> {
 			ret[0] = theValues.get(index);
-		}, false);
+		}, false, false);
 		return (E) ret[0];
 	}
 
 	@Override
 	public int size() {
 		return theValues.size();
+	}
+
+	@Override
+	public boolean contains(Object o) {
+		boolean [] ret = new boolean[1];
+		doLocked(() -> {
+			ret[0] = theValues.contains(o);
+		}, false, false);
+		return ret[0];
+	}
+
+	@Override
+	public Object [] toArray() {
+		Object [][] ret = new Object[1][];
+		doLocked(() -> {
+			ret[0] = theValues.toArray();
+		}, false, false);
+		return ret[0];
+	}
+
+	@Override
+	public <T> T [] toArray(T [] a) {
+		Object [][] ret = new Object[1][];
+		doLocked(() -> {
+			ret[0] = theValues.toArray(a);
+		}, false, false);
+		return (T []) ret[0];
+	}
+
+	@Override
+	public int indexOf(Object o) {
+		int [] ret = new int[1];
+		doLocked(() -> {
+			ret[0] = theValues.indexOf(o);
+		}, false, false);
+		return ret[0];
+	}
+
+	@Override
+	public int lastIndexOf(Object o) {
+		int [] ret = new int[1];
+		doLocked(() -> {
+			ret[0] = theValues.lastIndexOf(o);
+		}, false, false);
+		return ret[0];
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		boolean [] ret = new boolean[1];
+		doLocked(() -> {
+			ret[0] = theValues.containsAll(c);
+		}, false, false);
+		return ret[0];
+	}
+
+	@Override
+	public boolean add(E e) {
+		doLocked(() -> {
+			addImpl(e);
+		}, true, true);
+		return true;
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		boolean [] ret = new boolean[1];
+		doLocked(() -> {
+			ret[0] = removeImpl(o);
+		}, true, false);
+		return ret[0];
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends E> c) {
+		if(c.isEmpty())
+			return false;
+		doLocked(() -> {
+			addAllImpl(c);
+		}, true, false);
+		return true;
+	}
+
+	@Override
+	public boolean addAll(int index, Collection<? extends E> c) {
+		if(c.isEmpty())
+			return false;
+		doLocked(() -> {
+			addAllImpl(index, c);
+		}, true, true);
+		return true;
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		if(c.isEmpty())
+			return false;
+		boolean [] ret = new boolean[] {false};
+		doLocked(() -> {
+			ret[0] = removeAllImpl(c);
+		}, true, true);
+		return ret[0];
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		if(c.isEmpty()) {
+			boolean ret = !isEmpty();
+			clear();
+			return ret;
+		}
+		boolean [] ret = new boolean[1];
+		doLocked(() -> {
+			ret[0] = retainAllImpl(c);
+		}, true, true);
+		return ret[0];
+	}
+
+	@Override
+	public void clear() {
+		doLocked(() -> {
+			clearImpl();
+		}, true, true);
+	}
+
+	@Override
+	public E set(int index, E element) {
+		Object [] ret = new Object[1];
+		doLocked(() -> {
+			ret[0] = setImpl(index, element);
+		}, true, true);
+		return (E) ret[0];
+	}
+
+	@Override
+	public void add(int index, E element) {
+		doLocked(() -> {
+			addImpl(index, element);
+		}, true, true);
+	}
+
+	@Override
+	public E remove(int index) {
+		Object [] ret = new Object[1];
+		doLocked(() -> {
+			ret[0] = removeImpl(index);
+		}, true, true);
+		return (E) ret[0];
+	}
+
+	private void addImpl(Object e) {
+		E val = (E) theType.cast(e);
+		theValues.add(val);
+		ObservableElementImpl<E> add = new ObservableElementImpl<>(theType, val);
+		theElements.add(add);
+		fireNewElement(add);
+	}
+
+	private boolean removeImpl(Object o) {
+		int idx = theValues.indexOf(o);
+		if(idx < 0) {
+			return false;
+		}
+		theValues.remove(idx);
+		theRemovedElement = theElements.remove(idx);
+		theRemovedElementIndex = idx;
+		theRemovedElement.remove();
+		return true;
+	}
+
+	private void addAllImpl(Collection<? extends E> c) {
+		for(E e : c) {
+			E val = (E) theType.cast(e);
+			theValues.add(val);
+			ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
+			theElements.add(newWrapper);
+			fireNewElement(newWrapper);
+		}
+	}
+
+	private void addAllImpl(int index, Collection<? extends E> c) {
+		int idx = index;
+		for(E e : c) {
+			E val = (E) theType.cast(e);
+			theValues.add(idx, val);
+			ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
+			theElements.add(idx, newWrapper);
+			fireNewElement(newWrapper);
+			idx++;
+		}
+	}
+
+	private boolean removeAllImpl(Collection<?> c) {
+		boolean ret = false;
+		for(Object o : c) {
+			int idx = theValues.indexOf(o);
+			if(idx >= 0) {
+				ret = true;
+				theValues.remove(idx);
+				theRemovedElement = theElements.remove(idx);
+				theRemovedElementIndex = idx;
+				theRemovedElement.remove();
+			}
+		}
+		return ret;
+	}
+
+	private boolean retainAllImpl(Collection<?> c) {
+		boolean ret = false;
+		BitSet keep = new BitSet();
+		for(Object o : c) {
+			int idx = theValues.indexOf(o);
+			if(idx >= 0)
+				keep.set(idx);
+		}
+		ret = keep.nextClearBit(0) < theValues.size();
+		if(ret) {
+			for(int i = theValues.size() - 1; i >= 0; i--)
+				if(!keep.get(i)) {
+					theValues.remove(i);
+					theRemovedElement = theElements.remove(i);
+					theRemovedElementIndex = i;
+					theRemovedElement.remove();
+				}
+		}
+		return ret;
+	}
+
+	private void clearImpl() {
+		theValues.clear();
+		ArrayList<ObservableElementImpl<E>> remove = new ArrayList<>();
+		remove.addAll(theElements);
+		theElements.clear();
+		for(int i = remove.size() - 1; i >= 0; i--) {
+			theRemovedElement = remove.get(i);
+			theRemovedElementIndex = i;
+			theRemovedElement.remove();
+		}
+	}
+
+	private E setImpl(int index, E element) {
+		E val = (E) theType.cast(element);
+		E ret = theValues.set(index, val);
+		theElements.get(index).set(val);
+		return ret;
+	}
+
+	private void addImpl(int index, E element) {
+		E val = (E) theType.cast(element);
+		theValues.add(index, val);
+		ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
+		theElements.add(index, newWrapper);
+		fireNewElement(newWrapper);
+	}
+
+	private E removeImpl(int index) {
+		E ret = theValues.remove(index);
+		theRemovedElement = theElements.remove(index);
+		theRemovedElementIndex = index;
+		theRemovedElement.remove();
+		return ret;
 	}
 
 	@Override
@@ -201,76 +465,44 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 
 		@Override
 		public boolean contains(Object o) {
-			boolean [] ret = new boolean[1];
-			doLocked(() -> {
-				ret[0] = theValues.contains(o);
-			}, false);
-			return ret[0];
+			return DefaultObservableList.this.contains(o);
 		}
 
 		@Override
 		public Object [] toArray() {
-			Object [][] ret = new Object[1][];
-			doLocked(() -> {
-				ret[0] = theValues.toArray();
-			}, false);
-			return ret[0];
+			return DefaultObservableList.this.toArray();
 		}
 
 		@Override
 		public <T> T [] toArray(T [] a) {
-			Object [][] ret = new Object[1][];
-			doLocked(() -> {
-				ret[0] = theValues.toArray(a);
-			}, false);
-			return (T []) ret[0];
+			return DefaultObservableList.this.toArray(a);
 		}
 
 		@Override
 		public E get(int index) {
-			Object [] ret = new Object[1];
-			doLocked(() -> {
-				ret[0] = theValues.get(index);
-			}, false);
-			return (E) ret[0];
+			return DefaultObservableList.this.get(index);
 		}
 
 		@Override
 		public int indexOf(Object o) {
-			int [] ret = new int[1];
-			doLocked(() -> {
-				ret[0] = theValues.indexOf(o);
-			}, false);
-			return ret[0];
+			return DefaultObservableList.this.indexOf(o);
 		}
 
 		@Override
 		public int lastIndexOf(Object o) {
-			int [] ret = new int[1];
-			doLocked(() -> {
-				ret[0] = theValues.lastIndexOf(o);
-			}, false);
-			return ret[0];
+			return DefaultObservableList.this.lastIndexOf(o);
 		}
 
 		@Override
 		public boolean containsAll(Collection<?> c) {
-			boolean [] ret = new boolean[1];
-			doLocked(() -> {
-				ret[0] = theValues.containsAll(c);
-			}, false);
-			return ret[0];
+			return DefaultObservableList.this.containsAll(c);
 		}
 
 		@Override
 		public boolean add(E e) {
 			doLocked(() -> {
-				E val = (E) theType.cast(e);
-				theValues.add(val);
-				ObservableElementImpl<E> add = new ObservableElementImpl<>(theType, val);
-				theElements.add(add);
-				fireNewElement(add);
-			}, true);
+				addImpl(e);
+			}, true, false);
 			return true;
 		}
 
@@ -278,17 +510,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 		public boolean remove(Object o) {
 			boolean [] ret = new boolean[1];
 			doLocked(() -> {
-				int idx = theValues.indexOf(o);
-				if(idx < 0) {
-					ret[0] = false;
-					return;
-				}
-				ret[0] = true;
-				theValues.remove(idx);
-				theRemovedElement = theElements.remove(idx);
-				theRemovedElementIndex = idx;
-				theRemovedElement.remove();
-			}, true);
+				ret[0] = removeImpl(o);
+			}, true, false);
 			return ret[0];
 		}
 
@@ -297,14 +520,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 			if(c.isEmpty())
 				return false;
 			doLocked(() -> {
-				for(E e : c) {
-					E val = (E) theType.cast(e);
-					theValues.add(val);
-					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
-					theElements.add(newWrapper);
-					fireNewElement(newWrapper);
-				}
-			}, true);
+				addAllImpl(c);
+			}, true, false);
 			return true;
 		}
 
@@ -313,16 +530,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 			if(c.isEmpty())
 				return false;
 			doLocked(() -> {
-				int idx = index;
-				for(E e : c) {
-					E val = (E) theType.cast(e);
-					theValues.add(idx, val);
-					ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
-					theElements.add(idx, newWrapper);
-					fireNewElement(newWrapper);
-					idx++;
-				}
-			}, true);
+				addAllImpl(index, c);
+			}, true, false);
 			return true;
 		}
 
@@ -332,19 +541,8 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 				return false;
 			boolean [] ret = new boolean[] {false};
 			doLocked(() -> {
-				for(Object o : c) {
-					int idx = theValues.indexOf(o);
-					if(idx >= 0) {
-						if(!ret[0]) {
-							ret[0] = true;
-						}
-						theValues.remove(idx);
-						theRemovedElement = theElements.remove(idx);
-						theRemovedElementIndex = idx;
-						theRemovedElement.remove();
-					}
-				}
-			}, true);
+				ret[0] = removeAllImpl(c);
+			}, true, false);
 			return ret[0];
 		}
 
@@ -357,72 +555,40 @@ public class DefaultObservableList<E> extends AbstractList<E> implements Observa
 			}
 			boolean [] ret = new boolean[1];
 			doLocked(() -> {
-				BitSet keep = new BitSet();
-				for(Object o : c) {
-					int idx = theValues.indexOf(o);
-					if(idx >= 0)
-						keep.set(idx);
-				}
-				ret[0] = keep.nextClearBit(0) < theValues.size();
-				if(ret[0]) {
-					for(int i = theValues.size() - 1; i >= 0; i--)
-						if(!keep.get(i)) {
-							theValues.remove(i);
-							theRemovedElement = theElements.remove(i);
-							theRemovedElementIndex = i;
-							theRemovedElement.remove();
-						}
-				}
-			}, true);
+				ret[0] = retainAllImpl(c);
+			}, true, false);
 			return ret[0];
 		}
 
 		@Override
 		public void clear() {
 			doLocked(() -> {
-				theValues.clear();
-				ArrayList<ObservableElementImpl<E>> remove = new ArrayList<>();
-				remove.addAll(theElements);
-				theElements.clear();
-				for(int i = remove.size() - 1; i >= 0; i--) {
-					theRemovedElement = remove.get(i);
-					theRemovedElementIndex = i;
-					theRemovedElement.remove();
-				}
-			}, true);
+				clearImpl();
+			}, true, false);
 		}
 
 		@Override
 		public E set(int index, E element) {
 			Object [] ret = new Object[1];
 			doLocked(() -> {
-				E val = (E) theType.cast(element);
-				ret[0] = theValues.set(index, val);
-				theElements.get(index).set(val);
-			}, true);
+				ret[0] = setImpl(index, element);
+			}, true, false);
 			return (E) ret[0];
 		}
 
 		@Override
 		public void add(int index, E element) {
 			doLocked(() -> {
-				E val = (E) theType.cast(element);
-				theValues.add(index, val);
-				ObservableElementImpl<E> newWrapper = new ObservableElementImpl<>(theType, val);
-				theElements.add(index, newWrapper);
-				fireNewElement(newWrapper);
-			}, true);
+				addImpl(index, element);
+			}, true, false);
 		}
 
 		@Override
 		public E remove(int index) {
 			Object [] ret = new Object[1];
 			doLocked(() -> {
-				ret[0] = theValues.remove(index);
-				theRemovedElement = theElements.remove(index);
-				theRemovedElementIndex = index;
-				theRemovedElement.remove();
-			}, true);
+				ret[0] = removeImpl(index);
+			}, true, false);
 			return (E) ret[0];
 		}
 	}

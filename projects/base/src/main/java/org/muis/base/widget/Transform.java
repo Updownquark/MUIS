@@ -5,6 +5,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
+import org.muis.*;
 import org.muis.core.*;
 import org.muis.core.layout.LayoutGuideType;
 import org.muis.core.layout.Orientation;

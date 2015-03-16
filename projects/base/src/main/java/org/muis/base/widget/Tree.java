@@ -3,6 +3,7 @@ package org.muis.base.widget;
 import java.awt.*;
 import java.util.ArrayList;
 
+import org.muis.*;
 import org.muis.base.model.TreePath;
 import org.muis.base.model.TreePathSet;
 import org.muis.base.model.TreeSelectionModel;
@@ -10,11 +11,14 @@ import org.muis.core.*;
 import org.muis.core.event.MouseEvent;
 import org.muis.core.layout.LayoutGuideType;
 import org.muis.core.layout.SizeGuide;
-import org.muis.core.rx.*;
 import org.muis.core.style.LayoutStyle;
 import org.muis.core.style.Size;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.tags.Template;
+import org.muis.rx.Observable;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.SettableValue;
+import org.muis.rx.collect.ObservableTree;
 
 import prisms.lang.Type;
 

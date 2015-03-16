@@ -6,9 +6,9 @@ import org.muis.core.event.MuisEvent;
 import org.muis.core.event.StateChangedEvent;
 import org.muis.core.event.UserEvent;
 import org.muis.core.model.ModelAttributes;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
+import org.muis.rx.ObservableValue;
 import org.muis.util.MuisUtils;
 
 /**
@@ -67,12 +67,12 @@ public class ToggleButton extends Button {
 		ObservableValue<Boolean> modelValue = (ObservableValue<Boolean>) atts().get(ModelAttributes.value);
 		if(modelValue == null)
 			return;
-		if(!(modelValue instanceof org.muis.core.rx.SettableValue) || modelValue.getType().canAssignTo(Boolean.TYPE))
+		if(!(modelValue instanceof org.muis.rx.SettableValue) || modelValue.getType().canAssignTo(Boolean.TYPE))
 			return;
 		if(modelValue.get().booleanValue() == value)
 			return;
 		try {
-			((org.muis.core.rx.SettableValue<Boolean>) modelValue).set(value, cause);
+			((org.muis.rx.SettableValue<Boolean>) modelValue).set(value, cause);
 		} catch(RuntimeException e) {
 			msg().error("Model value threw exception for value \"" + value + "\"", e);
 		}

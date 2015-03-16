@@ -21,7 +21,7 @@ public class PaintWidget extends org.muis.base.widget.Block {
 		events().filterMap(BoundsChangedEvent.bounds).act(event -> {
 			resized();
 		});
-		events().filterMap(MouseEvent.mouse).act(new org.muis.core.rx.Action<MouseEvent>() {
+		events().filterMap(MouseEvent.mouse).act(new org.muis.rx.Action<MouseEvent>() {
 			private boolean isMouseDown;
 
 			@Override

@@ -3,7 +3,7 @@ package org.muis.base.model.impl;
 import org.muis.base.model.SpinnerModel;
 import org.muis.core.model.MuisActionEvent;
 import org.muis.core.model.MuisActionListener;
-import org.muis.core.rx.*;
+import org.muis.rx.*;
 
 import prisms.lang.Type;
 
@@ -29,7 +29,7 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 	 */
 	protected SimpleSpinnerModel(Type type, T value, boolean settable) {
 		if(settable) {
-			theObservableValue = new org.muis.core.rx.DefaultSettableValue<T>() {
+			theObservableValue = new org.muis.rx.DefaultSettableValue<T>() {
 				@Override
 				public Type getType() {
 					return type;

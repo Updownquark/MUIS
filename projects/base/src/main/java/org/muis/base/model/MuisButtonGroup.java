@@ -3,7 +3,7 @@ package org.muis.base.model;
 import org.muis.core.model.MuisActionListener;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisWidgetModel;
-import org.muis.core.rx.*;
+import org.muis.rx.*;
 
 import prisms.lang.Type;
 

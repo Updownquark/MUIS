@@ -9,11 +9,11 @@ import org.muis.core.layout.SizeGuide;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionEvent;
 import org.muis.core.model.MuisActionListener;
-import org.muis.core.rx.Action;
 import org.muis.core.style.BackgroundStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
+import org.muis.rx.Action;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
 @Template(location = "../../../../simple-container.muis")

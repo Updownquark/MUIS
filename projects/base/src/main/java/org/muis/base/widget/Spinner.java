@@ -7,9 +7,9 @@ import org.muis.core.MuisProperty;
 import org.muis.core.MuisTemplate;
 import org.muis.core.model.ModelAttributes;
 import org.muis.core.model.MuisActionListener;
-import org.muis.core.rx.ObservableValue;
-import org.muis.core.rx.SettableValue;
 import org.muis.core.tags.Template;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.SettableValue;
 
 import prisms.lang.Type;
 

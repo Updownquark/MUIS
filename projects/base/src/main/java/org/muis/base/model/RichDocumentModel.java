@@ -6,13 +6,14 @@ import java.util.List;
 
 import org.muis.core.model.MutableDocumentModel;
 import org.muis.core.model.MutableSelectableDocumentModel;
-import org.muis.core.rx.ObservableList;
-import org.muis.core.rx.ObservableSet;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.MutableStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
+import org.muis.rx.ObservableValue;
+import org.muis.rx.collect.DefaultObservableSet;
+import org.muis.rx.collect.ObservableList;
+import org.muis.rx.collect.ObservableSet;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;
@@ -425,8 +426,8 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> localAttributes() {
-			org.muis.core.rx.DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new org.muis.core.rx.DefaultObservableSet<>(
-				new Type(ObservableSet.class, new Type(StyleAttribute.class, new Type(Object.class, true))));
+			DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
+				StyleAttribute.class, new Type(Object.class, true))));
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().localAttributes());

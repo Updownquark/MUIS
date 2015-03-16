@@ -12,8 +12,8 @@ import org.muis.core.MuisConstants;
 import org.muis.core.MuisException;
 import org.muis.core.MuisTextElement;
 import org.muis.core.model.*;
-import org.muis.core.rx.ObservableValue;
 import org.muis.core.tags.Template;
+import org.muis.rx.ObservableValue;
 import org.muis.util.Transaction;
 
 import prisms.lang.Type;

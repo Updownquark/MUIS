@@ -1,10 +1,10 @@
 package org.muis.base.model;
 
-import org.muis.core.rx.ObservableCollection;
+import org.muis.rx.collect.ObservableCollection;
 
 /**
  * A set of tree paths
- * 
+ *
  * @param <E> The type of element in the tree
  */
 public interface TreePathSet<E> extends ObservableCollection<TreePath<E>> {

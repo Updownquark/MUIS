@@ -1,4 +1,4 @@
-package org.muis.core.rx;
+package org.muis.rx;
 
 import static org.junit.Assert.assertEquals;
 

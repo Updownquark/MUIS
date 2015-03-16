@@ -15,7 +15,6 @@ import org.muis.core.model.MuisDocumentModel.StyledSequence;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.MuisParseException;
 import org.muis.core.style.*;
-import org.muis.style.*;
 
 /** Parses and formats text in the MUIS rich format */
 public class MuisRichTextParser {

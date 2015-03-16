@@ -1,9 +1,9 @@
-package org.muis.core;
+package org.muis;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-import org.muis.core.rx.ObservableTest;
 import org.muis.core.style.StylesTest;
+import org.muis.rx.ObservableTest;
 
 /** Runs all MUIS unit tests */
 @RunWith(Suite.class)

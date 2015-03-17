@@ -19,8 +19,12 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	/** @return The type of elements in this collection */
 	Type getType();
 
-	/** @return An observable that returns null whenever any elements in it are added, removed or changed */
-	default Observable<Void> changes() {
+	Transaction startTransaction();
+
+	CollectionSession getSession();
+
+	/** @return An observable that fires a change event whenever any elements in it are added, removed or changed */
+	default Observable<? extends CollectionChangeEvent<E>> changes() {
 		return new Observable<Void>() {
 			ObservableCollection<E> coll = ObservableCollection.this;
 
@@ -629,7 +633,7 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 
 	/**
 	 * An observable collection that cannot be modified directly, but reflects the value of a wrapped collection as it changes
-	 * 
+	 *
 	 * @param <E> The type of elements in the collection
 	 */
 	public static class Immutable<E> extends AbstractCollection<E> implements ObservableCollection<E> {

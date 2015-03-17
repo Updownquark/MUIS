@@ -20,6 +20,11 @@ import prisms.lang.Type;
  * @param <E> The type of element in the collection
  */
 public interface ObservableOrderedCollection<E> extends ObservableCollection<E> {
+	/** @return An observable that returns null whenever any elements in it are added, removed or changed */
+	@Override
+	default Observable<? extends OrderedCollectionChangeEvent<E>> changes() {
+	}
+
 	/**
 	 * @param <V> Type of the observable value to return
 	 * @param type The run-time type of the value to return

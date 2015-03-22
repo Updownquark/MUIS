@@ -19,59 +19,15 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 	/** @return The type of elements in this collection */
 	Type getType();
 
-	Transaction startTransaction();
-
-	CollectionSession getSession();
+	/**
+	 * @return The observable value for the current session of this collection. The session allows listeners to retain state for the duration
+	 *         of a unit of work (controlled by implementation-specific means), batching events where possible.
+	 */
+	ObservableValue<CollectionSession> getSession();
 
 	/** @return An observable that fires a change event whenever any elements in it are added, removed or changed */
 	default Observable<? extends CollectionChangeEvent<E>> changes() {
-		return new Observable<Void>() {
-			ObservableCollection<E> coll = ObservableCollection.this;
-
-			@Override
-			public Runnable internalSubscribe(Observer<? super Void> observer) {
-				boolean [] finishedInitial = new boolean[1];
-				Runnable outerSub = coll.internalSubscribe(new Observer<ObservableElement<E>>() {
-					@Override
-					public <V extends ObservableElement<E>> void onNext(V value) {
-						value.subscribe(new Observer<ObservableValueEvent<E>>() {
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onNext(V2 value2) {
-								if(finishedInitial[0])
-									observer.onNext(null);
-							}
-
-							@Override
-							public <V2 extends ObservableValueEvent<E>> void onCompleted(V2 value2) {
-								observer.onNext(null);
-							}
-
-							@Override
-							public void onError(Throwable e) {
-								observer.onError(e);
-							}
-						});
-					}
-
-					@Override
-					public <V extends ObservableElement<E>> void onCompleted(V value) {
-						observer.onCompleted(null);
-					}
-
-					@Override
-					public void onError(Throwable e) {
-						observer.onError(e);
-					}
-				});
-				finishedInitial[0] = true;
-				return outerSub;
-			}
-
-			@Override
-			public String toString() {
-				return "changes(" + coll + ")";
-			}
-		};
+		return new CollectionChangesObservable<>(this);
 	}
 
 	/** @return An observable that passes along only events for removal of elements from the collection */
@@ -116,6 +72,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 			@Override
 			public Type getType() {
 				return type;
+			}
+
+			@Override
+			public ObservableValue<CollectionSession> getSession() {
+				return outerColl.getSession();
 			}
 
 			@Override
@@ -203,6 +164,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 			@Override
 			public Type getType() {
 				return type;
+			}
+
+			@Override
+			public ObservableValue<CollectionSession> getSession() {
+				return outer.getSession();
 			}
 
 			@Override
@@ -642,6 +608,11 @@ public interface ObservableCollection<E> extends Collection<E>, Observable<Obser
 		/** @param wrap The collection to wrap */
 		public Immutable(ObservableCollection<E> wrap) {
 			theWrapped = wrap;
+		}
+
+		@Override
+		public ObservableValue<CollectionSession> getSession() {
+			return theWrapped.getSession();
 		}
 
 		@Override

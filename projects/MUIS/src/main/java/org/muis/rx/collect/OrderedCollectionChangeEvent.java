@@ -12,4 +12,10 @@ public class OrderedCollectionChangeEvent<E> extends CollectionChangeEvent<E> {
 		indexes = idxs;
 		indexes.seal();
 	}
+
+	public OrderedCollectionChangeEvent(CollectionChangeType type, E value, int idx) {
+		super(type, value);
+		indexes = new IntList(new int[] {idx});
+		indexes.seal();
+	}
 }

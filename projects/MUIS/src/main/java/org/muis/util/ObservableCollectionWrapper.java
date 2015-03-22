@@ -3,7 +3,9 @@ package org.muis.util;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.muis.rx.ObservableValue;
 import org.muis.rx.Observer;
+import org.muis.rx.collect.CollectionSession;
 import org.muis.rx.collect.ObservableCollection;
 import org.muis.rx.collect.ObservableElement;
 
@@ -25,6 +27,11 @@ public class ObservableCollectionWrapper<T> implements ObservableCollection<T> {
 	@Override
 	public Type getType() {
 		return theWrapped.getType();
+	}
+
+	@Override
+	public ObservableValue<CollectionSession> getSession() {
+		return theWrapped.getSession();
 	}
 
 	@Override

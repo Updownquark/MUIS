@@ -1,6 +1,8 @@
 package org.muis.rx.collect;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public class CollectionChangeEvent<E> {
 	public final CollectionChangeType type;
@@ -8,6 +10,11 @@ public class CollectionChangeEvent<E> {
 
 	public CollectionChangeEvent(CollectionChangeType aType, Collection<E> val) {
 		type = aType;
-		values = val;
+		values = Collections.unmodifiableCollection(val);
+	}
+
+	public CollectionChangeEvent(CollectionChangeType aType, E... val) {
+		type = aType;
+		values = Collections.unmodifiableCollection(Arrays.asList(val));
 	}
 }

@@ -23,6 +23,7 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 	/** @return An observable that returns null whenever any elements in it are added, removed or changed */
 	@Override
 	default Observable<? extends OrderedCollectionChangeEvent<E>> changes() {
+		return new OrderedCollectionChangesObservable<>(this);
 	}
 
 	/**
@@ -213,6 +214,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 			}
 
 			@Override
+			public ObservableValue<CollectionSession> getSession() {
+				return outerColl.getSession();
+			}
+
+			@Override
 			public int size() {
 				return outerColl.size();
 			}
@@ -286,6 +292,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 			@Override
 			public Type getType() {
 				return type;
+			}
+
+			@Override
+			public ObservableValue<CollectionSession> getSession() {
+				return outer.getSession();
 			}
 
 			@Override
@@ -794,6 +805,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 			theCompare = compare;
 		}
 
+		@Override
+		public ObservableValue<CollectionSession> getSession() {
+			return theWrapped.getSession();
+		}
+
 		Comparator<? super E> getCompare() {
 			return theCompare;
 		}
@@ -886,6 +902,11 @@ public interface ObservableOrderedCollection<E> extends ObservableCollection<E> 
 		@Override
 		public Type getType() {
 			return theWrapped.getType();
+		}
+
+		@Override
+		public ObservableValue<CollectionSession> getSession() {
+			return theWrapped.getSession();
 		}
 
 		@Override

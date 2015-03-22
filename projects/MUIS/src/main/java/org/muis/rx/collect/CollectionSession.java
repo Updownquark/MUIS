@@ -1,7 +1,6 @@
 package org.muis.rx.collect;
 
-import java.util.Map;
-
 public interface CollectionSession {
-	Map<String, Object> getProperties(Object listener);
+	Object get(Object listener, String key);
+	Object put(Object listener, String key, Object value);
 }

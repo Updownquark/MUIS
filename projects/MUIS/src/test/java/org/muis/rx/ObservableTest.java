@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.junit.Test;
-import org.muis.rx.*;
 import org.muis.rx.collect.*;
 
 import prisms.lang.Type;

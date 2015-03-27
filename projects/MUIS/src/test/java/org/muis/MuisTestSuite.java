@@ -3,7 +3,7 @@ package org.muis;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.muis.core.style.StylesTest;
-import org.muis.rx.ObservableTest;
+import org.observe.ObservableTest;
 
 /** Runs all MUIS unit tests */
 @RunWith(Suite.class)

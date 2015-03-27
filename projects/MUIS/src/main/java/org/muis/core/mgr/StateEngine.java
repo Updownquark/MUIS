@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.StateChangedEvent;
-import org.muis.rx.*;
 import org.observe.*;
 import org.observe.collect.DefaultObservableSet;
 import org.observe.collect.ObservableSet;

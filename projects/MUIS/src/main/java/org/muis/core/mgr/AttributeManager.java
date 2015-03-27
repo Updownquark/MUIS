@@ -6,9 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.rx.*;
 import org.observe.*;
-import org.observe.DefaultObservableValue;
 
 import prisms.lang.Type;
 

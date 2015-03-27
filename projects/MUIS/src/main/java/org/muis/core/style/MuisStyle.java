@@ -4,11 +4,14 @@ import java.util.Set;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
-import org.muis.rx.*;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
-import org.observe.collect.*;
+import org.observe.collect.DefaultObservableSet;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
+import org.observe.util.ObservableUtils;
 
 import prisms.lang.Type;
 
@@ -104,7 +107,7 @@ public interface MuisStyle {
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<T> dependValue = ObservableUtils.flattenListValues(attr.getType().getType(),
 			getDependencies().mapC(depend -> depend.get(attr, false))).find(attr.getType().getType(), val -> val);
-		return new org.muis.util.ObservableValueWrapper<T>(getLocal(attr).combineV(null, (T local, T depend) -> {
+		return new org.observe.util.ObservableValueWrapper<T>(getLocal(attr).combineV(null, (T local, T depend) -> {
 			if(local != null)
 				return local;
 			else if(depend != null)
@@ -158,7 +161,7 @@ public interface MuisStyle {
 					return new StyleAttributeEvent<>(null, event.getRootStyle(), this, (StyleAttribute<Object>) event.getAttribute(), event
 						.getOldValue(), event.getValue(), event);
 				});
-		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(Observable.or(localChanges, localRemoves(), depends)) {
+		return new org.observe.util.ObservableWrapper<StyleAttributeEvent<?>>(Observable.or(localChanges, localRemoves(), depends)) {
 			@Override
 			public String toString() {
 				return "All changes in " + MuisStyle.this;
@@ -171,7 +174,7 @@ public interface MuisStyle {
 	 * @return An observable that fires a {@link StyleAttributeEvent} for every change affecting the given attribute values in this style
 	 */
 	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
-		return new org.muis.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection
+		return new org.observe.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection
 			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr)))
 			.noInit().map(event -> (StyleAttributeEvent<?>) event)) {
 			@Override

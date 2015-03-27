@@ -3,14 +3,10 @@ package org.muis.core.style;
 import java.util.AbstractSet;
 import java.util.Iterator;
 
-import org.muis.rx.*;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
-import org.observe.collect.DefaultObservableList;
-import org.observe.collect.ObservableElement;
-import org.observe.collect.ObservableList;
-import org.observe.collect.ObservableSet;
+import org.observe.collect.*;
 
 import prisms.lang.Type;
 
@@ -131,6 +127,11 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 
 	class ConstantObservableSet extends AbstractSet<StyleAttribute<?>> implements ObservableSet<StyleAttribute<?>> {
 		private Type theType = new Type(StyleAttribute.class, new Type(Object.class, true));
+
+		@Override
+		public ObservableValue<CollectionSession> getSession() {
+			return ObservableValue.constant(new Type(CollectionSession.class), null);
+		}
 
 		@Override
 		public Type getType() {

@@ -8,7 +8,6 @@ import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
-import org.muis.rx.*;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
@@ -64,7 +63,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return new org.muis.util.ObservableValueWrapper<T>(ObservableValue.flatten(
+		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
 			getLocalExpressions(attr).refireWhen(theState.changes()).filterC(sev -> {
 				return stateMatches(sev.getExpression());

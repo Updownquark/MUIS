@@ -4,10 +4,13 @@ import java.util.AbstractSet;
 import java.util.Iterator;
 
 import org.muis.rx.*;
-import org.muis.rx.collect.DefaultObservableList;
-import org.muis.rx.collect.ObservableElement;
-import org.muis.rx.collect.ObservableList;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.collect.DefaultObservableList;
+import org.observe.collect.ObservableElement;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
 
 import prisms.lang.Type;
 

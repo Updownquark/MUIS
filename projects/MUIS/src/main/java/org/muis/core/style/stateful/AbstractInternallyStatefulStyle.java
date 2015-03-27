@@ -9,9 +9,13 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
 import org.muis.rx.*;
-import org.muis.rx.collect.ObservableElement;
-import org.muis.rx.collect.ObservableList;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.collect.ObservableElement;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
 
 /** Implements the functionality specified by {@link InternallyStatefulStyle} that is not implemented by {@link AbstractStatefulStyle} */
 public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulStyle implements InternallyStatefulStyle {
@@ -35,7 +39,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableList<MuisStyle> getDependencies() {
-		return new org.muis.util.ObservableListWrapper<MuisStyle>(getConditionalDependencies().mapC(depend -> {
+		return new org.observe.util.ObservableListWrapper<MuisStyle>(getConditionalDependencies().mapC(depend -> {
 			if(depend instanceof InternallyStatefulStyle)
 				return (InternallyStatefulStyle) depend;
 			else
@@ -82,7 +86,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filterC(this::isSet)) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filterC(this::isSet)) {
 			@Override
 			public String toString() {
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;

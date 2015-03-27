@@ -5,12 +5,12 @@ import java.awt.geom.Point2D;
 import org.muis.core.MuisTextElement;
 import org.muis.core.event.KeyBoardEvent;
 import org.muis.core.event.MouseEvent;
-import org.muis.rx.DefaultObservable;
-import org.muis.rx.Observer;
+import org.observe.DefaultObservable;
+import org.observe.Observer;
 
 /** Implements the text-selecting feature as a user drags over a text element. Also implements keyboard copying (Ctrl+C or Ctrl+X). */
 public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
-	private class MouseListener implements org.muis.rx.Action<MouseEvent> {
+	private class MouseListener implements org.observe.Action<MouseEvent> {
 		MouseListener() {
 			super();
 		}
@@ -70,7 +70,7 @@ public class TextSelectionBehavior implements MuisBehavior<MuisTextElement> {
 		}
 	}
 
-	private class KeyListener implements org.muis.rx.Action<KeyBoardEvent> {
+	private class KeyListener implements org.observe.Action<KeyBoardEvent> {
 		@Override
 		public void act(KeyBoardEvent event) {
 			MuisTextElement text = (MuisTextElement) event.getElement();

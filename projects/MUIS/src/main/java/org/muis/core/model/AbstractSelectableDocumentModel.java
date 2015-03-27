@@ -12,10 +12,10 @@ import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.core.style.stateful.StatefulStyle;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.collect.ObservableList;
-import org.muis.rx.collect.ObservableSet;
 import org.muis.util.Transaction;
+import org.observe.ObservableValue;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
 
 import prisms.lang.Type;
 

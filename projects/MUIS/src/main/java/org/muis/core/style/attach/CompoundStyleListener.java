@@ -7,8 +7,8 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleDomain;
 import org.muis.core.style.stateful.StatefulStyleSample;
-import org.muis.rx.Action;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.Action;
+import org.observe.collect.ObservableSet;
 
 import prisms.util.ArrayUtils;
 
@@ -18,8 +18,8 @@ public class CompoundStyleListener {
 
 	private Action<StyleAttributeEvent<?>> theStyleListener;
 	private Action<GroupMemberEvent> theGroupListener;
-	private org.muis.rx.DefaultObservable<MuisElement> theRemoveObservable = new org.muis.rx.DefaultObservable<>();
-	private org.muis.rx.Observer<MuisElement> theRemoveController = theRemoveObservable.control(null);
+	private org.observe.DefaultObservable<MuisElement> theRemoveObservable = new org.observe.DefaultObservable<>();
+	private org.observe.Observer<MuisElement> theRemoveController = theRemoveObservable.control(null);
 
 	private StyleDomain [] theDomains;
 

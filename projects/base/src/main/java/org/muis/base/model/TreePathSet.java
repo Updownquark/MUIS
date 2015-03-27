@@ -1,6 +1,6 @@
 package org.muis.base.model;
 
-import org.muis.rx.collect.ObservableCollection;
+import org.observe.collect.ObservableCollection;
 
 /**
  * A set of tree paths

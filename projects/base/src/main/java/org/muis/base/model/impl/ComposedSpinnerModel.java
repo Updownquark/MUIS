@@ -1,7 +1,7 @@
 package org.muis.base.model.impl;
 
 import org.muis.core.model.MuisActionListener;
-import org.muis.rx.ObservableValue;
+import org.observe.ObservableValue;
 
 /**
  * A spinner model composed of pre-assembled pieces: the value, incrementer, and decrementer components

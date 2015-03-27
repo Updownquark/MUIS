@@ -1,8 +1,8 @@
 package org.muis.core.eval.impl;
 
-import org.muis.rx.ObservableValue;
-import org.muis.rx.ObservableValueEvent;
-import org.muis.rx.Observer;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
 
 import prisms.lang.*;
 import prisms.lang.eval.PrismsEvaluator;
@@ -51,7 +51,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 			return ((ObservableItemEvaluator<ParsedItem>) evaluator).evaluateObservable(item, this, env, asType);
 
 		Type type = evaluate(item, env, false, false).getType();
-		org.muis.rx.DefaultObservableValue<Object> ret = new org.muis.rx.DefaultObservableValue<Object>() {
+		org.observe.DefaultObservableValue<Object> ret = new org.observe.DefaultObservableValue<Object>() {
 			@Override
 			public Type getType() {
 				return type;

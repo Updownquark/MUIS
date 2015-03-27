@@ -1,8 +1,8 @@
 package org.muis.core.style.sheet;
 
 import org.muis.core.style.StyleAttribute;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.collect.ObservableList;
+import org.observe.ObservableValue;
+import org.observe.collect.ObservableList;
 
 /** An AnimatedStyleSheet whose modification methods are exposed */
 public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {

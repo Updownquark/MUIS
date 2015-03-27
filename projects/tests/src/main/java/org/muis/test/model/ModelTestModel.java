@@ -6,7 +6,7 @@ import org.muis.core.MuisException;
 import org.muis.core.model.DefaultMuisModel;
 import org.muis.core.model.SettableValueLinker;
 import org.muis.core.style.Colors;
-import org.muis.rx.SimpleSettableValue;
+import org.observe.SimpleSettableValue;
 
 /** The model backing the ModelTest.muis */
 public class ModelTestModel extends DefaultMuisModel {

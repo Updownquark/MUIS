@@ -14,7 +14,7 @@ import org.muis.core.event.StateChangedEvent;
 import org.muis.core.model.SelectableDocumentModel;
 import org.muis.core.style.FontStyle;
 import org.muis.core.style.MuisStyle;
-import org.muis.rx.Action;
+import org.observe.Action;
 
 /** An overlay for a text editor that flashes a cursor above a document */
 public class DocumentCursorOverlay extends MuisElement {

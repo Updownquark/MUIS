@@ -3,7 +3,7 @@ package org.muis.core.style.sheet;
 import java.util.Iterator;
 
 import org.muis.core.style.StyleAttribute;
-import org.muis.rx.ObservableValue;
+import org.observe.ObservableValue;
 
 import prisms.lang.Type;
 import prisms.lang.Variable;
@@ -11,7 +11,7 @@ import prisms.lang.Variable;
 /** A style sheet whose values can be animated internally */
 public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<AnimatedStyleSheet.AnimatedVariable> {
 	/** A variable whose value can change over time to affect style value expressions' evaluated values */
-	public static final class AnimatedVariable extends org.muis.rx.DefaultObservableValue<Double> implements Variable,
+	public static final class AnimatedVariable extends org.observe.DefaultObservableValue<Double> implements Variable,
 		Iterable<AnimationSegment> {
 		private final String theName;
 
@@ -29,7 +29,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 		private int theStyleSheetCount;
 
-		private org.muis.rx.Observer<org.muis.rx.ObservableValueEvent<Double>> theController;
+		private org.observe.Observer<org.observe.ObservableValueEvent<Double>> theController;
 
 		/**
 		 * @param varName The name for the variable
@@ -147,7 +147,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			theCurrentValue = getValueFor(time);
 			if(oldValue == theCurrentValue)
 				return;
-			theController.onNext(new org.muis.rx.ObservableValueEvent<>(this, oldValue, theCurrentValue, null));
+			theController.onNext(new org.observe.ObservableValueEvent<>(this, oldValue, theCurrentValue, null));
 		}
 	}
 
@@ -200,7 +200,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 *
 	 * @param depends The style sheets that this style sheet inherits style information from
 	 */
-	public AnimatedStyleSheet(org.muis.rx.collect.ObservableList<StyleSheet> depends) {
+	public AnimatedStyleSheet(org.observe.collect.ObservableList<StyleSheet> depends) {
 		super(depends);
 		theVariables = new java.util.LinkedHashMap<>();
 	}

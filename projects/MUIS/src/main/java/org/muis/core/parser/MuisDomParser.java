@@ -14,8 +14,8 @@ import org.muis.core.model.DefaultMuisModel;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.style.sheet.ParsedStyleSheet;
-import org.muis.rx.SimpleSettableValue;
 import org.muis.util.MuisUtils;
+import org.observe.SimpleSettableValue;
 
 import prisms.lang.Type;
 

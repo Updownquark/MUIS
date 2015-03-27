@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.muis.base.model.TreePath;
 import org.muis.base.model.TreeSelectionModel;
-import org.muis.rx.collect.DefaultObservableList;
+import org.observe.collect.DefaultObservableList;
 
 import prisms.lang.Type;
 

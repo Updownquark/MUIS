@@ -2,7 +2,7 @@ package org.muis.core.model;
 
 import org.muis.core.*;
 import org.muis.core.parser.MuisParseException;
-import org.muis.rx.ObservableValue;
+import org.observe.ObservableValue;
 
 import prisms.lang.Type;
 

@@ -5,8 +5,8 @@ import org.muis.core.MuisElement;
 import org.muis.core.MuisException;
 import org.muis.core.event.AttributeAcceptedEvent;
 import org.muis.core.event.AttributeChangedEvent;
-import org.muis.rx.Action;
-import org.muis.rx.Subscription;
+import org.observe.Action;
+import org.observe.Subscription;
 
 import prisms.util.ArrayUtils;
 

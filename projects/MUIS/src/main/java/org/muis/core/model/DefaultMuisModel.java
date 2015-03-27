@@ -3,7 +3,7 @@ package org.muis.core.model;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.muis.rx.ObservableValue;
+import org.observe.ObservableValue;
 
 /** The default (typically XML-specified) implementation for MuisAppModel */
 public class DefaultMuisModel implements MuisAppModel, Cloneable, prisms.util.Sealable {

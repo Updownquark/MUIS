@@ -3,7 +3,7 @@ package org.muis.core.style;
 import org.muis.core.MuisException;
 import org.muis.core.MuisParseEnv;
 import org.muis.core.MuisProperty;
-import org.muis.rx.ObservableValue;
+import org.observe.ObservableValue;
 
 import prisms.lang.Type;
 

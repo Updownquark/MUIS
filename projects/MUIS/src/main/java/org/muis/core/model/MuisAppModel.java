@@ -1,6 +1,6 @@
 package org.muis.core.model;
 
-import org.muis.rx.ObservableValue;
+import org.observe.ObservableValue;
 
 /** Contains values and sub models that define how MUIS widgets present and alter their data */
 public interface MuisAppModel {

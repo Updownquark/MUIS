@@ -13,8 +13,8 @@ import org.muis.core.MuisException;
 import org.muis.core.MuisTextElement;
 import org.muis.core.model.*;
 import org.muis.core.tags.Template;
-import org.muis.rx.ObservableValue;
 import org.muis.util.Transaction;
+import org.observe.ObservableValue;
 
 import prisms.lang.Type;
 

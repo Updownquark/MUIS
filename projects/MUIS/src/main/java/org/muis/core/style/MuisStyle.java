@@ -5,7 +5,10 @@ import java.util.Set;
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.rx.*;
-import org.muis.rx.collect.*;
+import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.collect.*;
 
 import prisms.lang.Type;
 
@@ -80,7 +83,7 @@ public interface MuisStyle {
 		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
 		controller.add(ObservableSet.flatten(getDependencies().mapC(depend -> depend.attributes())));
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
 			@Override
 			public String toString() {
 				return "All attributes for " + MuisStyle.this;

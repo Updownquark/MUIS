@@ -4,7 +4,7 @@ import java.net.URL;
 import java.util.List;
 
 import org.muis.core.style.sheet.StyleSheet;
-import org.muis.rx.collect.ObservableList;
+import org.observe.collect.ObservableList;
 
 import prisms.util.ArrayUtils;
 import prisms.util.Sealable.SealedException;
@@ -60,7 +60,7 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		theClassMappings = new ClassMapping[0];
 		theDependencies = new MuisToolkit[0];
 		thePermissions = new MuisPermission[0];
-		org.muis.rx.collect.DefaultObservableList<StyleSheet> styleDepends = new org.muis.rx.collect.DefaultObservableList<>(
+		org.observe.collect.DefaultObservableList<StyleSheet> styleDepends = new org.observe.collect.DefaultObservableList<>(
 			new prisms.lang.Type(StyleSheet.class));
 		theStyle = new ToolkitStyleSheet(styleDepends);
 		theStyleDependencyController = styleDepends.control(null);

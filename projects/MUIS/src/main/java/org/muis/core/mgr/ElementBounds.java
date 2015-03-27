@@ -6,13 +6,13 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.BoundsChangedEvent;
 import org.muis.core.layout.Orientation;
 import org.muis.core.layout.SizeGuide;
-import org.muis.rx.ObservableValueEvent;
-import org.muis.rx.Observer;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
 
 import prisms.lang.Type;
 
 /** Bounds for an element. Contains some extra methods for easy access. */
-public class ElementBounds extends org.muis.rx.DefaultObservableValue<Rectangle> implements org.muis.core.layout.Bounds {
+public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle> implements org.muis.core.layout.Bounds {
 	private final MuisElement theElement;
 
 	private ElementBoundsDimension theHorizontalBounds;
@@ -174,28 +174,28 @@ public class ElementBounds extends org.muis.rx.DefaultObservableValue<Rectangle>
 	}
 
 	/** @return An observable value for this bounds' x-coordinate. Equivalent to <code>mapV(bounds->{return bounds.x;})</code>. */
-	public org.muis.rx.ObservableValue<Integer> observeX() {
+	public org.observe.ObservableValue<Integer> observeX() {
 		return mapV(bounds -> {
 			return bounds.x;
 		});
 	}
 
 	/** @return An observable value for this bounds' y-coordinate. Equivalent to <code>mapV(bounds->{return bounds.y;})</code>. */
-	public org.muis.rx.ObservableValue<Integer> observeY() {
+	public org.observe.ObservableValue<Integer> observeY() {
 		return mapV(bounds -> {
 			return bounds.y;
 		});
 	}
 
 	/** @return An observable value for this bounds' width. Equivalent to <code>mapV(bounds->{return bounds.width;})</code>. */
-	public org.muis.rx.ObservableValue<Integer> observeW() {
+	public org.observe.ObservableValue<Integer> observeW() {
 		return mapV(bounds -> {
 			return bounds.width;
 		});
 	}
 
 	/** @return An observable value for this bounds' height. Equivalent to <code>mapV(bounds->{return bounds.height;})</code>. */
-	public org.muis.rx.ObservableValue<Integer> observeH() {
+	public org.observe.ObservableValue<Integer> observeH() {
 		return mapV(bounds -> {
 			return bounds.height;
 		});

@@ -15,10 +15,10 @@ import org.muis.core.style.LayoutStyle;
 import org.muis.core.style.Size;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.tags.Template;
-import org.muis.rx.Observable;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.SettableValue;
-import org.muis.rx.collect.ObservableTree;
+import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.observe.SettableValue;
+import org.observe.collect.ObservableTree;
 
 import prisms.lang.Type;
 

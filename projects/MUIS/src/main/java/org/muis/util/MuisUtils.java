@@ -14,8 +14,8 @@ import org.muis.core.style.BackgroundStyle;
 import org.muis.core.style.FontStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.ObservableValueEvent;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
 
 import prisms.util.ArrayUtils;
 

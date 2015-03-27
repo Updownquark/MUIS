@@ -8,8 +8,9 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.muis.core.event.StateChangedEvent;
 import org.muis.rx.*;
-import org.muis.rx.collect.DefaultObservableSet;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.*;
+import org.observe.collect.DefaultObservableSet;
+import org.observe.collect.ObservableSet;
 
 import prisms.lang.Type;
 import prisms.util.ArrayUtils;
@@ -81,7 +82,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 		DefaultObservableSet<MuisState> allStates = new DefaultObservableSet<>(new Type(MuisState.class));
 		theStateSetController = allStates.control(null);
-		theStateSet = new org.muis.util.ObservableSetWrapper<MuisState>(allStates) {
+		theStateSet = new org.observe.util.ObservableSetWrapper<MuisState>(allStates) {
 			@Override
 			public String toString() {
 				return "allStates(" + theElement.getTagName() + ")";
@@ -89,7 +90,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		};
 		DefaultObservableSet<MuisState> activeStates = new DefaultObservableSet<>(theStateSet.getType());
 		theActiveStateController = activeStates.control(null);
-		theActiveStates = new org.muis.util.ObservableSetWrapper<MuisState>(activeStates) {
+		theActiveStates = new org.observe.util.ObservableSetWrapper<MuisState>(activeStates) {
 			@Override
 			public String toString() {
 				return "activeStates(" + theElement.getTagName() + ")=" + super.toString();

@@ -8,8 +8,8 @@ import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 import org.muis.core.style.stateful.StatefulStyle;
-import org.muis.rx.collect.DefaultObservableList;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.collect.DefaultObservableList;
+import org.observe.collect.ObservableSet;
 
 import prisms.lang.Type;
 import prisms.util.ArrayUtils;

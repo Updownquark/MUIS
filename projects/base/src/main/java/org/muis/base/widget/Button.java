@@ -13,7 +13,7 @@ import org.muis.core.style.BackgroundStyle;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
-import org.muis.rx.Action;
+import org.observe.Action;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
 @Template(location = "../../../../simple-container.muis")

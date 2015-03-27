@@ -5,9 +5,9 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
-import org.muis.rx.collect.ObservableList;
-import org.muis.rx.collect.ObservableOrderedCollection;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableOrderedCollection;
+import org.observe.collect.ObservableSet;
 
 import prisms.util.ArrayUtils;
 

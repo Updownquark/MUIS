@@ -877,7 +877,7 @@ public class StyleSheetParser {
 			throw new MuisParseException("Could not parse " + location, e);
 		}
 
-		ParsedStyleSheet ret = new ParsedStyleSheet(org.muis.rx.collect.ObservableList.constant(new prisms.lang.Type(
+		ParsedStyleSheet ret = new ParsedStyleSheet(org.observe.collect.ObservableList.constant(new prisms.lang.Type(
 			org.muis.core.style.sheet.StyleSheet.class)));
 		ret.setLocation(location);
 		ExpressionContextStack stack = new ExpressionContextStack();
@@ -1109,7 +1109,7 @@ public class StyleSheetParser {
 					+ assign.getDomain().getName());
 			return;
 		}
-		org.muis.rx.ObservableValue<? extends T> value;
+		org.observe.ObservableValue<? extends T> value;
 		try {
 			value = attr.getType().parse(env, assign.getValue());
 		} catch(MuisException e) {
@@ -1149,7 +1149,7 @@ public class StyleSheetParser {
 						+ domainAssign.getDomain().getName());
 				return;
 			}
-			org.muis.rx.ObservableValue<? extends T> value;
+			org.observe.ObservableValue<? extends T> value;
 			try {
 				value = attr.getType().parse(env, assign.getValue());
 			} catch(MuisException e) {

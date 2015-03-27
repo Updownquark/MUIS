@@ -2,7 +2,7 @@ package org.muis.core.style.stateful;
 
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
-import org.muis.rx.collect.ObservableList;
+import org.observe.collect.ObservableList;
 
 /** A more full partial implementation of StatefulStyle */
 public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {

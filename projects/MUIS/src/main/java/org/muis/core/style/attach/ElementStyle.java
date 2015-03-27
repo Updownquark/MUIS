@@ -6,7 +6,7 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.*;
-import org.muis.rx.collect.DefaultObservableList;
+import org.observe.collect.DefaultObservableList;
 
 import prisms.lang.Type;
 

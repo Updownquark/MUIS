@@ -15,7 +15,7 @@ public class BorderPane extends org.muis.core.MuisTemplate {
 		life().runWhen(
 			() -> {
 				MuisStyle selfStyle = getStyle().getSelf();
-				org.muis.rx.Observable.or(selfStyle.get(BackgroundStyle.cornerRadius), selfStyle.get(BorderStyle.thickness),
+				org.observe.Observable.or(selfStyle.get(BackgroundStyle.cornerRadius), selfStyle.get(BorderStyle.thickness),
 					selfStyle.get(BorderStyle.inset)).act(event -> relayout(false));
 			}, org.muis.core.MuisConstants.CoreStage.INITIALIZED.toString(), 1);
 	}

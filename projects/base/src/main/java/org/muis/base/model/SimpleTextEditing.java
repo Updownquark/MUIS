@@ -8,11 +8,11 @@ import org.muis.core.model.MutableSelectableDocumentModel;
 
 /** Behavior allowing keyboard input */
 public class SimpleTextEditing implements MuisBehavior<DocumentedElement> {
-	private org.muis.rx.Action<CharInputEvent> theInputListener;
+	private org.observe.Action<CharInputEvent> theInputListener;
 
-	private org.muis.rx.DefaultObservable<DocumentedElement> theUninstallObservable = new org.muis.rx.DefaultObservable<>();
+	private org.observe.DefaultObservable<DocumentedElement> theUninstallObservable = new org.observe.DefaultObservable<>();
 
-	private org.muis.rx.Observer<DocumentedElement> theUninstallController = theUninstallObservable.control(null);
+	private org.observe.Observer<DocumentedElement> theUninstallController = theUninstallObservable.control(null);
 
 	/** Creates the behavior */
 	public SimpleTextEditing() {

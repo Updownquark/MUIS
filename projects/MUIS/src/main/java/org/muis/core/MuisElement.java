@@ -19,7 +19,7 @@ import org.muis.core.style.Texture;
 import org.muis.core.style.attach.*;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
-import org.muis.rx.Action;
+import org.observe.Action;
 
 import prisms.util.ArrayUtils;
 

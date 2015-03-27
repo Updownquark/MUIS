@@ -12,10 +12,10 @@ import org.muis.core.event.MuisEventListener;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleDomain;
-import org.muis.rx.Action;
-import org.muis.rx.Observable;
-import org.muis.rx.Observer;
-import org.muis.rx.Subscription;
+import org.observe.Action;
+import org.observe.Observable;
+import org.observe.Observer;
+import org.observe.Subscription;
 
 /**
  * <p>
@@ -322,8 +322,8 @@ public abstract class CompoundListener<T> {
 			theIndividualChecker = el -> {
 				theChildListener.updateIndividual(el);
 			};
-			theDropObservable = new org.muis.rx.DefaultObservable<>();
-			theDropController = ((org.muis.rx.DefaultObservable<Void>) theDropObservable).control(null);
+			theDropObservable = new org.observe.DefaultObservable<>();
+			theDropController = ((org.observe.DefaultObservable<Void>) theDropObservable).control(null);
 		}
 
 		/** @return The element that this listener is for */

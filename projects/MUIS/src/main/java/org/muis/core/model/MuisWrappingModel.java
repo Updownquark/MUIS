@@ -5,10 +5,10 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.ObservableValueEvent;
-import org.muis.rx.Observer;
-import org.muis.rx.SettableValue;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.SettableValue;
 
 import prisms.lang.Type;
 

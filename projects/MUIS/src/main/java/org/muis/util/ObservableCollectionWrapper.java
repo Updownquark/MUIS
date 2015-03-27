@@ -3,11 +3,11 @@ package org.muis.util;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.muis.rx.ObservableValue;
-import org.muis.rx.Observer;
-import org.muis.rx.collect.CollectionSession;
-import org.muis.rx.collect.ObservableCollection;
-import org.muis.rx.collect.ObservableElement;
+import org.observe.ObservableValue;
+import org.observe.Observer;
+import org.observe.collect.CollectionSession;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableElement;
 
 import prisms.lang.Type;
 

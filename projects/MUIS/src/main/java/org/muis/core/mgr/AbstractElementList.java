@@ -6,9 +6,9 @@ import java.util.List;
 import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEvent;
-import org.muis.rx.DefaultObservable;
-import org.muis.rx.Observable;
-import org.muis.rx.Observer;
+import org.observe.DefaultObservable;
+import org.observe.Observable;
+import org.observe.Observer;
 
 import prisms.util.ArrayUtils;
 

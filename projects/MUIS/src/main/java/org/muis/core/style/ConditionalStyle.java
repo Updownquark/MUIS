@@ -2,7 +2,7 @@ package org.muis.core.style;
 
 import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
 
-import org.muis.rx.collect.*;
+import org.observe.collect.*;
 
 import prisms.lang.Type;
 
@@ -39,7 +39,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 		java.util.Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(allLocal());
 		controller.add(ObservableSet.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
 			@Override
 			public String toString() {
 				return "All attributes for " + ConditionalStyle.this;
@@ -61,7 +61,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 		controller.add(getLocalExpressions(attr));
 		controller.add(ObservableOrderedCollection.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr)),
 			STYLE_EXPRESSION_COMPARE));
-		return new org.muis.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret,
+		return new org.observe.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret,
 			STYLE_EXPRESSION_COMPARE)) {
 			@Override
 			public String toString() {

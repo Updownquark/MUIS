@@ -19,10 +19,14 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.sheet.*;
 import org.muis.core.style.stateful.*;
 import org.muis.rx.*;
-import org.muis.rx.collect.DefaultObservableList;
-import org.muis.rx.collect.DefaultObservableSet;
-import org.muis.rx.collect.ObservableCollection;
-import org.muis.rx.collect.ObservableElement;
+import org.observe.BiTuple;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.collect.DefaultObservableList;
+import org.observe.collect.DefaultObservableSet;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableElement;
 
 import prisms.lang.Type;
 

@@ -4,6 +4,8 @@ import org.muis.core.model.MuisActionListener;
 import org.muis.core.model.MuisAppModel;
 import org.muis.core.model.MuisWidgetModel;
 import org.muis.rx.*;
+import org.observe.*;
+import org.observe.DefaultObservableValue;
 
 import prisms.lang.Type;
 

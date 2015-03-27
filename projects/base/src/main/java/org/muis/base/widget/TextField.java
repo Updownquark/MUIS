@@ -14,10 +14,10 @@ import org.muis.core.model.*;
 import org.muis.core.tags.State;
 import org.muis.core.tags.StateSupport;
 import org.muis.core.tags.Template;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.SettableValue;
-import org.muis.rx.TriTuple;
 import org.muis.util.Transaction;
+import org.observe.ObservableValue;
+import org.observe.SettableValue;
+import org.observe.TriTuple;
 
 /** A simple widget that takes and displays text input from the user */
 @Template(location = "../../../../text-field.muis")
@@ -127,7 +127,7 @@ public class TextField extends org.muis.core.MuisTemplate implements DocumentedE
 		getValueElement().setDocumentModel(model);
 	}
 
-	private void setValue(ObservableValue<?> value, MuisFormatter<?> formatter, org.muis.rx.ObservableValueEvent<?> event) {
+	private void setValue(ObservableValue<?> value, MuisFormatter<?> formatter, org.observe.ObservableValueEvent<?> event) {
 		register(value);
 		MutableDocumentModel editModel = (MutableDocumentModel) getDocumentModel();
 		boolean rich = atts().get(BaseAttributes.rich) == Boolean.TRUE;

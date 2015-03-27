@@ -10,7 +10,7 @@ import org.muis.core.MuisTemplate.AttachPoint;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.style.sheet.TemplateRole;
-import org.muis.rx.Subscription;
+import org.observe.Subscription;
 
 import prisms.util.ArrayUtils;
 
@@ -38,7 +38,7 @@ public class TemplatePathListener {
 
 		TemplatePathListener parentListener;
 
-		org.muis.rx.Action<AttributeChangedEvent<String []>> parentGroupListener;
+		org.observe.Action<AttributeChangedEvent<String []>> parentGroupListener;
 		Subscription<?> parentGroupSubscription;
 
 		TemplateRole [] paths = new TemplateRole[0];

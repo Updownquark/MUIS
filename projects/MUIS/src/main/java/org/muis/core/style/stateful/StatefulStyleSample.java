@@ -4,9 +4,9 @@ import org.muis.core.mgr.MuisState;
 import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleExpressionValue;
-import org.muis.rx.ObservableValue;
-import org.muis.rx.collect.ObservableList;
-import org.muis.rx.collect.ObservableSet;
+import org.observe.ObservableValue;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
 
 import prisms.lang.Type;
 
@@ -70,7 +70,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.muis.util.ObservableSetWrapper<StyleAttribute<?>>(theStatefulStyle.allAttrs().filterMapC(attr -> {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(theStatefulStyle.allAttrs().filterMapC(attr -> {
 			if(attr == null)
 				return null;
 			for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(attr))

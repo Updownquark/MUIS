@@ -8,7 +8,7 @@ import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
-import org.muis.rx.collect.DefaultObservableList;
+import org.observe.collect.DefaultObservableList;
 
 /** Represents a set of style attributes that apply to all an element's descendants but not to the element itself */
 public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {

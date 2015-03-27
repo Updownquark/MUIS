@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.muis.core.*;
 import org.muis.core.event.AttributeChangedEvent;
 import org.muis.rx.*;
+import org.observe.*;
+import org.observe.DefaultObservableValue;
 
 import prisms.lang.Type;
 
@@ -322,8 +324,8 @@ public class AttributeManager {
 	 *         element
 	 */
 	public Observable<AttributeChangedEvent<?>> watch(MuisAttribute<?>... attrs) {
-		return org.muis.rx.collect.ObservableCollection.fold(
-			org.muis.rx.collect.ObservableSet.constant(new Type(MuisAttribute.class, new Type(Object.class, true)), attrs).mapC(
+		return org.observe.collect.ObservableCollection.fold(
+			org.observe.collect.ObservableSet.constant(new Type(MuisAttribute.class, new Type(Object.class, true)), attrs).mapC(
 				attr -> getHolder(attr))).map(event -> (AttributeChangedEvent<?>) event);
 	}
 

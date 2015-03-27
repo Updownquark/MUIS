@@ -3,9 +3,7 @@ package org.muis.base.model.impl;
 import org.muis.base.model.SpinnerModel;
 import org.muis.core.model.MuisActionEvent;
 import org.muis.core.model.MuisActionListener;
-import org.muis.rx.*;
 import org.observe.*;
-import org.observe.DefaultObservableValue;
 
 import prisms.lang.Type;
 

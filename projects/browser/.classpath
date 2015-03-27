@@ -3,5 +3,6 @@
 	<classpathentry kind="src" path="src/main/java"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MUIS"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JDK 8"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ObServe"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

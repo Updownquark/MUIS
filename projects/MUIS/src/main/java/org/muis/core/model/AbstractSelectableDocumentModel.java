@@ -14,6 +14,7 @@ import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.core.style.stateful.StatefulStyle;
 import org.muis.util.Transaction;
 import org.observe.ObservableValue;
+import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 
@@ -795,8 +796,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractMuisDocume
 		 */
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
 			super(ObservableList.constant(new Type(StatefulStyle.class), (StatefulStyle) parent), selected ? ObservableSet
-				.flattenCollections(parent.getState(), ObservableSet.constant(new Type(MuisState.class), TEXT_SELECTION)) : parent
-				.getState());
+				.unique(ObservableCollection.flattenCollections(parent.getState(),
+					ObservableSet.constant(new Type(MuisState.class), TEXT_SELECTION))) : parent.getState());
 		}
 	}
 

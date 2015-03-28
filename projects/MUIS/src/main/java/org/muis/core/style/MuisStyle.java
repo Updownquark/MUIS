@@ -1,13 +1,11 @@
 package org.muis.core.style;
 
-import java.util.Set;
-
 import org.muis.core.MuisElement;
 import org.muis.core.event.MuisEvent;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
-import org.observe.collect.DefaultObservableSet;
+import org.observe.collect.DefaultObservableList;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
@@ -81,12 +79,12 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
-			StyleAttribute.class)));
-		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
+		DefaultObservableList<ObservableCollection<StyleAttribute<?>>> ret = new DefaultObservableList<>(new Type(
+			ObservableCollection.class, new Type(StyleAttribute.class)));
+		java.util.List<ObservableCollection<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
-		controller.add(ObservableSet.flatten(getDependencies().map(depend -> depend.attributes())));
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
+		controller.add(ObservableCollection.flatten(getDependencies().map(depend -> depend.attributes())));
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret))) {
 			@Override
 			public String toString() {
 				return "All attributes for " + MuisStyle.this;

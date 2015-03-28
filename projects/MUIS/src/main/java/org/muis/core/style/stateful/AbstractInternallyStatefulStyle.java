@@ -38,7 +38,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableList<MuisStyle> getDependencies() {
-		return new org.observe.util.ObservableListWrapper<MuisStyle>(getConditionalDependencies().mapC(depend -> {
+		return new org.observe.util.ObservableListWrapper<MuisStyle>(getConditionalDependencies().map(depend -> {
 			if(depend instanceof InternallyStatefulStyle)
 				return (InternallyStatefulStyle) depend;
 			else
@@ -65,7 +65,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
 		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			attr.getType().getType(),
-			getLocalExpressions(attr).refireWhen(theState.changes()).filterC(sev -> {
+			getLocalExpressions(attr).refireWhen(theState.changes()).filter(sev -> {
 				return stateMatches(sev.getExpression());
 			}).first()).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
@@ -85,7 +85,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filterC(this::isSet)) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filter(this::isSet)) {
 			@Override
 			public String toString() {
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;

@@ -70,7 +70,7 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(theStatefulStyle.allAttrs().filterMapC(attr -> {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(theStatefulStyle.allAttrs().filterMap(attr -> {
 			if(attr == null)
 				return null;
 			for(StyleExpressionValue<StateExpression, ?> sev : theStatefulStyle.getExpressions(attr))

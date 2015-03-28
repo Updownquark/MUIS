@@ -323,7 +323,7 @@ public class AttributeManager {
 	 */
 	public Observable<AttributeChangedEvent<?>> watch(MuisAttribute<?>... attrs) {
 		return org.observe.collect.ObservableCollection.fold(
-			org.observe.collect.ObservableSet.constant(new Type(MuisAttribute.class, new Type(Object.class, true)), attrs).mapC(
+			org.observe.collect.ObservableSet.constant(new Type(MuisAttribute.class, new Type(Object.class, true)), attrs).map(
 				attr -> getHolder(attr))).map(event -> (AttributeChangedEvent<?>) event);
 	}
 

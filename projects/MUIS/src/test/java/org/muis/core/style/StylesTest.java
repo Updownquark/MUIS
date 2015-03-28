@@ -103,7 +103,7 @@ public class StylesTest {
 		int lastChanges = 0;
 		style.get(cornerRadius, false).value().act(value -> reported[0] = value);
 		style.allChanges().act(event -> changes[0]++);
-		ObservableCollection<BiTuple<StyleAttribute<?>, ObservableValue<?>>> values = style.localAttributes().mapC(
+		ObservableCollection<BiTuple<StyleAttribute<?>, ObservableValue<?>>> values = style.localAttributes().map(
 			attr -> new BiTuple<>(attr, style.getLocal(attr)));
 		values.onElement(element -> {
 			System.out.println("New attribute " + element.get().getValue1() + "=" + element.get().getValue2().get());

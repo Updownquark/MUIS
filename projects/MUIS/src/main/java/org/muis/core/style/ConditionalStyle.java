@@ -38,7 +38,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 			StyleAttribute.class)));
 		java.util.Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(allLocal());
-		controller.add(ObservableSet.flatten(getConditionalDependencies().mapC(depend -> depend.allAttrs())));
+		controller.add(ObservableSet.flatten(getConditionalDependencies().map(depend -> depend.allAttrs())));
 		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
 			@Override
 			public String toString() {
@@ -59,7 +59,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 				.getType())));
 		java.util.List<ObservableOrderedCollection<StyleExpressionValue<E, T>>> controller = ret.control(null);
 		controller.add(getLocalExpressions(attr));
-		controller.add(ObservableOrderedCollection.flatten(getConditionalDependencies().mapC(depend -> depend.getExpressions(attr)),
+		controller.add(ObservableOrderedCollection.flatten(getConditionalDependencies().map(depend -> depend.getExpressions(attr)),
 			STYLE_EXPRESSION_COMPARE));
 		return new org.observe.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret,
 			STYLE_EXPRESSION_COMPARE)) {

@@ -85,7 +85,7 @@ public interface MuisStyle {
 			StyleAttribute.class)));
 		Set<ObservableSet<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());
-		controller.add(ObservableSet.flatten(getDependencies().mapC(depend -> depend.attributes())));
+		controller.add(ObservableSet.flatten(getDependencies().map(depend -> depend.attributes())));
 		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.flatten(ret)) {
 			@Override
 			public String toString() {
@@ -106,7 +106,7 @@ public interface MuisStyle {
 	 */
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<T> dependValue = ObservableUtils.flattenListValues(attr.getType().getType(),
-			getDependencies().mapC(depend -> depend.get(attr, false))).find(attr.getType().getType(), val -> val);
+			getDependencies().map(depend -> depend.get(attr, false))).find(attr.getType().getType(), val -> val);
 		return new org.observe.util.ObservableValueWrapper<T>(getLocal(attr).combineV(null, (T local, T depend) -> {
 			if(local != null)
 				return local;
@@ -139,7 +139,7 @@ public interface MuisStyle {
 
 	/** @return An observable that fires a {@link StyleAttributeEvent} for every local attribute change in this style */
 	default Observable<StyleAttributeEvent<?>> localChanges() {
-		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().mapC(attr -> getLocal(attr)))
+		Observable<StyleAttributeEvent<?>> localChanges = ObservableCollection.fold(localAttributes().map(attr -> getLocal(attr)))
 			.noInit().map(event -> (StyleAttributeEvent<?>) event);
 		return localChanges;
 	}
@@ -153,7 +153,7 @@ public interface MuisStyle {
 	default Observable<StyleAttributeEvent<?>> allChanges() {
 		Observable<StyleAttributeEvent<?>> localChanges = localChanges();
 		Observable<StyleAttributeEvent<?>> depends = ObservableCollection
-			.fold(getDependencies().mapC(dep -> dep.allChanges()))
+			.fold(getDependencies().map(dep -> dep.allChanges()))
 			// Don't propagate dependency changes that are overridden in this style
 			.filter(event -> !isSet(event.getAttribute()))
 			.map(
@@ -175,7 +175,7 @@ public interface MuisStyle {
 	 */
 	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
 		return new org.observe.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection
-			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).mapC(attr -> get(attr)))
+			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).map(attr -> get(attr)))
 			.noInit().map(event -> (StyleAttributeEvent<?>) event)) {
 			@Override
 			public String toString() {

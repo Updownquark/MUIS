@@ -22,7 +22,6 @@ import org.observe.Observer;
 import org.observe.collect.DefaultObservableList;
 import org.observe.collect.DefaultObservableSet;
 import org.observe.collect.ObservableCollection;
-import org.observe.collect.ObservableElement;
 
 import prisms.lang.Type;
 
@@ -106,25 +105,22 @@ public class StylesTest {
 		style.allChanges().act(event -> changes[0]++);
 		ObservableCollection<BiTuple<StyleAttribute<?>, ObservableValue<?>>> values = style.localAttributes().mapC(
 			attr -> new BiTuple<>(attr, style.getLocal(attr)));
-		values.internalSubscribe(new Observer<ObservableElement<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
-			@Override
-			public <V extends ObservableElement<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V value) {
-				System.out.println("New attribute " + value.get().getValue1() + "=" + value.get().getValue2().get());
-				value.internalSubscribe(new Observer<ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
-					@Override
-					public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V2 value2) {
-						value2.getValue().getValue2().value().noInit().takeUntil(value.noInit()).act(value3 -> {
-							System.out.println(value2.getValue().getValue1() + "=" + value3);
-						});
-					}
+		values.onElement(element -> {
+			System.out.println("New attribute " + element.get().getValue1() + "=" + element.get().getValue2().get());
+			element.internalSubscribe(new Observer<ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
+				@Override
+				public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V2 value2) {
+					value2.getValue().getValue2().value().noInit().takeUntil(element.noInit()).act(value3 -> {
+						System.out.println(value2.getValue().getValue1() + "=" + value3);
+					});
+				}
 
-					@Override
-					public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onCompleted(V2 value2) {
-						if(value2.getOldValue() != null) // Don't know why this is fired twice, once with null
-							System.out.println(value2.getOldValue().getValue1() + " removed");
-					}
-				});
-			}
+				@Override
+				public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onCompleted(V2 value2) {
+					if(value2.getOldValue() != null) // Don't know why this is fired twice, once with null
+						System.out.println(value2.getOldValue().getValue1() + " removed");
+				}
+			});
 		});
 
 		assertEquals(null, style.get(cornerRadius, false).get());

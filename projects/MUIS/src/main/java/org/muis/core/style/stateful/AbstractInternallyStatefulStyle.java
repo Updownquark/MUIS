@@ -100,9 +100,9 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>(){
 			@Override
 			public Runnable internalSubscribe(Observer<? super StyleAttributeEvent<?>> observer) {
-				return theState.internalSubscribe(new Observer<ObservableElement<MuisState>>() {
+				return theState.onElement(new java.util.function.Consumer<ObservableElement<MuisState>>() {
 					@Override
-					public <V extends ObservableElement<MuisState>> void onNext(V elValue) {
+					public void accept(ObservableElement<MuisState> elValue) {
 						elValue.internalSubscribe(new Observer<ObservableValueEvent<MuisState>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<MuisState>> void onNext(V2 value) {

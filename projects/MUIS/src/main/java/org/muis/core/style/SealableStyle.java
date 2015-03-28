@@ -152,9 +152,9 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		}
 
 		@Override
-		public Runnable internalSubscribe(Observer<? super ObservableElement<StyleAttribute<?>>> observer) {
+		public Runnable onElement(java.util.function.Consumer<? super ObservableElement<StyleAttribute<?>>> observer) {
 			for(StyleAttribute<?> att : theValues.keySet())
-				observer.onNext(new ObservableElement<StyleAttribute<?>>() {
+				observer.accept(new ObservableElement<StyleAttribute<?>>() {
 					@Override
 					public Type getType() {
 						return theType;

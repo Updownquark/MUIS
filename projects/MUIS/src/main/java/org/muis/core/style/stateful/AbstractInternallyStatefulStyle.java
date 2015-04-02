@@ -63,11 +63,10 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(
-			attr.getType().getType(),
-			getLocalExpressions(attr).refireWhen(theState.changes()).filter(sev -> {
+		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(attr.getType().getType(),
+			getLocalExpressions(attr).filter(sev -> {
 				return stateMatches(sev.getExpression());
-			}).first()).mapEvent(event -> mapEvent(attr, event))) {
+			}, theState.changes()).first()).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
 			public String toString() {
 				return AbstractInternallyStatefulStyle.this + ".getLocal(" + attr + ")";
@@ -85,7 +84,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filter(this::isSet)) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refireWhenEach(this::getLocal).filter(this::isSet,
+			theState.changes())) {
 			@Override
 			public String toString() {
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;
@@ -97,7 +97,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	@Override
 	public Observable<StyleAttributeEvent<?>> localRemoves() {
 		Observable<StyleAttributeEvent<?>> superLocal = InternallyStatefulStyle.super.localRemoves();
-		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>(){
+		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>() {
 			@Override
 			public Runnable internalSubscribe(Observer<? super StyleAttributeEvent<?>> observer) {
 				return theState.onElement(new java.util.function.Consumer<ObservableElement<MuisState>>() {

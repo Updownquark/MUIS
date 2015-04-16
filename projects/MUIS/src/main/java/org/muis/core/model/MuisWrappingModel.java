@@ -430,7 +430,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public Runnable internalSubscribe(Observer<? super ObservableValueEvent<T>> observer) {
+		public Runnable observe(Observer<? super ObservableValueEvent<T>> observer) {
 			theListeners.add(observer);
 			return () -> {
 				theListeners.remove(observer);

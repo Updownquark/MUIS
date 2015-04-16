@@ -26,7 +26,7 @@ public class SimpleElementList<E extends MuisElement> extends AbstractElementLis
 	}
 
 	@Override
-	public Runnable internalSubscribe(Observer<? super ChildEvent> observer) {
+	public Runnable observe(Observer<? super ChildEvent> observer) {
 		return () -> {
 		};
 		// Listeners not supported

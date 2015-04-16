@@ -99,11 +99,11 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		Observable<StyleAttributeEvent<?>> superLocal = InternallyStatefulStyle.super.localRemoves();
 		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>(){
 			@Override
-			public Runnable internalSubscribe(Observer<? super StyleAttributeEvent<?>> observer) {
+			public Runnable observe(Observer<? super StyleAttributeEvent<?>> observer) {
 				return theState.onElement(new java.util.function.Consumer<ObservableElement<MuisState>>() {
 					@Override
 					public void accept(ObservableElement<MuisState> elValue) {
-						elValue.internalSubscribe(new Observer<ObservableValueEvent<MuisState>>() {
+						elValue.observe(new Observer<ObservableValueEvent<MuisState>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<MuisState>> void onNext(V2 value) {
 								/* Find attributes that have expressions matching the state set *without* the new state but none *with*

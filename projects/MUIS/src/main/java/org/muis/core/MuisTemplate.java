@@ -1437,7 +1437,7 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		@Override
-		public Runnable internalSubscribe(Observer<? super ChildEvent> observer) {
+		public Runnable observe(Observer<? super ChildEvent> observer) {
 			// TODO Listeners not supported yet
 			return () -> {
 			};

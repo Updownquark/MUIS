@@ -63,8 +63,8 @@ public class StyleExpressionValue<E extends StyleExpression<E>, V> implements Ob
 	}
 
 	@Override
-	public Runnable internalSubscribe(Observer<? super ObservableValueEvent<V>> observer) {
-		return theValue.mapV(value -> value).internalSubscribe(observer);
+	public Runnable observe(Observer<? super ObservableValueEvent<V>> observer) {
+		return theValue.mapV(value -> value).observe(observer);
 	}
 
 	@Override

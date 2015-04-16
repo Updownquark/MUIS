@@ -25,8 +25,8 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 	}
 
 	@Override
-	public Runnable internalSubscribe(Observer<? super ChildEvent> observer) {
-		return theContents.internalSubscribe(observer);
+	public Runnable observe(Observer<? super ChildEvent> observer) {
+		return theContents.observe(observer);
 	}
 
 	@Override

@@ -166,7 +166,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 					}
 
 					@Override
-					public Runnable internalSubscribe(Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
+					public Runnable observe(Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
 						observer2.onNext(new ObservableValueEvent<>(this, null, att, null));
 						return ()->{
 						};

@@ -50,17 +50,14 @@ public class StatefulStyleSample implements MuisStyle {
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		Type t = new Type(StyleExpressionValue.class, new Type(StateExpression.class), attr.getType().getType());
-		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(
-			attr.getType().getType(),
-			theStatefulStyle.getExpressions(attr).refireWhen(theState.changes())
-				.find(t, (StyleExpressionValue<StateExpression, T> sev) -> {
-					System.out.println("Checking " + sev.getExpression() + " for " + attr);
-					if(sev.getExpression() == null || sev.getExpression().matches(theState))
-						return sev;
-					else
-						return null;
-				})).mapEvent(event -> mapEvent(attr, event))) {
+		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(attr.getType().getType(),
+			theStatefulStyle.getExpressions(attr).refresh(theState.changes()).find((StyleExpressionValue<StateExpression, T> sev) -> {
+				System.out.println("Checking " + sev.getExpression() + " for " + attr);
+				if(sev.getExpression() == null || sev.getExpression().matches(theState))
+					return true;
+				else
+					return false;
+			})).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
 			public String toString() {
 				return StatefulStyleSample.this + ".getLocal(" + attr + ")";

@@ -93,7 +93,7 @@ public class GroupPropertyType implements MuisProperty.PrintablePropertyType<Str
 		if(split.length == 0)
 			return ObservableValue.constant(new String[0]);
 		else
-			return new org.observe.ComposedObservableValue<>(new Type(String [].class), args -> {
+			return new org.observe.ObservableValue.ComposedObservableValue<>(new Type(String [].class), args -> {
 				String [] str = new String[args.length];
 				for(int i = 0; i < str.length; i++)
 					str[i] = (String) args[i];

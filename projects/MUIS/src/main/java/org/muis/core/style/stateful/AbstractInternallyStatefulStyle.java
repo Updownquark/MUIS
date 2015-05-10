@@ -130,8 +130,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 									boolean hasNoMatch = false;
 									StyleExpressionValue<StateExpression, ?> matchExp = null;
 									for(StyleExpressionValue<StateExpression, ?> exp : getLocalExpressions(att)) {
-										boolean expMatch = exp.getExpression().matches(matching);
-										boolean expNotMatch = exp.getExpression().matches(notMatching);
+										boolean expMatch = exp.getExpression() == null || exp.getExpression().matches(matching);
+										boolean expNotMatch = exp.getExpression() == null || exp.getExpression().matches(notMatching);
 										if(expNotMatch) {
 											hasNoMatch = true;
 											break;

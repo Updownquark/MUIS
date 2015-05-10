@@ -129,7 +129,7 @@ public class StyleAttributeType extends MuisProperty.AbstractPropertyType<MuisSt
 			ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append('=');
 			String valueStr;
 			if(attr.getType() instanceof org.muis.core.MuisProperty.PrintablePropertyType)
-				valueStr = ((org.muis.core.MuisProperty.PrintablePropertyType<Object>) attr.getType()).toString(value.get(attr));
+				valueStr = ((org.muis.core.MuisProperty.PrintablePropertyType<Object>) attr.getType()).toString(value.get(attr).get());
 			else
 				valueStr = String.valueOf(value.get(attr));
 			valueStr = valueStr.replaceAll("\"", "'");

@@ -211,7 +211,7 @@ public class MuisEventQueue {
 				area.y += docPos.y;
 				element = doc.getRoot();
 			}
-			if(area.getX() == 0 && area.getY() == 0 && area.getWidth() >= element.bounds().getWidth()
+			if(area != null && area.getX() == 0 && area.getY() == 0 && area.getWidth() >= element.bounds().getWidth()
 				&& area.getHeight() >= element.bounds().getHeight())
 				area = null;
 			if(element == doc.getRoot() && area == null) {

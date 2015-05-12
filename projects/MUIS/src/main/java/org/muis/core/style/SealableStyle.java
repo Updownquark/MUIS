@@ -1,6 +1,5 @@
 package org.muis.core.style;
 
-import java.util.AbstractSet;
 import java.util.Iterator;
 
 import org.observe.ObservableValue;
@@ -125,7 +124,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		return ret;
 	}
 
-	class ConstantObservableSet extends AbstractSet<StyleAttribute<?>> implements ObservableSet<StyleAttribute<?>> {
+	class ConstantObservableSet implements ObservableSet.PartialSetImpl<StyleAttribute<?>> {
 		private Type theType = new Type(StyleAttribute.class, new Type(Object.class, true));
 
 		@Override

@@ -6,6 +6,7 @@ import org.muis.core.MuisElement;
 import org.muis.core.event.ChildEvent;
 import org.muis.core.mgr.AbstractElementList;
 import org.observe.Observer;
+import org.observe.Subscription;
 
 /**
  * A simple element list
@@ -26,7 +27,7 @@ public class SimpleElementList<E extends MuisElement> extends AbstractElementLis
 	}
 
 	@Override
-	public Runnable observe(Observer<? super ChildEvent> observer) {
+	public Subscription subscribe(Observer<? super ChildEvent> observer) {
 		return () -> {
 		};
 		// Listeners not supported

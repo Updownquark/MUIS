@@ -10,6 +10,7 @@ import org.muis.core.event.ChildEvent;
 import org.muis.core.event.MuisEvent;
 import org.observe.Observable;
 import org.observe.Observer;
+import org.observe.Subscription;
 
 /**
  * An augmented, immutable list of elements
@@ -25,8 +26,8 @@ public class ImmutableChildList<E extends MuisElement> implements ElementList<E>
 	}
 
 	@Override
-	public Runnable observe(Observer<? super ChildEvent> observer) {
-		return theContents.observe(observer);
+	public Subscription subscribe(Observer<? super ChildEvent> observer) {
+		return theContents.subscribe(observer);
 	}
 
 	@Override

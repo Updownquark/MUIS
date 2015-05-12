@@ -39,7 +39,7 @@ public class TemplatePathListener {
 		TemplatePathListener parentListener;
 
 		org.observe.Action<AttributeChangedEvent<String []>> parentGroupListener;
-		Subscription<?> parentGroupSubscription;
+		Subscription parentGroupSubscription;
 
 		TemplateRole [] paths = new TemplateRole[0];
 
@@ -77,7 +77,7 @@ public class TemplatePathListener {
 		if(theElement.getParent() != null)
 			checkCurrent();
 		else {
-			Subscription<?> [] sub = new Subscription[1];
+			Subscription [] sub = new Subscription[1];
 			sub[0] = theElement.events().filterMap(ElementMovedEvent.moved).act(event -> {
 				sub[0].unsubscribe();
 				checkCurrent();

@@ -15,7 +15,7 @@ public interface StateSet extends Iterable<MuisState> {
 	 * @param state The state to observe
 	 * @return An observable holding whether the state is active in this state set
 	 */
-	ObservableValue<Boolean> observe(MuisState state);
+	ObservableValue<Boolean> subscribe(MuisState state);
 
 	/** @return All states that are currently active in this set */
 	MuisState [] toArray();

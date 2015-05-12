@@ -23,9 +23,7 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.attach.StyleAttributeType;
 import org.muis.core.tags.Template;
 import org.muis.util.MuisUtils;
-import org.observe.DefaultObservableValue;
-import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
+import org.observe.*;
 import org.observe.Observer;
 
 import prisms.lang.*;
@@ -1437,7 +1435,7 @@ public abstract class MuisTemplate extends MuisElement {
 		}
 
 		@Override
-		public Runnable observe(Observer<? super ChildEvent> observer) {
+		public Subscription subscribe(Observer<? super ChildEvent> observer) {
 			// TODO Listeners not supported yet
 			return () -> {
 			};

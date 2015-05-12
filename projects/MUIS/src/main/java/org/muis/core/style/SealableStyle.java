@@ -5,6 +5,7 @@ import java.util.Iterator;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
+import org.observe.Subscription;
 import org.observe.collect.*;
 
 import prisms.lang.Type;
@@ -151,7 +152,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		}
 
 		@Override
-		public Runnable onElement(java.util.function.Consumer<? super ObservableElement<StyleAttribute<?>>> observer) {
+		public Subscription onElement(java.util.function.Consumer<? super ObservableElement<StyleAttribute<?>>> observer) {
 			for(StyleAttribute<?> att : theValues.keySet())
 				observer.accept(new ObservableElement<StyleAttribute<?>>() {
 					@Override
@@ -165,7 +166,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 					}
 
 					@Override
-					public Runnable observe(Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
+					public Subscription subscribe(Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
 						observer2.onNext(new ObservableValueEvent<>(this, null, att, null));
 						return ()->{
 						};

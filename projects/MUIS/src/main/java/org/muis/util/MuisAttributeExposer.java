@@ -33,9 +33,9 @@ public class MuisAttributeExposer {
 	private boolean isActive;
 
 	private Action<AttributeAcceptedEvent> theAttAcceptListener;
-	private Subscription<?> theAttAcceptSubscription;
+	private Subscription theAttAcceptSubscription;
 	private Action<AttributeChangedEvent<?>> theAttChangeListener;
-	private Subscription<?> theAttChangeSubscription;
+	private Subscription theAttChangeSubscription;
 
 	/**
 	 * @param source The element whose attributes to synchronize to another element

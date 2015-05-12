@@ -107,7 +107,7 @@ public class StylesTest {
 			attr -> new BiTuple<>(attr, style.getLocal(attr)));
 		values.onElement(element -> {
 			System.out.println("New attribute " + element.get().getValue1() + "=" + element.get().getValue2().get());
-			element.observe(new Observer<ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
+			element.subscribe(new Observer<ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
 				@Override
 				public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V2 value2) {
 					value2.getValue().getValue2().value().noInit().takeUntil(element.noInit()).act(value3 -> {

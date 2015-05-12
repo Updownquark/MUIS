@@ -19,9 +19,9 @@ public class SettableValueLinker<T1, T2> {
 	private ValueConverter<T1, T2> theLeftToRight;
 	private ValueConverter<T2, T1> theRightToLeft;
 	private final Action<ObservableValueEvent<T1>> theLeftListener;
-	private Subscription<?> theLeftSubscription;
+	private Subscription theLeftSubscription;
 	private final Action<ObservableValueEvent<T2>> theRightListener;
-	private Subscription<?> theRightSubscription;
+	private Subscription theRightSubscription;
 	private boolean theEventLock;
 
 	/**

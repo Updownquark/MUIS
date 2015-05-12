@@ -8,10 +8,7 @@ import org.muis.core.style.MuisStyle;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.StyleAttributeEvent;
 import org.muis.core.style.StyleExpressionValue;
-import org.observe.Observable;
-import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
+import org.observe.*;
 import org.observe.collect.ObservableElement;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
@@ -99,11 +96,11 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 		Observable<StyleAttributeEvent<?>> superLocal = InternallyStatefulStyle.super.localRemoves();
 		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>(){
 			@Override
-			public Runnable observe(Observer<? super StyleAttributeEvent<?>> observer) {
+			public Subscription subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
 				return theState.onElement(new java.util.function.Consumer<ObservableElement<MuisState>>() {
 					@Override
 					public void accept(ObservableElement<MuisState> elValue) {
-						elValue.observe(new Observer<ObservableValueEvent<MuisState>>() {
+						elValue.subscribe(new Observer<ObservableValueEvent<MuisState>>() {
 							@Override
 							public <V2 extends ObservableValueEvent<MuisState>> void onNext(V2 value) {
 								/* Find attributes that have expressions matching the state set *without* the new state but none *with*

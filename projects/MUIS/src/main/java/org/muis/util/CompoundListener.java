@@ -391,14 +391,14 @@ public abstract class CompoundListener<T> {
 		private final CompoundElementListener theElListener;
 
 		private Action<ChildEvent> theAddedListener;
-		private Subscription<?> theAddSubscription;
+		private Subscription theAddSubscription;
 		private Action<ChildEvent> theRemovedListener;
-		private Subscription<?> theRemoveSubscription;
+		private Subscription theRemoveSubscription;
 
 		private Action<AttributeChangedEvent<?>> theAttListener;
-		private Subscription<?> theAttSubscription;
+		private Subscription theAttSubscription;
 		private Action<StyleAttributeEvent<?>> theStyleListener;
-		private Subscription<?> theStyleSubscription;
+		private Subscription theStyleSubscription;
 
 		private ArrayList<IndividualElementListener> theIndividualListeners;
 

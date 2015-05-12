@@ -5,10 +5,7 @@ import java.util.List;
 
 import org.muis.core.MuisElement;
 import org.muis.core.event.UserEvent;
-import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
-import org.observe.SettableValue;
+import org.observe.*;
 
 import prisms.lang.Type;
 
@@ -430,7 +427,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		}
 
 		@Override
-		public Runnable observe(Observer<? super ObservableValueEvent<T>> observer) {
+		public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
 			theListeners.add(observer);
 			return () -> {
 				theListeners.remove(observer);

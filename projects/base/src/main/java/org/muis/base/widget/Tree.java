@@ -3,7 +3,6 @@ package org.muis.base.widget;
 import java.awt.*;
 import java.util.ArrayList;
 
-import org.muis.*;
 import org.muis.base.model.TreePath;
 import org.muis.base.model.TreePathSet;
 import org.muis.base.model.TreeSelectionModel;
@@ -18,7 +17,7 @@ import org.muis.core.tags.Template;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
-import org.observe.collect.ObservableTree;
+import org.observe.datastruct.ObservableTree;
 
 import prisms.lang.Type;
 

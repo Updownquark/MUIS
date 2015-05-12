@@ -103,7 +103,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	}
 
 	@Override
-	public ObservableValue<Boolean> observe(MuisState state) {
+	public ObservableValue<Boolean> subscribe(MuisState state) {
 		for(StateController control : theStateControllers)
 			if(control.getState().equals(state))
 				return control.unsettable();

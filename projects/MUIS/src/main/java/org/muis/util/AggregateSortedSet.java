@@ -196,7 +196,7 @@ public class AggregateSortedSet<E> implements SortedSet<E> {
 		for(SortedSet<? extends E> comp : theComponents) {
 			if(comp.isEmpty())
 				continue;
-			E test = comp.first();
+			E test = comp.last();
 			if(best == null || comparator.compare(best, test) > 0)
 				best = test;
 		}

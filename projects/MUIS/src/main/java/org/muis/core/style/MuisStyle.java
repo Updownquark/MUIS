@@ -104,7 +104,7 @@ public interface MuisStyle {
 	 */
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<T> dependValue = ObservableUtils.flattenListValues(attr.getType().getType(),
-			getDependencies().map(depend -> depend.get(attr, false))).first();
+			getDependencies().map(depend -> depend.get(attr, false))).getFirst();
 		return new org.observe.util.ObservableValueWrapper<T>(getLocal(attr).combineV(null, (T local, T depend) -> {
 			if(local != null)
 				return local;

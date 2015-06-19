@@ -225,13 +225,13 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		return ret;
 	}
 
-	private void stateChanged(MuisState state, final boolean active, Object cause) {
+	private boolean stateChanged(MuisState state, final boolean active, Object cause) {
 		final StateValue newState = new StateValue(active);
 		StateValue old = theStates.put(state, newState);
 		newState.setStackChecker(old.getStackChecker());
 		final int stack = newState.getStackChecker().incrementAndGet();
 		if(old.isActive() == active)
-			return;
+			return old.isActive();
 
 		MuisEvent event = cause instanceof MuisEvent ? (MuisEvent) cause : null;
 		StateChangedEvent sce = new StateChangedEvent(theElement, state, active, event) {
@@ -246,6 +246,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		else
 			theActiveStateController.remove(state);
 		theElement.events().fire(sce);
+		return !active;
 	}
 
 	@Override
@@ -283,9 +284,8 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		}
 
 		@Override
-		public SettableValue<Boolean> set(Boolean active, Object cause) throws IllegalArgumentException {
-			stateChanged(theState, active, cause);
-			return this;
+		public Boolean set(Boolean active, Object cause) throws IllegalArgumentException {
+			return stateChanged(theState, active, cause);
 		}
 
 		@Override

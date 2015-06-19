@@ -80,7 +80,7 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 	}
 
 	@Override
-	public MuisButtonGroup set(String value, Object cause) throws IllegalStateException {
+	public String set(String value, Object cause) throws IllegalStateException {
 		if(!theButtonValues.containsKey(value))
 			throw new IllegalStateException("\"" + value + "\" is not a valid value for this model value");
 		String oldValue = theValue;
@@ -89,7 +89,7 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 		theController.onNext(modelEvt);
 		for(CaseModelValue buttonModel : theButtonValues.values())
 			buttonModel.fireChange(oldValue, theValue, cause);
-		return this;
+		return oldValue;
 	}
 
 	/** @return All values that have models in this button group */
@@ -118,10 +118,10 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 		}
 
 		@Override
-		public CaseModelValue set(Boolean value, Object event) throws IllegalStateException {
+		public Boolean set(Boolean value, Object event) throws IllegalStateException {
 			if(!value.equals(get()))
 				MuisButtonGroup.this.set(theCaseValue, event);
-			return this;
+			return !value;
 		}
 
 		@Override

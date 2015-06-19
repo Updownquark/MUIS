@@ -41,12 +41,11 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 				}
 
 				@Override
-				public <V extends T> SettableValue<T> set(V newValue, Object cause) throws IllegalArgumentException {
+				public <V extends T> T set(V newValue, Object cause) throws IllegalArgumentException {
 					String valMsg = isValid(newValue);
 					if(valMsg != null)
 						throw new IllegalArgumentException(valMsg);
-					SimpleSpinnerModel.this.setValue(newValue);
-					return this;
+					return SimpleSpinnerModel.this.setValue(newValue);
 				}
 
 				@Override
@@ -115,12 +114,16 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 		return theDecrementer;
 	}
 
-	/** @param value The new value for this model */
-	protected void setValue(T value) {
+	/**
+	 * @param value The new value for this model
+	 * @return The value that was previously set for this model
+	 */
+	protected T setValue(T value) {
 		T oldValue = theValue;
 		theValue = value;
 		theValueController.onNext(new ObservableValueEvent<>(theObservableValue, oldValue, theValue, null));
 		checkActions();
+		return oldValue;
 	}
 
 	/** Checks the increment and decrement actions' enabled status */

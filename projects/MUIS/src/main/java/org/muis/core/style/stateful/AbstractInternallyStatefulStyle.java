@@ -64,7 +64,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 			attr.getType().getType(),
 			getLocalExpressions(attr).refresh(theState.changes()).filter(sev -> {
 				return stateMatches(sev.getExpression());
-			}).first()).mapEvent(event -> mapEvent(attr, event))) {
+			}).getFirst()).mapEvent(event -> mapEvent(attr, event))) {
 			@Override
 			public String toString() {
 				return AbstractInternallyStatefulStyle.this + ".getLocal(" + attr + ")";

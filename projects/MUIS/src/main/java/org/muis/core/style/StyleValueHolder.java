@@ -4,7 +4,7 @@ import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
 
 import java.util.List;
 
-import org.observe.collect.DefaultObservableList;
+import org.observe.collect.impl.ObservableArrayList;
 
 import prisms.lang.Type;
 
@@ -14,7 +14,7 @@ import prisms.lang.Type;
  * @param <E> The type of expression supported by the style set using this class
  * @param <V> The type of the attribute that this holder holds values for
  */
-public class StyleValueHolder<E extends StyleExpression<E>, V> extends DefaultObservableList<StyleExpressionValue<E, V>> implements
+public class StyleValueHolder<E extends StyleExpression<E>, V> extends ObservableArrayList<StyleExpressionValue<E, V>> implements
 	Cloneable {
 	private final ConditionalStyle<?, E> theStyle;
 	private final StyleAttribute<V> theAttribute;

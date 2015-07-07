@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.muis.base.model.TreePath;
 import org.muis.base.model.TreeSelectionModel;
-import org.observe.collect.DefaultObservableList;
+import org.observe.collect.impl.ObservableArrayList;
 
 import prisms.lang.Type;
 
@@ -13,7 +13,7 @@ import prisms.lang.Type;
  *
  * @param <E> The type of element in the tree
  */
-public class DefaultTreeSelectionModel<E> extends DefaultObservableList<TreePath<E>> implements TreeSelectionModel<E> {
+public class DefaultTreeSelectionModel<E> extends ObservableArrayList<TreePath<E>> implements TreeSelectionModel<E> {
 	private final List<TreePath<E>> theControl;
 
 	/**

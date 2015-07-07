@@ -5,10 +5,10 @@ import org.muis.core.event.MuisEvent;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
-import org.observe.collect.DefaultObservableList;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
+import org.observe.collect.impl.ObservableArrayList;
 import org.observe.util.ObservableUtils;
 
 import prisms.lang.Type;
@@ -79,7 +79,7 @@ public interface MuisStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		DefaultObservableList<ObservableCollection<StyleAttribute<?>>> ret = new DefaultObservableList<>(new Type(
+		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(new Type(
 			ObservableCollection.class, new Type(StyleAttribute.class)));
 		java.util.List<ObservableCollection<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(localAttributes());

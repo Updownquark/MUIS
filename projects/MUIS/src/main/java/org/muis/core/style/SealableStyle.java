@@ -6,7 +6,12 @@ import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.Subscription;
-import org.observe.collect.*;
+import org.observe.collect.CollectionSession;
+import org.observe.collect.ObservableElement;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
+import org.observe.collect.impl.ObservableArrayList;
+import org.observe.util.Transaction;
 
 import prisms.lang.Type;
 
@@ -26,7 +31,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 	/** Creates a sealable style */
 	public SealableStyle() {
 		theValues = new java.util.HashMap<>();
-		theDepends = new DefaultObservableList<>(new Type(MuisStyle.class));
+		theDepends = new ObservableArrayList<>(new Type(MuisStyle.class));
 		theObservableAttributes = new ConstantObservableSet();
 	}
 
@@ -131,6 +136,12 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 		@Override
 		public ObservableValue<CollectionSession> getSession() {
 			return ObservableValue.constant(new Type(CollectionSession.class), null);
+		}
+
+		@Override
+		public Transaction lock(boolean write, Object cause) {
+			return () -> {
+			};
 		}
 
 		@Override

@@ -10,7 +10,7 @@ import org.muis.core.style.stateful.AbstractInternallyStatefulStyle;
 import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
-import org.observe.collect.DefaultObservableList;
+import org.observe.collect.impl.ObservableArrayList;
 
 import prisms.lang.Type;
 
@@ -24,8 +24,8 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
-		super(new DefaultObservableList<>(new Type(StatefulStyle.class)), elStyle.getElement().state().activeStates());
-		theDependencyController = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
+		super(new ObservableArrayList<>(new Type(StatefulStyle.class)), elStyle.getElement().state().activeStates());
+		theDependencyController = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
 		theElStyle = elStyle;
 		theDependencyController.add(elStyle);
 		theElStyle
@@ -33,7 +33,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 			.life()
 			.runWhen(
 				() -> {
-					org.observe.collect.DefaultObservableSet<TemplateRole> templateRoles = new org.observe.collect.DefaultObservableSet<>(
+					org.observe.collect.impl.ObservableHashSet<TemplateRole> templateRoles = new org.observe.collect.impl.ObservableHashSet<>(
 						new Type(TemplateRole.class));;
 					java.util.Set<TemplateRole> controller = templateRoles.control(null);
 					theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle

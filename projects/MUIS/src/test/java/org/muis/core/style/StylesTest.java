@@ -19,9 +19,9 @@ import org.observe.BiTuple;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
-import org.observe.collect.DefaultObservableList;
-import org.observe.collect.DefaultObservableSet;
 import org.observe.collect.ObservableCollection;
+import org.observe.collect.impl.ObservableArrayList;
+import org.observe.collect.impl.ObservableHashSet;
 
 import prisms.lang.Type;
 
@@ -33,9 +33,9 @@ public class StylesTest {
 		final Set<MuisState> stateControl;
 
 		TestStatefulStyle() {
-			super(new DefaultObservableList<>(new Type(StatefulStyle.class)), new DefaultObservableSet<>(new Type(MuisState.class)));
-			dependControl = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
-			stateControl = ((DefaultObservableSet<MuisState>) getState()).control(null);
+			super(new ObservableArrayList<>(new Type(StatefulStyle.class)), new ObservableHashSet<>(new Type(MuisState.class)));
+			dependControl = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
+			stateControl = ((ObservableHashSet<MuisState>) getState()).control(null);
 		}
 
 		@Override
@@ -69,8 +69,8 @@ public class StylesTest {
 		final List<StyleSheet> dependControl;
 
 		public TestStyleSheet() {
-			super(new DefaultObservableList<>(new Type(StyleSheet.class)));
-			dependControl = ((DefaultObservableList<StyleSheet>) getConditionalDependencies()).control(null);
+			super(new ObservableArrayList<>(new Type(StyleSheet.class)));
+			dependControl = ((ObservableArrayList<StyleSheet>) getConditionalDependencies()).control(null);
 		}
 
 		@Override
@@ -166,9 +166,9 @@ public class StylesTest {
 	@Test
 	public void testStyleSheet() {
 		// Create the styles and supporting collections
-		DefaultObservableSet<MuisState> state = new DefaultObservableSet<>(new Type(MuisState.class));
+		ObservableHashSet<MuisState> state = new ObservableHashSet<>(new Type(MuisState.class));
 		Set<MuisState> stateControl = state.control(null);
-		DefaultObservableSet<TemplateRole> roles = new DefaultObservableSet<>(new Type(TemplateRole.class));
+		ObservableHashSet<TemplateRole> roles = new ObservableHashSet<>(new Type(TemplateRole.class));
 		@SuppressWarnings("unused")
 		Set<TemplateRole> roleControl = roles.control(null);
 		TestStyleSheet sheet = new TestStyleSheet();

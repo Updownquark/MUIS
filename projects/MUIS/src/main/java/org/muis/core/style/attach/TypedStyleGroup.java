@@ -8,8 +8,8 @@ import org.muis.core.style.sheet.FilteredStyleSheet;
 import org.muis.core.style.sheet.TemplateRole;
 import org.muis.core.style.stateful.AbstractStatefulStyle;
 import org.muis.core.style.stateful.StatefulStyle;
-import org.observe.collect.DefaultObservableList;
 import org.observe.collect.ObservableSet;
+import org.observe.collect.impl.ObservableArrayList;
 
 import prisms.lang.Type;
 import prisms.util.ArrayUtils;
@@ -53,8 +53,8 @@ public class TypedStyleGroup<E extends MuisElement> extends AbstractStatefulStyl
 	 * @param name The name of the root
 	 */
 	protected TypedStyleGroup(MuisDocument doc, TypedStyleGroup<? super E> parent, Class<E> type, String name) {
-		super(new DefaultObservableList<>(new Type(StatefulStyle.class)));
-		theDependenyController = ((DefaultObservableList<StatefulStyle>) getConditionalDependencies()).control(null);
+		super(new ObservableArrayList<>(new Type(StatefulStyle.class)));
+		theDependenyController = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
 		theDocument = doc;
 		theParent = parent;
 		theType = type;

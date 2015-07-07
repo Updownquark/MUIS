@@ -4,7 +4,7 @@ import java.util.Set;
 
 import org.muis.base.model.TreePath;
 import org.muis.base.model.TreePathSet;
-import org.observe.collect.DefaultObservableSet;
+import org.observe.collect.impl.ObservableHashSet;
 
 import prisms.lang.Type;
 
@@ -13,7 +13,7 @@ import prisms.lang.Type;
  *
  * @param <E> The type of element in the tree
  */
-public class DefaultTreePathSet<E> extends DefaultObservableSet<TreePath<E>> implements TreePathSet<E> {
+public class DefaultTreePathSet<E> extends ObservableHashSet<TreePath<E>> implements TreePathSet<E> {
 	private final Set<TreePath<E>> theControl;
 
 	/**

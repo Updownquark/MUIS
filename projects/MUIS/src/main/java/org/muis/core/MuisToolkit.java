@@ -60,7 +60,7 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		theClassMappings = new ClassMapping[0];
 		theDependencies = new MuisToolkit[0];
 		thePermissions = new MuisPermission[0];
-		org.observe.collect.DefaultObservableList<StyleSheet> styleDepends = new org.observe.collect.DefaultObservableList<>(
+		org.observe.collect.impl.ObservableArrayList<StyleSheet> styleDepends = new org.observe.collect.impl.ObservableArrayList<>(
 			new prisms.lang.Type(StyleSheet.class));
 		theStyle = new ToolkitStyleSheet(styleDepends);
 		theStyleDependencyController = styleDepends.control(null);

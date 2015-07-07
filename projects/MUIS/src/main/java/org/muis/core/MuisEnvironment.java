@@ -49,7 +49,7 @@ public class MuisEnvironment implements MuisParseEnv {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new MuisMessageCenter(this, null, null);
 		theCache = new MuisCache();
-		org.observe.collect.DefaultObservableList<StyleSheet> styleDepends = new org.observe.collect.DefaultObservableList<>(
+		org.observe.collect.impl.ObservableArrayList<StyleSheet> styleDepends = new org.observe.collect.impl.ObservableArrayList<>(
 			new prisms.lang.Type(StyleSheet.class));
 		theStyle = new EnvironmentStyle(styleDepends);
 		theStyleDependencyController = styleDepends.control(null);

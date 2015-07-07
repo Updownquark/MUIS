@@ -3,6 +3,7 @@ package org.muis.core.style;
 import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
 
 import org.observe.collect.*;
+import org.observe.collect.impl.ObservableArrayList;
 
 import prisms.lang.Type;
 
@@ -34,7 +35,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 
 	/** @return All style attributes that are set for any condition in this style or any of its dependents */
 	default ObservableSet<StyleAttribute<?>> allAttrs() {
-		DefaultObservableList<ObservableCollection<StyleAttribute<?>>> ret = new DefaultObservableList<>(new Type(
+		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(new Type(
 			ObservableCollection.class, new Type(StyleAttribute.class)));
 		java.util.List<ObservableCollection<StyleAttribute<?>>> controller = ret.control(null);
 		controller.add(allLocal());
@@ -54,7 +55,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 *         decreasing priority
 	 */
 	default <T> ObservableOrderedCollection<StyleExpressionValue<E, T>> getExpressions(StyleAttribute<T> attr) {
-		DefaultObservableList<ObservableOrderedCollection<StyleExpressionValue<E, T>>> ret = new DefaultObservableList<>(
+		ObservableArrayList<ObservableOrderedCollection<StyleExpressionValue<E, T>>> ret = new ObservableArrayList<>(
 			new Type(ObservableOrderedCollection.class, new Type(StyleExpressionValue.class, new Type(Object.class, true), attr.getType()
 				.getType())));
 		java.util.List<ObservableOrderedCollection<StyleExpressionValue<E, T>>> controller = ret.control(null);

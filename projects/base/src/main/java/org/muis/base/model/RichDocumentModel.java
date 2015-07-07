@@ -13,6 +13,7 @@ import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.util.Transaction;
 import org.observe.ObservableValue;
 import org.observe.collect.*;
+import org.observe.collect.impl.ObservableHashSet;
 
 import prisms.lang.Type;
 
@@ -424,7 +425,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> localAttributes() {
-			DefaultObservableSet<ObservableSet<StyleAttribute<?>>> ret = new DefaultObservableSet<>(new Type(ObservableSet.class, new Type(
+			ObservableHashSet<ObservableSet<StyleAttribute<?>>> ret = new ObservableHashSet<>(new Type(ObservableSet.class, new Type(
 				StyleAttribute.class, new Type(Object.class, true))));
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))

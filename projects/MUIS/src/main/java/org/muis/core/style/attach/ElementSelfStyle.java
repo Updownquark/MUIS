@@ -11,6 +11,7 @@ import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
 import org.observe.collect.impl.ObservableArrayList;
+import org.observe.util.ObservableUtils;
 
 import prisms.lang.Type;
 
@@ -24,8 +25,9 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
-		super(new ObservableArrayList<>(new Type(StatefulStyle.class)), elStyle.getElement().state().activeStates());
-		theDependencyController = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
+		super(ObservableUtils.control(new ObservableArrayList<>(new Type(StatefulStyle.class))), elStyle.getElement().state()
+			.activeStates());
+		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theElStyle = elStyle;
 		theDependencyController.add(elStyle);
 		theElStyle

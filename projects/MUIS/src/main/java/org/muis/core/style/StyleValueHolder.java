@@ -2,9 +2,9 @@ package org.muis.core.style;
 
 import static org.muis.core.style.StyleExpressionValue.STYLE_EXPRESSION_COMPARE;
 
-import java.util.List;
-
+import org.observe.collect.ObservableList;
 import org.observe.collect.impl.ObservableArrayList;
+import org.observe.util.ObservableListWrapper;
 
 import prisms.lang.Type;
 
@@ -14,12 +14,11 @@ import prisms.lang.Type;
  * @param <E> The type of expression supported by the style set using this class
  * @param <V> The type of the attribute that this holder holds values for
  */
-public class StyleValueHolder<E extends StyleExpression<E>, V> extends ObservableArrayList<StyleExpressionValue<E, V>> implements
-	Cloneable {
+public class StyleValueHolder<E extends StyleExpression<E>, V> extends ObservableListWrapper<StyleExpressionValue<E, V>> {
 	private final ConditionalStyle<?, E> theStyle;
 	private final StyleAttribute<V> theAttribute;
 
-	private List<StyleExpressionValue<E, V>> theController;
+	private ObservableList<StyleExpressionValue<E, V>> theController;
 
 	/**
 	 * @param style The style that this object will hold expressions for
@@ -28,10 +27,10 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends Observabl
 	 * @param value The initial expression value to hold
 	 */
 	protected StyleValueHolder(ConditionalStyle<?, E> style, StyleAttribute<V> attr, Type expressionType, StyleExpressionValue<E, V> value) {
-		super(new Type(StyleExpressionValue.class, expressionType, new Type(Object.class, true)));
+		super(new ObservableArrayList<>(new Type(StyleExpressionValue.class, expressionType, new Type(Object.class, true))), false);
 		theStyle = style;
 		theAttribute = attr;
-		theController = control(null);
+		theController = getWrapped();
 		if(value != null)
 			theController.add(value);
 	}
@@ -91,17 +90,5 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends Observabl
 	@Override
 	public String toString() {
 		return theStyle + ".localExpressions(" + theAttribute + ")=" + super.toString();
-	}
-
-	@Override
-	protected StyleValueHolder<E, V> clone() {
-		StyleValueHolder<E, V> ret;
-		try {
-			ret = (StyleValueHolder<E, V>) super.clone();
-		} catch(CloneNotSupportedException e) {
-			throw new IllegalStateException(e);
-		}
-		ret.theController = ret.control(null);
-		return ret;
 	}
 }

@@ -9,6 +9,7 @@ import org.muis.core.style.stateful.MutableStatefulStyle;
 import org.muis.core.style.stateful.StateExpression;
 import org.muis.core.style.stateful.StatefulStyle;
 import org.observe.collect.impl.ObservableArrayList;
+import org.observe.util.ObservableUtils;
 
 /** Represents a set of style attributes that apply to all an element's descendants but not to the element itself */
 public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle {
@@ -18,8 +19,9 @@ public class ElementHeirStyle extends AbstractInternallyStatefulStyle implements
 
 	/** @param elStyle The element style that this heir style is for */
 	public ElementHeirStyle(ElementStyle elStyle) {
-		super(new ObservableArrayList<>(new prisms.lang.Type(StatefulStyle.class)), elStyle.getElement().state().activeStates());
-		theDependencyController = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
+		super(ObservableUtils.control(new ObservableArrayList<>(new prisms.lang.Type(StatefulStyle.class))), elStyle.getElement().state()
+			.activeStates());
+		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theElStyle = elStyle;
 		theDependencyController.add(elStyle);
 	}

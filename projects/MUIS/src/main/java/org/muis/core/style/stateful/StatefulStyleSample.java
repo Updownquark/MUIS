@@ -75,7 +75,7 @@ public class StatefulStyleSample implements MuisStyle {
 					if(sev.getExpression() == null || sev.getExpression().matches(theState))
 						return attr;
 				return null;
-			}))) {
+			})), false) {
 
 			@Override
 			public String toString() {

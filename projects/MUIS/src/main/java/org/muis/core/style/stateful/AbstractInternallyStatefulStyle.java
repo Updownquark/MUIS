@@ -40,7 +40,7 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 				return (InternallyStatefulStyle) depend;
 			else
 				return new StatefulStyleSample(depend, theState);
-		})) {
+		}), false) {
 			@Override
 			public String toString() {
 				return "Dependencies of " + AbstractInternallyStatefulStyle.this;
@@ -82,7 +82,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refreshEach(this::getLocal).filter(this::isSet)) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(allLocal().refreshEach(this::getLocal).filter(this::isSet),
+			false) {
 			@Override
 			public String toString() {
 				return "Local attributes of " + AbstractInternallyStatefulStyle.this;

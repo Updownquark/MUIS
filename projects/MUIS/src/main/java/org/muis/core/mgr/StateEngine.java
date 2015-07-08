@@ -81,7 +81,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 		ObservableHashSet<MuisState> allStates = new ObservableHashSet<>(new Type(MuisState.class));
 		theStateSetController = allStates;
-		theStateSet = new org.observe.util.ObservableSetWrapper<MuisState>(allStates.immutable()) {
+		theStateSet = new org.observe.util.ObservableSetWrapper<MuisState>(allStates, false) {
 			@Override
 			public String toString() {
 				return "allStates(" + theElement.getTagName() + ")";
@@ -89,7 +89,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		};
 		ObservableHashSet<MuisState> activeStates = new ObservableHashSet<>(theStateSet.getType());
 		theActiveStateController = activeStates;
-		theActiveStates = new org.observe.util.ObservableSetWrapper<MuisState>(activeStates.immutable()) {
+		theActiveStates = new org.observe.util.ObservableSetWrapper<MuisState>(activeStates, false) {
 			@Override
 			public String toString() {
 				return "activeStates(" + theElement.getTagName() + ")=" + super.toString();

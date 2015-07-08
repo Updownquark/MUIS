@@ -2,6 +2,8 @@ package org.muis.core.style.attach;
 
 import org.muis.core.style.sheet.AbstractStyleSheet;
 import org.muis.core.style.sheet.StyleSheet;
+import org.observe.collect.impl.ObservableArrayList;
+import org.observe.util.ObservableUtils;
 
 /**
  * The {@link StyleSheet} at {@link org.muis.core.MuisDocument document}-level that incorporates the attributes of all style sheets set in
@@ -13,8 +15,8 @@ public class DocumentStyleSheet extends AbstractStyleSheet {
 
 	/** @param doc The document that the style sheet is for */
 	public DocumentStyleSheet(org.muis.core.MuisDocument doc) {
-		super(new org.observe.collect.impl.ObservableArrayList<>(new prisms.lang.Type(StyleSheet.class)));
-		theDependencyController = ((org.observe.collect.impl.ObservableArrayList<StyleSheet>) getConditionalDependencies()).control(null);
+		super(ObservableUtils.control(new ObservableArrayList<>(new prisms.lang.Type(StyleSheet.class))));
+		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theDoc = doc;
 		theDependencyController.add(0, theDoc.getEnvironment().getStyle());
 	}

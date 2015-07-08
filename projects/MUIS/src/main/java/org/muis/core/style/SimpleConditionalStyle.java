@@ -14,7 +14,7 @@ import prisms.lang.Type;
  * @param <E> The type of expression supported by the style set
  */
 public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E extends StyleExpression<E>> implements
-	ConditionalStyle<S, E>, Cloneable {
+	ConditionalStyle<S, E> {
 	private java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, StyleValueHolder<E, ?>> theAttributes;
 
 	private ObservableSet<StyleAttribute<?>> theObservableAtts;
@@ -195,20 +195,5 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 			theAttController.remove(attr);
 		}
 		return this;
-	}
-
-	@Override
-	public SimpleConditionalStyle<S, E> clone() {
-		SimpleConditionalStyle<S, E> ret;
-		try {
-			ret = (SimpleConditionalStyle<S, E>) super.clone();
-		} catch(CloneNotSupportedException e) {
-			throw new IllegalStateException(e);
-		}
-		ret.theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
-		for(java.util.Map.Entry<StyleAttribute<?>, StyleValueHolder<E, ?>> entry : theAttributes.entrySet())
-			ret.theAttributes.put(entry.getKey(), entry.getValue().clone());
-		// Don't add the listeners--ret is a new style
-		return ret;
 	}
 }

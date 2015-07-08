@@ -7,6 +7,7 @@ import org.muis.core.event.ElementMovedEvent;
 import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.*;
 import org.observe.collect.impl.ObservableArrayList;
+import org.observe.util.ObservableUtils;
 
 import prisms.lang.Type;
 
@@ -30,8 +31,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 * @param element The element that this style is for
 	 */
 	public ElementStyle(MuisElement element) {
-		super(new ObservableArrayList<>(new Type(StatefulStyle.class)), element.state().activeStates());
-		theDependencyController = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
+		super(ObservableUtils.control(new ObservableArrayList<>(new Type(StatefulStyle.class))), element.state().activeStates());
+		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
 		theHeirStyle = new ElementHeirStyle(this);

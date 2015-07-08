@@ -13,7 +13,7 @@ import prisms.lang.Type;
  *
  * @param <E> The type of element in the tree
  */
-public class DefaultTreeSelectionModel<E> extends ObservableArrayList<TreePath<E>> implements TreeSelectionModel<E> {
+public class DefaultTreeSelectionModel<E> extends org.observe.util.ObservableListWrapper<TreePath<E>> implements TreeSelectionModel<E> {
 	private final List<TreePath<E>> theControl;
 
 	/**
@@ -22,8 +22,8 @@ public class DefaultTreeSelectionModel<E> extends ObservableArrayList<TreePath<E
 	 * @param type The type of element in the tree
 	 */
 	public DefaultTreeSelectionModel(Type type) {
-		super(new Type(TreePath.class, type));
-		theControl = control(null);
+		super(new ObservableArrayList<>(new Type(TreePath.class, type)));
+		theControl = getWrapped();
 	}
 
 	@Override

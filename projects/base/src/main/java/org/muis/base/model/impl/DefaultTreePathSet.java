@@ -5,6 +5,7 @@ import java.util.Set;
 import org.muis.base.model.TreePath;
 import org.muis.base.model.TreePathSet;
 import org.observe.collect.impl.ObservableHashSet;
+import org.observe.util.ObservableSetWrapper;
 
 import prisms.lang.Type;
 
@@ -13,7 +14,7 @@ import prisms.lang.Type;
  *
  * @param <E> The type of element in the tree
  */
-public class DefaultTreePathSet<E> extends ObservableHashSet<TreePath<E>> implements TreePathSet<E> {
+public class DefaultTreePathSet<E> extends ObservableSetWrapper<TreePath<E>> implements TreePathSet<E> {
 	private final Set<TreePath<E>> theControl;
 
 	/**
@@ -22,8 +23,8 @@ public class DefaultTreePathSet<E> extends ObservableHashSet<TreePath<E>> implem
 	 * @param type The type of element in the tree
 	 */
 	public DefaultTreePathSet(Type type) {
-		super(new Type(TreePath.class, type));
-		theControl = control(null);
+		super(new ObservableHashSet<>(new Type(TreePath.class, type)));
+		theControl = getWrapped();
 	}
 
 	@Override

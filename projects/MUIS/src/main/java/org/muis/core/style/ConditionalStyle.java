@@ -42,8 +42,7 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 			new Type(StyleAttribute.class)));
 		ret.add(allLocal());
 		ret.add(ObservableCollection.flatten(getConditionalDependencies().map(depend -> depend.allAttrs())));
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret)
-			.immutable())) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret)), false) {
 			@Override
 			public String toString() {
 				return "All attributes for " + ConditionalStyle.this;
@@ -64,8 +63,8 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 		ret.add(getLocalExpressions(attr));
 		ret.add(ObservableOrderedCollection.flatten(getConditionalDependencies().map(depend -> depend.getExpressions(attr)),
 			STYLE_EXPRESSION_COMPARE));
-		return new org.observe.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(
-			ret.immutable(), STYLE_EXPRESSION_COMPARE)) {
+		return new org.observe.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret,
+			STYLE_EXPRESSION_COMPARE), false) {
 			@Override
 			public String toString() {
 				return attr + " expressions for " + ConditionalStyle.this;

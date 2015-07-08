@@ -2,7 +2,7 @@ package org.muis.base.model;
 
 import java.util.AbstractList;
 
-import org.observe.collect.ObservableTree;
+import org.observe.datastruct.ObservableTree;
 
 /**
  * A path from the root of a tree, through nested intermediate nodes, down to a target node

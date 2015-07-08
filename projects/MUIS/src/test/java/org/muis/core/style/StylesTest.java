@@ -6,8 +6,6 @@ import static org.muis.core.MuisConstants.States.CLICK;
 import static org.muis.core.style.BackgroundStyle.cornerRadius;
 import static org.muis.core.style.LengthUnit.pixels;
 
-import java.util.List;
-
 import org.junit.Test;
 import org.muis.core.BodyElement;
 import org.muis.core.MuisElement;
@@ -19,8 +17,10 @@ import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableList;
 import org.observe.collect.impl.ObservableArrayList;
 import org.observe.collect.impl.ObservableHashSet;
+import org.observe.util.ObservableUtils;
 
 import prisms.lang.Type;
 
@@ -59,11 +59,11 @@ public class StylesTest {
 
 	private static class TestStyleSheet extends AbstractStyleSheet implements MutableStyleSheet {
 		@SuppressWarnings("unused")
-		final List<StyleSheet> dependControl;
+		final ObservableList<StyleSheet> dependControl;
 
 		public TestStyleSheet() {
-			super(new ObservableArrayList<>(new Type(StyleSheet.class)));
-			dependControl = ((ObservableArrayList<StyleSheet>) getConditionalDependencies()).control(null);
+			super(ObservableUtils.control(new ObservableArrayList<>(new Type(StyleSheet.class))));
+			dependControl = ObservableUtils.getController(getConditionalDependencies());
 		}
 
 		@Override

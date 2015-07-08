@@ -83,8 +83,7 @@ public interface MuisStyle {
 			ObservableCollection.class, new Type(StyleAttribute.class)));
 		ret.add(localAttributes());
 		ret.add(ObservableCollection.flatten(getDependencies().map(depend -> depend.attributes())));
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret
-			.immutable()))) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret)), false) {
 			@Override
 			public String toString() {
 				return "All attributes for " + MuisStyle.this;

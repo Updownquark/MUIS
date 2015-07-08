@@ -1,7 +1,6 @@
 package org.muis.core;
 
 import java.net.URL;
-import java.util.List;
 
 import org.muis.core.style.sheet.StyleSheet;
 import org.observe.collect.ObservableList;
@@ -45,7 +44,7 @@ public class MuisToolkit extends java.net.URLClassLoader {
 
 	private ToolkitStyleSheet theStyle;
 
-	private List<StyleSheet> theStyleDependencyController;
+	private ObservableList<StyleSheet> theStyleDependencyController;
 
 	/**
 	 * Creates a MUIS toolkit
@@ -60,10 +59,10 @@ public class MuisToolkit extends java.net.URLClassLoader {
 		theClassMappings = new ClassMapping[0];
 		theDependencies = new MuisToolkit[0];
 		thePermissions = new MuisPermission[0];
-		org.observe.collect.impl.ObservableArrayList<StyleSheet> styleDepends = new org.observe.collect.impl.ObservableArrayList<>(
+		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(
 			new prisms.lang.Type(StyleSheet.class));
+		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
 		theStyle = new ToolkitStyleSheet(styleDepends);
-		theStyleDependencyController = styleDepends.control(null);
 	}
 
 	/** @return The environment that this toolkit is for */

@@ -80,16 +80,16 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		theStateControllerLock = new Object();
 
 		ObservableHashSet<MuisState> allStates = new ObservableHashSet<>(new Type(MuisState.class));
-		theStateSetController = allStates.control(null);
-		theStateSet = new org.observe.util.ObservableSetWrapper<MuisState>(allStates) {
+		theStateSetController = allStates;
+		theStateSet = new org.observe.util.ObservableSetWrapper<MuisState>(allStates.immutable()) {
 			@Override
 			public String toString() {
 				return "allStates(" + theElement.getTagName() + ")";
 			}
 		};
 		ObservableHashSet<MuisState> activeStates = new ObservableHashSet<>(theStateSet.getType());
-		theActiveStateController = activeStates.control(null);
-		theActiveStates = new org.observe.util.ObservableSetWrapper<MuisState>(activeStates) {
+		theActiveStateController = activeStates;
+		theActiveStates = new org.observe.util.ObservableSetWrapper<MuisState>(activeStates.immutable()) {
 			@Override
 			public String toString() {
 				return "activeStates(" + theElement.getTagName() + ")=" + super.toString();

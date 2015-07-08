@@ -81,10 +81,10 @@ public interface MuisStyle {
 	default ObservableSet<StyleAttribute<?>> attributes() {
 		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(new Type(
 			ObservableCollection.class, new Type(StyleAttribute.class)));
-		java.util.List<ObservableCollection<StyleAttribute<?>>> controller = ret.control(null);
-		controller.add(localAttributes());
-		controller.add(ObservableCollection.flatten(getDependencies().map(depend -> depend.attributes())));
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret))) {
+		ret.add(localAttributes());
+		ret.add(ObservableCollection.flatten(getDependencies().map(depend -> depend.attributes())));
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret
+			.immutable()))) {
 			@Override
 			public String toString() {
 				return "All attributes for " + MuisStyle.this;

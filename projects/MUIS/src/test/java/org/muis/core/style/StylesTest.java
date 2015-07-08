@@ -7,7 +7,6 @@ import static org.muis.core.style.BackgroundStyle.cornerRadius;
 import static org.muis.core.style.LengthUnit.pixels;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Test;
 import org.muis.core.BodyElement;
@@ -28,14 +27,8 @@ import prisms.lang.Type;
 /** Tests style classes in org.muis.core.style.* packages */
 public class StylesTest {
 	private static class TestStatefulStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, MutableStyle {
-		@SuppressWarnings("unused")
-		final List<StatefulStyle> dependControl;
-		final Set<MuisState> stateControl;
-
 		TestStatefulStyle() {
 			super(new ObservableArrayList<>(new Type(StatefulStyle.class)), new ObservableHashSet<>(new Type(MuisState.class)));
-			dependControl = ((ObservableArrayList<StatefulStyle>) getConditionalDependencies()).control(null);
-			stateControl = ((ObservableHashSet<MuisState>) getState()).control(null);
 		}
 
 		@Override
@@ -134,12 +127,12 @@ public class StylesTest {
 		assertEquals(null, reported[0]);
 		assertEquals(0, changes[0]);
 
-		style.stateControl.add(CLICK); // 2 fold events, no Local events
+		style.getState().add(CLICK); // 2 fold events, no Local events
 		assertEquals(clickSize, style.get(cornerRadius, false).get());
 		assertEquals(clickSize, reported[0]);
 		assertTrue(changes[0] > lastChanges);
 		lastChanges = changes[0];
-		style.stateControl.remove(CLICK);
+		style.getState().remove(CLICK);
 		assertEquals(null, style.get(cornerRadius, false).get());
 		assertEquals(null, reported[0]);
 		assertTrue(changes[0] > lastChanges);
@@ -150,12 +143,12 @@ public class StylesTest {
 		assertEquals(noClickSize, style.get(cornerRadius, false).get());
 		assertEquals(noClickSize, reported[0]);
 		assertTrue(changes[0] > lastChanges);
-		style.stateControl.add(CLICK);
+		style.getState().add(CLICK);
 		assertEquals(clickSize, style.get(cornerRadius, false).get());
 		assertEquals(clickSize, reported[0]);
 		assertTrue(changes[0] > lastChanges);
 		lastChanges = changes[0];
-		style.stateControl.remove(CLICK);
+		style.getState().remove(CLICK);
 		assertEquals(noClickSize, style.get(cornerRadius, false).get());
 		assertEquals(noClickSize, reported[0]);
 		assertTrue(changes[0] > lastChanges);
@@ -167,10 +160,7 @@ public class StylesTest {
 	public void testStyleSheet() {
 		// Create the styles and supporting collections
 		ObservableHashSet<MuisState> state = new ObservableHashSet<>(new Type(MuisState.class));
-		Set<MuisState> stateControl = state.control(null);
 		ObservableHashSet<TemplateRole> roles = new ObservableHashSet<>(new Type(TemplateRole.class));
-		@SuppressWarnings("unused")
-		Set<TemplateRole> roleControl = roles.control(null);
 		TestStyleSheet sheet = new TestStyleSheet();
 		FilteredStyleSheet<MuisElement> filter = new FilteredStyleSheet<>(sheet, null, MuisElement.class, roles);
 		StatefulStyleSample sample = new StatefulStyleSample(filter, state);
@@ -202,7 +192,7 @@ public class StylesTest {
 		assertEquals(noClickSize, bodySample.get(cornerRadius, false).get());
 
 		// Test stateful properties of style sheets
-		stateControl.add(CLICK);
+		state.add(CLICK);
 		assertEquals(clickSize, sample.get(cornerRadius, false).get());
 		assertEquals(clickSize, reported[0]);
 		assertEquals(bodyClickSize, bodySample.get(cornerRadius, false).get());

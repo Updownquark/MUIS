@@ -1,7 +1,5 @@
 package org.muis.core.style;
 
-import java.util.Set;
-
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
@@ -19,14 +17,14 @@ public abstract class SimpleConditionalStyle<S extends ConditionalStyle<S, E>, E
 	ConditionalStyle<S, E>, Cloneable {
 	private java.util.concurrent.ConcurrentHashMap<StyleAttribute<?>, StyleValueHolder<E, ?>> theAttributes;
 
-	private ObservableHashSet<StyleAttribute<?>> theObservableAtts;
-	private Set<StyleAttribute<?>> theAttController;
+	private ObservableSet<StyleAttribute<?>> theObservableAtts;
+	private ObservableSet<StyleAttribute<?>> theAttController;
 
 	/** Creates a SimpleStatefulStyle */
 	protected SimpleConditionalStyle() {
 		theAttributes = new java.util.concurrent.ConcurrentHashMap<>();
-		theObservableAtts = new ObservableHashSet<>(new Type(StyleAttribute.class, new Type(Object.class, true)));
-		theAttController = theObservableAtts.control(null);
+		theAttController = new ObservableHashSet<>(new Type(StyleAttribute.class, new Type(Object.class, true)));
+		theObservableAtts = theAttController.immutable();
 	}
 
 	@Override

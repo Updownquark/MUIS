@@ -34,27 +34,26 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 			.runWhen(
 				() -> {
 					org.observe.collect.impl.ObservableHashSet<TemplateRole> templateRoles = new org.observe.collect.impl.ObservableHashSet<>(
-						new Type(TemplateRole.class));;
-					java.util.Set<TemplateRole> controller = templateRoles.control(null);
+						new Type(TemplateRole.class));
 					theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle
-						.getElement().getClass(), templateRoles);
+						.getElement().getClass(), templateRoles.immutable());
 					// Add listener to modify the filtered style sheet's template path
 					TemplatePathListener tpl = new TemplatePathListener();
 					tpl.addListener(new TemplatePathListener.Listener() {
 						@Override
 						public void pathAdded(TemplateRole path) {
-							controller.add(path);
+							templateRoles.add(path);
 						}
 
 						@Override
 						public void pathRemoved(TemplateRole path) {
-							controller.remove(path);
+							templateRoles.remove(path);
 						}
 
 						@Override
 						public void pathChanged(TemplateRole oldPath, TemplateRole newPath) {
-							controller.remove(oldPath);
-							controller.add(newPath);
+							templateRoles.remove(oldPath);
+							templateRoles.add(newPath);
 						}
 					});
 					tpl.listen(theElStyle.getElement());

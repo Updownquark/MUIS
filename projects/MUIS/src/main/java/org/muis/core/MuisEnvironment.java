@@ -1,7 +1,5 @@
 package org.muis.core;
 
-import java.util.List;
-
 import org.muis.core.mgr.MuisMessageCenter;
 import org.muis.core.model.MuisValueReferenceParser;
 import org.muis.core.parser.DefaultModelValueReferenceParser;
@@ -42,17 +40,17 @@ public class MuisEnvironment implements MuisParseEnv {
 
 	private DefaultModelValueReferenceParser theMVP;
 
-	private List<StyleSheet> theStyleDependencyController;
+	private ObservableList<StyleSheet> theStyleDependencyController;
 
 	/** Creates a MUIS environment */
 	public MuisEnvironment() {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new MuisMessageCenter(this, null, null);
 		theCache = new MuisCache();
-		org.observe.collect.impl.ObservableArrayList<StyleSheet> styleDepends = new org.observe.collect.impl.ObservableArrayList<>(
+		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(
 			new prisms.lang.Type(StyleSheet.class));
+		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
 		theStyle = new EnvironmentStyle(styleDepends);
-		theStyleDependencyController = styleDepends.control(null);
 		theToolkitLock = new Object();
 		theMVP = new DefaultModelValueReferenceParser(DefaultModelValueReferenceParser.BASE, null);
 	}

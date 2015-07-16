@@ -12,7 +12,9 @@ import org.muis.core.style.StyleAttribute;
 import org.muis.core.style.stateful.InternallyStatefulStyle;
 import org.muis.util.Transaction;
 import org.observe.ObservableValue;
-import org.observe.collect.*;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
 
 import prisms.lang.Type;
@@ -431,7 +433,7 @@ public class RichDocumentModel extends org.muis.core.model.AbstractSelectableDoc
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().localAttributes());
 			}
-			return ObservableSet.unique(ObservableCollection.flatten(ret));
+			return ObservableSet.unique(ObservableCollection.flatten(ret)).immutable();
 		}
 
 		@Override

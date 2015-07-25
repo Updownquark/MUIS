@@ -110,7 +110,10 @@ public class ObservableEvaluator extends PrismsEvaluator {
 					} catch(EvaluationException e) {
 						throw new IllegalStateException("Value evaluation failed", e);
 					}
-					return new ObservableValueEvent<>(ret, oldValue, newValue, value);
+					if(value.isInitial())
+						return ret.createInitialEvent(newValue);
+					else
+						return ret.createChangeEvent(oldValue, newValue, value);
 				}
 
 				@Override

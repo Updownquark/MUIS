@@ -142,7 +142,8 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 									}
 									if(hasMatch && !hasNoMatch)
 										observer.onNext(new StyleAttributeEvent<>(getElement(), AbstractInternallyStatefulStyle.this,
-											AbstractInternallyStatefulStyle.this, (StyleAttribute<Object>) att, matchExp.get(), null, null));
+											AbstractInternallyStatefulStyle.this, (StyleAttribute<Object>) att, false, matchExp.get(),
+											null, null));
 								}
 							}
 						});

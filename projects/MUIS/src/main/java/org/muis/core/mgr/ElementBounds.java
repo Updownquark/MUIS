@@ -229,7 +229,7 @@ public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle>
 	private final void fire(Rectangle preBounds, Rectangle newBounds) {
 		theStackChecker++;
 		final int stackCheck = theStackChecker;
-		BoundsChangedEvent evt = new BoundsChangedEvent(theElement, this, preBounds, newBounds, null) {
+		BoundsChangedEvent evt = new BoundsChangedEvent(theElement, this, false, preBounds, newBounds, null) {
 			@Override
 			public boolean isOverridden() {
 				return stackCheck != theStackChecker;

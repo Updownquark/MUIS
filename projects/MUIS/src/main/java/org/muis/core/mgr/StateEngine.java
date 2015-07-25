@@ -234,7 +234,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 			return old.isActive();
 
 		MuisEvent event = cause instanceof MuisEvent ? (MuisEvent) cause : null;
-		StateChangedEvent sce = new StateChangedEvent(theElement, state, active, event) {
+		StateChangedEvent sce = new StateChangedEvent(theElement, state, false, active, event) {
 			@Override
 			public boolean isOverridden() {
 				return stack != newState.getStackChecker().get();

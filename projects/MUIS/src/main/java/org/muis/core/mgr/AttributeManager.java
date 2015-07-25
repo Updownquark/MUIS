@@ -131,7 +131,7 @@ public class AttributeManager {
 			theContainedObservable = observable;
 			theLastGoodValue = value;
 			fire(oldValue, value);
-			theContainerController.onNext(new ObservableValueEvent<>(theContainerObservable, oldObservable, theContainedObservable, null));
+			theContainerController.onNext(theContainerObservable.createChangeEvent(oldObservable, theContainedObservable, null));
 			observable.takeUntil(theContainerObservable).act(evt -> {
 				try {
 					checkValue(evt.getValue());
@@ -165,8 +165,8 @@ public class AttributeManager {
 			final int stackCheck = theStackChecker;
 			AttributeChangedEvent<T> evt;
 			try {
-				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, theAttr.getType().cast(
-					Type.typeOf(oldValue), oldValue), value, null) {
+				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, false, theAttr.getType()
+					.cast(Type.typeOf(oldValue), oldValue), value, null) {
 					@Override
 					public boolean isOverridden() {
 						return stackCheck != theStackChecker;

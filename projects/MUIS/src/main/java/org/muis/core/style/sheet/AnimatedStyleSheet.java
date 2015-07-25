@@ -147,7 +147,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			theCurrentValue = getValueFor(time);
 			if(oldValue == theCurrentValue)
 				return;
-			theController.onNext(new org.observe.ObservableValueEvent<>(this, oldValue, theCurrentValue, null));
+			theController.onNext(createChangeEvent(oldValue, theCurrentValue, null));
 		}
 	}
 

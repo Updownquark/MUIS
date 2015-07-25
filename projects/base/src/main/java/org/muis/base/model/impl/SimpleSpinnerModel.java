@@ -121,7 +121,7 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 	protected T setValue(T value) {
 		T oldValue = theValue;
 		theValue = value;
-		theValueController.onNext(new ObservableValueEvent<>(theObservableValue, oldValue, theValue, null));
+		theValueController.onNext(theObservableValue.createChangeEvent(oldValue, theValue, null));
 		checkActions();
 		return oldValue;
 	}
@@ -293,7 +293,7 @@ public abstract class SimpleSpinnerModel<T> implements SpinnerModel<T> {
 			boolean enabled = isInstantEnabled();
 			if(enabled != isEnabled) {
 				isEnabled = enabled;
-				theEnabledController.onNext(new ObservableValueEvent<>(theEnabledObservable, !enabled, enabled, null));
+				theEnabledController.onNext(theEnabledObservable.createChangeEvent(!enabled, enabled, null));
 			}
 		}
 	}

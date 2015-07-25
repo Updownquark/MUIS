@@ -58,7 +58,7 @@ public class AggregateActionListener implements MuisActionListener, prisms.util.
 			boolean oldEnabled = isEnabled.get();
 			theListeners.add(listener);
 			if(!oldEnabled && listener.isEnabled().get())
-				theEnabledController.onNext(new ObservableValueEvent<>(isEnabled, false, true, null));
+				theEnabledController.onNext(isEnabled.createChangeEvent(false, true, null));
 		}
 	}
 
@@ -76,7 +76,7 @@ public class AggregateActionListener implements MuisActionListener, prisms.util.
 		}
 		theListeners.remove(listener);
 		if(fire)
-			theEnabledController.onNext(new ObservableValueEvent<>(isEnabled, true, false, null));
+			theEnabledController.onNext(isEnabled.createChangeEvent(true, false, null));
 	}
 
 	@Override

@@ -85,7 +85,7 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 			throw new IllegalStateException("\"" + value + "\" is not a valid value for this model value");
 		String oldValue = theValue;
 		theValue = value;
-		ObservableValueEvent<String> modelEvt = new ObservableValueEvent<>(this, oldValue, theValue, cause);
+		ObservableValueEvent<String> modelEvt = createChangeEvent(oldValue, theValue, cause);
 		theController.onNext(modelEvt);
 		for(CaseModelValue buttonModel : theButtonValues.values())
 			buttonModel.fireChange(oldValue, theValue, cause);
@@ -135,8 +135,8 @@ public class MuisButtonGroup extends DefaultObservableValue<String> implements M
 		}
 
 		void fireChange(String oldValue, String newValue, Object cause) {
-			ObservableValueEvent<Boolean> buttonEvent = new ObservableValueEvent<>(this, theCaseValue.equals(oldValue),
-				theCaseValue.equals(theValue), cause);
+			ObservableValueEvent<Boolean> buttonEvent = createChangeEvent(theCaseValue.equals(oldValue), theCaseValue.equals(theValue),
+				cause);
 			theCaseController.onNext(buttonEvent);
 		}
 	}

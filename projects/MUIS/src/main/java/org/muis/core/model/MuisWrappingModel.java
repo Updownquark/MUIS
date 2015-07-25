@@ -420,7 +420,7 @@ public class MuisWrappingModel implements MuisAppModel {
 		public <V extends T> T set(V value, Object cause) throws IllegalArgumentException {
 			T oldValue = get();
 			super.set(value);
-			ObservableValueEvent<T> valueEvent = new ObservableValueEvent<>(this, oldValue, value, cause);
+			ObservableValueEvent<T> valueEvent = createChangeEvent(oldValue, value, cause);
 			for(Observer<? super ObservableValueEvent<T>> listener : theListeners)
 				listener.onNext(valueEvent);
 			return oldValue;

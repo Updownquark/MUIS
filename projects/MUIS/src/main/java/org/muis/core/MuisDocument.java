@@ -561,7 +561,7 @@ public class MuisDocument implements MuisParseEnv {
 		MuisEventPositionCapture newCapture = rendering.capture(x, y);
 		MuisEventPositionCapture oldCapture = theMouseTarget;
 		theMouseTarget = newCapture;
-		theTargetController.onNext(new ObservableValueEvent<>(theObservableTarget, oldCapture, newCapture, null));
+		theTargetController.onNext(theObservableTarget.createChangeEvent(oldCapture, newCapture, null));
 		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, thePressedButtons,
 			thePressedKeys, newCapture);
 
@@ -682,7 +682,7 @@ public class MuisDocument implements MuisParseEnv {
 			if(theFocus != null)
 				events.add(new MuisEventQueue.UserQueueEvent(
 					new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true, cause), false));
-			theFocusController.onNext(new ObservableValueEvent<>(theObservableFocus, oldFocus, theFocus, null));
+			theFocusController.onNext(theObservableFocus.createChangeEvent(oldFocus, theFocus, null));
 		}
 	}
 

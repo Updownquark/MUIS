@@ -61,7 +61,7 @@ public interface MuisStyle {
 			cause = (MuisEvent) event;
 		else if(event.getCause() instanceof MuisEvent)
 			cause = (MuisEvent) event.getCause();
-		return new StyleAttributeEvent<>(getElement(), root, this, attr, event.getOldValue(), event.getValue(), cause);
+		return new StyleAttributeEvent<>(getElement(), root, this, attr, event.isInitial(), event.getOldValue(), event.getValue(), cause);
 	}
 
 	/**
@@ -156,7 +156,7 @@ public interface MuisStyle {
 			.map(
 				event -> {
 					return new StyleAttributeEvent<>(null, event.getRootStyle(), this, (StyleAttribute<Object>) event.getAttribute(), event
-						.getOldValue(), event.getValue(), event);
+						.isInitial(), event.getOldValue(), event.getValue(), event);
 				});
 		return new org.observe.util.ObservableWrapper<StyleAttributeEvent<?>>(Observable.or(localChanges, localRemoves(), depends)) {
 			@Override

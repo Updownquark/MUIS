@@ -22,12 +22,13 @@ public abstract class MuisPropertyEvent<T> extends ObservableValueEvent<T> imple
 	/**
 	 * @param element The element that this event is being fired in
 	 * @param observable The observable that is firing this event
+	 * @param initial Whether this represents the population of the initial value of an observable value in response to subscription
 	 * @param oldValue The value of the property before it was changed
 	 * @param newValue The current value of the property after it has been changed
 	 * @param cause The cause of this event
 	 */
-	public MuisPropertyEvent(MuisElement element, ObservableValue<T> observable, T oldValue, T newValue, MuisEvent cause) {
-		super(observable, oldValue, newValue, cause);
+	public MuisPropertyEvent(MuisElement element, ObservableValue<T> observable, boolean initial, T oldValue, T newValue, MuisEvent cause) {
+		super(observable, initial, oldValue, newValue, cause);
 		theElement = element;
 	}
 

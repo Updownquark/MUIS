@@ -68,13 +68,14 @@ public abstract class AttributeChangedEvent<T> extends MuisPropertyEvent<T> {
 	 * @param element The element whose attribute changed
 	 * @param holder The attribute holder firing this event
 	 * @param attr The attribute whose value changed
+	 * @param initial Whether this represents the population of the initial value of an observable value in response to subscription
 	 * @param oldValue The attribute's value before it was changed
 	 * @param newValue The attribute's value after it was changed
 	 * @param cause The cause of this event
 	 */
-	public AttributeChangedEvent(MuisElement element, AttributeHolder<T> holder, MuisAttribute<T> attr, T oldValue, T newValue,
-		MuisEvent cause) {
-		super(element, holder, oldValue, newValue, cause);
+	protected AttributeChangedEvent(MuisElement element, AttributeHolder<T> holder, MuisAttribute<T> attr, boolean initial, T oldValue,
+		T newValue, MuisEvent cause) {
+		super(element, holder, initial, oldValue, newValue, cause);
 		theAttr = attr;
 	}
 

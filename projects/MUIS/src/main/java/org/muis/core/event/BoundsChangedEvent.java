@@ -14,13 +14,14 @@ public abstract class BoundsChangedEvent extends MuisPropertyEvent<Rectangle> {
 	/**
 	 * @param el The element whose bounds changed
 	 * @param observable The element bounds that is firing this event
+	 * @param initial Whether this represents the population of the initial value of an observable value in response to subscription
 	 * @param oldBounds The old bounds
 	 * @param newBounds The new bounds
 	 * @param cause The cause of this event
 	 */
-	public BoundsChangedEvent(org.muis.core.MuisElement el, ElementBounds observable, Rectangle oldBounds, Rectangle newBounds,
-		MuisEvent cause) {
-		super(el, observable, oldBounds, newBounds, cause);
+	public BoundsChangedEvent(org.muis.core.MuisElement el, ElementBounds observable, boolean initial, Rectangle oldBounds,
+		Rectangle newBounds, MuisEvent cause) {
+		super(el, observable, initial, oldBounds, newBounds, cause);
 	}
 
 	@Override

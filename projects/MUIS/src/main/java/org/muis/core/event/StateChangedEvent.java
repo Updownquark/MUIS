@@ -58,11 +58,12 @@ public abstract class StateChangedEvent extends MuisPropertyEvent<Boolean> {
 	/**
 	 * @param element The element on which the state was changed
 	 * @param state The state that was changed
+	 * @param initial Whether this represents the population of the initial value of an observable value in response to subscription
 	 * @param newValue Whether the state is now active or inactive
 	 * @param cause The event that was the cause of the state change--may be null
 	 */
-	public StateChangedEvent(MuisElement element, MuisState state, boolean newValue, MuisEvent cause) {
-		super(element, element.state().subscribe(state), !newValue, newValue, cause);
+	public StateChangedEvent(MuisElement element, MuisState state, boolean initial, boolean newValue, MuisEvent cause) {
+		super(element, element.state().subscribe(state), initial, initial ? null : !newValue, newValue, cause);
 		theState = state;
 		theCause = cause;
 	}

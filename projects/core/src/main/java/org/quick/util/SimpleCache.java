@@ -1,13 +1,13 @@
 package org.quick.util;
 
 /**
- * A very simple-to-use cache based on {@link prisms.util.DemandCache} that just stores values for compound keys. This class is ideal for
+ * A very simple-to-use cache based on {@link org.qommons.DemandCache} that just stores values for compound keys. This class is ideal for
  * smaller data sets
  *
  * @param <T> The type of value to store in the cache
  */
 public class SimpleCache<T> {
-	private prisms.util.DemandCache<CompoundKey, T> theCache = new prisms.util.DemandCache<>(null, -1, -1, 2);
+	private org.qommons.DemandCache<CompoundKey, T> theCache = new org.qommons.DemandCache<>(null, -1, -1, 2);
 
 	/**
 	 * @param key The compound key to get the value for

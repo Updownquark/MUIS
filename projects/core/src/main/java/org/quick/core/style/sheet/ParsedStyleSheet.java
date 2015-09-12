@@ -5,7 +5,7 @@ import org.observe.collect.ObservableList;
 import org.quick.core.style.StyleAttribute;
 
 /** Represents a style sheet embedded in or referred to (directly or indirectly) from a MUIS document */
-public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements prisms.util.Sealable {
+public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements org.qommons.Sealable {
 	private boolean isSealed;
 
 	private java.net.URL theLocation;

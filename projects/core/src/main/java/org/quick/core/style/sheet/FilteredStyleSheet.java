@@ -3,13 +3,12 @@ package org.quick.core.style.sheet;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableOrderedCollection;
 import org.observe.collect.ObservableSet;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleExpressionValue;
 import org.quick.core.style.stateful.StateExpression;
 import org.quick.core.style.stateful.StatefulStyle;
-
-import prisms.util.ArrayUtils;
 
 /**
  * A stateful style that gets all its style information from a {@link StyleSheet}, filtered by a group name and an element type

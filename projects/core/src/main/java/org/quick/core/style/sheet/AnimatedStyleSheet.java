@@ -292,7 +292,7 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	@Override
 	public Iterator<AnimatedVariable> iterator() {
-		return prisms.util.ArrayUtils.immutableIterator(theVariables.values().iterator());
+		return org.qommons.ArrayUtils.immutableIterator(theVariables.values().iterator());
 	}
 
 	/**

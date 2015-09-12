@@ -41,12 +41,12 @@ public class QuickPathedAttribute<T> extends QuickAttribute<T> {
 		if(!(o instanceof QuickPathedAttribute))
 			return false;
 		QuickPathedAttribute<?> attr = (QuickPathedAttribute<?>) o;
-		return attr.theBase.equals(theBase) && prisms.util.ArrayUtils.equals(attr.thePath, thePath);
+		return attr.theBase.equals(theBase) && org.qommons.ArrayUtils.equals(attr.thePath, thePath);
 	}
 
 	@Override
 	public int hashCode() {
-		return theBase.hashCode() * 7 + prisms.util.ArrayUtils.hashCode(thePath);
+		return theBase.hashCode() * 7 + org.qommons.ArrayUtils.hashCode(thePath);
 	}
 
 	private static String compile(String base, String... path) {

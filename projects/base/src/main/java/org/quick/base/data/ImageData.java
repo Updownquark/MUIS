@@ -42,7 +42,7 @@ public class ImageData implements Iterable<Image> {
 		String format = reader.getFormatName();
 		int count = reader.getNumImages(false);
 		ArrayList<Image> images = null;
-		prisms.util.IntList delays = null;
+		org.qommons.IntList delays = null;
 		ArrayList<Point> offsets = null;
 		if(count >= 0) {
 			theImages = new Image[count];
@@ -50,7 +50,7 @@ public class ImageData implements Iterable<Image> {
 			theOffsets = new Point[count];
 		} else {
 			images = new ArrayList<>();
-			delays = new prisms.util.IntList();
+			delays = new org.qommons.IntList();
 			offsets = new ArrayList<>();
 		}
 		int index;
@@ -165,7 +165,7 @@ public class ImageData implements Iterable<Image> {
 
 	@Override
 	public Iterator<Image> iterator() {
-		return prisms.util.ArrayUtils.iterator(theImages, true);
+		return org.qommons.ArrayUtils.iterator(theImages, true);
 	}
 
 	/**

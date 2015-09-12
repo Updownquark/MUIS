@@ -10,11 +10,11 @@ import prisms.lang.eval.PrismsItemEvaluator;
 
 /** An evaluator that allows evaluating observable values instead of static ones */
 public class ObservableEvaluator extends PrismsEvaluator {
-	private prisms.util.SubClassMap<ParsedItem, ObservableItemEvaluator<?>> theObservableEvaluators;
+	private org.qommons.SubClassMap<ParsedItem, ObservableItemEvaluator<?>> theObservableEvaluators;
 
 	/** Creates the evaluator */
 	public ObservableEvaluator() {
-		theObservableEvaluators = new prisms.util.SubClassMap<>();
+		theObservableEvaluators = new org.qommons.SubClassMap<>();
 	}
 
 	/**

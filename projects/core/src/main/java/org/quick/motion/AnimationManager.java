@@ -46,7 +46,7 @@ public class AnimationManager {
 	public void start(Animation animation) {
 		AnimationHolder holder = new AnimationHolder(animation);
 		synchronized(theLock) {
-			theAnimations = prisms.util.ArrayUtils.add(theAnimations, holder);
+			theAnimations = org.qommons.ArrayUtils.add(theAnimations, holder);
 		}
 		start();
 		isInterrupted = true;
@@ -63,7 +63,7 @@ public class AnimationManager {
 
 	private void remove(AnimationHolder animation) {
 		synchronized(theLock) {
-			theAnimations = prisms.util.ArrayUtils.remove(theAnimations, animation);
+			theAnimations = org.qommons.ArrayUtils.remove(theAnimations, animation);
 		}
 	}
 

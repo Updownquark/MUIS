@@ -4,10 +4,9 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 
+import org.qommons.ArrayUtils;
+import org.qommons.ProgramTracker;
 import org.quick.util.QuickUtils;
-
-import prisms.util.ArrayUtils;
-import prisms.util.ProgramTracker;
 
 /** The event queue in MUIS which makes sure elements's states stay up-to-date */
 public class QuickEventQueue {
@@ -590,7 +589,7 @@ public class QuickEventQueue {
 
 	private boolean isPrioritized;
 
-	private prisms.util.ProgramTracker theTracker;
+	private org.qommons.ProgramTracker theTracker;
 
 	private QuickEventQueue() {
 		theEvents = new Event[0];
@@ -612,7 +611,7 @@ public class QuickEventQueue {
 		thePaintDirtyTolerance = 50;
 		theLayoutDirtyTolerance = 50;
 		isPrioritized = true;
-		theTracker = new prisms.util.ProgramTracker("MUIS Events");
+		theTracker = new org.qommons.ProgramTracker("MUIS Events");
 	}
 
 	/**
@@ -730,7 +729,7 @@ public class QuickEventQueue {
 	}
 
 	/** @return The program tracker to use for debugging */
-	public prisms.util.ProgramTracker track() {
+	public org.qommons.ProgramTracker track() {
 		return theTracker;
 	}
 

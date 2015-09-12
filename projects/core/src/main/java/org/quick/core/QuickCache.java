@@ -93,7 +93,7 @@ public class QuickCache {
 		}
 	}
 
-	private prisms.util.DemandCache<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>> theInternalCache;
+	private org.qommons.DemandCache<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>> theInternalCache;
 
 	private final Object theOuterLock;
 
@@ -101,7 +101,7 @@ public class QuickCache {
 
 	/** Creates a MUIS cache */
 	public QuickCache() {
-		theInternalCache = new prisms.util.DemandCache<>(new prisms.util.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
+		theInternalCache = new org.qommons.DemandCache<>(new org.qommons.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
 			@Override
 			public float quality(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value) {
 				if(key.isLoading)

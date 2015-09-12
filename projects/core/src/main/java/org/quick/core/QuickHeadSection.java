@@ -4,10 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.qommons.Sealable;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.style.sheet.ParsedStyleSheet;
-
-import prisms.util.Sealable;
 
 /** Metadata for a MUIS document */
 public class QuickHeadSection implements Sealable {

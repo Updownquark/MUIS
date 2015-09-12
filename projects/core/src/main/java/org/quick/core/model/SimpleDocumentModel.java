@@ -26,7 +26,7 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 
 	@Override
 	protected Iterator<StyledSequence> internalIterator() {
-		return prisms.util.ArrayUtils.iterator(new StyledSequence[] {new SimpleStyledSequence(theContent.toString(), getNormalStyle())},
+		return org.qommons.ArrayUtils.iterator(new StyledSequence[] {new SimpleStyledSequence(theContent.toString(), getNormalStyle())},
 			true);
 	}
 

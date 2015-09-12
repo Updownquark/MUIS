@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.observe.Subscription;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickAttribute;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
@@ -11,8 +12,6 @@ import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.event.AttributeChangedEvent;
 import org.quick.core.event.ElementMovedEvent;
 import org.quick.core.style.sheet.TemplateRole;
-
-import prisms.util.ArrayUtils;
 
 /** Listens to a QuickElement for any {@link TemplateRole}s that might apply to it */
 public class TemplatePathListener {

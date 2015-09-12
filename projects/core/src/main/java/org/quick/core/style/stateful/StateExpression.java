@@ -34,7 +34,7 @@ public abstract class StateExpression implements org.quick.core.style.StyleExpre
 
 		@Override
 		public java.util.Iterator<StateExpression> iterator() {
-			return prisms.util.ArrayUtils.iterator(theWrapped, true);
+			return org.qommons.ArrayUtils.iterator(theWrapped, true);
 		}
 
 		@Override
@@ -88,7 +88,7 @@ public abstract class StateExpression implements org.quick.core.style.StyleExpre
 		@Override
 		public boolean equals(Object o) {
 			return o != null && getClass() == o.getClass()
-				&& prisms.util.ArrayUtils.equals(theWrapped, ((StateCollectionExpression) o).theWrapped);
+				&& org.qommons.ArrayUtils.equals(theWrapped, ((StateCollectionExpression) o).theWrapped);
 		}
 
 		@Override

@@ -146,7 +146,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 				private int thePosition;
 
 				private StyledSequence theCurrent;
-				private prisms.util.IntList theDivisions = new prisms.util.IntList(true, true);
+				private org.qommons.IntList theDivisions = new org.qommons.IntList(true, true);
 				private int theCurrentSubReturned;
 
 				@Override
@@ -676,8 +676,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			theDocument = document;
 			theStart = start;
 			theEnd = end;
-			theBeforeStyles = beforeStyles == null ? null : prisms.util.ArrayUtils.immutableIterable(beforeStyles);
-			theAfterStyles = afterStyles == null ? null : prisms.util.ArrayUtils.immutableIterable(afterStyles);
+			theBeforeStyles = beforeStyles == null ? null : org.qommons.ArrayUtils.immutableIterable(beforeStyles);
+			theAfterStyles = afterStyles == null ? null : org.qommons.ArrayUtils.immutableIterable(afterStyles);
 		}
 
 		@Override

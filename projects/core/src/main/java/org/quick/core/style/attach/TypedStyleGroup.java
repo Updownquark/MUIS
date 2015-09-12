@@ -5,6 +5,7 @@ import java.util.List;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableArrayList;
 import org.observe.util.ObservableUtils;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.style.sheet.FilteredStyleSheet;
@@ -13,7 +14,6 @@ import org.quick.core.style.stateful.AbstractStatefulStyle;
 import org.quick.core.style.stateful.StatefulStyle;
 
 import prisms.lang.Type;
-import prisms.util.ArrayUtils;
 
 /**
  * A TypedStyleGroup is a group in MUIS that holds members of a given type. This allows styles to be applied not only to named groups (
@@ -193,13 +193,13 @@ public class TypedStyleGroup<E extends QuickElement> extends AbstractStatefulSty
 		TypedStyleGroup<T> group = insertTypedGroup((Class<T>) member.getClass());
 		if(index < 0)
 			index = group.theMembers.length;
-		group.theMembers = prisms.util.ArrayUtils.add(group.theMembers, member, index);
+		group.theMembers = org.qommons.ArrayUtils.add(group.theMembers, member, index);
 		return group;
 	}
 
 	void removeMember(E member) {
 		TypedStyleGroup<?> group = getGroupForType((Class<? extends E>) member.getClass());
-		theMembers = prisms.util.ArrayUtils.remove((E []) group.theMembers, member);
+		theMembers = org.qommons.ArrayUtils.remove((E []) group.theMembers, member);
 	}
 
 	/**

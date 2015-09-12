@@ -987,7 +987,7 @@ public abstract class CompoundListener<T> {
 				if(listeners == null)
 					listeners = new QuickEventListener[] {listener};
 				else
-					listeners = (QuickEventListener<AttributeChangedEvent<?>> []) prisms.util.ArrayUtils.add(listeners, listener);
+					listeners = (QuickEventListener<AttributeChangedEvent<?>> []) org.qommons.ArrayUtils.add(listeners, listener);
 				theSpecificListeners.put(theLastAttr, listeners);
 			}
 			return this;
@@ -1002,7 +1002,7 @@ public abstract class CompoundListener<T> {
 				if(listeners == null)
 					listeners = new QuickEventListener[] {listener};
 				else
-					listeners = (QuickEventListener<StyleAttributeEvent<?>> []) prisms.util.ArrayUtils.add(listeners, listener);
+					listeners = (QuickEventListener<StyleAttributeEvent<?>> []) org.qommons.ArrayUtils.add(listeners, listener);
 				theSpecificStyleListeners.put(theLastStyleAttr, listeners);
 			}
 			return this;
@@ -1048,7 +1048,7 @@ public abstract class CompoundListener<T> {
 		}
 
 		void childAdded(QuickElement child) {
-			theChildren = prisms.util.ArrayUtils.add(theChildren, child);
+			theChildren = org.qommons.ArrayUtils.add(theChildren, child);
 			for(AttributeHolder holder : getAllAttrProps())
 				try {
 					child.atts().accept(theChildListener.getElementListener().getWanter(), holder.required,
@@ -1059,7 +1059,7 @@ public abstract class CompoundListener<T> {
 		}
 
 		void childRemoved(QuickElement child) {
-			theChildren = prisms.util.ArrayUtils.remove(theChildren, child);
+			theChildren = org.qommons.ArrayUtils.remove(theChildren, child);
 			for(AttributeHolder holder : getAllAttrProps())
 				child.atts().reject(theChildListener.getElementListener().getWanter(), holder.attr);
 		}

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.event.UserEvent;
@@ -16,8 +17,6 @@ import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.FontStyle;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
-
-import prisms.util.ArrayUtils;
 
 /** A set of utilities to use with core MUIS elements */
 public class QuickUtils {

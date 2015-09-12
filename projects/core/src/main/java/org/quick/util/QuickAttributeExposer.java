@@ -2,13 +2,12 @@ package org.quick.util;
 
 import org.observe.Action;
 import org.observe.Subscription;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickAttribute;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.event.AttributeAcceptedEvent;
 import org.quick.core.event.AttributeChangedEvent;
-
-import prisms.util.ArrayUtils;
 
 /** Synchronizes attributes from a source to a destination */
 public class QuickAttributeExposer {

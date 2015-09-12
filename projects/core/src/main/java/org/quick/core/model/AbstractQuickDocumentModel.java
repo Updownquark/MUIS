@@ -15,11 +15,11 @@ import org.quick.core.style.QuickStyle;
  * {@link #iterator()}
  */
 public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
-	private prisms.util.DemandCache<Float, Iterable<StyledSequenceMetric>> theMetricsCache;
+	private org.qommons.DemandCache<Float, Iterable<StyledSequenceMetric>> theMetricsCache;
 
 	/** Creates the document */
 	public AbstractQuickDocumentModel() {
-		theMetricsCache = new prisms.util.DemandCache<>();
+		theMetricsCache = new org.qommons.DemandCache<>();
 		theMetricsCache.setPreferredSize(5);
 		theMetricsCache.setHalfLife(60000);
 	}
@@ -172,7 +172,7 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 		if(start == 0) {
 			ret = theMetricsCache.get(breakWidth);
 			if(ret == null) {
-				ret = prisms.util.ArrayUtils.cachingIterable(new MetricsIterator(iterateFrom(start).iterator(), breakWidth));
+				ret = org.qommons.ArrayUtils.cachingIterable(new MetricsIterator(iterateFrom(start).iterator(), breakWidth));
 				theMetricsCache.put(breakWidth, ret);
 			}
 			return ret;
@@ -270,7 +270,7 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 	public void draw(Graphics2D graphics, Rectangle window, int breakWidth) {
 		float totalH = 0;
 		float lineH = 0;
-		prisms.util.FloatList lineHeights = new prisms.util.FloatList();
+		org.qommons.FloatList lineHeights = new org.qommons.FloatList();
 		int linePos = 0;
 		int pos = 0;
 		int startLine = -1;

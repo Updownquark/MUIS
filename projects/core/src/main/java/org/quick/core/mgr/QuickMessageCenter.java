@@ -3,13 +3,12 @@ package org.quick.core.mgr;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.event.QuickEvent;
 import org.quick.core.mgr.QuickMessage.Type;
-
-import prisms.util.ArrayUtils;
 
 /** Defines a center that can store MUIS messages */
 public class QuickMessageCenter implements Iterable<QuickMessage> {

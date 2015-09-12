@@ -18,7 +18,7 @@ import prisms.lang.Type;
  * A style that can be sealed to be immutable. All observables returned by this style are just to satisfy the interface--the implementations
  * assume that the style is sealed and therefore that no changes occur.
  */
-public class SealableStyle implements MutableStyle, prisms.util.Sealable {
+public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 	private java.util.HashMap<StyleAttribute<?>, ObservableValue<?>> theValues;
 	private ObservableSet<StyleAttribute<?>> theObservableAttributes;
 
@@ -153,7 +153,7 @@ public class SealableStyle implements MutableStyle, prisms.util.Sealable {
 			if(isSealed)
 				return theValues.keySet().iterator();
 			else
-				return prisms.util.ArrayUtils.immutableIterator(theValues.keySet().iterator());
+				return org.qommons.ArrayUtils.immutableIterator(theValues.keySet().iterator());
 		}
 
 		@Override

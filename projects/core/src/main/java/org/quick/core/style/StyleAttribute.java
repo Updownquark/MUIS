@@ -1,8 +1,7 @@
 package org.quick.core.style;
 
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickProperty;
-
-import prisms.util.ArrayUtils;
 
 /**
  * A style property that can affect the rendering of MUIS elements

@@ -2,7 +2,7 @@ package org.quick.util;
 
 import java.util.*;
 
-import prisms.util.ArrayUtils;
+import org.qommons.ArrayUtils;
 
 /**
  * Aggregates a number of lists into a single list

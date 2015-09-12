@@ -84,7 +84,7 @@ public class StyleExpressionValue<E extends StyleExpression<E>, V> implements Ob
 		if(!(obj instanceof StyleExpressionValue))
 			return false;
 		StyleExpressionValue<?, ?> sev = (StyleExpressionValue<?, ?>) obj;
-		return prisms.util.ArrayUtils.equals(theExpression, sev.theExpression) && prisms.util.ArrayUtils.equals(theValue, sev.theValue);
+		return org.qommons.ArrayUtils.equals(theExpression, sev.theExpression) && org.qommons.ArrayUtils.equals(theValue, sev.theValue);
 	}
 
 	@Override

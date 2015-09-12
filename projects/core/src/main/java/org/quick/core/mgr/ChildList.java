@@ -2,13 +2,12 @@ package org.quick.core.mgr;
 
 import java.util.*;
 
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickToolkit;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.event.ChildEvent;
 import org.quick.util.SimpleElementList;
-
-import prisms.util.ArrayUtils;
 
 /** A list that manages child elements for a parent element */
 public class ChildList extends AbstractElementList<QuickElement> {

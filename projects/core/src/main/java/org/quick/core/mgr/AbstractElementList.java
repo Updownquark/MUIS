@@ -6,11 +6,10 @@ import java.util.List;
 import org.observe.DefaultObservable;
 import org.observe.Observable;
 import org.observe.Observer;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.event.ChildEvent;
 import org.quick.core.event.QuickEvent;
-
-import prisms.util.ArrayUtils;
 
 /**
  * A partial implementation of ElementList

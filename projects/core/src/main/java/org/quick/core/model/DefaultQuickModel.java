@@ -6,7 +6,7 @@ import java.util.Map;
 import org.observe.ObservableValue;
 
 /** The default (typically XML-specified) implementation for QuickAppModel */
-public class DefaultQuickModel implements QuickAppModel, Cloneable, prisms.util.Sealable {
+public class DefaultQuickModel implements QuickAppModel, Cloneable, org.qommons.Sealable {
 	private boolean isSealed;
 
 	private Map<String, QuickAppModel> theSubModels;

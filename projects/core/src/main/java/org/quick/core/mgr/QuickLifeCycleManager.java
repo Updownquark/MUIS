@@ -1,8 +1,7 @@
 package org.quick.core.mgr;
 
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
-
-import prisms.util.ArrayUtils;
 
 /** Manages the life cycle of an element */
 public class QuickLifeCycleManager {
@@ -148,7 +147,7 @@ public class QuickLifeCycleManager {
 			theStages = new String[] {stage, theStages[0]};
 			return;
 		}
-		int idx = prisms.util.ArrayUtils.indexOf(theStages, afterStage);
+		int idx = org.qommons.ArrayUtils.indexOf(theStages, afterStage);
 		if(idx < 0) {
 			theQuickElement.msg().error("afterStage \"" + afterStage + "\" not found. Cannot add stage.", "stage", stage);
 			return;
@@ -159,7 +158,7 @@ public class QuickLifeCycleManager {
 				stage);
 			return;
 		}
-		theStages = prisms.util.ArrayUtils.add(theStages, stage, idx + 1);
+		theStages = org.qommons.ArrayUtils.add(theStages, stage, idx + 1);
 	}
 
 	/** Advances the life cycle stage of the element to the given stage. Called from QuickElement. */

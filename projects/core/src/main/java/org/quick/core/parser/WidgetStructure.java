@@ -6,7 +6,7 @@ import java.util.Map;
 import org.quick.core.QuickClassView;
 
 /** Represents the structure of a widget as defined in XML */
-public class WidgetStructure extends QuickContent implements prisms.util.Sealable {
+public class WidgetStructure extends QuickContent implements org.qommons.Sealable {
 	private final String theNamespace;
 
 	private final String theTagName;

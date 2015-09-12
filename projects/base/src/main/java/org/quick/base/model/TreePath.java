@@ -45,11 +45,11 @@ public class TreePath<E> extends AbstractList<ObservableTree<E>> {
 			return true;
 		if(!(o instanceof TreePath))
 			return false;
-		return prisms.util.ArrayUtils.equals(theElements, ((TreePath<?>) o).theElements);
+		return org.qommons.ArrayUtils.equals(theElements, ((TreePath<?>) o).theElements);
 	}
 
 	@Override
 	public int hashCode() {
-		return prisms.util.ArrayUtils.hashCode(theElements);
+		return org.qommons.ArrayUtils.hashCode(theElements);
 	}
 }

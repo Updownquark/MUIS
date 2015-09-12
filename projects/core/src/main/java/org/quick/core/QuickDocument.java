@@ -9,6 +9,7 @@ import java.util.List;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
+import org.qommons.ArrayUtils;
 import org.quick.core.event.*;
 import org.quick.core.mgr.QuickLocker;
 import org.quick.core.mgr.QuickMessageCenter;
@@ -24,7 +25,6 @@ import prisms.lang.EvaluationEnvironment.VariableImpl;
 import prisms.lang.eval.PrismsEvaluator;
 import prisms.lang.eval.PrismsItemEvaluator;
 import prisms.lang.types.ParsedMethod;
-import prisms.util.ArrayUtils;
 
 /** Contains all data pertaining to a MUIS application */
 public class QuickDocument implements QuickParseEnv {

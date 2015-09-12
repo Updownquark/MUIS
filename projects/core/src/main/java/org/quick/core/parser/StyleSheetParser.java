@@ -230,7 +230,7 @@ public class StyleSheetParser {
 		@Override
 		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {
 			ParsedItem [] deps = getDependents();
-			int idx = prisms.util.ArrayUtils.indexOf(deps, dependent);
+			int idx = org.qommons.ArrayUtils.indexOf(deps, dependent);
 			if(idx >= 0)
 				deps[idx] = toReplace;
 			else
@@ -388,12 +388,12 @@ public class StyleSheetParser {
 
 		@Override
 		public ParsedItem [] getDependents() {
-			return prisms.util.ArrayUtils.add(theFilters, theContent);
+			return org.qommons.ArrayUtils.add(theFilters, theContent);
 		}
 
 		@Override
 		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {
-			int idx = prisms.util.ArrayUtils.indexOf(theFilters, dependent);
+			int idx = org.qommons.ArrayUtils.indexOf(theFilters, dependent);
 			if(idx >= 0) {
 				if(toReplace instanceof ParsedStyleFilter)
 					theFilters[idx] = (ParsedStyleFilter) toReplace;
@@ -549,7 +549,7 @@ public class StyleSheetParser {
 
 		@Override
 		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {
-			int idx = prisms.util.ArrayUtils.indexOf(theContents, dependent);
+			int idx = org.qommons.ArrayUtils.indexOf(theContents, dependent);
 			if(idx >= 0) {
 				if(toReplace instanceof DomainScopedAssignment)
 					theContents[idx] = (DomainScopedAssignment) toReplace;

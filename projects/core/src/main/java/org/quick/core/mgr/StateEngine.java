@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.observe.*;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.event.QuickEvent;
 import org.quick.core.event.StateChangedEvent;
 
 import prisms.lang.Type;
-import prisms.util.ArrayUtils;
 
 /** Keeps track of states for an entity and fires events when they change */
 public class StateEngine extends DefaultObservable<StateChangedEvent> implements StateSet {
@@ -220,7 +220,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 				if(ctrlr.getState().equals(state))
 					throw new IllegalArgumentException("The state \"" + state + "\" is already controlled in this engine");
 			ret = new StateControllerImpl(state);
-			theStateControllers = prisms.util.ArrayUtils.add(theStateControllers, ret);
+			theStateControllers = org.qommons.ArrayUtils.add(theStateControllers, ret);
 		}
 		return ret;
 	}

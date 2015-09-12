@@ -9,14 +9,14 @@ import prisms.lang.eval.PrismsItemEvaluator;
 /** Wraps an evaluator, keeping the wrapped evaluator pristine while adding operator types useable to this evaluator */
 public class WrappingObservableEvaluator extends ObservableEvaluator {
 	private final ObservableEvaluator theWrapped;
-	private final prisms.util.SubClassMap<ParsedItem, PrismsItemEvaluator<?>> theExtraEvaluators;
-	private final prisms.util.SubClassMap<ParsedItem, ObservableItemEvaluator<?>> theExtraObservableEvaluators;
+	private final org.qommons.SubClassMap<ParsedItem, PrismsItemEvaluator<?>> theExtraEvaluators;
+	private final org.qommons.SubClassMap<ParsedItem, ObservableItemEvaluator<?>> theExtraObservableEvaluators;
 
 	/** @param wrap The evaluator to wrap */
 	public WrappingObservableEvaluator(ObservableEvaluator wrap) {
 		theWrapped = wrap;
-		theExtraEvaluators = new prisms.util.SubClassMap<>();
-		theExtraObservableEvaluators = new prisms.util.SubClassMap<>();
+		theExtraEvaluators = new org.qommons.SubClassMap<>();
+		theExtraObservableEvaluators = new org.qommons.SubClassMap<>();
 	}
 
 	@Override

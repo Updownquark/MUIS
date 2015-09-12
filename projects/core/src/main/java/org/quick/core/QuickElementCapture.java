@@ -6,7 +6,7 @@ import java.util.Iterator;
 import org.quick.util.QuickUtils;
 
 /** Represents a capture of an element's bounds and hierarchy at a point in time */
-public class QuickElementCapture implements Cloneable, prisms.util.Sealable {
+public class QuickElementCapture implements Cloneable, org.qommons.Sealable {
 	/** Allows custom conversion between coordinate systems of parent and child */
 	public static interface Transformer {
 		/**
@@ -305,8 +305,8 @@ public class QuickElementCapture implements Cloneable, prisms.util.Sealable {
 		return new Iterable<QuickElementCapture>() {
 			@Override
 			public Iterator<QuickElementCapture> iterator() {
-				return prisms.util.ArrayUtils.conditionalIterator(sortByReverseZ(getChildren()).iterator(),
-					new prisms.util.ArrayUtils.Accepter<QuickElementCapture, QuickElementCapture>() {
+				return org.qommons.ArrayUtils.conditionalIterator(sortByReverseZ(getChildren()).iterator(),
+					new org.qommons.ArrayUtils.Accepter<QuickElementCapture, QuickElementCapture>() {
 						@Override
 						public QuickElementCapture accept(QuickElementCapture value) {
 							return getChildIntersection(value, pos) != null ? value : null;

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.observe.Action;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.event.*;
@@ -20,8 +21,6 @@ import org.quick.core.style.Texture;
 import org.quick.core.style.attach.*;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
-
-import prisms.util.ArrayUtils;
 
 /** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
 @StateSupport({@State(name = States.CLICK_NAME, priority = States.CLICK_PRIORITY),

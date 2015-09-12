@@ -30,7 +30,7 @@ public class FontStyle implements StyleDomain {
 	}
 
 	private void register(StyleAttribute<?> attr) {
-		theAttributes = prisms.util.ArrayUtils.add(theAttributes, attr);
+		theAttributes = org.qommons.ArrayUtils.add(theAttributes, attr);
 	}
 
 	private static final FontStyle instance;
@@ -136,6 +136,6 @@ public class FontStyle implements StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return prisms.util.ArrayUtils.iterator(theAttributes, true);
+		return org.qommons.ArrayUtils.iterator(theAttributes, true);
 	}
 }

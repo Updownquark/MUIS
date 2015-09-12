@@ -2,6 +2,7 @@ package org.quick.core.style.attach;
 
 import org.observe.Action;
 import org.observe.collect.ObservableSet;
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
@@ -9,8 +10,6 @@ import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleAttributeEvent;
 import org.quick.core.style.StyleDomain;
 import org.quick.core.style.stateful.StatefulStyleSample;
-
-import prisms.util.ArrayUtils;
 
 /** Listens for changes to the style of an element */
 public class CompoundStyleListener {

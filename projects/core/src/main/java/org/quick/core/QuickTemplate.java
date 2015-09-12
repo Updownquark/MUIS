@@ -860,7 +860,7 @@ public abstract class QuickTemplate extends QuickElement {
 								public Variable getDeclaredVariable(String name) {
 									TemplateStructure struct = theTemplateStruct;
 									while(struct != null) {
-										if(prisms.util.ArrayUtils.contains(struct.getModels(), name))
+										if(org.qommons.ArrayUtils.contains(struct.getModels(), name))
 											return new VariableImpl(new Type(QuickAppModel.class), name, true);
 										struct = struct.getSuperStructure();
 									}

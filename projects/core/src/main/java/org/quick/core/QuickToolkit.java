@@ -3,10 +3,9 @@ package org.quick.core;
 import java.net.URL;
 
 import org.observe.collect.ObservableList;
+import org.qommons.ArrayUtils;
+import org.qommons.Sealable.SealedException;
 import org.quick.core.style.sheet.StyleSheet;
-
-import prisms.util.ArrayUtils;
-import prisms.util.Sealable.SealedException;
 
 /** Represents a toolkit that contains resources for use in a MUIS document */
 public class QuickToolkit extends java.net.URLClassLoader {

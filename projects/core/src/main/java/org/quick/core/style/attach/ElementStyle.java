@@ -122,8 +122,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			after = null;
 		int index = theDependencyController.indexOf(after);
 		theDependencyController.add(index < 0 ? theDependencyController.size() : index + 1, typedGroup);
-		if(!prisms.util.ArrayUtils.contains(theStyleGroups, typedGroup))
-			theStyleGroups = prisms.util.ArrayUtils.add(theStyleGroups, typedGroup);
+		if(!org.qommons.ArrayUtils.contains(theStyleGroups, typedGroup))
+			theStyleGroups = org.qommons.ArrayUtils.add(theStyleGroups, typedGroup);
 		theElement.events().fire(new GroupMemberEvent(theElement, group, -1));
 	}
 
@@ -132,10 +132,10 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		TypedStyleGroup<?> typedGroup = group.getGroupForType(theElement.getClass());
 		theDependencyController.remove(typedGroup);
 		group.removeMember(theElement);
-		int index = prisms.util.ArrayUtils.indexOf(theStyleGroups, typedGroup);
+		int index = org.qommons.ArrayUtils.indexOf(theStyleGroups, typedGroup);
 		if(index < 0)
 			return;
-		theStyleGroups = prisms.util.ArrayUtils.remove(theStyleGroups, typedGroup);
+		theStyleGroups = org.qommons.ArrayUtils.remove(theStyleGroups, typedGroup);
 		theElement.events().fire(new GroupMemberEvent(theElement, group, index));
 	}
 
@@ -166,7 +166,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 		NamedStyleIterator(TypedStyleGroup<?> [] groups, boolean forward) {
 			isForward = forward;
 			if(!forward)
-				groups = prisms.util.ArrayUtils.reverse(groups);
+				groups = org.qommons.ArrayUtils.reverse(groups);
 			theGroups = groups;
 		}
 
@@ -217,7 +217,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 				throw new NullPointerException("Cannot add a null style group");
 			lastCalledNext = null;
 			addGroup(e.getRoot());
-			theGroups = prisms.util.ArrayUtils.add(theGroups, e, index);
+			theGroups = org.qommons.ArrayUtils.add(theGroups, e, index);
 			index++;
 		}
 
@@ -235,7 +235,7 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 			} else if(index >= theGroups.length)
 				throw new IndexOutOfBoundsException("No element to remove--at end of list");
 			removeGroup(theGroups[index].getRoot());
-			theGroups = prisms.util.ArrayUtils.remove(theGroups, index);
+			theGroups = org.qommons.ArrayUtils.remove(theGroups, index);
 			index--;
 		}
 

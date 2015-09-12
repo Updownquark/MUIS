@@ -1,10 +1,9 @@
 package org.quick.core.style.sheet;
 
+import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.style.stateful.StateExpression;
-
-import prisms.util.ArrayUtils;
 
 /**
  * The expression type for style sheets, allowing style attribute values to be applied in potentially state-, group-, and type-dependent

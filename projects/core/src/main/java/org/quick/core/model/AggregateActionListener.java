@@ -8,7 +8,7 @@ import org.observe.Observer;
 import prisms.lang.Type;
 
 /** A MUIS action listener that propagates the events it gets to one or more other listeners */
-public class AggregateActionListener implements QuickActionListener, prisms.util.Sealable {
+public class AggregateActionListener implements QuickActionListener, org.qommons.Sealable {
 	private boolean isSealed;
 
 	private java.util.List<QuickActionListener> theListeners;

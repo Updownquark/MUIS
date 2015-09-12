@@ -42,7 +42,7 @@ public class MutatingMessageCenter extends QuickMessageCenter {
 		if(thePrepend != null)
 			text = thePrepend + text;
 		if(theParams != null)
-			params = prisms.util.ArrayUtils.addAll(params, theParams);
+			params = org.qommons.ArrayUtils.addAll(params, theParams);
 		theWrapped.message(type, text, cause, exception, params);
 	}
 }

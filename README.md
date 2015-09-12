@@ -1,4 +1,4 @@
-MUIS
+Quick
 ====
 
-The Modern User Interface Script project
+My user inteface architecture

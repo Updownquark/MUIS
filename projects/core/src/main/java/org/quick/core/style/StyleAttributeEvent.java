@@ -1,0 +1,109 @@
+package org.quick.core.style;
+
+import java.util.function.Function;
+
+import org.quick.core.QuickElement;
+import org.quick.core.event.QuickEvent;
+import org.quick.core.event.boole.TypedPredicate;
+
+/**
+ * Represents the change to a single style attribute in a style
+ *
+ * @param <T> The type of attribute that was changed
+ */
+public class StyleAttributeEvent<T> extends org.quick.core.event.QuickPropertyEvent<T> {
+	/** Filters events of this type */
+	@SuppressWarnings("hiding")
+	public static final Function<QuickEvent, StyleAttributeEvent<?>> base = value -> {
+		return value instanceof StyleAttributeEvent && !((StyleAttributeEvent<?>) value).isOverridden() ? (StyleAttributeEvent<?>) value
+			: null;
+	};
+
+	/**
+	 * A filter for style attribute events on a particular attribute
+	 *
+	 * @param <T> The type of the attribute
+	 */
+	public static class StyleAttributeTypedPredicate<T> implements TypedPredicate<StyleAttributeEvent<?>, StyleAttributeEvent<T>> {
+		private final StyleAttribute<T> theAttribute;
+
+		private StyleAttributeTypedPredicate(StyleAttribute<T> att) {
+			theAttribute = att;
+		}
+
+		/** @return The attribute that this filter accepts events for */
+		public StyleAttribute<T> getAttribute() {
+			return theAttribute;
+		}
+
+		@Override
+		public StyleAttributeEvent<T> cast(StyleAttributeEvent<?> value) {
+			if(value.getAttribute() == theAttribute)
+				return (StyleAttributeEvent<T>) value;
+			else
+				return null;
+		}
+	}
+
+	/**
+	 * @param <T> The type of the attribute
+	 * @param attr The attribute to listen for
+	 * @return A filter for change events to the given attribute
+	 */
+	public static <T> Function<QuickEvent, StyleAttributeEvent<T>> style(StyleAttribute<T> attr) {
+		return event -> {
+			StyleAttributeEvent<?> styleEvt = base.apply(event);
+			if(styleEvt == null || styleEvt.getAttribute() != attr)
+				return null;
+			return (StyleAttributeEvent<T>) styleEvt;
+		};
+	}
+
+	private QuickStyle theRootStyle;
+
+	private QuickStyle theLocalStyle;
+
+	private final StyleAttribute<T> theAttribute;
+
+	/**
+	 * Creates a style attribute event
+	 *
+	 * @param element The element that this event is for--may be null
+	 * @param root The style that the change was in
+	 * @param local The style that is firing the event
+	 * @param attr The attribute whose value was changed
+	 * @param initial Whether this represents the population of the initial value of an observable value in response to subscription
+	 * @param oldValue The previous value of the attribute in the style
+	 * @param value The new value of the attribute in the style
+	 * @param cause The cause of the change
+	 */
+	public StyleAttributeEvent(QuickElement element, QuickStyle root, QuickStyle local, StyleAttribute<T> attr, boolean initial, T oldValue,
+		T value, QuickEvent cause) {
+		super(element, local.get(attr), initial, oldValue, value, cause);
+		theRootStyle = root;
+		theLocalStyle = local;
+		theAttribute = attr;
+	}
+
+	/** @return The style that the attribute was changed in */
+	public QuickStyle getRootStyle() {
+		return theRootStyle;
+	}
+
+	/** @return The style that is firing the event */
+	public QuickStyle getLocalStyle() {
+		return theLocalStyle;
+	}
+
+	/** @return The attribute whose value was changed */
+	public StyleAttribute<T> getAttribute() {
+		return theAttribute;
+	}
+
+	@Override
+	public boolean isOverridden() {
+		/* TODO This may or may not cause performance problems later.  I think it's better to put it here than overriding getValue() to
+		 * query the style every time it's called since this is only called once per listener. */
+		return theLocalStyle.get(theAttribute, true) == getValue();
+	}
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>Quick Test</name>
+	<description>
+		This toolkit provides access to code used for testing Quick functionality
+	</description>
+	<version>15Jun2012</version>
+	<dependencies>
+		<classpath>classes</classpath>
+		<depends>../base/QuicckRegistry.xml</depends>
+	</dependencies>
+	<types>
+		<type tag="paint">org.quick.test.widget.PaintWidget</type>
+	</types>
+	<resources>
+		<resource tag="hello-world">src/main/resources/helloWorld.jpg</resource>
+		<resource tag="big-animation">src/main/resources/BigAnimation.gif</resource>
+		<resource tag="fire">src/main/resources/fire.gif</resource>
+		<resource tag="waterfall">src/main/resources/waterfall.gif</resource>
+		<resource tag="plant">src/main/resources/plant.gif</resource>
+	</resources>
+	<security />
+</registry>

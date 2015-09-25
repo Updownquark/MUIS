@@ -20,6 +20,8 @@ import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.attach.DocumentStyleSheet;
 import org.quick.core.style.attach.NamedStyleGroup;
 
+import com.google.common.reflect.TypeToken;
+
 import prisms.lang.*;
 import prisms.lang.EvaluationEnvironment.VariableImpl;
 import prisms.lang.eval.PrismsEvaluator;
@@ -215,8 +217,8 @@ public class QuickDocument implements QuickParseEnv {
 
 		theObservableFocus = new org.observe.DefaultObservableValue<QuickElement>() {
 			@Override
-			public Type getType() {
-				return new Type(QuickElement.class);
+			public TypeToken<QuickElement> getType() {
+				return TypeToken.of(QuickElement.class);
 			}
 
 			@Override
@@ -227,8 +229,8 @@ public class QuickDocument implements QuickParseEnv {
 		theFocusController = ((org.observe.DefaultObservableValue<QuickElement>) theObservableFocus).control(null);
 		theObservableTarget = new org.observe.DefaultObservableValue<QuickEventPositionCapture>() {
 			@Override
-			public Type getType() {
-				return new Type(QuickEventPositionCapture.class);
+			public TypeToken<QuickEventPositionCapture> getType() {
+				return TypeToken.of(QuickEventPositionCapture.class);
 			}
 
 			@Override
@@ -237,12 +239,13 @@ public class QuickDocument implements QuickParseEnv {
 			}
 		};
 		theTargetController = ((org.observe.DefaultObservableValue<QuickEventPositionCapture>) theObservableTarget).control(null);
-		ObservableValue.flatten(
-			new Type(Cursor.class),
-			theObservableTarget.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf()
-				.get(BackgroundStyle.cursor))).act(event -> {
-					if(event.getValue() != null && theGraphics != null)
-						theGraphics.setCursor(event.getValue());
+		ObservableValue
+			.flatten(TypeToken.of(Cursor.class),
+				theObservableTarget.mapV(
+					target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf().get(BackgroundStyle.cursor)))
+			.act(event -> {
+				if(event.getValue() != null && theGraphics != null)
+					theGraphics.setCursor(event.getValue());
 				});
 
 		applyHead();

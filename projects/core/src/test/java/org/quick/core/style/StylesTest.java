@@ -19,19 +19,16 @@ import org.observe.util.ObservableUtils;
 import org.quick.core.BodyElement;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.MutableStyle;
-import org.quick.core.style.Size;
-import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.sheet.*;
 import org.quick.core.style.stateful.*;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** Tests style classes in org.quick.core.style.* packages */
 public class StylesTest {
 	private static class TestStatefulStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, MutableStyle {
 		TestStatefulStyle() {
-			super(new ObservableArrayList<>(new Type(StatefulStyle.class)), new ObservableHashSet<>(new Type(QuickState.class)));
+			super(new ObservableArrayList<>(TypeToken.of(StatefulStyle.class)), new ObservableHashSet<>(TypeToken.of(QuickState.class)));
 		}
 
 		@Override
@@ -65,7 +62,7 @@ public class StylesTest {
 		final ObservableList<StyleSheet> dependControl;
 
 		public TestStyleSheet() {
-			super(ObservableUtils.control(new ObservableArrayList<>(new Type(StyleSheet.class))));
+			super(ObservableUtils.control(new ObservableArrayList<>(TypeToken.of(StyleSheet.class))));
 			dependControl = ObservableUtils.getController(getConditionalDependencies());
 		}
 
@@ -162,8 +159,8 @@ public class StylesTest {
 	@Test
 	public void testStyleSheet() {
 		// Create the styles and supporting collections
-		ObservableHashSet<QuickState> state = new ObservableHashSet<>(new Type(QuickState.class));
-		ObservableHashSet<TemplateRole> roles = new ObservableHashSet<>(new Type(TemplateRole.class));
+		ObservableHashSet<QuickState> state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
+		ObservableHashSet<TemplateRole> roles = new ObservableHashSet<>(TypeToken.of(TemplateRole.class));
 		TestStyleSheet sheet = new TestStyleSheet();
 		FilteredStyleSheet<QuickElement> filter = new FilteredStyleSheet<>(sheet, null, QuickElement.class, roles);
 		StatefulStyleSample sample = new StatefulStyleSample(filter, state);

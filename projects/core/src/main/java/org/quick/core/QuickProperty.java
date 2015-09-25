@@ -3,17 +3,18 @@ package org.quick.core;
 import java.awt.Color;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.time.Period;
+import java.util.*;
 
 import org.observe.ObservableValue;
+import org.qommons.TypeUtil;
 import org.quick.core.eval.impl.ObservableEvaluator;
 import org.quick.core.eval.impl.ParsedColor;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.style.Colors;
 import org.quick.util.QuickUtils;
+
+import com.google.common.reflect.TypeToken;
 
 import prisms.arch.PrismsConfig;
 import prisms.lang.*;
@@ -33,7 +34,7 @@ public abstract class QuickProperty<T> {
 	 */
 	public static interface PropertyType<T> {
 		/** @return The java type that this property type parses strings into instances of */
-		Type getType();
+		TypeToken<T> getType();
 
 		/**
 		 * Parses an property value from a string representation
@@ -49,19 +50,20 @@ public abstract class QuickProperty<T> {
 		 * @param type The type to check
 		 * @return Whether objects of the given type can be cast or converted to items of this property's type
 		 */
-		boolean canCast(Type type);
+		boolean canCast(TypeToken<?> type);
 
 		/**
 		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
 		 * this property's type. This method may choose to convert liberally by creating new instances of this type corresponding to
 		 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type.
 		 *
+		 * @param <X> The type of the value to be cast
 		 * @param <V> The type of value cast by this property type
 		 * @param type The run-time type of the value to cast
 		 * @param value The value to cast
 		 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
 		 */
-		<V extends T> V cast(Type type, Object value);
+		<X, V extends T> V cast(TypeToken<X> type, X value);
 	}
 
 	/**
@@ -142,17 +144,20 @@ public abstract class QuickProperty<T> {
 	private static abstract class AbstractPrintablePropertyType<T> extends AbstractPropertyType<T> implements PrintablePropertyType<T> {
 	}
 
+	private static final TypeToken<String> STRING_TYPE = TypeToken.of(String.class);
+	private static final TypeToken<CharSequence> CHAR_SEQ_TYPE = TypeToken.of(CharSequence.class);
+
 	/**
 	 * Parses MUIS properties using a PrismsParser
 	 *
 	 * @param <T> The type of the property
 	 */
 	public static class PrismsParsedPropertyType<T> extends AbstractPropertyType<T> {
-		private final Type theType;
+		private final TypeToken<T> theType;
 		private final boolean evalAsType;
 
 		/** @param type The type of the property */
-		public PrismsParsedPropertyType(Type type) {
+		public PrismsParsedPropertyType(TypeToken<T> type) {
 			this(type, false);
 		}
 
@@ -160,13 +165,13 @@ public abstract class QuickProperty<T> {
 		 * @param type The type of the property
 		 * @param asType Whether to parse this property type's values as types or instances
 		 */
-		public PrismsParsedPropertyType(Type type, boolean asType) {
+		public PrismsParsedPropertyType(TypeToken<T> type, boolean asType) {
 			theType = type;
 			evalAsType = asType;
 		}
 
 		@Override
-		public Type getType() {
+		public TypeToken<T> getType() {
 			return theType;
 		}
 
@@ -198,17 +203,16 @@ public abstract class QuickProperty<T> {
 			if(theType.equals(ret.getType()))
 				return (ObservableValue<? extends T>) ret;
 			else if(canCast(ret.getType()))
-				return ret.mapV(theType, v -> {
-					return cast(ret.getType(), v);
-				}, true);
-			else if(ret.getType().canAssignTo(ObservableValue.class)){
+				return ret.mapV(theType, v -> cast((TypeToken<Object>) ret.getType(), v), true);
+			else if(new TypeToken<ObservableValue<?>>() {
+			}.isAssignableFrom(ret.getType())) {
 				ObservableValue<?> contained=(ObservableValue<?>) ret.get();
 				if(theType.equals(contained.getType()))
 					return ObservableValue.flatten(theType, (ObservableValue<? extends ObservableValue<? extends T>>) ret);
 				else if(canCast(contained.getType()))
-					return ObservableValue.flatten(contained.getType(), (ObservableValue<? extends ObservableValue<?>>) ret).mapV(v -> {
-						return cast(contained.getType(), v);
-					});
+					return ObservableValue
+						.flatten((TypeToken<Object>) contained.getType(), (ObservableValue<? extends ObservableValue<?>>) ret)
+						.mapV(v -> cast((TypeToken<Object>) contained.getType(), v));
 			}
 			throw new QuickException("The given value of type " + ret.getType() + " is not compatible with this property's type (" + theType
 				+ ")");
@@ -226,16 +230,16 @@ public abstract class QuickProperty<T> {
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			return theType.isAssignable(type);
+		public boolean canCast(TypeToken<?> type) {
+			return theType.isAssignableFrom(type);
 		}
 
 		@Override
-		public <V extends T> V cast(Type type, Object value) {
+		public <X, V extends T> V cast(TypeToken<X> type, X value) {
 			if(value == null)
 				return null;
-			if(theType.isAssignable(type))
-				return (V) theType.cast(value);
+			if(theType.isAssignableFrom(type))
+				return (V) theType.wrap().getRawType().cast(value);
 			return null;
 		}
 
@@ -342,8 +346,8 @@ public abstract class QuickProperty<T> {
 		public ObservableValue<String> parse(QuickParseEnv env, String value) throws QuickException {
 			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
 			if(ret != null) {
-				if(ret.getType().canAssignTo(String.class)) {
-				} else if(ret.getType().canAssignTo(CharSequence.class)) {
+				if(STRING_TYPE.isAssignableFrom(ret.getType())) {
+				} else if(CHAR_SEQ_TYPE.isAssignableFrom(ret.getType())) {
 					ret = ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
 						return seq.toString();
 					});
@@ -355,23 +359,23 @@ public abstract class QuickProperty<T> {
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			return type.canAssignTo(CharSequence.class);
+		public boolean canCast(TypeToken<?> type) {
+			return CHAR_SEQ_TYPE.isAssignableFrom(type);
 		}
 
 		@Override
-		public String cast(Type type, Object value) {
+		public <X, V extends String> V cast(TypeToken<X> type, X value) {
 			if(value instanceof String)
-				return (String) value;
+				return (V) value;
 			else if(value instanceof CharSequence)
-				return value.toString();
+				return (V) value.toString();
 			else
 				return null;
 		}
 
 		@Override
-		public Type getType() {
-			return new Type(String.class);
+		public TypeToken<String> getType() {
+			return STRING_TYPE;
 		}
 
 		@Override
@@ -386,53 +390,53 @@ public abstract class QuickProperty<T> {
 	};
 
 	/** A boolean property type--values must be either true or false */
-	public static final AbstractPropertyType<Boolean> boolAttr = new PrismsParsedPropertyType<>(new Type(Boolean.class));
+	public static final AbstractPropertyType<Boolean> boolAttr = new PrismsParsedPropertyType<>(TypeToken.of(Boolean.class));
 
 	/** An integer property type--values must be valid integers */
-	public static final AbstractPropertyType<Long> intAttr = new PrismsParsedPropertyType<Long>(new Type(Long.class)) {
+	public static final AbstractPropertyType<Long> intAttr = new PrismsParsedPropertyType<Long>(TypeToken.of(Long.class)) {
 		@Override
 		public String toString() {
 			return "int";
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			return type.isIntMathable();
+		public boolean canCast(TypeToken<?> type) {
+			return TypeUtil.isIntMathable(type.getRawType());
 		}
 
 		@Override
-		public Long cast(Type type, Object value) {
+		public <X, V extends Long> V cast(TypeToken<X> type, X value) {
 			if(value instanceof Long)
-				return (Long) value;
+				return (V) value;
 			else if(value instanceof Number)
-				return ((Number) value).longValue();
+				return (V) Long.valueOf(((Number) value).longValue());
 			else if(value instanceof Character)
-				return (long) ((Character) value).charValue();
+				return (V) Long.valueOf(((Character) value).charValue());
 			else
 				return null;
 		}
 	};
 
 	/** A floating-point property type--values must be valid real numbers */
-	public static final AbstractPropertyType<Double> floatAttr = new PrismsParsedPropertyType<Double>(new Type(Double.class)) {
+	public static final AbstractPropertyType<Double> floatAttr = new PrismsParsedPropertyType<Double>(TypeToken.of(Double.class)) {
 		@Override
 		public String toString() {
 			return "float";
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			return type.isMathable();
+		public boolean canCast(TypeToken<?> type) {
+			return TypeUtil.isIntMathable(type.getRawType());
 		}
 
 		@Override
-		public Double cast(Type type, Object value) {
+		public <X, V extends Double> V cast(TypeToken<X> type, X value) {
 			if(value instanceof Double)
-				return (Double) value;
+				return (V) value;
 			else if(value instanceof Number)
-				return ((Number) value).doubleValue();
+				return (V) Double.valueOf(((Number) value).doubleValue());
 			else if(value instanceof Character)
-				return (double) ((Character) value).charValue();
+				return (V) Double.valueOf(((Character) value).charValue());
 			else
 				return null;
 		}
@@ -440,22 +444,27 @@ public abstract class QuickProperty<T> {
 
 	/** Represents a time amount. The value is interpreted in milliseconds. */
 	public static final AbstractPropertyType<Long> timeAttr = new AbstractPropertyType<Long>() {
+		private static final TypeToken<Long> LONG_TYPE = TypeToken.of(Long.class);
+
+		private static final TypeToken<Date> DATE_TYPE = TypeToken.of(Date.class);
+
+		private static final TypeToken<Period> PERIOD_TYPE = TypeToken.of(Period.class);
 		@Override
-		public Type getType() {
-			return new Type(Long.class);
+		public TypeToken<Long> getType() {
+			return TypeToken.of(Long.class);
 		}
 
 		@Override
 		public ObservableValue<Long> parse(QuickParseEnv env, String value) throws QuickException {
 			ObservableValue<?> retObs = parseExplicitObservable(env, value, false);
 			if(retObs != null) {
-				if(retObs.getType().canAssignTo(Long.TYPE)) {
-				} else if(retObs.getType().canAssignTo(java.util.Date.class)) {
-					retObs = ((ObservableValue<? extends java.util.Date>) retObs).mapV(date -> {
+				if(LONG_TYPE.isAssignableFrom(retObs.getType())) {
+				} else if(DATE_TYPE.isAssignableFrom(retObs.getType())) {
+					retObs = ((ObservableValue<? extends Date>) retObs).mapV(date -> {
 						return date.getTime();
 					});
-				} else if(retObs.getType().canAssignTo(java.time.Period.class)) {
-					retObs = ((ObservableValue<? extends java.time.Period>) retObs).mapV(date -> {
+				} else if(PERIOD_TYPE.isAssignableFrom(retObs.getType())) {
+					retObs = ((ObservableValue<? extends Period>) retObs).mapV(date -> {
 						return date.get(java.time.temporal.ChronoUnit.MILLIS);
 					});
 				} else
@@ -497,16 +506,16 @@ public abstract class QuickProperty<T> {
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			return type.isMathable() && type.getBaseType() != Character.TYPE && type.getBaseType() != Character.class;
+		public boolean canCast(TypeToken<?> type) {
+			return TypeUtil.isMathable(type.getRawType()) && type.wrap().getRawType() != Character.class;
 		}
 
 		@Override
-		public Long cast(Type type, Object value) {
+		public <X, V extends Long> V cast(TypeToken<X> type, X value) {
 			if(value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte)
-				return ((Number) value).longValue();
+				return (V) Long.valueOf(((Number) value).longValue());
 			else if(value instanceof Double || value instanceof Float)
-				return (long) Math.round(((Number) value).floatValue() * 1000);
+				return (V) Long.valueOf(Math.round(((Number) value).floatValue() * 1000));
 			else
 				return null;
 		}
@@ -523,7 +532,7 @@ public abstract class QuickProperty<T> {
 		private final List<ParsedFunctionDeclaration> theFunctions;
 
 		ColorPropertyType() {
-			super(new Type(Color.class));
+			super(TypeToken.of(Color.class));
 			theColorOp = new prisms.arch.MutableConfig("entity");
 			((prisms.arch.MutableConfig) theColorOp).set("name", "color").set("order", "1").set("impl", ParsedColor.class.getName()) //
 				.getOrCreate("select") //
@@ -576,7 +585,7 @@ public abstract class QuickProperty<T> {
 			for(ParsedFunctionDeclaration func : theFunctions)
 				env.declareFunction(func);
 
-			Type colorType = new Type(Color.class);
+			TypeToken<Color> colorType = TypeToken.of(Color.class);
 			if(env instanceof DefaultEvaluationEnvironment) {
 				((DefaultEvaluationEnvironment) env).addVariableSource(new VariableSource() {
 					@Override
@@ -624,16 +633,16 @@ public abstract class QuickProperty<T> {
 		}
 
 		@Override
-		public boolean canCast(Type type) {
+		public boolean canCast(TypeToken<?> type) {
 			if(super.canCast(type))
 				return true;
-			if(type.canAssignTo(String.class))
+			if(STRING_TYPE.isAssignableFrom(type))
 				return true;
 			return false;
 		}
 
 		@Override
-		public <V extends Color> V cast(Type type, Object value) {
+		public <X, V extends Color> V cast(TypeToken<X> type, X value) {
 			if(value instanceof String)
 				try {
 					return (V) Colors.parseIfColor((String) value);
@@ -667,14 +676,15 @@ public abstract class QuickProperty<T> {
 	 * </ul>
 	 */
 	public static final AbstractPropertyType<URL> resourceAttr = new AbstractPropertyType<java.net.URL>() {
+		private static final TypeToken<URL> URL_TYPE = TypeToken.of(URL.class);
 		@Override
 		public ObservableValue<URL> parse(QuickParseEnv env, String value) throws QuickException {
 			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
 			if(ret != null) {
-				if(ret.getType().canAssignTo(ObservableValue.class))
+				if(TypeToken.of(ObservableValue.class).isAssignableFrom(ret.getType()))
 					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
-				if(ret.getType().canAssignTo(URL.class)) {
-				} else if(ret.getType().canAssignTo(CharSequence.class)) {
+				if(URL_TYPE.isAssignableFrom(ret.getType())) {
+				} else if(CHAR_SEQ_TYPE.isAssignableFrom(ret.getType())) {
 					ret = ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
 						try {
 							return new URL(seq.toString());
@@ -697,9 +707,9 @@ public abstract class QuickProperty<T> {
 				}
 			ret = parseExplicitObservable(env, content, false);
 			if(ret != null) {
-				if(ret.getType().canAssignTo(ObservableValue.class))
+				if(TypeToken.of(ObservableValue.class).isAssignableFrom(ret.getType()))
 					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
-				if(ret.getType().canAssignTo(CharSequence.class)) {
+				if(CHAR_SEQ_TYPE.isAssignableFrom(ret.getType())) {
 					return ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
 						try {
 							return getMappedResource(toolkit, seq.toString());
@@ -735,21 +745,21 @@ public abstract class QuickProperty<T> {
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			return type.canAssignTo(URL.class);
+		public boolean canCast(TypeToken<?> type) {
+			return URL_TYPE.isAssignableFrom(type);
 		}
 
 		@Override
-		public URL cast(Type type, Object value) {
+		public <X, V extends URL> V cast(TypeToken<X> type, X value) {
 			if(value instanceof URL)
-				return (URL) value;
+				return (V) value;
 			else
 				return null;
 		}
 
 		@Override
-		public Type getType() {
-			return new Type(URL.class);
+		public TypeToken<URL> getType() {
+			return URL_TYPE;
 		}
 
 		@Override
@@ -776,7 +786,7 @@ public abstract class QuickProperty<T> {
 	public static class QuickTypeProperty<T> extends PrismsParsedPropertyType<Class<? extends T>> {
 		/** @param aType The subtype that the value must map to */
 		public QuickTypeProperty(Class<T> aType) {
-			super(new Type(aType), true);
+			super((TypeToken<Class<? extends T>>) TypeToken.of(aType), true);
 		}
 	}
 
@@ -788,33 +798,34 @@ public abstract class QuickProperty<T> {
 	public static final class QuickTypeInstanceProperty<T> extends PrismsParsedPropertyType<T> {
 		/** @param aType The subtype that the value must map to */
 		public QuickTypeInstanceProperty(Class<? extends T> aType) {
-			super(new Type(aType), false);
+			super((TypeToken<T>) TypeToken.of(aType), false);
 		}
 
 		@Override
-		public boolean canCast(Type type) {
-			if(getType().isAssignable(type))
+		public boolean canCast(TypeToken<?> type) {
+			if(getType().isAssignableFrom(type))
 				return true;
-			if(type.canAssignTo(Class.class) && type.getParamTypes().length == 1 && getType().isAssignable(type.getParamTypes()[0]))
+			if(TypeToken.of(Class.class).isAssignableFrom(type)
+				&& getType().isAssignableFrom(type.resolveType(Class.class.getTypeParameters()[0])))
 				return true;
 			return false;
 		}
 
 		@Override
-		public <V extends T> V cast(Type type, Object value) {
+		public <X, V extends T> V cast(TypeToken<X> type, X value) {
 			if(value == null) {
 				if(type == Type.NULL)
 					return null;
-				if(type.getBaseType() != null)
+				if(type.getRawType() != null)
 					try {
-						return (V) getType().cast(type.getBaseType().newInstance());
+						return (V) getType().getRawType().cast(type.getRawType().newInstance());
 					} catch(Exception e) {
 						throw new IllegalStateException("Could not instantiate type " + type, e);
 					}
 				else
 					throw new IllegalStateException("Could not instantiate type " + type);
-			} else if(getType().isAssignable(type))
-				return (V) getType().cast(value);
+			} else if(getType().isAssignableFrom(type))
+				return (V) getType().getRawType().cast(value);
 			else
 				return null;
 		}
@@ -893,7 +904,7 @@ public abstract class QuickProperty<T> {
 
 		@Override
 		public Type getType() {
-			return new Type(enumType);
+			return TypeToken.of(enumType);
 		}
 
 		@Override

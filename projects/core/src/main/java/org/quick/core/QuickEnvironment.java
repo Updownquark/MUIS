@@ -8,6 +8,8 @@ import org.quick.core.parser.QuickContentCreator;
 import org.quick.core.parser.QuickParser;
 import org.quick.core.style.sheet.StyleSheet;
 
+import com.google.common.reflect.TypeToken;
+
 /** The environment that MUIS documents operate in */
 public class QuickEnvironment implements QuickParseEnv {
 	/** The location of the core toolkit */
@@ -47,8 +49,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theMessageCenter = new QuickMessageCenter(this, null, null);
 		theCache = new QuickCache();
-		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(
-			new prisms.lang.Type(StyleSheet.class));
+		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
 		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
 		theStyle = new EnvironmentStyle(styleDepends);
 		theToolkitLock = new Object();

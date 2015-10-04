@@ -5,7 +5,7 @@ import org.quick.core.model.QuickActionListener;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickWidgetModel;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A model that manages a set of boolean-valued widgets, such as toggle buttons or radio buttons, only one of which may be selected at a
@@ -58,8 +58,8 @@ public class QuickButtonGroup extends DefaultObservableValue<String> implements 
 	}
 
 	@Override
-	public Type getType() {
-		return new Type(String.class);
+	public TypeToken<String> getType() {
+		return TypeToken.of(String.class);
 	}
 
 	@Override
@@ -108,8 +108,8 @@ public class QuickButtonGroup extends DefaultObservableValue<String> implements 
 		}
 
 		@Override
-		public Type getType() {
-			return new Type(Boolean.TYPE);
+		public TypeToken<Boolean> getType() {
+			return TypeToken.of(Boolean.TYPE);
 		}
 
 		@Override

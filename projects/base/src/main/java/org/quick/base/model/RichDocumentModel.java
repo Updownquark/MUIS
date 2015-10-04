@@ -11,11 +11,13 @@ import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.MutableSelectableDocumentModel;
-import org.quick.core.style.QuickStyle;
 import org.quick.core.style.MutableStyle;
+import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
 import org.quick.util.Transaction;
+
+import com.google.common.reflect.TypeToken;
 
 import prisms.lang.Type;
 
@@ -64,7 +66,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 
 		@Override
 		public ObservableList<QuickStyle> getDependencies() {
-			return ObservableList.constant(new Type(QuickStyle.class));
+			return ObservableList.constant(TypeToken.of(QuickStyle.class));
 		}
 
 		@Override
@@ -89,7 +91,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		@Override
 		public ObservableSet<StyleAttribute<?>> localAttributes() {
 			try (Transaction t = holdForRead()) {
-				return ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)),
+				return ObservableSet.constant(new TypeToken<StyleAttribute<?>>() {},
 					java.util.Arrays.asList((StyleAttribute<?> []) theStyles.keySet().toArray(new StyleAttribute[theStyles.size()])));
 			}
 		}
@@ -397,7 +399,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle());
 			}
-			return ObservableList.constant(new Type(QuickStyle.class), ret);
+			return ObservableList.constant(TypeToken.of(QuickStyle.class), ret);
 		}
 
 		@Override

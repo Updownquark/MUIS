@@ -10,7 +10,7 @@ import org.observe.collect.CollectionSession;
 import org.observe.collect.ObservableElement;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
-import org.observe.util.Transaction;
+import org.qommons.Transaction;
 
 import prisms.lang.Type;
 

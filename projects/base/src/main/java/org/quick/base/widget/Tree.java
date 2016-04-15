@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
-import org.observe.datastruct.ObservableTree;
+import org.observe.assoc.ObservableTree;
 import org.quick.base.model.TreePath;
 import org.quick.base.model.TreePathSet;
 import org.quick.base.model.TreeSelectionModel;

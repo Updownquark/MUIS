@@ -2,7 +2,7 @@ package org.quick.base.model;
 
 import java.util.AbstractList;
 
-import org.observe.datastruct.ObservableTree;
+import org.observe.assoc.ObservableTree;
 
 /**
  * A path from the root of a tree, through nested intermediate nodes, down to a target node

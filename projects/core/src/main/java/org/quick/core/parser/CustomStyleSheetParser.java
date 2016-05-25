@@ -3,7 +3,10 @@ package org.quick.core.parser;
 import java.net.URL;
 import java.util.ArrayList;
 
-import org.quick.core.*;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickEnvironment;
+import org.quick.core.QuickException;
+import org.quick.core.QuickParseEnv;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
@@ -11,14 +14,7 @@ import org.quick.core.style.StyleParsingUtils;
 import org.quick.core.style.sheet.AnimatedStyleSheet;
 import org.quick.core.style.sheet.ParsedStyleSheet;
 import org.quick.core.style.sheet.StateGroupTypeExpression;
-import org.quick.core.style.sheet.TemplateRole;
 import org.quick.core.style.stateful.StateExpression;
-
-import prisms.lang.ParseException;
-import prisms.lang.ParseMatch;
-import prisms.lang.ParsedItem;
-import prisms.lang.PrismsParser;
-import prisms.lang.types.ParsedStatementBlock;
 
 /** Parses MUIS style sheets using a custom format */
 public class CustomStyleSheetParser {
@@ -606,228 +602,6 @@ public class CustomStyleSheetParser {
 		@Override
 		public String toString() {
 			return theAttrName + "=" + theValue;
-		}
-	}
-
-	private static class ExpressionContext {
-		ArrayList<Class<? extends QuickElement>> theTypes;
-
-		ArrayList<String> theGroups;
-
-		StateExpression theState;
-
-		TemplateRole theTemplatePath;
-
-		ExpressionContext() {
-			theTypes = new ArrayList<>();
-			theGroups = new ArrayList<>();
-		}
-
-		boolean isEmpty() {
-			return theTypes.isEmpty() && theGroups.isEmpty() && theState == null && theTemplatePath == null;
-		}
-	}
-
-	private static class ExpressionContextStack implements Iterable<StateGroupTypeExpression<?>> {
-		private ArrayList<ExpressionContext> theStack;
-
-		ExpressionContextStack() {
-			theStack = new ArrayList<>();
-		}
-
-		int size() {
-			return theStack.size();
-		}
-
-		void push() {
-			theStack.add(new ExpressionContext());
-		}
-
-		void pop() {
-			theStack.remove(theStack.size() - 1);
-		}
-
-		ExpressionContext top() {
-			return theStack.get(theStack.size() - 1);
-		}
-
-		void addType(Class<? extends QuickElement> type) throws QuickParseException {
-			for(int i = theStack.size() - 1; i >= 0; i--) {
-				if(!theStack.get(i).theTypes.isEmpty()) {
-					boolean isSubType = false;
-					for(Class<?> preType : theStack.get(i).theTypes) {
-						if(preType.equals(type))
-							throw new QuickParseException("Type " + type.getSimpleName() + " is already in this category");
-						if(preType.isAssignableFrom(type)) {
-							isSubType = true;
-							break;
-						}
-					}
-					if(!isSubType) {
-						throw new QuickParseException("Type " + type.getSimpleName() + " is not a sub type of a type in a super-category");
-					}
-				}
-			}
-			top().theTypes.add(type);
-		}
-
-		void addGroup(String groupName) throws QuickParseException {
-			for(int i = 0; i < theStack.size() - 1; i++) {
-				if(theStack.get(i).theTemplatePath != null)
-					break;
-				if(!theStack.get(i).theGroups.isEmpty())
-					throw new QuickParseException(
-						"Groups are not hierarchical--a category with a group cannot contain a category with a group");
-			}
-			top().theGroups.add(groupName);
-		}
-
-		void setState(StateExpression state) {
-			top().theState = state;
-		}
-
-		void addAttachPoint(String attachPoint, QuickEnvironment env) throws QuickParseException {
-			Class<? extends QuickElement> type = null;
-			for(int i = theStack.size() - 1; i >= 0; i--) {
-				if(!theStack.get(i).theTypes.isEmpty()) {
-					if(theStack.get(i).theTypes.size() > 1)
-						throw new QuickParseException("Cannot attach-point specific styles to more than one type at once");
-					type = theStack.get(i).theTypes.get(0);
-					break;
-				}
-			}
-			if(type == null)
-				type = QuickElement.class;
-			if(!(QuickTemplate.class.isAssignableFrom(type)))
-				throw new QuickParseException("Element type " + type.getName() + " is not templated--cannot specify attach point styles");
-			QuickTemplate.TemplateStructure templateStruct;
-			try {
-				templateStruct = QuickTemplate.TemplateStructure.getTemplateStructure(env, (Class<? extends QuickTemplate>) type);
-			} catch(QuickException e) {
-				throw new QuickParseException("Could not parse template structure for " + type.getName(), e);
-			}
-			QuickTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
-			if(ap == null)
-				throw new QuickParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
-			ArrayList<String> parentGroups = new ArrayList<>();
-			for(int i = theStack.size() - 1; i >= 0; i--)
-				if(!theStack.get(i).theGroups.isEmpty()) {
-					parentGroups.addAll(theStack.get(i).theGroups);
-					break;
-				}
-			top().theTemplatePath = new TemplateRole(ap, parentGroups, (Class<? extends QuickTemplate>) type, getTopTemplateRole());
-			top().theTypes.add(ap.type);
-		}
-
-		Class<? extends QuickElement> [] getTopTypes() {
-			for(int i = theStack.size() - 1; i >= 0; i--) {
-				if(theStack.get(i).theTemplatePath != null)
-					return new Class[0];
-				if(!theStack.get(i).theTypes.isEmpty())
-					return theStack.get(i).theTypes.toArray(new Class[theStack.get(i).theTypes.size()]);
-			}
-			return new Class[0];
-		}
-
-		TemplateRole getTopTemplateRole() {
-			for(int i = theStack.size() - 1; i >= 0; i--) {
-				if(theStack.get(i).theTemplatePath != null)
-					return theStack.get(i).theTemplatePath;
-			}
-			return null;
-		}
-
-		@Override
-		public java.util.Iterator<StateGroupTypeExpression<?>> iterator() {
-			if(top().isEmpty()) {
-				return new java.util.Iterator<StateGroupTypeExpression<?>>() {
-					@Override
-					public boolean hasNext() {
-						return false;
-					}
-
-					@Override
-					public StateGroupTypeExpression<?> next() {
-						return null;
-					}
-
-					@Override
-					public void remove() {
-					}
-				};
-			}
-			return new java.util.Iterator<StateGroupTypeExpression<?>>() {
-				private Class<? extends QuickElement> [] theIterableTypes;
-
-				private ArrayList<String> theIterableGroups;
-
-				private StateExpression theOverallState;
-
-				private TemplateRole theTemplatePath;
-
-				private int theTypeIdx;
-
-				private int theGroupIdx;
-
-				private boolean hasCalledNext;
-
-				{
-					theIterableTypes = getTopTypes();
-					theTemplatePath = getTopTemplateRole();
-					theIterableGroups = new ArrayList<>();
-					for(int i = theStack.size() - 1; i >= 0; i--) {
-						if(theStack.get(i).theTemplatePath != null)
-							break;
-						if(theIterableGroups.isEmpty())
-							theIterableGroups.addAll(theStack.get(i).theGroups);
-					}
-					for(ExpressionContext ctx : theStack) {
-						if(ctx.theState != null) {
-							if(theOverallState == null)
-								theOverallState = ctx.theState;
-							else
-								theOverallState = theOverallState.and(ctx.theState);
-						}
-					}
-				}
-
-				@Override
-				public boolean hasNext() {
-					return !hasCalledNext || theTypeIdx < theIterableTypes.length || theGroupIdx < theIterableGroups.size();
-				}
-
-				@Override
-				public StateGroupTypeExpression<?> next() {
-					StateGroupTypeExpression<?> ret;
-					if(theGroupIdx < theIterableGroups.size()) {
-						if(theTypeIdx < theIterableTypes.length) {
-							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx),
-								theIterableTypes[theTypeIdx++], theTemplatePath);
-						} else {
-							ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx), null, theTemplatePath);
-						}
-						if(theTypeIdx >= theIterableTypes.length) {
-							theGroupIdx++;
-							theTypeIdx = 0;
-						}
-					} else if(theIterableGroups.isEmpty()) {
-						if(theTypeIdx < theIterableTypes.length) {
-							ret = new StateGroupTypeExpression<>(theOverallState, null, theIterableTypes[theTypeIdx++], theTemplatePath);
-						} else if(theIterableTypes.length == 0) {
-							ret = new StateGroupTypeExpression<>(theOverallState, null, null, theTemplatePath);
-						} else
-							throw new java.util.NoSuchElementException();
-					} else
-						throw new java.util.NoSuchElementException();
-					hasCalledNext = true;
-					return ret;
-				}
-
-				@Override
-				public void remove() {
-					throw new UnsupportedOperationException();
-				}
-			};
 		}
 	}
 

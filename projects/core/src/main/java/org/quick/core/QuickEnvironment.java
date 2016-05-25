@@ -1,8 +1,12 @@
 package org.quick.core;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.observe.collect.ObservableList;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.*;
+import org.quick.core.parser.attr.DefaultAttributeParser;
 import org.quick.core.style.sheet.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
@@ -24,13 +28,9 @@ public class QuickEnvironment implements QuickParseEnv {
 	}
 
 	private QuickToolkitParser theToolkitParser;
-
 	private QuickDocumentParser theDocumentParser;
-
 	private QuickContentCreator theContentCreator;
-
 	private QuickStyleParser theStyleParser;
-
 	private QuickAttributeParser theAttributeParser;
 
 	private final QuickMessageCenter theMessageCenter;
@@ -49,26 +49,6 @@ public class QuickEnvironment implements QuickParseEnv {
 		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
 		theStyle = new EnvironmentStyle(styleDepends);
 		theToolkitLock = new Object();
-	}
-
-	public void setToolkitParser(QuickToolkitParser toolkitParser) {
-		theToolkitParser = toolkitParser;
-	}
-
-	private void setDocumentParser(QuickDocumentParser documentParser) {
-		theDocumentParser = documentParser;
-	}
-
-	private void setContentCreator(QuickContentCreator contentCreator) {
-		theContentCreator = contentCreator;
-	}
-
-	private void setStyleParser(QuickStyleParser styleParser) {
-		theStyleParser = styleParser;
-	}
-
-	private void setAttributeParser(QuickAttributeParser attributeParser) {
-		theAttributeParser = attributeParser;
 	}
 
 	@Override
@@ -122,8 +102,8 @@ public class QuickEnvironment implements QuickParseEnv {
 	}
 
 	/** @return All toolkits in this environment */
-	public Iterable<QuickToolkit> getToolkits() {
-		return org.qommons.ArrayUtils.immutableIterable(theToolkits.values());
+	public Collection<QuickToolkit> getToolkits() {
+		return Collections.unmodifiableCollection(theToolkits.values());
 	}
 
 	/**
@@ -136,21 +116,19 @@ public class QuickEnvironment implements QuickParseEnv {
 		// Need to make sure the core toolkit is loaded first
 		if(CORE_TOOLKIT != null && !CORE_TOOLKIT.equals(location))
 			getCoreToolkit();
-		QuickToolkit ret = theToolkits.get(location.toString());
-		if(ret != null)
-			return ret;
+		QuickToolkit toolkit = theToolkits.get(location.toString());
+		if(toolkit != null)
+			return toolkit;
 		synchronized(theToolkitLock) {
-			ret = theToolkits.get(location.toString());
-			if(ret != null)
-				return ret;
-			ret = new QuickToolkit(this, location);
-			theDocumentParser.fillToolkit(ret);
-			theStyleDependencyController.add(ret.getStyle());
-			theToolkits.put(location.toString(), ret);
-			theDocumentParser.fillToolkitStyles(ret);
-			ret.seal();
+			toolkit = theToolkits.get(location.toString());
+			if(toolkit != null)
+				return toolkit;
+			toolkit = theToolkitParser.parseToolkit(location, tk -> {
+				theStyleDependencyController.add(tk.getStyle());
+				theToolkits.put(location.toString(), tk);
+			});
 		}
-		return ret;
+		return toolkit;
 	}
 
 	/** @return The toolkit containing the core MUIS classes */
@@ -172,52 +150,51 @@ public class QuickEnvironment implements QuickParseEnv {
 
 	public static class Builder {
 		private final QuickEnvironment theEnv = new QuickEnvironment();
-
 		private final java.util.concurrent.atomic.AtomicBoolean isBuilt = new java.util.concurrent.atomic.AtomicBoolean(false);
 
 		public Builder withDefaults() {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.setToolkitParser(new org.quick.core.parser.DefaultToolkitParser());
-			theEnv.setDocumentParser(new org.quick.core.parser.QuickDomParser(theEnv));
-			theEnv.setContentCreator(new QuickContentCreator());
-			theEnv.setStyleParser(new DefaultStyleParser());
-			theEnv.setAttributeParser(new DefaultAttributeParser());
+			theEnv.theToolkitParser = new org.quick.core.parser.DefaultToolkitParser(theEnv);
+			theEnv.theDocumentParser = new org.quick.core.parser.QuickDomParser(theEnv);
+			theEnv.theContentCreator = new QuickContentCreator();
+			theEnv.theStyleParser = new DefaultStyleParser(theEnv);
+			theEnv.theAttributeParser = new DefaultAttributeParser(theEnv);
 			return this;
 		}
 
 		public Builder setToolkitParser(QuickToolkitParser toolkitParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.setToolkitParser(toolkitParser);
+			theEnv.theToolkitParser = toolkitParser;
 			return this;
 		}
 
 		public Builder setDocumentParser(QuickDocumentParser documentParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.setDocumentParser(documentParser);
+			theEnv.theDocumentParser = documentParser;
 			return this;
 		}
 
 		public Builder setContentCreator(QuickContentCreator contentCreator) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.setContentCreator(contentCreator);
+			theEnv.theContentCreator = contentCreator;
 			return this;
 		}
 
 		public Builder setStyleParser(QuickStyleParser styleParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.setStyleParser(styleParser);
+			theEnv.theStyleParser = styleParser;
 			return this;
 		}
 
 		public Builder setAttributeParser(QuickAttributeParser attributeParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.setAttributeParser(attributeParser);
+			theEnv.theAttributeParser = attributeParser;
 			return this;
 		}
 

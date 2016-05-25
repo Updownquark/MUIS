@@ -2,11 +2,11 @@ package org.quick.util;
 
 import java.util.*;
 
-import org.qommons.ArrayUtils;
+import org.qommons.IterableUtils;
 
 /**
  * Aggregates a number of lists into a single list
- * 
+ *
  * @param <E> The type of this list
  */
 public class AggregateList<E> implements List<E> {
@@ -49,7 +49,7 @@ public class AggregateList<E> implements List<E> {
 
 	@Override
 	public Iterator<E> iterator() {
-		return ArrayUtils.conditionalIterator(ArrayUtils.iterable(theComponents).iterator(), new ArrayUtils.Accepter<E, E>() {
+		return IterableUtils.conditionalIterator(IterableUtils.iterable(theComponents).iterator(), new IterableUtils.Accepter<E, E>() {
 			@Override
 			public E accept(E value) {
 				return (theIgnores != null && theIgnores.contains(value)) ? null : value;

@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
 
-//base:=../../../QuickRegistry.xml
+<!--//base:=../../../QuickRegistry.xml
 
 [block]{
 }
@@ -66,4 +67,74 @@
 		}
 	}
 	text-edit-style.cursor-blink=1000
-}
+}-->
+
+<style>
+	<type name="block">
+	</type>
+	<type name="button">
+		<domain name="bg">
+			<attr name="transparency" value="0" />
+			<attr name="color" value="blue" />
+			<attr name="texture" value="raised-round" />
+			<attr name="corner-radius" value="10%" />
+			<attr name="cursor" value="hand" />
+		</domain>
+		<domain name="light">
+			<attr name="color" value="white" />
+			<attr name="shadow" value="black" />
+		</domain>
+		<state name="hover">
+			<attr domain="bg" name="color" value="rgb(64, 64, 64)" />
+		</state>
+		<state name="depressed">
+			<domain name="light">
+				<attr name="color" value="black" />
+				<attr name="shadow" value="white" />
+			</domain>
+		</state>
+		<state name="!enabled">
+			<attr domain="bg" name="color" value="lightgray" />
+		</state>
+	</type>
+	<type name="toggle-button">
+		<state name="selected">
+			<attr domain="bg" name="color" value="cyan" />
+			<state value="hover">
+			</state>
+			<state value="depressed">
+			</state>
+		</state>
+	</type>
+	<type name="label">
+		<attr domain="layout" name="margin" value="0" />
+		<attr domain="layout" name="padding" value="0" />
+	</type>
+	<type name="border">
+		<attr domain="bg" name="texture" value="border-texture" />
+		<attr domain="bg" name="corner-radius" value="5" />
+	</type>
+	<type name="text-field">
+		<attr domain="bg" value="cursor" name="text" />
+		<attach-point name="border">
+			<domain name="bg">
+				<attr name="corner-radius" value="0" />
+				<attr name="color" value="white" />
+				<attr name="transparency" value="0" />
+			</domain>
+			<attr domain="border-style" name="inset" value="0" />
+		</attach-point>
+		<attach-point name="value">
+			<attr domain="font" name="word-wrap" value="false" />
+		</attach-point>
+		<state name="error">
+			<attach-point name="value">
+				<attr domain="font" name="color" value="red" />
+			</attach-point>
+			<attach-point name="border">
+				<attr domain="bg" name="color" value="rgb(255, 192, 192)" />
+			</attach-point>
+		</state>
+		<attr domain="text-edit-style" name="cursor-blink" value="1000" />
+	</type>
+</style>

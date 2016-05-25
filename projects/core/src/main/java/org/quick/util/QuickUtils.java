@@ -18,6 +18,8 @@ import org.quick.core.style.FontStyle;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 
+import com.google.common.reflect.TypeToken;
+
 /** A set of utilities to use with core MUIS elements */
 public class QuickUtils {
 	private QuickUtils() {
@@ -256,7 +258,7 @@ public class QuickUtils {
 		ObservableValue<Double> weight = style.get(FontStyle.weight);
 		ObservableValue<Boolean> strike = style.get(FontStyle.strike);
 		ObservableValue<Double> slant = style.get(FontStyle.slant);
-		return ObservableValue.assemble(new prisms.lang.Type(java.awt.Font.class), () -> {
+		return ObservableValue.assemble(TypeToken.of(java.awt.Font.class), () -> {
 			attribs.put(TextAttribute.FAMILY, family.get());
 			attribs.put(TextAttribute.BACKGROUND, org.quick.core.style.Colors.transparent);
 			attribs.put(TextAttribute.FOREGROUND, color.get());

@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
 
-[body]{
+<!--[body]{
 	bg={
 		color=green
 		transparency=0
@@ -16,4 +17,29 @@
 	}
 }
 
-bg.transparency=1
+bg.transparency=1-->
+
+<style>
+	<type name="body">
+		<domain name="bg">
+			<attr name="color" value="green" />
+			<attr name="transparency" value="0" />
+		</domain>
+	</type>
+	<type name="text">
+		<domain name="bg">
+			<attr name="texture" value="doc-texture" />
+			<attr name="cursor" value="text" />
+		</domain>
+		<state name="text-select">
+			<domain name="bg">
+				<attr name="color" value="blue" />
+				<attr name="transparency" value="0.5" />
+			</domain>
+			<attr domain="font" name="color" value="white" />
+		</state>
+	</type>
+	<domain name="bg">
+		<attr name="transparency" value="1" />
+	</domain>
+</style>

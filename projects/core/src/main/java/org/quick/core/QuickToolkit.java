@@ -402,10 +402,9 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		 * Adds a permission requirement to this toolkit
 		 *
 		 * @param perm The permission that this toolkit requires or requests
-		 * @throws QuickException If this toolkit has been sealed
 		 * @return This builder, for chaining
 		 */
-		public Builder addPermission(QuickPermission perm) throws QuickException {
+		public Builder addPermission(QuickPermission perm) {
 			if(theBuiltToolkit != null)
 				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
 			thePermissions.add(perm);

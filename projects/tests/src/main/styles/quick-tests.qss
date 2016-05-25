@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
 
-base:=../../../QuickRegistry.xml
+<!--base:=../../../QuickRegistry.xml
 
 (opaque){
 	bg.transparency=0
@@ -21,4 +22,29 @@ base:=../../../QuickRegistry.xml
 (bg-green){
 	bg.transparency=0
 	bg.color=green
-}
+}-->
+
+<style xmlns:base="../../../../base/QuickRegistry.xml">
+	<group name="opaque">
+		<attr domain="bg" name="transparency" value="0" />
+	</group>
+	<type name="base:text-field">
+		<group name="tfredborder">
+			<attach-point name="border">
+				<attr domain="border-style" name="color" value="red" />
+			</attach-point>
+		</group>
+	</type>
+	<group name="bg-red">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="red" />
+	</group>
+	<group name="bg-blue">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="blue" />
+	</group>
+	<group name="bg-green">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="green" />
+	</group>
+</style>

@@ -17,18 +17,15 @@ import org.quick.core.model.QuickValueReferenceParser;
 import org.quick.core.style.sheet.ParsedStyleSheet;
 import org.quick.util.QuickUtils;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** Parses Quick components using the JDOM library */
 public class QuickDomParser implements QuickDocumentParser {
 	private QuickEnvironment theEnvironment;
 
-	private CustomStyleSheetParser theStyleSheetParser;
-
 	/** @param env The environment for the parser to operate in */
 	public QuickDomParser(QuickEnvironment env) {
 		theEnvironment = env;
-		theStyleSheetParser = new CustomStyleSheetParser();
 	}
 
 	@Override
@@ -65,10 +62,24 @@ public class QuickDomParser implements QuickDocumentParser {
 			if(title != null)
 				head.setTitle(title);
 			for(Element styleSheetEl : headEl[0].getChildren("style-sheet")) {
-				ParsedStyleSheet styleSheet = parseStyleSheet(styleSheetEl, location, classView, msg);
-				if(styleSheet != null) {
+				String ref = styleSheetEl.getAttributeValue("ref");
+				URL ssLoc;
+				try {
+					ssLoc = QuickUtils.resolveURL(location, ref);
+				} catch(QuickException e) {
+					msg.error("Could not resolve style sheet location " + ref, e, "element", styleSheetEl);
+					return null;
+				}
+				try {
+					ParsedStyleSheet styleSheet = theEnvironment.getStyleParser()
+						.parseStyleSheet(new SimpleParseEnv(theEnvironment, classView, msg), null, ssLoc);
+					// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to
+					// the EventQueue somehow
+					styleSheet.startAnimation();
 					head.getStyleSheets().add(styleSheet);
 					styleSheet.seal();
+				} catch(Exception e) {
+					msg.error("Could not read or parse style sheet at " + ref, e, "element", styleSheetEl);
 				}
 			}
 			for(Element modelEl : headEl[0].getChildren("model")) {
@@ -142,79 +153,6 @@ public class QuickDomParser implements QuickDocumentParser {
 	}
 
 	/**
-	 * Parses a style sheet from a style-sheet element
-	 *
-	 * @param styleSheetEl The element specifying the style sheet to parse
-	 * @param reference The location of the file that the style sheet is referenced from
-	 * @param classView The classView to
-	 * @param msg The message center to report errors
-	 * @return The parsed style sheet, or null if an error occurred (the error must be documented in the document before returning null)
-	 */
-	protected ParsedStyleSheet parseStyleSheet(Element styleSheetEl, URL reference, QuickClassView classView, QuickMessageCenter msg) {
-		String ssLocStr = styleSheetEl.getAttributeValue("ref");
-		if(ssLocStr != null) {
-			for(org.jdom2.Content content : styleSheetEl.getContent()) {
-				if(content instanceof org.jdom2.Comment)
-					continue;
-				else if(content instanceof Text) {
-					if(((Text) content).getTextTrim().length() > 0) {
-						msg.error(styleSheetEl.getName() + " elements that refer to a style sheet resource may not have text", "element",
-							styleSheetEl);
-						return null;
-					}
-				} else {
-					msg.error(styleSheetEl.getName() + " elements that refer to a style sheet resoruce may not have any entities",
-						"element", styleSheetEl);
-					return null;
-				}
-			}
-			URL ssLoc;
-			try {
-				ssLoc = QuickUtils.resolveURL(reference, ssLocStr);
-			} catch(QuickException e) {
-				msg.error("Could not resolve style sheet location " + ssLocStr, e, "element", styleSheetEl);
-				return null;
-			}
-			try {
-				ParsedStyleSheet ret = theStyleSheetParser.parse(new SimpleParseEnv(theEnvironment, classView, msg), ssLoc, theEnvironment);
-				// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to the
-				// EventQueue somehow
-				ret.startAnimation();
-				return ret;
-			} catch(Exception e) {
-				msg.error("Could not read or parse style sheet at " + ssLocStr, e, "element", styleSheetEl);
-				return null;
-			}
-		}
-		Element temp = styleSheetEl;
-		while(temp != null) {
-			for(org.jdom2.Namespace ns : temp.getNamespacesIntroduced()) {
-				if(classView.getToolkit(ns.getPrefix()) != null || ns.getURI().length() == 0)
-					continue;
-				try {
-					classView.addNamespace(ns.getPrefix(), theEnvironment.getToolkit(QuickUtils.resolveURL(reference, ns.getURI())));
-				} catch(QuickException | IOException e) {
-					msg.error("Toolkit URI \"" + ns.getURI() + "\" at namespace \"" + ns.getPrefix()
-						+ "\" could not be resolved or parsed for style-sheet", e, "element", styleSheetEl);
-					continue;
-				}
-			}
-			temp = temp.getParentElement();
-		}
-		msg.error("No ref specified on style sheet element");
-		return null;
-		/*try {
-			ParsedStyleSheet ret = theStyleSheetParser.parse(styleSheetEl, classView, msg);
-			ret.startAnimation();
-			ret.seal();
-			return ret;
-		} catch(QuickParseException e) {
-			msg.error("Could not read or parse inline style sheet", e, "element", styleSheetEl);
-			return null;
-		}*/
-	}
-
-	/**
 	 * Parses a model from XML
 	 *
 	 * @param modelEl The XML element defining or referring to the model
@@ -279,7 +217,7 @@ public class QuickDomParser implements QuickDocumentParser {
 					Class<?> type = parseType(typeAtt, classView, msg, name + "." + subName, modelEl);
 					if(type == null)
 						continue;
-					SimpleSettableValue<?> value = new SimpleSettableValue<>(new Type(type), true);
+					SimpleSettableValue<?> value = new SimpleSettableValue<>(TypeToken.of(type), true);
 					((SimpleSettableValue<Object>) value).set(getDefaultValue(type), null);
 					model.values().put(subName, value);
 					break;

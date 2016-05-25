@@ -2,10 +2,7 @@ package org.quick.core;
 
 import org.observe.collect.ObservableList;
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.model.QuickValueReferenceParser;
-import org.quick.core.parser.DefaultModelValueReferenceParser;
-import org.quick.core.parser.QuickContentCreator;
-import org.quick.core.parser.QuickParser;
+import org.quick.core.parser.*;
 import org.quick.core.style.sheet.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
@@ -26,34 +23,52 @@ public class QuickEnvironment implements QuickParseEnv {
 		}
 	}
 
-	private QuickParser theParser;
+	private QuickToolkitParser theToolkitParser;
+
+	private QuickDocumentParser theDocumentParser;
 
 	private QuickContentCreator theContentCreator;
 
-	private QuickMessageCenter theMessageCenter;
+	private QuickStyleParser theStyleParser;
 
-	private java.util.Map<String, QuickToolkit> theToolkits;
+	private QuickAttributeParser theAttributeParser;
 
-	private QuickCache theCache;
-
-	private EnvironmentStyle theStyle;
+	private final QuickMessageCenter theMessageCenter;
+	private final java.util.Map<String, QuickToolkit> theToolkits;
+	private final QuickCache theCache;
+	private final EnvironmentStyle theStyle;
 
 	private final Object theToolkitLock;
-
-	private DefaultModelValueReferenceParser theMVP;
-
 	private ObservableList<StyleSheet> theStyleDependencyController;
 
-	/** Creates a MUIS environment */
-	public QuickEnvironment() {
-		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
+	private QuickEnvironment() {
 		theMessageCenter = new QuickMessageCenter(this, null, null);
+		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
 		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
 		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
 		theStyle = new EnvironmentStyle(styleDepends);
 		theToolkitLock = new Object();
-		theMVP = new DefaultModelValueReferenceParser(DefaultModelValueReferenceParser.BASE, null);
+	}
+
+	public void setToolkitParser(QuickToolkitParser toolkitParser) {
+		theToolkitParser = toolkitParser;
+	}
+
+	private void setDocumentParser(QuickDocumentParser documentParser) {
+		theDocumentParser = documentParser;
+	}
+
+	private void setContentCreator(QuickContentCreator contentCreator) {
+		theContentCreator = contentCreator;
+	}
+
+	private void setStyleParser(QuickStyleParser styleParser) {
+		theStyleParser = styleParser;
+	}
+
+	private void setAttributeParser(QuickAttributeParser attributeParser) {
+		theAttributeParser = attributeParser;
 	}
 
 	@Override
@@ -63,33 +78,23 @@ public class QuickEnvironment implements QuickParseEnv {
 		return ret;
 	}
 
-	@Override
-	public QuickValueReferenceParser getValueParser() {
-		return theMVP;
+	/** @return The document parser for the environment */
+	public QuickDocumentParser getDocumentParser() {
+		return theDocumentParser;
 	}
 
-	/** @return The parser for the environment */
-	public QuickParser getParser() {
-		return theParser;
-	}
-
-	/** @param parser The parser for this environment */
-	public void setParser(QuickParser parser) {
-		if(theParser != null)
-			throw new IllegalStateException("The environment parser may not be re-set");
-		theParser = parser;
-	}
 
 	/** @return The content creator for the environment */
 	public QuickContentCreator getContentCreator() {
 		return theContentCreator;
 	}
 
-	/** @param creator The content creator for this environment */
-	public void setContentCreator(QuickContentCreator creator) {
-		if(theContentCreator != null)
-			throw new IllegalStateException("The environment content creator may not be re-set");
-		theContentCreator = creator;
+	public QuickStyleParser getStyleParser() {
+		return theStyleParser;
+	}
+
+	public QuickAttributeParser getAttributeParser() {
+		return theAttributeParser;
 	}
 
 	/** @return The message center for this environment */
@@ -139,10 +144,10 @@ public class QuickEnvironment implements QuickParseEnv {
 			if(ret != null)
 				return ret;
 			ret = new QuickToolkit(this, location);
-			theParser.fillToolkit(ret);
+			theDocumentParser.fillToolkit(ret);
 			theStyleDependencyController.add(ret.getStyle());
 			theToolkits.put(location.toString(), ret);
-			theParser.fillToolkitStyles(ret);
+			theDocumentParser.fillToolkitStyles(ret);
 			ret.seal();
 		}
 		return ret;
@@ -158,6 +163,77 @@ public class QuickEnvironment implements QuickParseEnv {
 			throw new IllegalStateException("Could not obtain core toolkit " + CORE_TOOLKIT, e);
 		} catch(org.quick.core.parser.QuickParseException e) {
 			throw new IllegalStateException("Could not parse core toolkit " + CORE_TOOLKIT, e);
+		}
+	}
+
+	public static Builder build() {
+		return new Builder();
+	}
+
+	public static class Builder {
+		private final QuickEnvironment theEnv = new QuickEnvironment();
+
+		private final java.util.concurrent.atomic.AtomicBoolean isBuilt = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+		public Builder withDefaults() {
+			if(isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.setToolkitParser(new org.quick.core.parser.DefaultToolkitParser());
+			theEnv.setDocumentParser(new org.quick.core.parser.QuickDomParser(theEnv));
+			theEnv.setContentCreator(new QuickContentCreator());
+			theEnv.setStyleParser(new DefaultStyleParser());
+			theEnv.setAttributeParser(new DefaultAttributeParser());
+			return this;
+		}
+
+		public Builder setToolkitParser(QuickToolkitParser toolkitParser) {
+			if(isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.setToolkitParser(toolkitParser);
+			return this;
+		}
+
+		public Builder setDocumentParser(QuickDocumentParser documentParser) {
+			if(isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.setDocumentParser(documentParser);
+			return this;
+		}
+
+		public Builder setContentCreator(QuickContentCreator contentCreator) {
+			if(isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.setContentCreator(contentCreator);
+			return this;
+		}
+
+		public Builder setStyleParser(QuickStyleParser styleParser) {
+			if(isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.setStyleParser(styleParser);
+			return this;
+		}
+
+		public Builder setAttributeParser(QuickAttributeParser attributeParser) {
+			if(isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.setAttributeParser(attributeParser);
+			return this;
+		}
+
+		public QuickEnvironment build() {
+			if(theEnv.theToolkitParser == null)
+				throw new IllegalStateException("No toolkit parser set");
+			if(theEnv.theDocumentParser == null)
+				throw new IllegalStateException("No document parser set");
+			if(theEnv.theContentCreator == null)
+				throw new IllegalStateException("No content creator set");
+			if(theEnv.theStyleParser == null)
+				throw new IllegalStateException("No style parser set");
+			if(theEnv.theAttributeParser == null)
+				throw new IllegalStateException("No attribute parser set");
+			isBuilt.set(true);
+			return theEnv;
 		}
 	}
 }

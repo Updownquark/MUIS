@@ -31,7 +31,6 @@ public interface QuickParser {
 	/**
 	 * Parses a document's structure from XML
 	 *
-	 * @param env The MUIS environment to use to parse the structure
 	 * @param location The location for the document
 	 * @param reader The reader to the XML document
 	 * @param graphics The document's source for graphics
@@ -39,7 +38,7 @@ public interface QuickParser {
 	 * @throws IOException If an error occurs reading the XML document
 	 * @throws QuickParseException If an unrecoverable error occurs parsing the document into MUIS format
 	 */
-	QuickDocumentStructure parseDocument(QuickEnvironment env, java.net.URL location, java.io.Reader reader) throws IOException,
+	QuickDocumentStructure parseDocument(java.net.URL location, java.io.Reader reader) throws IOException,
 		QuickParseException;
 
 	/**

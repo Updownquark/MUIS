@@ -484,7 +484,7 @@ public abstract class QuickTemplate extends QuickElement {
 				classView.addNamespace("this", (QuickToolkit) templateType.getClassLoader());
 				org.quick.core.mgr.MutatingMessageCenter msg = new org.quick.core.mgr.MutatingMessageCenter(env.msg(), "Template "
 					+ templateType.getName() + ": ", "template", templateType);
-				docStruct = env.getParser().parseDocument(location, templateReader, classView, msg);
+				docStruct = env.getDocumentParser().parseDocument(location, templateReader, classView, msg);
 			} catch(java.io.IOException e) {
 				throw new QuickException("Could not read template resource " + template.location() + " for templated widget "
 					+ templateType.getName(), e);

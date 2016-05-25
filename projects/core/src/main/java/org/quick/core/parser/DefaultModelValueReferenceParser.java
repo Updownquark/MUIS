@@ -25,7 +25,7 @@ public class DefaultModelValueReferenceParser implements QuickValueReferencePars
 	static {
 		MVX_PARSER = new PrismsParser();
 		try {
-			MVX_PARSER.configure(StyleSheetParser.class.getResource("MVX.xml"));
+			MVX_PARSER.configure(CustomStyleSheetParser.class.getResource("MVX.xml"));
 		} catch(IOException e) {
 			throw new IllegalStateException("Could not configure model value expression parser", e);
 		}

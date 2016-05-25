@@ -73,9 +73,9 @@ public class QuickBrowser extends javax.swing.JPanel {
 		env.setContentCreator(new org.quick.core.parser.QuickContentCreator());
 		QuickDocument quickDoc;
 		try {
-			org.quick.core.parser.QuickDocumentStructure docStruct = env.getParser().parseDocument(env, url,
+			org.quick.core.parser.QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(env, url,
 				new java.io.InputStreamReader(url.openStream()));
-			quickDoc = new QuickDocument(env, env.getParser(), docStruct.getLocation(), docStruct.getHead(), docStruct.getContent()
+			quickDoc = new QuickDocument(env, env.getDocumentParser(), docStruct.getLocation(), docStruct.getHead(), docStruct.getContent()
 				.getClassView());
 			quickDoc.setGraphics(new QuickDocument.GraphicsGetter() {
 				@Override

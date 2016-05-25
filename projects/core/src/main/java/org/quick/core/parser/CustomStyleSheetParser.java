@@ -21,7 +21,7 @@ import prisms.lang.PrismsParser;
 import prisms.lang.types.ParsedStatementBlock;
 
 /** Parses MUIS style sheets using a custom format */
-public class StyleSheetParser {
+public class CustomStyleSheetParser {
 	private static boolean DEBUG = true;
 
 	/** Represents a namespace declaration in a style file */
@@ -834,10 +834,10 @@ public class StyleSheetParser {
 	private PrismsParser theParser;
 
 	/** Creates a style sheet parser */
-	public StyleSheetParser() {
+	public CustomStyleSheetParser() {
 		theParser = new PrismsParser();
 		try {
-			theParser.configure(StyleSheetParser.class.getResource("MSS.xml"));
+			theParser.configure(CustomStyleSheetParser.class.getResource("MSS.xml"));
 		} catch(java.io.IOException e) {
 			throw new IllegalStateException("Could not configure style sheet expression parser", e);
 		}

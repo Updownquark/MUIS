@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.Period;
 import java.util.*;
+import java.util.function.Function;
 
 import org.observe.ObservableValue;
 import org.qommons.TypeUtil;
@@ -32,25 +33,45 @@ public abstract class QuickProperty<T> {
 	 *
 	 * @param <T> The type of value that this property type produces TODO Get rid of all the V types
 	 */
-	public static interface PropertyType<T> {
-		/** @return The java type that this property type parses strings into instances of */
-		TypeToken<T> getType();
+	public static class PropertyType<T> {
+		private static class TypeMapping<F, T> {
+			final  TypeToken<F> from;
+			final TypeToken<T> to;
 
-		/**
-		 * Parses an property value from a string representation
-		 *
-		 * @param env The parsing environment
-		 * @param value The string representation to parse
-		 * @return The parsed property value
-		 * @throws QuickException If a fatal parsing error occurs
-		 */
-		ObservableValue<? extends T> parse(QuickParseEnv env, String value) throws QuickException;
+			final Function<? super F, ? extends T> map;
+
+			TypeMapping(TypeToken<F> from, TypeToken<T> to, Function<? super F, ? extends T> map) {
+				this.from = from;
+				this.to = to;
+				this.map = map;
+			}
+		}
+		private final TypeToken<T> theType;
+
+		private final List<TypeMapping<?, T>> theMappings;
+
+		private PropertyType(TypeToken<T> type, List<TypeMapping<?, T>> mappings) {
+			theType = type;
+			theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
+		}
+
+		/** @return The java type that this property type parses strings into instances of */
+		public TypeToken<T> getType(){
+			return theType;
+		}
 
 		/**
 		 * @param type The type to check
 		 * @return Whether objects of the given type can be cast or converted to items of this property's type
 		 */
-		boolean canCast(TypeToken<?> type);
+		public boolean canAccept(TypeToken<?> type) {
+			if(theType.isAssignableFrom(type))
+				return true;
+			for(TypeMapping<?, T> mapping : theMappings)
+				if(mapping.from.isAssignableFrom(type))
+					return true;
+			return false;
+		}
 
 		/**
 		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
@@ -63,7 +84,14 @@ public abstract class QuickProperty<T> {
 		 * @param value The value to cast
 		 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
 		 */
-		<X, V extends T> V cast(TypeToken<X> type, X value);
+		<X, V extends T> V cast(TypeToken<X> type, X value) {
+			if(theType.isAssignableFrom(type))
+				return (V) value;
+			for(TypeMapping<?, T> mapping : theMappings)
+				if(mapping.from.isAssignableFrom(type))
+					return ((TypeMapping<? super X, V>) mapping).map.apply(value);
+			return null;
+		}
 	}
 
 	/**

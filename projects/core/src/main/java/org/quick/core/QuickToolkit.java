@@ -1,11 +1,13 @@
 package org.quick.core;
 
 import java.net.URL;
+import java.util.*;
 
 import org.observe.collect.ObservableList;
-import org.qommons.ArrayUtils;
-import org.qommons.Sealable.SealedException;
+import org.quick.core.parser.Version;
 import org.quick.core.style.sheet.StyleSheet;
+
+import com.google.common.reflect.TypeToken;
 
 /** Represents a toolkit that contains resources for use in a MUIS document */
 public class QuickToolkit extends java.net.URLClassLoader {
@@ -21,47 +23,40 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		}
 	}
 
-	private boolean isSealed;
-
 	private final QuickEnvironment theEnvironment;
-
 	private final URL theURI;
 
-	private String theName;
+	private final String theName;
+	private final String theDescription;
+	private final Version theVersion;
 
-	private String theDescription;
-
-	private String theVersion;
-
-	private ClassMapping [] theClassMappings;
-
-	private ResourceMapping [] theResourceMappings;
-
-	private QuickToolkit [] theDependencies;
-
-	private QuickPermission [] thePermissions;
+	private final Map<String, String> theClassMappings;
+	private final Map<String, String> theResourceMappings;
+	private final List<QuickToolkit> theDependencies;
+	private final List<QuickPermission> thePermissions;
 
 	private ToolkitStyleSheet theStyle;
-
 	private ObservableList<StyleSheet> theStyleDependencyController;
 
-	/**
-	 * Creates a MUIS toolkit
-	 *
-	 * @param env The environment that the toolkit is for
-	 * @param uri The URI location of the toolkit
-	 */
-	public QuickToolkit(QuickEnvironment env, URL uri) {
+	private QuickToolkit(QuickEnvironment env, URL uri, String name, String descrip, Version version, List<URL> cps,
+		Map<String, String> classMap,
+		Map<String, String> resMap, List<QuickToolkit> depends, List<QuickPermission> perms) {
 		super(new URL[0]);
 		theEnvironment = env;
 		theURI = uri;
-		theClassMappings = new ClassMapping[0];
-		theDependencies = new QuickToolkit[0];
-		thePermissions = new QuickPermission[0];
-		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(
-			new prisms.lang.Type(StyleSheet.class));
+		theName = name;
+		theDescription = descrip;
+		theVersion = version;
+		theDependencies = Collections.unmodifiableList(new ArrayList<>(depends));
+		thePermissions = Collections.unmodifiableList(new ArrayList<>(perms));
+		theClassMappings = Collections.unmodifiableMap(new LinkedHashMap<>(classMap));
+		theResourceMappings = Collections.unmodifiableMap(new LinkedHashMap<>(resMap));
+		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
 		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
 		theStyle = new ToolkitStyleSheet(styleDepends);
+
+		for(URL cp : cps)
+			super.addURL(cp);
 	}
 
 	/** @return The environment that this toolkit is for */
@@ -79,32 +74,14 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		return theName;
 	}
 
-	/** @param name The name for this toolkit */
-	public void setName(String name) {
-		assertUnsealed();
-		theName = name;
-	}
-
 	/** @return This toolkit's description */
 	public String getDescription() {
 		return theDescription;
 	}
 
-	/** @param descrip The description for this toolkit */
-	public void setDescription(String descrip) {
-		assertUnsealed();
-		theDescription = descrip;
-	}
-
 	/** @return This toolkit's version */
-	public String getVersion() {
+	public Version getVersion() {
 		return theVersion;
-	}
-
-	/** @param version The version for this toolkit */
-	public void setVersion(String version){
-		assertUnsealed();
-		theVersion=version;
 	}
 
 	/** @return The styles for this toolkit */
@@ -112,111 +89,9 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		return theStyle;
 	}
 
-	/** @param classPath The class path to add to this toolkit */
-	@Override
-	public void addURL(URL classPath) {
-		assertUnsealed();
-		super.addURL(classPath);
-	}
-
-	/**
-	 * Adds a toolkit dependency for this toolkit
-	 *
-	 * @param toolkit The toolkit that this toolkit requires to perform its functionality
-	 */
-	public void addDependency(QuickToolkit toolkit) {
-		assertUnsealed();
-		theDependencies = ArrayUtils.add(theDependencies, toolkit);
-	}
-
-	/**
-	 * Maps a class to a tag name for this toolkit
-	 *
-	 * @param tagName The tag name to map the class to
-	 * @param className The fully-qualified java class name to map the tag to
-	 */
-	public void map(String tagName, String className) {
-		assertUnsealed();
-		theClassMappings = ArrayUtils.add(theClassMappings, new ClassMapping(tagName, className));
-	}
-
-	/**
-	 * Maps a resource to a tag name for this toolkit
-	 *
-	 * @param tagName The tag name to map the resource to
-	 * @param resourceLocation The location of the resource to map the tag to
-	 */
-	public void mapResource(String tagName, String resourceLocation) {
-		assertUnsealed();
-		theResourceMappings = ArrayUtils.add(theResourceMappings, new ResourceMapping(this, tagName, resourceLocation));
-	}
-
-	/**
-	 * Adds a permission requirement to this toolkit
-	 *
-	 * @param perm The permission that this toolkit requires or requests
-	 * @throws QuickException If this toolkit has been sealed
-	 */
-	public void addPermission(QuickPermission perm) throws QuickException {
-		assertUnsealed();
-		thePermissions = ArrayUtils.add(thePermissions, perm);
-	}
-
-	/** @param styleSheet The style sheet to use with this toolkit */
-	public void addStyleSheet(StyleSheet styleSheet) {
-		assertUnsealed();
-		if(!theURI.equals(QuickEnvironment.CORE_TOOLKIT) && !(styleSheet instanceof ToolkitStyleSheet)) {
-			for(org.quick.core.style.StyleAttribute<?> attr : styleSheet.allAttrs()) {
-				if(attr.getDomain().getClass().getClassLoader() == QuickToolkit.this)
-					continue;
-				for(org.quick.core.style.StyleExpressionValue<org.quick.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : styleSheet
-					.getExpressions(attr)) {
-					boolean isSpecific = false;
-					org.quick.core.style.sheet.TemplateRole role = sev.getExpression().getTemplateRole();
-					while(role != null) {
-						if(role.getRole().template.getDefiner().getClassLoader() == this) {
-							isSpecific = true;
-							break;
-						}
-						role = role.getParent();
-					}
-					if(!isSpecific && (sev.getExpression().getType() == null || sev.getExpression().getType().getClassLoader() != this)) {
-						String msg = "Toolkit " + theURI + ": Style sheet";
-						if(styleSheet instanceof org.quick.core.style.sheet.ParsedStyleSheet)
-							msg += " defined in " + ((org.quick.core.style.sheet.ParsedStyleSheet) styleSheet).getLocation();
-						msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
-						if(!(styleSheet instanceof org.quick.core.style.sheet.MutableStyleSheet))
-							throw new IllegalStateException(msg);
-						else {
-							theEnvironment.msg().error(msg);
-							((org.quick.core.style.sheet.MutableStyleSheet) styleSheet).clear(attr, sev.getExpression());
-						}
-					}
-				}
-			}
-		}
-		theStyleDependencyController.add(styleSheet);
-	}
-
-	/** @return Whether this toolkit has been sealed or not */
-	public final boolean isSealed() {
-		return isSealed;
-	}
-
-	/** Seals this toolkit such that it cannot be modified */
-	public final void seal() {
-		for(QuickToolkit dep : theDependencies)
-			theStyleDependencyController.add(dep.getStyle());
-		isSealed = true;
-		theStyleDependencyController = null; // No need for this anymore
-	}
-
 	/** @return All tag names mapped to classes in this toolkit (not including dependencies) */
-	public String [] getTagNames() {
-		String [] ret = new String[theClassMappings.length];
-		for(int i = 0; i < theClassMappings.length; i++)
-			ret[i] = theClassMappings[i].getName();
-		return ret;
+	public Set<String> getTagNames() {
+		return Collections.unmodifiableSet(theClassMappings.keySet());
 	}
 
 	/**
@@ -227,13 +102,13 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		int sep = tagName.indexOf(':');
 		if(sep >= 0)
 			tagName = tagName.substring(sep + 1);
-		for(ClassMapping cm : theClassMappings)
-			if(cm.getName().equals(tagName))
-				return cm.getClassName();
-		for(QuickToolkit dependency : theDependencies) {
-			String ret = dependency.getMappedClass(tagName);
-			if(ret != null)
-				return ret;
+		String className = theClassMappings.get(tagName);
+		if(className == null) {
+			for(QuickToolkit dependency : theDependencies) {
+				className = dependency.getMappedClass(tagName);
+				if(className != null)
+					return className;
+			}
 		}
 		return null;
 	}
@@ -242,19 +117,26 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	 * @param tagName The tag name mapped to the resource to get
 	 * @return The location of the resource mapped to the tag name, or null if the tag name has not been mapped in this toolkit
 	 */
-	public ResourceMapping getMappedResource(String tagName) {
+	public String getMappedResource(String tagName) {
 		int sep = tagName.indexOf(':');
 		if(sep >= 0)
 			tagName = tagName.substring(sep + 1);
-		for(ResourceMapping rm : theResourceMappings)
-			if(rm.getName().equals(tagName))
-				return rm;
-		for(QuickToolkit dependency : theDependencies) {
-			ResourceMapping ret = dependency.getMappedResource(tagName);
-			if(ret != null)
-				return ret;
+		String res = theResourceMappings.get(tagName);
+		if(res == null) {
+			for(QuickToolkit dependency : theDependencies) {
+				res = dependency.getMappedResource(tagName);
+				if(res != null)
+					return res;
+			}
 		}
 		return null;
+	}
+
+	/** @param classPath The class path to add to this toolkit */
+	@Override
+	public void addURL(URL classPath) {
+		throw new IllegalStateException(
+			"addURL cannot be called directly on a QuickToolkit.  All classpaths must be set using the builder.");
 	}
 
 	/**
@@ -388,22 +270,204 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	}
 
 	/** @return All toolkits that this toolkit depends on */
-	public QuickToolkit [] getDependencies() {
-		return theDependencies.clone();
+	public List<QuickToolkit> getDependencies() {
+		return theDependencies;
 	}
 
 	/** @return All permissions that this toolkit requires or requests */
-	public QuickPermission [] getPermissions() {
-		return thePermissions.clone();
-	}
-
-	void assertUnsealed() {
-		if(isSealed)
-			throw new SealedException("Cannot modify a sealed toolkit");
+	public List<QuickPermission> getPermissions() {
+		return thePermissions;
 	}
 
 	@Override
 	public String toString() {
 		return theName + " v" + theVersion;
+	}
+
+	public static Builder build(QuickEnvironment env, URL location) {
+		return new Builder(env, location);
+	}
+
+	public static class Builder {
+		private final QuickEnvironment theEnvironment;
+		private final URL theLocation;
+
+		private String theName;
+		private String theDescription;
+		private Version theVersion;
+
+		private List<URL> theClassPaths;
+		private List<QuickToolkit> theDependencies;
+		private Map<String, String> theClassMappings;
+		private Map<String, String> theResourceLocations;
+		private List<QuickPermission> thePermissions;
+
+		private QuickToolkit theBuiltToolkit;
+
+		private Builder(QuickEnvironment environment, URL location) {
+			theEnvironment = environment;
+			theLocation = location;
+			theDependencies = new ArrayList<>();
+			theClassMappings = new LinkedHashMap<>();
+			theResourceLocations = new LinkedHashMap<>();
+			thePermissions = new ArrayList<>();
+		}
+
+		/**
+		 * @param name The name for this toolkit
+		 * @return This builder, for chaining
+		 */
+		public Builder setName(String name) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theName = name;
+			return this;
+		}
+
+		/**
+		 * @param descrip The description for this toolkit
+		 * @return This builder, for chaining
+		 */
+		public Builder setDescription(String descrip) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theDescription = descrip;
+			return this;
+		}
+
+		/**
+		 * @param version The version for this toolkit
+		 * @return This builder, for chaining
+		 */
+		public Builder setVersion(Version version) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theVersion = version;
+			return this;
+		}
+
+		/**
+		 * @param classPath The class path to add to this toolkit
+		 * @return This builder, for chaining
+		 */
+		public Builder addClassPath(URL classPath) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theClassPaths.add(classPath);
+			return this;
+		}
+
+		/**
+		 * Adds a toolkit dependency for this toolkit
+		 *
+		 * @param toolkit The toolkit that this toolkit requires to perform its functionality
+		 * @return This builder, for chaining
+		 */
+		public Builder addDependency(QuickToolkit toolkit) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theDependencies.add(toolkit);
+			return this;
+		}
+
+		/**
+		 * Maps a class to a tag name for this toolkit
+		 *
+		 * @param tagName The tag name to map the class to
+		 * @param className The fully-qualified java class name to map the tag to
+		 * @return This builder, for chaining
+		 */
+		public Builder map(String tagName, String className) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theClassMappings.put(tagName, className);
+			return this;
+		}
+
+		/**
+		 * Maps a resource to a tag name for this toolkit
+		 *
+		 * @param tagName The tag name to map the resource to
+		 * @param resourceLocation The location of the resource to map the tag to
+		 * @return This builder, for chaining
+		 */
+		public Builder mapResource(String tagName, String resourceLocation) {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			theResourceLocations.put(tagName, resourceLocation);
+			return this;
+		}
+
+		/**
+		 * Adds a permission requirement to this toolkit
+		 *
+		 * @param perm The permission that this toolkit requires or requests
+		 * @throws QuickException If this toolkit has been sealed
+		 * @return This builder, for chaining
+		 */
+		public Builder addPermission(QuickPermission perm) throws QuickException {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The builder may not be changed after the toolkit is built");
+			thePermissions.add(perm);
+			return this;
+		}
+
+		/** @return The built toolkit */
+		public QuickToolkit build() {
+			if(theBuiltToolkit != null)
+				throw new IllegalStateException("The toolkit may only be built once");
+			if(theName == null)
+				throw new IllegalStateException("No name set");
+			if(theDescription == null)
+				throw new IllegalStateException("No description set");
+			if(theVersion == null)
+				throw new IllegalStateException("No version set");
+
+			theBuiltToolkit = new QuickToolkit(theEnvironment, theLocation, theName, theDescription, theVersion, theClassPaths,
+				theClassMappings, theClassMappings, theDependencies, thePermissions);
+			return theBuiltToolkit;
+		}
+
+		/**
+		 * @param styleSheet The style sheet to use with this toolkit
+		 * @return This builder, for chaining
+		 */
+		public Builder addStyleSheet(StyleSheet styleSheet) {
+			if(theBuiltToolkit == null)
+				throw new IllegalStateException("Styles must be added after the toolkit is built");
+			if(!theLocation.equals(QuickEnvironment.CORE_TOOLKIT) && !(styleSheet instanceof ToolkitStyleSheet)) {
+				for(org.quick.core.style.StyleAttribute<?> attr : styleSheet.allAttrs()) {
+					if(attr.getDomain().getClass().getClassLoader() == theBuiltToolkit)
+						continue;
+					for(org.quick.core.style.StyleExpressionValue<org.quick.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : styleSheet
+						.getExpressions(attr)) {
+						boolean isSpecific = false;
+						org.quick.core.style.sheet.TemplateRole role = sev.getExpression().getTemplateRole();
+						while(role != null) {
+							if(role.getRole().template.getDefiner().getClassLoader() == theBuiltToolkit) {
+								isSpecific = true;
+								break;
+							}
+							role = role.getParent();
+						}
+						if(!isSpecific && (sev.getExpression().getType() == null
+							|| sev.getExpression().getType().getClassLoader() != theBuiltToolkit)) {
+							String msg = "Toolkit " + theLocation + ": Style sheet";
+							if(styleSheet instanceof org.quick.core.style.sheet.ParsedStyleSheet)
+								msg += " defined in " + ((org.quick.core.style.sheet.ParsedStyleSheet) styleSheet).getLocation();
+							msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
+							if(!(styleSheet instanceof org.quick.core.style.sheet.MutableStyleSheet))
+								throw new IllegalStateException(msg);
+							else {
+								theEnvironment.msg().error(msg);
+								((org.quick.core.style.sheet.MutableStyleSheet) styleSheet).clear(attr, sev.getExpression());
+							}
+						}
+					}
+				}
+			}
+			theBuiltToolkit.theStyleDependencyController.add(styleSheet);
+			return this;
+		}
 	}
 }

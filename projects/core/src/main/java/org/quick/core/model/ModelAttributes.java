@@ -3,19 +3,22 @@ package org.quick.core.model;
 import org.observe.ObservableValue;
 import org.quick.core.*;
 import org.quick.core.parser.QuickParseException;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
 import prisms.lang.Type;
 
 /** Attributes pertaining to models */
 public class ModelAttributes {
 	/** The type of attribute to set for the user to specify an action */
-	public static final QuickProperty.PropertyType<QuickActionListener> actionType;
+	public static final QuickPropertyType<QuickActionListener> actionType;
 
 	/** The type of attribute to set for the user to specify a value */
-	public static final QuickProperty.PropertyType<ObservableValue<?>> valueType;
+	public static final QuickPropertyType<ObservableValue<?>> valueType;
 
 	/** The type of attribute to set for the user to specify a model */
-	public static final QuickProperty.PropertyType<QuickAppModel> modelType;
+	public static final QuickPropertyType<QuickAppModel> modelType;
 
 	/** The "action" attribute on an actionable widget */
 	public static final QuickAttribute<QuickActionListener> action;
@@ -27,7 +30,7 @@ public class ModelAttributes {
 	public static final QuickAttribute<QuickAppModel> model;
 
 	static {
-		actionType = new QuickProperty.PropertyType<QuickActionListener>() {
+		actionType = new QuickPropertyType<QuickActionListener>() {
 			@Override
 			public Type getType() {
 				return new Type(QuickActionListener.class);

@@ -3,7 +3,7 @@ package org.quick.core.style;
 import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickProperty;
 
 import prisms.lang.Type;
 

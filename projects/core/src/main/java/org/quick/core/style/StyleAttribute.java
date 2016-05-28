@@ -1,7 +1,8 @@
 package org.quick.core.style;
 
 import org.qommons.ArrayUtils;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
 /**
  * A style property that can affect the rendering of MUIS elements
@@ -20,7 +21,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 	 * @param defValue The default value for the attribute
 	 * @param validator The validator for the attribute
 	 */
-	public StyleAttribute(StyleDomain domain, String name, PropertyType<T> type, T defValue, PropertyValidator<T> validator) {
+	public StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue, PropertyValidator<T> validator) {
 		super(name, type, validator);
 		theDomain = domain;
 		theDefault = defValue;
@@ -32,7 +33,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 	 * @param type The type of the attribute
 	 * @param defValue The default value for the attribute
 	 */
-	public StyleAttribute(StyleDomain domain, String name, PropertyType<T> type, T defValue) {
+	public StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue) {
 		super(name, type);
 		theDomain = domain;
 		theDefault = defValue;

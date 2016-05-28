@@ -14,7 +14,7 @@ import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.*;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
-import org.quick.core.model.QuickValueReferenceParser;
+import org.quick.core.parser.QuickAttributeParser;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.Texture;
@@ -55,7 +55,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private QuickClassView theClassView;
 
-	private QuickValueReferenceParser theModelParser;
+	private QuickAttributeParser theAttributeParser;
 
 	private String theNamespace;
 
@@ -470,7 +470,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
-		theModelParser = new org.quick.core.parser.DefaultModelValueReferenceParser(theDocument.getValueParser(), theClassView);
+		theAttributeParser = new org.quick.core.parser.DefaultModelValueReferenceParser(theDocument.getValueParser(), theClassView);
 		setParent(parent);
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}
@@ -545,8 +545,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	@Override
-	public final QuickValueReferenceParser getValueParser() {
-		return theModelParser;
+	public final QuickAttributeParser getAttributeParser() {
+		return theAttributeParser;
 	}
 
 	// Hierarchy methods

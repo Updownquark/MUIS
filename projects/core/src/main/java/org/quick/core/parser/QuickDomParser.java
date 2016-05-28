@@ -13,7 +13,6 @@ import org.quick.core.*;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.DefaultQuickModel;
 import org.quick.core.model.QuickAppModel;
-import org.quick.core.model.QuickValueReferenceParser;
 import org.quick.core.style.sheet.ParsedStyleSheet;
 import org.quick.util.QuickUtils;
 
@@ -315,14 +314,14 @@ public class QuickDomParser implements QuickDocumentParser {
 	}
 
 	private static class SimpleParseEnv implements QuickParseEnv {
+		private final QuickEnvironment theEnvironment;
 		private final QuickClassView theClassView;
 		private final QuickMessageCenter theMsg;
-		private final QuickValueReferenceParser theModelParser;
 
 		SimpleParseEnv(QuickEnvironment environment, QuickClassView classView, QuickMessageCenter msg) {
+			theEnvironment = environment;
 			theClassView = new QuickClassView(environment, classView, null);
 			theMsg = msg;
-			theModelParser = new DefaultModelValueReferenceParser(environment.getValueParser(), theClassView);
 		}
 
 		@Override
@@ -336,8 +335,8 @@ public class QuickDomParser implements QuickDocumentParser {
 		}
 
 		@Override
-		public QuickValueReferenceParser getValueParser() {
-			return theModelParser;
+		public QuickAttributeParser getAttributeParser() {
+			return theEnvironment.getAttributeParser();
 		}
 	}
 }

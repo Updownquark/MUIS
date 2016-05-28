@@ -2,10 +2,10 @@ package org.quick.core.event;
 
 import java.util.function.Function;
 
-import org.quick.core.QuickAttribute;
 import org.quick.core.QuickElement;
 import org.quick.core.event.boole.TypedPredicate;
 import org.quick.core.mgr.AttributeManager.AttributeHolder;
+import org.quick.core.prop.QuickAttribute;
 
 /**
  * Fired when a new value is set on an attribute

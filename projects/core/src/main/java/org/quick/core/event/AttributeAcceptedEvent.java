@@ -1,7 +1,7 @@
 package org.quick.core.event;
 
-import org.quick.core.QuickAttribute;
 import org.quick.core.QuickElement;
+import org.quick.core.prop.QuickAttribute;
 
 /**
  * Fired when an attribute is {@link org.quick.core.mgr.AttributeManager#accept(Object, boolean, QuickAttribute, Object) accepted} or

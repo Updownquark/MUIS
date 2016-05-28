@@ -7,8 +7,8 @@ import static org.quick.core.layout.LayoutGuideType.min;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 
-import org.quick.core.QuickAttribute;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 import org.quick.core.style.Position;
 import org.quick.core.style.PositionPropertyType;
 import org.quick.core.style.Size;

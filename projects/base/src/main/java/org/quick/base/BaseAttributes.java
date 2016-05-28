@@ -2,9 +2,9 @@ package org.quick.base;
 
 import org.quick.base.model.QuickFormatter;
 import org.quick.base.model.Validator;
-import org.quick.core.QuickAttribute;
-import org.quick.core.QuickProperty;
 import org.quick.core.model.QuickDocumentModel;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 /** Constant class containing attributes used in the base project */
 public class BaseAttributes {
@@ -13,7 +13,7 @@ public class BaseAttributes {
 		(Class<QuickFormatter<?>>) (Class<?>) QuickFormatter.class));
 
 	/** The attribute allowing the user to specify a label that parses rich text */
-	public static final QuickAttribute<Boolean> rich = new QuickAttribute<>("rich", org.quick.core.QuickProperty.boolAttr);
+	public static final QuickAttribute<Boolean> rich = new QuickAttribute<>("rich", org.quick.core.prop.QuickProperty.boolAttr);
 
 	/** Allows the user to specify the model whose content is displayed in this text field */
 	public static final QuickAttribute<QuickDocumentModel> document = new QuickAttribute<>("doc", new QuickProperty.QuickTypeInstanceProperty<>(

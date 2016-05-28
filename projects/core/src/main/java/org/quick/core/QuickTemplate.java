@@ -21,6 +21,8 @@ import org.quick.core.parser.DefaultModelValueReferenceParser;
 import org.quick.core.parser.QuickContent;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.WidgetStructure;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.attach.StyleAttributeType;
 import org.quick.core.tags.Template;
@@ -195,7 +197,7 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		/** The attribute type of the templated role attribute */
-		public static final class RoleAttributeType implements QuickProperty.PropertyType<AttachPoint> {
+		public static final class RoleAttributeType implements QuickPropertyType<AttachPoint> {
 			private final TemplateStructure theTemplate;
 
 			RoleAttributeType(TemplateStructure template) {

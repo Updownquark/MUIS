@@ -9,6 +9,8 @@ import org.quick.core.*;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 import org.quick.core.tags.Template;
 
 /** A widget with the capability to rotate and/or reflect its contents */

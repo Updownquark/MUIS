@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.observe.*;
 import org.quick.core.*;
 import org.quick.core.event.AttributeChangedEvent;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 import prisms.lang.Type;
 

@@ -10,6 +10,8 @@ import org.quick.core.layout.AbstractSizeGuide;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.*;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class QuickTextElement extends QuickLeaf implements org.quick.core.model.DocumentedElement {

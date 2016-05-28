@@ -12,12 +12,12 @@ import org.quick.util.CompoundListener;
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickLayout {
 	/** Allows the user to set the length (in characters) of a text-editing widget */
-	public static final org.quick.core.QuickAttribute<Long> charLengthAtt = new org.quick.core.QuickAttribute<>("length",
-		org.quick.core.QuickProperty.intAttr);
+	public static final org.quick.core.prop.QuickAttribute<Long> charLengthAtt = new org.quick.core.prop.QuickAttribute<>("length",
+		org.quick.core.prop.QuickProperty.intAttr);
 
 	/** Allows the user to set the height (in characters) of a text-editing widget */
-	public static final org.quick.core.QuickAttribute<Long> charRowsAtt = new org.quick.core.QuickAttribute<>("rows",
-		org.quick.core.QuickProperty.intAttr);
+	public static final org.quick.core.prop.QuickAttribute<Long> charRowsAtt = new org.quick.core.prop.QuickAttribute<>("rows",
+		org.quick.core.prop.QuickProperty.intAttr);
 
 	private final CompoundListener.MultiElementCompoundListener theListener;
 

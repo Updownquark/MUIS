@@ -1,8 +1,8 @@
 package org.quick.core.style.attach;
 
-import org.quick.core.QuickAttribute;
 import org.quick.core.QuickElement;
 import org.quick.core.event.AttributeChangedEvent;
+import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.stateful.MutableStatefulStyle;

@@ -1,5 +1,7 @@
 package org.quick.core;
 
+import org.quick.core.prop.QuickAttribute;
+
 /**
  * Represents an attribute set with a path off of a root-level attribute
  *

@@ -1,4 +1,4 @@
-package org.quick.core;
+package org.quick.core.prop;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -9,6 +9,10 @@ import java.util.function.Function;
 
 import org.observe.ObservableValue;
 import org.qommons.TypeUtil;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickException;
+import org.quick.core.QuickParseEnv;
+import org.quick.core.QuickToolkit;
 import org.quick.core.eval.impl.ObservableEvaluator;
 import org.quick.core.eval.impl.ParsedColor;
 import org.quick.core.parser.QuickParseException;
@@ -24,139 +28,6 @@ import com.sun.org.apache.xpath.internal.operations.Variable;
  * @param <T> The type of values that may be associated with the property
  */
 public abstract class QuickProperty<T> {
-	public static class TypeMapping<F, T> {
-		final TypeToken<F> from;
-
-		final TypeToken<T> to;
-
-		final Function<? super F, ? extends T> map;
-
-		TypeMapping(TypeToken<F> from, TypeToken<T> to, Function<? super F, ? extends T> map) {
-			this.from = from;
-			this.to = to;
-			this.map = map;
-		}
-	}
-
-	public static class Unit<F, T> extends TypeMapping<F, T> {
-		public final String name;
-
-		public Unit(String name, TypeToken<F> from, TypeToken<T> to, Function<? super F, ? extends T> operator) {
-			super(from, to, operator);
-			this.name = name;
-		}
-	}
-
-	/**
-	 * A property type understands how to produce items of a certain type from parseable strings and other types
-	 *
-	 * @param <T> The type of value that this property type produces TODO Get rid of all the V types
-	 */
-	public static final class PropertyType<T> {
-		private final TypeToken<T> theType;
-		private final List<TypeMapping<?, T>> theMappings;
-		private final List<Function<String, ?>> theValueSuppliers;
-		private final List<Unit<?, ?>> theUnits;
-		private final Function<? super T, String> thePrinter;
-
-		private PropertyType(TypeToken<T> type, List<TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers,
-			List<Unit<?, ?>> units, Function<? super T, String> printer) {
-			theType = type;
-			theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
-			theValueSuppliers = Collections.unmodifiableList(new ArrayList<>(valueSuppliers));
-			theUnits = Collections.unmodifiableList(new ArrayList<>(units));
-			thePrinter = printer;
-		}
-
-		/** @return The java type that this property type parses strings into instances of */
-		public TypeToken<T> getType(){
-			return theType;
-		}
-
-		/**
-		 * @param type The type to check
-		 * @return Whether objects of the given type can be converted to items of this property's type
-		 */
-		public boolean canAccept(TypeToken<?> type) {
-			if(theType.isAssignableFrom(type))
-				return true;
-			for(TypeMapping<?, T> mapping : theMappings)
-				if(mapping.from.isAssignableFrom(type))
-					return true;
-			return false;
-		}
-
-		/**
-		 * Casts any object to an appropriate value of this type, or returns null if the given value cannot be interpreted as an instance of
-		 * this property's type. This method may choose to convert liberally by creating new instances of this type corresponding to
-		 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type.
-		 *
-		 * @param <X> The type of the value to be cast
-		 * @param <V> The type of value cast by this property type
-		 * @param type The run-time type of the value to cast
-		 * @param value The value to cast
-		 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
-		 */
-		public <X, V extends T> V cast(TypeToken<X> type, X value) {
-			V cast = null;
-			if(theType.isAssignableFrom(type))
-				cast = (V) value;
-			boolean mappingFound = false;
-			for(TypeMapping<?, T> mapping : theMappings)
-				if(mapping.from.isAssignableFrom(type)) {
-					mappingFound = true;
-					cast = ((TypeMapping<? super X, V>) mapping).map.apply(value);
-				}
-			if(!mappingFound)
-				return null;
-			return cast;
-		}
-
-		public static <T> Builder<T> build(TypeToken<T> type) {
-			return new Builder(type);
-		}
-
-		public static class Builder<T> {
-			private final TypeToken<T> theType;
-			private final List<TypeMapping<?, T>> theMappings;
-			private final List<Function<String, ?>> theValueSuppliers;
-			private final List<Unit<?, ?>> theUnits;
-			private Function<? super T, String> thePrinter;
-
-			private Builder(TypeToken<T> type) {
-				theType = type;
-				theMappings = new ArrayList<>();
-				theValueSuppliers = new ArrayList<>();
-				theUnits = new ArrayList<>();
-			}
-
-			public <F> Builder<T> map(TypeToken<F> from, Function<? super F, ? extends T> map) {
-				theMappings.add(new TypeMapping<>(from, theType, map));
-				return this;
-			}
-
-			public Builder<T> withValues(Function<String, ?> values) {
-				theValueSuppliers.add(values);
-				return this;
-			}
-
-			public <F, T2> Builder<T> withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
-				Function<? super F, ? extends T2> operator) {
-				theUnits.add(new Unit<>(name, from, to, operator));
-				return this;
-			}
-
-			public Builder<T> withToString(Function<? super T, String> toString) {
-				thePrinter = toString;
-				return this;
-			}
-
-			public PropertyType<T> build() {
-				return new PropertyType<>(theType, theMappings, theValueSuppliers, theUnits, thePrinter);
-			}
-		}
-	}
-
 	/**
 	 * A property validator places constraints on the value of a property
 	 *
@@ -178,7 +49,7 @@ public abstract class QuickProperty<T> {
 	}
 
 	/**
-	 * An abstract class to help {@link QuickProperty.PropertyType}s and {@link QuickProperty.PropertyValidator}s generate better error
+	 * An abstract class to help {@link QuickPropertyType}s and {@link QuickProperty.PropertyValidator}s generate better error
 	 * messages
 	 *
 	 * @param <T> The type of property that this helper is for
@@ -208,7 +79,7 @@ public abstract class QuickProperty<T> {
 	 *
 	 * @param <T> The type of property that this type is for
 	 */
-	public static abstract class AbstractPropertyType<T> extends PropertyHelper<T> implements PropertyType<T> {
+	public static abstract class AbstractPropertyType<T> extends PropertyHelper<T> implements QuickPropertyType<T> {
 	}
 
 	/**
@@ -352,7 +223,7 @@ public abstract class QuickProperty<T> {
 	}
 
 	private final String theName;
-	private final PropertyType<T> theType;
+	private final QuickPropertyType<T> theType;
 	private final PropertyValidator<T> theValidator;
 
 	/**
@@ -360,7 +231,7 @@ public abstract class QuickProperty<T> {
 	 * @param type The type of the property
 	 * @param validator The validator for the property
 	 */
-	protected QuickProperty(String name, PropertyType<T> type, PropertyValidator<T> validator) {
+	protected QuickProperty(String name, QuickPropertyType<T> type, PropertyValidator<T> validator) {
 		theName = name;
 		theType = type;
 		theValidator = validator;
@@ -376,7 +247,7 @@ public abstract class QuickProperty<T> {
 	 * @param name The name for the property
 	 * @param type The type of the property
 	 */
-	protected QuickProperty(String name, PropertyType<T> type) {
+	protected QuickProperty(String name, QuickPropertyType<T> type) {
 		this(name, type, null);
 	}
 
@@ -386,7 +257,7 @@ public abstract class QuickProperty<T> {
 	}
 
 	/** @return This property's type */
-	public PropertyType<T> getType() {
+	public QuickPropertyType<T> getType() {
 		return theType;
 	}
 
@@ -1016,7 +887,7 @@ public abstract class QuickProperty<T> {
 	 * @param <T> The type of the property
 	 */
 	public static class NamedValuePropertyType<T> extends AbstractPropertyType<T> {
-		private final PropertyType<T> theWrapped;
+		private final QuickPropertyType<T> theWrapped;
 
 		private final Map<String, T> theNamedValues;
 
@@ -1026,7 +897,7 @@ public abstract class QuickProperty<T> {
 		 * @param wrap The property type to wrap
 		 * @param namedValues Name-value pairs of values that can be specified by name
 		 */
-		public NamedValuePropertyType(PropertyType<T> wrap, Object... namedValues) {
+		public NamedValuePropertyType(QuickPropertyType<T> wrap, Object... namedValues) {
 			this(wrap, compileNamedValues(namedValues, wrap.getType()));
 		}
 
@@ -1034,7 +905,7 @@ public abstract class QuickProperty<T> {
 		 * @param wrap The property type to wrap
 		 * @param namedValues Name-value pairs of values that can be specified by name
 		 */
-		public NamedValuePropertyType(PropertyType<T> wrap, Map<String, T> namedValues) {
+		public NamedValuePropertyType(QuickPropertyType<T> wrap, Map<String, T> namedValues) {
 			theWrapped = wrap;
 			checkTypes(namedValues, wrap.getType());
 			java.util.HashMap<String, T> copy = new java.util.HashMap<>(namedValues);

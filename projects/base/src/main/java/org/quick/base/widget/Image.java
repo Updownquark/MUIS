@@ -2,9 +2,9 @@ package org.quick.base.widget;
 
 import java.net.URL;
 
-import org.quick.core.QuickAttribute;
 import org.quick.core.QuickConstants;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
 public class Image extends GenericImage {

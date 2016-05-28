@@ -4,11 +4,11 @@ import org.observe.ObservableValue;
 import org.observe.SettableValue;
 import org.quick.base.model.SpinnerModel;
 import org.quick.base.model.impl.SimpleSpinnerModel;
-import org.quick.core.QuickAttribute;
-import org.quick.core.QuickProperty;
 import org.quick.core.QuickTemplate;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.model.QuickActionListener;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 import org.quick.core.tags.Template;
 
 import prisms.lang.Type;

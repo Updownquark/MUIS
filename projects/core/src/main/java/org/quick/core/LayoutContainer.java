@@ -1,6 +1,8 @@
 package org.quick.core;
 
 import org.quick.core.layout.SizeGuide;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 /** A simple container element that lays its children out using an implementation of {@link QuickLayout} */
 public class LayoutContainer extends QuickElement {

@@ -14,6 +14,9 @@ import org.quick.core.*;
 import org.quick.core.event.MouseEvent;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.SizeGuide;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.LayoutStyle;
 import org.quick.core.style.Size;
 import org.quick.core.style.StyleAttribute;
@@ -86,11 +89,11 @@ public class Tree extends QuickTemplate {
 		}
 	}
 
-	public static final QuickProperty.PropertyType<ObservableTree<?>> modelType = new QuickProperty.PrismsParsedPropertyType<>(new Type(
+	public static final QuickPropertyType<ObservableTree<?>> modelType = new QuickProperty.PrismsParsedPropertyType<>(new Type(
 		ObservableTree.class, new Type(Object.class, true)));
-	public static final QuickProperty.PropertyType<TreeSelectionModel<?>> selectionType = new QuickProperty.PrismsParsedPropertyType<>(
+	public static final QuickPropertyType<TreeSelectionModel<?>> selectionType = new QuickProperty.PrismsParsedPropertyType<>(
 		new Type(TreeSelectionModel.class, new Type(Object.class, true)));
-	public static final QuickProperty.PropertyType<TreePathSet<?>> expansionType = new QuickProperty.PrismsParsedPropertyType<>(new Type(
+	public static final QuickPropertyType<TreePathSet<?>> expansionType = new QuickProperty.PrismsParsedPropertyType<>(new Type(
 		TreePathSet.class, new Type(Object.class, true)));
 
 	public static final QuickAttribute<ObservableTree<?>> model = new QuickAttribute<>("model", modelType);

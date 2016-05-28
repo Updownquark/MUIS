@@ -1,10 +1,10 @@
 package org.quick.core.style.attach;
 
 import org.observe.ObservableValue;
-import org.quick.core.QuickAttribute;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 import org.quick.core.style.*;
 
 import prisms.lang.Type;

@@ -5,7 +5,8 @@ import java.awt.Cursor;
 import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
 import prisms.lang.Type;
 
@@ -59,7 +60,7 @@ public class BackgroundStyle implements StyleDomain {
 	}
 
 	/** The property type for cursor properties */
-	public static QuickProperty.PropertyType<Cursor> CURSOR_PROPERTY_TYPE = new QuickProperty.AbstractPropertyType<Cursor>() {
+	public static QuickPropertyType<Cursor> CURSOR_PROPERTY_TYPE = new QuickProperty.AbstractPropertyType<Cursor>() {
 		@Override
 		public Type getType() {
 			return new Type(Cursor.class);

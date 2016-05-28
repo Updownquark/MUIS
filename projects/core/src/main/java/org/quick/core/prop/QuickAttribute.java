@@ -1,5 +1,6 @@
-package org.quick.core;
+package org.quick.core.prop;
 
+import org.quick.core.QuickElement;
 
 /**
  * A QuickAttribute represents an option that may or must be specified in a Quick element either from the document(XML) or from code. A
@@ -31,7 +32,7 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 	 * @param validator The validator for this attribute's values
 	 * @param accepter The path accepter to accept hierarchical properties with this property as the root
 	 */
-	public QuickAttribute(String name, PropertyType<T> type, PropertyValidator<T> validator, PropertyPathAccepter accepter) {
+	public QuickAttribute(String name, QuickPropertyType<T> type, PropertyValidator<T> validator, PropertyPathAccepter accepter) {
 		super(name, type, validator);
 		thePathAccepter = accepter;
 	}
@@ -39,9 +40,9 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 	/**
 	 * Creates a new attribute for a MUIS element
 	 *
-	 * @see QuickProperty#QuickProperty(String, org.quick.core.QuickProperty.PropertyType)
+	 * @see QuickProperty#QuickProperty(String, org.quick.core.QuickProperty.QuickPropertyType)
 	 */
-	public QuickAttribute(String name, PropertyType<T> type) {
+	public QuickAttribute(String name, QuickPropertyType<T> type) {
 		super(name, type);
 	}
 

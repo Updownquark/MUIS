@@ -2,8 +2,8 @@ package org.quick.core.style;
 
 import java.awt.Color;
 
-import org.quick.core.QuickAttribute;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 /** Style attributes that pertain to lighting effects */
 public class LightedStyle implements StyleDomain {

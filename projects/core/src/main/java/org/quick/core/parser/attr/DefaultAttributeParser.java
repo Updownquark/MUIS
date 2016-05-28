@@ -11,10 +11,11 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.observe.ObservableValue;
 import org.quick.core.QuickEnvironment;
-import org.quick.core.QuickProperty;
-import org.quick.core.QuickProperty.PropertyType;
 import org.quick.core.parser.QuickAttributeParser;
 import org.quick.core.parser.attr.QuickAttrParser.ConstantExpressionContext;
+import org.quick.core.prop.ExpressionContext;
+import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
 import com.google.common.reflect.TypeToken;
 
@@ -31,7 +32,7 @@ public class DefaultAttributeParser implements QuickAttributeParser {
 	}
 
 	@Override
-	public <T> ObservableValue<T> parseProperty(PropertyType<T> type, String value) {
+	public <T> ObservableValue<T> parseProperty(QuickPropertyType<T> type, ExpressionContext ctx, String value) {
 		ANTLRInputStream in = new ANTLRInputStream(value);
 		QuickAttrLexer lexer = new QuickAttrLexer(in);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -66,7 +67,7 @@ public class DefaultAttributeParser implements QuickAttributeParser {
 
 	public static void main(String[] args) {
 		DefaultAttributeParser parser = new DefaultAttributeParser(null);
-		PropertyType<Color> type = PropertyType.build(TypeToken.of(Color.class)).withValues(new QuickProperty.ColorValueSupply()).build();
+		QuickPropertyType<Color> type = QuickPropertyType.build(TypeToken.of(Color.class)).withValues(new QuickProperty.ColorValueSupply()).build();
 		parser.parseProperty(type, "rgb(245+10, 0, 255)");
 		// parser.parseProperty(type, "green");
 	}

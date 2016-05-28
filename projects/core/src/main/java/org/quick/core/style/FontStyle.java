@@ -4,8 +4,8 @@ package org.quick.core.style;
 import java.awt.Color;
 import java.awt.font.TextAttribute;
 
-import org.quick.core.QuickAttribute;
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 
 /** Style attribute that affect the display of text rendered from {@link org.quick.core.QuickTextElement}s */
 public class FontStyle implements StyleDomain {

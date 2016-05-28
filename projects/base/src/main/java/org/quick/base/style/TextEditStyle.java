@@ -1,6 +1,6 @@
 package org.quick.base.style;
 
-import org.quick.core.QuickProperty;
+import org.quick.core.prop.QuickProperty;
 import org.quick.core.style.StyleAttribute;
 
 /** Style attributes relevant to text editors */

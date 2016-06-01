@@ -1,17 +1,8 @@
 package org.quick.core.prop;
 
-import java.net.URL;
 import java.util.Comparator;
 
-import org.observe.ObservableValue;
 import org.quick.core.QuickException;
-import org.quick.core.QuickParseEnv;
-import org.quick.core.QuickToolkit;
-import org.quick.core.eval.impl.ObservableEvaluator;
-import org.quick.core.parser.QuickParseException;
-import org.quick.util.QuickUtils;
-
-import com.google.common.reflect.TypeToken;
 
 /**
  * Represents a property in MUIS
@@ -39,180 +30,6 @@ public abstract class QuickProperty<T> {
 		void assertValid(T value) throws QuickException;
 	}
 
-	/**
-	 * An abstract class to help {@link QuickPropertyType}s and {@link QuickProperty.PropertyValidator}s generate better error
-	 * messages
-	 *
-	 * @param <T> The type of property that this helper is for
-	 */
-	public static abstract class PropertyHelper<T> {
-		private QuickProperty<T> theProperty;
-
-		/** @return The property that this helper is for */
-		public QuickProperty<T> getProperty() {
-			return theProperty;
-		}
-
-		void setProperty(QuickProperty<T> property) {
-			theProperty = property;
-		}
-
-		/** @return The concatenation of this helper's property's type name and its name. Useful for error messages. */
-		protected String propName() {
-			if(theProperty == null)
-				return "";
-			return theProperty.getPropertyTypeName() + " " + theProperty.getName();
-		}
-	}
-
-	/**
-	 * A property type that is helped by {@link QuickProperty.PropertyHelper}
-	 *
-	 * @param <T> The type of property that this type is for
-	 */
-	public static abstract class AbstractPropertyType<T> extends PropertyHelper<T> implements QuickPropertyType<T> {
-	}
-
-	/**
-	 * A property type that is helped by {@link QuickProperty.PropertyHelper}
-	 *
-	 * @param <T> The type of property that this validator is for
-	 */
-	public static abstract class AbstractPropertyValidator<T> extends PropertyHelper<T> implements PropertyValidator<T> {
-	}
-
-	private static abstract class AbstractPrintablePropertyType<T> extends AbstractPropertyType<T> implements PrintablePropertyType<T> {
-	}
-
-	private static final TypeToken<String> STRING_TYPE = TypeToken.of(String.class);
-	private static final TypeToken<CharSequence> CHAR_SEQ_TYPE = TypeToken.of(CharSequence.class);
-
-	/**
-	 * Parses MUIS properties using a PrismsParser
-	 *
-	 * @param <T> The type of the property
-	 */
-	public static class PrismsParsedPropertyType<T> extends AbstractPropertyType<T> {
-		private final TypeToken<T> theType;
-		private final boolean evalAsType;
-
-		/** @param type The type of the property */
-		public PrismsParsedPropertyType(TypeToken<T> type) {
-			this(type, false);
-		}
-
-		/**
-		 * @param type The type of the property
-		 * @param asType Whether to parse this property type's values as types or instances
-		 */
-		public PrismsParsedPropertyType(TypeToken<T> type, boolean asType) {
-			theType = type;
-			evalAsType = asType;
-		}
-
-		@Override
-		public TypeToken<T> getType() {
-			return theType;
-		}
-
-		/** @return Whether this property type evaluates its values as types */
-		public boolean asType() {
-			return evalAsType;
-		}
-
-		@Override
-		public ObservableValue<? extends T> parse(QuickParseEnv env, String value) throws QuickException {
-			org.quick.core.parser.DefaultModelValueReferenceParser parser;
-			try {
-				parser = new org.quick.core.parser.DefaultModelValueReferenceParser(env.getValueParser(), null) {
-					@Override
-					protected void applyModification() {
-						super.applyModification();
-						try {
-							mutate(getParser(), getEvaluator(), getEvaluationEnvironment());
-						} catch(QuickException e) {
-							throw new org.quick.util.ExceptionWrapper(e);
-						}
-					}
-				};
-			} catch(org.quick.util.ExceptionWrapper e) {
-				throw (QuickException) e.getCause();
-			}
-
-			ObservableValue<?> ret = parser.parse(value, evalAsType);
-			if(theType.equals(ret.getType()))
-				return (ObservableValue<? extends T>) ret;
-			else if(canCast(ret.getType()))
-				return ret.mapV(theType, v -> cast((TypeToken<Object>) ret.getType(), v), true);
-			else if(new TypeToken<ObservableValue<?>>() {
-			}.isAssignableFrom(ret.getType())) {
-				ObservableValue<?> contained=(ObservableValue<?>) ret.get();
-				if(theType.equals(contained.getType()))
-					return ObservableValue.flatten(theType, (ObservableValue<? extends ObservableValue<? extends T>>) ret);
-				else if(canCast(contained.getType()))
-					return ObservableValue
-						.flatten((TypeToken<Object>) contained.getType(), (ObservableValue<? extends ObservableValue<?>>) ret)
-						.mapV(v -> cast((TypeToken<Object>) contained.getType(), v));
-			}
-			throw new QuickException("The given value of type " + ret.getType() + " is not compatible with this property's type (" + theType
-				+ ")");
-		}
-
-		/**
-		 * May be used by subclasses to modify the prisms parsing types
-		 *
-		 * @param parser The parser
-		 * @param eval The evaluator
-		 * @param env The evaluation environment
-		 * @throws QuickException If an error occurs mutating the parsing types
-		 */
-		protected void mutate(PrismsParser parser, ObservableEvaluator eval, EvaluationEnvironment env) throws QuickException {
-		}
-
-		@Override
-		public boolean canCast(TypeToken<?> type) {
-			return theType.isAssignableFrom(type);
-		}
-
-		@Override
-		public <X, V extends T> V cast(TypeToken<X> type, X value) {
-			if(value == null)
-				return null;
-			if(theType.isAssignableFrom(type))
-				return (V) theType.wrap().getRawType().cast(value);
-			return null;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o != null && o.getClass() == getClass() && ((PrismsParsedPropertyType<?>) o).getType().equals(theType);
-		}
-
-		@Override
-		public int hashCode() {
-			return theType.hashCode();
-		}
-
-		@Override
-		public String toString() {
-			return theType.toString();
-		}
-	}
-
-	/**
-	 * @param env The parsing environment
-	 * @param text The text to parse
-	 * @param asType Whether to evaluate the result as a type or an instance
-	 * @return An observable value, if the text is explicitly marked to be parsed as such. Null otherwise.
-	 * @throws QuickParseException If an exception occurs parsing the explicitly-marked observable from the text.
-	 */
-	public static ObservableValue<?> parseExplicitObservable(QuickParseEnv env, String text, boolean asType) throws QuickParseException {
-		if(text.startsWith("${") && text.endsWith("}"))
-			return env.getValueParser().parse(text.substring(2, text.length() - 1), asType);
-		else
-			return null;
-	}
-
 	private final String theName;
 	private final QuickPropertyType<T> theType;
 	private final PropertyValidator<T> theValidator;
@@ -226,10 +43,6 @@ public abstract class QuickProperty<T> {
 		theName = name;
 		theType = type;
 		theValidator = validator;
-		if(theType instanceof PropertyHelper)
-			((PropertyHelper<T>) theType).setProperty(this);
-		if(theValidator instanceof PropertyHelper)
-			((PropertyHelper<T>) theValidator).setProperty(this);
 	}
 
 	/**
@@ -257,12 +70,9 @@ public abstract class QuickProperty<T> {
 		return theValidator;
 	}
 
-	/** @return A string describing this sub-type */
-	public abstract String getPropertyTypeName();
-
 	@Override
 	public String toString() {
-		return getPropertyTypeName() + " " + theName + "(" + theType + ")";
+		return theType.getName() + " " + theName + "(" + theType.getType() + ")";
 	}
 
 	@Override
@@ -278,125 +88,12 @@ public abstract class QuickProperty<T> {
 		return theName.hashCode() * 13 + theType.hashCode() * 7;
 	}
 
-
-	/**
-	 * A resource property--values may be:
-	 * <ul>
-	 * <li>namespace:tag, where <code>tag</code> maps to a resource in the <code>namespace</code> toolkit</li>
-	 * <li>A relative path to a resource that may be resolved from the element's toolkit. A <code>namespace:</code> prefix may be used to
-	 * specify a different toolkit</li>
-	 * <li>An absolute URL. Permissions will be checked before resources at any external URLs are retrieved. TODO cite specific permission.</li>
-	 * </ul>
-	 */
-	public static final AbstractPropertyType<URL> resourceAttr = new AbstractPropertyType<java.net.URL>() {
-		private static final TypeToken<URL> URL_TYPE = TypeToken.of(URL.class);
-		@Override
-		public ObservableValue<URL> parse(QuickParseEnv env, String value) throws QuickException {
-			ObservableValue<?> ret = parseExplicitObservable(env, value, false);
-			if(ret != null) {
-				if(TypeToken.of(ObservableValue.class).isAssignableFrom(ret.getType()))
-					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
-				if(URL_TYPE.isAssignableFrom(ret.getType())) {
-				} else if(CHAR_SEQ_TYPE.isAssignableFrom(ret.getType())) {
-					ret = ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
-						try {
-							return new URL(seq.toString());
-						} catch(java.net.MalformedURLException e) {
-							throw new IllegalArgumentException("Malformed URL", e);
-						}
-					});
-				} else
-					throw new QuickException("Model value " + value + " is not of type string or URL");
-			}
-			int sepIdx = value.indexOf(':');
-			String namespace = sepIdx < 0 ? null : value.substring(0, sepIdx);
-			String content = sepIdx < 0 ? value : value.substring(sepIdx + 1);
-			QuickToolkit toolkit = env.cv().getToolkit(namespace);
-			if(toolkit == null)
-				try {
-					return ObservableValue.constant(new URL(value));
-				} catch(java.net.MalformedURLException e) {
-					throw new QuickException(propName() + ": Resource property is not a valid URL: \"" + value + "\"", e);
-				}
-			ret = parseExplicitObservable(env, content, false);
-			if(ret != null) {
-				if(TypeToken.of(ObservableValue.class).isAssignableFrom(ret.getType()))
-					ret = ObservableValue.flatten(null, (ObservableValue<? extends ObservableValue<?>>) ret);
-				if(CHAR_SEQ_TYPE.isAssignableFrom(ret.getType())) {
-					return ((ObservableValue<? extends CharSequence>) ret).mapV(seq -> {
-						try {
-							return getMappedResource(toolkit, seq.toString());
-						} catch(Exception e) {
-							throw new IllegalArgumentException(e);
-						}
-					});
-				} else
-					throw new QuickException("Model value " + content + " is not of type string");
-			}
-			return ObservableValue.constant(getMappedResource(toolkit, content));
-		}
-
-		private URL getMappedResource(QuickToolkit toolkit, String resource) throws QuickException {
-			ResourceMapping mapping = toolkit.getMappedResource(resource);
-			if(mapping == null)
-				throw new QuickException(propName() + ": Resource property must map to a declared resource: \"" + resource
-					+ "\" in toolkit " + toolkit.getName() + " or one of its dependencies");
-			if(mapping.getLocation().contains(":"))
-				try {
-					return new URL(mapping.getLocation());
-				} catch(java.net.MalformedURLException e) {
-					throw new QuickException(propName() + ": Resource property maps to an invalid URL \"" + mapping.getLocation()
-						+ "\" in toolkit " + mapping.getOwner().getName() + ": \"" + resource + "\"");
-				}
-			try {
-				return QuickUtils.resolveURL(mapping.getOwner().getURI(), mapping.getLocation());
-			} catch(QuickException e) {
-				throw new QuickException(propName() + ": Resource property maps to a resource (" + mapping.getLocation()
-					+ ") that cannot be resolved with respect to toolkit \"" + mapping.getOwner().getName() + "\"'s URL: \"" + resource
-					+ "\"");
-			}
-		}
-
-		@Override
-		public boolean canCast(TypeToken<?> type) {
-			return URL_TYPE.isAssignableFrom(type);
-		}
-
-		@Override
-		public <X, V extends URL> V cast(TypeToken<X> type, X value) {
-			if(value instanceof URL)
-				return (V) value;
-			else
-				return null;
-		}
-
-		@Override
-		public TypeToken<URL> getType() {
-			return URL_TYPE;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o != null && o.getClass() == getClass();
-		}
-
-		@Override
-		public int hashCode() {
-			return getClass().hashCode();
-		}
-
-		@Override
-		public String toString() {
-			return "url";
-		}
-	};
-
 	/**
 	 * A simple validator that compares values to minimum and maximum values
 	 *
 	 * @param <T> The type of value to validate
 	 */
-	public static class ComparableValidator<T> extends AbstractPropertyValidator<T> {
+	public static class ComparableValidator<T> implements PropertyValidator<T> {
 		private final Comparator<? super T> theCompare;
 		private final Comparator<? super T> theInternalCompare;
 
@@ -476,9 +173,9 @@ public abstract class QuickProperty<T> {
 		@Override
 		public void assertValid(T value) throws QuickException {
 			if(theMin != null && theInternalCompare.compare(theMin, value) > 0)
-				throw new QuickException(propName() + "Value must be at least " + theMin + ": " + value + " is invalid");
+				throw new QuickException("Value must be at least " + theMin + ": " + value + " is invalid");
 			if(theMax != null && theInternalCompare.compare(value, theMax) > 0)
-				throw new QuickException(propName() + "Value must be at most " + theMax + ": " + value + " is invalid");
+				throw new QuickException("Value must be at most " + theMax + ": " + value + " is invalid");
 		}
 
 		@Override

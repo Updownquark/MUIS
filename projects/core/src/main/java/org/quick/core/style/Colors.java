@@ -2,8 +2,11 @@ package org.quick.core.style;
 
 import java.awt.Color;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.Map;
 
-import org.quick.core.QuickException;
+import org.quick.core.parser.QuickParseException;
+import org.quick.util.QuickUtils;
 
 /** A utility class for dealing with colors */
 public class Colors {
@@ -430,13 +433,14 @@ public class Colors {
 	/** #9acd32 <font color="#9acd32">######</font> */
 	public static final Color yellowGreen = _parseColor("#9acd32");
 
-	private static final java.util.Map<String, Color> theNamedColors;
+	/** All named colors in this class */
+	public static final Map<String, Color> NAMED_COLORS;
 
-	private static final java.util.Map<Color, String> theColorNames;
+	private static final Map<Color, String> theColorNames;
 
 	static {
-		java.util.Map<String, Color> namedColors = new java.util.HashMap<>();
-		java.util.IdentityHashMap<Color, String> colorNames = new java.util.IdentityHashMap<>();
+		Map<String, Color> namedColors = new java.util.LinkedHashMap<>();
+		Map<Color, String> colorNames = new java.util.IdentityHashMap<>();
 		java.lang.reflect.Field[] colorFields = Colors.class.getDeclaredFields();
 		for(java.lang.reflect.Field field : colorFields) {
 			int mods = field.getModifiers();
@@ -446,21 +450,21 @@ public class Colors {
 				continue;
 			try {
 				Color value = (Color) field.get(null);
-				namedColors.put(field.getName().toLowerCase(), value);
+				namedColors.put(QuickUtils.javaToXML(field.getName()), value);
 				colorNames.put(value, field.getName());
 			} catch(IllegalAccessException e) {
 				e.printStackTrace();
 			}
 		}
-		theNamedColors = java.util.Collections.unmodifiableMap(namedColors);
-		theColorNames = java.util.Collections.unmodifiableMap(colorNames);
+		NAMED_COLORS = Collections.unmodifiableMap(namedColors);
+		theColorNames = Collections.unmodifiableMap(colorNames);
 	}
 
 	/** An internal method to swallow the exception from {@link #parseColor(String)} */
 	private static Color _parseColor(String str) {
 		try {
 			return parseColor(str);
-		} catch(QuickException e) {
+		} catch (QuickParseException e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -470,84 +474,90 @@ public class Colors {
 	 * Parses a color from a string
 	 *
 	 * @param str The string representation of the color. This value may be in any of 5 forms:
-	 *            <ul>
-	 *            <li>Hexadecimal RGB: Looks like #XXXXXX where each 'X' is a hexadecimal digit (0-9 or a-f)</li>
-	 *            <li>Hexadecimal HSB: Looks like $XXXXXX where each 'X' is a hexadecimal digit (0-9 or a-f)</li>
-	 *            <li>Decimal RGB: Looks like rgb(rrr, ggg, bbb) with decimal r, g, b values.</li>
-	 *            <li>Decimal HSB: Looks like hsb(hhh, sss, bbb) with decimal r, g, b values.</li>
-	 *            <li>A named color matching the name of one of this class's static color constant fields</li>
-	 *            </ul>
-	 *            The value is not case-sensitive.
+	 *        <ul>
+	 *        <li>Hexadecimal RGB: Looks like #XXXXXX where each 'X' is a hexadecimal digit (0-9 or a-f)</li>
+	 *        <li>Hexadecimal HSB: Looks like $XXXXXX where each 'X' is a hexadecimal digit (0-9 or a-f)</li>
+	 *        <li>Decimal RGB: Looks like rgb(rrr, ggg, bbb) with decimal r, g, b values.</li>
+	 *        <li>Decimal HSB: Looks like hsb(hhh, sss, bbb) with decimal r, g, b values.</li>
+	 *        <li>A named color matching the name of one of this class's static color constant fields</li>
+	 *        </ul>
+	 *        The value is not case-sensitive.
 	 * @return The color corresponding to the string, or null if the given string is not formatted as a color
-	 * @throws QuickException If the color cannot be parsed
+	 * @throws QuickParseException If the color cannot be parsed
 	 */
-	public static Color parseIfColor(String str) throws QuickException {
+	public static Color parseIfColor(String str) throws QuickParseException {
 		final String original = str;
 		str = str.toLowerCase();
 		if(str.startsWith("#")) {
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
-				throw new QuickException("RGB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
+				throw new QuickParseException("RGB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
 			return rgb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
 		} else if(str.startsWith("$")) {
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
-				throw new QuickException("HSB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
+				throw new QuickParseException("HSB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
 			return hsb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
 		} else if(str.startsWith("rgb(")) {
 			if(str.charAt(str.length() - 1) != ')')
-				throw new QuickException("Colors that start with 'rgb(' must end with ')': \"" + original + "\"");
+				throw new QuickParseException("Colors that start with 'rgb(' must end with ')': \"" + original + "\"");
 			str = str.substring(4, str.length() - 1);
 			int r, g, b;
 			try {
 				int idx = str.indexOf(',');
 				if(idx < 0)
-					throw new QuickException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
+					throw new QuickParseException(
+						"Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
 						+ "\"");
 				r = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				idx = str.indexOf(',');
 				if(idx < 0)
-					throw new QuickException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
+					throw new QuickParseException(
+						"Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
 						+ "\"");
 				g = Integer.parseInt(original.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				b = Integer.parseInt(str);
 			} catch(NumberFormatException e) {
-				throw new QuickException("Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original + "\"");
+				throw new QuickParseException(
+					"Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original + "\"");
 			}
 			if(r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255)
-				throw new QuickException("Colors that start with 'rgb('"
+				throw new QuickParseException("Colors that start with 'rgb('"
 					+ " must have three integers between 0 and 255 separated by commas: \"" + original + "\"");
 			return rgb(r, g, b);
 		} else if(str.startsWith("hsb(")) {
 			if(str.charAt(str.length() - 1) != ')')
-				throw new QuickException("Colors that start with 'hsb(' must end with ')': \"" + original + "\"");
+				throw new QuickParseException("Colors that start with 'hsb(' must end with ')': \"" + original + "\"");
 			str = str.substring(4, str.length() - 1);
 			int h, s, b;
 			try {
 				int idx = str.indexOf(',');
 				if(idx < 0)
-					throw new QuickException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
+					throw new QuickParseException(
+						"Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
 						+ "\"");
 				h = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				idx = str.indexOf(',');
 				if(idx < 0)
-					throw new QuickException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
+					throw new QuickParseException(
+						"Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
 						+ "\"");
 				s = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				b = Integer.parseInt(str);
 			} catch(NumberFormatException e) {
-				throw new QuickException("Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original + "\"");
+				throw new QuickParseException(
+					"Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original + "\"");
 			}
 			if(h < 0 || h > 255 || s < 0 || s > 255 || b < 0 || b > 255)
-				throw new QuickException("Colors that start with 'hsb('"
+				throw new QuickParseException("Colors that start with 'hsb('"
 					+ " must have three integers between 0 and 255 separated by commas: \"" + original + "\"");
 			return hsb(h, s, b);
 		} else
-			return theNamedColors.get(str);
+			return NAMED_COLORS.get(str);
 	}
 
 	/**
@@ -555,19 +565,19 @@ public class Colors {
 	 *
 	 * @param str The string representation of the color.
 	 * @return The color corresponding to the string
-	 * @throws QuickException If the color is unrecognized or cannot be parsed
+	 * @throws QuickParseException If the color is unrecognized or cannot be parsed
 	 * @see #parseIfColor(String)
 	 */
-	public static Color parseColor(String str) throws QuickException {
+	public static Color parseColor(String str) throws QuickParseException {
 		Color ret = parseIfColor(str);
 		if(ret == null)
-			throw new QuickException("No color named " + str);
+			throw new QuickParseException("No color named " + str);
 		return ret;
 	}
 
 	/** @return The names of all named colors in this class */
 	public static java.util.Set<String> getColorNames() {
-		return theNamedColors.keySet();
+		return NAMED_COLORS.keySet();
 	}
 
 	/**

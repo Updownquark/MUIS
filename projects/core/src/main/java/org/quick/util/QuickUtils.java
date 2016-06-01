@@ -326,4 +326,21 @@ public class QuickUtils {
 		}
 		return null;
 	}
+
+	/**
+	 * @param field The name of the java field
+	 * @return The XML-ified name
+	 */
+	public static String javaToXML(String field) {
+		StringBuilder name = new StringBuilder();
+		for (int c = 0; c < field.length(); c++) {
+			if (Character.isUpperCase(field.charAt(c))) {
+				if (name.length() > 0)
+					name.append('-');
+				name.append(Character.toLowerCase(field.charAt(c)));
+			} else
+				name.append(field.charAt(c));
+		}
+		return name.toString();
+	}
 }

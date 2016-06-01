@@ -152,15 +152,15 @@ public class QuickClassView {
 	}
 
 	/**
-	 * A combination of {@link #getMappedClass(String)} and {@link QuickToolkit#loadClass(String, Class)} for simpler code.
+	 * Like {@link #loadIfMapped(String, Class)}, but throws an exception for unmapped tags
 	 *
 	 * @param <T> The type of interface or superclass to return the class as
 	 * @param qName The qualified tag name
 	 * @param superClass The superclass or interface class to cast the class as an subclass of
 	 * @return The loaded class, as an implementation or subclass of the interface or super class; or null if no such class has been mapped
 	 *         in this domain
-	 * @throws QuickException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
-	 *             interface
+	 * @throws QuickException If the tag is not mapped or the class cannot be found, cannot be loaded, or is not an subclass/implementation
+	 *         of the given class or interface
 	 */
 	public <T> Class<? extends T> loadMappedClass(String qName, Class<T> superClass) throws QuickException {
 		int idx = qName.indexOf(':');
@@ -176,6 +176,53 @@ public class QuickClassView {
 	}
 
 	/**
+	 * Like {@link #loadIfMapped(String, String, Class)}, but throws an exception for unmapped tags
+	 *
+	 * @param <T> The type of interface or superclass to return the class as
+	 * @param namespace The namespace of the tag
+	 * @param tag The tag name
+	 * @param superClass The superclass or interface class to cast the class as an subclass of
+	 * @return The loaded class, as an implementation or subclass of the interface or super class
+	 * @throws QuickException If the tag is not mapped or the class cannot be found, cannot be loaded, or is not an subclass/implementation
+	 *         of the given class or interface
+	 */
+	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass) throws QuickException {
+		Class<? extends T> loaded = loadIfMapped(namespace, tag, superClass);
+		if (loaded == null) {
+			if (namespace != null)
+				throw new QuickException(
+					"No class mapped to " + tag + " for namespace " + namespace + " (toolkit " + getToolkit(namespace).getName() + ")");
+			else
+				throw new QuickException("No class mapped to " + tag + " in scoped namespaces");
+		}
+		return loaded;
+	}
+
+	/**
+	 * A combination of {@link #getMappedClass(String)} and {@link QuickToolkit#loadClass(String, Class)} for simpler code.
+	 *
+	 * @param <T> The type of interface or superclass to return the class as
+	 * @param qName The qualified tag name
+	 * @param superClass The superclass or interface class to cast the class as an subclass of
+	 * @return The loaded class, as an implementation or subclass of the interface or super class; or null if no such class has been mapped
+	 *         in this domain
+	 * @throws QuickException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
+	 *         interface
+	 */
+	public <T> Class<? extends T> loadIfMapped(String qName, Class<T> superClass) throws QuickException {
+		int idx = qName.indexOf(':');
+		String ns, tag;
+		if (idx < 0) {
+			ns = null;
+			tag = qName;
+		} else {
+			ns = qName.substring(0, idx);
+			tag = qName.substring(idx + 1);
+		}
+		return loadIfMapped(ns, tag, superClass);
+	}
+
+	/**
 	 * A combination of {@link #getMappedClass(String, String)} and {@link QuickToolkit#loadClass(String, Class)} for simpler code.
 	 *
 	 * @param <T> The type of interface or superclass to return the class as
@@ -185,25 +232,42 @@ public class QuickClassView {
 	 * @return The loaded class, as an implementation or subclass of the interface or super class; or null if no such class has been mapped
 	 *         in this domain
 	 * @throws QuickException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or
-	 *             interface
+	 *         interface
 	 */
-	public <T> Class<? extends T> loadMappedClass(String namespace, String tag, Class<T> superClass) throws QuickException {
+	public <T> Class<? extends T> loadIfMapped(String namespace, String tag, Class<T> superClass) throws QuickException {
 		if(namespace != null) {
 			QuickToolkit toolkit = getToolkit(namespace);
 			if(toolkit == null)
 				throw new QuickException("No toolkit mapped to namespace " + namespace);
 			String className = toolkit.getMappedClass(tag);
 			if(className == null)
-				throw new QuickException("No class mapped to " + tag + " for namespace " + namespace + " (toolkit " + toolkit.getName()
-					+ ")");
+				return null;
 			return toolkit.loadClass(className, superClass);
 		} else {
 			for(QuickToolkit toolkit : getScopedToolkits()) {
 				String className = toolkit.getMappedClass(tag);
-				if(className != null)
-					return toolkit.loadClass(className, superClass);
+				if (className == null)
+					return null;
+				return toolkit.loadClass(className, superClass);
 			}
 			throw new QuickException("No class mapped to " + tag + " in scoped namespaces");
 		}
+	}
+
+	/**
+	 * Attempts to resolve the named class in all toolkits scoped in this class view
+	 * 
+	 * @param s The fully-qualified class name of the class to resolve
+	 * @return The resolved class
+	 * @throws ClassNotFoundException If the class cannot be resolved in any toolkit scoped in this class view
+	 */
+	public Class<?> loadClass(String s) throws ClassNotFoundException {
+		for (QuickToolkit toolkit : getScopedToolkits()) {
+			try {
+				return toolkit.loadClass(s);
+			} catch (ClassNotFoundException e) {
+			}
+		}
+		throw new ClassNotFoundException("Could not resolve class " + s + " in any scoped toolkit");
 	}
 }

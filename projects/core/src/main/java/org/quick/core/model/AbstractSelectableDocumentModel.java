@@ -11,6 +11,7 @@ import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
+import org.qommons.IterableUtils;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
@@ -18,7 +19,7 @@ import org.quick.core.style.stateful.InternallyStatefulStyle;
 import org.quick.core.style.stateful.StatefulStyle;
 import org.quick.util.Transaction;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocumentModel implements SelectableDocumentModel {
@@ -676,8 +677,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			theDocument = document;
 			theStart = start;
 			theEnd = end;
-			theBeforeStyles = beforeStyles == null ? null : org.qommons.ArrayUtils.immutableIterable(beforeStyles);
-			theAfterStyles = afterStyles == null ? null : org.qommons.ArrayUtils.immutableIterable(afterStyles);
+			theBeforeStyles = beforeStyles == null ? null : IterableUtils.immutableIterable(beforeStyles);
+			theAfterStyles = afterStyles == null ? null : IterableUtils.immutableIterable(afterStyles);
 		}
 
 		@Override
@@ -795,9 +796,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		 * @param selected Whether this is to be the selected or deselected style
 		 */
 		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
-			super(ObservableList.constant(new Type(StatefulStyle.class), (StatefulStyle) parent), selected ? ObservableSet
+			super(ObservableList.constant(TypeToken.of(StatefulStyle.class), (StatefulStyle) parent), selected ? ObservableSet
 				.unique(ObservableCollection.flattenCollections(parent.getState(),
-					ObservableSet.constant(new Type(QuickState.class), TEXT_SELECTION))) : parent.getState());
+					ObservableSet.constant(TypeToken.of(QuickState.class), TEXT_SELECTION))) : parent.getState());
 		}
 	}
 
@@ -818,8 +819,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
 			if(end < start || end > toWrap.length())
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
-			theDependencies = ObservableList.flatten(ObservableList.constant(new Type(ObservableList.class, new Type(QuickStyle.class)),
-				theWrapped.getStyle().getDependencies(), ObservableList.constant(new Type(QuickStyle.class), theBackup)));
+			theDependencies = ObservableList.flatten(ObservableList.constant(new TypeToken<ObservableList<QuickStyle>>() {},
+				theWrapped.getStyle().getDependencies(), ObservableList.constant(TypeToken.of(QuickStyle.class), theBackup)));
 
 			theStyle = new QuickStyle() {
 				@Override

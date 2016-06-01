@@ -11,12 +11,12 @@ import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.*;
 import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
 /** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class QuickTextElement extends QuickLeaf implements org.quick.core.model.DocumentedElement {
 	/** Whether a text element's document supports multiple lines */
-	public static final QuickAttribute<Boolean> multiLine = new QuickAttribute<>("multi-line", QuickProperty.boolAttr);
+	public static final QuickAttribute<Boolean> multiLine = new QuickAttribute<>("multi-line", QuickPropertyType.boole);
 
 	private final WrappingDocumentModel theDocument;
 

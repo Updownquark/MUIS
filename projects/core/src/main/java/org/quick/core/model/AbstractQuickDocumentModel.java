@@ -8,6 +8,7 @@ import java.awt.font.TextLayout;
 import java.awt.geom.Point2D;
 import java.util.Iterator;
 
+import org.qommons.IterableUtils;
 import org.quick.core.style.QuickStyle;
 
 /**
@@ -172,7 +173,7 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 		if(start == 0) {
 			ret = theMetricsCache.get(breakWidth);
 			if(ret == null) {
-				ret = org.qommons.ArrayUtils.cachingIterable(new MetricsIterator(iterateFrom(start).iterator(), breakWidth));
+				ret = IterableUtils.cachingIterable(new MetricsIterator(iterateFrom(start).iterator(), breakWidth));
 				theMetricsCache.put(breakWidth, ret);
 			}
 			return ret;

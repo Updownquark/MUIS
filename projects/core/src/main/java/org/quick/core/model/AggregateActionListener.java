@@ -5,7 +5,7 @@ import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** A MUIS action listener that propagates the events it gets to one or more other listeners */
 public class AggregateActionListener implements QuickActionListener, org.qommons.Sealable {
@@ -21,8 +21,8 @@ public class AggregateActionListener implements QuickActionListener, org.qommons
 		theListeners = new java.util.ArrayList<>(2);
 		isEnabled = new DefaultObservableValue<Boolean>() {
 			@Override
-			public Type getType() {
-				return new Type(Boolean.class);
+			public TypeToken<Boolean> getType() {
+				return TypeToken.of(Boolean.class);
 			}
 
 			@Override

@@ -3,6 +3,7 @@ package org.quick.core;
 import java.awt.Point;
 import java.util.Iterator;
 
+import org.qommons.IterableUtils;
 import org.quick.util.QuickUtils;
 
 /** Represents a capture of an element's bounds and hierarchy at a point in time */
@@ -305,8 +306,8 @@ public class QuickElementCapture implements Cloneable, org.qommons.Sealable {
 		return new Iterable<QuickElementCapture>() {
 			@Override
 			public Iterator<QuickElementCapture> iterator() {
-				return org.qommons.ArrayUtils.conditionalIterator(sortByReverseZ(getChildren()).iterator(),
-					new org.qommons.ArrayUtils.Accepter<QuickElementCapture, QuickElementCapture>() {
+				return IterableUtils.conditionalIterator(sortByReverseZ(getChildren()).iterator(),
+					new IterableUtils.Accepter<QuickElementCapture, QuickElementCapture>() {
 						@Override
 						public QuickElementCapture accept(QuickElementCapture value) {
 							return getChildIntersection(value, pos) != null ? value : null;

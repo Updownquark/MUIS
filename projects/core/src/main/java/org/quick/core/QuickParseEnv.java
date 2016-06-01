@@ -1,7 +1,7 @@
 package org.quick.core;
 
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.parser.QuickAttributeParser;
+import org.quick.core.prop.ExpressionContext;
 
 /** An environment needed to parse entities in MUIS */
 public interface QuickParseEnv {
@@ -9,6 +9,6 @@ public interface QuickParseEnv {
 	QuickClassView cv();
 	/** @return The message center to report parsing errors to */
 	QuickMessageCenter msg();
-	/** @return The parser to parse reference values with */
-	QuickAttributeParser getAttributeParser();
+	/** @return The context to use to parse property values with */
+	ExpressionContext getContext();
 }

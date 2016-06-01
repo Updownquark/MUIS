@@ -3,7 +3,7 @@ package org.quick.core.mgr;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.qommons.ArrayUtils;
+import org.qommons.IterableUtils;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickEnvironment;
@@ -297,7 +297,7 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 		centers.add(this);
 		for(QuickElement child : theElement.getChildren())
 			centers.add(child.msg().allMessages());
-		return ArrayUtils.iterable((Iterable<QuickMessage> []) centers.toArray(new Iterable[centers.size()]));
+		return IterableUtils.iterable((Iterable<QuickMessage>[]) centers.toArray(new Iterable[centers.size()]));
 	}
 
 	/** @param listener The listener to be notified when a new message is received by this message center or one of its children */

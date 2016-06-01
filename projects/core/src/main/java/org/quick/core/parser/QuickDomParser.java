@@ -13,6 +13,7 @@ import org.quick.core.*;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.DefaultQuickModel;
 import org.quick.core.model.QuickAppModel;
+import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.sheet.ParsedStyleSheet;
 import org.quick.util.QuickUtils;
 
@@ -335,8 +336,8 @@ public class QuickDomParser implements QuickDocumentParser {
 		}
 
 		@Override
-		public QuickAttributeParser getAttributeParser() {
-			return theEnvironment.getAttributeParser();
+		public ExpressionContext getContext() {
+			return theEnvironment.getContext();
 		}
 	}
 }

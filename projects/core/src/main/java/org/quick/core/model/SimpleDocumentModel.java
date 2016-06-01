@@ -2,6 +2,7 @@ package org.quick.core.model;
 
 import java.util.Iterator;
 
+import org.qommons.IterableUtils;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
 import org.quick.util.Transaction;
 
@@ -26,8 +27,7 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 
 	@Override
 	protected Iterator<StyledSequence> internalIterator() {
-		return org.qommons.ArrayUtils.iterator(new StyledSequence[] {new SimpleStyledSequence(theContent.toString(), getNormalStyle())},
-			true);
+		return IterableUtils.iterator(new StyledSequence[] { new SimpleStyledSequence(theContent.toString(), getNormalStyle()) }, true);
 	}
 
 	/*@Override

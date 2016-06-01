@@ -142,6 +142,13 @@ public final class QuickPropertyType<T> {
 		return false;
 	}
 
+	public String toString(T value) {
+		if (thePrinter != null)
+			return thePrinter.apply(value);
+		else
+			return String.valueOf(value);
+	}
+
 	@Override
 	public String toString() {
 		return theName;

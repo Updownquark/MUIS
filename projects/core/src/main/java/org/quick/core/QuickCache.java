@@ -2,6 +2,9 @@ package org.quick.core;
 
 import java.util.ArrayList;
 
+import org.qommons.ThreadPoolWorker;
+import org.qommons.Worker;
+
 /** Enables caching of resources in MUIS */
 public class QuickCache {
 	/**
@@ -97,7 +100,7 @@ public class QuickCache {
 
 	private final Object theOuterLock;
 
-	private prisms.arch.Worker theWorker;
+	private Worker theWorker;
 
 	/** Creates a MUIS cache */
 	public QuickCache() {
@@ -119,7 +122,7 @@ public class QuickCache {
 			}
 		}, 100000000f, 60L * 60 * 1000);
 		theOuterLock = new Object();
-		theWorker = new prisms.impl.ThreadPoolWorker("MUIS Cache Worker", 4);
+		theWorker = new ThreadPoolWorker("MUIS Cache Worker", 4);
 	}
 
 	/**
@@ -245,7 +248,7 @@ public class QuickCache {
 					key.isLoading = false;
 				}
 			}
-		}, new prisms.arch.Worker.ErrorListener() {
+		}, new Worker.ErrorListener() {
 			@Override
 			public void error(Error error) {
 			}

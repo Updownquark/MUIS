@@ -8,9 +8,10 @@ import org.observe.*;
 import org.quick.core.*;
 import org.quick.core.event.AttributeChangedEvent;
 import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /** Manages attribute information for an element */
 public class AttributeManager {
@@ -42,12 +43,13 @@ public class AttributeManager {
 		{
 			theController = control(null);
 			theContainerObservable = new DefaultObservableValue<ObservableValue<? extends T>>() {
-				private Type theType;
+				private TypeToken<ObservableValue<? extends T>> theType;
 
 				@Override
-				public Type getType() {
-					if(theType == null)
-						theType = new Type(ObservableValue.class, new Type(theAttr.getType().getType(), true));
+				public TypeToken<ObservableValue<? extends T>> getType() {
+					if (theType == null)
+						theType = new TypeToken<ObservableValue<? extends T>>() {}.where(new TypeParameter<T>() {},
+							theAttr.getType().getType());
 					return theType;
 				}
 
@@ -90,7 +92,7 @@ public class AttributeManager {
 		}
 
 		@Override
-		public final Type getType() {
+		public final TypeToken<T> getType() {
 			return theAttr.getType().getType();
 		}
 
@@ -796,13 +798,8 @@ public class AttributeManager {
 			if(ret.length() > 0)
 				ret.append(' ');
 			ret.append(holder.getAttribute().getName()).append('=');
-			String value;
-			if(holder.getAttribute().getType() instanceof QuickProperty.PrintablePropertyType)
-				value = "\""
-					+ org.jdom2.output.Format.escapeAttribute(strategy, ((QuickProperty.PrintablePropertyType<Object>) holder.getAttribute()
-						.getType()).toString(holder.get())) + "\"";
-			else
-				value = String.valueOf(holder.get());
+			String value = "\"" + org.jdom2.output.Format.escapeAttribute(strategy,
+				((QuickPropertyType<Object>) holder.getAttribute().getType()).toString(holder.get())) + "\"";
 			ret.append(value);
 		}
 		return ret.toString();

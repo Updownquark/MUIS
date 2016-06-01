@@ -70,9 +70,12 @@ public abstract class QuickProperty<T> {
 		return theValidator;
 	}
 
+	/** @return What kind of property this is */
+	protected abstract String getPropertyTypeName();
+
 	@Override
 	public String toString() {
-		return theType.getName() + " " + theName + "(" + theType.getType() + ")";
+		return getPropertyTypeName() + " " + theName + "(" + theType + ")";
 	}
 
 	@Override

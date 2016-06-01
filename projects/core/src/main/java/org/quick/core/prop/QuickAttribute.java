@@ -40,7 +40,7 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 	/**
 	 * Creates a new attribute for a MUIS element
 	 *
-	 * @see QuickProperty#QuickProperty(String, org.quick.core.QuickProperty.QuickPropertyType)
+	 * @see QuickProperty#QuickProperty(String, QuickPropertyType)
 	 */
 	public QuickAttribute(String name, QuickPropertyType<T> type) {
 		super(name, type);

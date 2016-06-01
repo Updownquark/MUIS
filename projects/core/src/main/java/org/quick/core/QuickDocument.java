@@ -15,18 +15,14 @@ import org.quick.core.mgr.QuickLocker;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.QuickActionListener;
 import org.quick.core.model.QuickAppModel;
-import org.quick.core.model.QuickValueReferenceParser;
+import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.attach.DocumentStyleSheet;
 import org.quick.core.style.attach.NamedStyleGroup;
 
 import com.google.common.reflect.TypeToken;
-
-import prisms.lang.*;
-import prisms.lang.EvaluationEnvironment.VariableImpl;
-import prisms.lang.eval.PrismsEvaluator;
-import prisms.lang.eval.PrismsItemEvaluator;
-import prisms.lang.types.ParsedMethod;
+import com.sun.org.apache.xpath.internal.operations.Variable;
 
 /** Contains all data pertaining to a MUIS application */
 public class QuickDocument implements QuickParseEnv {
@@ -70,7 +66,7 @@ public class QuickDocument implements QuickParseEnv {
 
 	private final org.quick.core.parser.QuickParser theParser;
 
-	private final org.quick.core.model.QuickValueReferenceParser theModelParser;
+	private final ExpressionContext theContext;
 
 	private QuickClassView theClassView;
 
@@ -136,6 +132,15 @@ public class QuickDocument implements QuickParseEnv {
 		theLocation = location;
 		theHead = head;
 		theClassView = classView;
+
+		theContext = DefaultExpressionContext.build().withParent(env.getContext())//
+			.withValueGetter(name -> {
+				QuickAppModel model = getHead().getModel(name);
+				if (model != null)
+					return ObservableValue.constant(TypeToken.of(QuickAppModel.class), model);
+				return null;
+			})//
+			.build();
 		theModelParser = new org.quick.core.parser.DefaultModelValueReferenceParser(env.getValueParser(), theClassView) {
 			@Override
 			protected void applyModification() {
@@ -303,8 +308,8 @@ public class QuickDocument implements QuickParseEnv {
 	}
 
 	@Override
-	public QuickValueReferenceParser getValueParser() {
-		return theModelParser;
+	public ExpressionContext getContext() {
+		return theContext;
 	}
 
 	/** @return The class map that applies to the whole document */

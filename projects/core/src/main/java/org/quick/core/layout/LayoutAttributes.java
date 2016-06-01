@@ -7,15 +7,101 @@ import static org.quick.core.layout.LayoutGuideType.min;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 
+import org.quick.core.parser.QuickParseException;
 import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.style.LengthUnit;
 import org.quick.core.style.Position;
-import org.quick.core.style.PositionPropertyType;
 import org.quick.core.style.Size;
-import org.quick.core.style.SizePropertyType;
+
+import com.google.common.reflect.TypeToken;
 
 /** MUIS {@link QuickAttribute attributes} dealing with layouts in MUIS */
 public class LayoutAttributes {
+	/** The type for position-type properties */
+	public static final QuickPropertyType<Position> positionType = QuickPropertyType.build("position", TypeToken.of(Position.class))//
+		.withParser((s, env) -> {
+			String number = s;
+			number = number.replaceAll("\\s", "");
+			int c = 0;
+			boolean neg = number.charAt(c) == '-';
+			if (neg)
+				c++;
+			for (; c < number.length(); c++)
+				if (number.charAt(c) < '0' || number.charAt(c) > '9')
+					break;
+			if (c == 0)
+				throw new QuickParseException("No position specified");
+			if (c == 1 && neg)
+				throw new QuickParseException("No position specified");
+			number = number.substring(neg ? 1 : 0, c);
+			int lengthVal = Integer.parseInt(number);
+			if (c == s.length())
+				return new Position(lengthVal, LengthUnit.pixels); // Default unit
+			String unitString = s.substring(c);
+			for (LengthUnit u : LengthUnit.values())
+				if (u.attrValue.equals(unitString))
+					return new Position(lengthVal, u);
+			throw new QuickParseException(s + " is not a valid position unit");
+		})//
+		.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.pixels))//
+		.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.lexips))//
+		.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.percent))//
+		.map(TypeToken.of(Long.class), l -> new Position(l, LengthUnit.pixels))//
+		.map(TypeToken.of(Double.class), d -> new Position(Math.round(d), LengthUnit.pixels))//
+		.withToString(v -> {
+			StringBuilder ret = new StringBuilder();
+			if (v.getUnit() != LengthUnit.percent || Math.floor(v.getValue()) == v.getValue())
+				ret.append(Math.round(v.getValue()));
+			else
+				ret.append(v.getValue());
+			ret.append(v.getUnit().attrValue);
+			return ret.toString();
+		})
+		.build();
+
+	/** The type for size-type properties */
+	public static final QuickPropertyType<Size> sizeType = QuickPropertyType.build("size", TypeToken.of(Size.class))//
+		.withParser((s, env) -> {
+			String number = s;
+			number = number.replaceAll("\\s", "");
+			int c = 0;
+			boolean neg = number.charAt(c) == '-';
+			if (neg)
+				c++;
+			for (; c < number.length(); c++)
+				if (number.charAt(c) < '0' || number.charAt(c) > '9')
+					break;
+			if (c == 0)
+				throw new QuickParseException("No size specified");
+			if (c == 1 && neg)
+				throw new QuickParseException("No size specified");
+			number = number.substring(neg ? 1 : 0, c);
+			int lengthVal = Integer.parseInt(number);
+			if (c == s.length())
+				return new Size(lengthVal, LengthUnit.pixels); // Default unit
+			String unitString = s.substring(c);
+			for (LengthUnit u : LengthUnit.values())
+				if (u.isSize() && u.attrValue.equals(unitString))
+					return new Size(lengthVal, u);
+			throw new QuickParseException(s + " is not a valid size unit");
+		})//
+		.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.pixels))//
+		.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.lexips))//
+		.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.percent))//
+		.map(TypeToken.of(Long.class), l -> new Size(l, LengthUnit.pixels))//
+		.map(TypeToken.of(Double.class), d -> new Size(Math.round(d), LengthUnit.pixels))//
+		.withToString(v -> {
+			StringBuilder ret = new StringBuilder();
+			if (v.getUnit() != LengthUnit.percent || Math.floor(v.getValue()) == v.getValue())
+				ret.append(Math.round(v.getValue()));
+			else
+				ret.append(v.getValue());
+			ret.append(v.getUnit().attrValue);
+			return ret.toString();
+		})
+		.build();
+
 	/** An attribute specifying a position */
 	public static class PositionAttribute extends QuickAttribute<Position> {
 		/**
@@ -25,7 +111,7 @@ public class LayoutAttributes {
 		 * @param type This attribute's guide type
 		 */
 		public PositionAttribute(String name, Orientation orient, End end, LayoutGuideType type) {
-			super(name, PositionPropertyType.instance);
+			super(name, positionType);
 		}
 	}
 
@@ -37,7 +123,7 @@ public class LayoutAttributes {
 		 * @param type This attribute's guide type
 		 */
 		public SizeAttribute(String name, Orientation orient, LayoutGuideType type) {
-			super(name, SizePropertyType.instance);
+			super(name, sizeType);
 		}
 	}
 
@@ -232,23 +318,22 @@ public class LayoutAttributes {
 	}
 
 	/** Direction for a layout or component (left-to-right, right-to-left, top-to-bottom, or bottom-to-top */
-	public static final QuickAttribute<Direction> direction = new QuickAttribute<>("direction", new QuickProperty.QuickEnumProperty<>(
-		Direction.class));
+	public static final QuickAttribute<Direction> direction = new QuickAttribute<>("direction", QuickPropertyType.forEnum(Direction.class));
 
 	/** Orientation for a layout or component */
-	public static final QuickAttribute<Orientation> orientation = new QuickAttribute<>("orientation", new QuickProperty.QuickEnumProperty<>(
+	public static final QuickAttribute<Orientation> orientation = new QuickAttribute<>("orientation", QuickPropertyType.forEnum(
 		Orientation.class));
 
 	/** Alignment of components within a container along the major axis of the container or layout */
-	public static final QuickAttribute<Alignment> alignment = new QuickAttribute<>("align", new QuickProperty.QuickEnumProperty<>(
+	public static final QuickAttribute<Alignment> alignment = new QuickAttribute<>("align", QuickPropertyType.forEnum(
 		Alignment.class));
 
 	/** Alignment of components within a container along the minor axis of the container or layout */
-	public static final QuickAttribute<Alignment> crossAlignment = new QuickAttribute<>("cross-align", new QuickProperty.QuickEnumProperty<>(
+	public static final QuickAttribute<Alignment> crossAlignment = new QuickAttribute<>("cross-align", QuickPropertyType.forEnum(
 		Alignment.class));
 
 	/** Edge (or center) of a container */
-	public static final QuickAttribute<Region> region = new QuickAttribute<>("region", new QuickProperty.QuickEnumProperty<>(Region.class));
+	public static final QuickAttribute<Region> region = new QuickAttribute<>("region", QuickPropertyType.forEnum(Region.class));
 
 	/**
 	 * <ul>
@@ -258,5 +343,5 @@ public class LayoutAttributes {
 	 * {@link LayoutGuideType#maxPref preferred maximum} sizes even if the container's size allows much more room.</li>
 	 * </ul>
 	 */
-	public static final QuickAttribute<Boolean> fillContainer = new QuickAttribute<>("fill-container", QuickProperty.boolAttr);
+	public static final QuickAttribute<Boolean> fillContainer = new QuickAttribute<>("fill-container", QuickPropertyType.boole);
 }

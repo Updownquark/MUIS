@@ -2,13 +2,13 @@ package org.quick.core;
 
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
 /** A simple container element that lays its children out using an implementation of {@link QuickLayout} */
 public class LayoutContainer extends QuickElement {
 	/** The attribute that specifies the layout type for a layout container */
-	public static QuickAttribute<QuickLayout> LAYOUT_ATTR = new QuickAttribute<>("layout", new QuickProperty.QuickTypeInstanceProperty<>(
-		QuickLayout.class));
+	public static QuickAttribute<QuickLayout> LAYOUT_ATTR = new QuickAttribute<>("layout",
+		QuickPropertyType.forTypeInstance(QuickLayout.class));
 
 	/** Creates a layout container */
 	public LayoutContainer() {

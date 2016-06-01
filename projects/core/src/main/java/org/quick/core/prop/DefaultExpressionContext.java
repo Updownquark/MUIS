@@ -1,19 +1,23 @@
 package org.quick.core.prop;
 
 import java.util.*;
+import java.util.function.Function;
 
 import org.observe.ObservableValue;
 
 public class DefaultExpressionContext implements ExpressionContext {
 	private final List<ExpressionContext> theParents;
 	private final Map<String, ObservableValue<?>> theValues;
+	private final List<Function<String, ObservableValue<?>>> theValueGetters;
 	private final Map<String, ExpressionType<?>> theTypes;
 	private final Map<String, List<ExpressionFunction<?>>> theFunctions;
 
 	private DefaultExpressionContext(List<ExpressionContext> parents, Map<String, ObservableValue<?>> values,
-		Map<String, ExpressionType<?>> types, Map<String, List<ExpressionFunction<?>>> functions) {
+		List<Function<String, ObservableValue<?>>> valueGetters, Map<String, ExpressionType<?>> types,
+		Map<String, List<ExpressionFunction<?>>> functions) {
 		theParents = Collections.unmodifiableList(new ArrayList<>(parents));
 		theValues = Collections.unmodifiableMap(new LinkedHashMap<>(values));
+		theValueGetters = Collections.unmodifiableList(valueGetters);
 		theTypes = Collections.unmodifiableMap(new LinkedHashMap<>(types));
 		Map<String, List<ExpressionFunction<?>>> fns = new LinkedHashMap<>();
 		for (Map.Entry<String, List<ExpressionFunction<?>>> fn : functions.entrySet()) {
@@ -30,6 +34,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 		ExpressionType<?> type = theTypes.get(name);
 		if (type != null)
 			return ExpressionResult.ofType(type);
+		for (Function<String, ObservableValue<?>> getter : theValueGetters) {
+			value = getter.apply(name);
+			if (value != null)
+				return ExpressionResult.of(value);
+		}
 		for (ExpressionContext parent : theParents) {
 			ExpressionResult<?> res = parent.getVariable(name);
 			if (res != null)
@@ -57,12 +66,14 @@ public class DefaultExpressionContext implements ExpressionContext {
 	public static class Builder {
 		private final List<ExpressionContext> theParents;
 		private final Map<String, ObservableValue<?>> theValues;
+		private final List<Function<String, ObservableValue<?>>> theValueGetters;
 		private final Map<String, ExpressionType<?>> theTypes;
 		private final Map<String, List<ExpressionFunction<?>>> theFunctions;
 
 		private Builder() {
 			theParents = new ArrayList<>();
 			theValues = new LinkedHashMap<>();
+			theValueGetters = new ArrayList<>();
 			theTypes = new LinkedHashMap<>();
 			theFunctions = new LinkedHashMap<>();
 		}
@@ -74,6 +85,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 
 		public Builder withValue(String name, ObservableValue<?> value) {
 			theValues.put(name, value);
+			return this;
+		}
+
+		public Builder withValueGetter(Function<String, ObservableValue<?>> getter) {
+			theValueGetters.add(getter);
 			return this;
 		}
 
@@ -93,7 +109,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 		}
 
 		public DefaultExpressionContext build() {
-			return new DefaultExpressionContext(theParents, theValues, theTypes, theFunctions);
+			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions);
 		}
 	}
 }

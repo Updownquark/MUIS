@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.observe.*;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
-import org.qommons.ArrayUtils;
+import org.qommons.IterableUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.event.QuickEvent;
 import org.quick.core.event.StateChangedEvent;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** Keeps track of states for an entity and fires events when they change */
 public class StateEngine extends DefaultObservable<StateChangedEvent> implements StateSet {
@@ -79,7 +79,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		theStateControllers = new StateControllerImpl[0];
 		theStateControllerLock = new Object();
 
-		ObservableHashSet<QuickState> allStates = new ObservableHashSet<>(new Type(QuickState.class));
+		ObservableHashSet<QuickState> allStates = new ObservableHashSet<>(TypeToken.of(QuickState.class));
 		theStateSetController = allStates;
 		theStateSet = new org.observe.util.ObservableSetWrapper<QuickState>(allStates, false) {
 			@Override
@@ -138,7 +138,7 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 	@Override
 	public Iterator<QuickState> iterator() {
-		return ArrayUtils.conditionalIterator(theStates.entrySet().iterator(), value -> {
+		return IterableUtils.conditionalIterator(theStates.entrySet().iterator(), value -> {
 			if(!isActive(value.getValue()))
 				return null;
 			return value.getKey();
@@ -299,8 +299,8 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		}
 
 		@Override
-		public Type getType() {
-			return new Type(Boolean.class);
+		public TypeToken<Boolean> getType() {
+			return TypeToken.of(Boolean.class);
 		}
 
 		@Override

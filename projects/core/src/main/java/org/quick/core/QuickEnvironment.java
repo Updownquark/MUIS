@@ -7,6 +7,8 @@ import org.observe.collect.ObservableList;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.*;
 import org.quick.core.parser.attr.DefaultAttributeParser;
+import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.sheet.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
@@ -33,6 +35,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	private QuickStyleParser theStyleParser;
 	private QuickAttributeParser theAttributeParser;
 
+	private final DefaultExpressionContext theContext;
 	private final QuickMessageCenter theMessageCenter;
 	private final java.util.Map<String, QuickToolkit> theToolkits;
 	private final QuickCache theCache;
@@ -42,6 +45,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	private ObservableList<StyleSheet> theStyleDependencyController;
 
 	private QuickEnvironment() {
+		theContext = DefaultExpressionContext.build().build();
 		theMessageCenter = new QuickMessageCenter(this, null, null);
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
@@ -89,6 +93,11 @@ public class QuickEnvironment implements QuickParseEnv {
 	@Override
 	public QuickMessageCenter msg() {
 		return getMessageCenter();
+	}
+
+	@Override
+	public ExpressionContext getContext() {
+		return theContext;
 	}
 
 	/** @return The resource cache for this environment */

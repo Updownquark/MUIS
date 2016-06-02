@@ -7,7 +7,7 @@ import org.observe.*;
 import org.quick.core.QuickElement;
 import org.quick.core.event.UserEvent;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** An implementation of QuickAppModel that wraps a POJO and makes its values and models available via reflection */
 public class QuickWrappingModel implements QuickAppModel {
@@ -157,11 +157,10 @@ public class QuickWrappingModel implements QuickAppModel {
 		if(!(value.getClass().equals(QuickMemberAccessor.class)))
 			return null;
 		QuickMemberAccessor<?> accessor = (QuickMemberAccessor<?>) value;
-		if(accessor.getType().canAssignTo(modelType))
+		if (TypeToken.of(modelType).isAssignableFrom(accessor.getType()))
 			return ((QuickMemberAccessor<T>) accessor).get();
 		else
-			throw new ClassCastException("Widget model \"" + name + "\" is of type " + accessor.getType().getName() + ", not "
-				+ modelType.getName());
+			throw new ClassCastException("Widget model \"" + name + "\" is of type " + accessor.getType() + ", not " + modelType.getName());
 	}
 
 	@Override
@@ -170,11 +169,10 @@ public class QuickWrappingModel implements QuickAppModel {
 		if(!(value instanceof ObservableValue))
 			return null;
 		ObservableValue<?> modelValue = (ObservableValue<?>) value;
-		if(modelValue.getType().canAssignTo(type))
+		if (TypeToken.of(type).isAssignableFrom(modelValue.getType()))
 			return (ObservableValue<? extends T>) value;
 		else
-			throw new ClassCastException("Model value \"" + name + "\" is of type " + modelValue.getType().getName() + ", not "
-				+ type.getName());
+			throw new ClassCastException("Model value \"" + name + "\" is of type " + modelValue.getType() + ", not " + type.getName());
 	}
 
 	@Override
@@ -294,11 +292,11 @@ public class QuickWrappingModel implements QuickAppModel {
 			theRegisteredElements = new java.util.concurrent.CopyOnWriteArrayList<>();
 		}
 
-		prisms.lang.Type getType() {
+		TypeToken<T> getType() {
 			if(theFieldGetter instanceof Field)
-				return new prisms.lang.Type(((Field) theFieldGetter).getType());
+				return (TypeToken<T>) TypeToken.of(((Field) theFieldGetter).getType());
 			else
-				return new prisms.lang.Type(((Method) theFieldGetter).getReturnType());
+				return (TypeToken<T>) TypeToken.of(((Method) theFieldGetter).getReturnType());
 		}
 
 		@SuppressWarnings("unused")
@@ -335,11 +333,11 @@ public class QuickWrappingModel implements QuickAppModel {
 				return "MUIS value \"" + theName + "\" is not mutable";
 			if(value == null)
 				return null;
-			Type type;
+			TypeToken<T> type;
 			if(theFieldSetter != null)
-				type = new Type(theFieldSetter.getGenericParameterTypes()[0]);
+				type = (TypeToken<T>) TypeToken.of(theFieldSetter.getGenericParameterTypes()[0]);
 			else
-				type = new Type(((Field) theFieldGetter).getGenericType());
+				type = (TypeToken<T>) TypeToken.of(((Field) theFieldGetter).getGenericType());
 			if(!type.isAssignableFrom(value.getClass()))
 				return "Value of type " + value.getClass().getName() + " cannot be assigned to model of type " + type;
 			return null;
@@ -392,8 +390,13 @@ public class QuickWrappingModel implements QuickAppModel {
 		}
 
 		@Override
-		public prisms.lang.Type getType() {
+		public TypeToken<T> getType() {
 			return super.getType();
+		}
+
+		@Override
+		public boolean isSafe() {
+			return false;
 		}
 
 		@Override

@@ -103,7 +103,8 @@ public class AttributeManager {
 		 * @throws QuickException If the value cannot be parsed or cannot be set for the attribute
 		 */
 		public final T set(String valueStr, QuickParseEnv context) throws QuickException {
-			ObservableValue<? extends T> value = theAttr.getType().parse(context, valueStr);
+			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getAttributeParser()
+				.parseProperty(theAttr.getType(), context.getContext(), valueStr);
 			setContainedObservable(value);
 			return value.get();
 		}
@@ -155,7 +156,7 @@ public class AttributeManager {
 			if(value == null && isRequired())
 				throw new QuickException("Attribute " + theAttr + " is required--cannot be set to null");
 			if(value != null) {
-				T newValue = theAttr.getType().cast(Type.typeOf(value), value);
+				T newValue = theAttr.getType().cast((TypeToken<T>) TypeToken.of(value.getClass()), value);
 				if(newValue == null)
 					throw new QuickException("Value " + value + ", type " + value.getClass().getName() + " is not valid for atribute "
 						+ theAttr);
@@ -170,7 +171,7 @@ public class AttributeManager {
 			AttributeChangedEvent<T> evt;
 			try {
 				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, false, theAttr.getType()
-					.cast(Type.typeOf(oldValue), oldValue), value, null) {
+.cast((TypeToken<T>) TypeToken.of(oldValue.getClass()), oldValue), value, null) {
 					@Override
 					public boolean isOverridden() {
 						return stackCheck != theStackChecker;
@@ -326,9 +327,9 @@ public class AttributeManager {
 	 *         element
 	 */
 	public Observable<AttributeChangedEvent<?>> watch(QuickAttribute<?>... attrs) {
-		return org.observe.collect.ObservableCollection.fold(
-			org.observe.collect.ObservableSet.constant(new Type(QuickAttribute.class, new Type(Object.class, true)), attrs).map(
-				attr -> getHolder(attr))).map(event -> (AttributeChangedEvent<?>) event);
+		return org.observe.collect.ObservableCollection
+			.fold(org.observe.collect.ObservableSet.constant(new TypeToken<QuickAttribute<?>>() {}, attrs).map(attr -> getHolder(attr)))
+			.map(event -> (AttributeChangedEvent<?>) event);
 	}
 
 	/**

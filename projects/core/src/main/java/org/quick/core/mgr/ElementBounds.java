@@ -9,7 +9,7 @@ import org.quick.core.event.BoundsChangedEvent;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** Bounds for an element. Contains some extra methods for easy access. */
 public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle> implements org.quick.core.layout.Bounds {
@@ -169,8 +169,8 @@ public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle>
 	}
 
 	@Override
-	public Type getType() {
-		return new Type(Rectangle.class);
+	public TypeToken<Rectangle> getType() {
+		return TypeToken.of(Rectangle.class);
 	}
 
 	/** @return An observable value for this bounds' x-coordinate. Equivalent to <code>mapV(bounds->{return bounds.x;})</code>. */

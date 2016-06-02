@@ -1,5 +1,8 @@
 package org.quick.core.style;
 
+import org.qommons.IterableUtils;
+import org.quick.core.layout.LayoutAttributes;
+
 /** Styles that may affect layout */
 public class LayoutStyle implements StyleDomain {
 	private StyleAttribute<?> [] theAttributes;
@@ -22,9 +25,9 @@ public class LayoutStyle implements StyleDomain {
 
 	static {
 		instance = new LayoutStyle();
-		margin = new StyleAttribute<>(instance, "margin", SizePropertyType.instance, new Size(3, LengthUnit.pixels));
+		margin = new StyleAttribute<>(instance, "margin", LayoutAttributes.sizeType, new Size(3, LengthUnit.pixels));
 		instance.register(margin);
-		padding = new StyleAttribute<>(instance, "padding", SizePropertyType.instance, new Size(2, LengthUnit.pixels));
+		padding = new StyleAttribute<>(instance, "padding", LayoutAttributes.sizeType, new Size(2, LengthUnit.pixels));
 		instance.register(padding);
 	}
 
@@ -40,6 +43,6 @@ public class LayoutStyle implements StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return org.qommons.ArrayUtils.iterator(theAttributes, true);
+		return IterableUtils.iterator(theAttributes, true);
 	}
 }

@@ -2,13 +2,12 @@ package org.quick.core.style;
 
 import java.awt.Cursor;
 
-import org.observe.ObservableValue;
-import org.quick.core.QuickException;
-import org.quick.core.QuickParseEnv;
+import org.qommons.IterableUtils;
+import org.quick.core.layout.LayoutAttributes;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /**
  * Contains style attributes pertaining to the background of a widget. These styles are supported by {@link org.quick.core.QuickElement} and
@@ -60,59 +59,15 @@ public class BackgroundStyle implements StyleDomain {
 	}
 
 	/** The property type for cursor properties */
-	public static QuickPropertyType<Cursor> CURSOR_PROPERTY_TYPE = new QuickProperty.AbstractPropertyType<Cursor>() {
-		@Override
-		public Type getType() {
-			return new Type(Cursor.class);
-		}
-
-		@Override
-		public ObservableValue<? extends Cursor> parse(QuickParseEnv env, String parseValue) throws QuickException {
-			ObservableValue<?> modelValue = QuickProperty.parseExplicitObservable(env, parseValue, false);
-			if(modelValue != null) {
-				if(modelValue.getType().canAssignTo(Cursor.class))
-					return (ObservableValue<? extends Cursor>) modelValue;
-				else if(modelValue.getType().canAssignTo(String.class)) {
-					return ((ObservableValue<String>) modelValue).mapV(str -> {
-						try {
-							return parseCursor(str);
-						} catch(Exception e) {
-							throw new IllegalStateException(e);
-						}
-					});
-				} else
-					throw new QuickException("Model value " + parseValue + " is not of type cursor");
-			}
-			return ObservableValue.constant(parseCursor(parseValue));
-		}
-
-		private Cursor parseCursor(String text) throws QuickException {
+	public static QuickPropertyType<Cursor> CURSOR_PROPERTY_TYPE = QuickPropertyType.build("cursor", TypeToken.of(Cursor.class))//
+		.withValues(s -> {
 			for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
-				if(preDef.display.equals(text))
+				if (preDef.display.equals(s))
 					return Cursor.getPredefinedCursor(preDef.type);
 			}
-			// TODO Support custom cursors
-			throw new QuickException("Custom cursors are not supported yet");
-		}
-
-		@Override
-		public boolean canCast(Type type) {
-			return type.canAssignTo(Cursor.class);
-		}
-
-		@Override
-		public Cursor cast(Type type, Object obj) {
-			if(obj instanceof Cursor)
-				return (Cursor) obj;
-			else
-				return null;
-		}
-
-		@Override
-		public String toString() {
-			return "cursor";
-		}
-	};
+			return null;
+		})//
+		.build();
 
 	private StyleAttribute<?> [] theAttributes;
 
@@ -143,14 +98,14 @@ public class BackgroundStyle implements StyleDomain {
 
 	static {
 		instance = new BackgroundStyle();
-		texture = new StyleAttribute<>(instance, "texture", new QuickProperty.QuickTypeInstanceProperty<>(Texture.class), new BaseTexture());
+		texture = new StyleAttribute<>(instance, "texture", QuickPropertyType.forTypeInstance(Texture.class), new BaseTexture());
 		instance.register(texture);
-		color = new StyleAttribute<>(instance, "color", QuickProperty.colorAttr, new java.awt.Color(255, 255, 255));
+		color = new StyleAttribute<>(instance, "color", QuickPropertyType.color, new java.awt.Color(255, 255, 255));
 		instance.register(color);
-		transparency = new StyleAttribute<>(instance, "transparency", QuickProperty.floatAttr, 0d, new QuickProperty.ComparableValidator<>(
-			0d, 1d));
+		transparency = new StyleAttribute<>(instance, "transparency", QuickPropertyType.floating, 0d,
+			new QuickProperty.ComparableValidator<>(0d, 1d));
 		instance.register(transparency);
-		cornerRadius = new StyleAttribute<>(instance, "corner-radius", SizePropertyType.instance, new Size(),
+		cornerRadius = new StyleAttribute<>(instance, "corner-radius", LayoutAttributes.sizeType, new Size(),
 			new QuickProperty.ComparableValidator<>(new Size(), null));
 		instance.register(cornerRadius);
 		cursor = new StyleAttribute<>(instance, "cursor", CURSOR_PROPERTY_TYPE, Cursor.getDefaultCursor());
@@ -169,6 +124,6 @@ public class BackgroundStyle implements StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return org.qommons.ArrayUtils.iterator(theAttributes, true);
+		return IterableUtils.iterator(theAttributes, true);
 	}
 }

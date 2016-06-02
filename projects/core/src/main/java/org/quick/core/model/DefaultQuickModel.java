@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.observe.ObservableValue;
 
+import com.google.common.reflect.TypeToken;
+
 /** The default (typically XML-specified) implementation for QuickAppModel */
 public class DefaultQuickModel implements QuickAppModel, Cloneable, org.qommons.Sealable {
 	private boolean isSealed;
@@ -104,9 +106,8 @@ public class DefaultQuickModel implements QuickAppModel, Cloneable, org.qommons.
 	@Override
 	public <T> ObservableValue<? extends T> getValue(String name, Class<T> type) {
 		ObservableValue<?> value = theValues.get(name);
-		if(type != null && !value.getType().canAssignTo(type))
-			throw new ClassCastException("Value \"" + name + "\" is type \"" + value.getType().getName() + "\", not \"" + type.getName()
-				+ "\"");
+		if (type != null && !TypeToken.of(type).isAssignableFrom(value.getType()))
+			throw new ClassCastException("Value \"" + name + "\" is type \"" + value.getType() + "\", not \"" + type.getName() + "\"");
 		return (ObservableValue<? extends T>) value;
 	}
 

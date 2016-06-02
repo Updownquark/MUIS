@@ -4,26 +4,25 @@ package org.quick.core.style;
 import java.awt.Color;
 import java.awt.font.TextAttribute;
 
-import org.quick.core.prop.QuickAttribute;
+import org.qommons.IterableUtils;
 import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
+
+import com.google.common.reflect.TypeToken;
 
 /** Style attribute that affect the display of text rendered from {@link org.quick.core.QuickTextElement}s */
 public class FontStyle implements StyleDomain {
 	/** Styles of underlining available */
 	public enum Underline {
 		/** No underline */
-		none,
-		/** A single-pixel solid underline */
-		on,
-		/** A double-pixel solid underline */
-		heavy,
-		/** A dashed-underline */
-		dashed,
-		/** A dotted underline */
+		none, /** A single-pixel solid underline */
+		on, /** A double-pixel solid underline */
+		heavy, /** A dashed-underline */
+		dashed, /** A dotted underline */
 		dotted;
 	}
 
-	private StyleAttribute<?> [] theAttributes;
+	private StyleAttribute<?>[] theAttributes;
 
 	private FontStyle() {
 		theAttributes = new StyleAttribute[0];
@@ -76,16 +75,18 @@ public class FontStyle implements StyleDomain {
 
 	static {
 		instance = new FontStyle();
+		QuickPropertyType.Builder<String> familyPTBuilder = QuickPropertyType.build("family", TypeToken.of(String.class));
 		java.util.Map<String, String> families = new java.util.TreeMap<>();
-		for(String familyName : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames())
+		for (String familyName : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames())
 			families.put(familyName.replaceAll(" ", "-"), familyName);
-		family = new StyleAttribute<>(instance, "family", new QuickProperty.NamedValuePropertyType<>(QuickAttribute.stringAttr, families),
-			"Default");
+		familyPTBuilder.withValues(str -> families.get(str));
+		family = new StyleAttribute<>(instance, "family",
+			QuickPropertyType.build("family", TypeToken.of(String.class)).withValues(str -> families.get(str)).build(), "Default");
 		instance.register(family);
-		color = new StyleAttribute<>(instance, "color", QuickAttribute.colorAttr, Color.black);
+		color = new StyleAttribute<>(instance, "color", QuickPropertyType.color, Color.black);
 		instance.register(color);
-		transparency = new StyleAttribute<>(instance, "transparency", QuickAttribute.floatAttr, 0d, new QuickProperty.ComparableValidator<>(
-			0d, 1d));
+		transparency = new StyleAttribute<>(instance, "transparency", QuickPropertyType.floating, 0d,
+			new QuickProperty.ComparableValidator<>(0d, 1d));
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
 		weights.put("normal", 1d);
@@ -99,27 +100,36 @@ public class FontStyle implements StyleDomain {
 		weights.put("heavy", (double) TextAttribute.WEIGHT_HEAVY);
 		weights.put("extra-bold", (double) TextAttribute.WEIGHT_EXTRABOLD);
 		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
-		weight = new StyleAttribute<>(instance, "weight", new QuickProperty.NamedValuePropertyType<>(QuickAttribute.floatAttr, weights), 1d,
+		weight = new StyleAttribute<>(instance, "weight",
+			QuickPropertyType.build("weight", TypeToken.of(Double.class)).withValues(str -> weights.get(str)).build(), 1d,
 			new QuickProperty.ComparableValidator<>(0.25d, 3d));
 		instance.register(weight);
-		slant = new StyleAttribute<>(instance, "slant", new QuickProperty.NamedValuePropertyType<>(QuickAttribute.floatAttr, "normal",
-			0d, "italic", (double) TextAttribute.POSTURE_OBLIQUE), 0d, new QuickProperty.ComparableValidator<>(-1d, 1d));
+		slant = new StyleAttribute<>(instance, "slant", QuickPropertyType.build("slant", TypeToken.of(Double.class)).withValues(str -> {
+			switch (str) {
+			case "normal":
+				return 0d;
+			case "italic":
+				return (double) TextAttribute.POSTURE_OBLIQUE;
+			default:
+				return null;
+			}
+		}).build(), 0d, new QuickProperty.ComparableValidator<>(-1d, 1d));
 		instance.register(slant);
-		underline = new StyleAttribute<>(instance, "underline", new QuickProperty.QuickEnumProperty<>(Underline.class), Underline.none);
+		underline = new StyleAttribute<>(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none);
 		instance.register(underline);
-		strike = new StyleAttribute<>(instance, "strike", QuickAttribute.boolAttr, false);
+		strike = new StyleAttribute<>(instance, "strike", QuickPropertyType.boole, false);
 		instance.register(strike);
-		size = new StyleAttribute<>(instance, "size", QuickAttribute.floatAttr, 12d, new QuickProperty.ComparableValidator<>(0.1d, 256d));
+		size = new StyleAttribute<>(instance, "size", QuickPropertyType.floating, 12d, new QuickProperty.ComparableValidator<>(0.1d, 256d));
 		instance.register(size);
-		kerning = new StyleAttribute<>(instance, "kerning", QuickAttribute.boolAttr, true);
+		kerning = new StyleAttribute<>(instance, "kerning", QuickPropertyType.boole, true);
 		instance.register(kerning);
-		ligatures = new StyleAttribute<>(instance, "ligatures", QuickAttribute.boolAttr, true);
+		ligatures = new StyleAttribute<>(instance, "ligatures", QuickPropertyType.boole, true);
 		instance.register(ligatures);
-		antiAlias = new StyleAttribute<>(instance, "anti-alias", QuickAttribute.boolAttr, false);
+		antiAlias = new StyleAttribute<>(instance, "anti-alias", QuickPropertyType.boole, false);
 		instance.register(antiAlias);
-		wordWrap = new StyleAttribute<>(instance, "word-wrap", QuickAttribute.boolAttr, true);
+		wordWrap = new StyleAttribute<>(instance, "word-wrap", QuickPropertyType.boole, true);
 		instance.register(wordWrap);
-		stretch = new StyleAttribute<>(instance, "stretch", QuickAttribute.floatAttr, 1d,
+		stretch = new StyleAttribute<>(instance, "stretch", QuickPropertyType.floating, 1d,
 			new QuickProperty.ComparableValidator<>(0.05d, 100d));
 		instance.register(stretch);
 	}
@@ -136,6 +146,6 @@ public class FontStyle implements StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return org.qommons.ArrayUtils.iterator(theAttributes, true);
+		return IterableUtils.iterator(theAttributes, true);
 	}
 }

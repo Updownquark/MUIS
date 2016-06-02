@@ -2,12 +2,15 @@ package org.quick.core.style;
 
 import java.awt.Color;
 
-import org.quick.core.prop.QuickAttribute;
+import org.qommons.IterableUtils;
 import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
+
+import com.google.common.reflect.TypeToken;
 
 /** Style attributes that pertain to lighting effects */
 public class LightedStyle implements StyleDomain {
-	private StyleAttribute<?> [] theAttributes;
+	private StyleAttribute<?>[] theAttributes;
 
 	private LightedStyle() {
 		theAttributes = new StyleAttribute[0];
@@ -34,15 +37,34 @@ public class LightedStyle implements StyleDomain {
 	static {
 		instance = new LightedStyle();
 		lightSource = new StyleAttribute<>(instance, "source",
-			new QuickProperty.NamedValuePropertyType<>(QuickProperty.floatAttr, "top", 0d, "top-right", 45d, "right", 90d, "bottom-right",
-				135d, "bottom", 180d, "bottom-left", 225d, "left", 270d, "top-left", 315d),
-			315d, new QuickProperty.ComparableValidator<>(0d, 360d));
+			QuickPropertyType.build("source", TypeToken.of(Double.class)).withValues(str -> {
+				switch (str) {
+				case "top":
+					return 0d;
+				case "top-right":
+					return 45d;
+				case "right":
+					return 90d;
+				case "bottom-right":
+					return 135d;
+				case "bottom":
+					return 180d;
+				case "bottom-left":
+					return 225d;
+				case "left":
+					return 270d;
+				case "top-left":
+					return 315d;
+				default:
+					return null;
+				}
+			}).build(), 315d, new QuickProperty.ComparableValidator<>(0d, 360d));
 		instance.register(lightSource);
-		lightColor = new StyleAttribute<>(instance, "color", QuickAttribute.colorAttr, Color.white);
+		lightColor = new StyleAttribute<>(instance, "color", QuickPropertyType.color, Color.white);
 		instance.register(lightColor);
-		shadowColor = new StyleAttribute<>(instance, "shadow", QuickAttribute.colorAttr, Color.black);
+		shadowColor = new StyleAttribute<>(instance, "shadow", QuickPropertyType.color, Color.black);
 		instance.register(shadowColor);
-		maxShadingAmount = new StyleAttribute<>(instance, "max-amount", QuickAttribute.floatAttr, .5,
+		maxShadingAmount = new StyleAttribute<>(instance, "max-amount", QuickPropertyType.floating, .5,
 			new QuickProperty.ComparableValidator<>(0d, 1d));
 	}
 
@@ -58,6 +80,6 @@ public class LightedStyle implements StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return org.qommons.ArrayUtils.iterator(theAttributes, true);
+		return IterableUtils.iterator(theAttributes, true);
 	}
 }

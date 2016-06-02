@@ -245,13 +245,12 @@ public class QuickDocument implements QuickParseEnv {
 		};
 		theTargetController = ((org.observe.DefaultObservableValue<QuickEventPositionCapture>) theObservableTarget).control(null);
 		ObservableValue
-			.flatten(TypeToken.of(Cursor.class),
-				theObservableTarget.mapV(
-					target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf().get(BackgroundStyle.cursor)))
+			.flatten(theObservableTarget
+				.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf().get(BackgroundStyle.cursor)))
 			.act(event -> {
-				if(event.getValue() != null && theGraphics != null)
+				if (event.getValue() != null && theGraphics != null)
 					theGraphics.setCursor(event.getValue());
-				});
+			});
 
 		applyHead();
 	}

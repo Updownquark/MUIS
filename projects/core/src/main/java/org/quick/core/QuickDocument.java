@@ -136,7 +136,7 @@ public class QuickDocument implements QuickParseEnv {
 		theContext = DefaultExpressionContext.build().withParent(env.getContext())//
 			.withValueGetter(name -> {
 				QuickAppModel model = getHead().getModel(name);
-				if (model != null)
+				if (model != null) // TODO Use synthetic type
 					return ObservableValue.constant(TypeToken.of(QuickAppModel.class), model);
 				return null;
 			})//

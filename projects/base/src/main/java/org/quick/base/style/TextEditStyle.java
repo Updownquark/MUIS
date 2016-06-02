@@ -1,11 +1,14 @@
 package org.quick.base.style;
 
+import java.time.Duration;
+
 import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.StyleAttribute;
 
 /** Style attributes relevant to text editors */
 public class TextEditStyle implements org.quick.core.style.StyleDomain {
-	private StyleAttribute<?> [] theAttributes;
+	private StyleAttribute<?>[] theAttributes;
 
 	private TextEditStyle() {
 		theAttributes = new StyleAttribute[0];
@@ -18,12 +21,12 @@ public class TextEditStyle implements org.quick.core.style.StyleDomain {
 	private static final TextEditStyle instance;
 
 	/** The amount of time between cursor blinks, in milliseconds. 0 means always on, -1 means always off */
-	public static final StyleAttribute<Long> cursorBlink;
+	public static final StyleAttribute<Duration> cursorBlink;
 
 	static {
 		instance = new TextEditStyle();
-		cursorBlink = new StyleAttribute<>(instance, "cursor-blink", QuickProperty.timeAttr, 1000L, new QuickProperty.ComparableValidator<>(
-			-1L, 60000L));
+		cursorBlink = new StyleAttribute<>(instance, "cursor-blink", QuickPropertyType.duration, Duration.ofSeconds(1),
+			new QuickProperty.ComparableValidator<>(Duration.ofMillis(-1), Duration.ofMinutes(1)));
 		instance.register(cursorBlink);
 	}
 
@@ -39,6 +42,6 @@ public class TextEditStyle implements org.quick.core.style.StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return org.qommons.ArrayUtils.iterator(theAttributes, true);
+		return org.qommons.IterableUtils.iterator(theAttributes, true);
 	}
 }

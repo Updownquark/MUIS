@@ -11,6 +11,8 @@ import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 import org.quick.util.QuickUtils;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * A button that has a {@link org.quick.base.BaseConstants.States#SELECTED selected} state and modifies a boolean model value based on that
  * state and fires no actions
@@ -33,7 +35,7 @@ public class ToggleButton extends Button {
 					if(evt.getValue() instanceof org.quick.core.model.WidgetRegister)
 						theRegistration = ((org.quick.core.model.WidgetRegister) evt.getValue()).register(this);
 					if(evt.getValue() != null) {
-						if(!evt.getValue().getType().canAssignTo(Boolean.TYPE)) {
+					if (!TypeToken.of(Boolean.class).isAssignableFrom(evt.getValue().getType())) {
 							msg().error("Toggle button backed by non-boolean model: " + evt.getObservable().getType(), "modelValue",
 								evt.getValue());
 							return;
@@ -67,7 +69,7 @@ public class ToggleButton extends Button {
 		ObservableValue<Boolean> modelValue = (ObservableValue<Boolean>) atts().get(ModelAttributes.value);
 		if(modelValue == null)
 			return;
-		if(!(modelValue instanceof org.observe.SettableValue) || modelValue.getType().canAssignTo(Boolean.TYPE))
+		if (!(modelValue instanceof org.observe.SettableValue) || TypeToken.of(Boolean.class).isAssignableFrom(modelValue.getType()))
 			return;
 		if(modelValue.get().booleanValue() == value)
 			return;

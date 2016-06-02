@@ -5,32 +5,33 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
-import org.quick.core.*;
+import org.quick.core.QuickElementCapture;
+import org.quick.core.QuickException;
+import org.quick.core.QuickTemplate;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.tags.Template;
 
 /** A widget with the capability to rotate and/or reflect its contents */
 @Template(location = "../../../../simple-container.qck")
 public class Transform extends QuickTemplate {
 	/** The attribute allowing the user to reflect this widget's contents across either the x or the y axis */
-	public static final QuickAttribute<Orientation> flip = new QuickAttribute<>("flip",
-		new QuickProperty.QuickEnumProperty<>(Orientation.class));
+	public static final QuickAttribute<Orientation> flip = new QuickAttribute<>("flip", QuickPropertyType.forEnum(Orientation.class));
 
 	/** The attribute allowing the user to rotate this widget's contents. In clockwise degrees. */
-	public static final QuickAttribute<Double> rotate = new QuickAttribute<>("rotate", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> rotate = new QuickAttribute<>("rotate", QuickPropertyType.floating);
 
 	/** The attribute allowing the user to scale this widget's contents */
-	public static final QuickAttribute<Double> scale = new QuickAttribute<>("scale", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> scale = new QuickAttribute<>("scale", QuickPropertyType.floating);
 
 	/** The attribute allowing the user to scale this widget's contents' width */
-	public static final QuickAttribute<Double> scaleX = new QuickAttribute<>("scale-x", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> scaleX = new QuickAttribute<>("scale-x", QuickPropertyType.floating);
 
 	/** The attribute allowing the user to scale this widget's contents' height */
-	public static final QuickAttribute<Double> scaleY = new QuickAttribute<>("scale-y", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> scaleY = new QuickAttribute<>("scale-y", QuickPropertyType.floating);
 
 	/** Creates a transform widget */
 	public Transform() {

@@ -8,10 +8,8 @@ import org.quick.core.QuickTemplate;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.model.QuickActionListener;
 import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.tags.Template;
-
-import prisms.lang.Type;
 
 /** A text box with up and down arrows to increment or decrement the value */
 @Template(location = "../../../../spinner.qck")
@@ -41,29 +39,28 @@ public class Spinner extends QuickTemplate {
 	}
 
 	/** Used to specify a canned-type spinner */
-	public static final QuickAttribute<NumberSpinnerType> type = new QuickAttribute<>("type",
- new QuickProperty.QuickEnumProperty<>(
+	public static final QuickAttribute<NumberSpinnerType> type = new QuickAttribute<>("type", QuickPropertyType.forEnum(
 		NumberSpinnerType.class));
 	/** Specifies the minimum value for a canned-type spinner */
-	public static final QuickAttribute<Long> minI = new QuickAttribute<>("min", QuickProperty.intAttr);
+	public static final QuickAttribute<Integer> minI = new QuickAttribute<>("min", QuickPropertyType.integer);
 
 	/** Specifies the maximum value for a canned-type spinner */
-	public static final QuickAttribute<Long> maxI = new QuickAttribute<>("max", QuickProperty.intAttr);
+	public static final QuickAttribute<Integer> maxI = new QuickAttribute<>("max", QuickPropertyType.integer);
 
 	/**
 	 * Specifies the interval value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner
 	 */
-	public static final QuickAttribute<Long> intervalI = new QuickAttribute<>("interval", QuickProperty.intAttr);
+	public static final QuickAttribute<Integer> intervalI = new QuickAttribute<>("interval", QuickPropertyType.integer);
 
 	/** Specifies the minimum value for a canned-type spinner */
-	public static final QuickAttribute<Double> minF = new QuickAttribute<>("min", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> minF = new QuickAttribute<>("min", QuickPropertyType.floating);
 	/** Specifies the maximum value for a canned-type spinner */
-	public static final QuickAttribute<Double> maxF = new QuickAttribute<>("max", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> maxF = new QuickAttribute<>("max", QuickPropertyType.floating);
 
 	/**
 	 * Specifies the interval value (the amount by which the value changes when the user clicks one of the arrows) for a canned-type spinner
 	 */
-	public static final QuickAttribute<Double> intervalF = new QuickAttribute<>("interval", QuickProperty.floatAttr);
+	public static final QuickAttribute<Double> intervalF = new QuickAttribute<>("interval", QuickPropertyType.floating);
 
 	/** Creates a spinner */
 	public Spinner() {
@@ -104,7 +101,7 @@ public class Spinner extends QuickTemplate {
 
 								SimpleSpinnerModel.LongModel intModel = new SimpleSpinnerModel.LongModel(0, 0, 1000, 1);
 								setModel("model", intModel);
-								((SettableValue<Long>) intModel.getValue()).link(ObservableValue.flatten(new Type(Number.class),
+								((SettableValue<Long>) intModel.getValue()).link(ObservableValue.flatten(
 									(ObservableValue<? extends ObservableValue<? extends Number>>) atts().getHolder(ModelAttributes.value))
 									.mapV(num -> num.longValue()));
 								intModel.getValue().act(valueEvent -> {
@@ -112,15 +109,15 @@ public class Spinner extends QuickTemplate {
 									((SettableValue<Object>) modelValue).set(valueEvent.getValue(), valueEvent);
 								});
 								atts().getHolder(minI).tupleV(atts().getHolder(maxI), atts().getHolder(intervalI)).value().act(tuple -> {
-									Long min = tuple.getValue1();
-									Long max = tuple.getValue2();
-									Long intvl = tuple.getValue3();
+									Integer min = tuple.getValue1();
+									Integer max = tuple.getValue2();
+									Integer intvl = tuple.getValue3();
 									if(min == null)
-										min = (long) 0;
+										min = 0;
 									if(max == null)
-										max = (long) Long.MAX_VALUE;
+										max = Integer.MAX_VALUE;
 									if(intvl == null)
-										intvl = (long) 1;
+										intvl =  1;
 									intModel.setConstraints(min.longValue(), max.longValue(), intvl.longValue());
 								});
 								break;
@@ -130,7 +127,7 @@ public class Spinner extends QuickTemplate {
 
 								SimpleSpinnerModel.DoubleModel floatModel = new SimpleSpinnerModel.DoubleModel(0, 0, 1000, 1);
 								setModel("model", floatModel);
-								((SettableValue<Double>) floatModel.getValue()).link(ObservableValue.flatten(new Type(Number.class),
+								((SettableValue<Double>) floatModel.getValue()).link(ObservableValue.flatten(
 									(ObservableValue<? extends ObservableValue<? extends Number>>) atts().getHolder(ModelAttributes.value))
 									.mapV(num -> num.doubleValue()));
 								floatModel.getValue().act(valueEvent -> {

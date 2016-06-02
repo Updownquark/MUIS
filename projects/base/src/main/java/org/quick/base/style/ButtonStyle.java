@@ -1,12 +1,13 @@
 package org.quick.base.style;
 
 import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 
 /** Styles relating specifically to buttons */
 public class ButtonStyle implements StyleDomain {
-	private StyleAttribute<?> [] theAttributes;
+	private StyleAttribute<?>[] theAttributes;
 
 	private ButtonStyle() {
 		theAttributes = new StyleAttribute[0];
@@ -23,8 +24,8 @@ public class ButtonStyle implements StyleDomain {
 
 	static {
 		instance = new ButtonStyle();
-		clickTolerance = new StyleAttribute<>(instance, "transparency", QuickProperty.floatAttr, 5d, new QuickProperty.ComparableValidator<>(
-			0d, Double.MAX_VALUE));
+		clickTolerance = new StyleAttribute<>(instance, "transparency", QuickPropertyType.floating, 5d,
+			new QuickProperty.ComparableValidator<>(0d, Double.MAX_VALUE));
 		instance.register(clickTolerance);
 	}
 
@@ -40,6 +41,6 @@ public class ButtonStyle implements StyleDomain {
 
 	@Override
 	public java.util.Iterator<StyleAttribute<?>> iterator() {
-		return org.qommons.ArrayUtils.iterator(theAttributes, true);
+		return org.qommons.IterableUtils.iterator(theAttributes, true);
 	}
 }

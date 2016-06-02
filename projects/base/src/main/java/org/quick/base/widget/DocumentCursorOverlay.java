@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.time.Duration;
 
 import org.observe.Action;
 import org.quick.base.style.TextEditStyle;
@@ -50,14 +51,14 @@ public class DocumentCursorOverlay extends QuickElement {
 
 				@Override
 				public long getMaxFrequency() {
-					long blink;
+					Duration blink;
 					if(theStyleAnchor != null)
 						blink = theStyleAnchor.get(TextEditStyle.cursorBlink).get();
 					else
 						blink = TextEditStyle.cursorBlink.getDefault();
-					if(blink <= 0)
+					if (blink.isZero() || blink.isNegative())
 						return 100;
-					return blink / 2;
+					return blink.dividedBy(2).toMillis();
 				}
 			};
 
@@ -118,14 +119,14 @@ public class DocumentCursorOverlay extends QuickElement {
 	}
 
 	private boolean isCursorOn() {
-		long interval;
+		Duration interval;
 		if(theStyleAnchor != null)
 			interval = theStyleAnchor.get(TextEditStyle.cursorBlink).get();
 		else
 			interval = TextEditStyle.cursorBlink.getDefault();
-		if(interval == 0)
+		if (interval.isZero())
 			return true;
-		if(interval < 0)
+		if (interval.isNegative())
 			return false;
 		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
 			return false;
@@ -133,7 +134,7 @@ public class DocumentCursorOverlay extends QuickElement {
 		if(doc.getSelectionAnchor() != doc.getCursor())
 			return true;
 		long timeDiff = System.currentTimeMillis() - theLastCursorReset;
-		return (timeDiff * 2 / interval) % 2 == 0;
+		return (timeDiff * 2 / interval.toMillis()) % 2 == 0;
 	}
 
 	private boolean isBlinking() {
@@ -142,12 +143,12 @@ public class DocumentCursorOverlay extends QuickElement {
 		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
 		if(doc.getSelectionAnchor() != doc.getCursor())
 			return false;
-		long interval;
+		Duration interval;
 		if(theStyleAnchor != null)
 			interval = theStyleAnchor.get(TextEditStyle.cursorBlink).get();
 		else
 			interval = TextEditStyle.cursorBlink.getDefault();
-		if(interval <= 0)
+		if (interval.isZero() || interval.isNegative())
 			return false;
 		return true;
 	}

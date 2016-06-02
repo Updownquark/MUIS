@@ -6,7 +6,7 @@ import static org.quick.core.QuickTextElement.multiLine;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
-import org.observe.TriTuple;
+import org.qommons.TriTuple;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
 import org.quick.base.model.*;

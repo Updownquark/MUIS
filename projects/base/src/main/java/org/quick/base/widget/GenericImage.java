@@ -150,12 +150,12 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		theLock = new Object();
 		life().runWhen(() -> {
 			org.quick.core.QuickEnvironment env = getDocument().getEnvironment();
-			org.quick.core.ResourceMapping res = getToolkit().getMappedResource("img-load-icon");
+			String res = getToolkit().getMappedResource("img-load-icon");
 			if(res == null)
 				msg().error("No configured img-load-icon");
 			if(res != null && theLoadingImage == null)
 				try {
-					env.getCache().get(env, cacheType, org.quick.util.QuickUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+					env.getCache().get(env, cacheType, org.quick.util.QuickUtils.resolveURL(getToolkit().getURI(), res),
 						new org.quick.core.QuickCache.ItemReceiver<URL, ImageData>() {
 							@Override
 							public void itemGenerated(URL key, ImageData value) {
@@ -178,7 +178,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 				msg().error("No configured img-load-failed-icon");
 			if(res != null && theErrorImage == null)
 				try {
-					env.getCache().get(env, cacheType, org.quick.util.QuickUtils.resolveURL(getToolkit().getURI(), res.getLocation()),
+					env.getCache().get(env, cacheType, org.quick.util.QuickUtils.resolveURL(getToolkit().getURI(), res),
 						new org.quick.core.QuickCache.ItemReceiver<URL, ImageData>() {
 							@Override
 							public void itemGenerated(URL key, ImageData value) {

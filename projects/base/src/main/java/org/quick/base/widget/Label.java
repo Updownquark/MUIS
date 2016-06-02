@@ -16,8 +16,6 @@ import org.quick.core.model.*;
 import org.quick.core.tags.Template;
 import org.quick.util.Transaction;
 
-import prisms.lang.Type;
-
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
  * different and its style sheet attributes may be different (margin and padding are typically 0)
@@ -49,11 +47,8 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 					if(modelValue instanceof WidgetRegister)
 						theRegistration = ((WidgetRegister) modelValue).register(Label.this);
 				});
-				ObservableValue
-					.flatten(new Type(Object.class), atts().getHolder(ModelAttributes.value))
-					.tupleV(atts().getHolder(format).mapV(Formats.defNullCatch))
-					.value()
-					.act(
+			ObservableValue.flatten(atts().getHolder(ModelAttributes.value)).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch))
+				.value().act(
 						tuple -> {
 							if(tuple.getValue1() == null)
 								return;

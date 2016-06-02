@@ -165,7 +165,7 @@ public class ImageData implements Iterable<Image> {
 
 	@Override
 	public Iterator<Image> iterator() {
-		return org.qommons.ArrayUtils.iterator(theImages, true);
+		return org.qommons.IterableUtils.iterator(theImages, true);
 	}
 
 	/**

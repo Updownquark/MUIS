@@ -7,17 +7,18 @@ import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.SelectableDocumentModel;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.util.CompoundListener;
 
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickLayout {
 	/** Allows the user to set the length (in characters) of a text-editing widget */
-	public static final org.quick.core.prop.QuickAttribute<Long> charLengthAtt = new org.quick.core.prop.QuickAttribute<>("length",
-		org.quick.core.prop.QuickProperty.intAttr);
+	public static final org.quick.core.prop.QuickAttribute<Integer> charLengthAtt = new org.quick.core.prop.QuickAttribute<>("length",
+		QuickPropertyType.integer);
 
 	/** Allows the user to set the height (in characters) of a text-editing widget */
-	public static final org.quick.core.prop.QuickAttribute<Long> charRowsAtt = new org.quick.core.prop.QuickAttribute<>("rows",
-		org.quick.core.prop.QuickProperty.intAttr);
+	public static final org.quick.core.prop.QuickAttribute<Integer> charRowsAtt = new org.quick.core.prop.QuickAttribute<>("rows",
+		QuickPropertyType.integer);
 
 	private final CompoundListener.MultiElementCompoundListener theListener;
 
@@ -132,7 +133,7 @@ public class TextEditLayout implements QuickLayout {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(type.isPref()) {
-					final Long length = parent.atts().get(charLengthAtt);
+					final Integer length = parent.atts().get(charLengthAtt);
 					if(length != null) {
 						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel();
 						org.quick.core.style.QuickStyle style;
@@ -141,8 +142,8 @@ public class TextEditLayout implements QuickLayout {
 						else
 							style = children[0].getStyle().getSelf();
 						java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
-						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style.get(
-org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
+						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(),
+							style.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 						return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
 					}
 				}
@@ -197,7 +198,7 @@ org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(type.isPref()) {
-					final Long rows = parent.atts().get(charRowsAtt);
+					final Integer rows = parent.atts().get(charRowsAtt);
 					if(rows != null) {
 						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel();
 						org.quick.core.style.QuickStyle style;

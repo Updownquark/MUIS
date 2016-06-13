@@ -1,5 +1,7 @@
 package org.quick.test.model;
 
+import java.awt.Color;
+
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.style.BackgroundStyle;
@@ -55,5 +57,17 @@ public class ButtonTestModel {
 	/** @return The button group with the color selection */
 	public org.quick.base.model.QuickButtonGroup getColorGroup() {
 		return theColorGroup;
+	}
+
+	public static Color getColor(int count) {
+		switch (count % 3) {
+		case 0:
+			return org.quick.core.style.Colors.red;
+		case 1:
+			return org.quick.core.style.Colors.blue;
+		case 2:
+			return org.quick.core.style.Colors.green;
+		}
+		return org.quick.core.style.Colors.black;
 	}
 }

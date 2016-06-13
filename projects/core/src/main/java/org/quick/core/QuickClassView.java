@@ -1,6 +1,6 @@
 package org.quick.core;
 
-/** Facilitates instantiating MUIS classes via their namespace/tagname mappings */
+/** Facilitates instantiating Quick classes via their namespace/tagname mappings */
 public class QuickClassView {
 	private final QuickEnvironment theEnvironment;
 

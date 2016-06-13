@@ -35,7 +35,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 	 * @return The observable evaluator for the given type
 	 */
 	public <T extends ParsedItem> ObservableItemEvaluator<? super T> getObservableEvaluatorFor(Class<T> type) {
-		return (ObservableItemEvaluator<? super T>) theObservableEvaluators.get(type);
+		return (ObservableItemEvaluator<? super T>) theObservableEvaluators.getString(type);
 	}
 
 	/**
@@ -149,7 +149,7 @@ public class ObservableEvaluator extends PrismsEvaluator {
 		@Override
 		public EvaluationResult evaluate(ParsedItem item, EvaluationEnvironment env, boolean asType, boolean withValues)
 			throws EvaluationException {
-			return theCachedValues.get(item);
+			return theCachedValues.getString(item);
 		}
 	}
 }

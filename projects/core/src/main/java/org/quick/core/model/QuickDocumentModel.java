@@ -8,7 +8,7 @@ import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.style.QuickStyle;
 import org.quick.util.Transaction;
 
-/** Stores and displays text in MUIS */
+/** Stores and displays text in Quick */
 public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequence> {
 	/**
 	 * A piece of text with style attributes. It is important that every implementation of this interface implement {@link #toString()} as

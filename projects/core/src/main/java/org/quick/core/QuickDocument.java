@@ -13,8 +13,6 @@ import org.qommons.ArrayUtils;
 import org.quick.core.event.*;
 import org.quick.core.mgr.QuickLocker;
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.model.QuickActionListener;
-import org.quick.core.model.QuickAppModel;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
@@ -22,9 +20,8 @@ import org.quick.core.style.attach.DocumentStyleSheet;
 import org.quick.core.style.attach.NamedStyleGroup;
 
 import com.google.common.reflect.TypeToken;
-import com.sun.org.apache.xpath.internal.operations.Variable;
 
-/** Contains all data pertaining to a MUIS application */
+/** Contains all data pertaining to a Quick application */
 public class QuickDocument implements QuickParseEnv {
 	/** The different policies this document can take with regards to scrolling events */
 	public static enum ScrollPolicy {
@@ -45,7 +42,7 @@ public class QuickDocument implements QuickParseEnv {
 		MIXED;
 	}
 
-	/** Allows a MUIS document to retrieve graphics to draw itself on demand */
+	/** Allows a Quick document to retrieve graphics to draw itself on demand */
 	public interface GraphicsGetter {
 		/** @return The graphics object that this document should use at the moment */
 		java.awt.Graphics2D getGraphics();
@@ -54,17 +51,15 @@ public class QuickDocument implements QuickParseEnv {
 		void setCursor(Cursor cursor);
 	}
 
-	/** A listener to be notified when the rendering changes for a MUIS document */
+	/** A listener to be notified when the rendering changes for a Quick document */
 	public interface RenderListener {
-		/** @param doc The MUIS document whose rendering was changed */
+		/** @param doc The Quick document whose rendering was changed */
 		void renderUpdate(QuickDocument doc);
 	}
 
 	private final QuickEnvironment theEnvironment;
 
 	private final java.net.URL theLocation;
-
-	private final org.quick.core.parser.QuickParser theParser;
 
 	private final ExpressionContext theContext;
 
@@ -120,93 +115,25 @@ public class QuickDocument implements QuickParseEnv {
 	 * Creates a document
 	 *
 	 * @param env The environment for the document
-	 * @param parser The parser that created this document
 	 * @param location The location of the file that this document was generated from
 	 * @param head The head section for this document
 	 * @param classView The class view for the document
 	 */
-	public QuickDocument(QuickEnvironment env, org.quick.core.parser.QuickParser parser, java.net.URL location, QuickHeadSection head,
-		QuickClassView classView) {
+	public QuickDocument(QuickEnvironment env, java.net.URL location, QuickHeadSection head, QuickClassView classView) {
 		theEnvironment = env;
-		theParser = parser;
 		theLocation = location;
 		theHead = head;
 		theClassView = classView;
 
 		theContext = DefaultExpressionContext.build().withParent(env.getContext())//
 			.withValueGetter(name -> {
-				QuickAppModel model = getHead().getModel(name);
-				if (model != null) // TODO Use synthetic type
-					return ObservableValue.constant(TypeToken.of(QuickAppModel.class), model);
-				return null;
+				Object model= getHead().getModel(name);
+				if(model instanceof ObservableValue)
+					return (ObservableValue<?>) model;
+				else
+					return ObservableValue.constant(model);
 			})//
 			.build();
-		theModelParser = new org.quick.core.parser.DefaultModelValueReferenceParser(env.getValueParser(), theClassView) {
-			@Override
-			protected void applyModification() {
-				super.applyModification();
-				Type modelType = new Type(QuickAppModel.class);
-				// Special evaluator to evaluate submodels and model values
-				PrismsItemEvaluator<? super ParsedMethod> superEval = getEvaluator().getEvaluatorFor(ParsedMethod.class);
-				getEvaluator().addEvaluator(ParsedMethod.class, new PrismsItemEvaluator<ParsedMethod>() {
-					@Override
-					public EvaluationResult evaluate(ParsedMethod item, PrismsEvaluator evaluator, EvaluationEnvironment evalEnv,
-						boolean asType, boolean withValues) throws EvaluationException {
-						if(item.getContext() != null && item.getArguments().length == 0) {
-							EvaluationResult ctx = evaluator.evaluate(item.getContext(), evalEnv, asType, withValues);
-							if(ctx.getType().canAssignTo(QuickAppModel.class)) {
-								if(!withValues)
-									ctx = evaluator.evaluate(item.getContext(), evalEnv, false, true);
-								QuickAppModel model = (QuickAppModel) ctx.getValue();
-								if(item.isMethod()) {
-									QuickActionListener action = model.getAction(item.getName());
-									if(action == null)
-										throw new EvaluationException("No action named " + item.getName() + " on model "
-											+ item.getContext().getMatch().text, item, item.getStored("name").index);
-									return new EvaluationResult(new Type(QuickActionListener.class), action);
-								} else {
-									QuickAppModel subModel = model.getSubModel(item.getName());
-									if(subModel != null)
-										return new EvaluationResult(modelType, subModel);
-									ObservableValue<?> modelValue = model.getValue(item.getName(), null);
-									if(modelValue != null)
-										return new EvaluationResult(new Type(modelValue.getClass()), modelValue);
-									throw new EvaluationException("No sub-model or value named " + item.getName() + " on model "
-										+ item.getContext().getMatch().text, item, item.getStored("name").index);
-								}
-							}
-						}
-						return superEval.evaluate(item, evaluator, evalEnv, asType, withValues);
-					}
-				});
-				if(getEvaluationEnvironment() instanceof prisms.lang.DefaultEvaluationEnvironment) {
-					prisms.lang.DefaultEvaluationEnvironment evalEnv = (prisms.lang.DefaultEvaluationEnvironment) getEvaluationEnvironment();
-					evalEnv.addVariableSource(new prisms.lang.VariableSource() {
-						@Override
-						public Variable [] getDeclaredVariables() {
-							String [] modelNames = getHead().getModels();
-							Variable [] ret = new Variable[modelNames.length];
-							for(int i = 0; i < ret.length; i++) {
-								ret[i] = new VariableImpl(modelType, modelNames[i], true);
-								((VariableImpl) ret[i]).setValue(getHead().getModel(modelNames[i]));
-							}
-							return ret;
-						}
-
-						@Override
-						public Variable getDeclaredVariable(String name) {
-							QuickAppModel model = getHead().getModel(name);
-							if(model != null) {
-								VariableImpl ret = new VariableImpl(modelType, name, true);
-								ret.setValue(model);
-								return ret;
-							} else
-								return null;
-						}
-					});
-				}
-			}
-		};
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessageCenter = new QuickMessageCenter(env, this, null);
 		theDocumentStyle = new DocumentStyleSheet(this);
@@ -294,11 +221,6 @@ public class QuickDocument implements QuickParseEnv {
 	/** @return The environment that this document was created in */
 	public QuickEnvironment getEnvironment() {
 		return theEnvironment;
-	}
-
-	/** @return The parser that created this document */
-	public org.quick.core.parser.QuickParser getParser() {
-		return theParser;
 	}
 
 	@Override
@@ -456,7 +378,7 @@ public class QuickDocument implements QuickParseEnv {
 	}
 
 	/**
-	 * Renders this MUIS document in a graphics context
+	 * Renders this Quick document in a graphics context
 	 *
 	 * @param graphics The graphics context to render in
 	 */

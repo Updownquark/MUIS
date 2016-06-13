@@ -18,17 +18,17 @@ Design layout mechanism:
 	jgoodies
 Interaction of visible, display, position types 
 
-Write another MUIS file using a templated widget (title pane maybe?)
+Write another Quick file using a templated widget (title pane maybe?)
 
 Style files!!
 Implement a few styles in QuickElement or a subclass.
 
-Implement MUIS toolkits packaged into jars (signed?).
+Implement Quick toolkits packaged into jars (signed?).
 
 Implement permissions and a security architecture
-	Permission parsing from the MUIS registry
+	Permission parsing from the Quick registry
 	Popup telling the user what permissions an application (with all associated toolkits) requires
-Find and close or document MUIS vulnerabilities (user code entry points):
+Find and close or document Quick vulnerabilities (user code entry points):
 	All class initializations
 	listeners
 	styles (getDomainInstance, getName, iterator)

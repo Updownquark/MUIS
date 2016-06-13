@@ -38,7 +38,7 @@ public class WrappingPrismsParser extends PrismsParser {
 
 	@Override
 	public PrismsConfig getOperator(String name) {
-		PrismsConfig ret = theExtraOpsByName.get(name);
+		PrismsConfig ret = theExtraOpsByName.getString(name);
 		if(ret == null)
 			ret = theWrapped.getOperator(name);
 		return ret;
@@ -78,12 +78,12 @@ public class WrappingPrismsParser extends PrismsParser {
 	protected void operatorAdded(PrismsConfig op) {
 		int index = java.util.Collections.binarySearch(theExtraOps, op, operatorCompare);
 		if(index >= 0) {
-			for(; index < theExtraOps.size() && operatorCompare.compare(theExtraOps.get(index), op) == 0; index++);
+			for(; index < theExtraOps.size() && operatorCompare.compare(theExtraOps.getString(index), op) == 0; index++);
 		} else
 			index = -(index + 1);
 		theExtraOps.add(op);
-		theExtraOpsByName.put(op.get("name"), op);
+		theExtraOpsByName.put(op.getString("name"), op);
 		if(op.is("ignorable", false))
-			theExtraIgnorables.add(op.get("name"));
+			theExtraIgnorables.add(op.getString("name"));
 	}
 }

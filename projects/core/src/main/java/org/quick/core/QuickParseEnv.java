@@ -3,7 +3,7 @@ package org.quick.core;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.prop.ExpressionContext;
 
-/** An environment needed to parse entities in MUIS */
+/** An environment needed to parse properties in Quick */
 public interface QuickParseEnv {
 	/** @return The class view to use in parsing, if needed */
 	QuickClassView cv();

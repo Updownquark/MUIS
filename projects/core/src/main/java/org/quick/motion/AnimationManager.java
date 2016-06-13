@@ -1,6 +1,6 @@
 package org.quick.motion;
 
-/** Manages animations in MUIS */
+/** Manages animations in Quick */
 public class AnimationManager {
 	private static class AnimationHolder {
 		final Animation animation;
@@ -87,7 +87,7 @@ public class AnimationManager {
 
 	private class AnimationThread extends Thread {
 		AnimationThread() {
-			super("MUIS Motion");
+			super("Quick Motion");
 		}
 
 		/**

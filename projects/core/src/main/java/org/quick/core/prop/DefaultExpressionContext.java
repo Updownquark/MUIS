@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import org.observe.ObservableValue;
+import org.quick.core.model.SyntheticType;
 
 public class DefaultExpressionContext implements ExpressionContext {
 	private final List<ExpressionContext> theParents;
@@ -11,10 +12,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 	private final List<Function<String, ObservableValue<?>>> theValueGetters;
 	private final Map<String, ExpressionType<?>> theTypes;
 	private final Map<String, List<ExpressionFunction<?>>> theFunctions;
+	private final List<SyntheticType<?>> theSyntheticTypes;
 
 	private DefaultExpressionContext(List<ExpressionContext> parents, Map<String, ObservableValue<?>> values,
 		List<Function<String, ObservableValue<?>>> valueGetters, Map<String, ExpressionType<?>> types,
-		Map<String, List<ExpressionFunction<?>>> functions) {
+		Map<String, List<ExpressionFunction<?>>> functions, List<SyntheticType<?>> syntheticTypes) {
 		theParents = Collections.unmodifiableList(new ArrayList<>(parents));
 		theValues = Collections.unmodifiableMap(new LinkedHashMap<>(values));
 		theValueGetters = Collections.unmodifiableList(valueGetters);
@@ -24,6 +26,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 			fns.put(fn.getKey(), Collections.unmodifiableList(new ArrayList<>(fn.getValue())));
 		}
 		theFunctions = Collections.unmodifiableMap(fns);
+		theSyntheticTypes = Collections.unmodifiableList(new ArrayList<>(syntheticTypes));
 	}
 
 	@Override
@@ -69,6 +72,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 		private final List<Function<String, ObservableValue<?>>> theValueGetters;
 		private final Map<String, ExpressionType<?>> theTypes;
 		private final Map<String, List<ExpressionFunction<?>>> theFunctions;
+		private final List<SyntheticType<?>> theSyntheticTypes;
 
 		private Builder() {
 			theParents = new ArrayList<>();
@@ -76,6 +80,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 			theValueGetters = new ArrayList<>();
 			theTypes = new LinkedHashMap<>();
 			theFunctions = new LinkedHashMap<>();
+			theSyntheticTypes = new ArrayList<>();
 		}
 
 		public Builder withParent(ExpressionContext ctx) {
@@ -108,8 +113,13 @@ public class DefaultExpressionContext implements ExpressionContext {
 			return this;
 		}
 
+		public Builder withType(SyntheticType<?> type) {
+			theSyntheticTypes.add(type);
+			return this;
+		}
+
 		public DefaultExpressionContext build() {
-			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions);
+			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions, theSyntheticTypes);
 		}
 	}
 }

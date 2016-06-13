@@ -15,7 +15,7 @@ public class StyleAttributeType extends QuickProperty.AbstractPropertyType<Quick
 	/** The instance to use for the element style */
 	public static StyleAttributeType ELEMENT_TYPE = new StyleAttributeType();
 
-	/** The style attribute on MUIS elements */
+	/** The style attribute on Quick elements */
 	public static final QuickAttribute<QuickStyle> STYLE_ATTRIBUTE = new QuickAttribute<>("style", ELEMENT_TYPE, null,
 		new StylePathAccepter());
 

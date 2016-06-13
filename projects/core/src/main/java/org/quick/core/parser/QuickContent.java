@@ -1,6 +1,6 @@
 package org.quick.core.parser;
 
-/** Represents MUIS content as defined in XML */
+/** Represents Quick content as defined in XML */
 public abstract class QuickContent {
 	private final WidgetStructure theParent;
 

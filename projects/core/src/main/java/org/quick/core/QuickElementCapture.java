@@ -51,7 +51,7 @@ public class QuickElementCapture implements Cloneable, org.qommons.Sealable {
 
 	/**
 	 * @param p This capture element's parent in the hierarchy
-	 * @param el The MUIS element that this structure is a capture of
+	 * @param el The Quick element that this structure is a capture of
 	 * @param xPos The x-coordinate of the element's upper-left corner
 	 * @param yPos The y-coordinate of the element's upper-left corner
 	 * @param zIndex The z-index of the element
@@ -64,7 +64,7 @@ public class QuickElementCapture implements Cloneable, org.qommons.Sealable {
 
 	/**
 	 * @param p This capture element's parent in the hierarchy
-	 * @param el The MUIS element that this structure is a capture of
+	 * @param el The Quick element that this structure is a capture of
 	 * @param transformer The transformer to transform between this capture's coordinates and those of one of its children
 	 * @param xPos The x-coordinate of the element's upper-left corner
 	 * @param yPos The y-coordinate of the element's upper-left corner

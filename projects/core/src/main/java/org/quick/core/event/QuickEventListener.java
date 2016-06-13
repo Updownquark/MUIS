@@ -1,7 +1,7 @@
 package org.quick.core.event;
 
 /**
- * Listens for event on a MUIS element or subtree
+ * Listens for event on a Quick element or subtree
  * 
  * @param <E> The type of event to listen for
  */

@@ -9,7 +9,7 @@ import java.awt.event.MouseEvent;
 import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.event.MouseEvent.MouseEventType;
 
-/** An AWT component that renders a MUIS document */
+/** An AWT component that renders a Quick document */
 public class QuickContentPane extends java.awt.Component
 {
 	private org.quick.core.QuickDocument theContent;
@@ -199,7 +199,7 @@ public class QuickContentPane extends java.awt.Component
 	/**
 	 * @param keyCode The key code (see java.awt.KeyEvent.VK_*, {@link KeyEvent#getKeyCode()})
 	 * @param keyLocation The key's location (see java.awt.KeyEvent.KEY_LOCATION_*, {@link KeyEvent#getKeyLocation()}
-	 * @return The MUIS key code for the AWT codes
+	 * @return The Quick key code for the AWT codes
 	 */
 	public static KeyCode getKeyCodeFromAWT(int keyCode, int keyLocation)
 	{

@@ -9,7 +9,7 @@ import org.quick.core.style.sheet.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
-/** Represents a toolkit that contains resources for use in a MUIS document */
+/** Represents a toolkit that contains resources for use in a Quick document */
 public class QuickToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
 	public class ToolkitStyleSheet extends org.quick.core.style.sheet.AbstractStyleSheet {
@@ -143,7 +143,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	 * Loads a class from its fully-qualified java name and returns it as a implementation of an interface or a subclass of a super class
 	 *
 	 * @param <T> The type of interface or superclass to return the class as
-	 * @param name The fully-qualified java name of the class, not the MUIS-tag name (e.g. "org.quick.core.BlockElement", not "block")
+	 * @param name The fully-qualified java name of the class, not the Quick-tag name (e.g. "org.quick.core.BlockElement", not "block")
 	 * @param superClass The superclass or interface class to cast the class as an subclass of
 	 * @return The loaded class, as an implementation or subclass of the interface or super class
 	 * @throws QuickException If the class cannot be found, cannot be loaded, or is not an subclass/implementation of the given class or

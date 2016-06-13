@@ -1,9 +1,11 @@
 package org.quick.base.model;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
 import org.observe.*;
-import org.quick.core.model.QuickActionListener;
 import org.quick.core.model.QuickAppModel;
-import org.quick.core.model.QuickWidgetModel;
 
 import com.google.common.reflect.TypeToken;
 
@@ -11,85 +13,66 @@ import com.google.common.reflect.TypeToken;
  * A model that manages a set of boolean-valued widgets, such as toggle buttons or radio buttons, only one of which may be selected at a
  * time
  */
-public class QuickButtonGroup extends DefaultObservableValue<String> implements QuickAppModel, SettableValue<String> {
-	private volatile String theValue;
+public class QuickButtonGroup<T> implements QuickAppModel {
+	private final Map<String, CaseModelValue> theButtonValues;
+	private final Map<T, String> theCaseValues;
+	private final boolean isConstrained;
 
-	private java.util.Map<String, CaseModelValue> theButtonValues;
-
-	private final Observer<ObservableValueEvent<String>> theController;
+	private final DefaultSettableValue<T> theSettableValue;
+	private final Observer<ObservableValueEvent<T>> theController;
+	private final T theDefaultValue;
+	private volatile T theValue;
 
 	/** Creates the button group */
-	public QuickButtonGroup() {
+	private QuickButtonGroup(TypeToken<T> type, T defValue, Map<String, T> caseValues, boolean constrain) {
 		theButtonValues = new java.util.concurrent.ConcurrentHashMap<>(4);
-		theController = control(null);
-	}
+		isConstrained = constrain;
+		theDefaultValue=defValue;
+		theValue = defValue;
 
-	@Override
-	public QuickAppModel getSubModel(String name) {
-		return null;
-	}
-
-	@Override
-	public <T extends QuickWidgetModel> T getWidgetModel(String name, Class<T> modelType) throws ClassCastException {
-		return null;
-	}
-
-	@Override
-	public <T> SettableValue<? extends T> getValue(String name, Class<T> type) throws ClassCastException {
-		if(name.equals("value")) {
-			if(type != null && !type.isAssignableFrom(String.class))
-				throw new IllegalArgumentException("This value is of type String--not " + type.getName());
-			return (SettableValue<T>) this;
-		} else {
-			if(type != null && !type.isAssignableFrom(Boolean.class) && !type.isAssignableFrom(Boolean.TYPE))
-				throw new IllegalArgumentException("This value is of type Boolean--not " + type.getName());
-			CaseModelValue btnValue = theButtonValues.get(name);
-			if(btnValue == null) {
-				btnValue = new CaseModelValue(name);
-				theButtonValues.put(name, btnValue);
+		theSettableValue = new DefaultSettableValue<T>() {
+			@Override
+			public <V extends T> T set(V value, Object cause) throws IllegalArgumentException {
+				String accept = isAcceptable(value);
+				if (accept != null)
+					throw new IllegalArgumentException(accept);
+				T old = theValue;
+				theValue = value;
+				theController.onNext(createChangeEvent(old, value, cause));
+				return old;
 			}
-			return (SettableValue<T>) btnValue;
+
+			@Override
+			public <V extends T> String isAcceptable(V value) {
+				if (!isConstrained || (!Objects.equals(theDefaultValue, value) && theCaseValues.containsKey(value)))
+					return null;
+				else
+					return "Value "+value+" is not valid for this value";
+			}
+
+			@Override
+			public ObservableValue<Boolean> isEnabled() {
+				return ObservableValue.constant(true);
+			}
+
+			@Override
+			public TypeToken<T> getType() {
+				return type;
+			}
+
+			@Override
+			public T get() {
+				return theValue;
+			}
+		};
+		theController = theSettableValue.control(null);
+
+		Map<String, CaseModelValue> buttonValues=new LinkedHashMap<>();
+		Map<T, String> cvs=new LinkedHashMap<>();
+		for(Map.Entry<String, T> caseValue : caseValues.entrySet()){
+			cvs.put(caseValue.getValue(), caseValue.getKey());
+			buttonValues.put(caseValue.getKey(), new CaseModelValue(caseValue.getValue()));
 		}
-	}
-
-	@Override
-	public QuickActionListener getAction(String name) {
-		return null;
-	}
-
-	@Override
-	public TypeToken<String> getType() {
-		return TypeToken.of(String.class);
-	}
-
-	@Override
-	public String get() {
-		return theValue;
-	}
-
-	@Override
-	public String isAcceptable(String value) {
-		if(!theButtonValues.containsKey(value))
-			return "\"" + value + "\" is not a valid value for this model value";
-		return null;
-	}
-
-	@Override
-	public ObservableValue<Boolean> isEnabled() {
-		return ObservableValue.constant(true);
-	}
-
-	@Override
-	public String set(String value, Object cause) throws IllegalStateException {
-		if(!theButtonValues.containsKey(value))
-			throw new IllegalStateException("\"" + value + "\" is not a valid value for this model value");
-		String oldValue = theValue;
-		theValue = value;
-		ObservableValueEvent<String> modelEvt = createChangeEvent(oldValue, theValue, cause);
-		theController.onNext(modelEvt);
-		for(CaseModelValue buttonModel : theButtonValues.values())
-			buttonModel.fireChange(oldValue, theValue, cause);
-		return oldValue;
 	}
 
 	/** @return All values that have models in this button group */
@@ -97,14 +80,11 @@ public class QuickButtonGroup extends DefaultObservableValue<String> implements 
 		return java.util.Collections.unmodifiableSet(theButtonValues.keySet());
 	}
 
-	private class CaseModelValue extends DefaultObservableValue<Boolean> implements SettableValue<Boolean> {
-		private final String theCaseValue;
+	private class CaseModelValue implements SettableValue<Boolean> {
+		private final T theCaseValue;
 
-		private final Observer<ObservableValueEvent<Boolean>> theCaseController;
-
-		CaseModelValue(String caseValue) {
+		CaseModelValue(T caseValue) {
 			theCaseValue = caseValue;
-			theCaseController = control(null);
 		}
 
 		@Override
@@ -119,13 +99,22 @@ public class QuickButtonGroup extends DefaultObservableValue<String> implements 
 
 		@Override
 		public Boolean set(Boolean value, Object event) throws IllegalStateException {
-			if(!value.equals(get()))
-				QuickButtonGroup.this.set(theCaseValue, event);
+			String accept = isAcceptable(value);
+			if (accept != null)
+				throw new IllegalArgumentException(accept);
+			if(!value.equals(get())){
+				if(value)
+					theSettableValue.set(theCaseValue, event);
+				else
+					theSettableValue.set(theDefaultValue, event);
+			}
 			return !value;
 		}
 
 		@Override
 		public String isAcceptable(Boolean value) {
+			if (!value && Objects.equals(theCaseValue, theDefaultValue))
+				return "This value cannot be un-set directly";
 			return null;
 		}
 

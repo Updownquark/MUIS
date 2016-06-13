@@ -22,7 +22,7 @@ public interface QuickDocumentParser {
 	 * @throws QuickParseException If an unrecoverable error occurs parsing the document into Quick format
 	 */
 	default QuickDocumentStructure parseDocument(URL location, Reader reader) throws IOException, QuickParseException {
-		return parseDocument(location, reader, null, getEnvironment().getMessageCenter());
+		return parseDocument(location, reader, getEnvironment().cv(), getEnvironment().msg());
 	}
 
 	/**
@@ -30,13 +30,14 @@ public interface QuickDocumentParser {
 	 *
 	 * @param location The location of the resource to read
 	 * @param reader The reader to the resource structure
+	 * @param parseEnv The parse environment in which to parse the document
 	 * @param rootClassView The class view for the root of the widget structure
 	 * @param msg The message center to report parsing errors to
 	 * @return The parsed document structure
 	 * @throws IOException If an error occurs reading the file
 	 * @throws QuickParseException If an unrecoverable error occurs parsing the document into Quick format
 	 */
-	QuickDocumentStructure parseDocument(URL location, Reader reader, QuickClassView rootClassView, QuickMessageCenter msg)
+	QuickDocumentStructure parseDocument(URL location, Reader reader, QuickClassView classView, QuickMessageCenter msg)
 		throws IOException, QuickParseException;
 
 }

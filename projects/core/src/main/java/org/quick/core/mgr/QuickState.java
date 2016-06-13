@@ -1,6 +1,6 @@
 package org.quick.core.mgr;
 
-/** Represents a binary state of an element in MUIS */
+/** Represents a binary state of an element in Quick */
 public class QuickState implements Comparable<QuickState> {
 	private final String theName;
 

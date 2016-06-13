@@ -1,21 +1,19 @@
 package org.quick.core.parser;
 
-import org.quick.core.QuickHeadSection;
-
-/** Represents the parsed structure of a MUIS document */
+/** Represents the parsed structure of a Quick document */
 public class QuickDocumentStructure {
 	private final java.net.URL theLocation;
 
-	private final QuickHeadSection theHead;
+	private final QuickHeadStructure theHead;
 
 	private final WidgetStructure theContent;
 
 	/**
 	 * @param location The location of the XML file parsed into this structure
-	 * @param head The head section containing metadata for the MUIS document
+	 * @param head The head section containing metadata for the Quick document
 	 * @param content The root content structure of the document
 	 */
-	public QuickDocumentStructure(java.net.URL location, QuickHeadSection head, WidgetStructure content) {
+	public QuickDocumentStructure(java.net.URL location, QuickHeadStructure head, WidgetStructure content) {
 		theLocation = location;
 		theHead = head;
 		theContent = content;
@@ -26,8 +24,8 @@ public class QuickDocumentStructure {
 		return theLocation;
 	}
 
-	/** @return The had section containing metadata for the MUIS document */
-	public QuickHeadSection getHead() {
+	/** @return The had section containing metadata for the Quick document */
+	public QuickHeadStructure getHead() {
 		return theHead;
 	}
 

@@ -4,7 +4,7 @@ import java.awt.image.BufferedImage;
 
 import org.quick.util.QuickUtils;
 
-/** Represents a rendering of a MUIS document and some state associated with the rendering */
+/** Represents a rendering of a Quick document and some state associated with the rendering */
 public class QuickRendering implements Cloneable {
 	private BufferedImage theImage;
 

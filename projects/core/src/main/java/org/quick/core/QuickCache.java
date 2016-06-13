@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import org.qommons.ThreadPoolWorker;
 import org.qommons.Worker;
 
-/** Enables caching of resources in MUIS */
+/** Enables caching of resources in Quick */
 public class QuickCache {
 	/**
 	 * Represents a type of item that can be cached
@@ -16,7 +16,7 @@ public class QuickCache {
 	 */
 	public interface CacheItemType<K, V, E extends Exception> {
 		/**
-		 * @param env The MUIS environment to generate the resource for
+		 * @param env The Quick environment to generate the resource for
 		 * @param key The key to generate the cached value for
 		 * @return The value to cache and return for the given key
 		 * @throws E If an error occurs generating the value
@@ -102,7 +102,7 @@ public class QuickCache {
 
 	private Worker theWorker;
 
-	/** Creates a MUIS cache */
+	/** Creates a Quick cache */
 	public QuickCache() {
 		theInternalCache = new org.qommons.DemandCache<>(new org.qommons.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
 			@Override
@@ -122,7 +122,7 @@ public class QuickCache {
 			}
 		}, 100000000f, 60L * 60 * 1000);
 		theOuterLock = new Object();
-		theWorker = new ThreadPoolWorker("MUIS Cache Worker", 4);
+		theWorker = new ThreadPoolWorker("Quick Cache Worker", 4);
 	}
 
 	/**
@@ -174,7 +174,7 @@ public class QuickCache {
 	 * @param <K> The type of key for the cached item
 	 * @param <V> The type of value for the cached item
 	 * @param <E> The type of exception that may be thrown when generating the cached item
-	 * @param env The MUIS environment to use to generate the value
+	 * @param env The Quick environment to use to generate the value
 	 * @param type The type of the cached item to get
 	 * @param key The key of the cached item to get
 	 * @param receiver A receiver to be notified when the cached item is available. May be null.

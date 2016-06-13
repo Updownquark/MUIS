@@ -1,6 +1,6 @@
 package org.quick.core.parser;
 
-/** Represents textual data from a MUIS file */
+/** Represents textual data from a Quick file */
 public class QuickText extends QuickContent {
 	private final String theContent;
 

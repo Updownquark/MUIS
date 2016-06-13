@@ -10,7 +10,7 @@ public class QuickEventPositionCapture extends QuickElementCapture {
 
 	/**
 	 * @param p The parent structure
-	 * @param el The MUIS element that this structure is a capture of
+	 * @param el The Quick element that this structure is a capture of
 	 * @param xPos The x-coordinate of the element's upper-left corner
 	 * @param yPos The y-coordinate of the element's upper-left corner
 	 * @param zIndex The z-index of the element

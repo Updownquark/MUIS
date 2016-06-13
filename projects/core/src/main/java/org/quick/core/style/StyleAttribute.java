@@ -5,7 +5,7 @@ import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 
 /**
- * A style property that can affect the rendering of MUIS elements
+ * A style property that can affect the rendering of Quick elements
  *
  * @param <T> The type of value the property supports
  */

@@ -10,7 +10,7 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.event.QuickEvent;
 import org.quick.core.mgr.QuickMessage.Type;
 
-/** Defines a center that can store MUIS messages */
+/** Defines a center that can store Quick messages */
 public class QuickMessageCenter implements Iterable<QuickMessage> {
 	/** A message fired in an element when a message is added to or removed from it */
 	public static class QuickMessageEvent implements org.quick.core.event.QuickEvent {

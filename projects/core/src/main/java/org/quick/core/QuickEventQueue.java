@@ -8,7 +8,7 @@ import org.qommons.ArrayUtils;
 import org.qommons.ProgramTracker;
 import org.quick.util.QuickUtils;
 
-/** The event queue in MUIS which makes sure elements's states stay up-to-date */
+/** The event queue in Quick which makes sure elements's states stay up-to-date */
 public class QuickEventQueue {
 	private static long DEBUG_TRACKING = 0;
 
@@ -559,7 +559,7 @@ public class QuickEventQueue {
 		return theInstance;
 	}
 
-	/** @return Whether the current thread is the MUIS event queue thread */
+	/** @return Whether the current thread is the Quick event queue thread */
 	public static boolean isEventThread() {
 		QuickEventQueue inst = theInstance;
 		if(inst == null)
@@ -611,13 +611,13 @@ public class QuickEventQueue {
 		thePaintDirtyTolerance = 50;
 		theLayoutDirtyTolerance = 50;
 		isPrioritized = true;
-		theTracker = new org.qommons.ProgramTracker("MUIS Events");
+		theTracker = new org.qommons.ProgramTracker("Quick Events");
 	}
 
 	/**
 	 * Schedules an event
 	 *
-	 * @param event The event that MUIS needs to take action on
+	 * @param event The event that Quick needs to take action on
 	 * @param now Whether to take action on the event immediately or allow it to execute when the queue gets to it
 	 */
 	public void scheduleEvent(Event event, boolean now) {
@@ -737,7 +737,7 @@ public class QuickEventQueue {
 		private long theTrackMark;
 
 		EventQueueThread() {
-			super("MUIS Event Queue");
+			super("Quick Event Queue");
 		}
 
 		/**

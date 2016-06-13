@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <registry>
-	<name>MUIS Base</name>
+	<name>Quick Base</name>
 	<description>
-		This toolkit provides basic MUIS functionality
+		This toolkit provides basic Quick functionality
 	</description>
 	<version>07Jun2013</version>
 	<dependencies>

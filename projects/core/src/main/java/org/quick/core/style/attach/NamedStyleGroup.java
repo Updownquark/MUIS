@@ -2,7 +2,7 @@ package org.quick.core.style.attach;
 
 import org.quick.core.QuickDocument;
 
-/** A named style group within MUIS */
+/** A named style group within Quick */
 public class NamedStyleGroup extends TypedStyleGroup<org.quick.core.QuickElement> {
 	private String theName;
 

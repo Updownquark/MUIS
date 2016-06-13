@@ -1,11 +1,15 @@
 package org.quick.core.prop;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
+import java.util.function.Function;
 
 import org.quick.core.QuickException;
 
 /**
- * Represents a property in MUIS
+ * Represents a property in Quick
  *
  * @param <T> The type of values that may be associated with the property
  */
@@ -32,6 +36,7 @@ public abstract class QuickProperty<T> {
 
 	private final String theName;
 	private final QuickPropertyType<T> theType;
+	private final List<Function<String, ?>> theValueSuppliers;
 	private final PropertyValidator<T> theValidator;
 
 	/**
@@ -39,20 +44,12 @@ public abstract class QuickProperty<T> {
 	 * @param type The type of the property
 	 * @param validator The validator for the property
 	 */
-	protected QuickProperty(String name, QuickPropertyType<T> type, PropertyValidator<T> validator) {
+	protected QuickProperty(String name, QuickPropertyType<T> type, PropertyValidator<T> validator,
+		List<Function<String, ?>> valueSuppliers) {
 		theName = name;
 		theType = type;
+		theValueSuppliers = Collections.unmodifiableList(valueSuppliers);
 		theValidator = validator;
-	}
-
-	/**
-	 * Creates a MUIS property without a validator or a path acceptor
-	 *
-	 * @param name The name for the property
-	 * @param type The type of the property
-	 */
-	protected QuickProperty(String name, QuickPropertyType<T> type) {
-		this(name, type, null);
 	}
 
 	/** @return This property's name */
@@ -89,6 +86,47 @@ public abstract class QuickProperty<T> {
 	@Override
 	public int hashCode() {
 		return theName.hashCode() * 13 + theType.hashCode() * 7;
+	}
+
+	public static abstract class Builder<T> {
+		private final String theName;
+		private final QuickPropertyType<T> theType;
+		private PropertyValidator<T> theValidator;
+		private final List<Function<String, ?>> theValueSuppliers;
+
+		public Builder(String name, QuickPropertyType<T> type) {
+			theName = name;
+			theType = type;
+			theValueSuppliers = new ArrayList<>();
+		}
+
+		public Builder<T> validate(PropertyValidator<T> validator) {
+			theValidator = validator;
+			return this;
+		}
+
+		public Builder<T> withValues(Function<String, ?> values) {
+			theValueSuppliers.add(values);
+			return this;
+		}
+
+		protected String getName() {
+			return theName;
+		}
+
+		protected QuickPropertyType<T> getType() {
+			return theType;
+		}
+
+		protected PropertyValidator<T> getValidator() {
+			return theValidator;
+		}
+
+		protected List<Function<String, ?>> getValueSuppliers() {
+			return theValueSuppliers;
+		}
+
+		public abstract QuickProperty<T> build();
 	}
 
 	/**

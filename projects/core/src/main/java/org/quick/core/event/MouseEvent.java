@@ -6,7 +6,7 @@ import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickEventPositionCapture;
 
-/** An event that occurs when the user performs an action with the mouse over a MUIS element */
+/** An event that occurs when the user performs an action with the mouse over a Quick element */
 public class MouseEvent extends PositionedUserEvent {
 	/** Filters mouse events that have not been {@link UserEvent#use() used} */
 	public static final MouseEventCondition mouse = MouseEventCondition.mouse;

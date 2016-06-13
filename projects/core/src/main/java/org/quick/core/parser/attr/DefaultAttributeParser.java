@@ -11,7 +11,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.observe.ObservableValue;
 import org.quick.core.QuickEnvironment;
-import org.quick.core.parser.QuickAttributeParser;
+import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.attr.QuickAttrParser.ConstantExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.prop.QuickProperty;
@@ -19,7 +19,7 @@ import org.quick.core.prop.QuickPropertyType;
 
 import com.google.common.reflect.TypeToken;
 
-public class DefaultAttributeParser implements QuickAttributeParser {
+public class DefaultAttributeParser implements QuickPropertyParser {
 	private final QuickEnvironment theEnvironment;
 
 	public DefaultAttributeParser(QuickEnvironment env) {

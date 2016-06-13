@@ -13,7 +13,7 @@ import org.quick.core.event.QuickEvent;
 
 import prisms.lang.Type;
 
-/** Governs the set of properties that define how MUIS elements of different types render themselves */
+/** Governs the set of properties that define how Quick elements of different types render themselves */
 public interface QuickStyle {
 	/** @return The styles, in order, that this style depends on for attributes not set directly in this style */
 	ObservableList<QuickStyle> getDependencies();
@@ -172,7 +172,7 @@ public interface QuickStyle {
 	 */
 	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
 		return new org.observe.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection
-			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).map(attr -> get(attr)))
+			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).map(attr -> getString(attr)))
 			.noInit().map(event -> (StyleAttributeEvent<?>) event)) {
 			@Override
 			public String toString() {

@@ -23,7 +23,7 @@ import org.quick.core.style.attach.*;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 
-/** The base display element in MUIS. Contains base methods to administer content (children, style, placement, etc.) */
+/** The base display element in Quick. Contains base methods to administer content (children, style, placement, etc.) */
 @StateSupport({@State(name = States.CLICK_NAME, priority = States.CLICK_PRIORITY),
 		@State(name = States.RIGHT_CLICK_NAME, priority = States.RIGHT_CLICK_PRIORITY),
 		@State(name = States.MIDDLE_CLICK_NAME, priority = States.MIDDLE_CLICK_PRIORITY),
@@ -88,7 +88,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private long theLayoutDirtyTime;
 
-	/** Creates a MUIS element */
+	/** Creates a Quick element */
 	public QuickElement() {
 		theMessageCenter = new QuickMessageCenter(null, null, this);
 		theLifeCycleManager = new QuickLifeCycleManager(this, (Controller controller) -> {
@@ -361,12 +361,12 @@ public abstract class QuickElement implements QuickParseEnv {
 		return theToolkit;
 	}
 
-	/** @return The MUIS class view that allows for instantiation of child elements */
+	/** @return The Quick class view that allows for instantiation of child elements */
 	public final QuickClassView getClassView() {
 		return theClassView;
 	}
 
-	/** @return The MUIS class view that allows for instantiation of child elements */
+	/** @return The Quick class view that allows for instantiation of child elements */
 	@Override
 	public final QuickClassView cv() {
 		return theClassView;
@@ -484,7 +484,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	/**
 	 * Initializes an element's descendants
 	 *
-	 * @param children The child elements specified in the MUIS XML
+	 * @param children The child elements specified in the Quick XML
 	 * @return The child list that the children are populated into
 	 */
 	public ElementList<? extends QuickElement> initChildren(QuickElement [] children) {

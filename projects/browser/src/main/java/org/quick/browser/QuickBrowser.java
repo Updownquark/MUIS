@@ -5,9 +5,11 @@ import java.awt.Cursor;
 import java.awt.Graphics2D;
 
 import org.quick.core.QuickDocument;
+import org.quick.core.QuickEnvironment;
+import org.quick.core.QuickHeadSection;
 import org.quick.core.mgr.QuickMessage;
 
-/** A browser that renders MUIS documents */
+/** A browser that renders Quick documents */
 public class QuickBrowser extends javax.swing.JPanel {
 	javax.swing.JTextField theAddressBar;
 
@@ -19,11 +21,11 @@ public class QuickBrowser extends javax.swing.JPanel {
 
 	private org.quick.core.mgr.QuickMessageCenter.QuickMessageListener theMessageListener;
 
-	/** Creates a MUIS browser */
+	/** Creates a Quick browser */
 	public QuickBrowser() {
 		try {
 			javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
-		} catch(Exception e) {
+		} catch (Exception e) {
 			System.err.println("Could not install system L&F");
 			e.printStackTrace();
 		}
@@ -37,7 +39,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 		theAddressBar.addKeyListener(new java.awt.event.KeyAdapter() {
 			@Override
 			public void keyReleased(java.awt.event.KeyEvent evt) {
-				if(evt.getKeyCode() != java.awt.event.KeyEvent.VK_ENTER)
+				if (evt.getKeyCode() != java.awt.event.KeyEvent.VK_ENTER)
 					return;
 				goToAddress(theAddressBar.getText());
 			}
@@ -54,7 +56,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 
 	/** @param address The address of the document to get */
 	public void goToAddress(String address) {
-		if(!theDataLock && !theAddressBar.getText().equals(address)) {
+		if (!theDataLock && !theAddressBar.getText().equals(address)) {
 			theDataLock = true;
 			try {
 				theAddressBar.setText(address);
@@ -65,18 +67,16 @@ public class QuickBrowser extends javax.swing.JPanel {
 		java.net.URL url;
 		try {
 			url = new java.net.URL(address);
-		} catch(java.net.MalformedURLException e) {
+		} catch (java.net.MalformedURLException e) {
 			throw new IllegalArgumentException(address + " is not a valid URL", e);
 		}
-		org.quick.core.QuickEnvironment env = new org.quick.core.QuickEnvironment();
-		env.setParser(new org.quick.core.parser.QuickDomParser(env));
-		env.setContentCreator(new org.quick.core.parser.QuickContentCreator());
+		org.quick.core.QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
 		QuickDocument quickDoc;
 		try {
-			org.quick.core.parser.QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(env, url,
+			org.quick.core.parser.QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(url,
 				new java.io.InputStreamReader(url.openStream()));
-			quickDoc = new QuickDocument(env, env.getDocumentParser(), docStruct.getLocation(), docStruct.getHead(), docStruct.getContent()
-				.getClassView());
+			QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getAttributeParser(), env);
+			quickDoc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
 			quickDoc.setGraphics(new QuickDocument.GraphicsGetter() {
 				@Override
 				public Graphics2D getGraphics() {
@@ -88,7 +88,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 					theContentPane.setCursor(cursor);
 				}
 			});
-			if(theDebugPanel != null)
+			if (theDebugPanel != null)
 				quickDoc.setDebugGraphics(new QuickDocument.GraphicsGetter() {
 					@Override
 					public Graphics2D getGraphics() {
@@ -97,14 +97,14 @@ public class QuickBrowser extends javax.swing.JPanel {
 
 					@Override
 					public void setCursor(Cursor cursor) {
-						if(theDebugPanel == null)
+						if (theDebugPanel == null)
 							theDebugPanel.setCursor(cursor);
 					}
 				});
 			env.getContentCreator().fillDocument(quickDoc, docStruct.getContent());
-		} catch(java.io.IOException e) {
+		} catch (java.io.IOException e) {
 			throw new IllegalArgumentException("Could not access address " + address, e);
-		} catch(org.quick.core.parser.QuickParseException e) {
+		} catch (org.quick.core.parser.QuickParseException e) {
 			throw new IllegalArgumentException("Could not parse XML document at " + address, e);
 		}
 
@@ -115,16 +115,16 @@ public class QuickBrowser extends javax.swing.JPanel {
 				System.out.println("Bounds " + event.getValue());
 			});
 			java.awt.Window window = getWindow();
-			if(window instanceof java.awt.Frame)
+			if (window instanceof java.awt.Frame)
 				((java.awt.Frame) window).setTitle(quickDoc.getHead().getTitle());
 			repaint();
-		} catch(RuntimeException e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		quickDoc.msg().addListener(theMessageListener);
-		for(QuickMessage msg : env.msg())
+		for (QuickMessage msg : env.msg())
 			printMessage(msg);
-		for(QuickMessage msg : quickDoc.msg().allMessages())
+		for (QuickMessage msg : quickDoc.msg().allMessages())
 			printMessage(msg);
 	}
 
@@ -134,12 +134,12 @@ public class QuickBrowser extends javax.swing.JPanel {
 		case ERROR:
 		case WARNING:
 			System.err.println((msg.element == null ? "" : msg.element.toString() + "\n\t") + msg.type + ": " + msg.text);
-			if(msg.exception != null)
+			if (msg.exception != null)
 				msg.exception.printStackTrace();
 			break;
 		default:
 			System.out.println((msg.element == null ? "" : msg.element.toString() + "\n\t") + msg.type + ": " + msg.text);
-			if(msg.exception != null)
+			if (msg.exception != null)
 				msg.exception.printStackTrace(System.out);
 			break;
 		}
@@ -152,7 +152,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 
 	private java.awt.Window getWindow() {
 		java.awt.Component parent = getParent();
-		while(parent != null && !(parent instanceof java.awt.Window))
+		while (parent != null && !(parent instanceof java.awt.Window))
 			parent = parent.getParent();
 		return (java.awt.Window) parent;
 	}
@@ -162,19 +162,19 @@ public class QuickBrowser extends javax.swing.JPanel {
 	/**
 	 * Starts up a QuickBrowser
 	 *
-	 * @param args Command-line arguments. If any are supplied, the first one is used as the initial address of the MUIS document to
-	 *            display.
+	 * @param args Command-line arguments. If any are supplied, the first one is used as the initial address of the Quick document to
+	 *        display.
 	 */
-	public static void main(String [] args) {
+	public static void main(String[] args) {
 		QuickBrowser browser = new QuickBrowser();
-		final javax.swing.JFrame frame = new javax.swing.JFrame("MUIS Browser");
+		final javax.swing.JFrame frame = new javax.swing.JFrame("Quick Browser");
 		frame.setContentPane(browser);
 		frame.setBounds(0, 0, 900, 600);
 		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 
-		if(DEBUG) {
-			final javax.swing.JFrame debugFrame = new javax.swing.JFrame("MUIS Graphics Debug");
+		if (DEBUG) {
+			final javax.swing.JFrame debugFrame = new javax.swing.JFrame("Quick Graphics Debug");
 			javax.swing.JPanel debugContent = new javax.swing.JPanel();
 			debugFrame.setContentPane(debugContent);
 			browser.setDebugPanel(debugContent);
@@ -189,7 +189,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 			});
 		}
 
-		if(args.length > 0)
+		if (args.length > 0)
 			browser.goToAddress(args[0]);
 	}
 }

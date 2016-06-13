@@ -10,7 +10,7 @@ import org.quick.core.model.MutableDocumentModel;
  */
 public interface QuickFormatter<T> {
 	/**
-	 * Formats a value into a MUIS document
+	 * Formats a value into a Quick document
 	 * 
 	 * @param value The value to write
 	 * @param doc The document to write the value into
@@ -18,7 +18,7 @@ public interface QuickFormatter<T> {
 	void append(T value, MutableDocumentModel doc);
 
 	/**
-	 * Parses a value out of a MUIS document
+	 * Parses a value out of a Quick document
 	 * 
 	 * @param doc The document to read the value from
 	 * @return The parsed value

@@ -16,7 +16,7 @@ import org.quick.core.style.stateful.StatefulStyle;
 import prisms.lang.Type;
 
 /**
- * A TypedStyleGroup is a group in MUIS that holds members of a given type. This allows styles to be applied not only to named groups (
+ * A TypedStyleGroup is a group in Quick that holds members of a given type. This allows styles to be applied not only to named groups (
  * {@link NamedStyleGroup}) but also to specific sub-types within the named group.
  *
  * @param <E> The sub-type of QuickElement that this group holds

@@ -5,7 +5,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.font.TextAttribute;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.*;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
@@ -20,7 +20,7 @@ import org.quick.core.tags.StateSupport;
 
 import com.google.common.reflect.TypeToken;
 
-/** A set of utilities to use with core MUIS elements */
+/** A set of utilities to use with core Quick elements */
 public class QuickUtils {
 	private QuickUtils() {
 	}
@@ -342,5 +342,19 @@ public class QuickUtils {
 				name.append(field.charAt(c));
 		}
 		return name.toString();
+	}
+
+	/**
+	 * Constructs an immutable copy of a map of lists
+	 * 
+	 * @param value The value to copy
+	 * @return The copied, immutable value
+	 */
+	public static <K, V> Map<K, List<V>> immutable(Map<K, List<V>> value) {
+		Map<K, List<V>> fns = new LinkedHashMap<>();
+		for (Map.Entry<K, List<V>> entry : value.entrySet()) {
+			fns.put(entry.getKey(), Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
+		}
+		return Collections.unmodifiableMap(fns);
 	}
 }

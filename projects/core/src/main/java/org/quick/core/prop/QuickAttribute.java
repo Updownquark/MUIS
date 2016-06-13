@@ -1,6 +1,7 @@
 package org.quick.core.prop;
 
-import org.quick.core.QuickElement;
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * A QuickAttribute represents an option that may or must be specified in a Quick element either from the document(XML) or from code. A
@@ -12,47 +13,39 @@ import org.quick.core.QuickElement;
  * @param <T> The java type of the attribute
  */
 public class QuickAttribute<T> extends QuickProperty<T> {
-	/** Allows hierarchical attributes */
-	public static interface PropertyPathAccepter {
-		/**
-		 * @param element The element to accept or reject the pathed attribute on
-		 * @param path The path to check
-		 * @return Whether a property with the given path off of a root property can be instantiated
-		 */
-		boolean accept(QuickElement element, String... path);
-	}
-
-	private PropertyPathAccepter thePathAccepter;
-
-	/**
-	 * Creates a new attribute for a MUIS element
-	 *
-	 * @param name The name for this attribute
-	 * @param type The type of the attribute
-	 * @param validator The validator for this attribute's values
-	 * @param accepter The path accepter to accept hierarchical properties with this property as the root
-	 */
-	public QuickAttribute(String name, QuickPropertyType<T> type, PropertyValidator<T> validator, PropertyPathAccepter accepter) {
-		super(name, type, validator);
-		thePathAccepter = accepter;
-	}
-
-	/**
-	 * Creates a new attribute for a MUIS element
-	 *
-	 * @see QuickProperty#QuickProperty(String, QuickPropertyType)
-	 */
-	public QuickAttribute(String name, QuickPropertyType<T> type) {
-		super(name, type);
-	}
-
-	/** @return The path accepter to accept hierarchical properties with this property as the root */
-	public PropertyPathAccepter getPathAccepter() {
-		return thePathAccepter;
+	/** @see QuickProperty#QuickProperty(String, QuickPropertyType, PropertyValidator, List) */
+	protected QuickAttribute(String name, QuickPropertyType<T> type, PropertyValidator<T> validator,
+		List<Function<String, ?>> valueSuppliers) {
+		super(name, type, validator, valueSuppliers);
 	}
 
 	@Override
 	public final String getPropertyTypeName() {
 		return "attribute";
+	}
+
+	public static <T> Builder<T> build(String name, QuickPropertyType<T> type) {
+		return new Builder<>(name, type);
+	}
+
+	public static class Builder<T> extends QuickProperty.Builder<T> {
+		public Builder(String name, QuickPropertyType<T> type) {
+			super(name, type);
+		}
+
+		@Override
+		public Builder<T> validate(org.quick.core.prop.QuickProperty.PropertyValidator<T> validator) {
+			return (Builder<T>) super.validate(validator);
+		}
+
+		@Override
+		public Builder<T> withValues(Function<String, ?> values) {
+			return (Builder<T>) super.withValues(values);
+		}
+
+		@Override
+		public QuickAttribute<T> build() {
+			return new QuickAttribute<>(getName(), getType(), getValidator(), getValueSuppliers());
+		}
 	}
 }

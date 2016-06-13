@@ -601,7 +601,7 @@ public class QuickPermission {
 	public final String explanation;
 
 	/**
-	 * Creates a MUIS Permission request
+	 * Creates a Quick Permission request
 	 *
 	 * @param _type The type of the permission requested
 	 * @param _subType The sub-type of permission requested

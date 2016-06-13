@@ -13,21 +13,21 @@ import org.quick.core.model.*;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 
-/** A MUIS element that serves as a placeholder for text content which may be interspersed with element children in an element. */
+/** A Quick element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class QuickTextElement extends QuickLeaf implements org.quick.core.model.DocumentedElement {
 	/** Whether a text element's document supports multiple lines */
 	public static final QuickAttribute<Boolean> multiLine = new QuickAttribute<>("multi-line", QuickPropertyType.boole);
 
 	private final WrappingDocumentModel theDocument;
 
-	/** Creates a MUIS text element */
+	/** Creates a Quick text element */
 	public QuickTextElement() {
 		this("");
 		atts().accept(new Object(), multiLine);
 	}
 
 	/**
-	 * Creates a MUIS text element with text
+	 * Creates a Quick text element with text
 	 *
 	 * @param text The text for the element
 	 */
@@ -37,7 +37,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	}
 
 	/**
-	 * Creates a MUIS text element with a document
+	 * Creates a Quick text element with a document
 	 *
 	 * @param doc The document for this element
 	 */

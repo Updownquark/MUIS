@@ -16,7 +16,7 @@ import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.style.*;
 
-/** Parses and formats text in the MUIS rich format */
+/** Parses and formats text in the Quick rich format */
 public class QuickRichTextParser {
 	/**
 	 * A simple style attribute - value pair

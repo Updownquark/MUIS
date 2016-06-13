@@ -1,51 +1,24 @@
 package org.quick.core;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import org.qommons.Sealable;
-import org.quick.core.model.QuickAppModel;
 import org.quick.core.style.sheet.ParsedStyleSheet;
 
-/** Metadata for a MUIS document */
-public class QuickHeadSection implements Sealable {
-	private String theTitle;
+/** Metadata for a Quick document */
+public class QuickHeadSection {
+	private final String theTitle;
+	private final List<ParsedStyleSheet> theStyleSheets;
+	private final Map<String, Object> theModels;
 
-	private List<ParsedStyleSheet> theStyleSheets;
-
-	private Map<String, QuickAppModel> theModels;
-
-	private boolean isSealed;
-
-	/** Creates a head section */
-	public QuickHeadSection() {
-		theStyleSheets = new java.util.ArrayList<>();
-		theModels = new HashMap<>(2);
+	private QuickHeadSection(String title, List<ParsedStyleSheet> styleSheets, Map<String, Object> models) {
+		theTitle = title;
+		theStyleSheets = Collections.unmodifiableList(new ArrayList<>(styleSheets));
+		theModels = Collections.unmodifiableMap(new TreeMap<>(models));
 	}
 
-	@Override
-	public boolean isSealed() {
-		return isSealed;
-	}
-
-	@Override
-	public void seal() {
-		if(!isSealed)
-			theStyleSheets = java.util.Collections.unmodifiableList(theStyleSheets);
-		isSealed = true;
-	}
-
-	/** @return The title for the MUIS document */
+	/** @return The title for the Quick document */
 	public String getTitle() {
 		return theTitle;
-	}
-
-	/** @param title The title for the document */
-	public void setTitle(String title) {
-		if(isSealed)
-			throw new SealedException(this);
-		theTitle = title;
 	}
 
 	/** @return All style sheets specified in this head section */
@@ -57,22 +30,67 @@ public class QuickHeadSection implements Sealable {
 	 * @param name The name of the model to get
 	 * @return The model of the given name specified in this head section, or null if no so-named model was specified
 	 */
-	public QuickAppModel getModel(String name) {
+	public Object getModel(String name) {
 		return theModels.get(name);
 	}
 
-	/**
-	 * @param name The name of the model to add
-	 * @param model The model specified in this head section under the given name
-	 */
-	public void addModel(String name, QuickAppModel model) {
-		if(isSealed)
-			throw new SealedException(this);
-		theModels.put(name, model);
+	/** @return The names of all models in this document */
+	public Set<String> getModels() {
+		return theModels.keySet();
 	}
 
-	/** @return The names of all models in this document */
-	public String [] getModels() {
-		return theModels.keySet().toArray(new String[theModels.size()]);
+	/** @return A builder to build a head section */
+	public static Builder build() {
+		return new Builder();
+	}
+
+	/** Builds a {@link QuickHeadSection} */
+	public static class Builder {
+		private String theTitle;
+		private List<ParsedStyleSheet> theStyleSheets = new ArrayList<>();
+		private Map<String, Object> theModels = new TreeMap<>();
+
+		Builder() {}
+
+		/**
+		 * @param title The title for the document
+		 * @return This builder, for chaining
+		 */
+		public Builder setTitle(String title) {
+			theTitle = title;
+			return this;
+		}
+
+		/**
+		 * @param styleSheet The style sheet to add to the head section
+		 * @return This builder, for chaining
+		 */
+		public Builder addStyleSheet(ParsedStyleSheet styleSheet) {
+			theStyleSheets.add(styleSheet);
+			return this;
+		}
+
+		/**
+		 * @param name The name of the model to add
+		 * @param model The model specified in this head section under the given name
+		 * @return This builder, for chaining
+		 */
+		public Builder addModel(String name, Object model) {
+			theModels.put(name, model);
+			return this;
+		}
+
+		/**
+		 * @param name The name of the model
+		 * @return The model that has been set in this builder for the given name
+		 */
+		public Object getModel(String name) {
+			return theModels.get(name);
+		}
+
+		/** @return The built head section */
+		public QuickHeadSection build() {
+			return new QuickHeadSection(theTitle, theStyleSheets, theModels);
+		}
 	}
 }

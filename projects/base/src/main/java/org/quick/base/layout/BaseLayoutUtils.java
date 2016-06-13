@@ -4,7 +4,7 @@ import org.quick.core.QuickElement;
 import org.quick.core.layout.*;
 import org.quick.core.style.Size;
 
-/** Utilities for use by layouts in MUIS base */
+/** Utilities for use by layouts in Quick base */
 public class BaseLayoutUtils {
 	/**
 	 * Gets the length of a layout of a set of widgets along a common axis

@@ -46,7 +46,7 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
+		ObservableValue<T> ret = (ObservableValue<T>) theValues.getString(attr);
 		if(ret == null)
 			return ObservableValue.constant(attr.getType().getType(), null);
 		return ret;
@@ -107,7 +107,7 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 
 	@Override
 	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
+		ObservableValue<T> ret = (ObservableValue<T>) theValues.getString(attr);
 		if(withDefault && ret.get() == null)
 			return ObservableValue.constant(attr.getDefault());
 		return ret;

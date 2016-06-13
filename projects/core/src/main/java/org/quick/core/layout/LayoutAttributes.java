@@ -16,7 +16,7 @@ import org.quick.core.style.Size;
 
 import com.google.common.reflect.TypeToken;
 
-/** MUIS {@link QuickAttribute attributes} dealing with layouts in MUIS */
+/** Quick {@link QuickAttribute attributes} dealing with layouts in Quick */
 public class LayoutAttributes {
 	/** The type for position-type properties */
 	public static final QuickPropertyType<Position> positionType = QuickPropertyType.build("position", TypeToken.of(Position.class))//

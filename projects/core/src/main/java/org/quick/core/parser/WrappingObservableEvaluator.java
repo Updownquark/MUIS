@@ -31,7 +31,7 @@ public class WrappingObservableEvaluator extends ObservableEvaluator {
 
 	@Override
 	public <T extends ParsedItem> PrismsItemEvaluator<? super T> getEvaluatorFor(Class<T> type) {
-		PrismsItemEvaluator<?> ret = theExtraEvaluators.get(type);
+		PrismsItemEvaluator<?> ret = theExtraEvaluators.getString(type);
 		if(ret != null)
 			return (PrismsItemEvaluator<T>) ret;
 		return theWrapped.getEvaluatorFor(type);
@@ -39,7 +39,7 @@ public class WrappingObservableEvaluator extends ObservableEvaluator {
 
 	@Override
 	public <T extends ParsedItem> ObservableItemEvaluator<? super T> getObservableEvaluatorFor(Class<T> type) {
-		ObservableItemEvaluator<?> ret = theExtraObservableEvaluators.get(type);
+		ObservableItemEvaluator<?> ret = theExtraObservableEvaluators.getString(type);
 		if(ret != null)
 			return (ObservableItemEvaluator<T>) ret;
 		return theWrapped.getObservableEvaluatorFor(type);

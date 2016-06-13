@@ -238,12 +238,12 @@
 				<literal>]</literal>
 			</option>
 		</option>
-		<option> <!-- MUIS-type namespace-qualified tag type -->
+		<option> <!-- Quick-type namespace-qualified tag type -->
 			<op type="quick-type" storeAs="base" />
 		</option>
 	</entity>
 	<entity name="quick-type" priority="0" impl="prisms.lang.types.ParsedType">
-		<!-- MUIS-type namespace-qualified tag type.  Capture this separately so we can assign higher priority to override subtraction. -->
+		<!-- Quick-type namespace-qualified tag type.  Capture this separately so we can assign higher priority to override subtraction. -->
 		<option>
 			<op type="quick-identifier" storeAs="namespace" />
 			<literal>:</literal>

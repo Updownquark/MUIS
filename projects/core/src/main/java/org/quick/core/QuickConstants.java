@@ -3,9 +3,9 @@ package org.quick.core;
 import org.quick.core.mgr.AttributeManager;
 import org.quick.core.mgr.QuickState;
 
-/** Contains constants (inside their own categorical classes) used by the MUIS core */
+/** Contains constants (inside their own categorical classes) used by the Quick core */
 public final class QuickConstants {
-	/** The stages of MUIS element creation recognized by the MUIS core, except for {@link #OTHER} */
+	/** The stages of Quick element creation recognized by the Quick core, except for {@link #OTHER} */
 	public static enum CoreStage {
 		/**
 		 * The element is being constructed without any knowledge of its document or other context. During this stage, internal variables
@@ -47,7 +47,7 @@ public final class QuickConstants {
 
 		/**
 		 * @param name The name of the stage to get the enum value for
-		 * @return The enum value of the named stage, unless the stage is not recognized by the MUIS core, in which case {@link #OTHER} is
+		 * @return The enum value of the named stage, unless the stage is not recognized by the Quick core, in which case {@link #OTHER} is
 		 *         returned
 		 */
 		public static CoreStage get(String name) {
@@ -58,7 +58,7 @@ public final class QuickConstants {
 		}
 	}
 
-	/** Contains several {@link org.quick.core.mgr.StateEngine states} that are used by the MUIS core */
+	/** Contains several {@link org.quick.core.mgr.StateEngine states} that are used by the Quick core */
 	public static final class States {
 		/** The name of the state that is true whenever the left mouse button is pressed on top of an element */
 		public static final String CLICK_NAME = "click";

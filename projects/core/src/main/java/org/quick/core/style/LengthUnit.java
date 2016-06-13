@@ -1,6 +1,6 @@
 package org.quick.core.style;
 
-/** An enumeration of the different length unit options available in MUIS */
+/** An enumeration of the different length unit options available in Quick */
 public enum LengthUnit
 {
 	// TODO ??? inches, centimeters, ems, etc.

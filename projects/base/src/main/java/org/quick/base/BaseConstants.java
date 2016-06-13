@@ -2,9 +2,9 @@ package org.quick.base;
 
 import org.quick.core.mgr.QuickState;
 
-/** Contains constants (inside their own categorical classes) used by MUIS base */
+/** Contains constants (inside their own categorical classes) used by Quick base */
 public class BaseConstants {
-	/** Contains several {@link org.quick.core.mgr.StateEngine states} that are used by MUIS base */
+	/** Contains several {@link org.quick.core.mgr.StateEngine states} that are used by Quick base */
 	public static class States {
 		/** The name of the state that is true whenever a button is regarded as pressed */
 		public static final String DEPRESSED_NAME = "depressed";

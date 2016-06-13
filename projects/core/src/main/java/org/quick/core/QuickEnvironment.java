@@ -13,7 +13,7 @@ import org.quick.core.style.sheet.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
-/** The environment that MUIS documents operate in */
+/** The environment that Quick documents operate in */
 public class QuickEnvironment implements QuickParseEnv {
 	/** The location of the core toolkit */
 	public static final java.net.URL CORE_TOOLKIT = QuickEnvironment.class.getResource("/QuickRegistry.xml");
@@ -33,7 +33,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	private QuickDocumentParser theDocumentParser;
 	private QuickContentCreator theContentCreator;
 	private QuickStyleParser theStyleParser;
-	private QuickAttributeParser theAttributeParser;
+	private QuickPropertyParser theAttributeParser;
 
 	private final DefaultExpressionContext theContext;
 	private final QuickMessageCenter theMessageCenter;
@@ -77,7 +77,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		return theStyleParser;
 	}
 
-	public QuickAttributeParser getAttributeParser() {
+	public QuickPropertyParser getAttributeParser() {
 		return theAttributeParser;
 	}
 
@@ -140,7 +140,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		return toolkit;
 	}
 
-	/** @return The toolkit containing the core MUIS classes */
+	/** @return The toolkit containing the core Quick classes */
 	public QuickToolkit getCoreToolkit() {
 		if(CORE_TOOLKIT == null)
 			throw new IllegalStateException("No such resource " + CORE_TOOLKIT + " for core toolkit");
@@ -200,7 +200,7 @@ public class QuickEnvironment implements QuickParseEnv {
 			return this;
 		}
 
-		public Builder setAttributeParser(QuickAttributeParser attributeParser) {
+		public Builder setAttributeParser(QuickPropertyParser attributeParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.theAttributeParser = attributeParser;

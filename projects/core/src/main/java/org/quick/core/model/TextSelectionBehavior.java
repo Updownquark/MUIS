@@ -41,7 +41,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 							Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth())));
 						break;
 					case 2: // Triple-click. Select line.
-						if(!Boolean.TRUE.equals(element.atts().get(QuickTextElement.multiLine))) {
+						if (!Boolean.TRUE.equals(element.atts().get(QuickTextElement.multiLine))) {
 							theAnchor = 0;
 							doc.setSelection(0, doc.length());
 						} else

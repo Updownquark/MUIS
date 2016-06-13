@@ -5,7 +5,7 @@ import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickEnvironment;
 
-/** Represents an error, warning, or information message attached to a MUIS element */
+/** Represents an error, warning, or information message attached to a Quick element */
 public class QuickMessage {
 	/** The types of element messages available */
 	public static enum Type {
@@ -21,13 +21,13 @@ public class QuickMessage {
 		FATAL;
 	}
 
-	/** The MUIS environment that the message is for */
+	/** The Quick environment that the message is for */
 	public final QuickEnvironment environment;
 
-	/** The MUIS document that the message is for */
+	/** The Quick document that the message is for */
 	public final QuickDocument document;
 
-	/** The MUIS element that the message is for */
+	/** The Quick element that the message is for */
 	public final QuickElement element;
 
 	/** The type of this message */
@@ -48,13 +48,13 @@ public class QuickMessage {
 		Throwable anException,
 		Object... params) {
 		if(env == null)
-			throw new NullPointerException("A MUIS message cannot be created without an environment");
+			throw new NullPointerException("A Quick message cannot be created without an environment");
 		if(aType == null)
-			throw new NullPointerException("A MUIS message cannot be created without a type");
+			throw new NullPointerException("A Quick message cannot be created without a type");
 		if(aStage == null)
-			throw new NullPointerException("A MUIS message cannot be created without a creation stage");
+			throw new NullPointerException("A Quick message cannot be created without a creation stage");
 		if(aText == null)
-			throw new NullPointerException("A MUIS message cannnot be created without a description");
+			throw new NullPointerException("A Quick message cannnot be created without a description");
 		environment = env;
 		document = doc;
 		element = anElement;

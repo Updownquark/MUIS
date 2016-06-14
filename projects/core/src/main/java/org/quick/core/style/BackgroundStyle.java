@@ -61,7 +61,7 @@ public class BackgroundStyle implements StyleDomain {
 	/** The property type for cursor properties */
 	public static QuickPropertyType<Cursor> CURSOR_PROPERTY_TYPE = QuickPropertyType.build("cursor", TypeToken.of(Cursor.class))//
 		.withValues(s -> {
-			for(PreDefinedCursor preDef : PreDefinedCursor.values()) {
+			for (PreDefinedCursor preDef : PreDefinedCursor.values()) {
 				if (preDef.display.equals(s))
 					return Cursor.getPredefinedCursor(preDef.type);
 			}
@@ -69,7 +69,7 @@ public class BackgroundStyle implements StyleDomain {
 		})//
 		.build();
 
-	private StyleAttribute<?> [] theAttributes;
+	private StyleAttribute<?>[] theAttributes;
 
 	private BackgroundStyle() {
 		theAttributes = new StyleAttribute[0];
@@ -98,17 +98,17 @@ public class BackgroundStyle implements StyleDomain {
 
 	static {
 		instance = new BackgroundStyle();
-		texture = new StyleAttribute<>(instance, "texture", QuickPropertyType.forTypeInstance(Texture.class), new BaseTexture());
+		texture = StyleAttribute.build(instance, "texture", QuickPropertyType.forTypeInstance(Texture.class), new BaseTexture()).build();
 		instance.register(texture);
-		color = new StyleAttribute<>(instance, "color", QuickPropertyType.color, new java.awt.Color(255, 255, 255));
+		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, new java.awt.Color(255, 255, 255)).build();
 		instance.register(color);
-		transparency = new StyleAttribute<>(instance, "transparency", QuickPropertyType.floating, 0d,
-			new QuickProperty.ComparableValidator<>(0d, 1d));
+		transparency = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 0d)
+			.validate(new QuickProperty.ComparableValidator<>(0d, 1d)).build();
 		instance.register(transparency);
-		cornerRadius = new StyleAttribute<>(instance, "corner-radius", LayoutAttributes.sizeType, new Size(),
-			new QuickProperty.ComparableValidator<>(new Size(), null));
+		cornerRadius = StyleAttribute.build(instance, "corner-radius", LayoutAttributes.sizeType, new Size())
+			.validate(new QuickProperty.ComparableValidator<>(new Size(), null)).build();
 		instance.register(cornerRadius);
-		cursor = new StyleAttribute<>(instance, "cursor", CURSOR_PROPERTY_TYPE, Cursor.getDefaultCursor());
+		cursor = StyleAttribute.build(instance, "cursor", CURSOR_PROPERTY_TYPE, Cursor.getDefaultCursor()).build();
 		instance.register(cursor);
 	}
 

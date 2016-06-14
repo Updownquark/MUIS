@@ -9,24 +9,21 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.MutableSelectableDocumentModel;
-import org.quick.core.style.MutableStyle;
-import org.quick.core.style.QuickStyle;
-import org.quick.core.style.StyleAttribute;
+import org.quick.core.style.*;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
 import org.quick.util.Transaction;
 
 import com.google.common.reflect.TypeToken;
-
-import prisms.lang.Type;
 
 /** A {@link MutableDocumentModel} that allows different styles for different sections of text */
 public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDocumentModel implements MutableSelectableDocumentModel {
 	private class RichStyleSequence implements StyledSequence, QuickStyle {
 		private final StringBuilder theContent;
 
-		private final java.util.HashMap<StyleAttribute<?>, Object> theStyles;
+		private final java.util.HashMap<StyleAttribute<?>, ObservableValue<?>> theStyles;
 
 		RichStyleSequence() {
 			theContent = new StringBuilder();
@@ -84,7 +81,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		@Override
 		public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
 			try (Transaction t = holdForRead()) {
-				return ObservableValue.constant(attr.getType().getType(), (T) theStyles.get(attr));
+				return (ObservableValue<T>) theStyles.get(attr);
 			}
 		}
 
@@ -97,11 +94,13 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		}
 	}
 
+	private final QuickMessageCenter theMessageCenter;
 	private List<RichStyleSequence> theSequences;
 
 	/** @param parentStyle The style that all this model's sequences should inherit from */
-	public RichDocumentModel(InternallyStatefulStyle parentStyle) {
+	public RichDocumentModel(InternallyStatefulStyle parentStyle, QuickMessageCenter msg) {
 		super(parentStyle);
+		theMessageCenter = msg;
 		theSequences = new ArrayList<>();
 	}
 
@@ -113,20 +112,13 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	 * @param value The value to set for the attribute at the end of this document
 	 * @return This document, for chaining
 	 */
-	public <T> RichDocumentModel set(StyleAttribute<T> attr, T value) {
+	public <T> RichDocumentModel set(StyleAttribute<T> attr, ObservableValue<T> value) {
 		try (Transaction t = holdForWrite()) {
 			if(last().getStyle().get(attr) == value)
 				return this;
 
 			RichStyleSequence seq = getEmptyLast();
-			value = attr.getType().cast(attr.getType().getType(), value);
-			if(attr.getValidator() != null)
-				try {
-					attr.getValidator().assertValid(value);
-				} catch(org.quick.core.QuickException e) {
-					throw new IllegalArgumentException(e.getMessage());
-				}
-			seq.theStyles.put(attr, value);
+			seq.theStyles.put(attr, new SafeStyleValue<>(attr, value, theMessageCenter));
 		}
 		return this;
 	}
@@ -429,20 +421,21 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> localAttributes() {
-			ObservableHashSet<ObservableSet<StyleAttribute<?>>> ret = new ObservableHashSet<>(new Type(ObservableSet.class, new Type(
-				StyleAttribute.class, new Type(Object.class, true))));
+			ObservableHashSet<ObservableSet<StyleAttribute<?>>> ret = new ObservableHashSet<>(
+				new TypeToken<ObservableSet<StyleAttribute<?>>>() {});
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().localAttributes());
 			}
-			return ObservableSet.unique(ObservableCollection.flatten(ret)).immutable();
+			return ObservableSet.unique(ObservableCollection.flatten(ret), Object::equals).immutable();
 		}
 
 		@Override
-		public <T> MutableStyle set(StyleAttribute<T> attr, T value) throws IllegalArgumentException {
+		public <T> MutableStyle set(StyleAttribute<T> attr, ObservableValue<T> value) throws IllegalArgumentException {
+			SafeStyleValue<T> safe = new SafeStyleValue<>(attr, value, theMessageCenter);
 			try (Transaction t = holdForWrite()) {
 				for(RichStyleSequence seq : getSeqsForMod(attr, value))
-					seq.theStyles.put(attr, value);
+					seq.theStyles.put(attr, safe);
 			}
 
 			fireStyleEvent(theStart, theEnd);
@@ -461,7 +454,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 			return this;
 		}
 
-		List<RichStyleSequence> getSeqsForMod(StyleAttribute<?> attr, Object value) {
+		List<RichStyleSequence> getSeqsForMod(StyleAttribute<?> attr, ObservableValue<?> value) {
 			ArrayList<RichStyleSequence> ret = new ArrayList<>();
 			int pos = 0;
 			for(int i = 0; i < theSequences.size(); i++) {
@@ -470,7 +463,6 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 				RichStyleSequence seq = theSequences.get(i);
 				int nextPos = pos + seq.length();
 				if(nextPos < theStart) {
-				} else if(seq.theStyles.get(attr) == value) {
 				} else if(pos >= theStart && nextPos <= theEnd) {
 					ret.add(seq);
 				} else if(pos >= theStart) {

@@ -2,6 +2,7 @@ package org.quick.core.style.attach;
 
 import java.util.List;
 
+import org.observe.ObservableValue;
 import org.observe.collect.impl.ObservableArrayList;
 import org.observe.util.ObservableUtils;
 import org.quick.core.QuickElement;
@@ -13,7 +14,7 @@ import org.quick.core.style.stateful.MutableStatefulStyle;
 import org.quick.core.style.stateful.StateExpression;
 import org.quick.core.style.stateful.StatefulStyle;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** Represents a style set that applies only to a particular element and not to its descendants */
 public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, org.quick.core.style.QuickStyle {
@@ -25,8 +26,8 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 
 	/** @param elStyle The element style that this self style is for */
 	public ElementSelfStyle(ElementStyle elStyle) {
-		super(ObservableUtils.control(new ObservableArrayList<>(new Type(StatefulStyle.class))), elStyle.getElement().state()
-			.activeStates());
+		super(elStyle.getElement().msg(), ObservableUtils.control(new ObservableArrayList<>(TypeToken.of(StatefulStyle.class))),
+			elStyle.getElement().state().activeStates());
 		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theElStyle = elStyle;
 		theDependencyController.add(elStyle);
@@ -36,7 +37,7 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 			.runWhen(
 				() -> {
 					org.observe.collect.impl.ObservableHashSet<TemplateRole> templateRoles = new org.observe.collect.impl.ObservableHashSet<>(
-						new Type(TemplateRole.class));
+						TypeToken.of(TemplateRole.class));
 					theStyleSheet = new FilteredStyleSheet<>(theElStyle.getElement().getDocument().getStyle(), null, theElStyle
 						.getElement().getClass(), templateRoles.immutable());
 					// Add listener to modify the filtered style sheet's template path
@@ -76,14 +77,14 @@ public class ElementSelfStyle extends AbstractInternallyStatefulStyle implements
 	}
 
 	@Override
-	public <T> ElementSelfStyle set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementSelfStyle set(StyleAttribute<T> attr, ObservableValue<T> value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 		return this;
 	}
 
 	@Override
-	public <T> ElementSelfStyle set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException,
-		IllegalArgumentException {
+	public <T> ElementSelfStyle set(StyleAttribute<T> attr, StateExpression exp, ObservableValue<T> value)
+		throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
 		return this;
 	}

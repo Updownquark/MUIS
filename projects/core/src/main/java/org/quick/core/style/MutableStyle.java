@@ -1,5 +1,7 @@
 package org.quick.core.style;
 
+import org.observe.ObservableValue;
+
 /** An extension of QuickStyle that allows setting of attribute values */
 public interface MutableStyle extends QuickStyle {
 	/**
@@ -9,7 +11,7 @@ public interface MutableStyle extends QuickStyle {
 	 * @return This style, for chaining
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	<T> MutableStyle set(StyleAttribute<T> attr, T value) throws IllegalArgumentException;
+	<T> MutableStyle set(StyleAttribute<T> attr, ObservableValue<T> value) throws IllegalArgumentException;
 
 	/**
 	 * @param attr The attribute to clear the value of

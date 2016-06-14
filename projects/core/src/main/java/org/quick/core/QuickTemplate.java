@@ -22,7 +22,7 @@ import org.quick.core.prop.ExpressionContext;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.attach.StyleAttributeType;
+import org.quick.core.style.attach.StyleAttributes;
 import org.quick.core.tags.ModelAttribute;
 import org.quick.core.tags.Template;
 import org.quick.util.QuickUtils;
@@ -900,6 +900,9 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	private void initModels(TemplateStructure template, DefaultExpressionContext.Builder ctxBuilder) throws QuickException {
+		if (template.getSuperStructure() != null)
+			initModels(template.getSuperStructure(), ctxBuilder);
+
 		Map<String, QuickAttribute<?>> atts = new HashMap<>();
 		for (QuickAttribute<?> att : atts().attributes()) {
 			Class<?> modelAttType = template.getModelAttributes().get(att.getName());
@@ -910,34 +913,14 @@ public abstract class QuickTemplate extends QuickElement {
 			if (!atts.containsKey(att))
 				throw new QuickException("Template-declared attribute " + att + ", type " + template.getModelAttributes().get(att).getName()
 					+ " has not been accepted in this template widget's attributes");
-		QuickParseEnv env = new SimpleParseEnv(getClassView(), getMessageCenter(),
-			DefaultExpressionContext.build()//
-				.withParent(getContext())//
-				.withValue("attributes", ObservableValue.constant(new QuickAppModel() {
-					@Override
-					public Set<String> getFields() {
-						return atts.keySet();
-					}
-
-					@Override
-					public Object getField(String name) {
-						QuickAttribute<?> att = atts.get(name);
-						if (att == null)
-							return null;
-						return atts().get(att);
-					}
-				}))//
-				.build());
 		for (String modelName : template.getModels()) {
 			QuickModelConfig modelConfig = template.getModel(modelName);
 			QuickAppModel model = org.quick.core.model.DefaultQuickModel.buildQuickModel(modelConfig,
-				getDocument().getEnvironment().getAttributeParser(), env);
+				getDocument().getEnvironment().getPropertyParser(),
+				new SimpleParseEnv(theTemplateStructure.getWidgetStructure().getClassView(), msg(), ctxBuilder.copy().build()));
 			theModels.put(modelName, model);
 			ctxBuilder.withValue(modelName, ObservableValue.constant(TypeToken.of(QuickAppModel.class), model));
 		}
-
-		if (template.getSuperStructure() != null)
-			initModels(template.getSuperStructure(), ctxBuilder);
 	}
 
 	@Override
@@ -1061,22 +1044,22 @@ public abstract class QuickTemplate extends QuickElement {
 						+ theTemplateStructure.getDefiner().getName(), e);
 				}
 			} else if (att.getKey().equals("style")) {
-				org.quick.core.style.QuickStyle elStyle = atts().get(StyleAttributeType.STYLE_ATTRIBUTE);
+				org.quick.core.style.QuickStyle elStyle = atts().get(StyleAttributes.STYLE_ATTRIBUTE);
 				org.quick.core.style.QuickStyle templateStyle;
-				org.quick.core.style.SealableStyle newStyle = new org.quick.core.style.SealableStyle();
+				org.quick.core.style.SealableStyle newStyle = new org.quick.core.style.SealableStyle(msg());
 				boolean mod = false;
 				try {
-					templateStyle = StyleAttributeType.parseStyle(this, att.getValue());
+					templateStyle = StyleAttributes.parseStyle(getDocument().getEnvironment().getPropertyParser(), this, att.getValue());
 					for (StyleAttribute<?> styleAtt : templateStyle.attributes()) {
 						if (!elStyle.isSet(styleAtt)) {
 							mod = true;
-							newStyle.set((StyleAttribute<Object>) styleAtt, templateStyle.get(styleAtt));
+							newStyle.set((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) templateStyle.get(styleAtt));
 						}
 					}
 					if (mod) {
 						for (StyleAttribute<?> styleAtt : elStyle.attributes())
-							newStyle.set((StyleAttribute<Object>) styleAtt, elStyle.get(styleAtt));
-						atts().set(StyleAttributeType.STYLE_ATTRIBUTE, newStyle);
+							newStyle.set((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) elStyle.get(styleAtt));
+						atts().set(StyleAttributes.STYLE_ATTRIBUTE, newStyle);
 					}
 				} catch (QuickException e) {
 					msg().error("Could not parse style attribute of template", e);

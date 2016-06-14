@@ -12,6 +12,6 @@ import org.quick.core.style.sheet.ParsedStyleSheet;
 public interface QuickStyleParser {
 	QuickEnvironment getEnvironment();
 
-	ParsedStyleSheet parseStyleSheet(URL location, QuickToolkit toolkit, QuickClassView cv, QuickMessageCenter msg)
-		throws IOException, QuickParseException;
+	ParsedStyleSheet parseStyleSheet(URL location, QuickToolkit toolkit, QuickPropertyParser parser, QuickClassView cv,
+		QuickMessageCenter msg) throws IOException, QuickParseException;
 }

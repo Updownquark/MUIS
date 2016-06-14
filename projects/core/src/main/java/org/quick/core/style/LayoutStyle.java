@@ -25,9 +25,9 @@ public class LayoutStyle implements StyleDomain {
 
 	static {
 		instance = new LayoutStyle();
-		margin = new StyleAttribute<>(instance, "margin", LayoutAttributes.sizeType, new Size(3, LengthUnit.pixels));
+		margin = StyleAttribute.build(instance, "margin", LayoutAttributes.sizeType, new Size(3, LengthUnit.pixels)).build();
 		instance.register(margin);
-		padding = new StyleAttribute<>(instance, "padding", LayoutAttributes.sizeType, new Size(2, LengthUnit.pixels));
+		padding = StyleAttribute.build(instance, "padding", LayoutAttributes.sizeType, new Size(2, LengthUnit.pixels)).build();
 		instance.register(padding);
 	}
 

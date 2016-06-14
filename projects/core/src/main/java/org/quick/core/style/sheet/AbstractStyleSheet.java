@@ -1,6 +1,7 @@
 package org.quick.core.style.sheet;
 
 import org.observe.collect.ObservableList;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleExpressionValue;
 
@@ -9,11 +10,11 @@ public abstract class AbstractStyleSheet extends SimpleStyleSheet {
 	private ObservableList<StyleSheet> theDependencies;
 
 	/**
-	 * Creates the style sheet
-	 *
+	 * @param msg The message center to report style value validation errors to
 	 * @param dependencies The style sheets that this style sheet inherits style information from
 	 */
-	public AbstractStyleSheet(ObservableList<StyleSheet> dependencies) {
+	public AbstractStyleSheet(QuickMessageCenter msg, ObservableList<StyleSheet> dependencies) {
+		super(msg);
 		theDependencies = dependencies;
 	}
 

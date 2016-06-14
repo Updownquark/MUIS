@@ -2,6 +2,7 @@ package org.quick.core.style.sheet;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableList;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 
 /** Represents a style sheet embedded in or referred to (directly or indirectly) from a Quick document */
@@ -11,8 +12,8 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements org.q
 	private java.net.URL theLocation;
 
 	/** @param depends The style sheets that this style sheet inherits style information from */
-	public ParsedStyleSheet(ObservableList<StyleSheet> depends) {
-		super(depends);
+	public ParsedStyleSheet(QuickMessageCenter msg, ObservableList<StyleSheet> depends) {
+		super(msg, depends);
 	}
 
 	@Override
@@ -70,23 +71,15 @@ public class ParsedStyleSheet extends MutableAnimatedStyleSheet implements org.q
 	}
 
 	@Override
-	public <T> ParsedStyleSheet setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr,
-		ObservableValue<? extends T> value) {
-		assertUnsealed();
-		super.setAnimatedValue(attr, expr, value);
-		return this;
-	}
-
-	@Override
-	public <T> ParsedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
-		IllegalArgumentException {
+	public <T> ParsedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, ObservableValue<T> value)
+		throws ClassCastException, IllegalArgumentException {
 		assertUnsealed();
 		super.set(attr, exp, value);
 		return this;
 	}
 
 	@Override
-	public <T> ParsedStyleSheet set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ParsedStyleSheet set(StyleAttribute<T> attr, ObservableValue<T> value) throws ClassCastException, IllegalArgumentException {
 		assertUnsealed();
 		super.set(attr, value);
 		return this;

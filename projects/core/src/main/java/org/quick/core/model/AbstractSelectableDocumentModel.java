@@ -12,6 +12,7 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.qommons.IterableUtils;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
@@ -38,10 +39,10 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	private final ReentrantReadWriteLock theLock;
 
 	/** @param parentStyle The parent style to use for backup styles if this document's content is missing attributes directly */
-	public AbstractSelectableDocumentModel(InternallyStatefulStyle parentStyle) {
+	public AbstractSelectableDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle) {
 		theParentStyle = parentStyle;
-		theNormalStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(parentStyle, false);
-		theSelectedStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(parentStyle, true);
+		theNormalStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, false);
+		theSelectedStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, true);
 		theContentListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 		theSelectionListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
@@ -795,10 +796,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		 * @param parent The parent style to mutate
 		 * @param selected Whether this is to be the selected or deselected style
 		 */
-		public SelectionStyle(InternallyStatefulStyle parent, final boolean selected) {
-			super(ObservableList.constant(TypeToken.of(StatefulStyle.class), (StatefulStyle) parent), selected ? ObservableSet
-				.unique(ObservableCollection.flattenCollections(parent.getState(),
-					ObservableSet.constant(TypeToken.of(QuickState.class), TEXT_SELECTION))) : parent.getState());
+		public SelectionStyle(QuickMessageCenter msg, InternallyStatefulStyle parent, final boolean selected) {
+			super(msg,
+				ObservableList
+					.constant(TypeToken.of(StatefulStyle.class),
+						(StatefulStyle) parent),
+				selected ? ObservableSet.unique(ObservableCollection.flattenCollections(parent.getState(),
+					ObservableSet.constant(TypeToken.of(QuickState.class), TEXT_SELECTION)), Object::equals) : parent.getState());
 		}
 	}
 

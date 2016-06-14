@@ -1,7 +1,9 @@
 package org.quick.core.parser;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import org.quick.core.*;
 import org.quick.core.style.sheet.StateGroupTypeExpression;
@@ -120,7 +122,7 @@ public class ExpressionContextStack implements Iterable<StateGroupTypeExpression
 		QuickTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
 		if(ap == null)
 			throw new QuickParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
-		ArrayList<String> parentGroups = new ArrayList<>();
+		Set<String> parentGroups = new LinkedHashSet<>();
 		for(int i = theStack.size() - 1; i >= 0; i--)
 			if(!theStack.get(i).theGroups.isEmpty()) {
 				parentGroups.addAll(theStack.get(i).theGroups);

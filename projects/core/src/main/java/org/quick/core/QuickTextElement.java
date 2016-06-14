@@ -43,7 +43,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	 */
 	public QuickTextElement(QuickDocumentModel doc) {
 		if(doc == null)
-			doc = new SimpleDocumentModel(getStyle().getSelf());
+			doc = new SimpleDocumentModel(msg(), getStyle().getSelf());
 		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.quick.core.style.FontStyle.getDomainInstance());
 		theDocument = new WrappingDocumentModel(doc);
@@ -158,7 +158,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	/** @param docModel The new document model for this text element */
 	public void setDocumentModel(QuickDocumentModel docModel) {
 		if(docModel == null)
-			docModel = new SimpleDocumentModel(getStyle().getSelf());
+			docModel = new SimpleDocumentModel(msg(), getStyle().getSelf());
 		theDocument.setWrapped(docModel);
 	}
 

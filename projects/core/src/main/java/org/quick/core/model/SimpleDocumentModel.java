@@ -3,6 +3,7 @@ package org.quick.core.model;
 import java.util.Iterator;
 
 import org.qommons.IterableUtils;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
 import org.quick.util.Transaction;
 
@@ -14,14 +15,14 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 	 * @param parentStyle The parent style for this document
 	 * @param text The initial text for this field
 	 */
-	public SimpleDocumentModel(InternallyStatefulStyle parentStyle, String text) {
-		this(parentStyle);
+	public SimpleDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle, String text) {
+		this(msg, parentStyle);
 		theContent.append(text);
 	}
 
 	/** @param parentStyle The parent style for this document */
-	public SimpleDocumentModel(InternallyStatefulStyle parentStyle) {
-		super(parentStyle);
+	public SimpleDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle) {
+		super(msg, parentStyle);
 		theContent = new StringBuilder();
 	}
 

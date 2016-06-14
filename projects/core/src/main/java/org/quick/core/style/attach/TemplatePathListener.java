@@ -1,7 +1,7 @@
 package org.quick.core.style.attach;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
+import java.util.Set;
 
 import org.observe.Subscription;
 import org.qommons.ArrayUtils;
@@ -37,12 +37,12 @@ public class TemplatePathListener {
 
 		TemplatePathListener parentListener;
 
-		org.observe.Action<AttributeChangedEvent<String []>> parentGroupListener;
+		org.observe.Action<AttributeChangedEvent<Set<String>>> parentGroupListener;
 		Subscription parentGroupSubscription;
 
 		TemplateRole [] paths = new TemplateRole[0];
 
-		private List<String> parentGroups;
+		private Set<String> parentGroups;
 	}
 
 	private java.util.List<Listener> theListeners;
@@ -68,7 +68,7 @@ public class TemplatePathListener {
 				+ (element == theElement ? "this" : "a different") + " element.");
 		theElement = element;
 		theElement.events().filterMap(AttributeChangedEvent.base).act(event -> {
-			if(!(event.getAttribute().getType() instanceof QuickTemplate.TemplateStructure.RoleAttributeType))
+			if (!(event.getAttribute() instanceof QuickTemplate.TemplateStructure.RoleAttribute))
 				return;
 			QuickAttribute<AttachPoint> roleAttr = (QuickAttribute<AttachPoint>) event.getAttribute();
 			roleChanged(roleAttr, (AttachPoint) event.getValue());
@@ -86,7 +86,7 @@ public class TemplatePathListener {
 
 	private void checkCurrent() {
 		for(QuickAttribute<?> att : theElement.atts().attributes()) {
-			if(att.getType() instanceof QuickTemplate.TemplateStructure.RoleAttributeType) {
+			if (att instanceof QuickTemplate.TemplateStructure.RoleAttribute) {
 				QuickAttribute<AttachPoint> roleAttr = (QuickAttribute<AttachPoint>) att;
 				roleChanged(roleAttr, theElement.atts().get(roleAttr));
 			}
@@ -119,11 +119,11 @@ public class TemplatePathListener {
 			newValue = new TemplateListenerValue();
 			newValue.role = role;
 			newValue.parent = newAttachParent;
-			String [] groups = newValue.parent.atts().get(org.quick.core.style.attach.GroupPropertyType.attribute);
+			Set<String> groups = newValue.parent.atts().get(StyleAttributes.GROUP_ATTRIBUTE);
 			if(groups == null)
-				newValue.parentGroups = new java.util.ArrayList<>(0);
+				newValue.parentGroups = Collections.emptySet();
 			else
-				newValue.parentGroups = Arrays.asList(groups);
+				newValue.parentGroups = groups;
 		} else
 			newValue = null;
 
@@ -174,8 +174,8 @@ public class TemplatePathListener {
 			notifyPathAdded(singlet);
 			newValue.parentListener.listen(newAttachParent);
 			newValue.parentGroupListener = event -> {
-				List<String> oldGroups = newValue.parentGroups;
-				newValue.parentGroups = Arrays.asList(event.getValue());
+				Set<String> oldGroups = newValue.parentGroups;
+				newValue.parentGroups = event.getValue();
 				for(int i = newValue.paths.length - 1; i >= 0; i--) {
 					notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), newValue.paths[i]),
 						new TemplateRole(newValue.role, newValue.parentGroups, newValue.parent.getClass(), newValue.paths[i]));
@@ -183,7 +183,8 @@ public class TemplatePathListener {
 				notifyPathReplaced(new TemplateRole(newValue.role, oldGroups, newValue.parent.getClass(), null), new TemplateRole(
 					newValue.role, newValue.parentGroups, newValue.parent.getClass(), null));
 			};
-			newValue.parentGroupSubscription = newValue.parent.events().filterMap(AttributeChangedEvent.att(GroupPropertyType.attribute))
+			newValue.parentGroupSubscription = newValue.parent.events()
+				.filterMap(AttributeChangedEvent.att(StyleAttributes.GROUP_ATTRIBUTE))
 				.act(newValue.parentGroupListener);
 		}
 	}

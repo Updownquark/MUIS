@@ -164,8 +164,8 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 			}
 			if (ssLoc != null) {
 				try {
-					ParsedStyleSheet ret = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, toolkit, theEnvironment.cv(),
-						theEnvironment.msg());
+					ParsedStyleSheet ret = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, toolkit,
+						theEnvironment.getPropertyParser(), theEnvironment.cv(), theEnvironment.msg());
 					ret.startAnimation();
 					builder.addStyleSheet(ret);
 				} catch (Exception e) {

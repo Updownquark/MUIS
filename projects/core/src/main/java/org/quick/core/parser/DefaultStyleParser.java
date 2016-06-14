@@ -7,11 +7,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jdom2.Element;
+import org.observe.ObservableValue;
 import org.observe.collect.ObservableList;
 import org.quick.core.*;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
+import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.style.StyleAttribute;
+import org.quick.core.style.StyleDomain;
+import org.quick.core.style.StyleParsingUtils;
 import org.quick.core.style.sheet.ParsedStyleSheet;
+import org.quick.core.style.sheet.StateGroupTypeExpression;
 import org.quick.core.style.sheet.StyleSheet;
 import org.quick.core.style.stateful.StateExpression;
 import org.quick.util.QuickUtils;
@@ -32,8 +38,8 @@ public class DefaultStyleParser implements QuickStyleParser {
 	}
 
 	@Override
-	public ParsedStyleSheet parseStyleSheet(URL location, QuickToolkit toolkit, QuickClassView cv, QuickMessageCenter msg)
-		throws IOException, QuickParseException {
+	public ParsedStyleSheet parseStyleSheet(URL location, QuickToolkit toolkit, QuickPropertyParser parser, QuickClassView cv,
+		QuickMessageCenter msg) throws IOException, QuickParseException {
 		Element rootEl;
 		try {
 			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(location.openStream())).getRootElement();
@@ -41,13 +47,13 @@ public class DefaultStyleParser implements QuickStyleParser {
 			throw new QuickParseException("Could not parse quick style XML for " + location, e);
 		}
 
-		ParsedStyleSheet styleSheet = new ParsedStyleSheet(ObservableList.constant(TypeToken.of(StyleSheet.class)));
+		ParsedStyleSheet styleSheet = new ParsedStyleSheet(msg, ObservableList.constant(TypeToken.of(StyleSheet.class)));
 		ExpressionContextStack stack = new ExpressionContextStack(theEnvironment, toolkit);
 		stack.push();
 		addNamespaces(rootEl, location, stack, msg);
-		for (Element child : rootEl.getChildren()) {
-			parseStyleElement(child, location, cv, msg, stack, styleSheet);
-		}
+		QuickParseEnv parseEnv = new SimpleParseEnv(cv, msg, DefaultExpressionContext.build().build()); // TODO time variables
+		for (Element child : rootEl.getChildren())
+			parseStyleElement(child, location, parser, parseEnv, stack, styleSheet);
 		return null;
 	}
 
@@ -77,10 +83,11 @@ public class DefaultStyleParser implements QuickStyleParser {
 		}
 	}
 
-	private void parseStyleElement(Element xml, URL location, QuickClassView cv, QuickMessageCenter msg, ExpressionContextStack stack,
+	private void parseStyleElement(Element xml, URL location, QuickPropertyParser parser, QuickParseEnv parseEnv,
+		ExpressionContextStack stack,
 		ParsedStyleSheet styleSheet) {
 		stack.push();
-		addNamespaces(xml, location, stack, msg);
+		addNamespaces(xml, location, stack, parseEnv.msg());
 		String name = xml.getAttributeValue("name");
 		switch (xml.getName()) {
 		case "type":
@@ -89,13 +96,13 @@ public class DefaultStyleParser implements QuickStyleParser {
 				type = stack.top().getClassView().loadMappedClass(name, QuickElement.class);
 			} catch (QuickException e) {
 				type = null;
-				msg.error("Could not load element type", e, "type", name);
+				parseEnv.msg().error("Could not load element type", e, "type", name);
 			}
 			if (type != null) {
 				try {
 					stack.addType(type);
 				} catch (QuickParseException e) {
-					msg.error(e.getMessage(), e, "type", type);
+					parseEnv.msg().error(e.getMessage(), e, "type", type);
 				}
 			}
 			break;
@@ -105,7 +112,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 				state = parseState(name, stack);
 			} catch (QuickParseException e) {
 				state = null;
-				msg.error(e.getMessage(), e, "state", name);
+				parseEnv.msg().error(e.getMessage(), e, "state", name);
 			}
 			if (state != null)
 				stack.setState(state);
@@ -114,31 +121,31 @@ public class DefaultStyleParser implements QuickStyleParser {
 			try {
 				stack.addGroup(name);
 			} catch (QuickParseException e) {
-				msg.error(e.getMessage(), e, "group", name);
+				parseEnv.msg().error(e.getMessage(), e, "group", name);
 			}
 			break;
 		case "attach-point":
 			try {
 				stack.addAttachPoint(name, theEnvironment);
 			} catch (QuickParseException e) {
-				msg.error(e.getMessage(), e, "attach-point", name);
+				parseEnv.msg().error(e.getMessage(), e, "attach-point", name);
 			}
 			break;
 		case "domain":
 			for (Element child : xml.getChildren()) {
 				if (!"attr".equals(child.getName())) {
-					msg.error("Only attr elements are allowed under domain elements in style sheets", "name", child.getName());
+					parseEnv.msg().error("Only attr elements are allowed under domain elements in style sheets", "name", child.getName());
 					continue;
 				}
 				String attr = child.getAttributeValue("name");
 				String valueStr = child.getAttributeValue("value");
-				applyStyleValue(name, attr, valueStr, cv, msg, styleSheet, stack);
+				applyStyleValue(name, attr, valueStr, parser, parseEnv, styleSheet, stack);
 			}
 			break;
 		case "attr":
 			String domain = xml.getAttributeValue("domain");
 			String valueStr = xml.getAttributeValue("value");
-			applyStyleValue(domain, name, valueStr, cv, msg, styleSheet, stack);
+			applyStyleValue(domain, name, valueStr, parser, parseEnv, styleSheet, stack);
 		}
 	}
 
@@ -242,9 +249,54 @@ public class DefaultStyleParser implements QuickStyleParser {
 		return ret;
 	}
 
-	private void applyStyleValue(String name, String attr, String valueStr, QuickClassView cv, QuickMessageCenter msg,
+	private void applyStyleValue(String domainName, String attrName, String valueStr, QuickPropertyParser parser, QuickParseEnv parseEnv,
 		ParsedStyleSheet styleSheet, ExpressionContextStack stack) {
-		// TODO Auto-generated method stub
-		int todo = todo;
+		String ns;
+		int nsIdx = domainName.indexOf(':');
+		if (nsIdx >= 0) {
+			ns = domainName.substring(0, nsIdx).trim();
+			domainName = domainName.substring(nsIdx + 1).trim();
+		} else
+			ns = null;
+
+		StyleDomain domain;
+		try {
+			domain = StyleParsingUtils.getStyleDomain(ns, domainName, stack.top().getClassView());
+		} catch (QuickException e) {
+			parseEnv.msg().error("Could not get style domain " + domainName, e);
+			return;
+		}
+
+		StyleAttribute<?> styleAttr = null;
+		for (StyleAttribute<?> attrib : domain)
+			if (attrib.getName().equals(attrName)) {
+				styleAttr = attrib;
+				break;
+			}
+
+		if (styleAttr == null) {
+			parseEnv.msg().warn("No such attribute " + attrName + " in domain " + domainName);
+			return;
+		}
+
+		if(stack.size()>0){
+			for(StateGroupTypeExpression<?> expr : stack){
+				applyParsedValue(parser, parseEnv, styleAttr, valueStr, styleSheet, expr);
+			}
+		} else
+			applyParsedValue(parser, parseEnv, styleAttr, valueStr, styleSheet, null);
+	}
+
+	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
+		ParsedStyleSheet styleSheet, StateGroupTypeExpression<?> expr) {
+		ObservableValue<T> value;
+		try {
+			value = parser.parseProperty(styleAttr, env.getContext(), valueStr);
+		} catch (org.quick.core.QuickException e) {
+			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
+				+ styleAttr.getDomain().getName(), e);
+			return;
+		}
+		styleSheet.set(styleAttr, expr, value);
 	}
 }

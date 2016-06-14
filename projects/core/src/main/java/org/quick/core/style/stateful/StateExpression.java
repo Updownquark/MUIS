@@ -34,7 +34,7 @@ public abstract class StateExpression implements org.quick.core.style.StyleExpre
 
 		@Override
 		public java.util.Iterator<StateExpression> iterator() {
-			return org.qommons.ArrayUtils.iterator(theWrapped, true);
+			return org.qommons.IterableUtils.iterator(theWrapped, true);
 		}
 
 		@Override
@@ -488,7 +488,7 @@ public abstract class StateExpression implements org.quick.core.style.StyleExpre
 
 	/**
 	 * A shortcut for new Simple(state)
-	 * 
+	 *
 	 * @param state The state to create the expression for
 	 * @return The state expression matching the given state
 	 */

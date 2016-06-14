@@ -6,7 +6,6 @@ import java.util.Collections;
 import org.observe.collect.ObservableList;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.*;
-import org.quick.core.parser.attr.DefaultAttributeParser;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.sheet.StyleSheet;
@@ -19,8 +18,8 @@ public class QuickEnvironment implements QuickParseEnv {
 	public static final java.net.URL CORE_TOOLKIT = QuickEnvironment.class.getResource("/QuickRegistry.xml");
 
 	private static class EnvironmentStyle extends org.quick.core.style.sheet.AbstractStyleSheet {
-		EnvironmentStyle(ObservableList<StyleSheet> dependencies) {
-			super(dependencies);
+		EnvironmentStyle(QuickMessageCenter msg, ObservableList<StyleSheet> dependencies) {
+			super(msg, dependencies);
 		}
 
 		@Override
@@ -51,7 +50,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		theCache = new QuickCache();
 		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
 		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
-		theStyle = new EnvironmentStyle(styleDepends);
+		theStyle = new EnvironmentStyle(theMessageCenter, styleDepends);
 		theToolkitLock = new Object();
 	}
 
@@ -77,7 +76,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		return theStyleParser;
 	}
 
-	public QuickPropertyParser getAttributeParser() {
+	public QuickPropertyParser getPropertyParser() {
 		return theAttributeParser;
 	}
 
@@ -168,7 +167,7 @@ public class QuickEnvironment implements QuickParseEnv {
 			theEnv.theDocumentParser = new org.quick.core.parser.QuickDomParser(theEnv);
 			theEnv.theContentCreator = new QuickContentCreator();
 			theEnv.theStyleParser = new DefaultStyleParser(theEnv);
-			theEnv.theAttributeParser = new DefaultAttributeParser(theEnv);
+			theEnv.theAttributeParser = new DefaultPropertyParser(theEnv);
 			return this;
 		}
 

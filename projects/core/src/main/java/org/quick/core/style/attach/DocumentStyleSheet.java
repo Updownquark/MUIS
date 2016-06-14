@@ -5,6 +5,8 @@ import org.observe.util.ObservableUtils;
 import org.quick.core.style.sheet.AbstractStyleSheet;
 import org.quick.core.style.sheet.StyleSheet;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * The {@link StyleSheet} at {@link org.quick.core.QuickDocument document}-level that incorporates the attributes of all style sheets set in
  * the document
@@ -15,7 +17,7 @@ public class DocumentStyleSheet extends AbstractStyleSheet {
 
 	/** @param doc The document that the style sheet is for */
 	public DocumentStyleSheet(org.quick.core.QuickDocument doc) {
-		super(ObservableUtils.control(new ObservableArrayList<>(new prisms.lang.Type(StyleSheet.class))));
+		super(doc.msg(), ObservableUtils.control(new ObservableArrayList<>(TypeToken.of(StyleSheet.class))));
 		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theDoc = doc;
 		theDependencyController.add(0, theDoc.getEnvironment().getStyle());

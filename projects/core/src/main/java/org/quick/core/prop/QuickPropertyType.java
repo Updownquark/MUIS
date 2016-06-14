@@ -18,13 +18,13 @@ import java.util.regex.Pattern;
 
 import org.qommons.ColorUtils;
 import org.qommons.TriFunction;
-import org.qommons.ex.ExBiFunction;
 import org.qommons.ex.ExFunction;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.QuickToolkit;
 import org.quick.core.parser.QuickParseException;
+import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.style.Colors;
 import org.quick.util.QuickUtils;
 
@@ -62,21 +62,27 @@ public final class QuickPropertyType<T> {
 		}
 	}
 
+	public interface PropertySelfParser<T> {
+		T parse(QuickPropertyParser parser, QuickParseEnv parseEnv, String value) throws QuickParseException;
+	}
+
 	private final String theName;
 	private final TypeToken<T> theType;
-	private final ExBiFunction<String, QuickParseEnv, T, QuickParseException> theParser;
+	private final PropertySelfParser<T> theParser;
+	private final boolean isSelfParsingByDefault;
 	private final List<QuickPropertyType.TypeMapping<?, T>> theMappings;
 	private final List<Function<String, ?>> theValueSuppliers;
 	private final List<QuickPropertyType.Unit<?, ?>> theUnits;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
 
-	private QuickPropertyType(String name, TypeToken<T> type, ExBiFunction<String, QuickParseEnv, T, QuickParseException> parser,
-		List<QuickPropertyType.TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers,
+	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser,
+		boolean parseSelfByDefault, List<QuickPropertyType.TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers,
 		List<QuickPropertyType.Unit<?, ?>> units, Function<? super T, String> printer, ExpressionContext ctx) {
 		theName = name;
 		theType = type;
 		theParser = parser;
+		isSelfParsingByDefault = parseSelfByDefault;
 		theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
 		theValueSuppliers = Collections.unmodifiableList(new ArrayList<>(valueSuppliers));
 		theUnits = Collections.unmodifiableList(new ArrayList<>(units));
@@ -161,7 +167,8 @@ public final class QuickPropertyType<T> {
 	public static class Builder<T> {
 		private final String theName;
 		private final TypeToken<T> theType;
-		private ExBiFunction<String, QuickParseEnv, T, QuickParseException> theParser;
+		private PropertySelfParser<T> theParser;
+		private boolean isSelfParsingByDefault;
 		private final List<QuickPropertyType.TypeMapping<?, T>> theMappings;
 		private final List<Function<String, ?>> theValueSuppliers;
 		private final List<QuickPropertyType.Unit<?, ?>> theUnits;
@@ -177,8 +184,9 @@ public final class QuickPropertyType<T> {
 			theCtxBuilder = DefaultExpressionContext.build();
 		}
 
-		public Builder<T> withParser(ExBiFunction<String, QuickParseEnv, T, QuickParseException> parser) {
+		public Builder<T> withParser(PropertySelfParser<T> parser, boolean parseSelfByDefault) {
 			theParser = parser;
+			isSelfParsingByDefault = parseSelfByDefault;
 			return this;
 		}
 
@@ -211,42 +219,32 @@ public final class QuickPropertyType<T> {
 		public QuickPropertyType<T> build() {
 			if (theParser == null)
 				throw new IllegalStateException("No parser set");
-			return new QuickPropertyType<>(theName, theType, theParser, theMappings, theValueSuppliers, theUnits, thePrinter,
-				theCtxBuilder.build());
+			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, theMappings, theValueSuppliers, theUnits,
+				thePrinter, theCtxBuilder.build());
 		}
 	}
 
 	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeToken.of(String.class))
-		.withParser((s, env) -> s)//
+		.withParser((parser, env, s) -> s, true)//
 		.map(TypeToken.of(CharSequence.class), seq -> seq.toString())//
 		.build();
 
-	public static final QuickPropertyType<Boolean> boole = QuickPropertyType.build("boolean", TypeToken.of(Boolean.class))//
-		.withParser((s, env) -> {
-			if ("true".equals(s))
-				return Boolean.TRUE;
-			else if ("false".equals(s))
-				return Boolean.FALSE;
-			else
-				throw new QuickParseException("Unrecognized boolean value: " + s + "  Expected true or false");
-		}).build();
+	public static final QuickPropertyType<Boolean> boole = QuickPropertyType.build("boolean", TypeToken.of(Boolean.class)).build();
 
 	public static final QuickPropertyType<Integer> integer = QuickPropertyType.build("integer", TypeToken.of(Integer.class))
-		.withParser((s, env) -> Integer.parseInt(s))//
 		.map(TypeToken.of(Number.class), num -> num.intValue())//
 		.map(TypeToken.of(Long.class), l -> l.intValue())//
 		.map(TypeToken.of(Character.class), c -> (int) c.charValue())//
 		.build();
 
 	public static final QuickPropertyType<Double> floating = QuickPropertyType.build("float", TypeToken.of(Double.class))
-		.withParser((s, env) -> Double.parseDouble(s))//
 		.map(TypeToken.of(Number.class), num -> num.doubleValue())//
 		.map(TypeToken.of(Long.class), l -> l.doubleValue())//
 		.map(TypeToken.of(Character.class), c -> (double) c.charValue())//
 		.build();
 
 	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeToken.of(Instant.class))
-		.withParser((s, env) -> parseInstant(s))//
+		.withParser((parser, env, s) -> parseInstant(s), true)//
 		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l))//
 		.map(TypeToken.of(Date.class), date -> date.toInstant())//
 		.map(TypeToken.of(Calendar.class), cal -> cal.toInstant())//
@@ -278,7 +276,7 @@ public final class QuickPropertyType<T> {
 		SUPPORTED_CHRONO_UNITS = Collections.unmodifiableMap(chronoUnits);
 
 		Builder<Duration> durationBuilder = QuickPropertyType.build("duration", TypeToken.of(Duration.class))//
-			.withParser((s, env) -> parseDuration(s))//
+			.withParser((parser, env, s) -> parseDuration(s), true)//
 			.withToString(d -> toString(d))//
 			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l));
 		for (Map.Entry<String, ChronoUnit> unit : SUPPORTED_CHRONO_UNITS.entrySet()) {
@@ -365,7 +363,7 @@ public final class QuickPropertyType<T> {
 
 	static {
 		Builder<Color> colorBuilder = QuickPropertyType.build("color", TypeToken.of(Color.class))//
-			.withParser((s, env) -> Colors.parseColor(s))//
+			.withParser((parser, env, s) -> Colors.parseColor(s), true)//
 			.withToString(c -> Colors.toString(c))//
 			.withValues(name -> {
 				return Colors.NAMED_COLORS.get(name);
@@ -406,12 +404,6 @@ public final class QuickPropertyType<T> {
 		for (T value : enumType.getEnumConstants())
 			byName.put(QuickUtils.javaToXML(value.name()), value);
 		Builder<T> builder = build("enum " + enumType.getName(), TypeToken.of(enumType))//
-			.withParser((s, env) -> {
-				T v = byName.get(s);
-				if (v == null)
-					throw new QuickParseException("No such " + enumType.getSimpleName() + " " + s);
-				return v;
-			})//
 			.withToString(v -> QuickUtils.javaToXML(v.name()))//
 			.withValues(s -> byName.get(s))//
 			.withValues(s -> s.equals("numConsts") ? Integer.valueOf(enumType.getEnumConstants().length) : null)//
@@ -468,7 +460,7 @@ public final class QuickPropertyType<T> {
 		TypeToken<Class<? extends T>> typeToken = new TypeToken<Class<? extends T>>() {}.where(new TypeParameter<T>() {},
 			TypeToken.of(type));
 		return build(type.getName() + " type", typeToken)//
-			.withParser((s, env) -> {
+			.withParser((parser, env, s) -> {
 				Class<?> res;
 				try {
 					res = env.cv().loadIfMapped(s, type);
@@ -485,13 +477,13 @@ public final class QuickPropertyType<T> {
 				if (!type.isAssignableFrom(res))
 					throw new QuickParseException("Type " + s + " is not compatible with type " + type.getName());
 				return type.asSubclass(type);
-			})//
+			}, true)//
 			.build();
 	}
 
 	public static final <T> QuickPropertyType<T> forTypeInstance(Class<T> type) {
 		return build(type.getName(), TypeToken.of(type))//
-			.withParser((s, env) -> {
+			.withParser((parser, env, s) -> {
 				Class<?> res;
 				try {
 					res = env.cv().loadIfMapped(s, type);
@@ -523,7 +515,7 @@ public final class QuickPropertyType<T> {
 				} catch (InvocationTargetException | IllegalAccessException e) {
 					throw new QuickParseException("Could not instantiate type " + name, e);
 				}
-			})//
+			}, true)//
 			.build();
 	}
 
@@ -542,7 +534,7 @@ public final class QuickPropertyType<T> {
 	 * </ul>
 	 */
 	public static final QuickPropertyType<URL> resource = build("resource", TypeToken.of(URL.class))// TODO
-		.withParser((s, env) -> {
+		.withParser((parser, env, s) -> {
 			int sepIdx = s.indexOf(':');
 			String namespace = sepIdx < 0 ? null : s.substring(0, sepIdx);
 			String content = sepIdx < 0 ? s : s.substring(sepIdx + 1);
@@ -570,6 +562,6 @@ public final class QuickPropertyType<T> {
 				throw new QuickParseException("resource: Resource property maps to a resource (" + mapped
 					+ ") that cannot be resolved with respect to toolkit \"" + toolkit.getName() + "\"'s URL: \"" + content + "\"");
 			}
-		})//
+		}, true)//
 		.build();
 }

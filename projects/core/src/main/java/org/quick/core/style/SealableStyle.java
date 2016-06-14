@@ -1,26 +1,22 @@
 package org.quick.core.style;
 
-import java.util.Iterator;
-
 import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
-import org.observe.Subscription;
-import org.observe.collect.CollectionSession;
-import org.observe.collect.ObservableElement;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
-import org.qommons.Transaction;
+import org.observe.collect.impl.ObservableHashSet;
+import org.quick.core.mgr.QuickMessageCenter;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A style that can be sealed to be immutable. All observables returned by this style are just to satisfy the interface--the implementations
  * assume that the style is sealed and therefore that no changes occur.
  */
 public class SealableStyle implements MutableStyle, org.qommons.Sealable {
+	private final QuickMessageCenter theMessageCenter;
 	private java.util.HashMap<StyleAttribute<?>, ObservableValue<?>> theValues;
 	private ObservableSet<StyleAttribute<?>> theObservableAttributes;
+	private ObservableSet<StyleAttribute<?>> theExposedAttributes;
 
 	/** Always empty, just here so we can return the same value from the dependencies every time */
 	private final ObservableList<QuickStyle> theDepends;
@@ -28,10 +24,12 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 	private boolean isSealed;
 
 	/** Creates a sealable style */
-	public SealableStyle() {
+	public SealableStyle(QuickMessageCenter msg) {
+		theMessageCenter = msg;
 		theValues = new java.util.HashMap<>();
-		theDepends = ObservableList.constant(new Type(QuickStyle.class));
-		theObservableAttributes = new ConstantObservableSet();
+		theDepends = ObservableList.constant(TypeToken.of(QuickStyle.class));
+		theObservableAttributes = new ObservableHashSet<>(new TypeToken<StyleAttribute<?>>() {});
+		theExposedAttributes = theObservableAttributes.immutable();
 	}
 
 	@Override
@@ -46,14 +44,14 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		ObservableValue<T> ret = (ObservableValue<T>) theValues.getString(attr);
+		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
 		if(ret == null)
 			return ObservableValue.constant(attr.getType().getType(), null);
 		return ret;
 	}
 
 	@Override
-	public <T> SealableStyle set(StyleAttribute<T> attr, T value) {
+	public <T> SealableStyle set(StyleAttribute<T> attr, ObservableValue<T> value) {
 		if(isSealed)
 			throw new SealedException(this);
 		if(value == null) {
@@ -62,18 +60,8 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 		}
 		if(attr == null)
 			throw new NullPointerException("Cannot set the value of a null attribute");
-		T value2 = attr.getType().cast(attr.getType().getType(), value);
-		if(value2 == null)
-			throw new ClassCastException(value.getClass().getName() + " instance " + value + " cannot be set for attribute " + attr
-				+ " of type " + attr.getType());
-		value = value2;
-		if(attr.getValidator() != null)
-			try {
-				attr.getValidator().assertValid(value);
-			} catch(org.quick.core.QuickException e) {
-				throw new IllegalArgumentException(e.getMessage());
-			}
-		theValues.put(attr, ObservableValue.constant(value));
+		theValues.put(attr, new SafeStyleValue<>(attr, value, theMessageCenter));
+		theObservableAttributes.add(attr);
 		return this;
 	}
 
@@ -87,12 +75,12 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		return theObservableAttributes;
+		return theExposedAttributes;
 	}
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> localAttributes() {
-		return theObservableAttributes;
+		return theExposedAttributes;
 	}
 
 	@Override
@@ -107,7 +95,7 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 
 	@Override
 	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<T> ret = (ObservableValue<T>) theValues.getString(attr);
+		ObservableValue<T> ret = (ObservableValue<T>) theValues.get(attr);
 		if(withDefault && ret.get() == null)
 			return ObservableValue.constant(attr.getDefault());
 		return ret;
@@ -125,70 +113,9 @@ public class SealableStyle implements MutableStyle, org.qommons.Sealable {
 		// we'll need to copy them here
 		ret.theValues = new java.util.HashMap<>();
 		ret.theValues.putAll(theValues);
-		ret.theObservableAttributes = ret.new ConstantObservableSet();
+		ret.theObservableAttributes = new ObservableHashSet<>(new TypeToken<StyleAttribute<?>>() {});
+		ret.theObservableAttributes.addAll(theObservableAttributes);
+		ret.theExposedAttributes = ret.theObservableAttributes.immutable();
 		return ret;
-	}
-
-	class ConstantObservableSet implements ObservableSet.PartialSetImpl<StyleAttribute<?>> {
-		private Type theType = new Type(StyleAttribute.class, new Type(Object.class, true));
-
-		@Override
-		public ObservableValue<CollectionSession> getSession() {
-			return ObservableValue.constant(new Type(CollectionSession.class), null);
-		}
-
-		@Override
-		public Transaction lock(boolean write, Object cause) {
-			return () -> {
-			};
-		}
-
-		@Override
-		public Type getType() {
-			return theType;
-		}
-
-		@Override
-		public Iterator<StyleAttribute<?>> iterator() {
-			if(isSealed)
-				return theValues.keySet().iterator();
-			else
-				return org.qommons.ArrayUtils.immutableIterator(theValues.keySet().iterator());
-		}
-
-		@Override
-		public int size() {
-			return theValues.size();
-		}
-
-		@Override
-		public Subscription onElement(java.util.function.Consumer<? super ObservableElement<StyleAttribute<?>>> observer) {
-			for(StyleAttribute<?> att : theValues.keySet())
-				observer.accept(new ObservableElement<StyleAttribute<?>>() {
-					@Override
-					public Type getType() {
-						return theType;
-					}
-
-					@Override
-					public StyleAttribute<?> get() {
-						return att;
-					}
-
-					@Override
-					public Subscription subscribe(Observer<? super ObservableValueEvent<StyleAttribute<?>>> observer2) {
-						observer2.onNext(createInitialEvent(att));
-						return ()->{
-						};
-					}
-
-					@Override
-					public ObservableValue<StyleAttribute<?>> persistent() {
-						return this;
-					}
-				});
-			return () -> {
-			};
-		}
 	}
 }

@@ -4,6 +4,7 @@ import java.net.URL;
 import java.util.*;
 
 import org.observe.collect.ObservableList;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.Version;
 import org.quick.core.style.sheet.StyleSheet;
 
@@ -13,8 +14,8 @@ import com.google.common.reflect.TypeToken;
 public class QuickToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
 	public class ToolkitStyleSheet extends org.quick.core.style.sheet.AbstractStyleSheet {
-		ToolkitStyleSheet(ObservableList<StyleSheet> dependencies) {
-			super(dependencies);
+		ToolkitStyleSheet(QuickMessageCenter msg, ObservableList<StyleSheet> dependencies) {
+			super(msg, dependencies);
 		}
 
 		@Override
@@ -53,7 +54,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		theResourceMappings = Collections.unmodifiableMap(new LinkedHashMap<>(resMap));
 		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
 		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
-		theStyle = new ToolkitStyleSheet(styleDepends);
+		theStyle = new ToolkitStyleSheet(env.msg(), styleDepends);
 
 		for(URL cp : cps)
 			super.addURL(cp);

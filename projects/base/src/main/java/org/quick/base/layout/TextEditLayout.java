@@ -7,18 +7,17 @@ import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.SelectableDocumentModel;
+import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.util.CompoundListener;
 
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickLayout {
 	/** Allows the user to set the length (in characters) of a text-editing widget */
-	public static final org.quick.core.prop.QuickAttribute<Integer> charLengthAtt = new org.quick.core.prop.QuickAttribute<>("length",
-		QuickPropertyType.integer);
+	public static final QuickAttribute<Integer> charLengthAtt = QuickAttribute.build("length", QuickPropertyType.integer).build();
 
 	/** Allows the user to set the height (in characters) of a text-editing widget */
-	public static final org.quick.core.prop.QuickAttribute<Integer> charRowsAtt = new org.quick.core.prop.QuickAttribute<>("rows",
-		QuickPropertyType.integer);
+	public static final QuickAttribute<Integer> charRowsAtt = QuickAttribute.build("rows", QuickPropertyType.integer).build();
 
 	private final CompoundListener.MultiElementCompoundListener theListener;
 

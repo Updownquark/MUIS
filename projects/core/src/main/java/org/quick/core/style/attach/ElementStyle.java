@@ -2,6 +2,7 @@ package org.quick.core.style.attach;
 
 import java.util.List;
 
+import org.observe.ObservableValue;
 import org.observe.collect.impl.ObservableArrayList;
 import org.observe.util.ObservableUtils;
 import org.quick.core.QuickElement;
@@ -9,7 +10,7 @@ import org.quick.core.event.ElementMovedEvent;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.stateful.*;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** A style controlling the appearance of a specific element */
 public class ElementStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, org.quick.core.style.QuickStyle {
@@ -31,7 +32,8 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	 * @param element The element that this style is for
 	 */
 	public ElementStyle(QuickElement element) {
-		super(ObservableUtils.control(new ObservableArrayList<>(new Type(StatefulStyle.class))), element.state().activeStates());
+		super(element.msg(), ObservableUtils.control(new ObservableArrayList<>(TypeToken.of(StatefulStyle.class))),
+			element.state().activeStates());
 		theDependencyController = ObservableUtils.getController(getConditionalDependencies());
 		theElement = element;
 		theSelfStyle = new ElementSelfStyle(this);
@@ -82,13 +84,14 @@ public class ElementStyle extends AbstractInternallyStatefulStyle implements Mut
 	}
 
 	@Override
-	public <T> ElementStyle set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementStyle set(StyleAttribute<T> attr, ObservableValue<T> value) throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 		return this;
 	}
 
 	@Override
-	public <T> ElementStyle set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> ElementStyle set(StyleAttribute<T> attr, StateExpression exp, ObservableValue<T> value)
+		throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
 		return this;
 	}

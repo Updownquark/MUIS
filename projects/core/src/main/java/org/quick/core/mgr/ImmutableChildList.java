@@ -26,6 +26,11 @@ public class ImmutableChildList<E extends QuickElement> implements ElementList<E
 	}
 
 	@Override
+	public boolean isSafe() {
+		return false;
+	}
+
+	@Override
 	public Subscription subscribe(Observer<? super ChildEvent> observer) {
 		return theContents.subscribe(observer);
 	}

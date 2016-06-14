@@ -7,6 +7,7 @@ import org.observe.*;
 import org.observe.collect.ObservableElement;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
@@ -18,13 +19,13 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	private ObservableSet<QuickState> theState;
 
 	/**
-	 * Creates the style
-	 *
+	 * @param msg The message center to report style value validation errors to
 	 * @param dependencies The stateful styles that this style inherits style information from
 	 * @param state The set of states to be the internal state for this style
 	 */
-	public AbstractInternallyStatefulStyle(ObservableList<StatefulStyle> dependencies, ObservableSet<QuickState> state) {
-		super(dependencies);
+	public AbstractInternallyStatefulStyle(QuickMessageCenter msg, ObservableList<StatefulStyle> dependencies,
+		ObservableSet<QuickState> state) {
+		super(msg, dependencies);
 		theState = state;
 	}
 
@@ -61,7 +62,6 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
 		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(
-			attr.getType().getType(),
 			getLocalExpressions(attr).refresh(theState.changes()).filter(sev -> {
 				return stateMatches(sev.getExpression());
 			}).getFirst()).mapEvent(event -> mapEvent(attr, event))) {
@@ -96,6 +96,11 @@ public abstract class AbstractInternallyStatefulStyle extends AbstractStatefulSt
 	public Observable<StyleAttributeEvent<?>> localRemoves() {
 		Observable<StyleAttributeEvent<?>> superLocal = InternallyStatefulStyle.super.localRemoves();
 		return Observable.or(superLocal, new Observable<StyleAttributeEvent<?>>(){
+			@Override
+			public boolean isSafe() {
+				return false;
+			}
+
 			@Override
 			public Subscription subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
 				return theState.onElement(new java.util.function.Consumer<ObservableElement<QuickState>>() {

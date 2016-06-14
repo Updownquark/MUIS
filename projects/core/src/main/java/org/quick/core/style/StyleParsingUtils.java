@@ -1,7 +1,9 @@
 package org.quick.core.style;
 
+import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
+import org.quick.core.parser.QuickPropertyParser;
 
 /** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {
@@ -85,13 +87,15 @@ public class StyleParsingUtils {
 	/**
 	 * Applies a single style attribute to a style
 	 *
+	 * @param parser The property parser to parse the style value
 	 * @param env The parsing environment
 	 * @param style The style to apply the attribute to
 	 * @param domain The domain of the style
 	 * @param attrName The name of the attribute
 	 * @param valueStr The serialized value for the attribute
 	 */
-	public static void applyStyleAttribute(QuickParseEnv env, MutableStyle style, StyleDomain domain, String attrName, String valueStr) {
+	public static void applyStyleAttribute(QuickPropertyParser parser, QuickParseEnv env, MutableStyle style, StyleDomain domain,
+		String attrName, String valueStr) {
 		StyleAttribute<?> styleAttr = null;
 		for(StyleAttribute<?> attrib : domain)
 			if(attrib.getName().equals(attrName)) {
@@ -104,33 +108,33 @@ public class StyleParsingUtils {
 			return;
 		}
 
-		Object value;
+		applyParsedValue(parser, env, styleAttr, valueStr, style);
+	}
+
+	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
+		MutableStyle style) {
+		ObservableValue<T> value;
 		try {
-			value = styleAttr.getType().parse(env, valueStr).get();
+			value = parser.parseProperty(styleAttr, env.getContext(), valueStr);
 		} catch(org.quick.core.QuickException e) {
-			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + attrName + " of domain " + domain.getName(),
-				e);
+			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
+				+ styleAttr.getDomain().getName(), e);
 			return;
 		}
-		if(styleAttr.getValidator() != null)
-			try {
-				((StyleAttribute<Object>) styleAttr).getValidator().assertValid(value);
-			} catch(org.quick.core.QuickException e) {
-				env.msg().warn(e.getMessage());
-				return;
-			}
-		style.set((StyleAttribute<Object>) styleAttr, value);
+		style.set(styleAttr, value);
 	}
 
 	/**
 	 * Applies a bulk style setting to a style
-	 *
+	 * 
+	 * @param parser The property parser to parse style values
 	 * @param env The parsing environment
 	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
 	 */
-	public static void applyStyleSet(QuickParseEnv env, MutableStyle style, StyleDomain domain, String valueStr) {
+	public static void applyStyleSet(QuickPropertyParser parser, QuickParseEnv env, MutableStyle style, StyleDomain domain,
+		String valueStr) {
 		// Setting domain attributes in bulk
 		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(valueStr.length() - 1) != '}') {
 			env.msg().warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
@@ -145,7 +149,7 @@ public class StyleParsingUtils {
 			}
 			String attrName = propEntry.substring(0, idx).trim();
 			String propVal = propEntry.substring(idx + 1).trim();
-			applyStyleAttribute(env, style, domain, attrName, propVal);
+			applyStyleAttribute(parser, env, style, domain, attrName, propVal);
 		}
 	}
 }

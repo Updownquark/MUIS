@@ -7,11 +7,10 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableArrayList;
-import org.observe.util.ObservableUtils;
 import org.quick.core.QuickElement;
 import org.quick.core.event.QuickEvent;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** Governs the set of properties that define how Quick elements of different types render themselves */
 public interface QuickStyle {
@@ -79,11 +78,12 @@ public interface QuickStyle {
 
 	/** @return Attributes set in this style or any of its dependencies */
 	default ObservableSet<StyleAttribute<?>> attributes() {
-		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(new Type(
-			ObservableCollection.class, new Type(StyleAttribute.class)));
+		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(
+			new TypeToken<ObservableCollection<StyleAttribute<?>>>() {});
 		ret.add(localAttributes());
 		ret.add(ObservableCollection.flatten(getDependencies().map(depend -> depend.attributes())));
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret)), false) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(
+			ObservableSet.unique(ObservableCollection.flatten(ret), Object::equals), false) {
 			@Override
 			public String toString() {
 				return "All attributes for " + QuickStyle.this;
@@ -102,8 +102,7 @@ public interface QuickStyle {
 	 * @return The observable value of the attribute in this style's scope
 	 */
 	default <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<T> dependValue = ObservableUtils.flattenListValues(attr.getType().getType(),
-			getDependencies().map(depend -> depend.get(attr, false))).getFirst();
+		ObservableValue<T> dependValue = ObservableList.flattenValues(getDependencies().map(depend -> depend.get(attr, false))).getFirst();
 		return new org.observe.util.ObservableValueWrapper<T>(getLocal(attr).combineV(null, (T local, T depend) -> {
 			if(local != null)
 				return local;
@@ -172,7 +171,7 @@ public interface QuickStyle {
 	 */
 	default Observable<StyleAttributeEvent<?>> watch(StyleAttribute<?>... attrs) {
 		return new org.observe.util.ObservableWrapper<StyleAttributeEvent<?>>(ObservableCollection
-			.fold(ObservableSet.constant(new Type(StyleAttribute.class, new Type(Object.class, true)), attrs).map(attr -> getString(attr)))
+			.fold(ObservableSet.constant(new TypeToken<StyleAttribute<?>>() {}, attrs).map(attr -> get(attr)))
 			.noInit().map(event -> (StyleAttributeEvent<?>) event)) {
 			@Override
 			public String toString() {

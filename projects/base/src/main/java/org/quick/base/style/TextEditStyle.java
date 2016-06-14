@@ -25,8 +25,8 @@ public class TextEditStyle implements org.quick.core.style.StyleDomain {
 
 	static {
 		instance = new TextEditStyle();
-		cursorBlink = new StyleAttribute<>(instance, "cursor-blink", QuickPropertyType.duration, Duration.ofSeconds(1),
-			new QuickProperty.ComparableValidator<>(Duration.ofMillis(-1), Duration.ofMinutes(1)));
+		cursorBlink = StyleAttribute.build(instance, "cursor-blink", QuickPropertyType.duration, Duration.ofSeconds(1))
+			.validate(new QuickProperty.ComparableValidator<>(Duration.ofMillis(-1), Duration.ofMinutes(1))).build();
 		instance.register(cursorBlink);
 	}
 

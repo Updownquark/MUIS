@@ -5,6 +5,8 @@ import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.Subscription;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * A style value that is contingent upon a boolean expression of some type
  *
@@ -29,23 +31,18 @@ public class StyleExpressionValue<E extends StyleExpression<E>, V> implements Ob
 	}
 
 	private final E theExpression;
-	private final ObservableValue<? extends V> theValue;
+	private final ObservableValue<V> theValue;
+	private final SafeStyleValue<V> theSafeValue;
 
 	/**
 	 * @param expression The expression that must be true for this value to be active
 	 * @param value The value for the attribute to enact if the expression is true
+	 * @param safeValue The validated value
 	 */
-	public StyleExpressionValue(E expression, V value) {
-		this(expression, ObservableValue.constant(value));
-	}
-
-	/**
-	 * @param expression The expression that must be true for this value to be active
-	 * @param value The value for the attribute to enact if the expression is true
-	 */
-	public StyleExpressionValue(E expression, ObservableValue<? extends V> value) {
+	public StyleExpressionValue(E expression, ObservableValue<V> value, SafeStyleValue<V> safeValue) {
 		theExpression = expression;
 		theValue = value;
+		theSafeValue = safeValue;
 	}
 
 	/** @return The expression determining when this value applies */
@@ -54,18 +51,23 @@ public class StyleExpressionValue<E extends StyleExpression<E>, V> implements Ob
 	}
 
 	@Override
-	public prisms.lang.Type getType() {
+	public TypeToken<V> getType() {
 		return theValue.getType();
 	}
 
 	@Override
 	public V get() {
-		return theValue.get();
+		return theSafeValue != null ? theSafeValue.get() : theValue.get();
+	}
+
+	@Override
+	public boolean isSafe() {
+		return false;
 	}
 
 	@Override
 	public Subscription subscribe(Observer<? super ObservableValueEvent<V>> observer) {
-		return ((ObservableValue<V>) theValue.mapV(value -> value)).subscribe(observer);
+		return theSafeValue != null ? theSafeValue.subscribe(observer) : theValue.subscribe(observer);
 	}
 
 	@Override

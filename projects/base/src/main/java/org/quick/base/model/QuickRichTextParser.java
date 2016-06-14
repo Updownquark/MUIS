@@ -9,11 +9,11 @@ import org.quick.core.QuickClassView;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.event.QuickEvent;
-import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickMessage.Type;
-import org.quick.core.model.QuickValueReferenceParser;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.parser.QuickParseException;
+import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
 
 /** Parses and formats text in the Quick rich format */
@@ -24,7 +24,7 @@ public class QuickRichTextParser {
 	 * @param <T> The type of the attribute
 	 */
 	public static class StyleValue<T> {
-		/** The styel attribute */
+		/** The style attribute */
 		public final StyleAttribute<T> attr;
 
 		/** The attribute value */
@@ -45,17 +45,13 @@ public class QuickRichTextParser {
 
 	static {
 		Map<String, StyleValue<?>> tgs = new java.util.LinkedHashMap<>();
-		try {
-			tgs.put("b", new StyleValue<>(FontStyle.weight, FontStyle.weight.getType().parse(new NoMVParseEnv(null), "bold").get()));
-			tgs.put("i", new StyleValue<>(FontStyle.slant, FontStyle.slant.getType().parse(new NoMVParseEnv(null), "italic").get()));
-			tgs.put("ul", new StyleValue<>(FontStyle.underline, FontStyle.Underline.on));
-			tgs.put("uldot", new StyleValue<>(FontStyle.underline, FontStyle.Underline.dotted));
-			tgs.put("uldash", new StyleValue<>(FontStyle.underline, FontStyle.Underline.dashed));
-			tgs.put("ulth", new StyleValue<>(FontStyle.underline, FontStyle.Underline.heavy));
-			tgs.put("strike", new StyleValue<>(FontStyle.strike, true));
-		} catch(org.quick.core.QuickException e) {
-			throw new IllegalStateException("Could not build default rich font tags", e);
-		}
+		tgs.put("b", new StyleValue<>(FontStyle.weight, FontStyle.bold));
+		tgs.put("i", new StyleValue<>(FontStyle.slant, FontStyle.italic));
+		tgs.put("ul", new StyleValue<>(FontStyle.underline, FontStyle.Underline.on));
+		tgs.put("uldot", new StyleValue<>(FontStyle.underline, FontStyle.Underline.dotted));
+		tgs.put("uldash", new StyleValue<>(FontStyle.underline, FontStyle.Underline.dashed));
+		tgs.put("ulth", new StyleValue<>(FontStyle.underline, FontStyle.Underline.heavy));
+		tgs.put("strike", new StyleValue<>(FontStyle.strike, true));
 		tags = java.util.Collections.unmodifiableMap(tgs);
 	}
 
@@ -247,7 +243,7 @@ public class QuickRichTextParser {
 				else {
 					QuickStyle style;
 					try {
-						style = org.quick.core.style.attach.StyleAttributeType.parseStyle(env, tagContent.toString());
+						style = org.quick.core.style.attach.StyleAttributes.parseStyle(env, tagContent.toString());
 					} catch(QuickExceptionWrapper e) {
 						throw new QuickParseException("Could not parse tag " + richText.substring(start - 1, end + 1) + " at index " + index
 							+ ": " + e.getMessage(), e.getCause());
@@ -424,8 +420,8 @@ public class QuickRichTextParser {
 		}
 
 		@Override
-		public QuickValueReferenceParser getValueParser() {
-			return theWrapped.getValueParser();
+		public ExpressionContext getContext() {
+			return theWrapped.getContext();
 		}
 	}
 

@@ -8,6 +8,7 @@ import org.quick.core.QuickException;
 import org.quick.core.event.AttributeAcceptedEvent;
 import org.quick.core.event.AttributeChangedEvent;
 import org.quick.core.prop.QuickAttribute;
+import org.quick.core.style.attach.StyleAttributes;
 
 /** Synchronizes attributes from a source to a destination */
 public class QuickAttributeExposer {
@@ -16,8 +17,8 @@ public class QuickAttributeExposer {
 
 	static {
 		java.util.Set<QuickAttribute<?>> excluded = new java.util.HashSet<>();
-		excluded.add(org.quick.core.style.attach.StyleAttributeType.STYLE_ATTRIBUTE);
-		excluded.add(org.quick.core.style.attach.GroupPropertyType.attribute);
+		excluded.add(org.quick.core.style.attach.StyleAttributes.STYLE_ATTRIBUTE);
+		excluded.add(StyleAttributes.GROUP_ATTRIBUTE);
 		EXCLUDED = java.util.Collections.unmodifiableSet(excluded);
 	}
 
@@ -65,7 +66,7 @@ public class QuickAttributeExposer {
 			if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, event.getAttribute()))
 				return;
 			QuickAttribute<?> att = event.getAttribute();
-			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.quick.core.QuickTemplate.TemplateStructure.RoleAttributeType)
+			if (!EXCLUDED.contains(att) && !(att instanceof org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute)
 				&& theDest.atts().isAccepted(att))
 				try {
 					theDest.atts().set((QuickAttribute<Object>) att, event.getValue());
@@ -79,7 +80,7 @@ public class QuickAttributeExposer {
 			QuickAttribute<?> att = holder.getAttribute();
 			if(theAttributes.length > 0 && !ArrayUtils.contains(theAttributes, att))
 				continue;
-			if(!EXCLUDED.contains(att) && !(att.getType() instanceof org.quick.core.QuickTemplate.TemplateStructure.RoleAttributeType)) {
+			if (!EXCLUDED.contains(att) && !(att instanceof org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute)) {
 				try {
 					if(!theSource.atts().isAccepted(att))
 						theSource.atts().accept(this, holder.isRequired(), (QuickAttribute<Object>) att, holder.get());

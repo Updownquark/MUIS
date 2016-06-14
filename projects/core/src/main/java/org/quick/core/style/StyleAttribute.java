@@ -77,7 +77,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 
 	/**
 	 * Builds style attributes
-	 * 
+	 *
 	 * @param <T> The type of attribute to build
 	 */
 	public static class Builder<T> extends QuickProperty.Builder<T> {
@@ -94,6 +94,16 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 			super(name, type);
 			theDomain = domain;
 			theDefValue = defValue;
+		}
+
+		@Override
+		public Builder<T> validate(PropertyValidator<T> validator) {
+			return (Builder<T>) super.validate(validator);
+		}
+
+		@Override
+		public Builder<T> withValues(Function<String, ?> values) {
+			return (Builder<T>) super.withValues(values);
 		}
 
 		@Override

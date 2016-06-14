@@ -1,6 +1,6 @@
 package org.quick.core.style.stateful;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /**
  * An extension of QuickStyle that may have different attribute settings depending on a state. QuickStyle query methods on an implementation
@@ -8,7 +8,7 @@ import prisms.lang.Type;
  */
 public interface StatefulStyle extends org.quick.core.style.ConditionalStyle<StatefulStyle, StateExpression> {
 	@Override
-	public default Type getExpressionType() {
-		return new Type(StateExpression.class);
+	default TypeToken<StateExpression> getExpressionType() {
+		return TypeToken.of(StateExpression.class);
 	}
 }

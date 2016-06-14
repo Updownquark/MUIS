@@ -2,8 +2,7 @@
 package org.quick.core;
 
 import java.awt.Rectangle;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import org.observe.Action;
 import org.qommons.ArrayUtils;
@@ -173,11 +172,11 @@ public abstract class QuickElement implements QuickParseEnv {
 			}
 		});
 		Object styleWanter = new Object();
-		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
+		theAttributeManager.accept(styleWanter, StyleAttributes.STYLE_ATTRIBUTE);
 		// events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
 		// (StylePathAccepter) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		final boolean [] groupCallbackLock = new boolean[1];
-		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute).act(event -> {
+		theAttributeManager.accept(styleWanter, StyleAttributes.GROUP_ATTRIBUTE).act(event -> {
 			if(groupCallbackLock[0])
 				return;
 			groupCallbackLock[0] = true;
@@ -195,12 +194,12 @@ public abstract class QuickElement implements QuickParseEnv {
 				ArrayList<String> groupList = new ArrayList<>();
 				for(TypedStyleGroup<?> group : getStyle().groups(true))
 					groupList.add(group.getRoot().getName());
-				String [] groups = groupList.toArray(new String[groupList.size()]);
-				if(!ArrayUtils.equals(groups, atts().get(GroupPropertyType.attribute)))
+				Set<String> groups = new LinkedHashSet<>(groupList);
+				if (!ArrayUtils.equals(groups, atts().get(StyleAttributes.GROUP_ATTRIBUTE)))
 					try {
-						atts().set(GroupPropertyType.attribute, groups);
+						atts().set(StyleAttributes.GROUP_ATTRIBUTE, groups);
 					} catch(QuickException e) {
-						msg().warn("Error reconciling " + GroupPropertyType.attribute + " attribute with group membership change", e,
+						msg().warn("Error reconciling " + StyleAttributes.GROUP_ATTRIBUTE + " attribute with group membership change", e,
 							"group", event.getGroup());
 					}
 			} finally {
@@ -213,7 +212,7 @@ public abstract class QuickElement implements QuickParseEnv {
 				relayout(false);
 		});
 		theLifeCycleManager.runWhen(() -> {
-			setGroups(theAttributeManager.get(GroupPropertyType.attribute));
+			setGroups(theAttributeManager.get(StyleAttributes.GROUP_ATTRIBUTE));
 			repaint(null, false);
 		}, CoreStage.INIT_SELF.toString(), 2);
 		addAnnotatedStates();
@@ -310,16 +309,17 @@ public abstract class QuickElement implements QuickParseEnv {
 		});
 	}
 
-	private void setGroups(String [] groupNames) {
+	private void setGroups(Set<String> groupNames) {
 		if(getDocument() == null)
 			return;
 		if(groupNames == null)
-			groupNames = new String[0];
+			groupNames = Collections.emptySet();
 		ArrayList<NamedStyleGroup> groups = new ArrayList<>();
 		for(NamedStyleGroup group : getDocument().groups())
 			groups.add(group);
-		ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), groupNames, new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
-			@Override
+		ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), groupNames.toArray(new String[0]),
+			new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
+				@Override
 			public boolean identity(NamedStyleGroup o1, String o2) {
 				return o1.getName().equals(o2);
 			}

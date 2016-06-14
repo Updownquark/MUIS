@@ -1,7 +1,7 @@
 package org.quick.core.style.sheet;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
@@ -14,7 +14,7 @@ import org.quick.core.QuickTemplate.AttachPoint;
 public class TemplateRole {
 	private final AttachPoint theRole;
 
-	private final List<String> theParentGroups;
+	private final Set<String> theParentGroups;
 
 	private final Class<? extends QuickTemplate> theParentType;
 
@@ -26,12 +26,12 @@ public class TemplateRole {
 	 * @param parentType The type of the attach point parent
 	 * @param parentRole The parent role for this path
 	 */
-	public TemplateRole(AttachPoint role, List<String> parentGroups, Class<? extends QuickTemplate> parentType, TemplateRole parentRole) {
+	public TemplateRole(AttachPoint role, Set<String> parentGroups, Class<? extends QuickTemplate> parentType, TemplateRole parentRole) {
 		if(parentType != null && !role.template.getDefiner().isAssignableFrom(parentType))
 			throw new IllegalStateException(parentType.getSimpleName() + " is not a subtype of "
 				+ role.template.getDefiner().getSimpleName());
 		theRole = role;
-		theParentGroups = parentGroups == null ? Collections.EMPTY_LIST : Collections.unmodifiableList(parentGroups);
+		theParentGroups = parentGroups == null ? Collections.emptySet() : Collections.unmodifiableSet(parentGroups);
 		theParentType = parentType == null ? role.template.getDefiner() : parentType;
 		theParentRole = parentRole;
 	}
@@ -52,7 +52,7 @@ public class TemplateRole {
 	}
 
 	/** @return The names of the groups this role's parent belongs to */
-	public List<String> getParentGroups() {
+	public Set<String> getParentGroups() {
 		return theParentGroups;
 	}
 
@@ -123,10 +123,13 @@ public class TemplateRole {
 			ret.append(theRole.template.getDefiner().getSimpleName());
 		if(!theParentGroups.isEmpty()) {
 			ret.append('(');
-			for(int i = 0; i < theParentGroups.size(); i++) {
-				if(i > 0)
+			boolean first = true;
+			for (String g : theParentGroups) {
+				if (first) {
 					ret.append(", ");
-				ret.append(theParentGroups.get(i));
+					first = false;
+				}
+				ret.append(g);
 			}
 			ret.append(')');
 		}

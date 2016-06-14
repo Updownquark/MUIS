@@ -7,7 +7,6 @@ import static org.quick.core.layout.LayoutGuideType.min;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 
-import org.quick.core.parser.QuickParseException;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.LengthUnit;
@@ -20,30 +19,6 @@ import com.google.common.reflect.TypeToken;
 public class LayoutAttributes {
 	/** The type for position-type properties */
 	public static final QuickPropertyType<Position> positionType = QuickPropertyType.build("position", TypeToken.of(Position.class))//
-		.withParser((s, env) -> {
-			String number = s;
-			number = number.replaceAll("\\s", "");
-			int c = 0;
-			boolean neg = number.charAt(c) == '-';
-			if (neg)
-				c++;
-			for (; c < number.length(); c++)
-				if (number.charAt(c) < '0' || number.charAt(c) > '9')
-					break;
-			if (c == 0)
-				throw new QuickParseException("No position specified");
-			if (c == 1 && neg)
-				throw new QuickParseException("No position specified");
-			number = number.substring(neg ? 1 : 0, c);
-			int lengthVal = Integer.parseInt(number);
-			if (c == s.length())
-				return new Position(lengthVal, LengthUnit.pixels); // Default unit
-			String unitString = s.substring(c);
-			for (LengthUnit u : LengthUnit.values())
-				if (u.attrValue.equals(unitString))
-					return new Position(lengthVal, u);
-			throw new QuickParseException(s + " is not a valid position unit");
-		})//
 		.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.pixels))//
 		.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.lexips))//
 		.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.percent))//
@@ -62,30 +37,6 @@ public class LayoutAttributes {
 
 	/** The type for size-type properties */
 	public static final QuickPropertyType<Size> sizeType = QuickPropertyType.build("size", TypeToken.of(Size.class))//
-		.withParser((s, env) -> {
-			String number = s;
-			number = number.replaceAll("\\s", "");
-			int c = 0;
-			boolean neg = number.charAt(c) == '-';
-			if (neg)
-				c++;
-			for (; c < number.length(); c++)
-				if (number.charAt(c) < '0' || number.charAt(c) > '9')
-					break;
-			if (c == 0)
-				throw new QuickParseException("No size specified");
-			if (c == 1 && neg)
-				throw new QuickParseException("No size specified");
-			number = number.substring(neg ? 1 : 0, c);
-			int lengthVal = Integer.parseInt(number);
-			if (c == s.length())
-				return new Size(lengthVal, LengthUnit.pixels); // Default unit
-			String unitString = s.substring(c);
-			for (LengthUnit u : LengthUnit.values())
-				if (u.isSize() && u.attrValue.equals(unitString))
-					return new Size(lengthVal, u);
-			throw new QuickParseException(s + " is not a valid size unit");
-		})//
 		.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.pixels))//
 		.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.lexips))//
 		.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.percent))//

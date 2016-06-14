@@ -6,7 +6,8 @@ import org.observe.collect.impl.ObservableArrayList;
 import org.quick.base.model.TreePath;
 import org.quick.base.model.TreeSelectionModel;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /**
  * Default tree selection model implementation
@@ -21,8 +22,8 @@ public class DefaultTreeSelectionModel<E> extends org.observe.util.ObservableLis
 	 *
 	 * @param type The type of element in the tree
 	 */
-	public DefaultTreeSelectionModel(Type type) {
-		super(new ObservableArrayList<>(new Type(TreePath.class, type)));
+	public DefaultTreeSelectionModel(TypeToken<E> type) {
+		super(new ObservableArrayList<>(new TypeToken<TreePath<E>>() {}.where(new TypeParameter<E>() {}, type)));
 		theControl = getWrapped();
 	}
 

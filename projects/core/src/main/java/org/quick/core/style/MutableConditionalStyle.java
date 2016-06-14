@@ -1,5 +1,7 @@
 package org.quick.core.style;
 
+import org.observe.ObservableValue;
+
 /**
  * An extension of CondtionalStyle that allows setting of attribute values
  *
@@ -15,7 +17,7 @@ public interface MutableConditionalStyle<S extends ConditionalStyle<S, E>, E ext
 	 * @return This style, for chaining
 	 * @throws IllegalArgumentException If the given value is invalid for the given attribute
 	 */
-	<T> MutableConditionalStyle<S, E> set(StyleAttribute<T> attr, E expr, T value);
+	<T> MutableConditionalStyle<S, E> set(StyleAttribute<T> attr, E expr, ObservableValue<T> value);
 
 	/**
 	 * @param attr The attribute to clear the value of

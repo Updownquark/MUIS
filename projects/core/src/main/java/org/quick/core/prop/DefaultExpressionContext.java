@@ -118,6 +118,17 @@ public class DefaultExpressionContext implements ExpressionContext {
 			return this;
 		}
 
+		public Builder copy(){
+			Builder newBuilder=new Builder();
+			newBuilder.theParents.addAll(theParents);
+			newBuilder.theValues.putAll(theValues);
+			newBuilder.theValueGetters.addAll(theValueGetters);
+			newBuilder.theTypes.putAll(theTypes);
+			newBuilder.theFunctions.putAll(theFunctions);
+			newBuilder.theSyntheticTypes.addAll(theSyntheticTypes);
+			return newBuilder;
+		}
+
 		public DefaultExpressionContext build() {
 			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions, theSyntheticTypes);
 		}

@@ -10,6 +10,8 @@ import org.quick.core.style.StyleExpressionValue;
 import org.quick.core.style.stateful.StateExpression;
 import org.quick.core.style.stateful.StatefulStyle;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * A stateful style that gets all its style information from a {@link StyleSheet}, filtered by a group name and an element type
  *
@@ -79,7 +81,7 @@ public class FilteredStyleSheet<E extends QuickElement> implements StatefulStyle
 
 	@Override
 	public ObservableList<StatefulStyle> getConditionalDependencies() {
-		return ObservableList.constant(new prisms.lang.Type(StatefulStyle.class));
+		return ObservableList.constant(TypeToken.of(StatefulStyle.class));
 	}
 
 	@Override
@@ -102,7 +104,7 @@ public class FilteredStyleSheet<E extends QuickElement> implements StatefulStyle
 			if(sev == null)
 				return null;
 			if(matchesFilter(sev.getExpression()))
-				return new StyleExpressionValue<>(sev.getExpression().getState(), sev);
+				return new StyleExpressionValue<>(sev.getExpression().getState(), sev, null);
 			else
 				return null;
 		});

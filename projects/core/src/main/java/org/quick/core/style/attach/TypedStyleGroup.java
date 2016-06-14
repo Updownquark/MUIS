@@ -13,7 +13,7 @@ import org.quick.core.style.sheet.TemplateRole;
 import org.quick.core.style.stateful.AbstractStatefulStyle;
 import org.quick.core.style.stateful.StatefulStyle;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A TypedStyleGroup is a group in Quick that holds members of a given type. This allows styles to be applied not only to named groups (
@@ -54,7 +54,7 @@ public class TypedStyleGroup<E extends QuickElement> extends AbstractStatefulSty
 	 * @param name The name of the root
 	 */
 	protected TypedStyleGroup(QuickDocument doc, TypedStyleGroup<? super E> parent, Class<E> type, String name) {
-		super(ObservableUtils.control(new ObservableArrayList<>(new Type(StatefulStyle.class))));
+		super(doc.msg(), ObservableUtils.control(new ObservableArrayList<>(TypeToken.of(StatefulStyle.class))));
 		theDependenyController = ObservableUtils.getController(getConditionalDependencies());
 		theDocument = doc;
 		theParent = parent;
@@ -67,7 +67,7 @@ public class TypedStyleGroup<E extends QuickElement> extends AbstractStatefulSty
 		 * 3) the parent type group, if it's not null
 		 */
 		NamedStyleGroup root = getRoot();
-		ObservableSet<TemplateRole> roles = ObservableSet.constant(new Type(TemplateRole.class));
+		ObservableSet<TemplateRole> roles = ObservableSet.constant(TypeToken.of(TemplateRole.class));
 		if(root != null && root.getName() != null) // name==null Happens in the super constructor call for NamedStyleGroup
 			theDependenyController.add(new FilteredStyleSheet<>(doc.getStyle(), root.getName(), type, roles));
 		else

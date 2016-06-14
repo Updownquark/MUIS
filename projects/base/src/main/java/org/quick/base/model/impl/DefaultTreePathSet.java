@@ -7,7 +7,8 @@ import org.observe.util.ObservableSetWrapper;
 import org.quick.base.model.TreePath;
 import org.quick.base.model.TreePathSet;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A default implementation of TreePathSet
@@ -22,8 +23,8 @@ public class DefaultTreePathSet<E> extends ObservableSetWrapper<TreePath<E>> imp
 	 *
 	 * @param type The type of element in the tree
 	 */
-	public DefaultTreePathSet(Type type) {
-		super(new ObservableHashSet<>(new Type(TreePath.class, type)));
+	public DefaultTreePathSet(TypeToken<E> type) {
+		super(new ObservableHashSet<>(new TypeToken<TreePath<E>>() {}.where(new TypeParameter<E>() {}, type)));
 		theControl = getWrapped();
 	}
 

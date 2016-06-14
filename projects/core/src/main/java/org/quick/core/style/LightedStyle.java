@@ -36,7 +36,7 @@ public class LightedStyle implements StyleDomain {
 
 	static {
 		instance = new LightedStyle();
-		lightSource = new StyleAttribute<>(instance, "source",
+		lightSource = StyleAttribute.build(instance, "source",
 			QuickPropertyType.build("source", TypeToken.of(Double.class)).withValues(str -> {
 				switch (str) {
 				case "top":
@@ -58,14 +58,14 @@ public class LightedStyle implements StyleDomain {
 				default:
 					return null;
 				}
-			}).build(), 315d, new QuickProperty.ComparableValidator<>(0d, 360d));
+			}).build(), 315d).validate(new QuickProperty.ComparableValidator<>(0d, 360d)).build();
 		instance.register(lightSource);
-		lightColor = new StyleAttribute<>(instance, "color", QuickPropertyType.color, Color.white);
+		lightColor = StyleAttribute.build(instance, "color", QuickPropertyType.color, Color.white).build();
 		instance.register(lightColor);
-		shadowColor = new StyleAttribute<>(instance, "shadow", QuickPropertyType.color, Color.black);
+		shadowColor = StyleAttribute.build(instance, "shadow", QuickPropertyType.color, Color.black).build();
 		instance.register(shadowColor);
-		maxShadingAmount = new StyleAttribute<>(instance, "max-amount", QuickPropertyType.floating, .5,
-			new QuickProperty.ComparableValidator<>(0d, 1d));
+		maxShadingAmount = StyleAttribute.build(instance, "max-amount", QuickPropertyType.floating, .5)
+			.validate(new QuickProperty.ComparableValidator<>(0d, 1d)).build();
 	}
 
 	/** @return The style domain for all lighting styles */

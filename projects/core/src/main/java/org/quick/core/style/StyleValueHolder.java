@@ -6,7 +6,8 @@ import org.observe.collect.ObservableList;
 import org.observe.collect.impl.ObservableArrayList;
 import org.observe.util.ObservableListWrapper;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A utility class used by {@link SimpleConditionalStyle}
@@ -23,11 +24,12 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends Observabl
 	/**
 	 * @param style The style that this object will hold expressions for
 	 * @param attr The attribute that this object will hold expressions for
-	 * @param expressionType The type of style expression that this holder holds
 	 * @param value The initial expression value to hold
 	 */
-	protected StyleValueHolder(ConditionalStyle<?, E> style, StyleAttribute<V> attr, Type expressionType, StyleExpressionValue<E, V> value) {
-		super(new ObservableArrayList<>(new Type(StyleExpressionValue.class, expressionType, new Type(Object.class, true))), false);
+	protected StyleValueHolder(ConditionalStyle<?, E> style, StyleAttribute<V> attr, StyleExpressionValue<E, V> value) {
+		super(new ObservableArrayList<>(new TypeToken<StyleExpressionValue<E, V>>(){}
+			.where(new TypeParameter<E>(){}, style.getExpressionType())
+			.where(new TypeParameter<V>(){}, attr.getType().getType())), false);
 		theStyle = style;
 		theAttribute = attr;
 		theController = getWrapped();
@@ -38,8 +40,8 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends Observabl
 	/** @param value The expression value to add to this holder */
 	public void addValue(StyleExpressionValue<E, V> value) {
 		int index = java.util.Collections.binarySearch(this, value, STYLE_EXPRESSION_COMPARE);
-		if(index >= 0) {
-			while(index < size() && STYLE_EXPRESSION_COMPARE.compare(get(index), value) == 0)
+		if (index >= 0) {
+			while (index < size() && STYLE_EXPRESSION_COMPARE.compare(get(index), value) == 0)
 				index++;
 		} else {
 			index = -(index + 1);
@@ -56,12 +58,12 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends Observabl
 	public boolean removeExpression(E exp) {
 		boolean fireEvent = true;
 		java.util.Iterator<StyleExpressionValue<E, V>> iter = theController.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			StyleExpressionValue<E, V> next = iter.next();
-			if(java.util.Objects.equals(exp, next.getExpression())) {
+			if (java.util.Objects.equals(exp, next.getExpression())) {
 				iter.remove();
 				return fireEvent;
-			} else if(next.getExpression() == null || (exp != null && next.getExpression().getWhenTrue(exp) > 0))
+			} else if (next.getExpression() == null || (exp != null && next.getExpression().getWhenTrue(exp) > 0))
 				fireEvent = false; // Higher-priority expression that encompasses the given expression--no event
 		}
 		return false;
@@ -70,20 +72,20 @@ public class StyleValueHolder<E extends StyleExpression<E>, V> extends Observabl
 	void set(StyleExpressionValue<E, V> sev) {
 		boolean found = false;
 		java.util.ListIterator<StyleExpressionValue<E, V>> iter = theController.listIterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			StyleExpressionValue<E, V> next = iter.next();
-			if(java.util.Objects.equals(sev.getExpression(), next.getExpression())) {
+			if (java.util.Objects.equals(sev.getExpression(), next.getExpression())) {
 				found = true;
 				iter.set(sev);
 				break;
-			} else if(STYLE_EXPRESSION_COMPARE.compare(sev, next) < 0) {
+			} else if (STYLE_EXPRESSION_COMPARE.compare(sev, next) < 0) {
 				iter.previous();
 				iter.add(sev);
 				found = true;
 				break;
 			}
 		}
-		if(!found)
+		if (!found)
 			iter.add(sev);
 	}
 

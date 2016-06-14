@@ -2,17 +2,14 @@ package org.quick.core.style.sheet;
 
 import java.util.Iterator;
 
-import org.observe.ObservableValue;
-import org.quick.core.style.StyleAttribute;
+import org.quick.core.mgr.QuickMessageCenter;
 
-import prisms.lang.Type;
-import prisms.lang.Variable;
+import com.google.common.reflect.TypeToken;
 
 /** A style sheet whose values can be animated internally */
 public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<AnimatedStyleSheet.AnimatedVariable> {
 	/** A variable whose value can change over time to affect style value expressions' evaluated values */
-	public static final class AnimatedVariable extends org.observe.DefaultObservableValue<Double> implements Variable,
-		Iterable<AnimationSegment> {
+	public static final class AnimatedVariable extends org.observe.DefaultObservableValue<Double> implements Iterable<AnimationSegment> {
 		private final String theName;
 
 		private final double theStartValue;
@@ -60,22 +57,10 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 			theCurrentValue = theStartValue;
 		}
 
-		@Override
 		public String getName() {
 			return theName;
 		}
 
-		@Override
-		public boolean isFinal() {
-			return true; // Not modifiable through attribute values
-		}
-
-		@Override
-		public boolean isInitialized() {
-			return true;
-		}
-
-		@Override
 		public Object getValue() {
 			return theCurrentValue;
 		}
@@ -138,8 +123,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 		}
 
 		@Override
-		public Type getType() {
-			return new Type(Double.class);
+		public TypeToken<Double> getType() {
+			return TypeToken.of(Double.class);
 		}
 
 		private void setTime(long time) {
@@ -200,8 +185,8 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 	 *
 	 * @param depends The style sheets that this style sheet inherits style information from
 	 */
-	public AnimatedStyleSheet(org.observe.collect.ObservableList<StyleSheet> depends) {
-		super(depends);
+	public AnimatedStyleSheet(QuickMessageCenter msg, org.observe.collect.ObservableList<StyleSheet> depends) {
+		super(msg, depends);
 		theVariables = new java.util.LinkedHashMap<>();
 	}
 
@@ -292,29 +277,6 @@ public class AnimatedStyleSheet extends AbstractStyleSheet implements Iterable<A
 
 	@Override
 	public Iterator<AnimatedVariable> iterator() {
-		return org.qommons.ArrayUtils.immutableIterator(theVariables.values().iterator());
-	}
-
-	/**
-	 * @param <T> The type of the attribute to set the value for
-	 * @param attr The attribute to set the value for
-	 * @param expr The expression which must be true for the given value to apply
-	 * @param value The observable value for the attribute
-	 * @return This style, for chaining
-	 * @throws ClassCastException If the value's type is not compatible with the attribute
-	 */
-	protected <T> AnimatedStyleSheet setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr,
-		ObservableValue<? extends T> value) {
-		if(!attr.getType().canCast(value.getType()))
-			throw new ClassCastException("Value's type is incompatible with style attribute " + attr);
-		set(attr, expr, value);
-		return this;
-	}
-
-	@Override
-	protected <T> AnimatedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
-		IllegalArgumentException {
-		super.set(attr, exp, (T) new ConstantItem(attr.getType().getType(), value));
-		return this;
+		return org.qommons.IterableUtils.immutableIterator(theVariables.values().iterator());
 	}
 }

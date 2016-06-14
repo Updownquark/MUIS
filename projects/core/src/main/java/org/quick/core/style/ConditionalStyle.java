@@ -8,7 +8,8 @@ import org.observe.collect.ObservableOrderedCollection;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableArrayList;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /**
  * An extension of QuickStyle that may have different attribute settings depending on a condition of some type.
@@ -18,7 +19,7 @@ import prisms.lang.Type;
  */
 public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends StyleExpression<E>> {
 	/** @return The type of expressions that this conditional style uses */
-	Type getExpressionType();
+	TypeToken<E> getExpressionType();
 
 	/**
 	 * @return The styles that this style depends on for attribute values when an attribute's value is not set in this style directly for a
@@ -38,11 +39,12 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 
 	/** @return All style attributes that are set for any condition in this style or any of its dependents */
 	default ObservableSet<StyleAttribute<?>> allAttrs() {
-		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(new Type(ObservableCollection.class,
-			new Type(StyleAttribute.class)));
+		ObservableArrayList<ObservableCollection<StyleAttribute<?>>> ret = new ObservableArrayList<>(
+			new TypeToken<ObservableCollection<StyleAttribute<?>>>() {});
 		ret.add(allLocal());
 		ret.add(ObservableCollection.flatten(getConditionalDependencies().map(depend -> depend.allAttrs())));
-		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(ObservableSet.unique(ObservableCollection.flatten(ret)), false) {
+		return new org.observe.util.ObservableSetWrapper<StyleAttribute<?>>(
+			ObservableSet.unique(ObservableCollection.flatten(ret), Object::equals), false) {
 			@Override
 			public String toString() {
 				return "All attributes for " + ConditionalStyle.this;
@@ -58,17 +60,16 @@ public interface ConditionalStyle<S extends ConditionalStyle<S, E>, E extends St
 	 */
 	default <T> ObservableOrderedCollection<StyleExpressionValue<E, T>> getExpressions(StyleAttribute<T> attr) {
 		ObservableArrayList<ObservableOrderedCollection<StyleExpressionValue<E, T>>> ret = new ObservableArrayList<>(
-			new Type(ObservableOrderedCollection.class, new Type(StyleExpressionValue.class, new Type(Object.class, true), attr.getType()
-				.getType())));
+			new TypeToken<ObservableOrderedCollection<StyleExpressionValue<E, T>>>() {}
+				.where(new TypeParameter<E>() {}, getExpressionType()).where(new TypeParameter<T>() {}, attr.getType().getType()));
 		ret.add(getLocalExpressions(attr));
-		ret.add(ObservableOrderedCollection.flatten(getConditionalDependencies().map(depend -> depend.getExpressions(attr)),
-			STYLE_EXPRESSION_COMPARE));
-		return new org.observe.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret,
-			STYLE_EXPRESSION_COMPARE), false) {
+		ret.add(ObservableOrderedCollection.flatten(getConditionalDependencies().map(depend -> depend.getExpressions(attr))));
+		return new org.observe.util.ObservableOrderedCollectionWrapper<StyleExpressionValue<E, T>>(ObservableOrderedCollection.flatten(ret),
+			false) {
 			@Override
 			public String toString() {
 				return attr + " expressions for " + ConditionalStyle.this;
 			}
-		};
+		}.sorted(STYLE_EXPRESSION_COMPARE);
 	}
 }

@@ -36,18 +36,19 @@ public class BorderStyle implements StyleDomain {
 
 	static {
 		instance = new BorderStyle();
-		thickness = new StyleAttribute<>(instance, "thickness", QuickPropertyType.integer, 1,
-			new QuickProperty.ComparableValidator<>(0, 1000));
+		thickness = StyleAttribute.build(instance, "thickness", QuickPropertyType.integer, 1)
+			.validate(new QuickProperty.ComparableValidator<>(0, 1000)).build();
 		instance.register(thickness);
-		inset = new StyleAttribute<>(instance, "inset", QuickPropertyType.integer, 1, new QuickProperty.ComparableValidator<>(0, 1000));
+		inset = StyleAttribute.build(instance, "inset", QuickPropertyType.integer, 1)
+			.validate(new QuickProperty.ComparableValidator<>(0, 1000)).build();
 		instance.register(inset);
-		color = new StyleAttribute<>(instance, "color", QuickPropertyType.color, new java.awt.Color(0, 0, 0));
+		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, new java.awt.Color(0, 0, 0)).build();
 		instance.register(color);
-		dashLength = new StyleAttribute<>(instance, "dash-length", QuickPropertyType.floating, 3d,
-			new QuickProperty.ComparableValidator<>(1d, 1000d));
+		dashLength = StyleAttribute.build(instance, "dash-length", QuickPropertyType.floating, 3d)
+			.validate(new QuickProperty.ComparableValidator<>(1d, 1000d)).build();
 		instance.register(dashLength);
-		dashInterim = new StyleAttribute<>(instance, "dash-interim", QuickPropertyType.floating, 0d,
-			new QuickProperty.ComparableValidator<>(0d, 1000d));
+		dashInterim = StyleAttribute.build(instance, "dash-interim", QuickPropertyType.floating, 0d)
+			.validate(new QuickProperty.ComparableValidator<>(0d, 1000d)).build();
 		instance.register(dashInterim);
 	}
 

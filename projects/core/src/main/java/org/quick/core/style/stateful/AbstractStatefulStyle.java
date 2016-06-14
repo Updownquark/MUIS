@@ -1,6 +1,7 @@
 package org.quick.core.style.stateful;
 
 import org.observe.collect.ObservableList;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleExpressionValue;
 
@@ -8,8 +9,12 @@ import org.quick.core.style.StyleExpressionValue;
 public abstract class AbstractStatefulStyle extends SimpleStatefulStyle {
 	private final ObservableList<StatefulStyle> theDependencies;
 
-	/** @param dependencies The stateful styles that this style inherits style information from */
-	protected AbstractStatefulStyle(ObservableList<StatefulStyle> dependencies) {
+	/**
+	 * @param msg The message center to report style value validation errors to
+	 * @param dependencies The stateful styles that this style inherits style information from
+	 */
+	protected AbstractStatefulStyle(QuickMessageCenter msg, ObservableList<StatefulStyle> dependencies) {
+		super(msg);
 		theDependencies = dependencies;
 	}
 

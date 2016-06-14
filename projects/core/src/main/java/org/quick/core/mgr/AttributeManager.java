@@ -99,7 +99,7 @@ public class AttributeManager {
 		 * @throws QuickException If the value cannot be parsed or cannot be set for the attribute
 		 */
 		public final T set(String valueStr, QuickParseEnv context) throws QuickException {
-			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getAttributeParser().parseProperty(theAttr,
+			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getPropertyParser().parseProperty(theAttr,
 				context.getContext(), valueStr);
 			setContainedObservable(value);
 			return value.get();

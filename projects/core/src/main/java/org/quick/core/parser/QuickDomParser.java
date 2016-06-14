@@ -69,7 +69,8 @@ public class QuickDomParser implements QuickDocumentParser {
 					return null;
 				}
 				try {
-					ParsedStyleSheet styleSheet = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, null, classView, msg);
+					ParsedStyleSheet styleSheet = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, null,
+						theEnvironment.getPropertyParser(), classView, msg);
 					// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to
 					// the EventQueue somehow
 					styleSheet.startAnimation();

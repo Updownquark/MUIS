@@ -15,10 +15,14 @@ public class FontStyle implements StyleDomain {
 	/** Styles of underlining available */
 	public enum Underline {
 		/** No underline */
-		none, /** A single-pixel solid underline */
-		on, /** A double-pixel solid underline */
-		heavy, /** A dashed-underline */
-		dashed, /** A dotted underline */
+		none,
+		/** A single-pixel solid underline */
+		on,
+		/** A double-pixel solid underline */
+		heavy,
+		/** A dashed-underline */
+		dashed,
+		/** A dotted underline */
 		dotted;
 	}
 
@@ -73,6 +77,23 @@ public class FontStyle implements StyleDomain {
 	/** The vertical stretch factor of the font */
 	public static final StyleAttribute<Double> stretch;
 
+	// Font weights
+	public static final double normalWeight = 1;
+	public static final double extraLight = TextAttribute.WEIGHT_EXTRA_LIGHT;
+	public static final double light = TextAttribute.WEIGHT_LIGHT;
+	public static final double demiLight = TextAttribute.WEIGHT_DEMILIGHT;
+	public static final double semiBold = TextAttribute.WEIGHT_SEMIBOLD;
+	public static final double medium = TextAttribute.WEIGHT_MEDIUM;
+	public static final double demiBold = TextAttribute.WEIGHT_DEMIBOLD;
+	public static final double bold = TextAttribute.WEIGHT_BOLD;
+	public static final double heavy = TextAttribute.WEIGHT_HEAVY;
+	public static final double extraBold = TextAttribute.WEIGHT_EXTRABOLD;
+	public static final double ultraBold = TextAttribute.WEIGHT_ULTRABOLD;
+
+	// Font slants
+	public static final double normalSlant = TextAttribute.POSTURE_REGULAR;
+	public static final double italic = TextAttribute.POSTURE_OBLIQUE;
+
 	static {
 		instance = new FontStyle();
 		QuickPropertyType.Builder<String> familyPTBuilder = QuickPropertyType.build("family", TypeToken.of(String.class));
@@ -80,57 +101,61 @@ public class FontStyle implements StyleDomain {
 		for (String familyName : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames())
 			families.put(familyName.replaceAll(" ", "-"), familyName);
 		familyPTBuilder.withValues(str -> families.get(str));
-		family = new StyleAttribute<>(instance, "family",
-			QuickPropertyType.build("family", TypeToken.of(String.class)).withValues(str -> families.get(str)).build(), "Default");
+		family = StyleAttribute
+			.build(instance, "family",
+				QuickPropertyType.build("family", TypeToken.of(String.class)).withValues(str -> families.get(str)).build(), "Default")
+			.build();
 		instance.register(family);
-		color = new StyleAttribute<>(instance, "color", QuickPropertyType.color, Color.black);
+		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, Color.black).build();
 		instance.register(color);
-		transparency = new StyleAttribute<>(instance, "transparency", QuickPropertyType.floating, 0d,
-			new QuickProperty.ComparableValidator<>(0d, 1d));
+		transparency = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 0d)
+			.validate(new QuickProperty.ComparableValidator<>(0d, 1d)).build();
 		instance.register(transparency);
 		java.util.Map<String, Double> weights = new java.util.HashMap<>();
-		weights.put("normal", 1d);
-		weights.put("extra-light", (double) TextAttribute.WEIGHT_EXTRA_LIGHT);
-		weights.put("light", (double) TextAttribute.WEIGHT_LIGHT);
-		weights.put("demi-light", (double) TextAttribute.WEIGHT_DEMILIGHT);
-		weights.put("semi-bold", (double) TextAttribute.WEIGHT_SEMIBOLD);
-		weights.put("medium", (double) TextAttribute.WEIGHT_MEDIUM);
-		weights.put("demi-bold", (double) TextAttribute.WEIGHT_DEMIBOLD);
-		weights.put("bold", (double) TextAttribute.WEIGHT_BOLD);
-		weights.put("heavy", (double) TextAttribute.WEIGHT_HEAVY);
-		weights.put("extra-bold", (double) TextAttribute.WEIGHT_EXTRABOLD);
-		weights.put("ultra-bold", (double) TextAttribute.WEIGHT_ULTRABOLD);
-		weight = new StyleAttribute<>(instance, "weight",
-			QuickPropertyType.build("weight", TypeToken.of(Double.class)).withValues(str -> weights.get(str)).build(), 1d,
-			new QuickProperty.ComparableValidator<>(0.25d, 3d));
+		weights.put("normal", normalWeight);
+		weights.put("extra-light", extraLight);
+		weights.put("light", light);
+		weights.put("demi-light", demiLight);
+		weights.put("semi-bold", semiBold);
+		weights.put("medium", medium);
+		weights.put("demi-bold", demiBold);
+		weights.put("bold", bold);
+		weights.put("heavy", heavy);
+		weights.put("extra-bold", extraBold);
+		weights.put("ultra-bold", ultraBold);
+		weight = StyleAttribute
+			.build(instance, "weight",
+				QuickPropertyType.build("weight", TypeToken.of(Double.class)).withValues(str -> weights.get(str)).build(), 1d)
+			.validate(new QuickProperty.ComparableValidator<>(0.25d, 3d)).build();
 		instance.register(weight);
-		slant = new StyleAttribute<>(instance, "slant", QuickPropertyType.build("slant", TypeToken.of(Double.class)).withValues(str -> {
+		slant = StyleAttribute.build(instance, "slant", QuickPropertyType.build("slant", TypeToken.of(Double.class)).withValues(str -> {
 			switch (str) {
 			case "normal":
-				return 0d;
+				return normalSlant;
 			case "italic":
-				return (double) TextAttribute.POSTURE_OBLIQUE;
+				return italic;
 			default:
 				return null;
 			}
-		}).build(), 0d, new QuickProperty.ComparableValidator<>(-1d, 1d));
+		}).build(), 0d).validate(new QuickProperty.ComparableValidator<>(-1d, 1d)).build();
 		instance.register(slant);
-		underline = new StyleAttribute<>(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none);
+		underline = StyleAttribute.build(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none).build();
 		instance.register(underline);
-		strike = new StyleAttribute<>(instance, "strike", QuickPropertyType.boole, false);
+		strike = StyleAttribute.build(instance, "strike", QuickPropertyType.boole, false).build();
 		instance.register(strike);
-		size = new StyleAttribute<>(instance, "size", QuickPropertyType.floating, 12d, new QuickProperty.ComparableValidator<>(0.1d, 256d));
+		size = StyleAttribute.build(instance, "size", QuickPropertyType.floating, 12d)
+			.validate(new QuickProperty.ComparableValidator<>(0.1d, 256d)).build();
 		instance.register(size);
-		kerning = new StyleAttribute<>(instance, "kerning", QuickPropertyType.boole, true);
+		kerning = StyleAttribute.build(instance, "kerning", QuickPropertyType.boole, true).build();
 		instance.register(kerning);
-		ligatures = new StyleAttribute<>(instance, "ligatures", QuickPropertyType.boole, true);
+		ligatures = StyleAttribute.build(instance, "ligatures", QuickPropertyType.boole, true).build();
 		instance.register(ligatures);
-		antiAlias = new StyleAttribute<>(instance, "anti-alias", QuickPropertyType.boole, false);
+		antiAlias = StyleAttribute.build(instance, "anti-alias", QuickPropertyType.boole, false).build();
 		instance.register(antiAlias);
-		wordWrap = new StyleAttribute<>(instance, "word-wrap", QuickPropertyType.boole, true);
+		wordWrap = StyleAttribute.build(instance, "word-wrap", QuickPropertyType.boole, true).build();
 		instance.register(wordWrap);
-		stretch = new StyleAttribute<>(instance, "stretch", QuickPropertyType.floating, 1d,
-			new QuickProperty.ComparableValidator<>(0.05d, 100d));
+		stretch = StyleAttribute.build(instance, "stretch", QuickPropertyType.floating, 1d)
+			.validate(new QuickProperty.ComparableValidator<>(0.05d, 100d)).build();
 		instance.register(stretch);
 	}
 

@@ -1,8 +1,6 @@
 package org.quick.core.style.sheet;
 
-import org.quick.core.QuickElement;
-
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /**
  * Represents a style sheet in Quick that can be populated with style attribute values that are potentially specific to a
@@ -11,7 +9,7 @@ import prisms.lang.Type;
  */
 public interface StyleSheet extends org.quick.core.style.ConditionalStyle<StyleSheet, StateGroupTypeExpression<?>> {
 	@Override
-	public default Type getExpressionType() {
-		return new Type(StateGroupTypeExpression.class, new Type(QuickElement.class, true));
+	public default TypeToken<StateGroupTypeExpression<?>> getExpressionType() {
+		return new TypeToken<StateGroupTypeExpression<?>>() {};
 	}
 }

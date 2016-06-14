@@ -2,13 +2,14 @@ package org.quick.core.style.sheet;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableList;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 
 /** An AnimatedStyleSheet whose modification methods are exposed */
 public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {
 	/** @param depends The style sheets that this style sheet inherits style information from */
-	public MutableAnimatedStyleSheet(ObservableList<StyleSheet> depends) {
-		super(depends);
+	public MutableAnimatedStyleSheet(QuickMessageCenter msg, ObservableList<StyleSheet> depends) {
+		super(msg, depends);
 	}
 
 	@Override
@@ -32,21 +33,15 @@ public class MutableAnimatedStyleSheet extends AnimatedStyleSheet {
 	}
 
 	@Override
-	public <T> MutableAnimatedStyleSheet setAnimatedValue(StyleAttribute<T> attr, StateGroupTypeExpression<?> expr,
-		ObservableValue<? extends T> value) {
-		super.setAnimatedValue(attr, expr, value);
-		return this;
-	}
-
-	@Override
-	public <T> MutableAnimatedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
-		IllegalArgumentException {
+	public <T> MutableAnimatedStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, ObservableValue<T> value)
+		throws ClassCastException, IllegalArgumentException {
 		super.set(attr, exp, value);
 		return this;
 	}
 
 	@Override
-	public <T> MutableAnimatedStyleSheet set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
+	public <T> MutableAnimatedStyleSheet set(StyleAttribute<T> attr, ObservableValue<T> value)
+		throws ClassCastException, IllegalArgumentException {
 		super.set(attr, value);
 		return this;
 	}

@@ -8,7 +8,7 @@ import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleExpressionValue;
 
-import prisms.lang.Type;
+import com.google.common.reflect.TypeToken;
 
 /** A {@link QuickStyle} implementation that gets all its information from a {@link StatefulStyle} for a particular state */
 public class StatefulStyleSample implements QuickStyle {
@@ -37,7 +37,7 @@ public class StatefulStyleSample implements QuickStyle {
 
 	@Override
 	public ObservableList<QuickStyle> getDependencies() {
-		return ObservableList.constant(new Type(QuickStyle.class)); // Empty list
+		return ObservableList.constant(TypeToken.of(QuickStyle.class)); // Empty list
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class StatefulStyleSample implements QuickStyle {
 
 	@Override
 	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(attr.getType().getType(),
+		return new org.observe.util.ObservableValueWrapper<T>(ObservableValue.flatten(
 			theStatefulStyle.getExpressions(attr).refresh(theState.changes()).find((StyleExpressionValue<StateExpression, T> sev) -> {
 				System.out.println("Checking " + sev.getExpression() + " for " + attr);
 				if(sev.getExpression() == null || sev.getExpression().matches(theState))
@@ -75,7 +75,7 @@ public class StatefulStyleSample implements QuickStyle {
 					if(sev.getExpression() == null || sev.getExpression().matches(theState))
 						return attr;
 				return null;
-			})), false) {
+			}), Object::equals), false) {
 
 			@Override
 			public String toString() {

@@ -24,8 +24,8 @@ public class ButtonStyle implements StyleDomain {
 
 	static {
 		instance = new ButtonStyle();
-		clickTolerance = new StyleAttribute<>(instance, "transparency", QuickPropertyType.floating, 5d,
-			new QuickProperty.ComparableValidator<>(0d, Double.MAX_VALUE));
+		clickTolerance = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 5d)
+			.validate(new QuickProperty.ComparableValidator<>(0d, Double.MAX_VALUE)).build();
 		instance.register(clickTolerance);
 	}
 

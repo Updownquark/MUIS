@@ -131,12 +131,12 @@ public abstract class CompoundListener<T> {
 
 	/** A utility change listener to cause a layout action in the element or parent element */
 	public static final ChangeListener layout = element -> {
-		element.getString(false);
+		element.relayout(false);
 	};
 
 	/** A utility change listener to fire a {@link org.quick.core.event.SizeNeedsChangedEvent} on the element or parent element */
 	public static final ChangeListener sizeNeedsChanged = element -> {
-		element.getString().fire(new org.quick.core.event.SizeNeedsChangedEvent(element, null));
+		element.events().fire(new org.quick.core.event.SizeNeedsChangedEvent(element, null));
 	};
 
 	/**
@@ -317,10 +317,10 @@ public abstract class CompoundListener<T> {
 			theWanter = wanter;
 			theChildListener = new ChildCompoundListener(this);
 			theAllIndividualsChecker = el -> {
-				theChildListener.getString();
+				theChildListener.updateAllIndividuals();
 			};
 			theIndividualChecker = el -> {
-				theChildListener.getString(el);
+				theChildListener.updateIndividual(el);
 			};
 			theDropObservable = new org.observe.DefaultObservable<>();
 			theDropController = ((org.observe.DefaultObservable<Void>) theDropObservable).control(null);
@@ -406,13 +406,13 @@ public abstract class CompoundListener<T> {
 
 		ChildCompoundListener(CompoundElementListener elListener) {
 			theElListener = elListener;
-			theAddedListener = getString -> {
+			theAddedListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					((ChildChainedCompoundListener<?>) chain).childAdded(event.getChild());
 				for(String name : getChainNames())
 					((ChildChainedCompoundListener<?>) chain(name)).childAdded(event.getChild());
 				synchronized(theElementListeners) {
-					CompoundElementListener childListener = theElementListeners.getString(event.getChild());
+					CompoundElementListener childListener = theElementListeners.get(event.getChild());
 					if(childListener == null) {
 						childListener = create(event.getChild(), theElListener.getWanter());
 						theElementListeners.put(event.getChild(), childListener);
@@ -421,7 +421,7 @@ public abstract class CompoundListener<T> {
 						listener.individual(event.getChild(), childListener);
 				}
 			};
-			theRemovedListener = getString -> {
+			theRemovedListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					((ChildChainedCompoundListener<?>) chain).childRemoved(event.getChild());
 				for(String name : getChainNames())
@@ -433,13 +433,13 @@ public abstract class CompoundListener<T> {
 					}
 				}
 			};
-			theAttListener = getString -> {
+			theAttListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					chain.attListener.act(event);
 				for(String name : getChainNames())
 					((ChildChainedCompoundListener<?>) chain(name)).attListener.act(event);
 			};
-			theStyleListener = getString -> {
+			theStyleListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					chain.styleListener.act(event);
 				for(String name : getChainNames())
@@ -462,7 +462,7 @@ public abstract class CompoundListener<T> {
 				synchronized(theIndividualListeners) {
 					theIndividualListeners.add(listener);
 					for(QuickElement child : theElListener.getElement().getChildren()) {
-						CompoundElementListener childListener = theElementListeners.getString(child);
+						CompoundElementListener childListener = theElementListeners.get(child);
 						if(childListener == null) {
 							childListener = create(child, theElListener.getWanter());
 							theElementListeners.put(child, childListener);
@@ -475,7 +475,7 @@ public abstract class CompoundListener<T> {
 		void updateAllIndividuals() {
 			synchronized(theIndividualListeners) {
 				for(QuickElement child : theElListener.getElement().getChildren()) {
-					CompoundElementListener childListener = theElementListeners.getString(child);
+					CompoundElementListener childListener = theElementListeners.get(child);
 					if(childListener != null)
 						for(IndividualElementListener individualListener : theIndividualListeners)
 							individualListener.update(child, childListener);
@@ -485,7 +485,7 @@ public abstract class CompoundListener<T> {
 
 		void updateIndividual(QuickElement child) {
 			synchronized(theIndividualListeners) {
-				CompoundElementListener childListener = theElementListeners.getString(child);
+				CompoundElementListener childListener = theElementListeners.get(child);
 				if(childListener != null)
 					for(IndividualElementListener individualListener : theIndividualListeners)
 						individualListener.update(child, childListener);
@@ -559,7 +559,7 @@ public abstract class CompoundListener<T> {
 			ChainedCompoundListener<?> ret;
 			synchronized(theAnonymousChains) {
 				if(name != null) {
-					ret = theNamedChains.getString(name);
+					ret = theNamedChains.get(name);
 					if(ret == null) {
 						ret = createChain();
 						theNamedChains.put(name, ret);
@@ -732,12 +732,12 @@ public abstract class CompoundListener<T> {
 
 			attListener = event -> {
 				QuickEventListener<AttributeChangedEvent<?>> [] listeners;
-				boolean getString;
+				boolean contains;
 				synchronized(theChained) {
 					contains = theChained.containsKey(event.getAttribute());
 				}
 				synchronized(theSpecificListeners) {
-					listeners = theSpecificListeners.getString(event.getAttribute());
+					listeners = theSpecificListeners.get(event.getAttribute());
 				}
 				if(contains) {
 					for(ChangeListener run : theListeners)
@@ -749,7 +749,7 @@ public abstract class CompoundListener<T> {
 			};
 			styleListener = event -> {
 				boolean contains;
-				QuickEventListener<StyleAttributeEvent<?>> [] getString;
+				QuickEventListener<StyleAttributeEvent<?>> [] listeners;
 				synchronized(theStyleDomains) {
 					contains = theStyleDomains.contains(event.getAttribute().getDomain());
 				}
@@ -758,7 +758,7 @@ public abstract class CompoundListener<T> {
 						contains = theStyleAttributes.contains(event.getAttribute());
 					}
 				synchronized(theSpecificStyleListeners) {
-					listeners = theSpecificStyleListeners.getString(event.getAttribute());
+					listeners = theSpecificStyleListeners.get(event.getAttribute());
 				}
 				if(contains) {
 					for(ChangeListener run : theListeners)
@@ -784,7 +784,7 @@ public abstract class CompoundListener<T> {
 
 		Action<StyleAttributeEvent<?>> getStyleListener() {
 			return event -> {
-				QuickElement getString;
+				QuickElement element;
 				if(event.getLocalStyle() instanceof org.quick.core.style.attach.ElementStyle)
 					element = ((org.quick.core.style.attach.ElementStyle) event.getLocalStyle()).getElement();
 				else if(event.getLocalStyle() instanceof org.quick.core.style.attach.ElementSelfStyle)
@@ -812,7 +812,7 @@ public abstract class CompoundListener<T> {
 
 		<A> QuickEventListener<AttributeChangedEvent<? super A>> [] getSpecificListeners(QuickAttribute<A> attr) {
 			synchronized(theSpecificListeners) {
-				return (QuickEventListener<AttributeChangedEvent<? super A>> []) (Object []) theSpecificListeners.getString(attr);
+				return (QuickEventListener<AttributeChangedEvent<? super A>> []) (Object []) theSpecificListeners.get(attr);
 			}
 		}
 
@@ -983,7 +983,7 @@ public abstract class CompoundListener<T> {
 			if(theLastAttr == null)
 				throw new IllegalStateException("No attribute to listen to");
 			synchronized(theSpecificListeners) {
-				QuickEventListener<AttributeChangedEvent<?>> [] listeners = theSpecificListeners.getString(theLastAttr);
+				QuickEventListener<AttributeChangedEvent<?>> [] listeners = theSpecificListeners.get(theLastAttr);
 				if(listeners == null)
 					listeners = new QuickEventListener[] {listener};
 				else
@@ -998,7 +998,7 @@ public abstract class CompoundListener<T> {
 			if(theLastStyleAttr == null)
 				throw new IllegalStateException("No style attribute to listen to");
 			synchronized(theSpecificStyleListeners) {
-				QuickEventListener<StyleAttributeEvent<?>> [] listeners = theSpecificStyleListeners.getString(theLastStyleAttr);
+				QuickEventListener<StyleAttributeEvent<?>> [] listeners = theSpecificStyleListeners.get(theLastStyleAttr);
 				if(listeners == null)
 					listeners = new QuickEventListener[] {listener};
 				else
@@ -1120,9 +1120,9 @@ public abstract class CompoundListener<T> {
 			theChildListener = new MultiElementChildCompoundListener();
 			theIndividualListeners = new ArrayList<>();
 			// Don't know why these are here anymore
-			theAllIndividualsChecker = getString -> {
+			theAllIndividualsChecker = element -> {
 			};
-			theIndividualChecker = getString -> {
+			theIndividualChecker = element -> {
 			};
 		}
 
@@ -1163,7 +1163,7 @@ public abstract class CompoundListener<T> {
 		 */
 		public CompoundElementListener listenerFor(QuickElement element) {
 			synchronized(theListeners) {
-				CompoundElementListener ret = theListeners.getString(element);
+				CompoundElementListener ret = theListeners.get(element);
 				if(ret == null) {
 					ret = new CompoundElementListener(element, theWanter);
 					for(ChainedCompoundListener<?> chain : getAnonymousChains())

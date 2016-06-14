@@ -5,7 +5,10 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.observe.*;
-import org.quick.core.*;
+import org.quick.core.QuickConstants;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickException;
+import org.quick.core.QuickParseEnv;
 import org.quick.core.event.AttributeChangedEvent;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
@@ -21,8 +24,6 @@ public class AttributeManager {
 	 * @param <T> The type of the attribute to hold
 	 */
 	public class AttributeHolder<T> extends DefaultObservableValue<T> {
-		private AttributeHolder<T> theParent;
-
 		private final QuickAttribute<T> theAttr;
 
 		private final Observer<ObservableValueEvent<T>> theController;
@@ -66,11 +67,6 @@ public class AttributeManager {
 			theAttr = attr;
 		}
 
-		AttributeHolder(QuickPathedAttribute<T> attr, AttributeHolder<T> parent) {
-			theParent = parent;
-			theAttr = attr;
-		}
-
 		/** @return The attribute that this holder holds */
 		public final QuickAttribute<T> getAttribute() {
 			return theAttr;
@@ -103,8 +99,8 @@ public class AttributeManager {
 		 * @throws QuickException If the value cannot be parsed or cannot be set for the attribute
 		 */
 		public final T set(String valueStr, QuickParseEnv context) throws QuickException {
-			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getAttributeParser()
-				.parseProperty(theAttr.getType(), context.getContext(), valueStr);
+			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getAttributeParser().parseProperty(theAttr,
+				context.getContext(), valueStr);
 			setContainedObservable(value);
 			return value.get();
 		}
@@ -185,8 +181,6 @@ public class AttributeManager {
 		}
 
 		synchronized void addWanter(Object wanter, boolean isNeeder) {
-			if(theParent != null)
-				throw new IllegalStateException("Only root attributes can be wanted");
 			wasWanted = true;
 			IdentityHashMap<Object, Object> set = isNeeder ? theNeeders : theWanters;
 			if(set == null) {
@@ -201,15 +195,11 @@ public class AttributeManager {
 
 		/** @return Whether this attribute is required in this manager */
 		public final boolean isRequired() {
-			if(theParent != null)
-				return false;
 			IdentityHashMap<Object, Object> needers = theNeeders;
 			return needers != null && !needers.isEmpty();
 		}
 
 		final boolean isWanted() {
-			if(theParent != null)
-				return theParent.isWanted();
 			if(isRequired())
 				return true;
 			IdentityHashMap<Object, Object> wanters = theWanters;
@@ -217,14 +207,10 @@ public class AttributeManager {
 		}
 
 		final boolean wasWanted() {
-			if(theParent != null)
-				return theParent.wasWanted();
 			return wasWanted;
 		}
 
 		synchronized final void unrequire(Object wanter) {
-			if(theParent != null)
-				throw new IllegalStateException("Non-root attributes cannot be unrequired");
 			if(theNeeders != null)
 				theNeeders.remove(wanter);
 			if(theWanters == null)
@@ -233,8 +219,6 @@ public class AttributeManager {
 		}
 
 		synchronized final void reject(Object rejecter) {
-			if(theParent != null)
-				throw new IllegalStateException("Non-root attributes cannot be rejected");
 			if(theNeeders != null)
 				theNeeders.remove(rejecter);
 			if(theWanters != null)
@@ -284,26 +268,11 @@ public class AttributeManager {
 		if(holder == null && add) {
 			if(theRawAttributes != null)
 				theRawAttributes.remove(attr.getName());
-			if(attr instanceof QuickPathedAttribute) {
-				QuickPathedAttribute<T> pathed = (QuickPathedAttribute<T>) attr;
-				holder = (AttributeHolder<T>) theAcceptedAttrs.get(pathed.getBase());
-				if(holder == null) {
-					if(theElement.life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) >= 0)
-						throw new QuickException("Attribute " + attr + " is not accepted in this element");
-					holder = new AttributeHolder<>(pathed.getBase());
-					theAcceptedAttrs.put(attr, holder);
-				}
-				AttributeHolder<T> pathedHolder = new AttributeHolder<>(pathed, holder);
-				theAcceptedAttrs.put(attr, pathedHolder);
-				theAttributesByName.put(attr.getName(), attr);
-				holder = pathedHolder;
-			} else {
-				if(theElement.life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) >= 0)
-					throw new QuickException("Attribute " + attr + " is not accepted in this element");
-				holder = new AttributeHolder<>(attr);
-				theAcceptedAttrs.put(attr, holder);
-				theAttributesByName.put(attr.getName(), attr);
-			}
+			if (theElement.life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) >= 0)
+				throw new QuickException("Attribute " + attr + " is not accepted in this element");
+			holder = new AttributeHolder<>(attr);
+			theAcceptedAttrs.put(attr, holder);
+			theAttributesByName.put(attr.getName(), attr);
 		}
 		return holder;
 	}
@@ -346,21 +315,7 @@ public class AttributeManager {
 		QuickAttribute<?> attrObj = theAttributesByName.get(attr);
 		if(attrObj != null)
 			return set(attrObj, value, context);
-		String baseName = attr;
-		int dotIdx = baseName.indexOf('.');
-		if(dotIdx >= 0)
-			baseName = baseName.substring(0, dotIdx);
-		attrObj = theAttributesByName.get(baseName);
-		AttributeHolder<?> holder;
-		if(attrObj != null) {
-			holder = theAcceptedAttrs.get(attrObj);
-			if(holder.theAttr.getPathAccepter() == null)
-				throw new QuickException("Attribute " + attr + " is not hierarchical");
-			String [] path = attr.substring(dotIdx + 1).split("\\.");
-			if(!holder.theAttr.getPathAccepter().accept(theElement, path))
-				throw new QuickException("Attribute " + attr + " does not accept path \"" + attr.substring(dotIdx + 1) + "\"");
-			return set(new QuickPathedAttribute<>(holder.theAttr, theElement, path), value, context);
-		} else {
+		else {
 			if(theElement.life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) >= 0)
 				throw new QuickException("Attribute " + attr + " is not accepted in this element");
 			if(value == null)
@@ -590,8 +545,6 @@ public class AttributeManager {
 	 */
 	public final <T, V extends T> AttributeHolder<T> accept(Object wanter, boolean require, QuickAttribute<T> attr, V initValue)
 		throws QuickException {
-		if(attr instanceof QuickPathedAttribute)
-			throw new IllegalArgumentException("Pathed attributes cannot be accepted or required");
 		if(require && initValue == null && theElement.life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) > 0)
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
 		AttributeHolder<T> holder = (AttributeHolder<T>) theAcceptedAttrs.get(attr);
@@ -632,8 +585,6 @@ public class AttributeManager {
 	 */
 	public final void reject(Object wanter, QuickAttribute<?>... attrs) {
 		for(QuickAttribute<?> attr : attrs) {
-			if(attr instanceof QuickPathedAttribute)
-				throw new IllegalArgumentException("Pathed attributes cannot be rejected");
 			AttributeHolder<?> holder = theAcceptedAttrs.get(attr.getName());
 			if(holder != null) {
 				holder.reject(holder);
@@ -656,8 +607,6 @@ public class AttributeManager {
 	 * @return Whether the given attribute can be set in this element
 	 */
 	public final boolean isAccepted(QuickAttribute<?> attr) {
-		if(attr instanceof QuickPathedAttribute)
-			return isAccepted(((QuickPathedAttribute<?>) attr).getBase());
 		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
 		return holder != null;
 	}
@@ -667,8 +616,6 @@ public class AttributeManager {
 	 * @return Whether the given attribute is required in this element
 	 */
 	public final boolean isRequired(QuickAttribute<?> attr) {
-		if(attr instanceof QuickPathedAttribute)
-			return false;
 		AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
 		return holder != null && holder.isRequired();
 	}

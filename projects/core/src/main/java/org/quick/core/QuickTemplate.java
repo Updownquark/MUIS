@@ -3,18 +3,13 @@ package org.quick.core;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
-import org.observe.DefaultObservableValue;
 import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.Subscription;
-import org.quick.core.eval.impl.ObservableEvaluator;
-import org.quick.core.eval.impl.ObservableItemEvaluator;
 import org.quick.core.event.ChildEvent;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AbstractElementList;
 import org.quick.core.mgr.ElementList;
-import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickBehavior;
 import org.quick.core.model.QuickModelConfig;
@@ -28,11 +23,11 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.attach.StyleAttributeType;
+import org.quick.core.tags.ModelAttribute;
 import org.quick.core.tags.Template;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
-import com.sun.org.apache.xpath.internal.operations.Variable;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template Quick file with widget definitions that are reproduced in each
@@ -200,31 +195,51 @@ public abstract class QuickTemplate extends QuickElement {
 			};
 		}
 
+		/** The property type for the role attribute */
 		public static final QuickPropertyType<AttachPoint> roleType = QuickPropertyType.build("role", TypeToken.of(AttachPoint.class))
 			.build();
 
+		/** The role attribute, defining how children added to a template are used */
+		public static class RoleAttribute extends QuickAttribute<AttachPoint> {
+			private final TemplateStructure theTemplate;
+
+			private RoleAttribute(TemplateStructure templateStruct) {
+				super("role", roleType, new PropertyValidator<AttachPoint>() {
+					@Override
+					public boolean isValid(AttachPoint value) {
+						return value.template == templateStruct;
+					}
+
+					@Override
+					public void assertValid(AttachPoint value) throws QuickException {
+						if (value.template != templateStruct)
+							throw new QuickException(
+								"Attach point " + value.name + " from template " + value.template.getDefiner().getName()
+									+ " cannot be assigned to a role in template " + templateStruct.getDefiner().getName());
+					}
+				}, Arrays.asList(str -> templateStruct.getAttachPoint(str)));
+				theTemplate = templateStruct;
+			}
+
+			/** @return The template structure that this role attribute assigns roles for */
+			public TemplateStructure getTemplate() {
+				return theTemplate;
+			}
+		}
+
 		/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
-		public final QuickAttribute<AttachPoint> role = QuickAttribute.build("role", roleType).withValues(str -> {
-			return getAttachPoint(str);
-		}).build();
+		public final RoleAttribute role = new RoleAttribute(this);
 
 		private final Class<? extends QuickTemplate> theDefiner;
-
 		private final TemplateStructure theSuperStructure;
-
 		private WidgetStructure theWidgetStructure;
-
+		private Map<String, Class<?>> theModelAttributes;
 		private AttachPoint theDefaultAttachPoint;
-
 		private Map<String, AttachPoint> theAttachPoints;
-
 		private Map<AttachPoint, QuickContent> theAttachPointWidgets;
-
 		private Map<String, QuickModelConfig> theModels;
-
 		private Class<? extends QuickLayout> theLayoutClass;
-
-		private Class<? extends QuickBehavior<?>>[] theBehaviors;
+		private List<Class<? extends QuickBehavior<?>>> theBehaviors;
 
 		/**
 		 * @param definer The templated class that defines the template structure
@@ -233,7 +248,7 @@ public abstract class QuickTemplate extends QuickElement {
 		public TemplateStructure(Class<? extends QuickTemplate> definer, TemplateStructure superStructure) {
 			theDefiner = definer;
 			theSuperStructure = superStructure;
-			theBehaviors = new Class[0];
+			theBehaviors = Collections.emptyList();
 		}
 
 		/** @param widgetStructure The widget structure specified in the template Quick file */
@@ -257,12 +272,16 @@ public abstract class QuickTemplate extends QuickElement {
 			theAttachPointWidgets = Collections.unmodifiableMap(attaches);
 		}
 
+		private void setModelAttributes(Map<String, Class<?>> atts) {
+			theModelAttributes = Collections.unmodifiableMap(atts);
+		}
+
 		private void setModels(Map<String, QuickModelConfig> models) {
 			theModels = Collections.unmodifiableMap(models);
 		}
 
-		private void setBehaviors(Class<? extends QuickBehavior<?>>[] behaviors) {
-			theBehaviors = behaviors;
+		private void setBehaviors(List<Class<? extends QuickBehavior<?>>> behaviors) {
+			theBehaviors = Collections.unmodifiableList(behaviors);
 		}
 
 		/** @return The templated class that defines this template structure */
@@ -327,9 +346,14 @@ public abstract class QuickTemplate extends QuickElement {
 			return theAttachPointWidgets.get(attachPoint);
 		}
 
+		/** @return The model attributes specified in this template's annotation */
+		public Map<String, Class<?>> getModelAttributes() {
+			return theModelAttributes;
+		}
+
 		/** @return The behaviors that will be installed to instances of this template */
-		public Class<? extends QuickBehavior<?>>[] getBehaviors() {
-			return theBehaviors.clone();
+		public List<Class<? extends QuickBehavior<?>>> getBehaviors() {
+			return theBehaviors;
 		}
 
 		@Override
@@ -404,6 +428,17 @@ public abstract class QuickTemplate extends QuickElement {
 				throw new QuickException("Concrete implementations of " + QuickTemplate.class.getName() + " like " + templateType.getName()
 					+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
 			}
+			Map<String, Class<?>> modelAtts = new LinkedHashMap<>();
+			for (ModelAttribute att : template.attributes()) {
+				if (modelAtts.put(att.name(), att.type()) != null)
+					throw new QuickException("Multiple model attributes named " + att.name() + " on template " + templateType.getName());
+				TemplateStructure superS = superStructure;
+				while (superS != null) {
+					if (superS.getModel(att.name()) != null)
+						throw new QuickException("Model attribute " + att.name() + " on template " + superS.getDefiner().getName()
+							+ " cannot be overridden by template " + templateType.getName());
+				}
+			}
 
 			java.net.URL location;
 			try {
@@ -453,6 +488,7 @@ public abstract class QuickTemplate extends QuickElement {
 			WidgetStructure content = docStruct.getContent();
 			String layout = content.getAttributes().remove(LayoutContainer.LAYOUT_ATTR.getName());
 			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure);
+			templateStruct.setModelAttributes(modelAtts);
 			templateStruct.setModels(models);
 			String behaviorStr = content.getAttributes().remove(BEHAVIOR);
 			if (behaviorStr != null) {
@@ -483,7 +519,7 @@ public abstract class QuickTemplate extends QuickElement {
 					}
 					behaviors.add(bClass);
 				}
-				templateStruct.setBehaviors(behaviors.toArray(new Class[behaviors.size()]));
+				templateStruct.setBehaviors(behaviors);
 			}
 			if (layout != null) {
 				QuickToolkit tk;
@@ -756,96 +792,6 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 	}
 
-	/** A parse environment with access to a templated widget's fields */
-	public static class TemplateParseEnv implements QuickParseEnv {
-		private final QuickTemplate theTemplateWidget;
-		private final TemplateStructure theTemplateStruct;
-		private final ExpressionContext theContext;
-
-		TemplateParseEnv(QuickTemplate template, TemplateStructure templateStruct) {
-			theTemplateWidget = template;
-			theTemplateStruct = templateStruct;
-			// TODO This code is broken now since I've made the model an observable value
-			theModelParser = new DefaultModelValueReferenceParser(theTemplateWidget.getValueParser(), null) {
-				@Override
-				protected void applyModification() {
-					super.applyModification();
-					// Make evaluation recognize "model"
-					if (getEvaluationEnvironment() instanceof prisms.lang.DefaultEvaluationEnvironment) {
-						((prisms.lang.DefaultEvaluationEnvironment) getEvaluationEnvironment())
-							.addVariableSource(new prisms.lang.VariableSource() {
-								@Override
-								public Variable[] getDeclaredVariables() {
-									Map<String, Variable> vars = new LinkedHashMap<>();
-									addVars(theTemplateStruct, vars);
-									return vars.values().toArray(new Variable[vars.size()]);
-								}
-
-								private void addVars(TemplateStructure struct, Map<String, Variable> vars) {
-									for (String model : struct.getModels())
-										if (!vars.containsKey(model))
-											vars.put(model, new VariableImpl(new Type(QuickAppModel.class), model, true));
-									if (struct.getSuperStructure() != null)
-										addVars(struct.getSuperStructure(), vars);
-								}
-
-								@Override
-								public Variable getDeclaredVariable(String name) {
-									TemplateStructure struct = theTemplateStruct;
-									while (struct != null) {
-										if (org.qommons.ArrayUtils.contains(struct.getModels(), name))
-											return new VariableImpl(new Type(QuickAppModel.class), name, true);
-										struct = struct.getSuperStructure();
-									}
-									return null;
-								}
-							});
-					}
-					ObservableItemEvaluator<? super ParsedIdentifier> oldEval = getEvaluator()
-						.getObservableEvaluatorFor(ParsedIdentifier.class);
-					getEvaluator().addEvaluator(ParsedIdentifier.class, new ObservableItemEvaluator<ParsedIdentifier>() {
-						@Override
-						public ObservableValue<?> evaluateObservable(ParsedIdentifier item, ObservableEvaluator evaluator,
-							EvaluationEnvironment env, boolean asType) throws EvaluationException {
-							ObservableValue<QuickAppModel> model = theTemplateWidget.getModel(item.getName());
-							if (model != null)
-								return model;
-							else if (oldEval != null)
-								return oldEval.evaluateObservable(item, evaluator, env, asType);
-							else
-								return null;
-						}
-					});
-				}
-			};
-		}
-
-		/** @return The templated widget that this environment parses for */
-		public QuickTemplate getTemplateWidget() {
-			return theTemplateWidget;
-		}
-
-		/** @return The template structure that this environment parses for */
-		public TemplateStructure getTemplateStructure() {
-			return theTemplateStruct;
-		}
-
-		@Override
-		public QuickClassView cv() {
-			return theTemplateWidget.cv();
-		}
-
-		@Override
-		public QuickMessageCenter msg() {
-			return theTemplateWidget.msg();
-		}
-
-		@Override
-		public ExpressionContext getContext() {
-			return theContext;
-		}
-	}
-
 	private TemplateStructure theTemplateStructure;
 
 	/**
@@ -855,6 +801,8 @@ public abstract class QuickTemplate extends QuickElement {
 	private final Object theRoleWanter;
 
 	private final Map<AttachPoint, AttachPointInstance> theAttachPoints;
+
+	private final Map<String, Object> theModels;
 
 	private ExpressionContext theContext;
 
@@ -884,7 +832,8 @@ public abstract class QuickTemplate extends QuickElement {
 			try {
 				QuickEnvironment env = getDocument().getEnvironment();
 				theTemplateStructure = TemplateStructure.getTemplateStructure(env, QuickTemplate.this.getClass());
-				initModels(theTemplateStructure);
+				DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build().withParent(super.getContext());
+				initModels(theTemplateStructure, ctxBuilder);
 			} catch (QuickException e) {
 				msg().fatal("Could not generate template structure", e);
 			}
@@ -950,74 +899,50 @@ public abstract class QuickTemplate extends QuickElement {
 		return instance.setValue(element);
 	}
 
-	private void initModels(TemplateStructure template) {
+	private void initModels(TemplateStructure template, DefaultExpressionContext.Builder ctxBuilder) throws QuickException {
+		Map<String, QuickAttribute<?>> atts = new HashMap<>();
+		for (QuickAttribute<?> att : atts().attributes()) {
+			Class<?> modelAttType = template.getModelAttributes().get(att.getName());
+			if (modelAttType != null && modelAttType.isAssignableFrom(att.getType().getType().getRawType()))
+				atts.put(att.getName(), att);
+		}
+		for (String att : template.getModelAttributes().keySet())
+			if (!atts.containsKey(att))
+				throw new QuickException("Template-declared attribute " + att + ", type " + template.getModelAttributes().get(att).getName()
+					+ " has not been accepted in this template widget's attributes");
 		QuickParseEnv env = new SimpleParseEnv(getClassView(), getMessageCenter(),
 			DefaultExpressionContext.build()//
 				.withParent(getContext())//
 				.withValue("attributes", ObservableValue.constant(new QuickAppModel() {
 					@Override
 					public Set<String> getFields() {
-						return theTemplateStructure.getModels();
+						return atts.keySet();
 					}
 
 					@Override
 					public Object getField(String name) {
-						return atts().get(name);
+						QuickAttribute<?> att = atts.get(name);
+						if (att == null)
+							return null;
+						return atts().get(att);
 					}
 				}))//
 				.build());
 		for (String modelName : template.getModels()) {
-			DefaultObservableValue<QuickAppModel> modelObs = theModelObservables.get(modelName);
-			if (modelObs != null)
-				continue; // Model type overridden by subclass
-			modelObs = new DefaultObservableValue<QuickAppModel>() {
-				@Override
-				public Type getType() {
-					return new Type(QuickAppModel.class);
-				}
-
-				@Override
-				public QuickAppModel get() {
-					QuickAppModel ret = theModels.get(modelName);
-					if (ret == null) {
-						ret = template.getModel(modelName, msg());
-						theModels.put(modelName, ret);
-					}
-					return ret;
-				}
-			};
-			theModelObservables.put(modelName, modelObs);
-			theModelControllers.put(modelName, modelObs.control(null));
+			QuickModelConfig modelConfig = template.getModel(modelName);
+			QuickAppModel model = org.quick.core.model.DefaultQuickModel.buildQuickModel(modelConfig,
+				getDocument().getEnvironment().getAttributeParser(), env);
+			theModels.put(modelName, model);
+			ctxBuilder.withValue(modelName, ObservableValue.constant(TypeToken.of(QuickAppModel.class), model));
 		}
 
 		if (template.getSuperStructure() != null)
-			initModels(template.getSuperStructure());
+			initModels(template.getSuperStructure(), ctxBuilder);
 	}
 
-	/**
-	 * @param name The name of the model to set for this templated widget
-	 * @param model The model to set
-	 */
-	protected void setModel(String name, Object model) {
-		Observer<ObservableValueEvent<QuickAppModel>> controller = (Observer<ObservableValueEvent<QuickAppModel>>) (Observer<?>) theModelControllers
-			.get(name);
-		if (controller == null)
-			throw new IllegalArgumentException("No such model " + name + " in template " + getTemplate().getDefiner().getSimpleName());
-		QuickAppModel appModel;
-		if (model instanceof QuickAppModel)
-			appModel = (QuickAppModel) model;
-		else
-			appModel = new org.quick.core.model.QuickWrappingModel(model, msg());
-		QuickAppModel old = theModels.put(name, appModel);
-		controller.onNext(theModelObservables.get(name).createChangeEvent(old, appModel, null));
-	}
-
-	/**
-	 * @param name The name of the model to get
-	 * @return The model that this templated widget uses to hook into its component widgets
-	 */
-	protected ObservableValue<QuickAppModel> getModel(String name) {
-		return theModelObservables.get(name);
+	@Override
+	public ExpressionContext getContext() {
+		return theContext;
 	}
 
 	@Override
@@ -1127,11 +1052,10 @@ public abstract class QuickTemplate extends QuickElement {
 			}
 		}
 
-		TemplateParseEnv templateCtx = new TemplateParseEnv(this, structure);
 		for (Map.Entry<String, String> att : structure.getWidgetStructure().getAttributes().entrySet()) {
 			if (!atts().isSet(att.getKey())) {
 				try {
-					atts().set(att.getKey(), att.getValue(), templateCtx);
+					atts().set(att.getKey(), att.getValue(), this);
 				} catch (QuickException e) {
 					msg().error("Templated root attribute " + att.getKey() + "=" + att.getValue() + " failed for templated widget "
 						+ theTemplateStructure.getDefiner().getName(), e);
@@ -1161,7 +1085,7 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		for (QuickContent content : structure.getWidgetStructure().getChildren())
-			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator(), templateCtx);
+			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator(), this);
 	}
 
 	private QuickElement createTemplateChild(TemplateStructure template, QuickElement parent, QuickContent child,

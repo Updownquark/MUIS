@@ -48,7 +48,7 @@ public abstract class QuickProperty<T> {
 		List<Function<String, ?>> valueSuppliers) {
 		theName = name;
 		theType = type;
-		theValueSuppliers = Collections.unmodifiableList(valueSuppliers);
+		theValueSuppliers = valueSuppliers == null ? Collections.emptyList() : Collections.unmodifiableList(valueSuppliers);
 		theValidator = validator;
 	}
 

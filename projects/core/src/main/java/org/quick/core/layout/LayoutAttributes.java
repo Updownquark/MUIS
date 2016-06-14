@@ -111,7 +111,7 @@ public class LayoutAttributes {
 		 * @param type This attribute's guide type
 		 */
 		public PositionAttribute(String name, Orientation orient, End end, LayoutGuideType type) {
-			super(name, positionType);
+			super(name, positionType, null, null);
 		}
 	}
 
@@ -123,7 +123,7 @@ public class LayoutAttributes {
 		 * @param type This attribute's guide type
 		 */
 		public SizeAttribute(String name, Orientation orient, LayoutGuideType type) {
-			super(name, sizeType);
+			super(name, sizeType, null, null);
 		}
 	}
 
@@ -318,22 +318,23 @@ public class LayoutAttributes {
 	}
 
 	/** Direction for a layout or component (left-to-right, right-to-left, top-to-bottom, or bottom-to-top */
-	public static final QuickAttribute<Direction> direction = new QuickAttribute<>("direction", QuickPropertyType.forEnum(Direction.class));
+	public static final QuickAttribute<Direction> direction = QuickAttribute.build("direction", QuickPropertyType.forEnum(Direction.class))
+		.build();
 
 	/** Orientation for a layout or component */
-	public static final QuickAttribute<Orientation> orientation = new QuickAttribute<>("orientation", QuickPropertyType.forEnum(
-		Orientation.class));
+	public static final QuickAttribute<Orientation> orientation = QuickAttribute
+		.build("orientation", QuickPropertyType.forEnum(Orientation.class)).build();
 
 	/** Alignment of components within a container along the major axis of the container or layout */
-	public static final QuickAttribute<Alignment> alignment = new QuickAttribute<>("align", QuickPropertyType.forEnum(
-		Alignment.class));
+	public static final QuickAttribute<Alignment> alignment = QuickAttribute.build("align", QuickPropertyType.forEnum(Alignment.class))
+		.build();
 
 	/** Alignment of components within a container along the minor axis of the container or layout */
-	public static final QuickAttribute<Alignment> crossAlignment = new QuickAttribute<>("cross-align", QuickPropertyType.forEnum(
-		Alignment.class));
+	public static final QuickAttribute<Alignment> crossAlignment = QuickAttribute
+		.build("cross-align", QuickPropertyType.forEnum(Alignment.class)).build();
 
 	/** Edge (or center) of a container */
-	public static final QuickAttribute<Region> region = new QuickAttribute<>("region", QuickPropertyType.forEnum(Region.class));
+	public static final QuickAttribute<Region> region = QuickAttribute.build("region", QuickPropertyType.forEnum(Region.class)).build();
 
 	/**
 	 * <ul>
@@ -343,5 +344,5 @@ public class LayoutAttributes {
 	 * {@link LayoutGuideType#maxPref preferred maximum} sizes even if the container's size allows much more room.</li>
 	 * </ul>
 	 */
-	public static final QuickAttribute<Boolean> fillContainer = new QuickAttribute<>("fill-container", QuickPropertyType.boole);
+	public static final QuickAttribute<Boolean> fillContainer = QuickAttribute.build("fill-container", QuickPropertyType.boole).build();
 }

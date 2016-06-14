@@ -20,7 +20,7 @@ public class ModelAttributes {
 	public static final QuickAttribute<Object> value;
 
 	static {
-		action = new QuickAttribute<>("action", actionType);
-		value = new QuickAttribute<>("value", valueType);
+		action = QuickAttribute.build("action", actionType).build();
+		value = QuickAttribute.build("value", valueType).build();
 	}
 }

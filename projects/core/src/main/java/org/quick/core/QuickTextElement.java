@@ -16,7 +16,7 @@ import org.quick.core.prop.QuickPropertyType;
 /** A Quick element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 public class QuickTextElement extends QuickLeaf implements org.quick.core.model.DocumentedElement {
 	/** Whether a text element's document supports multiple lines */
-	public static final QuickAttribute<Boolean> multiLine = new QuickAttribute<>("multi-line", QuickPropertyType.boole);
+	public static final QuickAttribute<Boolean> multiLine = QuickAttribute.build("multi-line", QuickPropertyType.boole).build();
 
 	private final WrappingDocumentModel theDocument;
 

@@ -1,5 +1,8 @@
 package org.quick.core.style;
 
+import java.util.List;
+import java.util.function.Function;
+
 import org.qommons.ArrayUtils;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
@@ -20,21 +23,11 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 	 * @param type The type of the attribute
 	 * @param defValue The default value for the attribute
 	 * @param validator The validator for the attribute
+	 * @param valueSuppliers The value suppliers for parsing the property
 	 */
-	public StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue, PropertyValidator<T> validator) {
-		super(name, type, validator);
-		theDomain = domain;
-		theDefault = defValue;
-	}
-
-	/**
-	 * @param domain The style domain for the attribute
-	 * @param name The name for the attribute
-	 * @param type The type of the attribute
-	 * @param defValue The default value for the attribute
-	 */
-	public StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue) {
-		super(name, type);
+	protected StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue, PropertyValidator<T> validator,
+		List<Function<String, ?>> valueSuppliers) {
+		super(name, type, validator, valueSuppliers);
 		theDomain = domain;
 		theDefault = defValue;
 	}
@@ -56,7 +49,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 
 	@Override
 	public final boolean equals(Object obj) {
-		if(!super.equals(obj))
+		if (!super.equals(obj))
 			return false;
 		StyleAttribute<?> attr = (StyleAttribute<?>) obj;
 		return attr.theDomain.equals(theDomain) && ArrayUtils.equals(attr.theDefault, theDefault);
@@ -68,5 +61,44 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 		ret = ret * 13 + theDomain.hashCode();
 		ret = ret * 13 + ArrayUtils.hashCode(theDefault);
 		return super.hashCode();
+	}
+
+	/**
+	 * @param <T> The type of the attribute to build
+	 * @param domain The domain for the attribute
+	 * @param name The name of the attribute
+	 * @param type The type of the attribute
+	 * @param defValue The default value for the attribute
+	 * @return The builder for the attribute
+	 */
+	public static <T> Builder<T> build(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue) {
+		return new Builder<>(domain, name, type, defValue);
+	}
+
+	/**
+	 * Builds style attributes
+	 * 
+	 * @param <T> The type of attribute to build
+	 */
+	public static class Builder<T> extends QuickProperty.Builder<T> {
+		private final StyleDomain theDomain;
+		private final T theDefValue;
+
+		/**
+		 * @param domain The style domain for the attribute
+		 * @param name The name of the attribute
+		 * @param type The type of the attribute
+		 * @param defValue The default value for the attribute
+		 */
+		protected Builder(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue) {
+			super(name, type);
+			theDomain = domain;
+			theDefValue = defValue;
+		}
+
+		@Override
+		public StyleAttribute<T> build() {
+			return new StyleAttribute<>(theDomain, getName(), getType(), theDefValue, getValidator(), getValueSuppliers());
+		}
 	}
 }

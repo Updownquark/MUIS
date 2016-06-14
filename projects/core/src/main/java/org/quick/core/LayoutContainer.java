@@ -7,8 +7,8 @@ import org.quick.core.prop.QuickPropertyType;
 /** A simple container element that lays its children out using an implementation of {@link QuickLayout} */
 public class LayoutContainer extends QuickElement {
 	/** The attribute that specifies the layout type for a layout container */
-	public static QuickAttribute<QuickLayout> LAYOUT_ATTR = new QuickAttribute<>("layout",
-		QuickPropertyType.forTypeInstance(QuickLayout.class));
+	public static QuickAttribute<QuickLayout> LAYOUT_ATTR = QuickAttribute
+		.build("layout", QuickPropertyType.forTypeInstance(QuickLayout.class)).build();
 
 	/** Creates a layout container */
 	public LayoutContainer() {
@@ -16,16 +16,16 @@ public class LayoutContainer extends QuickElement {
 		life().runWhen(() -> {
 			try {
 				atts().require(this, LAYOUT_ATTR, defLayout).act(event -> {
-					if(event.getOldValue() != null)
+					if (event.getOldValue() != null)
 						event.getOldValue().remove(this);
-					if(event.getValue() != null)
+					if (event.getValue() != null)
 						event.getValue().initChildren(this, ch().toArray());
 					relayout(false);
 				});
-			} catch(QuickException e) {
+			} catch (QuickException e) {
 				msg().error("Could not set default layout", e, "layout", defLayout);
 			}
-		}, QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
+		} , QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 	}
 
 	/**
@@ -45,7 +45,7 @@ public class LayoutContainer extends QuickElement {
 	@Override
 	public SizeGuide getWSizer() {
 		QuickLayout layout = getLayout();
-		if(layout != null)
+		if (layout != null)
 			return layout.getWSizer(this, getChildren().toArray());
 		else
 			return super.getWSizer();
@@ -54,7 +54,7 @@ public class LayoutContainer extends QuickElement {
 	@Override
 	public SizeGuide getHSizer() {
 		QuickLayout layout = getLayout();
-		if(layout != null)
+		if (layout != null)
 			return layout.getHSizer(this, getChildren().toArray());
 		else
 			return super.getHSizer();
@@ -63,7 +63,7 @@ public class LayoutContainer extends QuickElement {
 	@Override
 	public void doLayout() {
 		QuickLayout layout = getLayout();
-		if(layout != null)
+		if (layout != null)
 			layout.layout(this, getChildren().toArray());
 		super.doLayout();
 	}
@@ -72,7 +72,7 @@ public class LayoutContainer extends QuickElement {
 	protected void registerChild(QuickElement child) {
 		super.registerChild(child);
 		QuickLayout layout = getLayout();
-		if(layout != null)
+		if (layout != null)
 			layout.childAdded(this, child);
 	}
 
@@ -80,7 +80,7 @@ public class LayoutContainer extends QuickElement {
 	protected void unregisterChild(QuickElement child) {
 		super.unregisterChild(child);
 		QuickLayout layout = getLayout();
-		if(layout != null)
+		if (layout != null)
 			layout.childRemoved(this, child);
 	}
 }

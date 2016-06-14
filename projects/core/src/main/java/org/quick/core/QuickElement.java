@@ -174,8 +174,8 @@ public abstract class QuickElement implements QuickParseEnv {
 		});
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, StyleAttributeType.STYLE_ATTRIBUTE);
-		events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
-			(StylePathAccepter) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
+		// events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
+		// (StylePathAccepter) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		final boolean [] groupCallbackLock = new boolean[1];
 		theAttributeManager.accept(styleWanter, GroupPropertyType.attribute).act(event -> {
 			if(groupCallbackLock[0])
@@ -471,12 +471,12 @@ public abstract class QuickElement implements QuickParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
-		DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build();
+		DefaultExpressionContext.Builder contextBuilder = DefaultExpressionContext.build();
 		if (parent != null)
-			ctxBuilder.withParent(parent.getContext());
+			contextBuilder.withParent(parent.getContext());
 		else
-			ctxBuilder.withParent(theDocument.getContext());
-		theContext = ctxBuilder.build();
+			contextBuilder.withParent(theDocument.getContext());
+		theContext = contextBuilder.build();
 		setParent(parent);
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}
@@ -551,7 +551,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	@Override
-	public final ExpressionContext getContext() {
+	public ExpressionContext getContext() {
 		return theContext;
 	}
 

@@ -10,5 +10,5 @@ public interface QuickPropertyParser {
 
 	Runnable parseAction(ExpressionContext ctx, String value) throws QuickParseException;
 
-	<T> ObservableValue<T> parseProperty(QuickProperty<T> type, ExpressionContext ctx, String value) throws QuickParseException;
+	<T> ObservableValue<T> parseProperty(QuickProperty<T> property, ExpressionContext ctx, String value) throws QuickParseException;
 }

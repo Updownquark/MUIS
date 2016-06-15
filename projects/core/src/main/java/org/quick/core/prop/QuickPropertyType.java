@@ -70,15 +70,15 @@ public final class QuickPropertyType<T> {
 	private final TypeToken<T> theType;
 	private final PropertySelfParser<T> theParser;
 	private final boolean isSelfParsingByDefault;
-	private final List<QuickPropertyType.TypeMapping<?, T>> theMappings;
+	private final List<TypeMapping<?, T>> theMappings;
 	private final List<Function<String, ?>> theValueSuppliers;
-	private final List<QuickPropertyType.Unit<?, ?>> theUnits;
+	private final List<Unit<?, ?>> theUnits;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
 
-	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser,
-		boolean parseSelfByDefault, List<QuickPropertyType.TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers,
-		List<QuickPropertyType.Unit<?, ?>> units, Function<? super T, String> printer, ExpressionContext ctx) {
+	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault,
+		List<TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers, List<Unit<?, ?>> units,
+		Function<? super T, String> printer, ExpressionContext ctx) {
 		theName = name;
 		theType = type;
 		theParser = parser;
@@ -90,6 +90,7 @@ public final class QuickPropertyType<T> {
 		thePrinter = printer;
 	}
 
+	/** @return This property type's name */
 	public String getName() {
 		return theName;
 	}
@@ -97,6 +98,27 @@ public final class QuickPropertyType<T> {
 	/** @return The java type that this property type parses strings into instances of */
 	public TypeToken<T> getType(){
 		return theType;
+	}
+
+	/** @return */
+	public PropertySelfParser<T> getSelfParser() {
+		return theParser;
+	}
+
+	public boolean isSelfParsingByDefault() {
+		return isSelfParsingByDefault;
+	}
+
+	public List<Function<String, ?>> getValueSuppliers() {
+		return theValueSuppliers;
+	}
+
+	public List<Unit<?, ?>> getUnits() {
+		return theUnits;
+	}
+
+	public ExpressionContext getContext() {
+		return theContext;
 	}
 
 	/**
@@ -169,9 +191,9 @@ public final class QuickPropertyType<T> {
 		private final TypeToken<T> theType;
 		private PropertySelfParser<T> theParser;
 		private boolean isSelfParsingByDefault;
-		private final List<QuickPropertyType.TypeMapping<?, T>> theMappings;
+		private final List<TypeMapping<?, T>> theMappings;
 		private final List<Function<String, ?>> theValueSuppliers;
-		private final List<QuickPropertyType.Unit<?, ?>> theUnits;
+		private final List<Unit<?, ?>> theUnits;
 		private DefaultExpressionContext.Builder theCtxBuilder;
 		private Function<? super T, String> thePrinter;
 
@@ -191,7 +213,7 @@ public final class QuickPropertyType<T> {
 		}
 
 		public <F> Builder<T> map(TypeToken<F> from, ExFunction<? super F, ? extends T, QuickException> map) {
-			theMappings.add(new QuickPropertyType.TypeMapping<>(from, theType, map));
+			theMappings.add(new TypeMapping<>(from, theType, map));
 			return this;
 		}
 
@@ -202,7 +224,7 @@ public final class QuickPropertyType<T> {
 
 		public <F, T2> Builder<T> withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
 			ExFunction<? super F, ? extends T2, QuickException> operator) {
-			theUnits.add(new QuickPropertyType.Unit<>(name, from, to, operator));
+			theUnits.add(new Unit<>(name, from, to, operator));
 			return this;
 		}
 
@@ -217,8 +239,8 @@ public final class QuickPropertyType<T> {
 		}
 
 		public QuickPropertyType<T> build() {
-			if (theParser == null)
-				throw new IllegalStateException("No parser set");
+			if (isSelfParsingByDefault && theParser == null)
+				throw new IllegalArgumentException("Cannot parse self by default with no parser");
 			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, theMappings, theValueSuppliers, theUnits,
 				thePrinter, theCtxBuilder.build());
 		}

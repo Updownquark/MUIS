@@ -24,10 +24,12 @@ import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
+/** Parses .qss XML style files for Quick */
 public class DefaultStyleParser implements QuickStyleParser {
 	private static final Pattern STATE_PATTERN = Pattern.compile("[a-zA-Z]+[a-zA-Z0-9-]*");
 	private final QuickEnvironment theEnvironment;
 
+	/** @param env The environment that this parser is for */
 	public DefaultStyleParser(QuickEnvironment env) {
 		theEnvironment = env;
 	}

@@ -67,6 +67,10 @@ public abstract class QuickProperty<T> {
 		return theValidator;
 	}
 
+	public List<Function<String, ?>> getValueSuppliers() {
+		return theValueSuppliers;
+	}
+
 	/** @return What kind of property this is */
 	protected abstract String getPropertyTypeName();
 

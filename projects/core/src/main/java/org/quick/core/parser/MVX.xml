@@ -224,15 +224,6 @@
 	<entity name="type" priority="-1" impl="prisms.lang.types.ParsedType">
 		<option> <!-- Normal java type -->
 			<op type="basic type" storeAs="base" />
-			<option>
-				<literal>&lt;</literal>
-				<op type="wildcard type" storeAs="paramType" />
-				<option min="0">
-					<literal>,</literal>
-					<op type="wildcard type" storeAs="paramType" />
-				</option>
-				<literal>&gt;</literal>
-			</option>
 			<option min="0">
 				<literal storeAs="array">[</literal>
 				<literal>]</literal>
@@ -249,28 +240,6 @@
 			<literal>:</literal>
 		</option>
 		<op type="quick-identifier" storeAs="base" />
-	</entity>
-	<entity name="wildcard type" priority="-1" impl="prisms.lang.types.ParsedType">
-		<select>
-			<option>
-				<literal>?</literal>
-				<select>
-					<option>
-						<literal storeAs="superBound">super</literal>
-					</option>
-					<option>
-						<literal storeAs="extendsBound">extends</literal>
-					</option>
-				</select>
-				<op type="type" storeAs="bound" />
-			</option>
-			<option>
-				<literal storeAs="wildcard">?</literal>
-			</option>
-			<option>
-				<op type="type" storeAs="type" />
-			</option>
-		</select>
 	</entity>
 
 	<!-- Operators with defined priorities -->
@@ -377,7 +346,7 @@
 	</operator>
 	<operator name="subtract" order="50" priority="200" impl="prisms.lang.types.ParsedBinaryOp">
 		<op />
-		<literal storeAs="name">-</literal>
+		<literal storeAs="name">.-</literal>
 		<op />
 	</operator>
 

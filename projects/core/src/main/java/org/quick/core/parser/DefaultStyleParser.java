@@ -293,7 +293,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 		ParsedStyleSheet styleSheet, StateGroupTypeExpression<?> expr) {
 		ObservableValue<T> value;
 		try {
-			value = parser.parseProperty(styleAttr, env.getContext(), valueStr);
+			value = parser.parseProperty(styleAttr, env, valueStr);
 		} catch (org.quick.core.QuickException e) {
 			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
 				+ styleAttr.getDomain().getName(), e);

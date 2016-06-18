@@ -115,7 +115,7 @@ public class StyleParsingUtils {
 		MutableStyle style) {
 		ObservableValue<T> value;
 		try {
-			value = parser.parseProperty(styleAttr, env.getContext(), valueStr);
+			value = parser.parseProperty(styleAttr, env, valueStr);
 		} catch(org.quick.core.QuickException e) {
 			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
 				+ styleAttr.getDomain().getName(), e);
@@ -126,7 +126,7 @@ public class StyleParsingUtils {
 
 	/**
 	 * Applies a bulk style setting to a style
-	 * 
+	 *
 	 * @param parser The property parser to parse style values
 	 * @param env The parsing environment
 	 * @param style The style to apply the settings to

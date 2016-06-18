@@ -9,6 +9,9 @@ import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
+import org.quick.core.parser.SimpleParseEnv;
+import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.ExpressionResult;
 
 import com.google.common.reflect.TypeToken;
 
@@ -128,6 +131,42 @@ public class DefaultQuickModel implements QuickAppModel {
 		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
+			QuickAppModel tempModel = new QuickAppModel() {
+				private final ObservableValue<QuickAppModel> theSuper;
+
+				{
+					ExpressionResult<?> res = parseEnv.getContext().getVariable("this");
+					if (res != null && res.type.type != null && TypeToken.of(QuickAppModel.class).isAssignableFrom(res.type.type))
+						theSuper = (ObservableValue<QuickAppModel>) res.value;
+					else
+						theSuper = null;
+				}
+
+				@Override
+				public Set<String> getFields() {
+					Set<String> fields = new LinkedHashSet<>(theFields.keySet());
+					if (theSuper != null) {
+						QuickAppModel superModel = theSuper.get();
+						if (superModel != null)
+							fields.addAll(superModel.getFields());
+					}
+					return fields;
+				}
+
+				@Override
+				public Object getField(String name) {
+					Object value = theFields.get(name);
+					if (value == null && theSuper != null) {
+						QuickAppModel superModel = theSuper.get();
+						if (superModel != null)
+							value = superModel.getField(name);
+					}
+					return value;
+				}
+			};
+			QuickParseEnv innerEnv = new SimpleParseEnv(parseEnv.cv(), parseEnv.msg(),
+				DefaultExpressionContext.build().withParent(parseEnv.getContext())
+					.withValue("this", ObservableValue.constant(TypeToken.of(QuickAppModel.class), tempModel)).build());
 			for (Map.Entry<String, Object> cfg : config.getAllConfigs()) {
 				QuickModelConfig cfgItem = (QuickModelConfig) cfg.getValue();
 				String name = cfgItem.getString("name");
@@ -140,23 +179,23 @@ public class DefaultQuickModel implements QuickAppModel {
 				case "value":
 					if (cfgItem.getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelValue(cfgItem, parser, parseEnv);
+					value = parseModelValue(cfgItem, parser, innerEnv);
 					break;
 				case "variable":
 					if (cfgItem.getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelVariable(cfgItem, parser, parseEnv);
+					value = parseModelVariable(cfgItem, parser, innerEnv);
 					break;
 				case "action":
 					if (cfgItem.getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelAction(cfgItem.getText(), parser, parseEnv);
+					value = parseModelAction(cfgItem.getText(), parser, innerEnv);
 					break;
 				case "model":
-					value = parseChildModel(cfgItem.without("name"), parser, parseEnv);
+					value = parseChildModel(cfgItem.without("name"), parser, innerEnv);
 					break;
 				case "switch":
-					value = parseModelSwitch(cfgItem.without("name"), parser, parseEnv);
+					value = parseModelSwitch(cfgItem.without("name"), parser, innerEnv);
 					break;
 				default:
 					throw new QuickParseException("Unrecognized config item: " + cfg.getKey()); // Unnecessary except for compilation
@@ -169,9 +208,9 @@ public class DefaultQuickModel implements QuickAppModel {
 		private ObservableValue<?> parseValue(Object config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			if (config instanceof String)
-				return parser.parseProperty(null, parseEnv.getContext(), (String) config);
+				return parser.parseProperty(null, parseEnv, (String) config);
 			QuickModelConfig cfg = (QuickModelConfig) config;
-			return parser.parseProperty(null, parseEnv.getContext(), cfg.getText());
+			return parser.parseProperty(null, parseEnv, cfg.getText());
 		}
 
 		private Object parseModelValue(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
@@ -192,7 +231,7 @@ public class DefaultQuickModel implements QuickAppModel {
 		}
 
 		private Runnable parseModelAction(String text, QuickPropertyParser parser, QuickParseEnv parseEnv) throws QuickParseException {
-			return parser.parseAction(parseEnv.getContext(), text);
+			return parser.parseAction(parseEnv, text);
 		}
 
 		private QuickAppModel parseChildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)

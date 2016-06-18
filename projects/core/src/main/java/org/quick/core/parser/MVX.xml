@@ -440,5 +440,8 @@
 		</option>
 		<literal>)</literal>
 	</operator>
-
+	<operator name="unit value" order="50" priority="250" impl="org.quick.core.parser.PrismsPropertyParser$ParsedUnitValue">
+		<op storeAs="value" />
+		<charset storeAs="unit" pattern="[a-zA-Z!@%~][a-zA-Z!@%~_]*" />
+	</operator>
 </grammar>

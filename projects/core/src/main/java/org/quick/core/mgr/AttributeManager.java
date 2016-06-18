@@ -100,7 +100,7 @@ public class AttributeManager {
 		 */
 		public final T set(String valueStr, QuickParseEnv context) throws QuickException {
 			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getPropertyParser().parseProperty(theAttr,
-				context.getContext(), valueStr);
+				context, valueStr);
 			setContainedObservable(value);
 			return value.get();
 		}

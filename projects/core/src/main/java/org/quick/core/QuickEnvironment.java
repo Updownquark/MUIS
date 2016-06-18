@@ -167,7 +167,7 @@ public class QuickEnvironment implements QuickParseEnv {
 			theEnv.theDocumentParser = new org.quick.core.parser.QuickDomParser(theEnv);
 			theEnv.theContentCreator = new QuickContentCreator();
 			theEnv.theStyleParser = new DefaultStyleParser(theEnv);
-			theEnv.theAttributeParser = new DefaultPropertyParser(theEnv);
+			theEnv.theAttributeParser = new PrismsPropertyParser(theEnv);
 			return this;
 		}
 

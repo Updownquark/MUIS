@@ -2,23 +2,52 @@ package org.quick.core.parser;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 import org.observe.ObservableValue;
 import org.quick.core.QuickClassView;
 import org.quick.core.QuickEnvironment;
+import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
+/** A partial implementation of the property parser. Handles directives and property self-parsing. */
 public abstract class AbstractPropertyParser implements QuickPropertyParser {
+	/** Represents a directive inside a property value */
+	protected static class Directive {
+		/** The location of the directive in the property value text */
+		public final int start;
+		/** The length of the text representing the directive in the property value text */
+		public final int length;
+		/** The type of the directive */
+		public final String type;
+		/** The contents of the directive to parse */
+		public final String contents;
+
+		/**
+		 * @param start The location of the directive in the property value text
+		 * @param length The length of the text representing the directive in the property value text
+		 * @param type The type of the directive
+		 * @param contents The contents of the directive to parse
+		 */
+		@SuppressWarnings("hiding")
+		public Directive(int start, int length, String type, String contents) {
+			this.start = start;
+			this.length = length;
+			this.type = type;
+			this.contents = contents;
+		}
+	}
+	/** The type of directive representing parsing by the "default" method ({@link #parseDefaultValue(QuickParseEnv, String)} */
 	public static final String DEFAULT_PARSE_DIRECTIVE = "$";
+	/** The type of directive representing parsing by the property's self-parser ({@link QuickPropertyType#getSelfParser()} */
 	public static final String SELF_PARSE_DIRECTIVE = "#";
 	private final QuickEnvironment theEnvironment;
 
+	/** @param env The Quick environment for this parser */
 	public AbstractPropertyParser(QuickEnvironment env) {
 		theEnvironment = env;
 	}
@@ -37,6 +66,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	@Override
 	public <T> ObservableValue<T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
 		throws QuickParseException {
+		checkValueDirectives(value);
 		/* Some thoughts on parsing
 		 *
 		 * property may be null.  Then just parse in the context without regard to type.
@@ -50,89 +80,184 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		 * Ideally, the string representations would be supplied by a QuickPropertyType where it makes sense.
 		 * Definitely need to have some control over the strings (e.g. replacing colors in an attribute should be named where possible).
 		 */
+		ObservableValue<?> parsedValue;
 		if (property != null && property.getType().isSelfParsingByDefault()) {
-			return parseBy(property, parseEnv, value, false);
+			parsedValue = parseByType(property, parseEnv, value, SELF_PARSE_DIRECTIVE);
 		} else {
-			return parseBy(property, parseEnv, value, true);
+			parsedValue = parseByType(property, parseEnv, value, DEFAULT_PARSE_DIRECTIVE);
 		}
+		if (property != null && !property.getType().canAccept(parsedValue.getType())) {
+			throw new QuickParseException("Type of parsed value for property " + property + " is unacceptable: " + parsedValue.getType());
+		}
+		return parsedValue.mapV(property.getType().getType(), v -> {
+			try {
+				return property.getType().cast((TypeToken<Object>) parsedValue.getType(), v);
+			} catch (QuickException e) {
+				parseEnv.msg().error("Could not convert property value " + v + " to acceptable value for property " + property, e);
+				return null;// I guess?
+			}
+		});
 	}
 
-	private <T> ObservableValue<T> parseBy(QuickProperty<T> property, QuickParseEnv parseEnv, String value, boolean parseByDefault)
+	private <T> ObservableValue<?> parseByType(QuickProperty<T> property, QuickParseEnv parseEnv, String value, String type)
 		throws QuickParseException {
 		List<String> text = new ArrayList<>();
 		List<ObservableValue<?>> inserts = new ArrayList<>();
 		int start = 0;
-		int directiveIdx = findNextDirective(value, 0);
-		while (directiveIdx >= 0) {
-			if (property == null)
-				throw new QuickParseException("No directives accepted for property-less parsing (e.g. models)");
-			text.add(value.substring(start, directiveIdx));
-			String contents = getDirectiveContents(value, directiveIdx);
-			ObservableValue<?> contentValue = parseBy(property, parseEnv, contents, isDefaultDirective(value, directiveIdx));
+		Directive directive = parseNextDirective(value, start);
+		while (directive != null) {
+			text.add(value.substring(start, directive.start));
+			ObservableValue<?> contentValue = parseByType(property, parseEnv, directive.contents, directive.type);
 			inserts.add(contentValue);
-			start += contents.length();
-			directiveIdx = findNextDirective(value, start);
+			start = directive.start + directive.length;
+			directive = parseNextDirective(value, start);
 		}
-		QuickParseEnv internalParseEnv;
+		DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
+		QuickClassView cv;
 		if (property != null) {
-			QuickClassView cv = new org.quick.core.QuickClassView(theEnvironment, parseEnv.cv(), null);
+			cv = new org.quick.core.QuickClassView(theEnvironment, parseEnv.cv(), null);
 			// TODO Add the property's toolkit and the property type's toolkit to the class view
-			DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
 			// TODO Add property's and property type's variables, functions, etc. into the context
-			if (property != null && property.getType().getReferenceReplacementGenerator() != null) {
-				// TODO Add the inserts into the context as variables of the form ?<hex>
-			}
-			internalParseEnv = new SimpleParseEnv(cv, parseEnv.msg(), ctx.build());
 		} else
-			internalParseEnv = parseEnv;
+			cv = parseEnv.cv();
+		// Add reference replacement variables
+		List<String> replacements = new ArrayList<>();
+		for (int i = 0; i < inserts.size(); i++) {
+			String replacement = getReferenceReplacement(type, property, i);
+			replacements.add(replacement);
+			if (replacement != null) {
+				ctx.withValue(replacement, inserts.get(i));
+			}
+		}
+		QuickParseEnv internalParseEnv = new SimpleParseEnv(cv, parseEnv.msg(), ctx.build());
+
+		ObservableValue<?> parsedValue;
 		if (inserts.isEmpty()) {
-			return parseValue(internalParseEnv, value);
-		} else if (property != null && property.getType().getReferenceReplacementGenerator() == null) {
-			return ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault));
+			parsedValue = parseValue(type, property, internalParseEnv, value);
+		} else if (replacements.stream().anyMatch(r -> r != null)) {
+			parsedValue = ObservableValue
+				.flatten(new ValueSubstitutingReferenceValue<>(property, internalParseEnv, text, inserts, replacements, type));
 		} else {
-			return ObservableValue
-				.flatten(new ValueSubstitutingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault));
+			parsedValue = ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, type));
+		}
+		return parsedValue;
+	}
+
+	/**
+	 * Ensures a property value has valid directives
+	 *
+	 * @param value The property value text
+	 * @throws QuickParseException If the text contains an invalid directive or one that this parser does not recognize
+	 */
+	protected void checkValueDirectives(String value) throws QuickParseException {
+		int depth = 0;
+		for (int i = 0; i < value.length(); i++) {
+			switch (value.charAt(i)) {
+			case '{':
+				if (i == 0)
+					throw new QuickParseException("Invalid directive: " + value.charAt(i) + " at position " + i);
+				switch (value.charAt(i - 1)) {
+				case '$':
+				case '#':
+					throw new QuickParseException(
+						"Invalid directive: " + value.charAt(i - 1) + value.charAt(i) + " at position " + (i - 1));
+				}
+				depth++;
+				break;
+			case '}':
+				if (depth == 0)
+					throw new QuickParseException("Unmatched " + value.charAt(i) + " at position " + i);
+				depth--;
+			}
+		}
+		if (depth > 0)
+			throw new QuickParseException("Unmatched { ");
+	}
+
+	/**
+	 * Parses the next directive out of a property value text
+	 *
+	 * @param value The value text for a property
+	 * @param start The place to start the search from
+	 * @return The next directive in the text after the given starting point
+	 */
+	protected Directive parseNextDirective(String value, int start) {
+		int braceIdx = value.indexOf('{', start);
+		if (braceIdx < 0)
+			return null;
+		int depth = 1;
+		int end;
+		for (end = start + 1; (depth == 1 && value.charAt(end) != '}'); end++) {
+			if (value.charAt(end) == '{')
+				depth++;
+		}
+		return new Directive(braceIdx - 1, end - braceIdx + 1, "" + value.charAt(braceIdx - 1), value.substring(braceIdx + 1, end));
+	}
+
+	/**
+	 * @param directiveType The type of the directive to replace the reference for
+	 * @param property The property to replace the references in
+	 * @param index The index of the reference value to generate replacement text for
+	 * @return The text to use to replace the reference value in the property value to be parsed
+	 */
+	protected String getReferenceReplacement(String directiveType, QuickProperty<?> property, int index) {
+		switch (directiveType) {
+		case DEFAULT_PARSE_DIRECTIVE:
+			return "?<" + index + ">";
+		case SELF_PARSE_DIRECTIVE:
+			if (property.getType().getReferenceReplacementGenerator() != null)
+				return property.getType().getReferenceReplacementGenerator().apply(index);
+			return null;
+		}
+		throw new IllegalStateException("Unrecognized directive type: " + directiveType);
+	}
+
+	/**
+	 * Parses a property value
+	 *
+	 * @param directiveType The type of the directive to determine how the value is parsed
+	 * @param property The property to parse the value for
+	 * @param parseEnv The parse environment to use for parsing
+	 * @param value The text to parse
+	 * @return The value parsed from the text
+	 * @throws QuickParseException If an error occurred parsing the value
+	 */
+	protected ObservableValue<?> parseValue(String directiveType, QuickProperty<?> property, QuickParseEnv parseEnv, String value)
+		throws QuickParseException {
+		switch (directiveType) {
+		case DEFAULT_PARSE_DIRECTIVE:
+			return parseDefaultValue(parseEnv, value);
+		case SELF_PARSE_DIRECTIVE:
+			return property.getType().getSelfParser().parse(this, parseEnv, value);
+		default:
+			throw new QuickParseException("Unrecognized directive type: " + directiveType);
 		}
 	}
 
-	protected abstract <T> ObservableValue<T> parseValue(QuickParseEnv parseEnv, String value) throws QuickParseException;
-
-	private static int findNextDirective(String value, int start) {
-		// TODO
-	}
-
-	private static String getDirectiveContents(String value, int position) {
-		// TODO
-	}
-
-	private static boolean isDefaultDirective(String value, int position) {
-		// TODO
-	}
+	/**
+	 * Does the parsing work by the default method
+	 * 
+	 * @param parseEnv The parse environment to use for parsing
+	 * @param value The text to parse
+	 * @return The parsed value
+	 * @throws QuickParseException If an error occurs parsing the error
+	 */
+	protected abstract ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, String value) throws QuickParseException;
 
 	/**
 	 * Combines text and directive-parsed references into a string and parses the value
 	 *
 	 * @param <T> The type of the value
 	 */
-	private static class StringBuildingReferenceValue<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
-		private final List<String> theText;
-		private final List<ObservableValue<?>> theInserts;
-
-		@SuppressWarnings("cast")
+	private class StringBuildingReferenceValue<T> extends ReferenceValueBuilder<T> {
 		StringBuildingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
-			boolean parseByDefault) {
-			super(makeOVType(property.getType().getType()), new Function<Object[], ObservableValue<T>>() {
-				@Override
-				public ObservableValue<T> apply(Object[] args) {
-					return genValue(args);
-				}
-			}, true, inserts.toArray(new ObservableValue[inserts.size()]));
-			theText = text;
-			theInserts = inserts;
+			String directiveType) {
+			super(property, parseEnv, text, inserts, directiveType);
 		}
 
-		private static <T> ObservableValue<T> genValue(Object[] args) {
-			// TODO
+		@Override
+		protected String replaceArg(int i, Object arg) {
+			return String.valueOf(arg);
 		}
 	}
 
@@ -141,46 +266,62 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 *
 	 * @param <T> The type of the value
 	 */
-	private static class ValueSubstitutingReferenceValue<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
-		public ValueSubstitutingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text,
-			List<ObservableValue<?>> inserts, boolean parseByDefault) {
-			super(makeOVType(property.getType().getType()), new Function<Object[], ObservableValue<T>>() {
-				@Override
-				public ObservableValue<T> apply(Object[] args) {
-					return genValue(args);
-				}
-			}, true, inserts.toArray(new ObservableValue[inserts.size()]));
-			theText = text;
-			theInserts = inserts;
-			// TODO Auto-generated constructor stub
+	private class ValueSubstitutingReferenceValue<T> extends ReferenceValueBuilder<T> {
+		private final List<String> theReplacements;
+
+		ValueSubstitutingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
+			List<String> replacements, String directiveType) {
+			super(property, parseEnv, text, inserts, directiveType);
+			theReplacements = replacements;
 		}
 
-		private static ObservableValue<T> genValue(Object[] args) {
-			// TODO
+		@Override
+		protected String replaceArg(int i, Object arg) {
+			return theReplacements.get(i);
 		}
 	}
 
-	private static class ReferenceValueBuilder<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
+	private abstract class ReferenceValueBuilder<T> extends ObservableValue.ComposedObservableValue<ObservableValue<?>> {
+		private final QuickProperty<T> theProperty;
+		private final QuickParseEnv theParseEnv;
+		private final String theDirectiveType;
+		private final List<String> theText;
+
 		public ReferenceValueBuilder(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
-			boolean parseByDefault) {
-			super(makeOVType(property.getType().getType()), new Function<Object[], ObservableValue<T>>() {
-				@Override
-				public ObservableValue<T> apply(Object[] args) {
-					return genValue(args);
-				}
-			}, true, inserts.toArray(new ObservableValue[inserts.size()]));
+			String directiveType) {
+			super(makeOVType(property.getType().getType()), null, true, inserts.toArray(new ObservableValue[inserts.size()]));
+			theProperty = property;
+			theParseEnv = parseEnv;
+			theDirectiveType = directiveType;
 			theText = text;
-			theInserts = inserts;
-			// TODO Auto-generated constructor stub
 		}
 
-		// TODO Wish I could make this non-static and override it in the sub classes, but it gives me an error in the constructor
-		private static ObservableValue<T> genValue(Object[] args) {
-			// TODO
+		protected QuickProperty<T> getProperty() {
+			return theProperty;
 		}
-	}
 
-	static <T> TypeToken<ObservableValue<T>> makeOVType(TypeToken<T> type) {
-		return new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, type);
+		protected QuickParseEnv getParseEnv() {
+			return theParseEnv;
+		}
+
+		protected List<String> getText() {
+			return theText;
+		}
+
+		@Override
+		protected ObservableValue<?> combine(Object[] args) {
+			StringBuilder text = new StringBuilder(getText().get(0));
+			for (int i = 0; i < args.length; i++) {
+				text.append(replaceArg(i, args[i])).append(getText().get(i));
+			}
+			try {
+				return parseValue(theDirectiveType, getProperty(), getParseEnv(), text.toString());
+			} catch (QuickParseException e) {
+				getParseEnv().msg().error("Could not parse value " + text + " by directive " + theDirectiveType, e);
+				return null; // I guess? Can't think how else to populate a value
+			}
+		}
+
+		protected abstract String replaceArg(int i, Object arg);
 	}
 }

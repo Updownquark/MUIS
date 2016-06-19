@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
@@ -19,7 +20,7 @@ public class StyleAttributes {
 	/** The instance to use for the element style */
 	public static final QuickPropertyType<QuickStyle> STYLE_TYPE = QuickPropertyType.build("style", TypeToken.of(QuickStyle.class))//
 		.withParser((parser, env, str) -> {
-			return parseStyle(parser, env, str);
+			return ObservableValue.constant(TypeToken.of(QuickStyle.class), parseStyle(parser, env, str));
 		}, true)//
 		.withToString(style -> {
 			StringBuilder ret = new StringBuilder();
@@ -40,7 +41,7 @@ public class StyleAttributes {
 			LinkedHashSet<String> groups = new LinkedHashSet<>();
 			for (String s : split)
 				groups.add(s.trim());
-			return Collections.unmodifiableSet(groups);
+			return ObservableValue.constant(new TypeToken<Set<String>>() {}, Collections.unmodifiableSet(groups));
 		}, true)//
 		.build();
 

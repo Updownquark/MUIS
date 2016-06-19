@@ -23,7 +23,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 	}
 
 	@Override
-	protected <T> ObservableValue<T> parseValue(QuickParseEnv parseEnv, String value) throws QuickParseException {
+	protected ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, String value) throws QuickParseException {
 		ParseMatch[] matches;
 		try {
 			matches = theParser.parseMatches(value);
@@ -41,7 +41,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		return evaluate(parseEnv, item);
 	}
 
-	private <T> ObservableValue<T> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem) throws QuickParseException {
+	private ObservableValue<?> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem) throws QuickParseException {
 		if (parsedItem instanceof ParsedArrayIndex) {
 		} else if (parsedItem instanceof ParsedIdentifier) {
 		} else if(parsedItem instanceof ParsedMethod){

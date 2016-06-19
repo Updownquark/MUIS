@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.observe.ObservableValue;
 import org.qommons.ColorUtils;
 import org.qommons.TriFunction;
 import org.qommons.ex.ExFunction;
@@ -63,7 +64,7 @@ public final class QuickPropertyType<T> {
 	}
 
 	public interface PropertySelfParser<T> {
-		T parse(QuickPropertyParser parser, QuickParseEnv parseEnv, String value) throws QuickParseException;
+		ObservableValue<T> parse(QuickPropertyParser parser, QuickParseEnv parseEnv, String value) throws QuickParseException;
 	}
 
 	private final String theName;
@@ -102,7 +103,7 @@ public final class QuickPropertyType<T> {
 		return theType;
 	}
 
-	/** @return */
+	/** @return A parser that knows how to parse property values of this type. May be null if the property type cannot parse itself. */
 	public PropertySelfParser<T> getSelfParser() {
 		return theParser;
 	}
@@ -259,7 +260,7 @@ public final class QuickPropertyType<T> {
 	}
 
 	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeToken.of(String.class))
-		.withParser((parser, env, s) -> s, true)//
+		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(String.class), s), true)//
 		.map(TypeToken.of(CharSequence.class), seq -> seq.toString())//
 		.build();
 
@@ -278,7 +279,7 @@ public final class QuickPropertyType<T> {
 		.build();
 
 	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeToken.of(Instant.class))
-		.withParser((parser, env, s) -> parseInstant(s), true)//
+		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Instant.class), parseInstant(s)), true)//
 		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l))//
 		.map(TypeToken.of(Date.class), date -> date.toInstant())//
 		.map(TypeToken.of(Calendar.class), cal -> cal.toInstant())//
@@ -310,7 +311,7 @@ public final class QuickPropertyType<T> {
 		SUPPORTED_CHRONO_UNITS = Collections.unmodifiableMap(chronoUnits);
 
 		Builder<Duration> durationBuilder = QuickPropertyType.build("duration", TypeToken.of(Duration.class))//
-			.withParser((parser, env, s) -> parseDuration(s), true)//
+			.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Duration.class), parseDuration(s)), true)//
 			.withToString(d -> toString(d))//
 			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l));
 		for (Map.Entry<String, ChronoUnit> unit : SUPPORTED_CHRONO_UNITS.entrySet()) {
@@ -397,7 +398,7 @@ public final class QuickPropertyType<T> {
 
 	static {
 		Builder<Color> colorBuilder = QuickPropertyType.build("color", TypeToken.of(Color.class))//
-			.withParser((parser, env, s) -> Colors.parseColor(s), true)//
+			.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Color.class), Colors.parseColor(s)), true)//
 			.withToString(c -> Colors.toString(c))//
 			.withValues(name -> {
 				return Colors.NAMED_COLORS.get(name);
@@ -510,7 +511,7 @@ public final class QuickPropertyType<T> {
 				}
 				if (!type.isAssignableFrom(res))
 					throw new QuickParseException("Type " + s + " is not compatible with type " + type.getName());
-				return type.asSubclass(type);
+				return ObservableValue.constant(typeToken, type.asSubclass(type));
 			}, true)//
 			.build();
 	}
@@ -543,7 +544,7 @@ public final class QuickPropertyType<T> {
 					throw new QuickParseException("Cannot access default constructor for type " + name, e);
 				}
 				try {
-					return (T) ctor.newInstance();
+					return ObservableValue.constant(TypeToken.of(type), (T) ctor.newInstance());
 				} catch (InstantiationException e) {
 					throw new QuickParseException("Cannot instantiate type " + name, e);
 				} catch (InvocationTargetException | IllegalAccessException e) {
@@ -575,7 +576,7 @@ public final class QuickPropertyType<T> {
 			QuickToolkit toolkit = env.cv().getToolkit(namespace);
 			if (toolkit == null)
 				try {
-					return new URL(s);
+					return ObservableValue.constant(TypeToken.of(URL.class), new URL(s));
 				} catch (java.net.MalformedURLException e) {
 					throw new QuickParseException("resource: Resource property is not a valid URL: \"" + s + "\"", e);
 				}
@@ -585,13 +586,13 @@ public final class QuickPropertyType<T> {
 					+ toolkit.getName() + " or one of its dependencies");
 			if (mapped.contains(":"))
 				try {
-					return new URL(mapped);
+					return ObservableValue.constant(TypeToken.of(URL.class), new URL(mapped));
 				} catch (java.net.MalformedURLException e) {
 					throw new QuickParseException("resource: Resource property maps to an invalid URL \"" + mapped + "\" in toolkit "
 						+ toolkit.getName() + ": \"" + content + "\"");
 				}
 			try {
-				return QuickUtils.resolveURL(toolkit.getURI(), mapped);
+				return ObservableValue.constant(TypeToken.of(URL.class), QuickUtils.resolveURL(toolkit.getURI(), mapped));
 			} catch (QuickException e) {
 				throw new QuickParseException("resource: Resource property maps to a resource (" + mapped
 					+ ") that cannot be resolved with respect to toolkit \"" + toolkit.getName() + "\"'s URL: \"" + content + "\"");

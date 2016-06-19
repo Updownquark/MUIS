@@ -3,7 +3,6 @@ package org.quick.core.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.quick.core.QuickClassView;
 import org.quick.core.QuickEnvironment;
@@ -56,22 +55,19 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 	private <T> ObservableValue<T> parseBy(QuickProperty<T> property, QuickParseEnv parseEnv, String value, boolean parseByDefault)
 		throws QuickParseException {
-		List<ObservableValue<?>> depends = new ArrayList<>();
+		List<String> text = new ArrayList<>();
+		List<ObservableValue<?>> inserts = new ArrayList<>();
+		int start = 0;
 		int directiveIdx = findNextDirective(value, 0);
 		while (directiveIdx >= 0) {
 			if (property == null)
 				throw new QuickParseException("No directives accepted for property-less parsing (e.g. models)");
+			text.add(value.substring(start, directiveIdx));
 			String contents = getDirectiveContents(value, directiveIdx);
-			ObservableValue<?> contentValue = parseBy(property, parseEnv, contents, !parseByDefault);
-			depends.add(contentValue);
-			StringBuilder newValue = new StringBuilder();
-			newValue.append(value.substring(0, directiveIdx));
-			// TODO Need some control over the toString here (e.g. replacing colors in an attribute should be named where possible)
-			newValue.append(contentValue.get());
-			int newStart = newValue.length();
-			newValue.append(value.substring(directiveIdx + contents.length()));
-			value = newValue.toString();
-			directiveIdx = findNextDirective(value, newStart);
+			ObservableValue<?> contentValue = parseBy(property, parseEnv, contents, isDefaultDirective(value, directiveIdx));
+			inserts.add(contentValue);
+			start += contents.length();
+			directiveIdx = findNextDirective(value, start);
 		}
 		QuickParseEnv internalParseEnv;
 		if (property != null) {
@@ -79,23 +75,22 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			// TODO Add the property's toolkit and the property type's toolkit to the class view
 			DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
 			// TODO Add property's and property type's variables, functions, etc. into the context
+			if (property != null && property.getType().acceptsRefs()) {
+				// TODO Add the inserts into the context as variables of the form ?<hex>
+			}
 			internalParseEnv = new SimpleParseEnv(cv, parseEnv.msg(), ctx.build());
 		} else
 			internalParseEnv = parseEnv;
-		ObservableValue<T> propValue;
-		if (parseByDefault) {
-			propValue = parseValue(internalParseEnv, value);
+		if (inserts.isEmpty()) {
+			return parseValue(internalParseEnv, value);
+		} else if (property != null && !property.getType().acceptsRefs()) {
+			return new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault);
 		} else {
-			propValue = ObservableValue.constant(property.getType().getType(),
-				property.getType().getSelfParser().parse(this, internalParseEnv, value));
+			return new ValueSubstitutingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault);
 		}
-		if (depends.isEmpty())
-			return propValue;
-		else
-			return propValue.refresh(Observable.or(depends.toArray(new Observable[depends.size()])));
 	}
 
-	protected abstract <T> ObservableValue<T> parseValue(QuickParseEnv parseEnv, String value);
+	protected abstract <T> ObservableValue<T> parseValue(QuickParseEnv parseEnv, String value) throws QuickParseException;
 
 	private static int findNextDirective(String value, int start) {
 		// TODO
@@ -103,5 +98,34 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 	private static String getDirectiveContents(String value, int position) {
 		// TODO
+	}
+
+	private static boolean isDefaultDirective(String value, int position) {
+		// TODO
+	}
+
+	/**
+	 * Combines text and directive-parsed references into a string and parses the value
+	 *
+	 * @param <T> The type of the value
+	 */
+	private class StringBuildingReferenceValue<T> extends ObservableValue.ComposedObservableValue<T> {
+		// TODO Need some control over the toString here (e.g. replacing colors in an attribute should be named where possible)
+		StringBuildingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
+			boolean parseByDefault) {
+			// TODO Auto-generated constructor stub
+		}
+	}
+
+	/**
+	 * Replaces directive-parsed references in text with placeholders whose values are supplied by the context
+	 *
+	 * @param <T> The type of the value
+	 */
+	private class ValueSubstitutingReferenceValue<T> extends ObservableValue.ComposedObservableValue<T> {
+		public ValueSubstitutingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text,
+			List<ObservableValue<?>> inserts, boolean parseByDefault) {
+			// TODO Auto-generated constructor stub
+		}
 	}
 }

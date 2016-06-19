@@ -132,6 +132,11 @@
 			<match>null</match>
 		</charset>
 	</entity>
+	<entity name="placeholder" order="1000" impl="org.quick.core.parser.PrismsPropertyParser$ParsedPlaceholder">
+		<literal>?&lt;</literal>
+		<charset pattern="[0-9a-f]+" storeAs="name" />
+		<literal>&gt;</literal>
+	</entity>
 
 	<!-- Literal initialized, bounded operators -->
 	<operator name="constructor" order="1" impl="prisms.lang.types.ParsedConstructor">
@@ -346,7 +351,7 @@
 	</operator>
 	<operator name="subtract" order="50" priority="200" impl="prisms.lang.types.ParsedBinaryOp">
 		<op />
-		<literal storeAs="name">.-</literal>
+		<literal storeAs="name">-</literal>
 		<op />
 	</operator>
 

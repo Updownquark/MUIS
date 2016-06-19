@@ -5,8 +5,6 @@ import java.io.IOException;
 import org.observe.ObservableValue;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
-import org.quick.core.prop.ExpressionContext;
-import org.quick.core.prop.QuickProperty;
 
 import prisms.lang.*;
 import prisms.lang.types.*;
@@ -25,7 +23,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 	}
 
 	@Override
-	protected <T> ObservableValue<T> parseValue(QuickParseEnv parseEnv, String value) {
+	protected <T> ObservableValue<T> parseValue(QuickParseEnv parseEnv, String value) throws QuickParseException {
 		ParseMatch[] matches;
 		try {
 			matches = theParser.parseMatches(value);
@@ -40,13 +38,10 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} catch (ParseException e) {
 			throw new QuickParseException("Failed to structure parsed value for " + value, e);
 		}
-		return toValue(null, ctx, item);
-		// TODO Auto-generated method stub
-		return null;
+		return evaluate(parseEnv, item);
 	}
 
-	private <T> ObservableValue<T> toValue(QuickProperty<T> property, ExpressionContext ctx, ParsedItem parsedItem)
-		throws QuickParseException {
+	private <T> ObservableValue<T> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem) throws QuickParseException {
 		if (parsedItem instanceof ParsedArrayIndex) {
 		} else if (parsedItem instanceof ParsedIdentifier) {
 		} else if(parsedItem instanceof ParsedMethod){
@@ -96,5 +91,23 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			else
 				theValue.replace(dependent, toReplace);
 		}
+	}
+
+	public static class ParsedPlaceholder extends ParsedItem {
+		private String theName;
+
+		@Override
+		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
+			super.setup(parser, parent, match);
+			theName = getStored("name").text;
+		}
+
+		@Override
+		public ParsedItem[] getDependents() {
+			return new ParsedItem[0];
+		}
+
+		@Override
+		public void replace(ParsedItem dependent, ParsedItem toReplace) throws IllegalArgumentException {}
 	}
 }

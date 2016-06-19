@@ -70,19 +70,21 @@ public final class QuickPropertyType<T> {
 	private final TypeToken<T> theType;
 	private final PropertySelfParser<T> theParser;
 	private final boolean isSelfParsingByDefault;
+	private final boolean selfParsingAcceptsReferences;
 	private final List<TypeMapping<?, T>> theMappings;
 	private final List<Function<String, ?>> theValueSuppliers;
 	private final List<Unit<?, ?>> theUnits;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
 
-	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault,
+	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault, boolean acceptRefs,
 		List<TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers, List<Unit<?, ?>> units,
 		Function<? super T, String> printer, ExpressionContext ctx) {
 		theName = name;
 		theType = type;
 		theParser = parser;
 		isSelfParsingByDefault = parseSelfByDefault;
+		selfParsingAcceptsReferences = acceptRefs;
 		theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
 		theValueSuppliers = Collections.unmodifiableList(new ArrayList<>(valueSuppliers));
 		theUnits = Collections.unmodifiableList(new ArrayList<>(units));
@@ -107,6 +109,10 @@ public final class QuickPropertyType<T> {
 
 	public boolean isSelfParsingByDefault() {
 		return isSelfParsingByDefault;
+	}
+
+	public boolean acceptsRefs() {
+		return selfParsingAcceptsReferences;
 	}
 
 	public List<Function<String, ?>> getValueSuppliers() {
@@ -191,6 +197,7 @@ public final class QuickPropertyType<T> {
 		private final TypeToken<T> theType;
 		private PropertySelfParser<T> theParser;
 		private boolean isSelfParsingByDefault;
+		private boolean selfParsingAcceptsReferences;
 		private final List<TypeMapping<?, T>> theMappings;
 		private final List<Function<String, ?>> theValueSuppliers;
 		private final List<Unit<?, ?>> theUnits;
@@ -209,6 +216,11 @@ public final class QuickPropertyType<T> {
 		public Builder<T> withParser(PropertySelfParser<T> parser, boolean parseSelfByDefault) {
 			theParser = parser;
 			isSelfParsingByDefault = parseSelfByDefault;
+			return this;
+		}
+
+		public Builder<T> acceptReferences(boolean accept) {
+			selfParsingAcceptsReferences = accept;
 			return this;
 		}
 
@@ -241,8 +253,8 @@ public final class QuickPropertyType<T> {
 		public QuickPropertyType<T> build() {
 			if (isSelfParsingByDefault && theParser == null)
 				throw new IllegalArgumentException("Cannot parse self by default with no parser");
-			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, theMappings, theValueSuppliers, theUnits,
-				thePrinter, theCtxBuilder.build());
+			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, selfParsingAcceptsReferences, theMappings,
+				theValueSuppliers, theUnits, thePrinter, theCtxBuilder.build());
 		}
 	}
 

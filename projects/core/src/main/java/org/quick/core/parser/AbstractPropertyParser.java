@@ -2,6 +2,7 @@ package org.quick.core.parser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.observe.ObservableValue;
 import org.quick.core.QuickClassView;
@@ -9,6 +10,9 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.QuickProperty;
+
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	public static final String DEFAULT_PARSE_DIRECTIVE = "$";
@@ -75,7 +79,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			// TODO Add the property's toolkit and the property type's toolkit to the class view
 			DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
 			// TODO Add property's and property type's variables, functions, etc. into the context
-			if (property != null && property.getType().acceptsRefs()) {
+			if (property != null && property.getType().getReferenceReplacementGenerator() != null) {
 				// TODO Add the inserts into the context as variables of the form ?<hex>
 			}
 			internalParseEnv = new SimpleParseEnv(cv, parseEnv.msg(), ctx.build());
@@ -83,10 +87,11 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			internalParseEnv = parseEnv;
 		if (inserts.isEmpty()) {
 			return parseValue(internalParseEnv, value);
-		} else if (property != null && !property.getType().acceptsRefs()) {
-			return new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault);
+		} else if (property != null && property.getType().getReferenceReplacementGenerator() == null) {
+			return ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault));
 		} else {
-			return new ValueSubstitutingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault);
+			return ObservableValue
+				.flatten(new ValueSubstitutingReferenceValue<>(property, internalParseEnv, text, inserts, parseByDefault));
 		}
 	}
 
@@ -109,11 +114,25 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 *
 	 * @param <T> The type of the value
 	 */
-	private class StringBuildingReferenceValue<T> extends ObservableValue.ComposedObservableValue<T> {
-		// TODO Need some control over the toString here (e.g. replacing colors in an attribute should be named where possible)
+	private static class StringBuildingReferenceValue<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
+		private final List<String> theText;
+		private final List<ObservableValue<?>> theInserts;
+
+		@SuppressWarnings("cast")
 		StringBuildingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
 			boolean parseByDefault) {
-			// TODO Auto-generated constructor stub
+			super(makeOVType(property.getType().getType()), new Function<Object[], ObservableValue<T>>() {
+				@Override
+				public ObservableValue<T> apply(Object[] args) {
+					return genValue(args);
+				}
+			}, true, inserts.toArray(new ObservableValue[inserts.size()]));
+			theText = text;
+			theInserts = inserts;
+		}
+
+		private static <T> ObservableValue<T> genValue(Object[] args) {
+			// TODO
 		}
 	}
 
@@ -122,10 +141,46 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 *
 	 * @param <T> The type of the value
 	 */
-	private class ValueSubstitutingReferenceValue<T> extends ObservableValue.ComposedObservableValue<T> {
+	private static class ValueSubstitutingReferenceValue<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
 		public ValueSubstitutingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text,
 			List<ObservableValue<?>> inserts, boolean parseByDefault) {
+			super(makeOVType(property.getType().getType()), new Function<Object[], ObservableValue<T>>() {
+				@Override
+				public ObservableValue<T> apply(Object[] args) {
+					return genValue(args);
+				}
+			}, true, inserts.toArray(new ObservableValue[inserts.size()]));
+			theText = text;
+			theInserts = inserts;
 			// TODO Auto-generated constructor stub
 		}
+
+		private static ObservableValue<T> genValue(Object[] args) {
+			// TODO
+		}
+	}
+
+	private static class ReferenceValueBuilder<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
+		public ReferenceValueBuilder(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
+			boolean parseByDefault) {
+			super(makeOVType(property.getType().getType()), new Function<Object[], ObservableValue<T>>() {
+				@Override
+				public ObservableValue<T> apply(Object[] args) {
+					return genValue(args);
+				}
+			}, true, inserts.toArray(new ObservableValue[inserts.size()]));
+			theText = text;
+			theInserts = inserts;
+			// TODO Auto-generated constructor stub
+		}
+
+		// TODO Wish I could make this non-static and override it in the sub classes, but it gives me an error in the constructor
+		private static ObservableValue<T> genValue(Object[] args) {
+			// TODO
+		}
+	}
+
+	static <T> TypeToken<ObservableValue<T>> makeOVType(TypeToken<T> type) {
+		return new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, type);
 	}
 }

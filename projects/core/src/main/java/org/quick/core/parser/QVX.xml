@@ -23,11 +23,21 @@
 		<literal>&apos;</literal>
 	</entity>
 	<entity name="string" order="1" impl="prisms.lang.types.ParsedString">
-		<literal>&quot;</literal>
-		<charset storeAs="value" pattern=".*">
-			<exclude escape="\&quot;">&quot;</exclude>
-		</charset>
-		<literal>&quot;</literal>
+		<select>
+			<option>
+				<literal>&quot;</literal>
+				<charset storeAs="value" pattern=".*">
+					<exclude escape="\&quot;">&quot;</exclude>
+				</charset>
+			</option>
+			<option>
+				<literal>`</literal>
+				<charset storeAs="value" pattern=".*">
+					<exclude escape="\&quot;">&quot;</exclude>
+				</charset>
+				<literal>`</literal>
+			</option>
+		</select>
 	</entity>
 	<entity name="number" order="2" impl="prisms.lang.types.ParsedNumber">
 		<option>
@@ -132,7 +142,7 @@
 			<match>null</match>
 		</charset>
 	</entity>
-	<entity name="placeholder" order="1000" impl="org.quick.core.parser.PrismsPropertyParser$ParsedPlaceholder">
+	<entity name="placeholder" order="1000" impl="org.quick.core.parser.ParsedPlaceHolder">
 		<literal>?&lt;</literal>
 		<charset pattern="[0-9a-f]+" storeAs="name" />
 		<literal>&gt;</literal>
@@ -447,6 +457,6 @@
 	</operator>
 	<operator name="unit value" order="50" priority="250" impl="org.quick.core.parser.PrismsPropertyParser$ParsedUnitValue">
 		<op storeAs="value" />
-		<charset storeAs="unit" pattern="[a-zA-Z!@%~][a-zA-Z!@%~_]*" />
+		<charset storeAs="unit" pattern="[a-zA-Z!@%~_][a-zA-Z0-9!@%~_]*" />
 	</operator>
 </grammar>

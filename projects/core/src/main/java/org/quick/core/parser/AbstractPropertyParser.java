@@ -12,6 +12,7 @@ import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** A partial implementation of the property parser. Handles directives and property self-parsing. */
@@ -112,6 +113,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			start = directive.start + directive.length;
 			directive = parseNextDirective(value, start);
 		}
+		text.add(value.substring(start));
 		DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
 		QuickClassView cv;
 		if (property != null) {
@@ -135,8 +137,11 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		if (inserts.isEmpty()) {
 			parsedValue = parseValue(type, property, internalParseEnv, value);
 		} else if (replacements.stream().anyMatch(r -> r != null)) {
-			parsedValue = ObservableValue
-				.flatten(new ValueSubstitutingReferenceValue<>(property, internalParseEnv, text, inserts, replacements, type));
+			StringBuilder builtText = new StringBuilder(text.get(0));
+			for (int i = 0; i < inserts.size(); i++) {
+				builtText.append(replacements.get(i)).append(text.get(i + 1));
+			}
+			parsedValue = parseValue(type, property, internalParseEnv, builtText.toString());
 		} else {
 			parsedValue = ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, type));
 		}
@@ -236,7 +241,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 	/**
 	 * Does the parsing work by the default method
-	 * 
+	 *
 	 * @param parseEnv The parse environment to use for parsing
 	 * @param value The text to parse
 	 * @return The parsed value
@@ -249,79 +254,35 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 *
 	 * @param <T> The type of the value
 	 */
-	private class StringBuildingReferenceValue<T> extends ReferenceValueBuilder<T> {
-		StringBuildingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
-			String directiveType) {
-			super(property, parseEnv, text, inserts, directiveType);
-		}
-
-		@Override
-		protected String replaceArg(int i, Object arg) {
-			return String.valueOf(arg);
-		}
-	}
-
-	/**
-	 * Replaces directive-parsed references in text with placeholders whose values are supplied by the context
-	 *
-	 * @param <T> The type of the value
-	 */
-	private class ValueSubstitutingReferenceValue<T> extends ReferenceValueBuilder<T> {
-		private final List<String> theReplacements;
-
-		ValueSubstitutingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
-			List<String> replacements, String directiveType) {
-			super(property, parseEnv, text, inserts, directiveType);
-			theReplacements = replacements;
-		}
-
-		@Override
-		protected String replaceArg(int i, Object arg) {
-			return theReplacements.get(i);
-		}
-	}
-
-	private abstract class ReferenceValueBuilder<T> extends ObservableValue.ComposedObservableValue<ObservableValue<?>> {
+	private class StringBuildingReferenceValue<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
 		private final QuickProperty<T> theProperty;
 		private final QuickParseEnv theParseEnv;
 		private final String theDirectiveType;
 		private final List<String> theText;
 
-		public ReferenceValueBuilder(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
+		StringBuildingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
 			String directiveType) {
-			super(makeOVType(property.getType().getType()), null, true, inserts.toArray(new ObservableValue[inserts.size()]));
+			super(new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, property.getType().getType()), null, true,
+				inserts.toArray(new ObservableValue[inserts.size()]));
 			theProperty = property;
 			theParseEnv = parseEnv;
 			theDirectiveType = directiveType;
 			theText = text;
 		}
 
-		protected QuickProperty<T> getProperty() {
-			return theProperty;
-		}
-
-		protected QuickParseEnv getParseEnv() {
-			return theParseEnv;
-		}
-
-		protected List<String> getText() {
-			return theText;
-		}
-
 		@Override
-		protected ObservableValue<?> combine(Object[] args) {
-			StringBuilder text = new StringBuilder(getText().get(0));
+		protected ObservableValue<T> combine(Object[] args) {
+			StringBuilder text = new StringBuilder(theText.get(0));
 			for (int i = 0; i < args.length; i++) {
-				text.append(replaceArg(i, args[i])).append(getText().get(i));
+				// TODO is there an elegant way to get more control of the way model values are stringified here?
+				text.append(args[i]).append(theText.get(i + 1));
 			}
 			try {
-				return parseValue(theDirectiveType, getProperty(), getParseEnv(), text.toString());
+				return theProperty.getType().getSelfParser().parse(AbstractPropertyParser.this, theParseEnv, text.toString());
 			} catch (QuickParseException e) {
-				getParseEnv().msg().error("Could not parse value " + text + " by directive " + theDirectiveType, e);
-				return null; // I guess? Can't think how else to populate a value
+				theParseEnv.msg().error("Could not parse value " + text + " by directive " + theDirectiveType, e);
+				return null; // TODO I guess? Can't think how else to populate a value if parsing fails
 			}
 		}
-
-		protected abstract String replaceArg(int i, Object arg);
 	}
 }

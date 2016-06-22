@@ -1,10 +1,15 @@
 package org.quick.core.parser;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.function.BiFunction;
 
 import org.observe.ObservableValue;
+import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
+
+import com.google.common.reflect.TypeToken;
 
 import prisms.lang.*;
 import prisms.lang.types.*;
@@ -43,6 +48,39 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 
 	private ObservableValue<?> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem) throws QuickParseException {
 		if (parsedItem instanceof ParsedArrayIndex) {
+			ParsedArrayIndex pai = (ParsedArrayIndex) parsedItem;
+			ObservableValue<?> array = evaluate(parseEnv, pai.getArray());
+			TypeToken<?> resultType;
+			if (array.getType().isArray()) {
+				resultType = array.getType().getComponentType();
+			} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
+				resultType = array.getType().resolveType(List.class.getTypeParameters()[0]);
+			} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
+				resultType = array.getType().resolveType(ObservableOrderedCollection.class.getTypeParameters()[0]);
+			} else {
+				throw new QuickParseException(
+					"array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType() + ", which is not indexable");
+			}
+			ObservableValue<?> index = evaluate(parseEnv, pai.getIndex());
+			if (TypeToken.of(Long.class).isAssignableFrom(array.getType().wrap())) {
+			} else {
+				throw new QuickParseException("index value in " + parsedItem.getMatch().text + " evaluates to type " + index.getType()
+					+ ", which is not a valid index");
+			}
+			if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
+			} else
+				return array.combineV((TypeToken<Object>) resultType, index, (BiFunction<Object, Object, Object>) (a, i) -> {
+					int idx = ((Number) i).intValue();
+					if (TypeToken.of(Object[].class).isAssignableFrom(array.getType())) {
+						return ((Object[]) a)[idx];
+					} else if (array.getType().isArray()) {
+						return java.lang.reflect.Array.get(a, idx);
+					} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
+						return ((List<?>) a).get(idx);
+					} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
+						return ((ObservableOrderedCollection<?>) a).get(idx);
+					}
+				});
 		} else if (parsedItem instanceof ParsedIdentifier) {
 		} else if(parsedItem instanceof ParsedMethod){
 		} else if (parsedItem instanceof ParsedParenthetic) {
@@ -64,6 +102,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} else if (parsedItem instanceof ParsedType) {
 		} else if (parsedItem instanceof ParsedUnaryOp) {
 		} else if (parsedItem instanceof ParsedUnitValue) {
+		} else if (parsedItem instanceof ParsedPlaceHolder) {
 		} else
 			throw new QuickParseException("Unrecognized parsed item type: " + parsedItem.getClass());
 	}
@@ -93,7 +132,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}
 	}
 
-	public static class ParsedPlaceholder extends ParsedItem {
+	public static class ParsedPlaceHolder extends ParsedItem {
 		private String theName;
 
 		@Override

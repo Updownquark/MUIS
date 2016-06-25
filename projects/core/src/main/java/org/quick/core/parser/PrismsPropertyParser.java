@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 import org.observe.ObservableValue;
+import org.observe.SettableValue;
+import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
@@ -67,20 +69,23 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException("index value in " + parsedItem.getMatch().text + " evaluates to type " + index.getType()
 					+ ", which is not a valid index");
 			}
-			if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
+			if (TypeToken.of(ObservableList.class).isAssignableFrom(array.getType())) {
+				return SettableValue.flatten(((ObservableValue<ObservableList<?>>) array)
+					.combineV((list, idx) -> list.observeAt(((Number) idx).intValue(), null), index));
+			} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
+				return ObservableValue.flatten(((ObservableValue<ObservableOrderedCollection<?>>) array)
+					.combineV((coll, idx) -> coll.observeAt(((Number) idx).intValue(), null), index));
 			} else
-				return array.combineV((TypeToken<Object>) resultType, index, (BiFunction<Object, Object, Object>) (a, i) -> {
+				return array.combineV((TypeToken<Object>) resultType, (BiFunction<Object, Object, Object>) (a, i) -> {
 					int idx = ((Number) i).intValue();
 					if (TypeToken.of(Object[].class).isAssignableFrom(array.getType())) {
 						return ((Object[]) a)[idx];
 					} else if (array.getType().isArray()) {
 						return java.lang.reflect.Array.get(a, idx);
-					} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
+					} else/* if (TypeToken.of(List.class).isAssignableFrom(array.getType()))*/ {
 						return ((List<?>) a).get(idx);
-					} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
-						return ((ObservableOrderedCollection<?>) a).get(idx);
 					}
-				});
+				} , index, true);
 		} else if (parsedItem instanceof ParsedIdentifier) {
 		} else if(parsedItem instanceof ParsedMethod){
 		} else if (parsedItem instanceof ParsedParenthetic) {

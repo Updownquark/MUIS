@@ -16,9 +16,11 @@ import com.google.common.reflect.TypeToken;
 import prisms.lang.*;
 import prisms.lang.types.*;
 
+/** A property parser that uses the parser in prisms.lang to parse values */
 public class PrismsPropertyParser extends AbstractPropertyParser {
 	private final PrismsParser theParser;
 
+	/** @param env The Quick environment that this parser is to be in */
 	public PrismsPropertyParser(QuickEnvironment env) {
 		super(env);
 		theParser = new PrismsParser();
@@ -30,7 +32,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 	}
 
 	@Override
-	protected ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, String value) throws QuickParseException {
+	protected ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, String value, boolean action) throws QuickParseException {
 		ParseMatch[] matches;
 		try {
 			matches = theParser.parseMatches(value);
@@ -45,13 +47,15 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} catch (ParseException e) {
 			throw new QuickParseException("Failed to structure parsed value for " + value, e);
 		}
-		return evaluate(parseEnv, item);
+		return evaluate(parseEnv, item, action);
 	}
 
-	private ObservableValue<?> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem) throws QuickParseException {
+	private ObservableValue<?> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem, boolean action) throws QuickParseException {
 		if (parsedItem instanceof ParsedArrayIndex) {
+			if (action)
+				throw new QuickParseException("Array index operation cannot be an action");
 			ParsedArrayIndex pai = (ParsedArrayIndex) parsedItem;
-			ObservableValue<?> array = evaluate(parseEnv, pai.getArray());
+			ObservableValue<?> array = evaluate(parseEnv, pai.getArray(), false);
 			TypeToken<?> resultType;
 			if (array.getType().isArray()) {
 				resultType = array.getType().getComponentType();
@@ -63,7 +67,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException(
 					"array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType() + ", which is not indexable");
 			}
-			ObservableValue<?> index = evaluate(parseEnv, pai.getIndex());
+			ObservableValue<?> index = evaluate(parseEnv, pai.getIndex(), false);
 			if (TypeToken.of(Long.class).isAssignableFrom(array.getType().wrap())) {
 			} else {
 				throw new QuickParseException("index value in " + parsedItem.getMatch().text + " evaluates to type " + index.getType()
@@ -87,23 +91,25 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 					}
 				} , index, true);
 		} else if (parsedItem instanceof ParsedIdentifier) {
+			// model
+			// type
 		} else if(parsedItem instanceof ParsedMethod){
+			// type
+			// field/method
 		} else if (parsedItem instanceof ParsedParenthetic) {
+			return evaluate(parseEnv, ((ParsedParenthetic) parsedItem).getContent(), action);
 		} else if (parsedItem instanceof ParsedArrayInitializer) {
 		} else if (parsedItem instanceof ParsedAssignmentOperator) {
 		} else if (parsedItem instanceof ParsedBinaryOp) {
 		} else if (parsedItem instanceof ParsedCast) {
 		} else if (parsedItem instanceof ParsedConditional) {
 		} else if (parsedItem instanceof ParsedConstructor) {
-		} else if (parsedItem instanceof ParsedEnhancedForLoop) {
-		} else if (parsedItem instanceof ParsedIfStatement) {
 		} else if (parsedItem instanceof ParsedInstanceofOp) {
 		} else if (parsedItem instanceof ParsedBoolean) {
 		} else if (parsedItem instanceof ParsedChar) {
 		} else if (parsedItem instanceof ParsedNull) {
 		} else if (parsedItem instanceof ParsedNumber) {
 		} else if (parsedItem instanceof ParsedString) {
-		} else if (parsedItem instanceof ParsedLoop) {
 		} else if (parsedItem instanceof ParsedType) {
 		} else if (parsedItem instanceof ParsedUnaryOp) {
 		} else if (parsedItem instanceof ParsedUnitValue) {

@@ -106,10 +106,15 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} else if (parsedItem instanceof ParsedConstructor) {
 		} else if (parsedItem instanceof ParsedInstanceofOp) {
 		} else if (parsedItem instanceof ParsedBoolean) {
+			return ObservableValue.constant(TypeToken.of(Boolean.TYPE), ((ParsedBoolean) parsedItem).getValue());
 		} else if (parsedItem instanceof ParsedChar) {
+			return ObservableValue.constant(TypeToken.of(Character.TYPE), ((ParsedChar) parsedItem).getValue());
 		} else if (parsedItem instanceof ParsedNull) {
 		} else if (parsedItem instanceof ParsedNumber) {
+			ParsedNumber num = (ParsedNumber) parsedItem;
+			return ObservableValue.constant((TypeToken<Number>) TypeToken.of(num.getValue().getClass()).unwrap(), num.getValue());
 		} else if (parsedItem instanceof ParsedString) {
+			return ObservableValue.constant(TypeToken.of(String.class), ((ParsedString) parsedItem).getValue());
 		} else if (parsedItem instanceof ParsedType) {
 		} else if (parsedItem instanceof ParsedUnaryOp) {
 		} else if (parsedItem instanceof ParsedUnitValue) {

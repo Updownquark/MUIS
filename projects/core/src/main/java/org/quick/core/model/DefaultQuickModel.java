@@ -3,6 +3,7 @@ package org.quick.core.model;
 import java.util.*;
 import java.util.function.Function;
 
+import org.observe.ObservableAction;
 import org.observe.ObservableValue;
 import org.observe.SimpleSettableValue;
 import org.quick.core.QuickException;
@@ -230,7 +231,8 @@ public class DefaultQuickModel implements QuickAppModel {
 			return modelVariable;
 		}
 
-		private Runnable parseModelAction(String text, QuickPropertyParser parser, QuickParseEnv parseEnv) throws QuickParseException {
+		private ObservableAction parseModelAction(String text, QuickPropertyParser parser, QuickParseEnv parseEnv)
+			throws QuickParseException {
 			return parser.parseAction(parseEnv, text);
 		}
 

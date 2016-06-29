@@ -346,7 +346,7 @@ public class QuickUtils {
 
 	/**
 	 * Constructs an immutable copy of a map of lists
-	 * 
+	 *
 	 * @param value The value to copy
 	 * @return The copied, immutable value
 	 */
@@ -356,5 +356,14 @@ public class QuickUtils {
 			fns.put(entry.getKey(), Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
 		}
 		return Collections.unmodifiableMap(fns);
+	}
+
+	public static boolean isAssignableFrom(TypeToken<?> left, TypeToken<?> right) {
+		if (left.isAssignableFrom(right))
+			return true;
+		// TODO Handle primitive conversions
+		else if (left.isPrimitive() && left.wrap().isAssignableFrom(right))
+			return true;
+		return false;
 	}
 }

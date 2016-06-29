@@ -7,6 +7,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.qommons.TriFunction;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -64,7 +65,7 @@ public abstract class ExpressionFunction<T> {
 		if (arg.type.isNull) {
 			return !argType.isPrimitive();
 		}
-		return QuickPropertyType.isAssignableFrom(argType, arg.type.type);
+		return QuickUtils.isAssignableFrom(argType, arg.type.type);
 	}
 
 	public abstract T apply(List<?> values);

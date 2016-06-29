@@ -155,26 +155,17 @@ public final class QuickPropertyType<T> {
 	 */
 	public <X, V extends T> V cast(TypeToken<X> type, X value) throws QuickException {
 		V cast = null;
-		if (isAssignableFrom(theType, type))
+		if (QuickUtils.isAssignableFrom(theType, type))
 			cast = (V) value;
 		boolean mappingFound = false;
 		for (QuickPropertyType.TypeMapping<?, T> mapping : theMappings)
-			if (isAssignableFrom(mapping.from, type)) {
+			if (QuickUtils.isAssignableFrom(mapping.from, type)) {
 				mappingFound = true;
 				cast = ((QuickPropertyType.TypeMapping<? super X, V>) mapping).map.apply(value);
 			}
 		if(!mappingFound)
 			return null;
 		return cast;
-	}
-
-	public static boolean isAssignableFrom(TypeToken<?> left, TypeToken<?> right) {
-		if (left.isAssignableFrom(right))
-			return true;
-		// TODO Handle primitive conversions
-		else if (left.isPrimitive() && left.wrap().isAssignableFrom(right))
-			return true;
-		return false;
 	}
 
 	public String toString(T value) {

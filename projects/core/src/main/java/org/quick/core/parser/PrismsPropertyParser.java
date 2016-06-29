@@ -10,7 +10,10 @@ import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
+import org.quick.core.prop.ExpressionResult;
+import org.quick.util.QuickUtils;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 import prisms.lang.*;
@@ -32,7 +35,8 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 	}
 
 	@Override
-	protected ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, String value, boolean action) throws QuickParseException {
+	protected <T> ObservableValue<? extends T> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value, boolean action)
+		throws QuickParseException {
 		ParseMatch[] matches;
 		try {
 			matches = theParser.parseMatches(value);
@@ -47,80 +51,210 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} catch (ParseException e) {
 			throw new QuickParseException("Failed to structure parsed value for " + value, e);
 		}
-		return evaluate(parseEnv, item, action);
+		return evaluate(parseEnv, type, item, action);
 	}
 
-	private ObservableValue<?> evaluate(QuickParseEnv parseEnv, ParsedItem parsedItem, boolean action) throws QuickParseException {
+	private <T> ObservableValue<? extends T> evaluate(QuickParseEnv parseEnv, TypeToken<T> type, ParsedItem parsedItem, boolean action)
+		throws QuickParseException {
+		ObservableValue<?> result;
 		if (parsedItem instanceof ParsedArrayIndex) {
 			if (action)
 				throw new QuickParseException("Array index operation cannot be an action");
 			ParsedArrayIndex pai = (ParsedArrayIndex) parsedItem;
-			ObservableValue<?> array = evaluate(parseEnv, pai.getArray(), false);
-			TypeToken<?> resultType;
-			if (array.getType().isArray()) {
-				resultType = array.getType().getComponentType();
-			} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
-				resultType = array.getType().resolveType(List.class.getTypeParameters()[0]);
-			} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
-				resultType = array.getType().resolveType(ObservableOrderedCollection.class.getTypeParameters()[0]);
-			} else {
-				throw new QuickParseException(
-					"array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType() + ", which is not indexable");
+			ObservableValue<?> array = evaluate(parseEnv, TypeToken.of(Object.class), pai.getArray(), false);
+			TypeToken<? extends T> resultType;
+			{
+				TypeToken<?> testResultType;
+				if (array.getType().isArray()) {
+					testResultType = array.getType().getComponentType();
+				} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
+					testResultType = array.getType().resolveType(List.class.getTypeParameters()[0]);
+				} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
+					testResultType = array.getType().resolveType(ObservableOrderedCollection.class.getTypeParameters()[0]);
+				} else {
+					throw new QuickParseException("array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType()
+						+ ", which is not indexable");
+				}
+				if (!QuickUtils.isAssignableFrom(type, testResultType))
+					throw new QuickParseException("array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType()
+						+ " which is not indexable to type " + type);
+				resultType = (TypeToken<? extends T>) testResultType;
 			}
-			ObservableValue<?> index = evaluate(parseEnv, pai.getIndex(), false);
-			if (TypeToken.of(Long.class).isAssignableFrom(array.getType().wrap())) {
-			} else {
+			ObservableValue<?> index = evaluate(parseEnv, TypeToken.of(Object.class), pai.getIndex(), false);
+			if (!TypeToken.of(Long.class).isAssignableFrom(array.getType().wrap())) {
 				throw new QuickParseException("index value in " + parsedItem.getMatch().text + " evaluates to type " + index.getType()
 					+ ", which is not a valid index");
 			}
 			if (TypeToken.of(ObservableList.class).isAssignableFrom(array.getType())) {
-				return SettableValue.flatten(((ObservableValue<ObservableList<?>>) array)
+				return SettableValue.flatten(((ObservableValue<ObservableList<? extends T>>) array)
 					.combineV((list, idx) -> list.observeAt(((Number) idx).intValue(), null), index));
 			} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
-				return ObservableValue.flatten(((ObservableValue<ObservableOrderedCollection<?>>) array)
+				return ObservableValue.flatten(((ObservableValue<ObservableOrderedCollection<? extends T>>) array)
 					.combineV((coll, idx) -> coll.observeAt(((Number) idx).intValue(), null), index));
 			} else
-				return array.combineV((TypeToken<Object>) resultType, (BiFunction<Object, Object, Object>) (a, i) -> {
-					int idx = ((Number) i).intValue();
+				return array.combineV((TypeToken<T>) resultType, (BiFunction<Object, Number, T>) (a, i) -> {
+					int idx = i.intValue();
 					if (TypeToken.of(Object[].class).isAssignableFrom(array.getType())) {
-						return ((Object[]) a)[idx];
+						return ((T[]) a)[idx];
 					} else if (array.getType().isArray()) {
-						return java.lang.reflect.Array.get(a, idx);
+						return (T) java.lang.reflect.Array.get(a, idx);
 					} else/* if (TypeToken.of(List.class).isAssignableFrom(array.getType()))*/ {
-						return ((List<?>) a).get(idx);
+						return ((List<? extends T>) a).get(idx);
 					}
-				} , index, true);
+				}, (ObservableValue<? extends Number>) index, true);
 		} else if (parsedItem instanceof ParsedIdentifier) {
+			if (action)
+				throw new QuickParseException("Identifier cannot be an action");
+			// TODO
 			// model
 			// type
 		} else if(parsedItem instanceof ParsedMethod){
+			// TODO
 			// type
-			// field/method
+			// field/method (including statically-invoked)
 		} else if (parsedItem instanceof ParsedParenthetic) {
-			return evaluate(parseEnv, ((ParsedParenthetic) parsedItem).getContent(), action);
+			return evaluate(parseEnv, type, ((ParsedParenthetic) parsedItem).getContent(), action);
 		} else if (parsedItem instanceof ParsedArrayInitializer) {
+			if (action)
+				throw new QuickParseException("Array init operation cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedAssignmentOperator) {
+			if (!action)
+				throw new QuickParseException("Assignment operator must be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedBinaryOp) {
+			if (action)
+				throw new QuickParseException("Binary operation " + ((ParsedBinaryOp) parsedItem).getName() + " cannot be an action");
+			ParsedBinaryOp op = (ParsedBinaryOp) parsedItem;
+			ObservableValue<?> arg1 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp1(), false);
+			ObservableValue<?> arg2 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp2(), false);
+			result = combineBinary(arg1, arg2, op);
+			// TODO
 		} else if (parsedItem instanceof ParsedCast) {
+			if (action)
+				throw new QuickParseException("Cast cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedConditional) {
+			if (action)
+				throw new QuickParseException("Conditionals cannot be an action");
+			ParsedConditional cond=(ParsedConditional) parsedItem;
+			ObservableValue<?> condition = evaluate(parseEnv, TypeToken.of(Object.class), cond.getCondition(), false);
+			if (!TypeToken.of(Boolean.class).isAssignableFrom(condition.getType().wrap()))
+				throw new QuickParseException(
+					"Condition in " + cond.getMatch().text + " evaluates to type " + condition.getType() + ", which is not boolean");
+			ObservableValue<? extends T> affirm = evaluate(parseEnv, type, cond.getAffirmative(), false);
+			ObservableValue<? extends T> neg = evaluate(parseEnv, type, cond.getNegative(), false);
+			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(v -> v ? affirm : neg));
+			// TODO
 		} else if (parsedItem instanceof ParsedConstructor) {
+			if (action)
+				throw new QuickParseException("Constructor cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedInstanceofOp) {
+			if (action)
+				throw new QuickParseException("instanceof operation cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedBoolean) {
-			return ObservableValue.constant(TypeToken.of(Boolean.TYPE), ((ParsedBoolean) parsedItem).getValue());
+			if (action)
+				throw new QuickParseException("boolean literal cannot be an action");
+			result = ObservableValue.constant(TypeToken.of(Boolean.TYPE), ((ParsedBoolean) parsedItem).getValue());
 		} else if (parsedItem instanceof ParsedChar) {
-			return ObservableValue.constant(TypeToken.of(Character.TYPE), ((ParsedChar) parsedItem).getValue());
+			if (action)
+				throw new QuickParseException("char literal cannot be an action");
+			result = ObservableValue.constant(TypeToken.of(Character.TYPE), ((ParsedChar) parsedItem).getValue());
 		} else if (parsedItem instanceof ParsedNull) {
+			if (action)
+				throw new QuickParseException("null literal cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedNumber) {
+			if (action)
+				throw new QuickParseException("number literal cannot be an action");
 			ParsedNumber num = (ParsedNumber) parsedItem;
-			return ObservableValue.constant((TypeToken<Number>) TypeToken.of(num.getValue().getClass()).unwrap(), num.getValue());
+			result = ObservableValue.constant((TypeToken<Number>) TypeToken.of(num.getValue().getClass()).unwrap(), num.getValue());
 		} else if (parsedItem instanceof ParsedString) {
-			return ObservableValue.constant(TypeToken.of(String.class), ((ParsedString) parsedItem).getValue());
+			if (action)
+				throw new QuickParseException("String literal cannot be an action");
+			result = ObservableValue.constant(TypeToken.of(String.class), ((ParsedString) parsedItem).getValue());
 		} else if (parsedItem instanceof ParsedType) {
+			if (action)
+				throw new QuickParseException("Type cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedUnaryOp) {
+			if (action)
+				throw new QuickParseException("Unary operation " + ((ParsedUnaryOp) parsedItem).getName() + " cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedUnitValue) {
+			if (action)
+				throw new QuickParseException("Unit value cannot be an action");
+			// TODO
 		} else if (parsedItem instanceof ParsedPlaceHolder) {
+			ExpressionResult<?> res = parseEnv.getContext().getVariable(((ParsedPlaceHolder) parsedItem).getName());
+			if (res == null)
+				throw new QuickParseException("Unrecognized placeholder: " + parsedItem.getMatch().text);
+			if (res.type.isNull)
+				return ObservableValue.constant(type, null);
+			else if (res.type.isType)
+				result = classWrap(res.type.type, res.type.type.getRawType());
+			else
+				result = res.value;
 		} else
 			throw new QuickParseException("Unrecognized parsed item type: " + parsedItem.getClass());
+
+		if (!QuickUtils.isAssignableFrom(type, result.getType()))
+			throw new QuickParseException(parsedItem.getMatch().text + " evaluates to type " + result.getType()
+				+ ", which is not compatible with expected type " + type);
+		return result;
+	}
+
+	private static <T> ObservableValue<Class<T>> classWrap(TypeToken<T> type, Class<?> clazz) {
+		return ObservableValue.constant(new TypeToken<Class<T>>() {}.where(new TypeParameter<T>() {}, type), (Class<T>) clazz);
+	}
+
+	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2, ParsedBinaryOp op) {
+		switch (op.getName()) {
+		case "+":
+			TypeToken<String> strType = TypeToken.of(String.class);
+			if (strType.isAssignableFrom(arg1.getType()) || strType.isAssignableFrom(arg2.getType())) {
+				return arg1.combineV(strType, (a1, a2) -> new StringBuilder().append(a1).append(a2).toString(), arg2, true);
+			}
+			//$FALL-THROUGH$
+		case "-":
+		case "*":
+		case "/":
+		case "%":
+
+		case "&":
+		case "|":
+		case "~":
+		case "^":
+		case "!":
+		case "&&":
+		case "||":
+		case "==":
+		case "!=":
+		case ">":
+		case "<":
+		case ">=":
+		case "<=":
+		case "<<":
+		case ">>":
+		case ">>>":
+			// Assignment operators
+		case "=":
+		case "+=":
+		case "-=":
+		case "*=":
+		case "/=":
+		case "%=":
+		case "&=":
+		case "|=":
+		case "^=":
+		case "<<=":
+		case ">>=":
+		case ">>>=":
+		default:
+			throw new QuickParseException("Unrecognized binary operator: " + op.getName());
+		}
 	}
 
 	public static class ParsedUnitValue extends ParsedItem {
@@ -132,6 +266,14 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			super.setup(parser, parent, match);
 			theValue = parser.parseStructures(this, getStored("value"))[0];
 			theUnit = getStored("unit").text;
+		}
+
+		public ParsedItem getValue() {
+			return theValue;
+		}
+
+		public String getUnit() {
+			return theUnit;
 		}
 
 		@Override
@@ -155,6 +297,10 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		public void setup(PrismsParser parser, ParsedItem parent, ParseMatch match) throws ParseException {
 			super.setup(parser, parent, match);
 			theName = getStored("name").text;
+		}
+
+		public String getName() {
+			return theName;
 		}
 
 		@Override

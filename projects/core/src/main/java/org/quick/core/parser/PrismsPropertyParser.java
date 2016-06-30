@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.BiFunction;
 
+import org.observe.ObservableAction;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
 import org.observe.collect.ObservableList;
@@ -123,12 +124,10 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException("Assignment operator must be an action");
 			// TODO
 		} else if (parsedItem instanceof ParsedBinaryOp) {
-			if (action)
-				throw new QuickParseException("Binary operation " + ((ParsedBinaryOp) parsedItem).getName() + " cannot be an action");
 			ParsedBinaryOp op = (ParsedBinaryOp) parsedItem;
 			ObservableValue<?> arg1 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp1(), false);
 			ObservableValue<?> arg2 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp2(), false);
-			result = combineBinary(arg1, arg2, op);
+			result = combineBinary(arg1, arg2, op, action);
 			// TODO
 		} else if (parsedItem instanceof ParsedCast) {
 			if (action)
@@ -210,50 +209,73 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		return ObservableValue.constant(new TypeToken<Class<T>>() {}.where(new TypeParameter<T>() {}, type), (Class<T>) clazz);
 	}
 
-	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2, ParsedBinaryOp op) {
-		switch (op.getName()) {
-		case "+":
-			TypeToken<String> strType = TypeToken.of(String.class);
-			if (strType.isAssignableFrom(arg1.getType()) || strType.isAssignableFrom(arg2.getType())) {
-				return arg1.combineV(strType, (a1, a2) -> new StringBuilder().append(a1).append(a2).toString(), arg2, true);
-			}
-			//$FALL-THROUGH$
-		case "-":
-		case "*":
-		case "/":
-		case "%":
-
-		case "&":
-		case "|":
-		case "~":
-		case "^":
-		case "!":
-		case "&&":
-		case "||":
-		case "==":
-		case "!=":
-		case ">":
-		case "<":
-		case ">=":
-		case "<=":
-		case "<<":
-		case ">>":
-		case ">>>":
+	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2, ParsedBinaryOp op, boolean action)
+		throws QuickParseException {
+		try {
+			switch (op.getName()) {
+			case "+":
+				TypeToken<String> strType = TypeToken.of(String.class);
+				if (strType.isAssignableFrom(arg1.getType()) || strType.isAssignableFrom(arg2.getType())) {
+					return arg1.combineV(strType, (a1, a2) -> new StringBuilder().append(a1).append(a2).toString(), arg2, true);
+				}
+				//$FALL-THROUGH$
+			case "-":
+			case "*":
+			case "/":
+			case "%":
+			case "<<":
+			case ">>":
+			case ">>>":
+			case "&":
+			case "|":
+			case "^":
+			case "&&":
+			case "||":
+			case "==":
+			case "!=":
+			case ">":
+			case "<":
+			case ">=":
+			case "<=":
+				if (action)
+					throw new QuickParseException("Binary operation " + op.getName() + " cannot be an action");
+				return MathUtils.binaryMathOp(op.getName(), arg1, arg2);
 			// Assignment operators
-		case "=":
-		case "+=":
-		case "-=":
-		case "*=":
-		case "/=":
-		case "%=":
-		case "&=":
-		case "|=":
-		case "^=":
-		case "<<=":
-		case ">>=":
-		case ">>>=":
-		default:
-			throw new QuickParseException("Unrecognized binary operator: " + op.getName());
+			case "=":
+				if (!action)
+					throw new QuickParseException("Binary operation " + op.getName() + " must be an action");
+				if (!(arg1 instanceof SettableValue))
+					throw new QuickParseException(op.getOp1().getMatch().text + " does not parse to a settable value");
+				if (!QuickUtils.isAssignableFrom(arg1.getType(), arg2.getType()))
+					throw new QuickParseException(
+						op.getOp2().getMatch().text + ", type " + arg2.getType() + ", cannot be assigned to type " + arg1.getType());
+				return ObservableValue.constant(TypeToken.of(ObservableAction.class), ((SettableValue<Object>) arg1).assignmentTo(arg2));
+			case "+=":
+			case "-=":
+			case "*=":
+			case "/=":
+			case "%=":
+			case "&=":
+			case "|=":
+			case "^=":
+			case "<<=":
+			case ">>=":
+			case ">>>=":
+				if (!action)
+					throw new QuickParseException("Binary operation " + op.getName() + " must be an action");
+				if (!(arg1 instanceof SettableValue))
+					throw new QuickParseException(op.getOp1().getMatch().text + " does not parse to a settable value");
+				String mathOp = op.getName().substring(0, op.getName().length() - 1);
+				ObservableValue<?> result = MathUtils.binaryMathOp(mathOp, arg1, arg2);
+				if (!QuickUtils.isAssignableFrom(arg1.getType(), result.getType()))
+					throw new QuickParseException(op.getOp1().getMatch().text + " " + mathOp + " " + op.getOp2().getMatch().text + ", type "
+						+ arg2.getType() + ", cannot be assigned to type " + arg1.getType());
+				return ObservableValue.constant(TypeToken.of(ObservableAction.class), ((SettableValue<Object>) arg1).assignmentTo(result));
+			default:
+				throw new QuickParseException("Unrecognized binary operator: " + op.getName());
+			}
+		} catch (IllegalArgumentException e) {
+			throw new QuickParseException(e.getMessage(), e);
 		}
 	}
 

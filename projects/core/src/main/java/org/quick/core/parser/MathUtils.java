@@ -1,5 +1,9 @@
 package org.quick.core.parser;
 
+import java.util.Objects;
+
+import org.observe.ObservableValue;
+
 import com.google.common.reflect.TypeToken;
 
 public class MathUtils {
@@ -13,17 +17,16 @@ public class MathUtils {
 	public static final TypeToken<Boolean> BOOLEAN = TypeToken.of(Boolean.TYPE);
 
 	public static boolean isMathable(TypeToken<?> type) {
-		Class<?> prim = type.unwrap().getRawType();
-		return prim == Double.TYPE || prim == Float.TYPE || prim == Long.TYPE || prim == Integer.TYPE || prim == Short.TYPE
-			|| prim == Byte.TYPE || prim == Character.TYPE;
+		TypeToken<?> prim = type.unwrap();
+		return prim == DOUBLE || prim == FLOAT || prim == LONG || prim == INT || prim == SHORT || prim == BYTE || prim == CHAR;
 	}
 
 	public static boolean isIntMathable(TypeToken<?> type) {
-		Class<?> prim = type.unwrap().getRawType();
-		return prim == Long.TYPE || prim == Integer.TYPE || prim == Short.TYPE || prim == Byte.TYPE || prim == Character.TYPE;
+		TypeToken<?> prim = type.unwrap();
+		return prim == LONG || prim == INT || prim == SHORT || prim == BYTE || prim == CHAR;
 	}
 
-	public static Number unaryOp(String op, Object value) {
+	public static ObservableValue<? extends Number> unaryOp(String op, ObservableValue<?> value) {
 		switch (op) {
 		case "+":
 			return posit(value);
@@ -35,263 +38,297 @@ public class MathUtils {
 		throw new IllegalArgumentException("Unrecognized operator: " + op);
 	}
 
-	public static Number binaryMathOp(String op, TypeToken<?> t1, Object value1, TypeToken<?> t2, Object value2) {
+	public static ObservableValue<?> binaryMathOp(String op, ObservableValue<?> value1, ObservableValue<?> value2) {
 		switch (op) {
 		case "+":
-			return add(t1, value1, t2, value2);
+			return add(value1, value2);
 		case "-":
-			return subtract(t1, value1, t2, value2);
+			return subtract(value1, value2);
 		case "*":
-			return multiply(t1, value1, t2, value2);
+			return multiply(value1, value2);
 		case "/":
-			return divide(t1, value1, t2, value2);
+			return divide(value1, value2);
 		case "%":
-			return modulo(t1, value1, t2, value2);
+			return modulo(value1, value2);
 		case "<<":
-			return leftShift(t1, value1, t2, value2);
+			return leftShift(value1, value2);
 		case ">>":
-			return rightShift(t1, value1, t2, value2);
+			return rightShift(value1, value2);
 		case ">>>":
-			return rightShiftUnsigned(t1, value1, t2, value2);
+			return rightShiftUnsigned(value1, value2);
+		case "==":
+			return value1.combineV(BOOLEAN, (v1, v2) -> Objects.equals(v1, v2), value2, true);
+		case "!=":
+			return value1.combineV(BOOLEAN, (v1, v2) -> Objects.equals(v1, v2), value2, true);
+		case ">":
+		case ">=":
+		case "<":
+		case "<=":
+			return compare(op, value1, value2);
+		case "&":
+			return binaryAnd(value1, value2);
+		case "|":
+			return binaryOr(value1, value2);
+		case "^":
+			return binaryXor(value1, value2);
+		case "&&":
+			return and(value1, value2);
+		case "||":
+			return or(value1, value2);
 		}
 		throw new IllegalArgumentException("Unrecognized operator: " + op);
 	}
 
-	public static boolean compare(String op, TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		int comp = compare(t1, v1, t2, v2);
+	public static ObservableValue<Boolean> compare(String op, ObservableValue<?> v1, ObservableValue<?> v2) {
+		ObservableValue<Integer> comp = compare(v1, v2);
 		switch (op) {
 		case ">":
-			return comp > 0;
+			return comp.mapV(c -> c > 0);
 		case ">=":
-			return comp >= 0;
+			return comp.mapV(c -> c >= 0);
 		case "<":
-			return comp < 0;
+			return comp.mapV(c -> c < 0);
 		case "<=":
-			return comp <= 0;
+			return comp.mapV(c -> c <= 0);
 		case "==":
-			return comp == 0;
+			return comp.mapV(c -> c == 0);
 		case "!=":
-			return comp != 0;
+			return comp.mapV(c -> c != 0);
 		}
 		throw new IllegalArgumentException("Unrecognized comparison operatior: " + op);
 	}
 
-	public static int compare(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if (t1 == null)
-			t1 = TypeToken.of(v1.getClass()).unwrap();
-		if (t2 == null)
-			t2 = TypeToken.of(v2.getClass()).unwrap();
-		if (t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			int diff = ((Number) intType.cast(v1)).intValue() - ((Number) intType.cast(v2)).intValue();
-			return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
-		} else if (t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			long diff = ((Number) longType.cast(v1)).longValue() - ((Number) longType.cast(v2)).longValue();
-			return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
-		} else if (t1.canAssignTo(Float.TYPE) && t2.canAssignTo(Float.TYPE)) {
-			TypeToken<?> floatType = new TypeToken<?>(Float.TYPE);
-			float diff = ((Number) floatType.cast(v1)).floatValue() - ((Number) floatType.cast(v2)).floatValue();
-			return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
-		} else if (t1.canAssignTo(Double.TYPE) && t2.canAssignTo(Double.TYPE)) {
-			TypeToken<?> doubleType = new TypeToken<?>(Double.TYPE);
-			double diff = ((Number) doubleType.cast(v1)).doubleValue() - ((Number) doubleType.cast(v2)).doubleValue();
-			return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
-		} else
-			throw new IllegalArgumentException("MathUtils.compare() cannot be applied to operand types " + t1 + " and " + t2);
-
-	}
-
-	public static Number posit(Object value) {
-		if (value instanceof Number)
-			return (Number) value;
-		else if (value instanceof Character)
-			return +((Character) value).charValue();
+	public static ObservableValue<? extends Number> mathableToNumber(ObservableValue<?> v) {
+		if (TypeToken.of(Number.class).isAssignableFrom(v.getType().wrap()))
+			return (ObservableValue<? extends Number>) v;
+		else if (CHAR.isAssignableFrom(v.getType().unwrap()))
+			return ((ObservableValue<Character>) v).mapV(c -> Integer.valueOf(c.charValue()));
 		else
-			throw new IllegalStateException("Unrecognized number type");
+			throw new IllegalArgumentException("Type " + v.getClass().getName() + " is not mathable");
 	}
 
-	public static Number negate(Object value) {
-		if (value instanceof Double)
-			return -((Number) value).doubleValue();
-		else if (value instanceof Float)
-			return -((Number) value).floatValue();
-		else if (value instanceof Long)
-			return -((Number) value).longValue();
-		else if (value instanceof Integer)
-			return -((Number) value).intValue();
-		else if (value instanceof Short)
-			return -((Number) value).shortValue();
-		else if (value instanceof Byte)
-			return -((Number) value).byteValue();
-		else if (value instanceof Character)
-			return -((Character) value).charValue();
+	public static ObservableValue<Integer> compare(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (isMathable(v1.getType()) && isMathable(v2.getType())) {
+			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+			if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(INT, (num1, num2) -> Double.compare(num1.doubleValue(), num2.doubleValue()), n2, true);
+			else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(INT, (num1, num2) -> Float.compare(num1.floatValue(), num2.floatValue()), n2, true);
+			else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(INT, (num1, num2) -> Long.compare(num1.longValue(), num2.longValue()), n2, true);
+			else if (INT.isAssignableFrom(n1.getType().unwrap()) || INT.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(INT, (num1, num2) -> Integer.compare(num1.intValue(), num2.intValue()), n2, true);
+			else if (SHORT.isAssignableFrom(n1.getType().unwrap()) || SHORT.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(INT, (num1, num2) -> Short.compare(num1.shortValue(), num2.shortValue()), n2, true);
+			else if (BYTE.isAssignableFrom(n1.getType().unwrap()) && BYTE.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(INT, (num1, num2) -> Byte.compare(num1.byteValue(), num2.byteValue()), n2, true);
+			else
+				throw new IllegalArgumentException("Unrecognized number types: " + v1.getType() + ", " + v2.getType());
+		} else if (TypeToken.of(Comparable.class).isAssignableFrom(v1.getType())
+			&& TypeToken.of(Comparable.class).isAssignableFrom(v2.getType())) {
+			if (v1.getType().resolveType(Comparable.class.getTypeParameters()[0]).isAssignableFrom(v2.getType())) {
+				return ((ObservableValue<Comparable<Object>>) v1).combineV(INT, (c1, c2) -> c1.compareTo(c2), v2, true);
+			} else
+				throw new IllegalArgumentException("Comparable type " + v1.getType() + " cannot be applied to " + v2.getType());
+		} else
+			throw new IllegalArgumentException(
+				"MathUtils.compare() cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+	}
+
+	public static ObservableValue<? extends Number> posit(ObservableValue<?> value) {
+		if (!isMathable(value.getType()))
+			throw new IllegalArgumentException("Posit cannot be applied to operand type " + value.getType());
+		return mathableToNumber(value);
+	}
+
+	public static ObservableValue<? extends Number> negate(ObservableValue<?> value) {
+		if (!isMathable(value.getType()))
+			throw new IllegalArgumentException("Negate cannot be applied to operand type " + value.getType());
+		ObservableValue<? extends Number> n = mathableToNumber(value);
+		if (DOUBLE.isAssignableFrom(n.getType().unwrap()))
+			return ((ObservableValue<Double>) n).mapV(v -> -v);
+		else if (FLOAT.isAssignableFrom(n.getType().unwrap()))
+			return ((ObservableValue<Float>) n).mapV(v -> -v);
+		else if (LONG.isAssignableFrom(n.getType().unwrap()))
+			return ((ObservableValue<Long>) n).mapV(v -> -v);
 		else
-			throw new IllegalStateException("Unrecognized number type");
+			return ((ObservableValue<? extends Number>) n).mapV(v -> -v.intValue());
 	}
 
-	public static Number complement(Object value) {
-		if (value instanceof Long)
-			return ~((Number) value).longValue();
-		else if (value instanceof Integer)
-			return ~((Number) value).intValue();
-		else if (value instanceof Short)
-			return ~((Number) value).shortValue();
-		else if (value instanceof Byte)
-			return ~((Number) value).byteValue();
-		else if (value instanceof Character)
-			return ~((Character) value).charValue();
+	public static ObservableValue<? extends Number> complement(ObservableValue<?> value) {
+		if (!isIntMathable(value.getType()))
+			throw new IllegalArgumentException("Complement cannot be applied to operand type " + value.getType());
+		ObservableValue<? extends Number> n = mathableToNumber(value);
+		if (LONG.isAssignableFrom(n.getType().unwrap()))
+			return ((ObservableValue<Long>) n).mapV(v -> ~v);
 		else
-			throw new IllegalStateException("Unrecognized number type");
+			return ((ObservableValue<? extends Number>) n).mapV(v -> ~v.intValue());
 	}
 
-	public static Number add(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() + ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(v1)).longValue() + ((Number) longType.cast(v2)).longValue();
-		} else if(t1.canAssignTo(Float.TYPE) && t2.canAssignTo(Float.TYPE)) {
-			TypeToken<?> floatType = new TypeToken<?>(Float.TYPE);
-			return ((Number) floatType.cast(v1)).floatValue() + ((Number) floatType.cast(v2)).floatValue();
-		} else if(t1.canAssignTo(Double.TYPE) && t2.canAssignTo(Double.TYPE)) {
-			TypeToken<?> doubleType = new TypeToken<?>(Double.TYPE);
-			return ((Number) doubleType.cast(v1)).doubleValue() + ((Number) doubleType.cast(v2)).doubleValue();
-		} else
-			throw new IllegalArgumentException("Add cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> add(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isMathable(v1.getType()) || !isMathable(v2.getType()))
+			throw new IllegalArgumentException("Add cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() + num2.doubleValue()), n2, true);
+		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() + num2.floatValue()), n2, true);
+		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() + num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() + num2.intValue()), n2, true);
 	}
 
-	public static Number subtract(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() - ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(v1)).longValue() - ((Number) longType.cast(v2)).longValue();
-		} else if(t1.canAssignTo(Float.TYPE) && t2.canAssignTo(Float.TYPE)) {
-			TypeToken<?> floatType = new TypeToken<?>(Float.TYPE);
-			return ((Number) floatType.cast(v1)).floatValue() - ((Number) floatType.cast(v2)).floatValue();
-		} else if(t1.canAssignTo(Double.TYPE) && t2.canAssignTo(Double.TYPE)) {
-			TypeToken<?> doubleType = new TypeToken<?>(Double.TYPE);
-			return ((Number) doubleType.cast(v1)).doubleValue() - ((Number) doubleType.cast(v2)).doubleValue();
-		} else
-			throw new IllegalArgumentException("Subtract cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> subtract(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isMathable(v1.getType()) || !isMathable(v2.getType()))
+			throw new IllegalArgumentException("Subtract cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() - num2.doubleValue()), n2, true);
+		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() - num2.floatValue()), n2, true);
+		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() - num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() - num2.intValue()), n2, true);
 	}
 
-	public static Number multiply(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() * ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(v1)).longValue() * ((Number) longType.cast(v2)).longValue();
-		} else if(t1.canAssignTo(Float.TYPE) && t2.canAssignTo(Float.TYPE)) {
-			TypeToken<?> floatType = new TypeToken<?>(Float.TYPE);
-			return ((Number) floatType.cast(v1)).floatValue() * ((Number) floatType.cast(v2)).floatValue();
-		} else if(t1.canAssignTo(Double.TYPE) && t2.canAssignTo(Double.TYPE)) {
-			TypeToken<?> doubleType = new TypeToken<?>(Double.TYPE);
-			return ((Number) doubleType.cast(v1)).doubleValue() * ((Number) doubleType.cast(v2)).doubleValue();
-		} else
-			throw new IllegalArgumentException("Multiply cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> multiply(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isMathable(v1.getType()) || !isMathable(v2.getType()))
+			throw new IllegalArgumentException("Multiply cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() * num2.doubleValue()), n2, true);
+		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() * num2.floatValue()), n2, true);
+		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() * num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() * num2.intValue()), n2, true);
 	}
 
-	public static Number divide(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() / ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(v1)).longValue() / ((Number) longType.cast(v2)).longValue();
-		} else if(t1.canAssignTo(Float.TYPE) && t2.canAssignTo(Float.TYPE)) {
-			TypeToken<?> floatType = new TypeToken<?>(Float.TYPE);
-			return ((Number) floatType.cast(v1)).floatValue() / ((Number) floatType.cast(v2)).floatValue();
-		} else if(t1.canAssignTo(Double.TYPE) && t2.canAssignTo(Double.TYPE)) {
-			TypeToken<?> doubleType = new TypeToken<?>(Double.TYPE);
-			return ((Number) doubleType.cast(v1)).doubleValue() / ((Number) doubleType.cast(v2)).doubleValue();
-		} else
-			throw new IllegalArgumentException("Divide cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> divide(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isMathable(v1.getType()) || !isMathable(v2.getType()))
+			throw new IllegalArgumentException("Divide cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() / num2.doubleValue()), n2, true);
+		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() / num2.floatValue()), n2, true);
+		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() / num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() / num2.intValue()), n2, true);
 	}
 
-	public static Number modulo(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() % ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(v1)).longValue() % ((Number) longType.cast(v2)).longValue();
-		} else if(t1.canAssignTo(Float.TYPE) && t2.canAssignTo(Float.TYPE)) {
-			TypeToken<?> floatType = new TypeToken<?>(Float.TYPE);
-			return ((Number) floatType.cast(v1)).floatValue() % ((Number) floatType.cast(v2)).floatValue();
-		} else if(t1.canAssignTo(Double.TYPE) && t2.canAssignTo(Double.TYPE)) {
-			TypeToken<?> doubleType = new TypeToken<?>(Double.TYPE);
-			return ((Number) doubleType.cast(v1)).doubleValue() % ((Number) doubleType.cast(v2)).doubleValue();
-		} else
-			throw new IllegalArgumentException("Modulo cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> modulo(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isMathable(v1.getType()) || !isMathable(v2.getType()))
+			throw new IllegalArgumentException("Modulus cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() % num2.doubleValue()), n2, true);
+		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() % num2.floatValue()), n2, true);
+		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() % num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() % num2.intValue()), n2, true);
 	}
 
-	public static Number leftShift(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) throws IllegalArgumentException {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() << ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(t1)).longValue() << ((Number) longType.cast(v2)).longValue();
-		} else
-			throw new IllegalArgumentException("Left shift cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> leftShift(ObservableValue<?> v1, ObservableValue<?> v2)
+		throws IllegalArgumentException {
+		if (!isIntMathable(v1.getType()) || !isIntMathable(v2.getType()))
+			throw new IllegalArgumentException("Left shift cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() << num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() << num2.intValue()), n2, true);
 	}
 
-	public static Number rightShift(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() << ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(t1)).longValue() << ((Number) longType.cast(v2)).longValue();
-		} else
-			throw new IllegalArgumentException("Right shift cannot be applied to operand types " + t1 + " and " + t2);
+	public static ObservableValue<? extends Number> rightShift(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isIntMathable(v1.getType()) || !isIntMathable(v2.getType()))
+			throw new IllegalArgumentException("Right shift cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() >> num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() >> num2.intValue()), n2, true);
 	}
 
-	public static Number rightShiftUnsigned(TypeToken<?> t1, Object v1, TypeToken<?> t2, Object v2) {
-		if(t1 == null)
-			t1 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v1.getClass()));
-		if(t2 == null)
-			t2 = new TypeToken<?>(TypeToken<?>.getPrimitiveType(v2.getClass()));
-		if(t1.canAssignTo(Integer.TYPE) && t2.canAssignTo(Integer.TYPE)) {
-			TypeToken<?> intType = new TypeToken<?>(Integer.TYPE);
-			return ((Number) intType.cast(v1)).intValue() << ((Number) intType.cast(v2)).intValue();
-		} else if(t1.canAssignTo(Long.TYPE) && t2.canAssignTo(Long.TYPE)) {
-			TypeToken<?> longType = new TypeToken<?>(Long.TYPE);
-			return ((Number) longType.cast(t1)).longValue() << ((Number) longType.cast(v2)).longValue();
+	public static ObservableValue<? extends Number> rightShiftUnsigned(ObservableValue<?> v1, ObservableValue<?> v2) {
+		if (!isIntMathable(v1.getType()) || !isIntMathable(v2.getType()))
+			throw new IllegalArgumentException(
+				"Unsigned right shift cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+		if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() >>> num2.longValue()), n2, true);
+		else
+			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() >>> num2.intValue()), n2, true);
+	}
+
+	public static ObservableValue<?> binaryAnd(ObservableValue<?> v1, ObservableValue<?> v2){
+		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
+			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 & b2, (ObservableValue<Boolean>) v2, true);
+		} else if (isIntMathable(v1.getType()) && isIntMathable(v2.getType())) {
+			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+			if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() & num2.longValue()), n2, true);
+			else
+				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() & num2.intValue()), n2, true);
 		} else
-			throw new IllegalArgumentException("Unsigned right shift cannot be applied to operand types " + t1 + " and " + t2);
+			throw new IllegalArgumentException("Binary and cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+	}
+
+	public static ObservableValue<?> binaryOr(ObservableValue<?> v1, ObservableValue<?> v2){
+		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
+			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 | b2, (ObservableValue<Boolean>) v2, true);
+		} else if (isIntMathable(v1.getType()) && isIntMathable(v2.getType())) {
+			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+			if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() | num2.longValue()), n2, true);
+			else
+				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() | num2.intValue()), n2, true);
+		} else
+			throw new IllegalArgumentException("Binary or cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+	}
+
+	public static ObservableValue<?> binaryXor(ObservableValue<?> v1, ObservableValue<?> v2){
+		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
+			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 ^ b2, (ObservableValue<Boolean>) v2, true);
+		} else if (isIntMathable(v1.getType()) && isIntMathable(v2.getType())) {
+			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
+			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
+			if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
+				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() ^ num2.longValue()), n2, true);
+			else
+				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() ^ num2.intValue()), n2, true);
+		} else
+			throw new IllegalArgumentException("Binary xor cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+	}
+
+	public static ObservableValue<Boolean> and(ObservableValue<?> v1, ObservableValue<?> v2){
+		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
+			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 && b2, (ObservableValue<Boolean>) v2, true);
+		} else
+			throw new IllegalArgumentException("And cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
+	}
+
+	public static ObservableValue<Boolean> or(ObservableValue<?> v1, ObservableValue<?> v2){
+		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
+			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 || b2, (ObservableValue<Boolean>) v2, true);
+		} else
+			throw new IllegalArgumentException("Or cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}
 }

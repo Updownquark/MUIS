@@ -136,6 +136,48 @@ public class MathUtils {
 				"MathUtils.compare() cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}
 
+	public static <T> ObservableValue<T> addOne(ObservableValue<T> value) {
+		if (!isMathable(value.getType()))
+			throw new IllegalArgumentException("Add one cannot be applied to operand type " + value.getType());
+		if (DOUBLE.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Double>) value).mapV(DOUBLE, num -> Double.valueOf(num.doubleValue() + 1), true);
+		else if (FLOAT.isAssignableFrom(value.getType()))
+			return (ObservableValue<T>) ((ObservableValue<Float>) value).mapV(FLOAT, num -> Float.valueOf(num.floatValue() + 1), true);
+		else if (LONG.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Long>) value).mapV(LONG, num -> Long.valueOf(num.longValue() + 1), true);
+		else if (INT.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Integer>) value).mapV(INT, num -> Integer.valueOf(num.intValue() + 1), true);
+		else if (SHORT.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Short>) value).mapV(SHORT, num -> Short.valueOf((short) (num.shortValue() + 1)),
+				true);
+		else if (BYTE.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Byte>) value).mapV(BYTE, num -> Byte.valueOf((byte) (num.byteValue() + 1)), true);
+		else // if (CHAR.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Character>) value).mapV(CHAR,
+				ch -> Character.valueOf((char) (ch.charValue() + 1)), true);
+	}
+
+	public static <T> ObservableValue<T> minusOne(ObservableValue<T> value) {
+		if (!isMathable(value.getType()))
+			throw new IllegalArgumentException("Add one cannot be applied to operand type " + value.getType());
+		if (DOUBLE.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Double>) value).mapV(DOUBLE, num -> Double.valueOf(num.doubleValue() - 1), true);
+		else if (FLOAT.isAssignableFrom(value.getType()))
+			return (ObservableValue<T>) ((ObservableValue<Float>) value).mapV(FLOAT, num -> Float.valueOf(num.floatValue() - 1), true);
+		else if (LONG.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Long>) value).mapV(LONG, num -> Long.valueOf(num.longValue() - 1), true);
+		else if (INT.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Integer>) value).mapV(INT, num -> Integer.valueOf(num.intValue() - 1), true);
+		else if (SHORT.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Short>) value).mapV(SHORT, num -> Short.valueOf((short) (num.shortValue() - 1)),
+				true);
+		else if (BYTE.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Byte>) value).mapV(BYTE, num -> Byte.valueOf((byte) (num.byteValue() - 1)), true);
+		else // if (CHAR.isAssignableFrom(value.getType().unwrap()))
+			return (ObservableValue<T>) ((ObservableValue<Character>) value).mapV(CHAR,
+				ch -> Character.valueOf((char) (ch.charValue() - 1)), true);
+	}
+
 	public static ObservableValue<? extends Number> posit(ObservableValue<?> value) {
 		if (!isMathable(value.getType()))
 			throw new IllegalArgumentException("Posit cannot be applied to operand type " + value.getType());

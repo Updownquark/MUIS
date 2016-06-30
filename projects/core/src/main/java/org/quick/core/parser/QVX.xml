@@ -456,9 +456,17 @@
 		<literal storeAs="name">++</literal>
 		<op storeAs="variable" />
 	</operator>
+	<operator name="post increment" order="50" priority="220" impl="prisms.lang.types.ParsedAssignmentOperator">
+		<op storeAs="variable" />
+		<literal storeAs="name">++</literal>
+	</operator>
 	<operator name="pre decrement" order="50" priority="220" impl="prisms.lang.types.ParsedAssignmentOperator">
 		<literal storeAs="name">--</literal>
 		<op storeAs="variable" />
+	</operator>
+	<operator name="post decrement" order="50" priority="220" impl="prisms.lang.types.ParsedAssignmentOperator">
+		<op storeAs="variable" />
+		<literal storeAs="name">--</literal>
 	</operator>
 	<operator name="not" order="50" priority="220" impl="prisms.lang.types.ParsedUnaryOp">
 		<literal storeAs="name">!</literal>
@@ -471,10 +479,6 @@
 	<operator name="cast" order="50" priority="220" impl="prisms.lang.types.ParsedCast">
 		<literal>(</literal>
 		<op storeAs="type" type="type" />
-		<option min="0">
-			<literal storeAs="array">[</literal>
-			<literal>]</literal>
-		</option>
 		<literal>)</literal>
 		<op storeAs="value" />
 	</operator>

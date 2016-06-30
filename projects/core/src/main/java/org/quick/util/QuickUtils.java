@@ -18,6 +18,7 @@ import org.quick.core.style.FontStyle;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** A set of utilities to use with core Quick elements */
@@ -365,5 +366,9 @@ public class QuickUtils {
 		else if (left.isPrimitive() && left.wrap().isAssignableFrom(right))
 			return true;
 		return false;
+	}
+
+	public static <T> TypeToken<T[]> arrayTypeOf(TypeToken<T> type) {
+		return new TypeToken<T[]>() {}.where(new TypeParameter<T>() {}, type);
 	}
 }

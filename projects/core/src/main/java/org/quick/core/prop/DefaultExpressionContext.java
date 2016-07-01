@@ -4,7 +4,10 @@ import java.util.*;
 import java.util.function.Function;
 
 import org.observe.ObservableValue;
-import org.quick.core.model.SyntheticType;
+import org.qommons.ex.ExFunction;
+import org.quick.core.QuickException;
+
+import com.google.common.reflect.TypeToken;
 
 public class DefaultExpressionContext implements ExpressionContext {
 	private final List<ExpressionContext> theParents;
@@ -12,11 +15,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 	private final List<Function<String, ObservableValue<?>>> theValueGetters;
 	private final Map<String, ExpressionType<?>> theTypes;
 	private final Map<String, List<ExpressionFunction<?>>> theFunctions;
-	private final List<SyntheticType<?>> theSyntheticTypes;
+	private final Map<String, Unit<?, ?>> theUnits;
 
 	private DefaultExpressionContext(List<ExpressionContext> parents, Map<String, ObservableValue<?>> values,
 		List<Function<String, ObservableValue<?>>> valueGetters, Map<String, ExpressionType<?>> types,
-		Map<String, List<ExpressionFunction<?>>> functions, List<SyntheticType<?>> syntheticTypes) {
+		Map<String, List<ExpressionFunction<?>>> functions, Map<String, Unit<?, ?>> units) {
 		theParents = Collections.unmodifiableList(new ArrayList<>(parents));
 		theValues = Collections.unmodifiableMap(new LinkedHashMap<>(values));
 		theValueGetters = Collections.unmodifiableList(valueGetters);
@@ -26,7 +29,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 			fns.put(fn.getKey(), Collections.unmodifiableList(new ArrayList<>(fn.getValue())));
 		}
 		theFunctions = Collections.unmodifiableMap(fns);
-		theSyntheticTypes = Collections.unmodifiableList(new ArrayList<>(syntheticTypes));
+		theUnits = Collections.unmodifiableMap(units);
 	}
 
 	@Override
@@ -62,6 +65,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 			ctx.getFunctions(name, args, functions);
 	}
 
+	@Override
+	public Unit<?, ?> getUnit(String name) {
+		return theUnits.get(name);
+	}
+
 	public static Builder build() {
 		return new Builder();
 	}
@@ -72,7 +80,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 		private final List<Function<String, ObservableValue<?>>> theValueGetters;
 		private final Map<String, ExpressionType<?>> theTypes;
 		private final Map<String, List<ExpressionFunction<?>>> theFunctions;
-		private final List<SyntheticType<?>> theSyntheticTypes;
+		private final Map<String, Unit<?, ?>> theUnits;
 
 		private Builder() {
 			theParents = new ArrayList<>();
@@ -80,7 +88,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 			theValueGetters = new ArrayList<>();
 			theTypes = new LinkedHashMap<>();
 			theFunctions = new LinkedHashMap<>();
-			theSyntheticTypes = new ArrayList<>();
+			theUnits = new LinkedHashMap<>();
 		}
 
 		public Builder withParent(ExpressionContext ctx) {
@@ -113,8 +121,9 @@ public class DefaultExpressionContext implements ExpressionContext {
 			return this;
 		}
 
-		public Builder withType(SyntheticType<?> type) {
-			theSyntheticTypes.add(type);
+		public <F, T2> Builder withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
+			ExFunction<? super F, ? extends T2, QuickException> operator) {
+			theUnits.put(name, new Unit<>(name, from, to, operator));
 			return this;
 		}
 
@@ -125,12 +134,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 			newBuilder.theValueGetters.addAll(theValueGetters);
 			newBuilder.theTypes.putAll(theTypes);
 			newBuilder.theFunctions.putAll(theFunctions);
-			newBuilder.theSyntheticTypes.addAll(theSyntheticTypes);
 			return newBuilder;
 		}
 
 		public DefaultExpressionContext build() {
-			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions, theSyntheticTypes);
+			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions, theUnits);
 		}
 	}
 }

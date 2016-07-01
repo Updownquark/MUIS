@@ -33,35 +33,12 @@ import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /**
- * A property type understands how to produce items of a certain type from parseable strings and other types
+ * A property type understands contains information needed to produce items of a certain type from parseable strings and other types
  *
  * @param <T> The type of value that this property type produces TODO Get rid of all the V types
  */
 public final class QuickPropertyType<T> {
 	private static final SimpleDateFormat INSTANT_FORMAT = new SimpleDateFormat("ddMMMyyyy HH:mm:ss");
-
-	public static class TypeMapping<F, T> {
-		final TypeToken<F> from;
-
-		final TypeToken<T> to;
-
-		final ExFunction<? super F, ? extends T, QuickException> map;
-
-		TypeMapping(TypeToken<F> from, TypeToken<T> to, ExFunction<? super F, ? extends T, QuickException> map) {
-			this.from = from;
-			this.to = to;
-			this.map = map;
-		}
-	}
-
-	public static class Unit<F, T> extends QuickPropertyType.TypeMapping<F, T> {
-		public final String name;
-
-		public Unit(String name, TypeToken<F> from, TypeToken<T> to, ExFunction<? super F, ? extends T, QuickException> operator) {
-			super(from, to, operator);
-			this.name = name;
-		}
-	}
 
 	public interface PropertySelfParser<T> {
 		ObservableValue<T> parse(QuickPropertyParser parser, QuickParseEnv parseEnv, String value) throws QuickParseException;
@@ -73,23 +50,19 @@ public final class QuickPropertyType<T> {
 	private final boolean isSelfParsingByDefault;
 	private final Function<Integer, String> theReferenceReplacementGenerator;
 	private final List<TypeMapping<?, T>> theMappings;
-	private final List<Function<String, ?>> theValueSuppliers;
-	private final List<Unit<?, ?>> theUnits;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
 	private final boolean isAction;
 
 	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault,
-		Function<Integer, String> replacementGen, List<TypeMapping<?, T>> mappings, List<Function<String, ?>> valueSuppliers,
-		List<Unit<?, ?>> units, Function<? super T, String> printer, ExpressionContext ctx, boolean action) {
+		Function<Integer, String> replacementGen, List<TypeMapping<?, T>> mappings, Function<? super T, String> printer,
+		ExpressionContext ctx, boolean action) {
 		theName = name;
 		theType = type;
 		theParser = parser;
 		isSelfParsingByDefault = parseSelfByDefault;
 		theReferenceReplacementGenerator = replacementGen;
 		theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
-		theValueSuppliers = Collections.unmodifiableList(new ArrayList<>(valueSuppliers));
-		theUnits = Collections.unmodifiableList(new ArrayList<>(units));
 		theContext = ctx;
 		thePrinter = printer;
 		isAction = action;
@@ -122,14 +95,6 @@ public final class QuickPropertyType<T> {
 		return theReferenceReplacementGenerator;
 	}
 
-	public List<Function<String, ?>> getValueSuppliers() {
-		return theValueSuppliers;
-	}
-
-	public List<Unit<?, ?>> getUnits() {
-		return theUnits;
-	}
-
 	public ExpressionContext getContext() {
 		return theContext;
 	}
@@ -141,8 +106,8 @@ public final class QuickPropertyType<T> {
 	public boolean canAccept(TypeToken<?> type) {
 		if(theType.isAssignableFrom(type))
 			return true;
-		for (QuickPropertyType.TypeMapping<?, T> mapping : theMappings)
-			if(mapping.from.isAssignableFrom(type))
+		for (TypeMapping<?, T> mapping : theMappings)
+			if (mapping.getFromType().isAssignableFrom(type))
 				return true;
 		return false;
 	}
@@ -164,10 +129,10 @@ public final class QuickPropertyType<T> {
 		if (QuickUtils.isAssignableFrom(theType, type))
 			cast = (V) value;
 		boolean mappingFound = false;
-		for (QuickPropertyType.TypeMapping<?, T> mapping : theMappings)
-			if (QuickUtils.isAssignableFrom(mapping.from, type)) {
+		for (TypeMapping<?, T> mapping : theMappings)
+			if (QuickUtils.isAssignableFrom(mapping.getFromType(), type)) {
 				mappingFound = true;
-				cast = ((QuickPropertyType.TypeMapping<? super X, V>) mapping).map.apply(value);
+				cast = ((TypeMapping<? super X, V>) mapping).getMap().apply(value);
 			}
 		if(!mappingFound)
 			return null;
@@ -201,8 +166,6 @@ public final class QuickPropertyType<T> {
 		private boolean isSelfParsingByDefault;
 		private Function<Integer, String> theReferenceReplacementGenerator;
 		private final List<TypeMapping<?, T>> theMappings;
-		private final List<Function<String, ?>> theValueSuppliers;
-		private final List<Unit<?, ?>> theUnits;
 		private DefaultExpressionContext.Builder theCtxBuilder;
 		private Function<? super T, String> thePrinter;
 		private final boolean isAction;
@@ -211,8 +174,6 @@ public final class QuickPropertyType<T> {
 			theName = name;
 			theType = type;
 			theMappings = new ArrayList<>();
-			theValueSuppliers = new ArrayList<>();
-			theUnits = new ArrayList<>();
 			theCtxBuilder = DefaultExpressionContext.build();
 			isAction = action;
 		}
@@ -233,17 +194,6 @@ public final class QuickPropertyType<T> {
 			return this;
 		}
 
-		public Builder<T> withValues(Function<String, ?> values) {
-			theValueSuppliers.add(values);
-			return this;
-		}
-
-		public <F, T2> Builder<T> withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
-			ExFunction<? super F, ? extends T2, QuickException> operator) {
-			theUnits.add(new Unit<>(name, from, to, operator));
-			return this;
-		}
-
 		public Builder<T> withToString(Function<? super T, String> toString) {
 			thePrinter = toString;
 			return this;
@@ -258,7 +208,7 @@ public final class QuickPropertyType<T> {
 			if (isSelfParsingByDefault && theParser == null)
 				throw new IllegalArgumentException("Cannot parse self by default with no parser");
 			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, theReferenceReplacementGenerator,
-				theMappings, theValueSuppliers, theUnits, thePrinter, theCtxBuilder.build(), isAction);
+				theMappings, thePrinter, theCtxBuilder.build(), isAction);
 		}
 	}
 
@@ -317,11 +267,9 @@ public final class QuickPropertyType<T> {
 			.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Duration.class), parseDuration(s)), true)//
 			.withToString(d -> toString(d))//
 			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l));
-		for (Map.Entry<String, ChronoUnit> unit : SUPPORTED_CHRONO_UNITS.entrySet()) {
-			durationBuilder.withUnit(unit.getKey(), TypeToken.of(Long.class), TypeToken.of(Duration.class),
-				l -> Duration.of(l, unit.getValue()));
-		}
 		durationBuilder.buildContext(ctx -> {
+			for (Map.Entry<String, ChronoUnit> unit : SUPPORTED_CHRONO_UNITS.entrySet())
+				ctx.withUnit(unit.getKey(), TypeToken.of(Long.class), TypeToken.of(Duration.class), l -> Duration.of(l, unit.getValue()));
 			ctx//
 				.withFunction("+", ExpressionFunction.build(new BiFunction<Duration, Duration, Duration>() {
 					@Override
@@ -403,11 +351,12 @@ public final class QuickPropertyType<T> {
 		Builder<Color> colorBuilder = QuickPropertyType.build("color", TypeToken.of(Color.class))//
 			.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Color.class), Colors.parseColor(s)), true)//
 			.withToString(c -> Colors.toString(c))//
-			.withValues(name -> {
-				return Colors.NAMED_COLORS.get(name);
-			})//
 			.buildContext(ctx -> {
 				ctx//
+					.withValueGetter(name -> {
+						Color namedColor = Colors.NAMED_COLORS.get(name);
+						return namedColor == null ? null : ObservableValue.constant(TypeToken.of(Color.class), namedColor);
+					})//
 					.withFunction("rgb", ExpressionFunction.build(new TriFunction<Integer, Integer, Integer, Color>() {
 						@Override
 						public Color apply(Integer r, Integer g, Integer b) {
@@ -443,10 +392,13 @@ public final class QuickPropertyType<T> {
 			byName.put(QuickUtils.javaToXML(value.name()), value);
 		Builder<T> builder = build("enum " + enumType.getName(), TypeToken.of(enumType))//
 			.withToString(v -> QuickUtils.javaToXML(v.name()))//
-			.withValues(s -> byName.get(s))//
-			.withValues(s -> s.equals("numConsts") ? Integer.valueOf(enumType.getEnumConstants().length) : null)//
 			.buildContext(ctx -> {
 				ctx//
+					.withValueGetter(s -> {
+						T enumValue = byName.get(s);
+						return enumValue == null ? null : ObservableValue.constant(TypeToken.of(enumType), enumValue);
+					})//
+					.withValue("numConsts", ObservableValue.constant(TypeToken.of(Integer.TYPE), enumType.getEnumConstants().length))//
 					.withFunction("valueOf", ExpressionFunction.build(new Function<String, T>() {
 						@Override
 						public T apply(String s) {

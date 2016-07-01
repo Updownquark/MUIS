@@ -19,11 +19,13 @@ import com.google.common.reflect.TypeToken;
 public class LayoutAttributes {
 	/** The type for position-type properties */
 	public static final QuickPropertyType<Position> positionType = QuickPropertyType.build("position", TypeToken.of(Position.class))//
-		.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.pixels))//
-		.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.lexips))//
-		.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.percent))//
 		.map(TypeToken.of(Long.class), l -> new Position(l, LengthUnit.pixels))//
 		.map(TypeToken.of(Double.class), d -> new Position(Math.round(d), LengthUnit.pixels))//
+		.buildContext(ctx -> {
+			ctx.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.pixels))//
+				.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.lexips))//
+				.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.percent));
+		})//
 		.withToString(v -> {
 			StringBuilder ret = new StringBuilder();
 			if (v.getUnit() != LengthUnit.percent || Math.floor(v.getValue()) == v.getValue())
@@ -37,11 +39,13 @@ public class LayoutAttributes {
 
 	/** The type for size-type properties */
 	public static final QuickPropertyType<Size> sizeType = QuickPropertyType.build("size", TypeToken.of(Size.class))//
-		.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.pixels))//
-		.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.lexips))//
-		.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.percent))//
 		.map(TypeToken.of(Long.class), l -> new Size(l, LengthUnit.pixels))//
 		.map(TypeToken.of(Double.class), d -> new Size(Math.round(d), LengthUnit.pixels))//
+		.buildContext(ctx -> {
+			ctx.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.pixels))//
+				.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.lexips))//
+				.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.percent));
+		})//
 		.withToString(v -> {
 			StringBuilder ret = new StringBuilder();
 			if (v.getUnit() != LengthUnit.percent || Math.floor(v.getValue()) == v.getValue())

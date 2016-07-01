@@ -237,7 +237,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		throws QuickParseException {
 		switch (directiveType) {
 		case DEFAULT_PARSE_DIRECTIVE:
-			return parseDefaultValue(parseEnv, property, property.getType().getType(), value, action);
+			return parseDefaultValue(parseEnv, property.getType().getType(), value, action);
 		case SELF_PARSE_DIRECTIVE:
 			return property.getType().getSelfParser().parse(this, parseEnv, value);
 		default:
@@ -249,15 +249,14 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 * Does the parsing work by the default method
 	 *
 	 * @param parseEnv The parse environment to use for parsing
-	 * @param property The property to parse the value for
 	 * @param type The type to expect from the parsed value
 	 * @param value The text to parse
 	 * @param action Whether the parsed value should be an action
 	 * @return The parsed value
 	 * @throws QuickParseException If an error occurs parsing the error
 	 */
-	protected abstract <T> ObservableValue<? extends T> parseDefaultValue(QuickParseEnv parseEnv, QuickProperty<?> property,
-		TypeToken<T> type, String value, boolean action) throws QuickParseException;
+	protected abstract <T> ObservableValue<? extends T> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value,
+		boolean action) throws QuickParseException;
 
 	/**
 	 * Combines text and directive-parsed references into a string and parses the value

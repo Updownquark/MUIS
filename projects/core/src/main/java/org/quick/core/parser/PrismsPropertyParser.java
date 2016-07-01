@@ -15,7 +15,7 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.ObservableActionValue;
 import org.quick.core.prop.ExpressionResult;
-import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.Unit;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeParameter;
@@ -40,8 +40,8 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 	}
 
 	@Override
-	protected <T> ObservableValue<? extends T> parseDefaultValue(QuickParseEnv parseEnv, QuickProperty<?> property, TypeToken<T> type,
-		String value, boolean action) throws QuickParseException {
+	protected <T> ObservableValue<? extends T> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value, boolean action)
+		throws QuickParseException {
 		ParseMatch[] matches;
 		try {
 			matches = theParser.parseMatches(value);
@@ -56,11 +56,10 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} catch (ParseException e) {
 			throw new QuickParseException("Failed to structure parsed value for " + value, e);
 		}
-		return evaluate(parseEnv, property, type, item, action, action);
+		return evaluate(parseEnv, type, item, action, action);
 	}
 
-	private <T> ObservableValue<? extends T> evaluate(QuickParseEnv parseEnv, QuickProperty<?> property, TypeToken<T> type,
-		ParsedItem parsedItem, boolean actionAccepted, boolean actionRequired) throws QuickParseException {
+	private <T> ObservableValue<? extends T> evaluate(QuickParseEnv parseEnv, TypeToken<T> type, ParsedItem parsedItem, boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		ObservableValue<?> result;
 		// Sort from easiest to hardest
 		// Literals first
@@ -87,7 +86,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			result = ObservableValue.constant(TypeToken.of(Character.TYPE), ((ParsedChar) parsedItem).getValue());
 			// Now easy operations
 		} else if (parsedItem instanceof ParsedParenthetic) {
-			return evaluate(parseEnv, property, type, ((ParsedParenthetic) parsedItem).getContent(), actionAccepted, actionRequired);
+			return evaluate(parseEnv, type, ((ParsedParenthetic) parsedItem).getContent(), actionAccepted, actionRequired);
 		} else if (parsedItem instanceof ParsedType) {
 			throw new QuickParseException("Types cannot be evaluated to a value");
 		} else if (parsedItem instanceof ParsedInstanceofOp) {
@@ -99,7 +98,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException(
 					"instanceof checks cannot be performed against parameterized types: " + parsedType.getMatch().text);
 			TypeToken<?> testType = evaluateType(parseEnv, parsedType);
-			ObservableValue<?> var = evaluate(parseEnv, property, TypeToken.of(Object.class), instOf.getVariable(), actionAccepted, false);
+			ObservableValue<?> var = evaluate(parseEnv, TypeToken.of(Object.class), instOf.getVariable(), actionAccepted, false);
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
 					parseEnv.msg().warn(instOf.getVariable().getMatch().text + " is always an instance of " + parsedType.getMatch().text
@@ -119,7 +118,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException("Cast cannot be an action");
 			ParsedCast cast = (ParsedCast) parsedItem;
 			TypeToken<?> testType = evaluateType(parseEnv, (ParsedType) cast.getType());
-			ObservableValue<?> var = evaluate(parseEnv, property, TypeToken.of(Object.class), cast.getValue(), actionAccepted, false);
+			ObservableValue<?> var = evaluate(parseEnv, TypeToken.of(Object.class), cast.getValue(), actionAccepted, false);
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
 					parseEnv.msg().warn(
@@ -154,39 +153,39 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			ParsedUnaryOp op = (ParsedUnaryOp) parsedItem;
 			if (actionRequired)
 				throw new QuickParseException("Unary operation " + op.getName() + " cannot be an action");
-			ObservableValue<?> arg1 = evaluate(parseEnv, property, TypeToken.of(Object.class), op.getOp(), actionAccepted, false);
+			ObservableValue<?> arg1 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp(), actionAccepted, false);
 			result = mapUnary(arg1, op);
 		} else if (parsedItem instanceof ParsedBinaryOp) {
 			ParsedBinaryOp op = (ParsedBinaryOp) parsedItem;
 			if (actionRequired)
 				throw new QuickParseException("Binary operation " + op.getName() + " cannot be an action");
-			ObservableValue<?> arg1 = evaluate(parseEnv, property, TypeToken.of(Object.class), op.getOp1(), actionAccepted, false);
-			ObservableValue<?> arg2 = evaluate(parseEnv, property, TypeToken.of(Object.class), op.getOp2(), actionAccepted, false);
+			ObservableValue<?> arg1 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp1(), actionAccepted, false);
+			ObservableValue<?> arg2 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOp2(), actionAccepted, false);
 			result = combineBinary(arg1, arg2, op);
 		} else if (parsedItem instanceof ParsedConditional) {
 			if (actionRequired)
 				throw new QuickParseException("Conditionals cannot be an action");
 			ParsedConditional cond = (ParsedConditional) parsedItem;
-			ObservableValue<?> condition = evaluate(parseEnv, property, TypeToken.of(Object.class), cond.getCondition(), actionAccepted,
+			ObservableValue<?> condition = evaluate(parseEnv, TypeToken.of(Object.class), cond.getCondition(), actionAccepted,
 				false);
 			if (!TypeToken.of(Boolean.class).isAssignableFrom(condition.getType().wrap()))
 				throw new QuickParseException(
 					"Condition in " + cond.getMatch().text + " evaluates to type " + condition.getType() + ", which is not boolean");
-			ObservableValue<? extends T> affirm = evaluate(parseEnv, property, type, cond.getAffirmative(), actionAccepted, false);
-			ObservableValue<? extends T> neg = evaluate(parseEnv, property, type, cond.getNegative(), actionAccepted, false);
+			ObservableValue<? extends T> affirm = evaluate(parseEnv, type, cond.getAffirmative(), actionAccepted, false);
+			ObservableValue<? extends T> neg = evaluate(parseEnv, type, cond.getNegative(), actionAccepted, false);
 			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(v -> v ? affirm : neg));
 			// Assignments
 		} else if (parsedItem instanceof ParsedAssignmentOperator) {
 			if (!actionAccepted)
 				throw new QuickParseException("Assignment operator must be an action");
 			ParsedAssignmentOperator op = (ParsedAssignmentOperator) parsedItem;
-			ObservableValue<?> arg1 = evaluate(parseEnv, property, TypeToken.of(Object.class), op.getVariable(), actionAccepted, false);
+			ObservableValue<?> arg1 = evaluate(parseEnv, TypeToken.of(Object.class), op.getVariable(), actionAccepted, false);
 			if (!(arg1 instanceof SettableValue))
 				throw new QuickParseException(op.getVariable().getMatch().text + " does not parse to a settable value");
 			SettableValue<Object> settable = (SettableValue<Object>) arg1;
 			ObservableValue<?> assignValue;
 			if (op.getOperand() != null) {
-				ObservableValue<?> arg2 = evaluate(parseEnv, property, TypeToken.of(Object.class), op.getOperand(), actionAccepted, false);
+				ObservableValue<?> arg2 = evaluate(parseEnv, TypeToken.of(Object.class), op.getOperand(), actionAccepted, false);
 				assignValue = getBinaryAssignValue(settable, arg2, op);
 			} else
 				assignValue = getUnaryAssignValue(settable, op);
@@ -196,7 +195,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (actionRequired)
 				throw new QuickParseException("Array index operation cannot be an action");
 			ParsedArrayIndex pai = (ParsedArrayIndex) parsedItem;
-			ObservableValue<?> array = evaluate(parseEnv, property, TypeToken.of(Object.class), pai.getArray(), actionAccepted, false);
+			ObservableValue<?> array = evaluate(parseEnv, TypeToken.of(Object.class), pai.getArray(), actionAccepted, false);
 			TypeToken<? extends T> resultType;
 			{
 				TypeToken<?> testResultType;
@@ -215,7 +214,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 						+ " which is not indexable to type " + type);
 				resultType = (TypeToken<? extends T>) testResultType;
 			}
-			ObservableValue<?> index = evaluate(parseEnv, property, TypeToken.of(Object.class), pai.getIndex(), actionAccepted, false);
+			ObservableValue<?> index = evaluate(parseEnv, TypeToken.of(Object.class), pai.getIndex(), actionAccepted, false);
 			if (!TypeToken.of(Long.class).isAssignableFrom(array.getType().wrap())) {
 				throw new QuickParseException("index value in " + parsedItem.getMatch().text + " evaluates to type " + index.getType()
 					+ ", which is not a valid index");
@@ -249,7 +248,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				ObservableValue<? extends Number>[] sizes = new ObservableValue[arrayInit.getSizes().length];
 				for (int i = 0; i < sizes.length; i++) {
 					arrayType = QuickUtils.arrayTypeOf(arrayType);
-					ObservableValue<?> size_i = evaluate(parseEnv, property, TypeToken.of(Object.class), arrayInit.getSizes()[i],
+					ObservableValue<?> size_i = evaluate(parseEnv, TypeToken.of(Object.class), arrayInit.getSizes()[i],
 						actionAccepted, false);
 					if (!QuickUtils.isAssignableFrom(TypeToken.of(Integer.TYPE), size_i.getType()))
 						throw new QuickParseException("Array size " + arrayInit.getSizes()[i].getMatch().text + " parses to type "
@@ -280,7 +279,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				ObservableValue<?>[] elements = new ObservableValue[arrayInit.getElements().length];
 				TypeToken<?> componentType = arrayType.getComponentType();
 				for (int i = 0; i < elements.length; i++) {
-					ObservableValue<?> element_i = evaluate(parseEnv, property, TypeToken.of(Object.class), arrayInit.getElements()[i],
+					ObservableValue<?> element_i = evaluate(parseEnv, TypeToken.of(Object.class), arrayInit.getElements()[i],
 						actionAccepted, false);
 					if (!QuickUtils.isAssignableFrom(componentType, element_i.getType()))
 						throw new QuickParseException("Array element " + arrayInit.getElements()[i].getMatch().text + " parses to type "
@@ -315,7 +314,20 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} else if (parsedItem instanceof ParsedUnitValue) {
 			if (actionRequired)
 				throw new QuickParseException("Unit value cannot be an action");
-			// TODO Need access to the property
+			ParsedUnitValue unitValue=(ParsedUnitValue) parsedItem;
+			String unitName=unitValue.getUnit();
+			Unit<?, ?> unit=parseEnv.getContext().getUnit(unitName);
+			if(unit==null)
+				throw new QuickParseException("Unrecognized unit "+unitName);
+			ObservableValue<?> value=evaluate(parseEnv, unit.getFromType(), unitValue.getValue(), actionAccepted, false);
+			result=value.mapV(v->{
+				try{
+					return ((Unit<Object, ?>) unit).getMap().apply(v);
+				} catch(QuickParseException e){
+					parseEnv.msg().error("Unit "+unit.getName()+" could not convert value "+v+" to "+unit.getToType(), e);
+					return null; // TODO What to do with this?
+				}
+			});
 			// Now the really hard stuff where the syntax doesn't tell us what it may evaluate to
 		} else if (parsedItem instanceof ParsedIdentifier) {
 			if (actionRequired)

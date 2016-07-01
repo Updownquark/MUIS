@@ -2,6 +2,7 @@ package org.quick.core.style;
 
 import java.awt.Color;
 
+import org.observe.ObservableValue;
 import org.qommons.IterableUtils;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
@@ -37,27 +38,16 @@ public class LightedStyle implements StyleDomain {
 	static {
 		instance = new LightedStyle();
 		lightSource = StyleAttribute.build(instance, "source",
-			QuickPropertyType.build("source", TypeToken.of(Double.class)).withValues(str -> {
-				switch (str) {
-				case "top":
-					return 0d;
-				case "top-right":
-					return 45d;
-				case "right":
-					return 90d;
-				case "bottom-right":
-					return 135d;
-				case "bottom":
-					return 180d;
-				case "bottom-left":
-					return 225d;
-				case "left":
-					return 270d;
-				case "top-left":
-					return 315d;
-				default:
-					return null;
-				}
+			QuickPropertyType.build("source", TypeToken.of(Double.class))//
+				.buildContext(ctx -> {
+					ctx.withValue("top", ObservableValue.constant(TypeToken.of(Double.TYPE), 0d));
+					ctx.withValue("top-right", ObservableValue.constant(TypeToken.of(Double.TYPE), 45d));
+					ctx.withValue("right", ObservableValue.constant(TypeToken.of(Double.TYPE), 90d));
+					ctx.withValue("bottom-right", ObservableValue.constant(TypeToken.of(Double.TYPE), 135d));
+					ctx.withValue("bottom", ObservableValue.constant(TypeToken.of(Double.TYPE), 180d));
+					ctx.withValue("bottom-left", ObservableValue.constant(TypeToken.of(Double.TYPE), 225d));
+					ctx.withValue("left", ObservableValue.constant(TypeToken.of(Double.TYPE), 270d));
+					ctx.withValue("top-left", ObservableValue.constant(TypeToken.of(Double.TYPE), 315d));
 			}).build(), 315d).validate(new QuickProperty.ComparableValidator<>(0d, 360d)).build();
 		instance.register(lightSource);
 		lightColor = StyleAttribute.build(instance, "color", QuickPropertyType.color, Color.white).build();

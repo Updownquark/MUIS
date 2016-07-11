@@ -14,11 +14,9 @@ import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.ObservableActionValue;
-import org.quick.core.prop.ExpressionResult;
 import org.quick.core.prop.Unit;
 import org.quick.util.QuickUtils;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 import prisms.lang.*;
@@ -257,7 +255,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				}
 
 				TypeToken<?> fArrayType = arrayType;
-				result = new ObservableValue.ComposedObservableValue<Object>((TypeToken<Object>) arrayType,
+				result = new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) arrayType,
 					new Function<Object[], Object>() {
 						@Override
 						public Object apply(Object[] args) {
@@ -288,7 +286,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				}
 
 				TypeToken<?> fArrayType = arrayType;
-				result = new ObservableValue.ComposedObservableValue<Object>((TypeToken<Object>) arrayType,
+				result = new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) arrayType,
 					new Function<Object[], Object>() {
 						@Override
 						public Object apply(Object[] args) {
@@ -300,17 +298,19 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 					}, true, elements);
 			} else
 				throw new QuickParseException("Either array sizes or a value list must be specifieded for array initialization");
-			// Placeholder and unit
+			// Now pulling stuff from the context
+			// Identifier, placeholder, and unit
+		} else if (parsedItem instanceof ParsedIdentifier) {
+			if (actionRequired)
+				throw new QuickParseException("Identifier cannot be an action");
+			String name = ((ParsedIdentifier) parsedItem).getName();
+			result = parseEnv.getContext().getVariable(name);
+			if (result == null)
+				throw new QuickParseException("No such variable " + name);
 		} else if (parsedItem instanceof ParsedPlaceHolder) {
-			ExpressionResult<?> res = parseEnv.getContext().getVariable(((ParsedPlaceHolder) parsedItem).getName());
-			if (res == null)
+			result = parseEnv.getContext().getVariable(((ParsedPlaceHolder) parsedItem).getName());
+			if (result == null)
 				throw new QuickParseException("Unrecognized placeholder: " + parsedItem.getMatch().text);
-			if (res.type.isNull)
-				return ObservableValue.constant(type, null);
-			else if (res.type.isType)
-				result = classWrap(res.type.type, res.type.type.getRawType());
-			else
-				result = res.value;
 		} else if (parsedItem instanceof ParsedUnitValue) {
 			if (actionRequired)
 				throw new QuickParseException("Unit value cannot be an action");
@@ -328,23 +328,25 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 					return null; // TODO What to do with this?
 				}
 			});
-			// Now the really hard stuff where the syntax doesn't tell us what it may evaluate to
-		} else if (parsedItem instanceof ParsedIdentifier) {
-			if (actionRequired)
-				throw new QuickParseException("Identifier cannot be an action");
-			// TODO
-			// model
-			// type
+			// Now harder operations
 		} else if (parsedItem instanceof ParsedConstructor) {
 			if (actionRequired)
 				throw new QuickParseException("Constructor cannot be an action");
+			ParsedConstructor constructor = (ParsedConstructor) parsedItem;
+			TypeToken<?> typeToCreate = evaluateType(parseEnv, constructor.getType());
 			// TODO
+			// Evaluate type parameters to see if the result of the constructor can be assigned to the type
+			// Sub-evaluate the arguments and pass to the constructor
 		} else if (parsedItem instanceof ParsedMethod) {
 			ParsedMethod method = (ParsedMethod) parsedItem;
 			if (actionRequired && !method.isMethod())
 				throw new QuickParseException("Field access cannot be an action");
 			// TODO
-			// type
+			// Need to go to the root context and see if it is a variable.
+			// If so, we'll just sub-evaluate the context and invoke the method/field reflectively (maybe use TypeToken.method(Method)?
+			// If not, see if the context is a type. May or may not be a ParsedType.
+			// If so, evaluate the field/method statically (remember to account for things like java.Type.class)
+			// Otherwise, throw an exception
 			// field/method (including statically-invoked)
 		} else
 			throw new QuickParseException("Unrecognized parsed item type: " + parsedItem.getClass());
@@ -357,10 +359,6 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 
 	private TypeToken<?> evaluateType(QuickParseEnv parseEnv, ParsedType parsedType) {
 		// TODO
-	}
-
-	private static <T> ObservableValue<Class<T>> classWrap(TypeToken<T> type, Class<?> clazz) {
-		return ObservableValue.constant(new TypeToken<Class<T>>() {}.where(new TypeParameter<T>() {}, type), (Class<T>) clazz);
 	}
 
 	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ParsedUnaryOp op) throws QuickParseException {

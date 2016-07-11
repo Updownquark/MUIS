@@ -36,7 +36,7 @@ public abstract class ExpressionFunction<T> {
 		return isVarArgs;
 	}
 
-	public boolean applies(List<ExpressionResult<?>> argTypes) {
+	public boolean applies(List<TypeToken<?>> argTypes) {
 		if (isVarArgs) {
 			if (argTypes.size() < theArgumentTypes.size() - 1)
 				return false;
@@ -48,24 +48,17 @@ public abstract class ExpressionFunction<T> {
 		for (i = 0; i < theArgumentTypes.size(); i++) {
 			if (isVarArgs && i == theArgumentTypes.size() - 1)
 				break;
-			if (!isAssignableFrom(theArgumentTypes.get(i), argTypes.get(i)))
+			if (!QuickUtils.isAssignableFrom(theArgumentTypes.get(i), argTypes.get(i)))
 				return false;
 		}
 		if (isVarArgs) {
 			TypeToken<?> varArgType = theArgumentTypes.get(theArgumentTypes.size() - 1);
 			for (; i < argTypes.size(); i++) {
-				if (!isAssignableFrom(varArgType, argTypes.get(i)))
+				if (!QuickUtils.isAssignableFrom(varArgType, argTypes.get(i)))
 					return false;
 			}
 		}
 		return true;
-	}
-
-	private static boolean isAssignableFrom(TypeToken<?> argType, ExpressionResult<?> arg) {
-		if (arg.type.isNull) {
-			return !argType.isPrimitive();
-		}
-		return QuickUtils.isAssignableFrom(argType, arg.type.type);
 	}
 
 	public abstract T apply(List<?> values);

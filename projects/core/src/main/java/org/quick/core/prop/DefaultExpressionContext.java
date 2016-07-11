@@ -13,17 +13,15 @@ public class DefaultExpressionContext implements ExpressionContext {
 	private final List<ExpressionContext> theParents;
 	private final Map<String, ObservableValue<?>> theValues;
 	private final List<Function<String, ObservableValue<?>>> theValueGetters;
-	private final Map<String, ExpressionType<?>> theTypes;
 	private final Map<String, List<ExpressionFunction<?>>> theFunctions;
 	private final Map<String, Unit<?, ?>> theUnits;
 
 	private DefaultExpressionContext(List<ExpressionContext> parents, Map<String, ObservableValue<?>> values,
-		List<Function<String, ObservableValue<?>>> valueGetters, Map<String, ExpressionType<?>> types,
-		Map<String, List<ExpressionFunction<?>>> functions, Map<String, Unit<?, ?>> units) {
+		List<Function<String, ObservableValue<?>>> valueGetters, Map<String, List<ExpressionFunction<?>>> functions,
+		Map<String, Unit<?, ?>> units) {
 		theParents = Collections.unmodifiableList(new ArrayList<>(parents));
 		theValues = Collections.unmodifiableMap(new LinkedHashMap<>(values));
 		theValueGetters = Collections.unmodifiableList(valueGetters);
-		theTypes = Collections.unmodifiableMap(new LinkedHashMap<>(types));
 		Map<String, List<ExpressionFunction<?>>> fns = new LinkedHashMap<>();
 		for (Map.Entry<String, List<ExpressionFunction<?>>> fn : functions.entrySet()) {
 			fns.put(fn.getKey(), Collections.unmodifiableList(new ArrayList<>(fn.getValue())));
@@ -33,28 +31,25 @@ public class DefaultExpressionContext implements ExpressionContext {
 	}
 
 	@Override
-	public ExpressionResult<?> getVariable(String name) {
+	public ObservableValue<?> getVariable(String name) {
 		ObservableValue<?> value = theValues.get(name);
 		if (value != null)
-			return ExpressionResult.of(value);
-		ExpressionType<?> type = theTypes.get(name);
-		if (type != null)
-			return ExpressionResult.ofType(type);
+			return value;
 		for (Function<String, ObservableValue<?>> getter : theValueGetters) {
 			value = getter.apply(name);
 			if (value != null)
-				return ExpressionResult.of(value);
+				return value;
 		}
 		for (ExpressionContext parent : theParents) {
-			ExpressionResult<?> res = parent.getVariable(name);
-			if (res != null)
-				return res;
+			value = parent.getVariable(name);
+			if (value != null)
+				return value;
 		}
 		return null;
 	}
 
 	@Override
-	public void getFunctions(String name, List<ExpressionResult<?>> args, List<ExpressionFunction<?>> functions) {
+	public void getFunctions(String name, List<TypeToken<?>> args, List<ExpressionFunction<?>> functions) {
 		List<ExpressionFunction<?>> fns = theFunctions.get(name);
 		if (fns != null) {
 			for (ExpressionFunction<?> fn : fns)
@@ -78,7 +73,6 @@ public class DefaultExpressionContext implements ExpressionContext {
 		private final List<ExpressionContext> theParents;
 		private final Map<String, ObservableValue<?>> theValues;
 		private final List<Function<String, ObservableValue<?>>> theValueGetters;
-		private final Map<String, ExpressionType<?>> theTypes;
 		private final Map<String, List<ExpressionFunction<?>>> theFunctions;
 		private final Map<String, Unit<?, ?>> theUnits;
 
@@ -86,7 +80,6 @@ public class DefaultExpressionContext implements ExpressionContext {
 			theParents = new ArrayList<>();
 			theValues = new LinkedHashMap<>();
 			theValueGetters = new ArrayList<>();
-			theTypes = new LinkedHashMap<>();
 			theFunctions = new LinkedHashMap<>();
 			theUnits = new LinkedHashMap<>();
 		}
@@ -103,11 +96,6 @@ public class DefaultExpressionContext implements ExpressionContext {
 
 		public Builder withValueGetter(Function<String, ObservableValue<?>> getter) {
 			theValueGetters.add(getter);
-			return this;
-		}
-
-		public Builder withType(String name, ExpressionType<?> type) {
-			theTypes.put(name, type);
 			return this;
 		}
 
@@ -132,13 +120,12 @@ public class DefaultExpressionContext implements ExpressionContext {
 			newBuilder.theParents.addAll(theParents);
 			newBuilder.theValues.putAll(theValues);
 			newBuilder.theValueGetters.addAll(theValueGetters);
-			newBuilder.theTypes.putAll(theTypes);
 			newBuilder.theFunctions.putAll(theFunctions);
 			return newBuilder;
 		}
 
 		public DefaultExpressionContext build() {
-			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theTypes, theFunctions, theUnits);
+			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theFunctions, theUnits);
 		}
 	}
 }

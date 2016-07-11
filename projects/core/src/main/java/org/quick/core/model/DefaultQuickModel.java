@@ -11,7 +11,6 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.SimpleParseEnv;
 import org.quick.core.prop.DefaultExpressionContext;
-import org.quick.core.prop.ExpressionResult;
 
 import com.google.common.reflect.TypeToken;
 
@@ -135,9 +134,9 @@ public class DefaultQuickModel implements QuickAppModel {
 				private final ObservableValue<QuickAppModel> theSuper;
 
 				{
-					ExpressionResult<?> res = parseEnv.getContext().getVariable("this");
-					if (res != null && res.type.type != null && TypeToken.of(QuickAppModel.class).isAssignableFrom(res.type.type))
-						theSuper = (ObservableValue<QuickAppModel>) res.value;
+					ObservableValue<?> res = parseEnv.getContext().getVariable("this");
+					if (res != null && TypeToken.of(QuickAppModel.class).isAssignableFrom(res.getType()))
+						theSuper = (ObservableValue<QuickAppModel>) res;
 					else
 						theSuper = null;
 				}

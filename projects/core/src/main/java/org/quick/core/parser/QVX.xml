@@ -253,20 +253,34 @@
 		</option>
 	</entity>
 	<entity name="type" priority="-1" impl="prisms.lang.types.ParsedType">
-		<op type="basic type" storeAs="base" />
-		<option min="0">
-			<literal>&lt;</literal>
-			<op type="java type" storeAs="type param" />
-			<option min="0">
-				<literal>,</literal>
-				<op type="type" storeAs="type param" />
+		<select>
+			<option><literal storeAs="wildcard">?</literal></option>
+			<option>
+				<option>
+					<literal storeAs="wildcard">?</literal>
+					<select storeAs="bound-type">
+						<option><literal>extends</literal></option>
+						<option><literal>super</literal></option>
+					</select>
+				</option>
+				<op type="basic type" storeAs="base" />
+				<option min="0">
+					<literal>&lt;</literal>
+					<option>
+						<op type="type" storeAs="type param" />
+						<option min="0">
+							<literal>,</literal>
+							<op type="type" storeAs="type param" />
+						</option>
+					</option>
+					<literal>&gt;</literal>
+				</option>
+				<option min="0">
+					<literal storeAs="array">[</literal>
+					<literal>]</literal>
+				</option>
 			</option>
-			<literal>&gt;</literal>
-		</option>
-		<option min="0">
-			<literal storeAs="array">[</literal>
-			<literal>]</literal>
-		</option>
+		</select>
 	</entity>
 
 	<!-- Operators with defined priorities -->

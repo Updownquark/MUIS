@@ -12,6 +12,7 @@ import org.observe.SettableValue;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickEnvironment;
+import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.ObservableActionValue;
 import org.quick.core.prop.Unit;
@@ -95,7 +96,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (parsedType.getParameterTypes().length > 0)
 				throw new QuickParseException(
 					"instanceof checks cannot be performed against parameterized types: " + parsedType.getMatch().text);
-			TypeToken<?> testType = evaluateType(parseEnv, parsedType);
+			TypeToken<?> testType = evaluateType(parseEnv, parsedType, type);
 			ObservableValue<?> var = evaluate(parseEnv, TypeToken.of(Object.class), instOf.getVariable(), actionAccepted, false);
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
@@ -115,7 +116,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (actionRequired)
 				throw new QuickParseException("Cast cannot be an action");
 			ParsedCast cast = (ParsedCast) parsedItem;
-			TypeToken<?> testType = evaluateType(parseEnv, (ParsedType) cast.getType());
+			TypeToken<?> testType = evaluateType(parseEnv, (ParsedType) cast.getType(), type);
 			ObservableValue<?> var = evaluate(parseEnv, TypeToken.of(Object.class), cast.getValue(), actionAccepted, false);
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
@@ -238,7 +239,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (actionRequired)
 				throw new QuickParseException("Array init operation cannot be an action");
 			ParsedArrayInitializer arrayInit = (ParsedArrayInitializer) parsedItem;
-			TypeToken<?> arrayType = evaluateType(parseEnv, arrayInit.getType());
+			TypeToken<?> arrayType = evaluateType(parseEnv, arrayInit.getType(), type);
 			if (arrayInit.getSizes().length > 0) {
 				if (arrayInit.getStored("valueSet") != null)
 					throw new QuickParseException(
@@ -333,7 +334,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (actionRequired)
 				throw new QuickParseException("Constructor cannot be an action");
 			ParsedConstructor constructor = (ParsedConstructor) parsedItem;
-			TypeToken<?> typeToCreate = evaluateType(parseEnv, constructor.getType());
+			TypeToken<?> typeToCreate = evaluateType(parseEnv, constructor.getType(), type);
 			// TODO
 			// Evaluate type parameters to see if the result of the constructor can be assigned to the type
 			// Sub-evaluate the arguments and pass to the constructor
@@ -357,7 +358,21 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		return result;
 	}
 
-	private TypeToken<?> evaluateType(QuickParseEnv parseEnv, ParsedType parsedType) {
+	private TypeToken<?> evaluateType(QuickParseEnv parseEnv, ParsedType parsedType, TypeToken<?> expected) throws QuickParseException {
+		String name = parsedType.getName();
+		if (name == null) { // Pure wildcard type
+			return new TypeToken<List<?>>() {}.resolveType(List.class.getTypeParameters()[0]);
+		}
+		Class<?> base = null;
+		try {
+			if (name.contains(".")) {
+				base = parseEnv.cv().loadIfMapped(name, null);
+			}
+			if (base == null)
+				base = parseEnv.cv().loadClass(name);
+		} catch (QuickException | ClassNotFoundException e) {
+			throw new QuickParseException("Could not load class " + name, e);
+		}
 		// TODO
 	}
 

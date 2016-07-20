@@ -49,15 +49,14 @@ public class DefaultExpressionContext implements ExpressionContext {
 	}
 
 	@Override
-	public void getFunctions(String name, List<TypeToken<?>> args, List<ExpressionFunction<?>> functions) {
+	public void getFunctions(String name, List<ExpressionFunction<?>> functions) {
 		List<ExpressionFunction<?>> fns = theFunctions.get(name);
 		if (fns != null) {
 			for (ExpressionFunction<?> fn : fns)
-				if (fn.applies(args))
-					functions.add(fn);
+				functions.add(fn);
 		}
 		for (ExpressionContext ctx : theParents)
-			ctx.getFunctions(name, args, functions);
+			ctx.getFunctions(name, functions);
 	}
 
 	@Override

@@ -264,8 +264,8 @@
 					</select>
 				</option>
 				<op type="basic type" storeAs="base" />
-				<option min="0">
-					<literal>&lt;</literal>
+				<option>
+					<literal storeAs="parameterized">&lt;</literal>
 					<option>
 						<op type="type" storeAs="type param" />
 						<option min="0">

@@ -217,7 +217,7 @@ public abstract class QuickTemplate extends QuickElement {
 								"Attach point " + value.name + " from template " + value.template.getDefiner().getName()
 									+ " cannot be assigned to a role in template " + templateStruct.getDefiner().getName());
 					}
-				}, Arrays.asList(str -> templateStruct.getAttachPoint(str)));
+				}, Arrays.asList(str -> ObservableValue.constant(TypeToken.of(AttachPoint.class), templateStruct.getAttachPoint(str))));
 				theTemplate = templateStruct;
 			}
 

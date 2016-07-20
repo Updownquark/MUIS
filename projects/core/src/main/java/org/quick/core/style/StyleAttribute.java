@@ -3,6 +3,7 @@ package org.quick.core.style;
 import java.util.List;
 import java.util.function.Function;
 
+import org.observe.ObservableValue;
 import org.qommons.ArrayUtils;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
@@ -26,7 +27,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 	 * @param valueSuppliers The value suppliers for parsing the property
 	 */
 	protected StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue, PropertyValidator<T> validator,
-		List<Function<String, ?>> valueSuppliers) {
+		List<Function<String, ObservableValue<?>>> valueSuppliers) {
 		super(name, type, validator, valueSuppliers);
 		theDomain = domain;
 		theDefault = defValue;
@@ -102,7 +103,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 		}
 
 		@Override
-		public Builder<T> withValues(Function<String, ?> values) {
+		public Builder<T> withValues(Function<String, ObservableValue<?>> values) {
 			return (Builder<T>) super.withValues(values);
 		}
 

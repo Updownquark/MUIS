@@ -3,6 +3,8 @@ package org.quick.core.prop;
 import java.util.List;
 import java.util.function.Function;
 
+import org.observe.ObservableValue;
+
 /**
  * A QuickAttribute represents an option that may or must be specified in a Quick element either from the document(XML) or from code. A
  * QuickAttribute must be created in java (preferably in the form of a static constant) and given to the element to tell it that the
@@ -15,7 +17,7 @@ import java.util.function.Function;
 public class QuickAttribute<T> extends QuickProperty<T> {
 	/** @see QuickProperty#QuickProperty(String, QuickPropertyType, PropertyValidator, List) */
 	protected QuickAttribute(String name, QuickPropertyType<T> type, PropertyValidator<T> validator,
-		List<Function<String, ?>> valueSuppliers) {
+		List<Function<String, ObservableValue<?>>> valueSuppliers) {
 		super(name, type, validator, valueSuppliers);
 	}
 
@@ -39,7 +41,7 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 		}
 
 		@Override
-		public Builder<T> withValues(Function<String, ?> values) {
+		public Builder<T> withValues(Function<String, ObservableValue<?>> values) {
 			return (Builder<T>) super.withValues(values);
 		}
 

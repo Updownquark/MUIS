@@ -2,12 +2,10 @@ package org.quick.core.parser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.observe.ObservableValue;
-import org.quick.core.QuickClassView;
-import org.quick.core.QuickEnvironment;
-import org.quick.core.QuickException;
-import org.quick.core.QuickParseEnv;
+import org.quick.core.*;
 import org.quick.core.model.ObservableActionValue;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.QuickProperty;
@@ -45,7 +43,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	}
 	/**
 	 * The type of directive representing parsing by the "default" method (
-	 * {@link #parseDefaultValue(QuickParseEnv, QuickProperty, TypeToken, String, boolean)}
+	 * {@link #parseDefaultValue(QuickParseEnv, TypeToken, String, boolean)}
 	 */
 	public static final String DEFAULT_PARSE_DIRECTIVE = "$";
 	/** The type of directive representing parsing by the property's self-parser ({@link QuickPropertyType#getSelfParser()} */
@@ -122,9 +120,14 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
 		QuickClassView cv;
 		if (property != null) {
-			cv = new org.quick.core.QuickClassView(theEnvironment, parseEnv.cv(), null);
-			// TODO Add the property's toolkit and the property type's toolkit to the class view
-			// TODO Add property's and property type's variables, functions, etc. into the context
+			cv = new QuickClassView(theEnvironment, parseEnv.cv(),
+				(QuickToolkit) property.getType().getClass().getClassLoader());
+			if (property.getClass().getClassLoader() != property.getType().getClass().getClassLoader())
+				cv = new QuickClassView(theEnvironment, cv, (QuickToolkit) property.getClass().getClassLoader());
+			// Add property's and property type's variables, functions, etc. into the context
+			for (Function<String, ObservableValue<?>> valueGetter : property.getValueSuppliers())
+				ctx.withValueGetter(valueGetter);
+			ctx.withParent(property.getType().getContext());
 		} else
 			cv = parseEnv.cv();
 		// Add reference replacement variables
@@ -149,7 +152,19 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		} else {
 			parsedValue = ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, type));
 		}
-		return parsedValue;
+		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
+			return parsedValue;
+		else if (property.getType().canAccept(parsedValue.getType()))
+			return parsedValue.mapV(v -> {
+				try {
+					return property.getType().<Object, T> cast((TypeToken<Object>) parsedValue.getType(), v);
+				} catch (Exception e) {
+					parseEnv.msg().error("Property " + property + " cast from " + parsedValue.getType() + " failed", e);
+					return null; // TODO What to do with this?
+				}
+			});
+		else
+			throw new QuickParseException("Property " + property + " cannot accept type " + parsedValue.getType() + " of value " + value);
 	}
 
 	/**
@@ -255,8 +270,8 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 * @return The parsed value
 	 * @throws QuickParseException If an error occurs parsing the error
 	 */
-	protected abstract <T> ObservableValue<? extends T> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value,
-		boolean action) throws QuickParseException;
+	protected abstract <T> ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value, boolean action)
+		throws QuickParseException;
 
 	/**
 	 * Combines text and directive-parsed references into a string and parses the value

@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
+import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 
 /**
@@ -36,7 +37,7 @@ public abstract class QuickProperty<T> {
 
 	private final String theName;
 	private final QuickPropertyType<T> theType;
-	private final List<Function<String, ?>> theValueSuppliers;
+	private final List<Function<String, ObservableValue<?>>> theValueSuppliers;
 	private final PropertyValidator<T> theValidator;
 
 	/**
@@ -45,7 +46,7 @@ public abstract class QuickProperty<T> {
 	 * @param validator The validator for the property
 	 */
 	protected QuickProperty(String name, QuickPropertyType<T> type, PropertyValidator<T> validator,
-		List<Function<String, ?>> valueSuppliers) {
+		List<Function<String, ObservableValue<?>>> valueSuppliers) {
 		theName = name;
 		theType = type;
 		theValueSuppliers = valueSuppliers == null ? Collections.emptyList() : Collections.unmodifiableList(valueSuppliers);
@@ -67,7 +68,7 @@ public abstract class QuickProperty<T> {
 		return theValidator;
 	}
 
-	public List<Function<String, ?>> getValueSuppliers() {
+	public List<Function<String, ObservableValue<?>>> getValueSuppliers() {
 		return theValueSuppliers;
 	}
 
@@ -96,7 +97,7 @@ public abstract class QuickProperty<T> {
 		private final String theName;
 		private final QuickPropertyType<T> theType;
 		private PropertyValidator<T> theValidator;
-		private final List<Function<String, ?>> theValueSuppliers;
+		private final List<Function<String, ObservableValue<?>>> theValueSuppliers;
 
 		public Builder(String name, QuickPropertyType<T> type) {
 			theName = name;
@@ -109,7 +110,7 @@ public abstract class QuickProperty<T> {
 			return this;
 		}
 
-		public Builder<T> withValues(Function<String, ?> values) {
+		public Builder<T> withValues(Function<String, ObservableValue<?>> values) {
 			theValueSuppliers.add(values);
 			return this;
 		}
@@ -126,7 +127,7 @@ public abstract class QuickProperty<T> {
 			return theValidator;
 		}
 
-		protected List<Function<String, ?>> getValueSuppliers() {
+		protected List<Function<String, ObservableValue<?>>> getValueSuppliers() {
 			return theValueSuppliers;
 		}
 

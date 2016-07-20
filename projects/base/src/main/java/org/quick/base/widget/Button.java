@@ -3,13 +3,13 @@ package org.quick.base.widget;
 import java.awt.Point;
 
 import org.observe.Action;
+import org.observe.ObservableAction;
+import org.observe.ObservableValue;
 import org.quick.base.BaseConstants;
 import org.quick.core.QuickConstants;
 import org.quick.core.event.*;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.ModelAttributes;
-import org.quick.core.model.QuickActionEvent;
-import org.quick.core.model.QuickActionListener;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
@@ -26,8 +26,6 @@ public class Button extends org.quick.core.QuickTemplate {
 
 	private boolean isActionable = true;
 
-	private org.quick.core.model.WidgetRegistration theRegistration;
-
 	/** Creates a button */
 	public Button() {
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
@@ -36,7 +34,8 @@ public class Button extends org.quick.core.QuickTemplate {
 		setFocusable(true);
 		life().runWhen(() -> {
 			if(isActionable) {
-				atts().accept(new Object(), ModelAttributes.action).act(event -> {
+				ObservableValue<ObservableAction> actionObs = atts().accept(new Object(), ModelAttributes.action);
+				ObservableAction.flatten(actionObs).actionObs.act(event -> {
 					listenerChanged(event.getOldValue(), event.getValue());
 				});
 				listenerChanged(null, atts().get(ModelAttributes.action));
@@ -156,14 +155,13 @@ public class Button extends org.quick.core.QuickTemplate {
 			return;
 		if(!atts().isAccepted(ModelAttributes.action))
 			return;
-		QuickActionListener listener = atts().get(ModelAttributes.action);
-		if(listener == null)
-			return;
-		QuickActionEvent actionEvent = new QuickActionEvent("clicked", cause);
-		try {
-			listener.actionPerformed(actionEvent);
-		} catch(RuntimeException e) {
-			msg().error("Action listener threw exception", e);
+		ObservableAction action = atts().get(ModelAttributes.action);
+		if (action != null) {
+			try {
+				action.act(cause);
+			} catch (RuntimeException e) {
+				msg().error("Action listener threw exception", e);
+			}
 		}
 	}
 

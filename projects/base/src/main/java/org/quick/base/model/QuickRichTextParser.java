@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Set;
 
+import org.observe.ObservableValue;
 import org.quick.core.QuickClassView;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
@@ -13,6 +14,7 @@ import org.quick.core.mgr.QuickMessage.Type;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.parser.QuickParseException;
+import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
 
@@ -60,10 +62,11 @@ public class QuickRichTextParser {
 	 *
 	 * @param model The rich document to put the content into
 	 * @param richText The text to parse
+	 * @param parser The property parser to parse style attribute values
 	 * @param env The parsing environment to use to parse styles
 	 * @throws QuickException If the text cannot be parsed
 	 */
-	public void parse(RichDocumentModel model, String richText, QuickParseEnv env) throws QuickException {
+	public void parse(RichDocumentModel model, String richText, QuickPropertyParser parser, QuickParseEnv env) throws QuickException {
 		env = new NoMVParseEnv(env);
 		boolean isEscaped = false;
 		for(int i = 0; i < richText.length(); i++) {
@@ -76,7 +79,7 @@ public class QuickRichTextParser {
 			} else if(ch == '\\')
 				isEscaped = true;
 			else if(ch == '{')
-				i = parseTag(model, richText, i, env);
+				i = parseTag(model, richText, i, parser, env);
 			else if(ch == '}')
 				throw new QuickParseException("Unmatched '}' found in rich text at character " + i);
 			else
@@ -99,11 +102,13 @@ public class QuickRichTextParser {
 	 * @param model The model to alter the style of
 	 * @param richText The rich text content
 	 * @param index The index of the tag in the text
+	 * @param parser The property parser to parse style attribute values
 	 * @param env The parse environment to use to parse the style
 	 * @return The location of the end brace for the tag
 	 * @throws QuickException If the tag cannot be parsed
 	 */
-	public int parseTag(RichDocumentModel model, String richText, int index, QuickParseEnv env) throws QuickException {
+	public int parseTag(RichDocumentModel model, String richText, int index, QuickPropertyParser parser, QuickParseEnv env)
+		throws QuickException {
 		if(richText.charAt(index) != '{')
 			throw new QuickParseException("The character at index " + index + " is not '{'");
 
@@ -239,11 +244,11 @@ public class QuickRichTextParser {
 			else {
 				Color color = org.quick.core.style.Colors.parseIfColor(tagContent.toString());
 				if(color != null)
-					model.set(FontStyle.color, color);
+					model.set(FontStyle.color, ObservableValue.constant(color));
 				else {
 					QuickStyle style;
 					try {
-						style = org.quick.core.style.attach.StyleAttributes.parseStyle(env, tagContent.toString());
+						style = org.quick.core.style.attach.StyleAttributes.parseStyle(parser, env, tagContent.toString());
 					} catch(QuickExceptionWrapper e) {
 						throw new QuickParseException("Could not parse tag " + richText.substring(start - 1, end + 1) + " at index " + index
 							+ ": " + e.getMessage(), e.getCause());
@@ -264,11 +269,11 @@ public class QuickRichTextParser {
 	}
 
 	private <T> void set(RichDocumentModel model, StyleValue<T> sv) {
-		model.set(sv.attr, sv.value);
+		model.set(sv.attr, ObservableValue.constant(sv.value));
 	}
 
 	private <T> void set(RichDocumentModel model, StyleAttribute<T> att, QuickStyle style) {
-		model.set(att, style.get(att).get());
+		model.set(att, style.get(att));
 	}
 
 	/**

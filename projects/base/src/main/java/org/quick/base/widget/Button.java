@@ -4,11 +4,11 @@ import java.awt.Point;
 
 import org.observe.Action;
 import org.observe.ObservableAction;
-import org.observe.ObservableValue;
 import org.quick.base.BaseConstants;
 import org.quick.core.QuickConstants;
 import org.quick.core.event.*;
 import org.quick.core.layout.SizeGuide;
+import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.tags.State;
@@ -20,26 +20,25 @@ import org.quick.core.tags.Template;
 @StateSupport({@State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY),
 		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
 public class Button extends org.quick.core.QuickTemplate {
-	private final org.quick.core.mgr.StateEngine.StateController theDepressedController;
+	private final StateEngine.StateController theDepressedController;
 
-	private final org.quick.core.mgr.StateEngine.StateController theEnabledController;
+	private final StateEngine.StateController theEnabledController;
 
-	private boolean isActionable = true;
+	private final ObservableAction theAction;
 
 	/** Creates a button */
 	public Button() {
+		theAction = createAction();
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
 		theEnabledController.set(true, null);
 		setFocusable(true);
 		life().runWhen(() -> {
-			if(isActionable) {
-				ObservableValue<ObservableAction> actionObs = atts().accept(new Object(), ModelAttributes.action);
-				ObservableAction.flatten(actionObs).actionObs.act(event -> {
-					listenerChanged(event.getOldValue(), event.getValue());
-				});
-				listenerChanged(null, atts().get(ModelAttributes.action));
-			}
+			theAction.isEnabled().act(event -> {
+				theEnabledController.set(event.getValue() == null, event);
+				if (event.getValue() != null)
+					theDepressedController.set(false, event);
+			});
 			events().filterMap(StateChangedEvent.state(QuickConstants.States.CLICK)).act(new Action<StateChangedEvent>() {
 				private Point theClickLocation;
 
@@ -73,7 +72,11 @@ public class Button extends org.quick.core.QuickTemplate {
 						double dist2 = dx * dx + dy * dy;
 						if(dist2 > tol * tol)
 							return;
-						action((MouseEvent) cause);
+						try {
+							theAction.act(event);
+						} catch (RuntimeException e) {
+							msg().error("Action listener threw exception", e);
+						}
 					}
 				}
 			});
@@ -89,38 +92,32 @@ public class Button extends org.quick.core.QuickTemplate {
 						return;
 					if(!state().is(BaseConstants.States.ENABLED))
 						return;
-					checkDepressed(event);
+					checkDepressed(event); // Unsets the depressed state if appropriate
 					if(state().is(BaseConstants.States.DEPRESSED))
 						return;
-					org.quick.core.model.QuickActionListener listener = atts().get(ModelAttributes.action);
-					if(listener == null)
-						return;
-					action(event);
+					try {
+						theAction.act(event);
+					} catch (RuntimeException e) {
+						msg().error("Action listener threw exception", e);
+					}
 				}
 			});
 			getStyle().getSelf().get(BackgroundStyle.cornerRadius).act(event -> relayout(false));
 		}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
-	/** @param actionable Whether this button should fire actions */
-	protected Button(boolean actionable) {
-		this();
-		isActionable = actionable;
+	/**
+	 * Called by the constructor once to get the action for this button to perform
+	 *
+	 * @return The action that this button will perform when it is clicked
+	 */
+	protected ObservableAction createAction() {
+		return ObservableAction.flatten(atts().accept(new Object(), ModelAttributes.action));
 	}
 
 	/** @return The panel containing the contents of this button */
 	public Block getContentPane() {
 		return (Block) getElement(getTemplate().getAttachPoint("contents"));
-	}
-
-	/**
-	 * @param enabled Whether this button should be enabled or not
-	 * @param cause The cause of the change (may be null)
-	 */
-	public void setEnabled(boolean enabled, QuickEvent cause) {
-		theEnabledController.set(enabled, cause);
-		if(!enabled)
-			theDepressedController.set(false, cause);
 	}
 
 	@Override
@@ -143,35 +140,6 @@ public class Button extends org.quick.core.QuickTemplate {
 	public SizeGuide getHSizer() {
 		final org.quick.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
 		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
-	}
-
-	/**
-	 * Fires the action event for this button
-	 *
-	 * @param cause The cause of the action
-	 */
-	protected void action(UserEvent cause) {
-		if(!state().is(BaseConstants.States.ENABLED))
-			return;
-		if(!atts().isAccepted(ModelAttributes.action))
-			return;
-		ObservableAction action = atts().get(ModelAttributes.action);
-		if (action != null) {
-			try {
-				action.act(cause);
-			} catch (RuntimeException e) {
-				msg().error("Action listener threw exception", e);
-			}
-		}
-	}
-
-	private void listenerChanged(QuickActionListener oldValue, QuickActionListener newValue) {
-		if(theRegistration != null)
-			theRegistration.unregister();
-		if(newValue instanceof org.quick.core.model.WidgetRegister)
-			theRegistration = ((org.quick.core.model.WidgetRegister) newValue).register(Button.this);
-		if(newValue != null)
-			setEnabled(newValue.isEnabled().get(), null);
 	}
 
 	private void checkDepressed(QuickEvent cause) {

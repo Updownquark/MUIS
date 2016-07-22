@@ -15,14 +15,13 @@ public class ModelAttributes {
 	/** The type of attribute to set for the user to specify a value */
 	public static final QuickPropertyType<Object> valueType = QuickPropertyType.build("value", TypeToken.of(Object.class)).build();
 
+	public static final QuickPropertyType<Boolean> selectedType = QuickPropertyType.build("selected", TypeToken.of(Boolean.class)).build();
+
 	/** The "action" attribute on an actionable widget */
-	public static final QuickAttribute<ObservableAction> action;
+	public static final QuickAttribute<ObservableAction> action = QuickAttribute.build("action", actionType).build();
 
 	/** The "value" attribute on a value-modeled widget */
-	public static final QuickAttribute<Object> value;
+	public static final QuickAttribute<Object> value = QuickAttribute.build("value", valueType).build();
 
-	static {
-		action = QuickAttribute.build("action", actionType).build();
-		value = QuickAttribute.build("value", valueType).build();
-	}
+	public static final QuickAttribute<Boolean> selected = QuickAttribute.build("selected", selectedType).build();
 }

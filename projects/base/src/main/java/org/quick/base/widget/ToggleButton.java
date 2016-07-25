@@ -26,7 +26,7 @@ public class ToggleButton extends Button {
 
 	@Override
 	protected ObservableAction createAction() {
-		theValue = atts().require(new Object(), ModelAttributes.selected);
+		theValue = atts().require(new Object(), ModelAttributes.selected).asSettable();
 		return theValue.assignmentTo(theValue.mapV(v -> !v));
 	}
 }

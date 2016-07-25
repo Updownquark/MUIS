@@ -1,5 +1,7 @@
 package org.quick.core.model;
 
+import org.qommons.Transaction;
+
 /**
  * <p>
  * A document with a cursor and selection anchor.
@@ -22,6 +24,9 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 		/** @return The location of the model's cursor */
 		int getCursor();
+
+		/** @return The event or thing that caused this event */
+		Object getCause();
 	}
 
 	/** Listens for changes to a document's selection */
@@ -29,6 +34,12 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 		/** @param evt The event containing information about the selection change */
 		void selectionChanged(SelectionChangeEvent evt);
 	}
+
+	/**
+	 * @param cause The event or thing that is causing the changes in the transaction
+	 * @return A transaction to close when the caller finishes its operation
+	 */
+	Transaction holdForWrite(Object cause);
 
 	/**
 	 * @return The location of the cursor in this document--the location at which text will be added in response to non-positioned events
@@ -44,7 +55,7 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 	/**
 	 * Sets the cursor in this document and cancels any existing selection interval
-	 * 
+	 *
 	 * @param cursor The new location for the cursor in this document
 	 * @return This model, for chaining
 	 */
@@ -52,7 +63,7 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 	/**
 	 * Changes the selection interval (and with it, the cursor) in this document
-	 * 
+	 *
 	 * @param anchor The new anchor for the selection in this document
 	 * @param cursor The new location for the cursor in this document
 	 * @return This model, for chaining

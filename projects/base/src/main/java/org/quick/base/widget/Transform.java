@@ -19,19 +19,20 @@ import org.quick.core.tags.Template;
 @Template(location = "../../../../simple-container.qck")
 public class Transform extends QuickTemplate {
 	/** The attribute allowing the user to reflect this widget's contents across either the x or the y axis */
-	public static final QuickAttribute<Orientation> flip = new QuickAttribute<>("flip", QuickPropertyType.forEnum(Orientation.class));
+	public static final QuickAttribute<Orientation> flip = QuickAttribute.build("flip", QuickPropertyType.forEnum(Orientation.class))
+		.build();
 
 	/** The attribute allowing the user to rotate this widget's contents. In clockwise degrees. */
-	public static final QuickAttribute<Double> rotate = new QuickAttribute<>("rotate", QuickPropertyType.floating);
+	public static final QuickAttribute<Double> rotate = QuickAttribute.build("rotate", QuickPropertyType.floating).build();
 
 	/** The attribute allowing the user to scale this widget's contents */
-	public static final QuickAttribute<Double> scale = new QuickAttribute<>("scale", QuickPropertyType.floating);
+	public static final QuickAttribute<Double> scale = QuickAttribute.build("scale", QuickPropertyType.floating).build();
 
 	/** The attribute allowing the user to scale this widget's contents' width */
-	public static final QuickAttribute<Double> scaleX = new QuickAttribute<>("scale-x", QuickPropertyType.floating);
+	public static final QuickAttribute<Double> scaleX = QuickAttribute.build("scale-x", QuickPropertyType.floating).build();
 
 	/** The attribute allowing the user to scale this widget's contents' height */
-	public static final QuickAttribute<Double> scaleY = new QuickAttribute<>("scale-y", QuickPropertyType.floating);
+	public static final QuickAttribute<Double> scaleY = QuickAttribute.build("scale-y", QuickPropertyType.floating).build();
 
 	/** Creates a transform widget */
 	public Transform() {

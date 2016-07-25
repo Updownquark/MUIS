@@ -9,25 +9,25 @@ import org.quick.core.prop.QuickPropertyType;
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
 public class Image extends GenericImage {
 	/** The attribute to use to specify the image resource that an image is to render */
-	public static final QuickAttribute<URL> src = new QuickAttribute<>("src", QuickPropertyType.resource);
+	public static final QuickAttribute<URL> src = QuickAttribute.build("src", QuickPropertyType.resource).build();
 
 	/**
 	 * The attribute to use to specify both resize policies at once for an image. Will be overridden if either the horizontal or vertical
 	 * resize policies are set.
 	 */
-	public static final QuickAttribute<ImageResizePolicy> resize = new QuickAttribute<>("resize",
-		QuickPropertyType.forEnum(ImageResizePolicy.class));
+	public static final QuickAttribute<ImageResizePolicy> resize = QuickAttribute
+		.build("resize", QuickPropertyType.forEnum(ImageResizePolicy.class)).build();
 
 	/** The attribute to use to specify the horizontal resize policy for an image */
-	public static final QuickAttribute<ImageResizePolicy> hResize = new QuickAttribute<>("h-resize",
-		QuickPropertyType.forEnum(ImageResizePolicy.class));
+	public static final QuickAttribute<ImageResizePolicy> hResize = QuickAttribute
+		.build("h-resize", QuickPropertyType.forEnum(ImageResizePolicy.class)).build();
 
 	/** The attribute to use to specify the vertical resize policy for an image */
-	public static final QuickAttribute<ImageResizePolicy> vResize = new QuickAttribute<>("v-resize",
-		QuickPropertyType.forEnum(ImageResizePolicy.class));
+	public static final QuickAttribute<ImageResizePolicy> vResize = QuickAttribute
+		.build("v-resize", QuickPropertyType.forEnum(ImageResizePolicy.class)).build();
 
 	/** The attribute to use to specify the {@link #isProportionLocked() proportion-locked} attribute of an image */
-	public static final QuickAttribute<Boolean> propLocked = new QuickAttribute<>("prop-locked", QuickPropertyType.boole);
+	public static final QuickAttribute<Boolean> propLocked = QuickAttribute.build("prop-locked", QuickPropertyType.boole).build();
 
 	/** Creates an image element */
 	public Image() {

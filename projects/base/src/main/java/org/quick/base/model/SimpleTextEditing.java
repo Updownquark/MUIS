@@ -3,8 +3,8 @@ package org.quick.base.model;
 import org.quick.core.QuickElement;
 import org.quick.core.event.CharInputEvent;
 import org.quick.core.model.DocumentedElement;
-import org.quick.core.model.QuickBehavior;
 import org.quick.core.model.MutableSelectableDocumentModel;
+import org.quick.core.model.QuickBehavior;
 
 /** Behavior allowing keyboard input */
 public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
@@ -14,10 +14,13 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 
 	private org.observe.Observer<DocumentedElement> theUninstallController = theUninstallObservable.control(null);
 
+	private boolean isEnabled = true;
+
 	/** Creates the behavior */
 	public SimpleTextEditing() {
 		theInputListener = evt -> {
-			charInput((DocumentedElement) evt.getElement(), evt.getChar());
+			if (isEnabled)
+				charInput((DocumentedElement) evt.getElement(), evt.getChar());
 		};
 	}
 
@@ -31,6 +34,10 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 	@Override
 	public void uninstall(DocumentedElement element) {
 		theUninstallController.onNext(element);
+	}
+
+	public void setEnabled(boolean enabled) {
+		isEnabled = enabled;
 	}
 
 	/**

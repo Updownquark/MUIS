@@ -4,6 +4,7 @@ import java.awt.geom.Point2D;
 
 import org.observe.DefaultObservable;
 import org.observe.Observer;
+import org.qommons.Transaction;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
@@ -22,6 +23,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			QuickTextElement element = (QuickTextElement) event.getElement();
 			if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 				return;
+			SelectableDocumentModel selectableDoc = (SelectableDocumentModel) element.getDocumentModel();
 			switch (event.getType()) {
 			case pressed:
 				if(event.getButton() == MouseEvent.ButtonType.left) {
@@ -34,19 +36,26 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 							theAnchor = doc.getSelectionAnchor();
 						} else
 							theAnchor = position;
-						doc.setSelection(theAnchor, position);
+						try (Transaction t = doc.holdForWrite(event)) {
+							doc.setSelection(theAnchor, position);
+						}
 						break;
 					case 1: // Double-click. Select word.
-						theAnchor = selectWord(doc,
-							Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth())));
+						int pos = Math
+							.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+						theAnchor = selectWord(doc, pos, event);
 						break;
 					case 2: // Triple-click. Select line.
 						if (!Boolean.TRUE.equals(element.atts().get(QuickTextElement.multiLine))) {
 							theAnchor = 0;
-							doc.setSelection(0, doc.length());
-						} else
-							theAnchor = selectLine(doc, Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
-								element.bounds().getWidth())));
+							try (Transaction t = doc.holdForWrite(event)) {
+								doc.setSelection(0, doc.length());
+							}
+						} else {
+							pos = Math
+								.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+							theAnchor = selectLine(doc, pos, event);
+						}
 						break;
 					}
 				}
@@ -63,7 +72,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 					return;
 				}
 				int cursor = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
-				((SelectableDocumentModel) element.getDocumentModel()).setSelection(theAnchor, cursor);
+				try (Transaction t = selectableDoc.holdForWrite(event)) {
+					selectableDoc.setSelection(theAnchor, cursor);
+				}
 				break;
 			default:
 			}
@@ -74,46 +85,51 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		@Override
 		public void act(KeyBoardEvent event) {
 			QuickTextElement text = (QuickTextElement) event.getElement();
-			switch (event.getKeyCode()) {
-			case C:
-			case X:
-				if(event.isControlPressed())
-					copyToClipboard(text, event.getKeyCode() == KeyBoardEvent.KeyCode.X);
-				event.use();
-				break;
-			case LEFT_ARROW:
-				left(text, event.isShiftPressed());
-				event.use();
-				break;
-			case RIGHT_ARROW:
-				right(text, event.isShiftPressed());
-				event.use();
-				break;
-			case UP_ARROW:
-				up(text, event.isShiftPressed());
-				event.use();
-				break;
-			case DOWN_ARROW:
-				down(text, event.isShiftPressed());
-				event.use();
-				break;
-			case HOME:
-				home(text, event.isShiftPressed());
-				event.use();
-				break;
-			case END:
-				end(text, event.isShiftPressed());
-				event.use();
-				break;
-			case PAGE_UP:
-				pageUp(text, event.isShiftPressed());
-				event.use();
-				break;
-			case PAGE_DOWN:
-				pageDown(text, event.isShiftPressed());
-				event.use();
-				break;
-			default:
+			if (!(text.getDocumentModel() instanceof SelectableDocumentModel))
+				return;
+			SelectableDocumentModel doc = (SelectableDocumentModel) text.getDocumentModel();
+			try (Transaction t = doc.holdForWrite(event)) {
+				switch (event.getKeyCode()) {
+				case C:
+				case X:
+					if (event.isControlPressed())
+						copyToClipboard(text, event.getKeyCode() == KeyBoardEvent.KeyCode.X);
+					event.use();
+					break;
+				case LEFT_ARROW:
+					left(text, event.isShiftPressed());
+					event.use();
+					break;
+				case RIGHT_ARROW:
+					right(text, event.isShiftPressed());
+					event.use();
+					break;
+				case UP_ARROW:
+					up(text, event.isShiftPressed());
+					event.use();
+					break;
+				case DOWN_ARROW:
+					down(text, event.isShiftPressed());
+					event.use();
+					break;
+				case HOME:
+					home(text, event.isShiftPressed());
+					event.use();
+					break;
+				case END:
+					end(text, event.isShiftPressed());
+					event.use();
+					break;
+				case PAGE_UP:
+					pageUp(text, event.isShiftPressed());
+					event.use();
+					break;
+				case PAGE_DOWN:
+					pageDown(text, event.isShiftPressed());
+					event.use();
+					break;
+				default:
+				}
 			}
 		}
 	}
@@ -283,7 +299,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		// TODO Auto-generated method stub
 	}
 
-	private int selectWord(SelectableDocumentModel doc, int position) {
+	private int selectWord(SelectableDocumentModel doc, int position, Object cause) {
 		int anchor;
 		int cursor;
 		if(position == doc.length())
@@ -302,7 +318,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		return Character.isLetterOrDigit(ch) || ch == '_' || ch == '\'';
 	}
 
-	private int selectLine(SelectableDocumentModel doc, int position) {
+	private int selectLine(SelectableDocumentModel doc, int position, Object cause) {
 		int anchor = position;
 		int cursor;
 		if(doc.length() == 0)

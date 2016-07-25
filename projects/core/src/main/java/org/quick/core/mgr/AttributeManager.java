@@ -87,9 +87,78 @@ public class AttributeManager {
 			return theContainedObservable;
 		}
 
+		/** @return The holder of values for this attribute */
+		public final ObservableValue<ObservableValue<? extends T>> getContainer() {
+			return theContainerObservable;
+		}
+
 		@Override
 		public final TypeToken<T> getType() {
 			return theAttr.getType().getType();
+		}
+
+		/**
+		 * Creates a {@link SettableValue} that reflect's this attribute's model value. The {@link SettableValue#isEnabled()} field will
+		 * only be true if the content of this this attribute is an enabled settable value Calling {@link SettableValue#set(Object, Object)}
+		 * on the value will call the set method on that contained value. The set method will never change the actual content of the
+		 * attribute and will be disabled if the content is a constant value or a non-settable observable.
+		 *
+		 * @return A settable value for setting this attribute's content value
+		 */
+		public final SettableValue<T> asSettable() {
+			return new SettableValue<T>() {
+				@Override
+				public TypeToken<T> getType() {
+					return theAttr.getType().getType();
+				}
+
+				@Override
+				public T get() {
+					return AttributeHolder.this.get();
+				}
+
+				@Override
+				public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+					return AttributeHolder.this.subscribe(observer);
+				}
+
+				@Override
+				public boolean isSafe() {
+					return AttributeHolder.this.isSafe();
+				}
+
+				@Override
+				public <V extends T> T set(V value, Object cause) throws IllegalArgumentException {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public <V extends T> String isAcceptable(V value) {
+					if (isOVError)
+						return "Attribute is in an error state";
+					else if (theContainedObservable == null)
+						return "Attribute has no value";
+					else if (theContainedObservable instanceof SettableValue)
+						return ((SettableValue<T>) theContainedObservable).isAcceptable(value);
+					else
+						return "Attribute is not settable";
+				}
+
+				@Override
+				public ObservableValue<String> isEnabled() {
+					return ObservableValue.flatten(theContainerObservable.mapV(ob -> {
+						if (isOVError)
+							return ObservableValue.constant("Attribute is in an error state");
+						else if (ob == null)
+							return ObservableValue.constant("Attribute has no value");
+						else if (ob instanceof SettableValue)
+							return ((SettableValue<T>) ob).isEnabled();
+						else
+							return ObservableValue.constant("Attribute is not settable");
+					}));
+				}
+			};
 		}
 
 		/**
@@ -166,8 +235,8 @@ public class AttributeManager {
 			final int stackCheck = theStackChecker;
 			AttributeChangedEvent<T> evt;
 			try {
-				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, false, theAttr.getType()
-.cast((TypeToken<T>) TypeToken.of(oldValue.getClass()), oldValue), value, null) {
+				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, false,
+					theAttr.getType().cast((TypeToken<T>) TypeToken.of(oldValue.getClass()), oldValue), value, null) {
 					@Override
 					public boolean isOverridden() {
 						return stackCheck != theStackChecker;
@@ -458,14 +527,16 @@ public class AttributeManager {
 	 *
 	 * @param needer The object that needs the attributes
 	 * @param attrs The attributes that must be specified for this element
+	 * @return This attribute manager
 	 */
-	public final void require(Object needer, QuickAttribute<?>... attrs) {
+	public final AttributeManager require(Object needer, QuickAttribute<?>... attrs) {
 		for(QuickAttribute<?> attr : attrs)
 			try {
 				accept(needer, true, attr, null);
 			} catch(QuickException e) {
 				throw new IllegalStateException("Should not throw QuickException with null initValue");
 			}
+		return this;
 	}
 
 	/**
@@ -473,13 +544,15 @@ public class AttributeManager {
 	 *
 	 * @param wanter The object that cares about the attributes
 	 * @param attrs The attributes to accept but not require
+	 * @return This attribute manager
 	 */
-	public final void unrequire(Object wanter, QuickAttribute<?>... attrs) {
+	public final AttributeManager unrequire(Object wanter, QuickAttribute<?>... attrs) {
 		for(QuickAttribute<?> attr : attrs) {
 			AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
 			if(holder != null)
 				holder.unrequire(wanter);
 		}
+		return this;
 	}
 
 	/**
@@ -518,17 +591,16 @@ public class AttributeManager {
 	 *
 	 * @param wanter The object that cares about the attributes
 	 * @param attrs The attributes that may be specified for this element
-	 * @return An observable that fires a {@link AttributeChangedEvent} for every change affecting the given attribute values in this
-	 *         element
+	 * @return This attribute manager
 	 */
-	public final Observable<AttributeChangedEvent<?>> accept(Object wanter, QuickAttribute<?>... attrs) {
+	public final AttributeManager accept(Object wanter, QuickAttribute<?>... attrs) {
 		for(QuickAttribute<?> attr : attrs)
 			try {
 				accept(wanter, false, attr, null);
 			} catch(QuickException e) {
 				throw new IllegalStateException("Should not throw QuickException with null initValue");
 			}
-		return watch(attrs);
+		return this;
 	}
 
 	/**

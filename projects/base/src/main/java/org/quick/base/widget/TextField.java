@@ -6,86 +6,119 @@ import static org.quick.core.QuickTextElement.multiLine;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
-import org.qommons.TriTuple;
+import org.qommons.BiTuple;
+import org.qommons.Transaction;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
 import org.quick.base.model.*;
+import org.quick.core.QuickTextElement;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.KeyBoardEvent;
+import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
-import org.quick.core.tags.State;
-import org.quick.core.tags.StateSupport;
-import org.quick.core.tags.Template;
-import org.quick.util.Transaction;
+import org.quick.core.tags.*;
 
-/** A simple widget that takes and displays text input from the user */
-@Template(location = "../../../../text-field.qck")
-@StateSupport({@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY),
-		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
+import com.google.common.reflect.TypeToken;
+
+/**
+ * A text field allows the user to edit a {@link QuickDocumentModel document}. Optionally, the content of this document can be synchronized
+ * with a {@link ModelAttributes#value value} via a {@link BaseAttributes#format format}. Changes to the document not initiated by this
+ * widget will be reflected in the display, but will not be propagated to the value until an appropriate user event occurs in the widget.
+ *
+ * The document is modified with each user input, but the value is only changed when the user presses {@link KeyCode#ENTER enter} (
+ * {@link KeyBoardEvent#isControlPressed() ctrl}+{@link KeyCode#ENTER enter} for {@link QuickTextElement#multiLine multi-line} text fields)
+ * or focus is lost after changes.
+ */
+@Template(location = "../../../../text-field.qck", //
+	attributes = { //
+		@ModelAttribute(name = "length", type = Integer.class), //
+		@ModelAttribute(name = "rows", type = Integer.class), //
+		@ModelAttribute(name = "multi-line", type = Boolean.class)//
+	})
+@StateSupport({ //
+	@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY), //
+	@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)//
+})
 public class TextField extends org.quick.core.QuickTemplate implements DocumentedElement {
-	private org.quick.core.model.WidgetRegistration theRegistration;
-
 	private boolean isDocOverridden;
 
 	private boolean isDocDirty;
 
-	private StateController theErrorController;
-	private StateController theEnabledController;
+	private final StateController theErrorController;
+	private final StateController theEnabledController;
+	private final SimpleTextEditing theTextEditing;
 
 	private int theCallbackLock = 0;
 
 	/** Creates a text field */
 	public TextField() {
+		theErrorController = state().control(BaseConstants.States.ERROR);
+		theEnabledController = state().control(BaseConstants.States.ENABLED);
+		theTextEditing = new SimpleTextEditing();
+
 		life().runWhen(() -> {
-			theErrorController = state().control(BaseConstants.States.ERROR);
-			theEnabledController = state().control(BaseConstants.States.ENABLED);
 			Object accepter = new Object();
-			atts().accept(accepter, charLengthAtt, charRowsAtt, multiLine, BaseAttributes.format, BaseAttributes.document, ModelAttributes.value, BaseAttributes.rich);
-			atts().getHolder(charLengthAtt).act(event -> {
-				try {
-					getElement(getTemplate().getAttachPoint("text")).atts().set(charLengthAtt, event.getValue());
-				} catch(org.quick.core.QuickException e) {
-					msg().error("Could not pass on " + charLengthAtt, e);
+			atts().accept(accepter, ModelAttributes.value, charLengthAtt, charRowsAtt, multiLine, BaseAttributes.format,
+				BaseAttributes.document, BaseAttributes.rich);
+
+			ObservableValue<BiTuple<ObservableValue<? extends Object>, QuickFormatter<?>>> duoObs = //
+				atts().getHolder(ModelAttributes.value).getContainer().tupleV(//
+					atts().getHolder(BaseAttributes.format));
+			ObservableValue<String> enabled = ObservableValue.flatten(duoObs.mapV(tuple -> {
+				if (tuple.getValue1() == null)
+					return ObservableValue.constant(TypeToken.of(String.class), null); // No value to worry about
+				if (!(tuple.getValue1() instanceof SettableValue))
+					return ObservableValue.constant("Value is not settable"); // Value is not settable
+				if (tuple.getValue2() == null){
+					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
+						return ObservableValue.constant("No formatter"); // No formatter
+				} else{
+					if (tuple.getValue2().getParseType() == null)
+						return ObservableValue.constant("Formatter does not support parsing");
+					if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
+						return ObservableValue.constant("Formatter is not compatible with value");
+					if(!tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+						return ObservableValue.constant("Formatter cannot parse value's type");
 				}
-			});
-			atts().getHolder(charRowsAtt).act(event -> {
-				try {
-					getElement(getTemplate().getAttachPoint("text")).atts().set(charRowsAtt, event.getValue());
-				} catch(org.quick.core.QuickException e) {
-					msg().error("Could not pass on " + charRowsAtt, e);
+
+				return ((SettableValue<?>) tuple.getValue1()).isEnabled();
+			}));
+			theEnabledController.link(enabled.mapV(e->e!=null));
+			ObservableValue<String> error=ObservableValue.flatten(duoObs.mapV(tuple->{
+				if(tuple.getValue1()==null && tuple.getValue2()!=null)
+					return ObservableValue.constant("No value");
+				if (tuple.getValue2() == null){
+					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
+						return ObservableValue.constant("No formatter"); // No formatter
+				} else{
+					if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
+						return ObservableValue.constant("Formatter is not compatible with value");
+					if(tuple.getValue2().getParseType() != null && !tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+						return ObservableValue.constant("Formatter cannot parse value's type");
 				}
-			});
-			atts().getHolder(ModelAttributes.value)
-				.tupleV(atts().getHolder(BaseAttributes.format),
-					atts().getHolder(BaseAttributes.document).combineV(ObservableValue.first(), atts().getHolder(BaseAttributes.rich))).act(event -> {
-					if(theRegistration != null)
-						theRegistration.unregister();
-					TriTuple<ObservableValue<?>, QuickFormatter<?>, QuickDocumentModel> tuple = event.getValue();
-					if(tuple.getValue1() == null && tuple.getValue3() == null)
-						msg().warn("No model value or document specified");
-					else if(tuple.getValue1() != null) {
-						if(tuple.getValue3() != null)
-							msg().warn("Both model value and document specified. Using model value.");
-						setValue(tuple.getValue1(), tuple.getValue2(), event);
-					} else
-						setDocument(tuple.getValue3());
-				});
+				return ObservableValue.constant(TypeToken.of(String.class), null);
+			}));
+			// TODO Take into account the content of the document
+			theErrorController.link(error.mapV(e->e!=null));
 			atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
+
+			ObservableValue<QuickDocumentModel> docObs = ObservableValue.flatten(atts().getHolder(BaseAttributes.document).mapV(doc -> {
+				if (doc != null)
+					return ObservableValue.constant(TypeToken.of(QuickDocumentModel.class), doc);
+				else
+					return atts().getHolder(BaseAttributes.rich).mapV(rich -> {
+						return rich ? new RichDocumentModel(getStyle().getSelf(), msg())
+							: new SimpleDocumentModel(getStyle().getSelf(), msg());
+					});
+			}));
+			docObs.act(event -> getValueElement().setDocumentModel(event.getValue()));
 			}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 		life().runWhen(() -> {
 			initDocument();
-			new org.quick.util.QuickAttributeExposer(TextField.this, getValueElement(), msg(), multiLine);
 			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
 			cursor.setTextElement(getValueElement());
 			cursor.setStyleAnchor(getStyle().getSelf());
-			org.quick.core.QuickElement textHolder = getElement(getTemplate().getAttachPoint("text"));
-			try {
-				textHolder.atts().set(charLengthAtt, atts().get(charLengthAtt));
-				textHolder.atts().set(charRowsAtt, atts().get(charRowsAtt));
-			} catch(org.quick.core.QuickException e) {
-				msg().error("Could not initialize text layout attributes", e);
-			}
 
 			events().filterMap(FocusEvent.blur).act(event -> {
 				pushChanges();
@@ -111,7 +144,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	 * except as the super call from the extending method.
 	 */
 	protected void initDocument() {
-		new org.quick.base.model.SimpleTextEditing().install(this);
+		theTextEditing.install(this);
+		theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
 		getValueElement().getDocumentModel().onContentStyleChange(() -> {
 			if(theCallbackLock == 0)
 				setDocDirty();
@@ -128,16 +162,15 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	}
 
 	private void setValue(ObservableValue<?> value, QuickFormatter<?> formatter, org.observe.ObservableValueEvent<?> event) {
-		register(value);
 		MutableDocumentModel editModel = (MutableDocumentModel) getDocumentModel();
 		boolean rich = atts().get(BaseAttributes.rich) == Boolean.TRUE;
 		if(isDocOverridden || (rich && !(editModel instanceof RichDocumentModel)) || (!rich && !(editModel instanceof SimpleDocumentModel))) {
-			editModel=rich ? new RichDocumentModel(getStyle().getSelf()) : new SimpleDocumentModel(getStyle().getSelf());
+			editModel = rich ? new RichDocumentModel(getStyle().getSelf(), msg()) : new SimpleDocumentModel(getStyle().getSelf(), msg());
 			setEditModel(editModel);
 		}
 		isDocOverridden = false;
 		theCallbackLock++;
-		try (Transaction t = editModel.holdForWrite()) {
+		try (Transaction t = editModel.holdForWrite(event)) {
 			editModel.clear();
 			if(formatter != null)
 				((QuickFormatter<Object>) formatter).append(value.get(), editModel);
@@ -154,7 +187,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	}
 
 	private void setDocument(QuickDocumentModel doc) {
-		register(doc);
 		isDocOverridden = true;
 		setEditModel(doc);
 	}
@@ -256,10 +288,5 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		}
 		theErrorController.set(false, null);
 		// TODO Think of a way to preserve selection?
-	}
-
-	private void register(Object o) {
-		if(o instanceof org.quick.core.model.WidgetRegister)
-			theRegistration = ((org.quick.core.model.WidgetRegister) o).register(TextField.this);
 	}
 }

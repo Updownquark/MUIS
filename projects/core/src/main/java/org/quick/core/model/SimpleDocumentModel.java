@@ -3,9 +3,9 @@ package org.quick.core.model;
 import java.util.Iterator;
 
 import org.qommons.IterableUtils;
+import org.qommons.Transaction;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
-import org.quick.util.Transaction;
 
 /** A very simple document model that uses a single style and keeps a single, mutable set of content and supports single interval selection */
 public class SimpleDocumentModel extends AbstractSelectableDocumentModel implements MutableSelectableDocumentModel {
@@ -13,15 +13,19 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 
 	/**
 	 * @param parentStyle The parent style for this document
+	 * @param msg The message center to log errors in style values
 	 * @param text The initial text for this field
 	 */
-	public SimpleDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle, String text) {
-		this(msg, parentStyle);
+	public SimpleDocumentModel(InternallyStatefulStyle parentStyle, QuickMessageCenter msg, String text) {
+		this(parentStyle, msg);
 		theContent.append(text);
 	}
 
-	/** @param parentStyle The parent style for this document */
-	public SimpleDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle) {
+	/**
+	 * @param parentStyle The parent style for this document
+	 * @param msg The message center to log errors in style values
+	 */
+	public SimpleDocumentModel(InternallyStatefulStyle parentStyle, QuickMessageCenter msg) {
 		super(msg, parentStyle);
 		theContent = new StringBuilder();
 	}
@@ -108,8 +112,8 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 	// Publicize and override the return types for the modification methods
 
 	@Override
-	public Transaction holdForWrite() {
-		return super.holdForWrite();
+	public Transaction holdForWrite(Object cause) {
+		return super.holdForWrite(cause);
 	}
 
 	@Override

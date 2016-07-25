@@ -4,7 +4,7 @@ import static org.quick.base.BaseAttributes.document;
 import static org.quick.base.BaseAttributes.format;
 import static org.quick.base.BaseAttributes.rich;
 
-import org.observe.ObservableValue;
+import org.qommons.Transaction;
 import org.quick.base.BaseAttributes;
 import org.quick.base.model.Formats;
 import org.quick.base.model.QuickFormatter;
@@ -14,7 +14,6 @@ import org.quick.core.QuickException;
 import org.quick.core.QuickTextElement;
 import org.quick.core.model.*;
 import org.quick.core.tags.Template;
-import org.quick.util.Transaction;
 
 /**
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
@@ -22,8 +21,6 @@ import org.quick.util.Transaction;
  */
 @Template(location = "../../../../label.qck")
 public class Label extends org.quick.core.QuickTemplate implements org.quick.core.model.DocumentedElement {
-	private org.quick.core.model.WidgetRegistration theRegistration;
-
 	/** Creates the label */
 	public Label() {
 		life().runWhen(
@@ -36,38 +33,28 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 							msg().warn(rich.getName() + " attribute specified, but model overridden.  Ignoring.");
 						setDocumentModel(tuple.getValue1());
 					} else if(tuple.getValue2() == Boolean.TRUE)
-						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
+						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle(), msg()));
 					else
-						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle()));
+						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle(), msg()));
 				});
-				atts().getHolder(ModelAttributes.value).value().act(modelValue -> {
-					if(theRegistration != null)
-						theRegistration.unregister();
-					theRegistration = null;
-					if(modelValue instanceof WidgetRegister)
-						theRegistration = ((WidgetRegister) modelValue).register(Label.this);
+				atts().getHolder(ModelAttributes.value).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).act(event -> {
+					if (event.getValue().getValue1() == null)
+						return;
+					QuickDocumentModel doc = getDocumentModel();
+					if (!(doc instanceof MutableDocumentModel)) {
+						msg().error("Model value specified with a non-mutable document model");
+						return;
+					}
+					MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
+					try (Transaction trans = mutableDoc.holdForWrite(event)) {
+						mutableDoc.clear();
+						((QuickFormatter<Object>) event.getValue().getValue2()).append(event.getValue().getValue1(), mutableDoc);
+					} catch (ClassCastException e) {
+						msg().error("Formatter instance " + event.getValue().getValue2() + " is incompatible with model value "
+							+ event.getValue().getValue1(),
+							e);
+					}
 				});
-			ObservableValue.flatten(atts().getHolder(ModelAttributes.value)).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch))
-				.value().act(
-						tuple -> {
-							if(tuple.getValue1() == null)
-								return;
-							QuickDocumentModel doc = getDocumentModel();
-							if(!(doc instanceof MutableDocumentModel)) {
-								msg().error("Model value specified with a non-mutable document model");
-								return;
-							}
-							MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
-							try (Transaction trans = mutableDoc.holdForWrite()) {
-								mutableDoc.clear();
-								((QuickFormatter<Object>) tuple.getValue2()).append(tuple.getValue1(), mutableDoc);
-							} catch(ClassCastException e) {
-								msg()
-									.error(
-										"Formatter instance " + tuple.getValue2() + " is incompatible with model value "
-											+ tuple.getValue1(), e);
-							}
-						});
 
 				/* Don't think this code is needed anymore
 				if(Boolean.TRUE.equals(atts().get(BaseAttributes.rich))) {
@@ -121,7 +108,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 			RichDocumentModel richDoc = (RichDocumentModel) doc;
 			richDoc.setText("");
 			try {
-				new org.quick.base.model.QuickRichTextParser().parse(richDoc, text, this);
+				new org.quick.base.model.QuickRichTextParser().parse(richDoc, text, doc().getEnvironment().getPropertyParser(), this);
 			} catch(QuickException e) {
 				msg().error("Could not parse rich text", e);
 			}

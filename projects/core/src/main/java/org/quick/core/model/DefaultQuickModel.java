@@ -79,10 +79,12 @@ public class DefaultQuickModel implements QuickAppModel {
 		}
 	}
 
+	/** @return A builder to create a DefaultQuickModel */
 	public Builder build() {
 		return new Builder();
 	}
 
+	/** Builds a {@link DefaultQuickModel} */
 	public static class Builder implements QuickModelBuilder {
 		private static QuickModelConfigValidator VALIDATOR;
 		static {
@@ -122,6 +124,7 @@ public class DefaultQuickModel implements QuickAppModel {
 
 		private final Map<String, Object> theFields;
 
+		/** Creates the builder */
 		public Builder() { // Public so it can be used from quick XML
 			theFields = new LinkedHashMap<>();
 		}

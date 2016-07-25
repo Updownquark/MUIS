@@ -107,7 +107,10 @@ public class Button extends org.quick.core.QuickTemplate {
 	}
 
 	/**
-	 * Called by the constructor once to get the action for this button to perform
+	 * Called by the constructor once to get the action for this button to perform.
+	 *
+	 * By default, this method accepts the {@link ModelAttributes#action} attribute and returns that value. Override this method to use a
+	 * different action for the button.
 	 *
 	 * @return The action that this button will perform when it is clicked
 	 */

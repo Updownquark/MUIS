@@ -1,6 +1,6 @@
 package org.quick.core.model;
 
-import org.quick.util.Transaction;
+import org.qommons.Transaction;
 
 /** A modifiable document model */
 public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
@@ -15,10 +15,10 @@ public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
 
 	/**
 	 * Clears this document's content
-	 * 
+	 *
 	 * @return This model, for chaining
 	 */
-	public default QuickDocumentModel clear() {
+	default QuickDocumentModel clear() {
 		return delete(0, length());
 	}
 
@@ -57,6 +57,9 @@ public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
 	 */
 	MutableDocumentModel insert(int offset, char c);
 
-	/** @return A transaction that prevents any other threads from modifying or accessing this document model until the transaction is closed */
-	Transaction holdForWrite();
+	/**
+	 * @param cause The event or thing that is causing the changes to be made in the transaction
+	 * @return A transaction that prevents any other threads from modifying or accessing this document model until the transaction is closed
+	 */
+	Transaction holdForWrite(Object cause);
 }

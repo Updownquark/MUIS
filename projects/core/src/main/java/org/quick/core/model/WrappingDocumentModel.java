@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.qommons.Transaction;
 import org.quick.core.style.QuickStyle;
-import org.quick.util.Transaction;
 
 /** Wraps a document, allowing swapping out documents while preserving added listeners */
 public class WrappingDocumentModel {
@@ -205,8 +205,8 @@ public class WrappingDocumentModel {
 		}
 
 		@Override
-		public Transaction holdForWrite() {
-			return doc().holdForWrite();
+		public Transaction holdForWrite(Object cause) {
+			return doc().holdForWrite(cause);
 		}
 
 		@Override
@@ -260,6 +260,11 @@ public class WrappingDocumentModel {
 		@Override
 		SelectableDocumentModel doc() {
 			return (SelectableDocumentModel) super.doc();
+		}
+
+		@Override
+		public Transaction holdForWrite(Object cause) {
+			return doc().holdForWrite(cause);
 		}
 
 		@Override

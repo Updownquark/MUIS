@@ -4,9 +4,9 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 
+import org.qommons.Transaction;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.style.QuickStyle;
-import org.quick.util.Transaction;
 
 /** Stores and displays text in Quick */
 public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequence> {
@@ -80,6 +80,9 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 		/** @return Whether this change represents a removal or an addition */
 		boolean isRemove();
+
+		/** @return The event or other thing that caused this event */
+		Object getCause();
 	}
 
 	/** Fired when a document model's style changes for any portion of its content */
@@ -98,6 +101,9 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 		/** @return The styles of the document after the style change. This may be null if the information is not available. */
 		Iterable<StyledSequence> styleAfter();
+
+		/** @return The event or other thing that caused this event */
+		Object getCause();
 	}
 
 	/** Listens for changes to a document's content */

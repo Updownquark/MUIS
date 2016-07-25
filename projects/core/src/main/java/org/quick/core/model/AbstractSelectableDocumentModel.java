@@ -12,13 +12,13 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.qommons.IterableUtils;
+import org.qommons.Transaction;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
 import org.quick.core.style.stateful.StatefulStyle;
-import org.quick.util.Transaction;
 
 import com.google.common.reflect.TypeToken;
 
@@ -37,8 +37,12 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	private Collection<SelectionListener> theSelectionListeners;
 
 	private final ReentrantReadWriteLock theLock;
+	private Object theCause;
 
-	/** @param parentStyle The parent style to use for backup styles if this document's content is missing attributes directly */
+	/**
+	 * @param msg The message center to log errors against styles in this model
+	 * @param parentStyle The parent style to use for backup styles if this document's content is missing attributes directly
+	 */
 	public AbstractSelectableDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle) {
 		theParentStyle = parentStyle;
 		theNormalStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, false);
@@ -53,32 +57,32 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		theNormalStyle.allChanges().act(event -> {
 			int minSel = theCursor;
 			int maxSel = theCursor;
-			if(theSelectionAnchor < minSel)
+			if (theSelectionAnchor < minSel)
 				minSel = theSelectionAnchor;
-			if(theSelectionAnchor > maxSel)
+			if (theSelectionAnchor > maxSel)
 				maxSel = theSelectionAnchor;
-			if(minSel == 0 && maxSel == length()) {
+			if (minSel == 0 && maxSel == length()) {
 				return; // No unselected text
-		}
-		clearCache();
-		int evtStart = minSel == 0 ? maxSel : 0;
-		int evtEnd = maxSel == length() ? minSel : length();
-		fireStyleEvent(evtStart, evtEnd);
-	}	);
+			}
+			clearCache();
+			int evtStart = minSel == 0 ? maxSel : 0;
+			int evtEnd = maxSel == length() ? minSel : length();
+			fireStyleEvent(evtStart, evtEnd, event);
+		});
 		theSelectedStyle.allChanges().act(event -> {
-			if(theCursor == theSelectionAnchor) {
+			if (theCursor == theSelectionAnchor) {
 				return; // No selected text
-		}
-		clearCache();
-		int evtStart = theSelectionAnchor;
-		int evtEnd = theCursor;
-		if(evtStart > evtEnd) {
-			int temp = evtStart;
-			evtStart = evtEnd;
-			evtEnd = temp;
-		}
-		fireStyleEvent(evtStart, evtEnd);
-	}	);
+			}
+			clearCache();
+			int evtStart = theSelectionAnchor;
+			int evtEnd = theCursor;
+			if (evtStart > evtEnd) {
+				int temp = evtStart;
+				evtStart = evtEnd;
+				evtEnd = temp;
+			}
+			fireStyleEvent(evtStart, evtEnd, event);
+		});
 	}
 
 	/** @return This document's parent's style */
@@ -116,26 +120,38 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 	/**
 	 * @return A transaction that prevents any other threads from modifying or accessing this document model until the transaction is closed
-	 * @see MutableDocumentModel#holdForWrite()
+	 * @see MutableDocumentModel#holdForWrite(Object)
 	 */
-	protected Transaction holdForWrite() {
+	@Override
+	public Transaction holdForWrite(Object cause) {
 		if(theLock.getWriteHoldCount() == 0 && theLock.getReadHoldCount() > 0)
 			throw new IllegalStateException("A write lock cannot be acquired for this document model while a read lock is held."
 				+ "  The read lock must be released before attempting to acquire a write lock.");
 		final java.util.concurrent.locks.Lock lock = theLock.writeLock();
 		lock.lock();
+		Object preCause = theCause;
+		theCause = cause;
 		return new Transaction() {
+			private boolean isLocked = true;
 			@Override
 			public void close() {
-				lock.unlock();
+				if (isLocked) {
+					theCause = preCause;
+					lock.unlock();
+				}
 			}
 
 			@Override
 			protected void finalize() throws Throwable {
 				super.finalize();
-				lock.unlock();
+				close();
 			}
 		};
+	}
+
+	/** @return The cause for the current write transaction, if any */
+	protected Object getWriteLockCause() {
+		return theCause;
 	}
 
 	@Override
@@ -228,7 +244,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		ArrayList<StyledSequence> after = new ArrayList<>();
 		for(StyledSequence seq : this)
 			after.add(seq);
-		fireSelectionEvent(oldAnchor, oldCursor, cursor, cursor, before, after);
+		fireSelectionEvent(oldAnchor, oldCursor, cursor, cursor, before, after, theCause);
 		return this;
 	}
 
@@ -246,7 +262,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		ArrayList<StyledSequence> after = new ArrayList<>();
 		for(StyledSequence seq : this)
 			after.add(seq);
-		fireSelectionEvent(oldAnchor, oldCursor, anchor, cursor, before, after);
+		fireSelectionEvent(oldAnchor, oldCursor, anchor, cursor, before, after, theCause);
 		return this;
 	}
 
@@ -283,7 +299,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @see MutableDocumentModel#append(char)
 	 */
 	protected AbstractSelectableDocumentModel append(char c) {
-		return append(new String(new char[] {c}), 0, 1);
+		return append(new String(new char[] { c }), 0, 1);
 	}
 
 	/**
@@ -298,7 +314,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		int index;
 		String change = csq.toString();
 		boolean selChange = false;
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(theCause)) {
 			value = toString();
 			index = value.length();
 			if(theSelectionAnchor == index) {
@@ -313,9 +329,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			internalAppend(csq, start, end);
 		}
 		if(selChange)
-			fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor);
+			fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor, theCause);
 		else
-			fireContentEvent(value, change, index, false, -1, -1);
+			fireContentEvent(value, change, index, false, -1, -1, theCause);
 
 		return this;
 	}
@@ -336,7 +352,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @see MutableDocumentModel#insert(int, char)
 	 */
 	protected AbstractSelectableDocumentModel insert(int offset, char c) {
-		return insert(offset, new String(new char[] {c}));
+		return insert(offset, new String(new char[] { c }));
 	}
 
 	/**
@@ -349,7 +365,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		String value;
 		String change = csq.toString();
 		boolean selChange = false;
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(theCause)) {
 			value = toString();
 			if(theSelectionAnchor >= offset) {
 				selChange = true;
@@ -363,9 +379,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			internalInsert(offset, csq);
 		}
 		if(selChange)
-			fireContentEvent(value, change, offset, false, theSelectionAnchor, theCursor);
+			fireContentEvent(value, change, offset, false, theSelectionAnchor, theCursor, theCause);
 		else
-			fireContentEvent(value, change, offset, false, -1, -1);
+			fireContentEvent(value, change, offset, false, -1, -1, theCause);
 
 		return this;
 	}
@@ -393,7 +409,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		String value;
 		String change;
 		boolean selChange = false;
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(theCause)) {
 			value = toString();
 			change = value.substring(start, end);
 			if(theSelectionAnchor >= start) {
@@ -414,9 +430,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			internalDelete(start, end);
 		}
 		if(selChange)
-			fireContentEvent(value, change, start, true, theSelectionAnchor, theCursor);
+			fireContentEvent(value, change, start, true, theSelectionAnchor, theCursor, theCause);
 		else
-			fireContentEvent(value, change, start, true, -1, -1);
+			fireContentEvent(value, change, start, true, -1, -1, theCause);
 
 		return this;
 	}
@@ -436,15 +452,15 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 */
 	protected AbstractSelectableDocumentModel setText(String text) {
 		String oldValue;
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(theCause)) {
 			theSelectionAnchor = text.length();
 			theCursor = text.length();
 			oldValue = toString();
 
 			internalSetText(text);
 		}
-		fireContentEvent("", oldValue, 0, true, -1, -1);
-		fireContentEvent(text, text, 0, false, theSelectionAnchor, theCursor);
+		fireContentEvent("", oldValue, 0, true, -1, -1, theCause);
+		fireContentEvent(text, text, 0, false, theSelectionAnchor, theCursor, theCause);
 
 		return this;
 	}
@@ -516,9 +532,10 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @param newCursor The cursor after the operation
 	 * @param before This document's style sequences before the operation. May be null if this information is not available.
 	 * @param after This document's style sequences after the operation. May be null if this information is not available.
+	 * @param cause The event or thing that caused this event
 	 */
 	protected void fireSelectionEvent(int oldAnchor, int oldCursor, int newAnchor, int newCursor, java.util.List<StyledSequence> before,
-		java.util.List<StyledSequence> after) {
+		java.util.List<StyledSequence> after, Object cause) {
 		clearCache();
 		int oldMin = oldAnchor;
 		int oldMax = oldCursor;
@@ -560,13 +577,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 
 		if(start < end) {
-			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after);
+			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after, cause);
 			// System.out.println(styleEvt + ": " + oldAnchor + "->" + oldCursor + " to " + newAnchor + "->" + newCursor);
 			for(StyleListener listener : theStyleListeners)
 				listener.styleChanged(styleEvt);
 		}
 
-		SelectionChangeEvent selEvt = new SelectionChangeEventImpl(this, newAnchor, newCursor);
+		SelectionChangeEvent selEvt = new SelectionChangeEventImpl(this, newAnchor, newCursor, cause);
 		for(SelectionListener listener : theSelectionListeners)
 			listener.selectionChanged(selEvt);
 	}
@@ -576,9 +593,10 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 *
 	 * @param start The starting index of the subsequence affected
 	 * @param end The ending index of the subsequence affected
+	 * @param cause The event or thing that caused this event
 	 */
-	protected void fireStyleEvent(int start, int end) {
-		StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, null, null);
+	protected void fireStyleEvent(int start, int end, Object cause) {
+		StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, null, null, cause);
 		for(StyleListener listener : theStyleListeners)
 			listener.styleChanged(styleEvt);
 	}
@@ -592,14 +610,15 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @param remove Whether the operation was a deletion
 	 * @param anchor The selection anchor after the operation
 	 * @param cursor The cursor after the operation
+	 * @param cause The event or thing that caused this event
 	 */
-	protected void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor) {
+	protected void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor, Object cause) {
 		clearCache();
 		ContentChangeEvent evt;
 		if(anchor < 0 && cursor < 0)
-			evt = new ContentChangeEventImpl(this, value, change, index, remove);
+			evt = new ContentChangeEventImpl(this, value, change, index, remove, cause);
 		else
-			evt = new ContentAndSelectionChangeEventImpl(this, value, change, index, remove, anchor, cursor);
+			evt = new ContentAndSelectionChangeEventImpl(this, value, change, index, remove, anchor, cursor, cause);
 		for(ContentListener listener : theContentListeners)
 			listener.contentChanged(evt);
 	}
@@ -615,6 +634,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		private final boolean isRemove;
 
+		private final Object theCause;
+
 		/**
 		 * @param model The document model whose content changed
 		 * @param value The document model's content after the change
@@ -622,12 +643,14 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		 * @param index The index of the addition or removal
 		 * @param remove Whether this change represents a removal or an addition
 		 */
-		ContentChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int index, boolean remove) {
+		ContentChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int index, boolean remove,
+			Object cause) {
 			theModel = model;
 			theValue = value;
 			theChange = change;
 			theIndex = index;
 			isRemove = remove;
+			theCause = cause;
 		}
 
 		@Override
@@ -656,6 +679,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 
 		@Override
+		public Object getCause() {
+			return theCause;
+		}
+
+		@Override
 		public String toString() {
 			return theChange + " chars " + (isRemove ? "removed" : "added") + " at index " + theIndex;
 		}
@@ -672,14 +700,16 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		private final Iterable<StyledSequence> theAfterStyles;
 
+		private final Object theCause;
+
 		StyleChangeEventImpl(AbstractSelectableDocumentModel document, int start, int end, Iterable<StyledSequence> beforeStyles,
-			Iterable<StyledSequence> afterStyles) {
-			super();
+			Iterable<StyledSequence> afterStyles, Object cause) {
 			theDocument = document;
 			theStart = start;
 			theEnd = end;
 			theBeforeStyles = beforeStyles == null ? null : IterableUtils.immutableIterable(beforeStyles);
 			theAfterStyles = afterStyles == null ? null : IterableUtils.immutableIterable(afterStyles);
+			theCause = cause;
 		}
 
 		@Override
@@ -708,6 +738,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 
 		@Override
+		public Object getCause() {
+			return theCause;
+		}
+
+		@Override
 		public String toString() {
 			return "Style change from " + theStart + " to " + theEnd;
 		}
@@ -720,15 +755,18 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		private final int theCursor;
 
+		private final Object theCause;
+
 		/**
 		 * @param model The document model whose selection changed
 		 * @param anchor The location of the model's selection anchor
 		 * @param cursor The location of the model's cursor
 		 */
-		SelectionChangeEventImpl(AbstractSelectableDocumentModel model, int anchor, int cursor) {
+		SelectionChangeEventImpl(AbstractSelectableDocumentModel model, int anchor, int cursor, Object cause) {
 			theModel = model;
 			theSelectionAnchor = anchor;
 			theCursor = cursor;
+			theCause = cause;
 		}
 
 		/** @return The document model whose selection changed */
@@ -750,6 +788,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 
 		@Override
+		public Object getCause() {
+			return theCause;
+		}
+
+		@Override
 		public String toString() {
 			return "Selection=" + (theCursor == theSelectionAnchor ? "" + theCursor : theSelectionAnchor + "->" + theCursor);
 		}
@@ -766,10 +809,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		 * @param change The section of content that was added or removed
 		 * @param index The index of the addition or removal
 		 * @param remove Whether this change represents a removal or an addition
+		 * @param cause
 		 */
 		ContentAndSelectionChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int index, boolean remove,
-			int cursor, int anchor) {
-			super(model, value, change, index, remove);
+			int cursor, int anchor, Object cause) {
+			super(model, value, change, index, remove, cause);
 			theCursor = cursor;
 			theAnchor = anchor;
 		}
@@ -793,6 +837,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	/** A selected or deselected style for a document */
 	public static class SelectionStyle extends org.quick.core.style.stateful.AbstractInternallyStatefulStyle {
 		/**
+		 * @param msg The message center to log errors against style values
 		 * @param parent The parent style to mutate
 		 * @param selected Whether this is to be the selected or deselected style
 		 */

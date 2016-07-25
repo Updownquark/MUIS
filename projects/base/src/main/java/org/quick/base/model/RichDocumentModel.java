@@ -9,12 +9,12 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
+import org.qommons.Transaction;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.MutableSelectableDocumentModel;
 import org.quick.core.style.*;
 import org.quick.core.style.stateful.InternallyStatefulStyle;
-import org.quick.util.Transaction;
 
 import com.google.common.reflect.TypeToken;
 
@@ -113,7 +113,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	 * @return This document, for chaining
 	 */
 	public <T> RichDocumentModel set(StyleAttribute<T> attr, ObservableValue<T> value) {
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(getWriteLockCause())) {
 			if(last().getStyle().get(attr) == value)
 				return this;
 
@@ -146,7 +146,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	 * @return This document, for chaining
 	 */
 	public RichDocumentModel clear(StyleAttribute<?> attr) {
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(getWriteLockCause())) {
 			if(last().getStyle().get(attr) == null)
 				return this;
 
@@ -162,7 +162,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 			if(theSequences.size() > 0)
 				return theSequences.get(theSequences.size() - 1);
 		}
-		try (Transaction t = holdForWrite()) {
+		try (Transaction t = holdForWrite(null)) {
 			RichStyleSequence seq = null;
 			if(theSequences.size() > 0) {
 				seq = theSequences.get(theSequences.size() - 1);
@@ -295,12 +295,12 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	 * iterator}.
 	 * </p>
 	 * <p>
-	 * The returned style will reflect its sequences directly--"local" values from the sequences will become the style's loal attributes.
+	 * The returned style will reflect its sequences directly--"local" values from the sequences will become the style's local attributes.
 	 * The returned style will not support listeners.
 	 * </p>
 	 * <p>
 	 * Note that using the setter methods of the returned style may give inconsistent or unexpected results or exceptions if this document
-	 * is modified by another thread while the returned style is still in use. Use {@link #holdForWrite()} to prevent this.
+	 * is modified by another thread while the returned style is still in use. Use {@link #holdForWrite(Object)} to prevent this.
 	 * </p>
 	 *
 	 * @param start The start of the sequence to the style-setter for
@@ -312,8 +312,8 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	}
 
 	@Override
-	public Transaction holdForWrite() {
-		return super.holdForWrite();
+	public Transaction holdForWrite(Object cause) {
+		return super.holdForWrite(cause);
 	}
 
 	@Override
@@ -433,24 +433,24 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		@Override
 		public <T> MutableStyle set(StyleAttribute<T> attr, ObservableValue<T> value) throws IllegalArgumentException {
 			SafeStyleValue<T> safe = new SafeStyleValue<>(attr, value, theMessageCenter);
-			try (Transaction t = holdForWrite()) {
+			try (Transaction t = holdForWrite(getWriteLockCause())) {
 				for(RichStyleSequence seq : getSeqsForMod(attr, value))
 					seq.theStyles.put(attr, safe);
 			}
 
-			fireStyleEvent(theStart, theEnd);
+			fireStyleEvent(theStart, theEnd, getWriteLockCause());
 			return this;
 		}
 
 		@Override
 		public MutableStyle clear(StyleAttribute<?> attr) {
-			try (Transaction t = holdForWrite()) {
+			try (Transaction t = holdForWrite(getWriteLockCause())) {
 				for(RichStyleSequence seq : getSeqsForMod(attr, null)) {
 					seq.theStyles.remove(attr);
 				}
 			}
 
-			fireStyleEvent(theStart, theEnd);
+			fireStyleEvent(theStart, theEnd, getWriteLockCause());
 			return this;
 		}
 

@@ -3,11 +3,12 @@ package org.quick.core.model;
 import static org.quick.core.QuickConstants.States.TEXT_SELECTION;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.observe.Observable;
 import org.observe.ObservableValue;
+import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
@@ -32,9 +33,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	private int theSelectionAnchor;
 	private int theCursor;
 
-	private Collection<ContentListener> theContentListeners;
-	private Collection<StyleListener> theStyleListeners;
-	private Collection<SelectionListener> theSelectionListeners;
+	private final SimpleObservable<ContentChangeEvent> theContentChanges;
+	private final SimpleObservable<StyleChangeEvent> theStyleChanges;
+	private final SimpleObservable<SelectionChangeEvent> theSelectionChanges;
 
 	private final ReentrantReadWriteLock theLock;
 	private Object theCause;
@@ -47,9 +48,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		theParentStyle = parentStyle;
 		theNormalStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, false);
 		theSelectedStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, true);
-		theContentListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
-		theStyleListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
-		theSelectionListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
+		theContentChanges = new SimpleObservable<>();
+		theStyleChanges = new SimpleObservable<>();
+		theSelectionChanges = new SimpleObservable<>();
 		theLock = new ReentrantReadWriteLock();
 
 		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
@@ -83,6 +84,26 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			}
 			fireStyleEvent(evtStart, evtEnd, event);
 		});
+	}
+
+	@Override
+	public Observable<ContentChangeEvent> contentChanges() {
+		return theContentChanges.readOnly();
+	}
+
+	@Override
+	public Observable<StyleChangeEvent> styleChanges() {
+		return theStyleChanges.readOnly();
+	}
+
+	@Override
+	public Observable<SelectionChangeEvent> selectionChanges() {
+		return theSelectionChanges.readOnly();
+	}
+
+	@Override
+	public Observable<QuickDocumentChangeEvent> changes() {
+		return Observable.or(theContentChanges, theStyleChanges, theSelectionChanges);
 	}
 
 	/** @return This document's parent's style */
@@ -329,9 +350,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			internalAppend(csq, start, end);
 		}
 		if(selChange)
-			fireContentEvent(value, change, index, false, theSelectionAnchor, theCursor, theCause);
+			fireContentEvent(value, change, index, index + end - start, false, theSelectionAnchor, theCursor, theCause);
 		else
-			fireContentEvent(value, change, index, false, -1, -1, theCause);
+			fireContentEvent(value, change, index, index + end - start, false, -1, -1, theCause);
 
 		return this;
 	}
@@ -379,9 +400,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			internalInsert(offset, csq);
 		}
 		if(selChange)
-			fireContentEvent(value, change, offset, false, theSelectionAnchor, theCursor, theCause);
+			fireContentEvent(value, change, offset, offset + change.length(), false, theSelectionAnchor, theCursor, theCause);
 		else
-			fireContentEvent(value, change, offset, false, -1, -1, theCause);
+			fireContentEvent(value, change, offset, offset + change.length(), false, -1, -1, theCause);
 
 		return this;
 	}
@@ -430,9 +451,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			internalDelete(start, end);
 		}
 		if(selChange)
-			fireContentEvent(value, change, start, true, theSelectionAnchor, theCursor, theCause);
+			fireContentEvent(value, change, start, end, true, theSelectionAnchor, theCursor, theCause);
 		else
-			fireContentEvent(value, change, start, true, -1, -1, theCause);
+			fireContentEvent(value, change, start, end, true, -1, -1, theCause);
 
 		return this;
 	}
@@ -459,8 +480,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 			internalSetText(text);
 		}
-		fireContentEvent("", oldValue, 0, true, -1, -1, theCause);
-		fireContentEvent(text, text, 0, false, theSelectionAnchor, theCursor, theCause);
+		fireContentEvent("", oldValue, 0, oldValue.length(), true, -1, -1, theCause);
+		fireContentEvent(text, text, 0, text.length(), false, theSelectionAnchor, theCursor, theCause);
 
 		return this;
 	}
@@ -488,39 +509,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 */
 	protected AbstractSelectableDocumentModel insert(char c) {
 		return insert(theCursor, c);
-	}
-
-	@Override
-	public void addContentListener(QuickDocumentModel.ContentListener listener) {
-		if(listener != null)
-			theContentListeners.add(listener);
-	}
-
-	@Override
-	public void removeContentListener(QuickDocumentModel.ContentListener listener) {
-		theContentListeners.remove(listener);
-	}
-
-	@Override
-	public void addStyleListener(StyleListener listener) {
-		if(listener != null)
-			theStyleListeners.add(listener);
-	}
-
-	@Override
-	public void removeStyleListener(StyleListener listener) {
-		theStyleListeners.remove(listener);
-	}
-
-	@Override
-	public void addSelectionListener(SelectableDocumentModel.SelectionListener listener) {
-		if(listener != null)
-			theSelectionListeners.add(listener);
-	}
-
-	@Override
-	public void removeSelectionListener(SelectableDocumentModel.SelectionListener listener) {
-		theSelectionListeners.remove(listener);
 	}
 
 	/**
@@ -579,13 +567,10 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		if(start < end) {
 			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after, cause);
 			// System.out.println(styleEvt + ": " + oldAnchor + "->" + oldCursor + " to " + newAnchor + "->" + newCursor);
-			for(StyleListener listener : theStyleListeners)
-				listener.styleChanged(styleEvt);
+			theStyleChanges.onNext(styleEvt);
 		}
 
-		SelectionChangeEvent selEvt = new SelectionChangeEventImpl(this, newAnchor, newCursor, cause);
-		for(SelectionListener listener : theSelectionListeners)
-			listener.selectionChanged(selEvt);
+		theSelectionChanges.onNext(new SelectionChangeEventImpl(this, newAnchor, newCursor, cause));
 	}
 
 	/**
@@ -596,9 +581,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @param cause The event or thing that caused this event
 	 */
 	protected void fireStyleEvent(int start, int end, Object cause) {
-		StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, null, null, cause);
-		for(StyleListener listener : theStyleListeners)
-			listener.styleChanged(styleEvt);
+		theStyleChanges.onNext(new StyleChangeEventImpl(this, start, end, null, null, cause));
 	}
 
 	/**
@@ -606,21 +589,22 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 *
 	 * @param value The new value for this document's content
 	 * @param change The content change
-	 * @param index The starting index at which the change occurred
+	 * @param startIndex The starting index at which the change occurred
+	 * @param endIndex The end index of the change
 	 * @param remove Whether the operation was a deletion
 	 * @param anchor The selection anchor after the operation
 	 * @param cursor The cursor after the operation
 	 * @param cause The event or thing that caused this event
 	 */
-	protected void fireContentEvent(String value, String change, int index, boolean remove, int anchor, int cursor, Object cause) {
+	protected void fireContentEvent(String value, String change, int startIndex, int endIndex, boolean remove, int anchor, int cursor,
+		Object cause) {
 		clearCache();
 		ContentChangeEvent evt;
 		if(anchor < 0 && cursor < 0)
-			evt = new ContentChangeEventImpl(this, value, change, index, remove, cause);
+			evt = new ContentChangeEventImpl(this, value, change, startIndex, endIndex, remove, cause);
 		else
-			evt = new ContentAndSelectionChangeEventImpl(this, value, change, index, remove, anchor, cursor, cause);
-		for(ContentListener listener : theContentListeners)
-			listener.contentChanged(evt);
+			evt = new ContentAndSelectionChangeEventImpl(this, value, change, startIndex, endIndex, remove, anchor, cursor, cause);
+		theContentChanges.onNext(evt);
 	}
 
 	private static class ContentChangeEventImpl implements ContentChangeEvent {
@@ -630,7 +614,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		private final String theChange;
 
-		private final int theIndex;
+		private final int theStartIndex;
+		private final int theEndIndex;
 
 		private final boolean isRemove;
 
@@ -640,15 +625,17 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		 * @param model The document model whose content changed
 		 * @param value The document model's content after the change
 		 * @param change The section of content that was added or removed
-		 * @param index The index of the addition or removal
+		 * @param startIndex The start index of the addition or removal
+		 * @param endIndex The end index of the text removed, or the end index of the added text after being added
 		 * @param remove Whether this change represents a removal or an addition
 		 */
-		ContentChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int index, boolean remove,
-			Object cause) {
+		ContentChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int startIndex, int endIndex,
+			boolean remove, Object cause) {
 			theModel = model;
 			theValue = value;
 			theChange = change;
-			theIndex = index;
+			theStartIndex = startIndex;
+			theEndIndex = endIndex;
 			isRemove = remove;
 			theCause = cause;
 		}
@@ -669,8 +656,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 
 		@Override
-		public int getIndex() {
-			return theIndex;
+		public int getStartIndex() {
+			return theStartIndex;
+		}
+
+		@Override
+		public int getEndIndex() {
+			return theEndIndex;
 		}
 
 		@Override
@@ -685,7 +677,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		@Override
 		public String toString() {
-			return theChange + " chars " + (isRemove ? "removed" : "added") + " at index " + theIndex;
+			return theChange + " chars " + (isRemove ? "removed" : "added") + " at index " + theStartIndex;
 		}
 	}
 
@@ -718,12 +710,12 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 
 		@Override
-		public int getStart() {
+		public int getStartIndex() {
 			return theStart;
 		}
 
 		@Override
-		public int getEnd() {
+		public int getEndIndex() {
 			return theEnd;
 		}
 
@@ -807,13 +799,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		 * @param model The document model whose content changed
 		 * @param value The document model's content after the change
 		 * @param change The section of content that was added or removed
-		 * @param index The index of the addition or removal
+		 * @param startIndex The index of the addition or removal
 		 * @param remove Whether this change represents a removal or an addition
-		 * @param cause
+		 * @param cause The cause of this event
 		 */
-		ContentAndSelectionChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int index, boolean remove,
-			int cursor, int anchor, Object cause) {
-			super(model, value, change, index, remove, cause);
+		ContentAndSelectionChangeEventImpl(AbstractSelectableDocumentModel model, String value, String change, int startIndex, int endIndex,
+			boolean remove, int cursor, int anchor, Object cause) {
+			super(model, value, change, startIndex, endIndex, remove, cause);
 			theCursor = cursor;
 			theAnchor = anchor;
 		}

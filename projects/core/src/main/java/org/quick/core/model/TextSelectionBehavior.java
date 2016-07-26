@@ -154,7 +154,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		element.events().filterMap(KeyBoardEvent.key.press()).takeUntil(theUnsubscribeObservable.filter(el -> {
 			return el == element;
 		})).act(theKeyListener);
-		element.getDocumentModel().addContentListener(evt -> {
+		element.getDocumentModel().contentChanges().act(evt -> {
 			theCursorXLoc = -1;
 		});
 		element.addTextSelectionListener(evt -> {

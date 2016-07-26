@@ -3,7 +3,10 @@ package org.quick.core.model;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
+import java.util.Collections;
+import java.util.Iterator;
 
+import org.observe.*;
 import org.qommons.Transaction;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.style.QuickStyle;
@@ -64,59 +67,47 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		void draw(Graphics2D graphics, float x, float y);
 	}
 
-	/** Fired when a document model's content changes */
-	public static interface ContentChangeEvent {
-		/** @return The document model whose content changed */
+	/** A change in a {@link QuickDocumentModel} */
+	public static interface QuickDocumentChangeEvent extends Causable {
+		/** @return The document model that changed */
 		QuickDocumentModel getModel();
 
+		/** @return The position in the document at the beginning of the sequence where the change occurred */
+		int getStartIndex();
+
+		/** @return The position in the document at the end of the sequence where the change occurred */
+		int getEndIndex();
+	}
+
+	/** Fired when a document model's content changes */
+	public static interface ContentChangeEvent extends QuickDocumentChangeEvent {
 		/** @return The document model's content after the change */
 		String getValue();
 
 		/** @return The section of content that was added or removed */
 		String getChange();
 
-		/** @return The index of the addition or removal */
-		int getIndex();
-
 		/** @return Whether this change represents a removal or an addition */
 		boolean isRemove();
-
-		/** @return The event or other thing that caused this event */
-		Object getCause();
 	}
 
 	/** Fired when a document model's style changes for any portion of its content */
-	public static interface StyleChangeEvent {
-		/** @return The document model whose style changed */
-		QuickDocumentModel getModel();
-
-		/** @return The start index (inclusive) of the interval for which the style changed */
-		int getStart();
-
-		/** @return The end index (exclusive) of the interval for which the style changed */
-		int getEnd();
-
+	public static interface StyleChangeEvent extends QuickDocumentChangeEvent {
 		/** @return The styles of the document before the style change. This may be null if the information is not available. */
 		Iterable<StyledSequence> styleBefore();
 
 		/** @return The styles of the document after the style change. This may be null if the information is not available. */
 		Iterable<StyledSequence> styleAfter();
-
-		/** @return The event or other thing that caused this event */
-		Object getCause();
 	}
 
-	/** Listens for changes to a document's content */
-	public static interface ContentListener {
-		/** @param evt The event containing information about the content change */
-		void contentChanged(ContentChangeEvent evt);
-	}
+	/** @return An observable that fires each time the content of the document changes */
+	Observable<ContentChangeEvent> contentChanges();
 
-	/** Listens for changes to a document's style */
-	public static interface StyleListener {
-		/** @param evt The event containing information about the style change */
-		void styleChanged(StyleChangeEvent evt);
-	}
+	/** @return An observable that fires each time the style of the document changes */
+	Observable<StyleChangeEvent> styleChanges();
+
+	/** @return An observable that fires each time anything in the document changes */
+	Observable<QuickDocumentChangeEvent> changes();
 
 	/**
 	 * @param position The position to get the style for
@@ -169,28 +160,254 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 */
 	void draw(Graphics2D graphics, Rectangle window, int breakWidth);
 
-	/** @param listener The listener to be notified when this model's content changes */
-	void addContentListener(ContentListener listener);
-
-	/** @param listener The listener to stop notification for */
-	void removeContentListener(ContentListener listener);
-
-	/** @param listener The listener to be notified when this model's style changes */
-	void addStyleListener(StyleListener listener);
-
-	/** @param listener The listener to stop notification for */
-	void removeStyleListener(StyleListener listener);
-
-	/** @param run The listener to invoke when either this document's content or its style changes */
-	default void onContentStyleChange(Runnable run) {
-		addContentListener(evt -> {
-			run.run();
-		});
-		addStyleListener(evt -> {
-			run.run();
-		});
-	}
-
 	/** @return A transaction that prevents any other threads from modifying this document model until the transaction is closed */
 	Transaction holdForRead();
+
+	/**
+	 * @param modelWrapper An observable value that supplies documents
+	 * @return A document model reflecting the value in the observable
+	 */
+	public static QuickDocumentModel flatten(ObservableValue<? extends QuickDocumentModel> modelWrapper) {
+		return new FlattenedDocumentModel(modelWrapper);
+	}
+
+	/** Implements {@link QuickDocumentModel#flatten(ObservableValue)} */
+	class FlattenedDocumentModel implements QuickDocumentModel {
+		private final ObservableValue<? extends QuickDocumentModel> theWrapper;
+
+		public FlattenedDocumentModel(ObservableValue<? extends QuickDocumentModel> wrapper) {
+			theWrapper = wrapper;
+		}
+
+		protected ObservableValue<? extends QuickDocumentModel> getWrapper() {
+			return theWrapper;
+		}
+
+		@Override
+		public Observable<ContentChangeEvent> contentChanges() {
+			return new Observable<ContentChangeEvent>() {
+				@Override
+				public Subscription subscribe(Observer<? super ContentChangeEvent> observer) {
+					return theWrapper.act(event -> {
+						QuickDocumentModel old = event.getOldValue();
+						if (old != null && old.length() > 0)
+							observer.onNext(createClearEvent(old, event));
+
+						QuickDocumentModel current = event.getValue();
+						if (current != null) {
+							observer.onNext(createPopulateEvent(current, event));
+							current.contentChanges().takeUntil(theWrapper.noInit()).subscribe(observer);
+						}
+					});
+				}
+
+				@Override
+				public boolean isSafe() {
+					return theWrapper.isSafe(); // Assume the document model itself will be safe
+				}
+			};
+		}
+
+		protected ContentChangeEvent createClearEvent(QuickDocumentModel oldModel, Object cause) {
+			return new ContentChangeEvent() {
+				@Override
+				public QuickDocumentModel getModel() {
+					return FlattenedDocumentModel.this;
+				}
+
+				@Override
+				public int getStartIndex() {
+					return 0;
+				}
+
+				@Override
+				public int getEndIndex() {
+					return oldModel.length();
+				}
+
+				@Override
+				public boolean isRemove() {
+					return true;
+				}
+
+				@Override
+				public String getValue() {
+					return oldModel.toString();
+				}
+
+				@Override
+				public String getChange() {
+					return oldModel.toString();
+				}
+
+				@Override
+				public Object getCause() {
+					return cause;
+				}
+			};
+		}
+
+		protected ContentChangeEvent createPopulateEvent(QuickDocumentModel newModel, Object cause) {
+			return new ContentChangeEvent() {
+				@Override
+				public QuickDocumentModel getModel() {
+					return FlattenedDocumentModel.this;
+				}
+
+				@Override
+				public int getStartIndex() {
+					return 0;
+				}
+
+				@Override
+				public int getEndIndex() {
+					return newModel.length();
+				}
+
+				@Override
+				public boolean isRemove() {
+					return false;
+				}
+
+				@Override
+				public String getValue() {
+					return newModel.toString();
+				}
+
+				@Override
+				public String getChange() {
+					return newModel.toString();
+				}
+
+				@Override
+				public Object getCause() {
+					return cause;
+				}
+			};
+		}
+
+		@Override
+		public Observable<StyleChangeEvent> styleChanges() {
+			return Observable.flatten(theWrapper.value().map(doc -> doc == null ? null : doc.styleChanges())).filter(evt -> evt != null);
+		}
+
+		@Override
+		public Observable<QuickDocumentChangeEvent> changes() {
+			return Observable.or(contentChanges(), styleChanges());
+		}
+
+		@Override
+		public Iterator<StyledSequence> iterator() {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null)
+				return Collections.<StyledSequence> emptyList().iterator();
+			return wrapped.iterator();
+		}
+
+		@Override
+		public int length() {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null)
+				return 0;
+			return wrapped.length();
+		}
+
+		@Override
+		public char charAt(int index) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null)
+				throw new IndexOutOfBoundsException(index + " of 0");
+			return wrapped.charAt(index);
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null)
+				throw new IndexOutOfBoundsException(start + " of 0");
+			return wrapped.subSequence(start, end);
+		}
+
+		@Override
+		public QuickStyle getStyleAt(int position) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null)
+				throw new IndexOutOfBoundsException(position + " of 0");
+			return wrapped.getStyleAt(position);
+		}
+
+		@Override
+		public Iterable<StyledSequence> iterateFrom(int position) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null) {
+				if (position == 0)
+					return Collections.<StyledSequence> emptyList();
+				else
+					throw new IndexOutOfBoundsException(position + " of 0");
+			}
+			return wrapped.iterateFrom(position);
+		}
+
+		@Override
+		public Iterable<StyledSequence> iterateFrom(int start, int end) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null) {
+				if (start == 0 && end == 0)
+					return Collections.<StyledSequence> emptyList();
+				else
+					throw new IndexOutOfBoundsException(start + " to " + end + " of 0");
+			}
+			return wrapped.iterateFrom(start, end);
+		}
+
+		@Override
+		public Iterable<StyledSequenceMetric> metrics(int start, float breakWidth) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null) {
+				if (start == 0)
+					return Collections.<StyledSequenceMetric> emptyList();
+				else
+					throw new IndexOutOfBoundsException(start + " of 0");
+			}
+			return wrapped.metrics(start, breakWidth);
+		}
+
+		@Override
+		public float getPositionAt(float x, float y, int breakWidth) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null) {
+				return 0;
+			}
+			return wrapped.getPositionAt(x, y, breakWidth);
+		}
+
+		@Override
+		public Point2D getLocationAt(float position, int breakWidth) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null) {
+				if (position == 0)
+					return new Point2D.Float(0, 0);
+				else
+					throw new IndexOutOfBoundsException(position + " of 0");
+			}
+			return wrapped.getLocationAt(position, breakWidth);
+		}
+
+		@Override
+		public void draw(Graphics2D graphics, Rectangle window, int breakWidth) {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped != null)
+				wrapped.draw(graphics, window, breakWidth);
+		}
+
+		@Override
+		public Transaction holdForRead() {
+			QuickDocumentModel wrapped = theWrapper.get();
+			if (wrapped == null) {
+				return () -> {
+				};
+			}
+			return wrapped.holdForRead();
+		}
+	}
 }

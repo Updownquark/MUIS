@@ -97,7 +97,10 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	private final QuickMessageCenter theMessageCenter;
 	private List<RichStyleSequence> theSequences;
 
-	/** @param parentStyle The style that all this model's sequences should inherit from */
+	/**
+	 * @param parentStyle The style that all this model's sequences should inherit from
+	 * @param msg The message center to log errors against style values
+	 */
 	public RichDocumentModel(InternallyStatefulStyle parentStyle, QuickMessageCenter msg) {
 		super(msg, parentStyle);
 		theMessageCenter = msg;

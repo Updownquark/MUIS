@@ -8,6 +8,8 @@ import org.qommons.Transaction;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
+import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
+import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 
 /** Implements the text-selecting feature as a user drags over a text element. Also implements keyboard copying (Ctrl+C or Ctrl+X). */
 public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
@@ -21,16 +23,16 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		@Override
 		public void act(MouseEvent event) {
 			QuickTextElement element = (QuickTextElement) event.getElement();
-			if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+			if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 				return;
-			SelectableDocumentModel selectableDoc = (SelectableDocumentModel) element.getDocumentModel();
+			SelectableDocumentModel selectableDoc = (SelectableDocumentModel) element.getDocumentModel().get();
 			switch (event.getType()) {
 			case pressed:
 				if(event.getButton() == MouseEvent.ButtonType.left) {
 					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 					switch ((event.getClickCount() - 1) % 3) {
 					case 0: // Single-click
-						int position = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(),
+						int position = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(),
 							element.bounds().getWidth()));
 						if(event.isShiftPressed()) {
 							theAnchor = doc.getSelectionAnchor();
@@ -41,8 +43,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 						}
 						break;
 					case 1: // Double-click. Select word.
-						int pos = Math
-							.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+						int pos = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
 						theAnchor = selectWord(doc, pos, event);
 						break;
 					case 2: // Triple-click. Select line.
@@ -52,8 +53,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 								doc.setSelection(0, doc.length());
 							}
 						} else {
-							pos = Math
-								.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+							pos = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
 							theAnchor = selectLine(doc, pos, event);
 						}
 						break;
@@ -71,7 +71,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 					theAnchor = -1;
 					return;
 				}
-				int cursor = Math.round(element.getDocumentModel().getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+				int cursor = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
 				try (Transaction t = selectableDoc.holdForWrite(event)) {
 					selectableDoc.setSelection(theAnchor, cursor);
 				}
@@ -154,11 +154,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		element.events().filterMap(KeyBoardEvent.key.press()).takeUntil(theUnsubscribeObservable.filter(el -> {
 			return el == element;
 		})).act(theKeyListener);
-		element.getDocumentModel().contentChanges().act(evt -> {
-			theCursorXLoc = -1;
-		});
-		element.addTextSelectionListener(evt -> {
-			theCursorXLoc = -1;
+		QuickDocumentModel.flatten(element.getDocumentModel()).changes().act(evt -> {
+			if (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent)
+				theCursorXLoc = -1;
 		});
 	}
 

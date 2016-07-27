@@ -4,6 +4,7 @@ import static org.quick.base.BaseAttributes.document;
 import static org.quick.base.BaseAttributes.format;
 import static org.quick.base.BaseAttributes.rich;
 
+import org.observe.ObservableValue;
 import org.qommons.Transaction;
 import org.quick.base.BaseAttributes;
 import org.quick.base.model.Formats;
@@ -40,7 +41,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 				atts().getHolder(ModelAttributes.value).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).act(event -> {
 					if (event.getValue().getValue1() == null)
 						return;
-					QuickDocumentModel doc = getDocumentModel();
+					QuickDocumentModel doc = getDocumentModel().get();
 					if (!(doc instanceof MutableDocumentModel)) {
 						msg().error("Model value specified with a non-mutable document model");
 						return;
@@ -55,17 +56,6 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 							e);
 					}
 				});
-
-				/* Don't think this code is needed anymore
-				if(Boolean.TRUE.equals(atts().get(BaseAttributes.rich))) {
-					QuickDocumentModel doc = getWrappedModel();
-					if(!(doc instanceof RichDocumentModel)) {
-						String text = getText();
-						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle()));
-						if(text != null)
-							setText(text);
-					}
-				}*/
 			}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
@@ -101,29 +91,29 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 	public void setText(String text) {
 		if(text == null)
 			text = "";
-		QuickDocumentModel doc = getWrappedModel();
-		if(doc == null)
-			getChildManager().add(0, new QuickTextElement(text));
-		else if(doc instanceof RichDocumentModel) {
-			RichDocumentModel richDoc = (RichDocumentModel) doc;
-			richDoc.setText("");
-			try {
-				new org.quick.base.model.QuickRichTextParser().parse(richDoc, text, doc().getEnvironment().getPropertyParser(), this);
-			} catch(QuickException e) {
-				msg().error("Could not parse rich text", e);
+		if (getChildManager().size() != 1 || !(getChildManager().get(0) instanceof QuickTextElement)) {
+			getChildManager().clear();
+			getChildManager().add(new QuickTextElement(text));
+		} else {
+			QuickTextElement textEl = (QuickTextElement) getChildManager().get(0);
+			if (textEl.getDocumentModel().get() instanceof RichDocumentModel) {
+				RichDocumentModel richDoc = (RichDocumentModel) textEl.getDocumentModel().get();
+				richDoc.setText("");
+				try {
+					new org.quick.base.model.QuickRichTextParser().parse(richDoc, text, doc().getEnvironment().getPropertyParser(), this);
+				} catch (QuickException e) {
+					msg().error("Could not parse rich text", e);
+				}
 			}
-		} else
-			getValue().setText(text);
+			else
+				textEl.setText(text);
+		}
 	}
 
 	@Override
-	public QuickDocumentModel getDocumentModel() {
+	public ObservableValue<QuickDocumentModel> getDocumentModel() {
+		// TODO This does not account for the fact that the value element could change (e.g. setText above)
 		return getValue().getDocumentModel();
-	}
-
-	/** @return The actual document model backing this label */
-	public QuickDocumentModel getWrappedModel() {
-		return getValue().getWrappedModel();
 	}
 
 	private org.quick.core.style.stateful.InternallyStatefulStyle getDocumentBackingStyle() {

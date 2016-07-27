@@ -13,7 +13,7 @@ public class DocumentTexture extends BaseTexture {
 	public void render(Graphics2D graphics, QuickElement element, Rectangle area) {
 		super.render(graphics, element, area);
 		DocumentedElement docEl = (DocumentedElement) element;
-		QuickDocumentModel doc = docEl.getDocumentModel();
+		QuickDocumentModel doc = docEl.getDocumentModel().get();
 		for(QuickDocumentModel.StyledSequenceMetric metric : doc.metrics(0, element.bounds().getWidth())) {
 			int x = (int) metric.getLeft();
 			int y = (int) metric.getTop();

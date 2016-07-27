@@ -100,13 +100,18 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		Iterable<StyledSequence> styleAfter();
 	}
 
-	/** @return An observable that fires each time the content of the document changes */
-	Observable<ContentChangeEvent> contentChanges();
-
-	/** @return An observable that fires each time the style of the document changes */
-	Observable<StyleChangeEvent> styleChanges();
-
-	/** @return An observable that fires each time anything in the document changes */
+	/**
+	 * Allows notification of changes to a document. The events may be instances of:
+	 * <ul>
+	 * <li>{@link ContentChangeEvent} if the event is the result of changes to a document's content,</li>
+	 * <li>{@link StyleChangeEvent} if the style of a portion of the document changed,</li>
+	 * </ul>
+	 * or another event type to communicate changes to properties not supported by the base interface.
+	 *
+	 * {@link Observable#filterMap(Class)} may be used to select a particular type of change.
+	 *
+	 * @return An observable that fires each time anything in the document changes
+	 */
 	Observable<QuickDocumentChangeEvent> changes();
 
 	/**
@@ -184,10 +189,10 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		}
 
 		@Override
-		public Observable<ContentChangeEvent> contentChanges() {
-			return new Observable<ContentChangeEvent>() {
+		public Observable<QuickDocumentChangeEvent> changes() {
+			return new Observable<QuickDocumentChangeEvent>() {
 				@Override
-				public Subscription subscribe(Observer<? super ContentChangeEvent> observer) {
+				public Subscription subscribe(Observer<? super QuickDocumentChangeEvent> observer) {
 					return theWrapper.act(event -> {
 						QuickDocumentModel old = event.getOldValue();
 						if (old != null && old.length() > 0)
@@ -196,7 +201,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 						QuickDocumentModel current = event.getValue();
 						if (current != null) {
 							observer.onNext(createPopulateEvent(current, event));
-							current.contentChanges().takeUntil(theWrapper.noInit()).subscribe(observer);
+							current.changes().takeUntil(theWrapper.noInit()).subscribe(observer);
 						}
 					});
 				}
@@ -284,16 +289,6 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 					return cause;
 				}
 			};
-		}
-
-		@Override
-		public Observable<StyleChangeEvent> styleChanges() {
-			return Observable.flatten(theWrapper.value().map(doc -> doc == null ? null : doc.styleChanges())).filter(evt -> evt != null);
-		}
-
-		@Override
-		public Observable<QuickDocumentChangeEvent> changes() {
-			return Observable.or(contentChanges(), styleChanges());
 		}
 
 		@Override

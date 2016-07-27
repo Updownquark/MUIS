@@ -87,21 +87,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	}
 
 	@Override
-	public Observable<ContentChangeEvent> contentChanges() {
-		return theContentChanges.readOnly();
-	}
-
-	@Override
-	public Observable<StyleChangeEvent> styleChanges() {
-		return theStyleChanges.readOnly();
-	}
-
-	@Override
-	public Observable<SelectionChangeEvent> selectionChanges() {
-		return theSelectionChanges.readOnly();
-	}
-
-	@Override
 	public Observable<QuickDocumentChangeEvent> changes() {
 		return Observable.or(theContentChanges, theStyleChanges, theSelectionChanges);
 	}

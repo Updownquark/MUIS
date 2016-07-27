@@ -1,6 +1,5 @@
 package org.quick.core.model;
 
-import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.qommons.Transaction;
 
@@ -9,10 +8,9 @@ import org.qommons.Transaction;
  * A document with a cursor and selection anchor.
  * </p>
  * <p>
- * Important Note: In order to reduce unnecessary repaints {@link SelectionChangeEvent} may not be fired if the selection changes as a
- * result of a content change (e.g. inserting characters before the cursor is a single operation that affects both content and selection).
- * In these cases, a single event which implements both {@link QuickDocumentModel.ContentChangeEvent} and {@link SelectionChangeEvent} will
- * be fired from {@link #contentChanges()}.
+ * Important Note: In order to reduce unnecessary repaints, when the selection changes as a result of a content change (e.g. inserting
+ * characters before the cursor is a single operation that affects both content and selection), a single event which implements both
+ * {@link QuickDocumentModel.ContentChangeEvent} and {@link SelectionChangeEvent} will be fired.
  * </p>
  */
 public interface SelectableDocumentModel extends QuickDocumentModel {
@@ -34,9 +32,6 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 			return Math.max(getSelectionAnchor(), getCursor());
 		}
 	}
-
-	/** @return An observable that fires each time the selection of a document changes */
-	Observable<SelectionChangeEvent> selectionChanges();
 
 	/**
 	 * @param cause The event or thing that is causing the changes in the transaction
@@ -76,10 +71,15 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 	/** @return The text selected in this document */
 	String getSelectedText();
 
+	/**
+	 * @param modelWrapper An observableValue containing a selectable document model
+	 * @return A model that reflects the data in the contained model as it changes
+	 */
 	public static SelectableDocumentModel flatten(ObservableValue<? extends SelectableDocumentModel> modelWrapper) {
 		return new FlattenedSelectableDocumentModel(modelWrapper);
 	}
 
+	/** Implements {@link SelectableDocumentModel#flatten(ObservableValue)} */
 	class FlattenedSelectableDocumentModel extends FlattenedDocumentModel implements SelectableDocumentModel {
 		protected FlattenedSelectableDocumentModel(ObservableValue<? extends SelectableDocumentModel> wrapper) {
 			super(wrapper);
@@ -88,12 +88,6 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 		@Override
 		protected ObservableValue<? extends SelectableDocumentModel> getWrapper() {
 			return (ObservableValue<? extends SelectableDocumentModel>) super.getWrapper();
-		}
-
-		@Override
-		public Observable<SelectionChangeEvent> selectionChanges() {
-			return Observable.flatten(getWrapper().value().map(doc -> doc == null ? null : doc.selectionChanges()))
-				.filter(evt -> evt != null);
 		}
 
 		@Override

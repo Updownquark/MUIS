@@ -13,7 +13,10 @@ import org.quick.base.style.TextEditStyle;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.StateChangedEvent;
+import org.quick.core.model.QuickDocumentModel;
+import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
+import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
 
@@ -80,14 +83,12 @@ public class DocumentCursorOverlay extends QuickElement {
 					repaint(null, true);
 			}
 		});
-		theTextElement.getDocumentModel().addContentListener(evt -> {
-			resetCursorImage();
-			if(evt instanceof SelectableDocumentModel.SelectionChangeEvent)
+		QuickDocumentModel.flatten(theTextElement.getDocumentModel()).changes().act(evt -> {
+			if (evt instanceof SelectionChangeEvent) {
+				resetCursorImage();
 				resetBlink();
-		});
-		theTextElement.addTextSelectionListener(evt -> {
-			resetCursorImage();
-			resetBlink();
+			} else if (evt instanceof ContentChangeEvent)
+				resetCursorImage();
 		});
 	}
 
@@ -167,7 +168,7 @@ public class DocumentCursorOverlay extends QuickElement {
 	}
 
 	private BufferedImage genCursorImage(Graphics2D graphics) {
-		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(theTextElement.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return new BufferedImage(1, 1, BufferedImage.TYPE_4BYTE_ABGR);
 		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
 		QuickStyle cursorStyle = doc.getStyleAt(doc.getCursor());
@@ -191,7 +192,7 @@ public class DocumentCursorOverlay extends QuickElement {
 		imgGraphics.dispose();
 
 		boolean wordWrap = theTextElement.getStyle().getSelf().get(FontStyle.wordWrap).get();
-		java.awt.geom.Point2D cursorLoc2D = theTextElement.getDocumentModel().getLocationAt(doc.getCursor(),
+		java.awt.geom.Point2D cursorLoc2D = theTextElement.getDocumentModel().get().getLocationAt(doc.getCursor(),
 			wordWrap ? theTextElement.bounds().getWidth() : Integer.MAX_VALUE);
 		Point loc = new Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));
 		loc.y += metrics.getLeading();

@@ -1,11 +1,14 @@
 package org.quick.base.layout;
 
+import org.observe.Subscription;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
+import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
+import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
@@ -21,23 +24,14 @@ public class TextEditLayout implements QuickLayout {
 
 	private final CompoundListener.MultiElementCompoundListener theListener;
 
-	private final QuickDocumentModel.ContentListener theContentListener;
-
-	private final QuickDocumentModel.StyleListener theStyleListener;
-
 	private QuickElement theParent;
+	private Subscription theDocListenSub;
 
 	/** Creates the layout */
 	public TextEditLayout() {
 		theListener = CompoundListener.create(this);
 		theListener.acceptAll(charLengthAtt, charRowsAtt).onChange(CompoundListener.sizeNeedsChanged);
 		theListener.child().watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onChange(CompoundListener.layout);
-		theContentListener = evt -> {
-			theParent.relayout(false);
-		};
-		theStyleListener = evt -> {
-			theParent.relayout(false);
-		};
 	}
 
 	@Override
@@ -58,9 +52,9 @@ public class TextEditLayout implements QuickLayout {
 			return;
 		}
 		theListener.listenerFor(parent);
-		QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel();
-		doc.addContentListener(theContentListener);
-		doc.addStyleListener(theStyleListener);
+		QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
+		theDocListenSub = doc.changes().filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
+			.act(evt -> theParent.relayout(false));
 	}
 
 	@Override
@@ -69,9 +63,9 @@ public class TextEditLayout implements QuickLayout {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		QuickDocumentModel doc = ((DocumentedElement) child).getDocumentModel();
-		doc.addContentListener(theContentListener);
-		doc.addStyleListener(theStyleListener);
+		QuickDocumentModel doc = ((DocumentedElement) child).getDocumentModel().get();
+		theDocListenSub = doc.changes().filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
+			.act(evt -> theParent.relayout(false));
 	}
 
 	@Override
@@ -79,16 +73,22 @@ public class TextEditLayout implements QuickLayout {
 		if(!(child instanceof DocumentedElement)) {
 			return;
 		}
-		QuickDocumentModel doc = ((DocumentedElement) child).getDocumentModel();
-		doc.removeContentListener(theContentListener);
-		doc.addStyleListener(theStyleListener);
+		if (theDocListenSub != null) {
+			theDocListenSub.unsubscribe();
+			theDocListenSub = null;
+		}
 	}
 
 	@Override
 	public void remove(QuickElement parent) {
 		theListener.dropFor(parent);
-		if(theParent == parent)
+		if (theParent == parent) {
+			if (theDocListenSub != null) {
+				theDocListenSub.unsubscribe();
+				theDocListenSub = null;
+			}
 			theParent = null;
+		}
 	}
 
 	@Override
@@ -134,7 +134,7 @@ public class TextEditLayout implements QuickLayout {
 				if(type.isPref()) {
 					final Integer length = parent.atts().get(charLengthAtt);
 					if(length != null) {
-						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel();
+						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
 						org.quick.core.style.QuickStyle style;
 						if(doc.length() > 0)
 							style = doc.getStyleAt(0);
@@ -199,7 +199,7 @@ public class TextEditLayout implements QuickLayout {
 				if(type.isPref()) {
 					final Integer rows = parent.atts().get(charRowsAtt);
 					if(rows != null) {
-						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel();
+						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
 						org.quick.core.style.QuickStyle style;
 						if(doc.length() > 0)
 							style = doc.getStyleAt(0);

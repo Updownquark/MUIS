@@ -4,10 +4,9 @@ import static org.quick.base.layout.TextEditLayout.charLengthAtt;
 import static org.quick.base.layout.TextEditLayout.charRowsAtt;
 import static org.quick.core.QuickTextElement.multiLine;
 
-import org.observe.ObservableValue;
-import org.observe.SettableValue;
-import org.qommons.BiTuple;
+import org.observe.*;
 import org.qommons.Transaction;
+import org.qommons.TriTuple;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
 import org.quick.base.model.*;
@@ -17,6 +16,8 @@ import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
+import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
+import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.tags.*;
 
 import com.google.common.reflect.TypeToken;
@@ -41,15 +42,12 @@ import com.google.common.reflect.TypeToken;
 	@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)//
 })
 public class TextField extends org.quick.core.QuickTemplate implements DocumentedElement {
-	private boolean isDocOverridden;
-
-	private boolean isDocDirty;
-
 	private final StateController theErrorController;
 	private final StateController theEnabledController;
 	private final SimpleTextEditing theTextEditing;
 
-	private int theCallbackLock = 0;
+	private boolean isDocDirty;
+	private Object theLastParsedValue;
 
 	/** Creates a text field */
 	public TextField() {
@@ -57,79 +55,154 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
 		theTextEditing = new SimpleTextEditing();
 
-		life().runWhen(() -> {
-			Object accepter = new Object();
-			atts().accept(accepter, ModelAttributes.value, charLengthAtt, charRowsAtt, multiLine, BaseAttributes.format,
-				BaseAttributes.document, BaseAttributes.rich);
+		Object accepter = new Object();
+		atts().accept(accepter, ModelAttributes.value, charLengthAtt, charRowsAtt, multiLine, BaseAttributes.format,
+			BaseAttributes.validator, BaseAttributes.document, BaseAttributes.rich);
 
-			ObservableValue<BiTuple<ObservableValue<? extends Object>, QuickFormatter<?>>> duoObs = //
+		life().runWhen(() -> {
+			atts().getHolder(BaseAttributes.document).tupleV(atts().getHolder(BaseAttributes.rich)).act(evt -> {
+				if (evt.getValue().getValue1() != null) {
+					if (evt.getValue().getValue2() != null)
+						msg().warn(BaseAttributes.document + " and " + BaseAttributes.rich + " both specified");
+					getValueElement().setDocumentModel(evt.getValue().getValue1());
+				} else if (evt.getValue().getValue2() != null) {
+					getValueElement().setDocumentModel(evt.getValue().getValue2() ? //
+					new RichDocumentModel(getStyle().getSelf(), msg()) : //
+					new SimpleDocumentModel(getStyle().getSelf(), msg()));
+				} else
+					getValueElement().setDocumentModel(null);
+			});
+			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
+			ObservableValue<TriTuple<ObservableValue<? extends Object>, QuickFormatter<?>, Validator<?>>> trioObs = //
 				atts().getHolder(ModelAttributes.value).getContainer().tupleV(//
-					atts().getHolder(BaseAttributes.format));
-			ObservableValue<String> enabled = ObservableValue.flatten(duoObs.mapV(tuple -> {
+					atts().getHolder(BaseAttributes.format), atts().getHolder(BaseAttributes.validator));
+			ObservableValue<String> enabled = ObservableValue.flatten(trioObs.mapV(tuple -> {
+				String configError = null;
+				String disabled=null;
 				if (tuple.getValue1() == null)
 					return ObservableValue.constant(TypeToken.of(String.class), null); // No value to worry about
 				if (!(tuple.getValue1() instanceof SettableValue))
-					return ObservableValue.constant("Value is not settable"); // Value is not settable
-				if (tuple.getValue2() == null){
+					disabled = "Value is not settable"; // Value is not settable
+				else if (tuple.getValue2() == null) {
 					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
-						return ObservableValue.constant("No formatter"); // No formatter
+						configError = "No formatter"; // No formatter
+					else if (tuple.getValue3() != null && !tuple.getValue3().getType().isAssignableFrom(TypeToken.of(String.class)))
+						configError = "Validator not valid for Strings";
 				} else{
 					if (tuple.getValue2().getParseType() == null)
-						return ObservableValue.constant("Formatter does not support parsing");
-					if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
-						return ObservableValue.constant("Formatter is not compatible with value");
-					if(!tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
-						return ObservableValue.constant("Formatter cannot parse value's type");
+						disabled = "Formatter does not support parsing";
+					else if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
+						configError = "Formatter is not compatible with value";
+					else if (!tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+						configError = "Formatter cannot parse value's type";
+					else if (tuple.getValue3() != null && !tuple.getValue3().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+						configError = "Validator is not valid for type " + tuple.getValue2().getParseType();
 				}
 
+				if (configError != null) {
+					msg().error(configError);
+					return ObservableValue.constant(configError);
+				} else if(disabled!=null)
+					return ObservableValue.constant(disabled);
 				return ((SettableValue<?>) tuple.getValue1()).isEnabled();
 			}));
 			theEnabledController.link(enabled.mapV(e->e!=null));
-			ObservableValue<String> error=ObservableValue.flatten(duoObs.mapV(tuple->{
+			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
+				String configError = null;
 				if(tuple.getValue1()==null && tuple.getValue2()!=null)
-					return ObservableValue.constant("No value");
-				if (tuple.getValue2() == null){
+					configError = "No value";
+				else if (tuple.getValue2() == null) {
 					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
-						return ObservableValue.constant("No formatter"); // No formatter
+						configError = "No formatter";
 				} else{
 					if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
-						return ObservableValue.constant("Formatter is not compatible with value");
-					if(tuple.getValue2().getParseType() != null && !tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
-						return ObservableValue.constant("Formatter cannot parse value's type");
+						configError = "Formatter is not compatible with value";
+					else if (tuple.getValue2().getParseType() != null
+						&& !tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+						configError = "Formatter cannot parse value's type";
 				}
-				return ObservableValue.constant(TypeToken.of(String.class), null);
-			}));
-			// TODO Take into account the content of the document
-			theErrorController.link(error.mapV(e->e!=null));
-			atts().getHolder(ModelAttributes.value).act(event -> theErrorController.set(false, event));
+				if (configError != null) {
+					msg().error(configError);
+					return ObservableValue.constant(configError);
+				}
+				if(!(tuple.getValue1() instanceof SettableValue))
+					return ObservableValue.constant(TypeToken.of(String.class), null);
+				ObservableValue<String> contentError = new ObservableValue<String>() {
+					private String theLastError;
 
-			ObservableValue<QuickDocumentModel> docObs = ObservableValue.flatten(atts().getHolder(BaseAttributes.document).mapV(doc -> {
-				if (doc != null)
-					return ObservableValue.constant(TypeToken.of(QuickDocumentModel.class), doc);
-				else
-					return atts().getHolder(BaseAttributes.rich).mapV(rich -> {
-						return rich ? new RichDocumentModel(getStyle().getSelf(), msg())
-							: new SimpleDocumentModel(getStyle().getSelf(), msg());
-					});
+					@Override
+					public TypeToken<String> getType() {
+						return TypeToken.of(String.class);
+					}
+
+					@Override
+					public String get() {
+						if (tuple.getValue2() == null)
+							theLastParsedValue = getDocumentModel().get().toString();
+						else {
+							try {
+								theLastParsedValue = tuple.getValue2().parse(getDocumentModel().get());
+							} catch (QuickParseException e) {
+								theLastParsedValue = null;
+								msg().message(org.quick.core.mgr.QuickMessage.Type.DEBUG, e.getMessage(), null, e);
+								return e.getMessage() == null ? "Parsing failed" : e.getMessage();
+							}
+						}
+						if (tuple.getValue3() != null) {
+							String error = ((Validator<Object>) tuple.getValue3()).validate(theLastParsedValue);
+							if (error != null){
+								msg().debug(error);
+								theLastParsedValue = null;
+								return error;
+							}
+						}
+						SettableValue<?> sv=(SettableValue<?>) tuple.getValue1();
+						String error = ((SettableValue<Object>) sv).isAcceptable(theLastParsedValue);
+						if (error != null)
+							theLastParsedValue = null;
+						return error;
+					}
+
+					@Override
+					public Subscription subscribe(Observer<? super ObservableValueEvent<String>> observer) {
+						return doc.changes().act(evt -> {
+							String newError = get();
+							observer.onNext(createChangeEvent(theLastError, newError, evt));
+							theLastError = newError;
+						});
+					}
+
+					@Override
+					public boolean isSafe() {
+						return doc.changes().isSafe();
+					}
+				};
+				return contentError;
 			}));
-			docObs.act(event -> getValueElement().setDocumentModel(event.getValue()));
-			}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
+			theErrorController.link(error.mapV(err -> err != null));
+		}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 		life().runWhen(() -> {
-			initDocument();
+			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
+			theTextEditing.install(this);
+			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
+			doc.changes()
+				.filter(evt -> (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
+					return c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this;
+				}) == null).act(evt -> isDocDirty = true);
 			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
 			cursor.setTextElement(getValueElement());
 			cursor.setStyleAnchor(getStyle().getSelf());
 
 			events().filterMap(FocusEvent.blur).act(event -> {
-				pushChanges();
+				pushChanges(event);
 			});
 			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
 				if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
 					if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
 						return;
-					pushChanges();
+					pushChanges(event);
 				} else if(event.getKeyCode() == KeyBoardEvent.KeyCode.ESCAPE)
-					resetDocument();
+					resetDocument(event);
 			});
 		}, org.quick.core.QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
@@ -139,154 +212,56 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		return (org.quick.core.QuickTextElement) getElement(getTemplate().getAttachPoint("value"));
 	}
 
-	/**
-	 * Initializes the document for this text field. This may be overridden and used by subclasses but should never be called directly
-	 * except as the super call from the extending method.
-	 */
-	protected void initDocument() {
-		theTextEditing.install(this);
-		theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
-		getValueElement().getDocumentModel().onContentStyleChange(() -> {
-			if(theCallbackLock == 0)
-				setDocDirty();
-		});
-	}
-
 	/** @return The document model that is edited directly by the user */
 	@Override
-	public QuickDocumentModel getDocumentModel() {
+	public ObservableValue<QuickDocumentModel> getDocumentModel() {
 		return getValueElement().getDocumentModel();
 	}
-	private void setEditModel(QuickDocumentModel model) {
-		getValueElement().setDocumentModel(model);
+
+	private void pushChanges(Object cause) {
+		if (!isDocDirty || !atts().isSet(ModelAttributes.value) || theErrorController.get())
+			return;
+		SettableValue<?> mv = atts().getHolder(ModelAttributes.value).asSettable();
+		((SettableValue<Object>) mv).set(theLastParsedValue, new TextEditEvent(this, cause));
+		resetDocument(cause);
 	}
 
-	private void setValue(ObservableValue<?> value, QuickFormatter<?> formatter, org.observe.ObservableValueEvent<?> event) {
-		MutableDocumentModel editModel = (MutableDocumentModel) getDocumentModel();
-		boolean rich = atts().get(BaseAttributes.rich) == Boolean.TRUE;
-		if(isDocOverridden || (rich && !(editModel instanceof RichDocumentModel)) || (!rich && !(editModel instanceof SimpleDocumentModel))) {
-			editModel = rich ? new RichDocumentModel(getStyle().getSelf(), msg()) : new SimpleDocumentModel(getStyle().getSelf(), msg());
-			setEditModel(editModel);
-		}
-		isDocOverridden = false;
-		theCallbackLock++;
-		try (Transaction t = editModel.holdForWrite(event)) {
-			editModel.clear();
-			if(formatter != null)
-				((QuickFormatter<Object>) formatter).append(value.get(), editModel);
-			else
-				editModel.append("" + value);
-		} finally {
-			theCallbackLock--;
-		}
-		if(value instanceof SettableValue) {
-			((SettableValue<?>) value).isEnabled().takeUntil(event.getObservable())
-				.act(enabledEvent -> theEnabledController.set(enabledEvent.getValue(), enabledEvent));
-		} else
-			theEnabledController.set(false, event);
-	}
-
-	private void setDocument(QuickDocumentModel doc) {
-		isDocOverridden = true;
-		setEditModel(doc);
-	}
-
-	private void validateValue(boolean commit) {
-		ObservableValue<?> mv = atts().get(ModelAttributes.value);
-		if(!(mv instanceof SettableValue))
+	private void resetDocument(Object cause) {
+		if (!atts().isSet(ModelAttributes.value))
 			return;
-		QuickFormatter<?> formatter = atts().get(BaseAttributes.format);
-		Validator<?> val = atts().get(BaseAttributes.validator);
-		Object value = null;
-		boolean parsed = false;
-		try {
-			if(formatter != null)
-				value = formatter.parse(getDocumentModel());
-			else
-				value = getDocumentModel().toString();
-			parsed = true;
-			if(val != null) {
-				String valMsg = ((Validator<Object>) val).validate(value);
-				if(valMsg != null) {
-					msg().debug(valMsg);
-					// TODO Do something with the message
-					theErrorController.set(true, null);
-					return;
-				}
-			}
-
-			String error = ((SettableValue<Object>) mv).isAcceptable(value);
-			if(error != null) {
-				msg().debug(error);
-				// TODO Do something with the message
-				theErrorController.set(true, null);
-				return;
-			}
-
-			theErrorController.set(false, null);
-		} catch(QuickParseException e) {
-			msg().message(org.quick.core.mgr.QuickMessage.Type.DEBUG, e.getMessage(), null, e);
-			// TODO Do something with the message and the positions
-			theErrorController.set(true, e);
-			return;
-		} catch(Exception e) {
-			if(!parsed)
-				msg().error("Error parsing text field value: " + getDocumentModel(), e);
-			else
-				msg().error("Error validating text field value: " + getDocumentModel(), e, "value", value);
-			return;
-		}
-
-		if(commit)
-			try {
-				((SettableValue<Object>) mv).set(value, null);
-				theErrorController.set(false, null);
-			} catch(IllegalArgumentException e) {
-				theErrorController.set(true, null);
-			} catch(Exception e) {
-				msg().error("Error setting model value for text field: " + getDocumentModel(), e, "value", value);
-			}
-	}
-
-	private void setDocDirty() {
-		isDocDirty = true;
-		if(isDocOverridden || atts().get(ModelAttributes.value) == null)
-			return;
-		validateValue(false); // Set the error state
-	}
-
-	private void pushChanges() {
-		if(!isDocDirty || theCallbackLock > 0 || isDocOverridden)
-			return;
-		theCallbackLock++;
-		try {
-			validateValue(true);
-		} finally {
-			theCallbackLock--;
-		}
-		resetDocument();
-	}
-
-	private void resetDocument() {
-		ObservableValue<?> mv = atts().get(ModelAttributes.value);
-		if(mv == null)
-			return;
-		QuickDocumentModel docModel = getDocumentModel();
+		ObservableValue<?> mv = atts().getHolder(ModelAttributes.value);
+		QuickDocumentModel docModel = getDocumentModel().get();
 		if(!(docModel instanceof MutableDocumentModel))
 			return;
 		MutableDocumentModel editModel = (MutableDocumentModel) docModel;
 		QuickFormatter<?> formatter = atts().get(BaseAttributes.format);
-		theCallbackLock++;
-		try (Transaction t = editModel.holdForWrite()) {
+		try (Transaction t = editModel.holdForWrite(new TextEditEvent(this, cause))) {
 			editModel.clear();
 			if(formatter != null)
 				((QuickFormatter<Object>) formatter).append(mv.get(), editModel);
 			else
 				editModel.append("" + mv.get());
-		} finally {
-			theCallbackLock--;
 		}
 		theErrorController.set(false, null);
 		// TODO Think of a way to preserve selection?
+	}
+
+	private static class TextEditEvent implements Causable {
+		private final TextField theTextField;
+		private final Object theCause;
+
+		TextEditEvent(TextField textField, Object cause) {
+			theTextField = textField;
+			theCause = cause;
+		}
+
+		TextField getTextField() {
+			return theTextField;
+		}
+
+		@Override
+		public Object getCause() {
+			return theCause;
+		}
 	}
 }

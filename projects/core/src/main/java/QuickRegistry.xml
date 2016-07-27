@@ -5,7 +5,7 @@
 	<description>
 		This required toolkit provides core functionality to run other Quick toolkits
 	</description>
-	<version>07Jun2013</version>
+	<version>0.0.1</version>
 	<dependencies />
 	<style-sheet ref="../src/main/styles/core-styles.mss" />
 	<types>

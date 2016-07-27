@@ -34,7 +34,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		super(env);
 		theParser = new PrismsParser();
 		try {
-			theParser.configure(PrismsPropertyParser.class.getResource("MVX.xml"));
+			theParser.configure(PrismsPropertyParser.class.getResource("QVX.xml"));
 		} catch (IOException e) {
 			throw new IllegalStateException("Could not configure property parser", e);
 		}

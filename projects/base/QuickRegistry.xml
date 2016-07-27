@@ -5,7 +5,7 @@
 	<description>
 		This toolkit provides basic Quick functionality
 	</description>
-	<version>07Jun2013</version>
+	<version>0.0.1</version>
 	<dependencies>
 		<classpath>classes</classpath>
 	</dependencies>

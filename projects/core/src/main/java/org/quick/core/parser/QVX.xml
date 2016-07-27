@@ -142,7 +142,7 @@
 			<match>null</match>
 		</charset>
 	</entity>
-	<entity name="placeholder" order="1000" impl="org.quick.core.parser.ParsedPlaceHolder">
+	<entity name="placeholder" order="1000" impl="org.quick.core.parser.PrismsPropertyParser$ParsedPlaceHolder">
 		<literal>?&lt;</literal>
 		<charset pattern="[0-9a-f]+" storeAs="name" />
 		<literal>&gt;</literal>

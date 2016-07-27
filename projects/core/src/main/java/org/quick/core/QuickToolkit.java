@@ -40,8 +40,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	private ObservableList<StyleSheet> theStyleDependencyController;
 
 	private QuickToolkit(QuickEnvironment env, URL uri, String name, String descrip, Version version, List<URL> cps,
-		Map<String, String> classMap,
-		Map<String, String> resMap, List<QuickToolkit> depends, List<QuickPermission> perms) {
+		Map<String, String> classMap, Map<String, String> resMap, List<QuickToolkit> depends, List<QuickPermission> perms) {
 		super(new URL[0]);
 		theEnvironment = env;
 		theURI = uri;
@@ -308,6 +307,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		private Builder(QuickEnvironment environment, URL location) {
 			theEnvironment = environment;
 			theLocation = location;
+			theClassPaths = new ArrayList<>();
 			theDependencies = new ArrayList<>();
 			theClassMappings = new LinkedHashMap<>();
 			theResourceLocations = new LinkedHashMap<>();

@@ -181,6 +181,6 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 	}
 
 	private boolean checkClassName(String className) {
-		return className.matches("([A-Za-z_][A-Za-z0-9_]*\\.)*[A-Za-z_][A-Za-z0-9_]*");
+		return className.matches("([A-Za-z_][A-Za-z0-9_]*[\\.$])*[A-Za-z_][A-Za-z0-9_]*");
 	}
 }

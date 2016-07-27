@@ -4,7 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class Version {
-	public static final Pattern VERSION_PATTERN = Pattern.compile("\\d+\\.\\d+\\.\\d+(?<tag>[a-zA-Z0-9!-\\)\\[\\]\\{\\}]+)?");
+	public static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(?<tag>[a-zA-Z0-9!-\\)\\[\\]\\{\\}]+)?");
 	public final int major;
 	public final int minor;
 	public final int patch;

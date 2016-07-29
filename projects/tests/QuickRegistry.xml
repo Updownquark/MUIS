@@ -8,7 +8,7 @@
 	<version>0.0.1</version>
 	<dependencies>
 		<classpath>classes</classpath>
-		<depends>../base/QuicckRegistry.xml</depends>
+		<depends>../base/QuickRegistry.xml</depends>
 	</dependencies>
 	<types>
 		<type tag="paint">org.quick.test.widget.PaintWidget</type>

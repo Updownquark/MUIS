@@ -330,13 +330,29 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException("Unit value cannot be an action");
 			ParsedUnitValue unitValue = (ParsedUnitValue) parsedItem;
 			String unitName = unitValue.getUnit();
-			Unit<?, ?> unit = parseEnv.getContext().getUnit(unitName);
-			if (unit == null)
+			List<Unit<?, ?>> units = parseEnv.getContext().getUnits(unitName, new ArrayList<>());
+			if (units.isEmpty())
 				throw new QuickParseException("Unrecognized unit " + unitName);
-			ObservableValue<?> value = evaluateTypeChecked(parseEnv, unit.getFromType(), unitValue.getValue(), actionAccepted, false);
-			return value.mapV(v -> {
+			Unit<?, ?> bestUnit = null;
+			InvokableMatch bestMatch = null;
+			for (Unit<?, ?> u : units) {
+				if (!QuickUtils.isAssignableFrom(type, u.getToType()))
+					continue;
+				InvokableMatch match = getMatch(new TypeToken[] { u.getFromType() }, false, new ParsedItem[] { unitValue.getValue() },
+					parseEnv, type, actionAccepted);
+				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+					bestUnit = u;
+					bestMatch = match;
+				}
+			}
+			if (bestUnit == null)
+				throw new QuickParseException("Unit " + unitName + " cannot convert from " + unitValue.getValue() + " to type " + type);
+			ObservableValue<?> value = bestMatch.parameters[0];
+			Unit<?, ?> unit = bestUnit;
+			return value.mapV(type, v -> {
 				try {
-					return ((Unit<Object, ?>) unit).getMap().apply(v);
+					Object unitMapped = ((Unit<Object, ?>) unit).getMap().apply(QuickUtils.convert(unit.getFromType(), v));
+					return QuickUtils.convert(type, unitMapped);
 				} catch (QuickException e) {
 					parseEnv.msg().error("Unit " + unit.getName() + " could not convert value " + v + " to " + unit.getToType(), e);
 					return null; // TODO What to do with this?
@@ -591,12 +607,12 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		ObservableValue<?>[] args = new ObservableValue[arguments.length];
 		for (int i = 0; i < args.length; i++) {
 			args[i] = evaluateTypeless(parseEnv, argTargetTypes[i], arguments[i], actionAccepted, false);
-			if (!QuickUtils.isAssignableFrom(type, args[i].getType()))
+			if (!QuickUtils.isAssignableFrom(argTargetTypes[i], args[i].getType()))
 				return null;
 		}
 		double distance = 0;
 		for (int i = 0; i < paramTypes.length && i < args.length; i++)
-			distance += getDistance(paramTypes[i], args[i].getType());
+			distance += getDistance(paramTypes[i].wrap(), args[i].getType().wrap());
 		return new InvokableMatch(args, distance);
 	}
 
@@ -626,8 +642,16 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (paramType.isInterface())
 				dist += getInterfaceDistance(paramType, argType);
 			return dist;
-		} else
+		} else if (argType.isAssignableFrom(paramType))
 			return getRawDistance(argType, paramType);
+		else if (Number.class.isAssignableFrom(paramType) && Number.class.isAssignableFrom(argType)) {
+			int paramNumTypeOrdinal = getNumberTypeOrdinal(paramType);
+			int argNumTypeOrdinal = getNumberTypeOrdinal(argType);
+			if (paramNumTypeOrdinal < 0 || argNumTypeOrdinal < 0 || argNumTypeOrdinal > paramNumTypeOrdinal)
+				throw new IllegalStateException("Shouldn't get here: " + paramType.getName() + " and " + argType.getName());
+			return paramNumTypeOrdinal - argNumTypeOrdinal;
+		} else
+			throw new IllegalStateException("Shouldn't get here: " + paramType.getName() + " and " + argType.getName());
 	}
 
 	private int getInterfaceDistance(Class<?> paramType, Class<?> argType) {
@@ -638,6 +662,23 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				return getInterfaceDistance(paramType, intf) + 1;
 		}
 		throw new IllegalStateException("Shouldn't get here");
+	}
+
+	private int getNumberTypeOrdinal(Class<?> numType) {
+		if (numType == Byte.class)
+			return 0;
+		else if (numType == Short.class)
+			return 1;
+		else if (numType == Integer.class)
+			return 2;
+		else if (numType == Long.class)
+			return 3;
+		else if (numType == Float.class)
+			return 4;
+		else if (numType == Double.class)
+			return 5;
+		else
+			return -1;
 	}
 
 	private ObservableValue<?> evaluateStatic(ParsedMethod method, Class<?> targetType, QuickParseEnv parseEnv, TypeToken<?> type,

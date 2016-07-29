@@ -360,15 +360,60 @@ public class QuickUtils {
 	}
 
 	public static boolean isAssignableFrom(TypeToken<?> left, TypeToken<?> right) {
-		if (left.isAssignableFrom(right))
+		if (left.isAssignableFrom(right) || left.wrap().isAssignableFrom(right)) // Auto boxing/unboxing
 			return true;
-		// TODO Handle primitive conversions
-		else if (left.isPrimitive() && left.wrap().isAssignableFrom(right))
-			return true;
+		// Handle primitive conversions
+		Class<?> primTypeLeft = left.unwrap().getRawType();
+		if (!primTypeLeft.isPrimitive() || !TypeToken.of(Number.class).isAssignableFrom(right.wrap()))
+			return false;
+		Class<?> primTypeRight = right.unwrap().getRawType();
+		if (primTypeLeft == Double.TYPE)
+			return primTypeRight == Float.TYPE || primTypeRight == Long.TYPE || primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE
+				|| primTypeRight == Byte.TYPE;
+		else if (primTypeLeft == Float.TYPE)
+			return primTypeRight == Long.TYPE || primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE || primTypeRight == Byte.TYPE;
+		else if (primTypeLeft == Long.TYPE)
+			return primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE || primTypeRight == Byte.TYPE;
+		else if (primTypeLeft == Integer.TYPE)
+			return primTypeRight == Short.TYPE || primTypeRight == Byte.TYPE;
+		else if (primTypeLeft == Short.TYPE)
+			return primTypeRight == Byte.TYPE;
 		return false;
 	}
 
 	public static <T> TypeToken<T[]> arrayTypeOf(TypeToken<T> type) {
 		return new TypeToken<T[]>() {}.where(new TypeParameter<T>() {}, type);
+	}
+
+	/**
+	 * For types that pass {@link #isAssignableFrom(TypeToken, TypeToken)}, this method converts the given value to the correct run-time
+	 * type
+	 * 
+	 * @param type The type to convert to
+	 * @param value The value to convert
+	 * @return The converted value
+	 */
+	public static <T> T convert(TypeToken<T> type, Object value) {
+		if (type.isPrimitive() && value == null)
+			throw new NullPointerException("null cannot be assigned to " + type);
+		if (type.isAssignableFrom(value.getClass()) || type.wrap().isAssignableFrom(value.getClass()))
+			return (T) value;
+		Class<?> primType = type.unwrap().getRawType();
+		if (!primType.isPrimitive() || !(value instanceof Number))
+			throw new IllegalArgumentException(value.getClass() + " cannot be converted to " + type);
+		if (primType == Double.TYPE)
+			return (T) Double.valueOf(((Number) value).doubleValue());
+		else if (primType == Float.TYPE)
+			return (T) Float.valueOf(((Number) value).floatValue());
+		else if (primType == Long.TYPE)
+			return (T) Long.valueOf(((Number) value).longValue());
+		else if (primType == Integer.TYPE)
+			return (T) Integer.valueOf(((Number) value).intValue());
+		else if (primType == Short.TYPE)
+			return (T) Short.valueOf(((Number) value).shortValue());
+		else if (primType == Byte.TYPE)
+			return (T) Byte.valueOf(((Number) value).byteValue());
+		else
+			throw new IllegalArgumentException(value.getClass() + " cannot be converted to " + type);
 	}
 }

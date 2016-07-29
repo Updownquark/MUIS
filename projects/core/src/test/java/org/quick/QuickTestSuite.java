@@ -7,6 +7,10 @@ import org.quick.core.style.StylesTest;
 
 /** Runs all Quick unit tests */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ObservableTest.class, StylesTest.class})
+@Suite.SuiteClasses({ //
+	ObservableTest.class, //
+	PropertyTest.class, //
+	StylesTest.class//
+})
 public class QuickTestSuite {
 }

@@ -110,7 +110,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 					return className;
 			}
 		}
-		return null;
+		return className;
 	}
 
 	/**
@@ -129,7 +129,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 					return res;
 			}
 		}
-		return null;
+		return res;
 	}
 
 	/** @param classPath The class path to add to this toolkit */

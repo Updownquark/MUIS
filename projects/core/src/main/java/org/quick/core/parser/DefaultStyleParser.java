@@ -86,8 +86,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 	}
 
 	private void parseStyleElement(Element xml, URL location, QuickPropertyParser parser, QuickParseEnv parseEnv,
-		ExpressionContextStack stack,
-		ParsedStyleSheet styleSheet) {
+		ExpressionContextStack stack, ParsedStyleSheet styleSheet) {
 		stack.push();
 		addNamespaces(xml, location, stack, parseEnv.msg());
 		String name = xml.getAttributeValue("name");
@@ -149,6 +148,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 			String valueStr = xml.getAttributeValue("value");
 			applyStyleValue(domain, name, valueStr, parser, parseEnv, styleSheet, stack);
 		}
+		stack.pop();
 	}
 
 	private StateExpression parseState(String name, ExpressionContextStack stack) throws QuickParseException {

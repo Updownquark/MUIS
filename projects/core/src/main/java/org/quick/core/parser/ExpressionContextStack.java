@@ -37,13 +37,14 @@ public class ExpressionContextStack implements Iterable<StateGroupTypeExpression
 		}
 	}
 
-	private QuickEnvironment theEnv;
+	private final QuickEnvironment theEnv;
+	private final QuickToolkit theToollkit;
 
-	private QuickToolkit theToollkit;
-
-	private LinkedList<ExpressionContext> theStack;
+	private final LinkedList<ExpressionContext> theStack;
 
 	public ExpressionContextStack(QuickEnvironment env, QuickToolkit toolkit) {
+		theEnv = env;
+		theToollkit = toolkit;
 		theStack = new LinkedList<>();
 	}
 

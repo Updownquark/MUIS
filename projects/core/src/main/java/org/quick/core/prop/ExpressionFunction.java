@@ -1,6 +1,5 @@
 package org.quick.core.prop;
 
-import java.lang.reflect.TypeVariable;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -68,34 +67,34 @@ public abstract class ExpressionFunction<T> {
 	}
 
 	public static <T> ExpressionFunction<T> build(Supplier<T> fn) {
-		return build(fn, Supplier.class, args -> fn.get());
+		return build(new TypeToken<T>(fn.getClass()) {}, Collections.emptyList(), args -> fn.get());
 	}
 
-	public static <T> ExpressionFunction<T> build(Function<?, T> fn) {
-		return build(fn, Function.class, args -> ((Function<Object, T>) fn).apply(args.get(0)));
+	public static <A, T> ExpressionFunction<T> build(Function<A, T> fn) {
+		return build(new TypeToken<T>(fn.getClass()) {}, Arrays.asList(//
+			new TypeToken<A>(fn.getClass()) {}//
+		), args -> fn.apply((A) args.get(0)));
 	}
 
-	public static <T> ExpressionFunction<T> build(BiFunction<?, ?, T> fn) {
-		return build(fn, BiFunction.class, args -> ((BiFunction<Object, Object, T>) fn).apply(args.get(0), args.get(1)));
+	public static <A1, A2, T> ExpressionFunction<T> build(BiFunction<A1, A2, T> fn) {
+		return build(new TypeToken<T>(fn.getClass()) {},
+			Arrays.asList(//
+				new TypeToken<A1>(fn.getClass()) {}, //
+				new TypeToken<A2>(fn.getClass()) {}//
+			), args -> fn.apply((A1) args.get(0), (A2) args.get(1)));
 	}
 
-	public static <T> ExpressionFunction<T> build(TriFunction<?, ?, ?, T> fn) {
-		return build(fn, BiFunction.class,
-			args -> ((TriFunction<Object, Object, Object, T>) fn).apply(args.get(0), args.get(1), args.get(2)));
+	public static <A1, A2, A3, T> ExpressionFunction<T> build(TriFunction<A1, A2, A3, T> fn) {
+		return build(new TypeToken<T>(fn.getClass()) {},
+			Arrays.asList(//
+				new TypeToken<A1>(fn.getClass()) {}, //
+				new TypeToken<A2>(fn.getClass()) {}, //
+				new TypeToken<A3>(fn.getClass()) {}//
+			), args -> fn.apply((A1) args.get(0), (A2) args.get(1), (A3) args.get(2)));
 	}
 
-	private static <T> ExpressionFunction<T> build(Object fn, Class<?> fnClass, Function<List<?>, T> apply) {
-		TypeToken<?> fnType = TypeToken.of(fn.getClass());
-		TypeVariable<?>[] tps = fnClass.getTypeParameters();
-		Builder<T> builder = build((TypeToken<T>) fnType.resolveType(tps[tps.length - 1]));
-		ArrayList<TypeToken<?>> argType = new ArrayList<>(1);
-		argType.add(null);
-		for (int i = 0; i < tps.length - 1; i++) {
-			argType.set(0, fnType.resolveType(tps[i]));
-			builder.withArgs(argType);
-		}
-		builder.withApply(apply);
-		return builder.build();
+	private static <T> ExpressionFunction<T> build(TypeToken<T> returnType, List<TypeToken<?>> argTypes, Function<List<?>, T> apply) {
+		return build(returnType).withArgs(argTypes).withApply(apply).build();
 	}
 
 	public static class Builder<T> {

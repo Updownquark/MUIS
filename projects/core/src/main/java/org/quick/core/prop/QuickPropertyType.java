@@ -104,10 +104,10 @@ public final class QuickPropertyType<T> {
 	 * @return Whether objects of the given type can be converted to items of this property's type
 	 */
 	public boolean canAccept(TypeToken<?> type) {
-		if(theType.isAssignableFrom(type))
+		if (QuickUtils.isAssignableFrom(theType, type))
 			return true;
 		for (TypeMapping<?, T> mapping : theMappings)
-			if (mapping.getFromType().isAssignableFrom(type))
+			if (QuickUtils.isAssignableFrom(mapping.getFromType(), type))
 				return true;
 		return false;
 	}
@@ -127,12 +127,12 @@ public final class QuickPropertyType<T> {
 	public <X, V extends T> V cast(TypeToken<X> type, X value) throws QuickException {
 		V cast = null;
 		if (QuickUtils.isAssignableFrom(theType, type))
-			cast = (V) value;
+			return (V) QuickUtils.convert(theType, value);
 		boolean mappingFound = false;
 		for (TypeMapping<?, T> mapping : theMappings)
 			if (QuickUtils.isAssignableFrom(mapping.getFromType(), type)) {
 				mappingFound = true;
-				cast = ((TypeMapping<? super X, V>) mapping).getMap().apply(value);
+				cast = ((TypeMapping<Object, V>) mapping).getMap().apply(QuickUtils.convert(mapping.getFromType(), value));
 			}
 		if(!mappingFound)
 			return null;
@@ -387,61 +387,76 @@ public final class QuickPropertyType<T> {
 	}
 
 	public static final <T extends Enum<T>> QuickPropertyType<T> forEnum(Class<T> enumType) {
+		TypeToken<T> typeToken = TypeToken.of(enumType);
 		Map<String, T> byName = new HashMap<>();
 		for (T value : enumType.getEnumConstants())
 			byName.put(QuickUtils.javaToXML(value.name()), value);
+		/* These functions used to be anonymous, but they where causing InternalErrors when TypeToken tried to resolve the return type.
+		 * (Specifically, the error happened when getGenericInterfaces() was called on the function class.  I tried to replicate this in a
+		 * unit test, but wasn't able to trigger the error.)  When they're not anonymous, things work. */
+		class EnumValueOfName implements Function<String, T> {
+			@Override
+			public T apply(String s) {
+				T v = byName.get(s);
+				if (v == null)
+					throw new IllegalArgumentException("No such " + enumType.getSimpleName() + " " + s);
+				return v;
+			}
+		}
+		class EnumName implements Function<T, String> {
+			@Override
+			public String apply(T v) {
+				return QuickUtils.javaToXML(v.name());
+			}
+		}
+		class EnumOrdinal implements Function<T, Integer> {
+			@Override
+			public Integer apply(T v) {
+				return v.ordinal();
+			}
+		}
+		class EnumValueOfOrdinal implements Function<Integer, T> {
+			@Override
+			public T apply(Integer ord) {
+				T[] vals = enumType.getEnumConstants();
+				if (ord < 0 || ord >= vals.length)
+					throw new IllegalArgumentException("No such " + enumType.getSimpleName() + " at " + ord);
+				return vals[ord];
+			}
+		}
+		class EnumNext implements Function<T, T> {
+			@Override
+			public T apply(T v) {
+				T[] vals = enumType.getEnumConstants();
+				if (v.ordinal() == vals.length - 1)
+					throw new IllegalArgumentException("No next value for " + QuickUtils.javaToXML(v.name()));
+				return vals[v.ordinal() + 1];
+			}
+		}
+		class EnumPrevious implements Function<T, T> {
+			@Override
+			public T apply(T v) {
+				if (v.ordinal() == 0)
+					throw new IllegalArgumentException("No previous value for " + QuickUtils.javaToXML(v.name()));
+				T[] vals = enumType.getEnumConstants();
+				return vals[v.ordinal() - 1];
+			}
+		}
 		Builder<T> builder = build("enum " + enumType.getName(), TypeToken.of(enumType))//
 			.withToString(v -> QuickUtils.javaToXML(v.name()))//
 			.buildContext(ctx -> {
 				ctx//
 					.withValueGetter(s -> {
 						T enumValue = byName.get(s);
-						return enumValue == null ? null : ObservableValue.constant(TypeToken.of(enumType), enumValue);
+						return enumValue == null ? null : ObservableValue.constant(typeToken, enumValue);
 					})//
 					.withValue("numConsts", ObservableValue.constant(TypeToken.of(Integer.TYPE), enumType.getEnumConstants().length))//
-					.withFunction("valueOf", ExpressionFunction.build(new Function<String, T>() {
-						@Override
-						public T apply(String s) {
-							T v = byName.get(s);
-							if (v == null)
-								throw new IllegalArgumentException("No such " + enumType.getSimpleName() + " " + s);
-							return v;
-						}
-					})).withFunction("name", ExpressionFunction.build(new Function<T, String>() {
-						@Override
-						public String apply(T v) {
-							return QuickUtils.javaToXML(v.name());
-						}
-					})).withFunction("ordinal", ExpressionFunction.build(new Function<T, Integer>() {
-						@Override
-						public Integer apply(T v) {
-							return v.ordinal();
-						}
-					})).withFunction("valueOf", ExpressionFunction.build(new Function<Integer, T>() {
-						@Override
-						public T apply(Integer ord) {
-							T[] vals = enumType.getEnumConstants();
-							if (ord < 0 || ord >= vals.length)
-								throw new IllegalArgumentException("No such " + enumType.getSimpleName() + " at " + ord);
-							return vals[ord];
-						}
-					})).withFunction("next", ExpressionFunction.build(new Function<T, T>() {
-						@Override
-						public T apply(T v) {
-							T[] vals = enumType.getEnumConstants();
-							if (v.ordinal() == vals.length - 1)
-								throw new IllegalArgumentException("No next value for " + QuickUtils.javaToXML(v.name()));
-							return vals[v.ordinal() + 1];
-						}
-					})).withFunction("previous", ExpressionFunction.build(new Function<T, T>() {
-						@Override
-						public T apply(T v) {
-							if (v.ordinal() == 0)
-								throw new IllegalArgumentException("No previous value for " + QuickUtils.javaToXML(v.name()));
-							T[] vals = enumType.getEnumConstants();
-							return vals[v.ordinal() - 1];
-						}
-					}));
+					.withFunction("valueOf", ExpressionFunction.build(new EnumValueOfName()))//
+					.withFunction("name", ExpressionFunction.build(new EnumName()))//
+					.withFunction("ordinal", ExpressionFunction.build(new EnumOrdinal()))//
+					.withFunction("valueOf", ExpressionFunction.build(new EnumValueOfOrdinal()))//
+					.withFunction("next", ExpressionFunction.build(new EnumNext()))//
+					.withFunction("previous", ExpressionFunction.build(new EnumPrevious()));
 			});
 		return builder.build();
 	}

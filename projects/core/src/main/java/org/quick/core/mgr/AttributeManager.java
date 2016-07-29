@@ -235,8 +235,8 @@ public class AttributeManager {
 			final int stackCheck = theStackChecker;
 			AttributeChangedEvent<T> evt;
 			try {
-				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, false,
-					theAttr.getType().cast((TypeToken<T>) TypeToken.of(oldValue.getClass()), oldValue), value, null) {
+				T old = oldValue == null ? null : theAttr.getType().cast((TypeToken<T>) TypeToken.of(oldValue.getClass()), oldValue);
+				evt = new AttributeChangedEvent<T>(theElement, this, theAttr, false, old, value, null) {
 					@Override
 					public boolean isOverridden() {
 						return stackCheck != theStackChecker;

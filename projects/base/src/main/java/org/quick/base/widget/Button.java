@@ -16,7 +16,7 @@ import org.quick.core.tags.StateSupport;
 import org.quick.core.tags.Template;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
-@Template(location = "../../../../simple-container.qck")
+@Template(location = "../../../../simple-container.qml")
 @StateSupport({@State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY),
 		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
 public class Button extends org.quick.core.QuickTemplate {

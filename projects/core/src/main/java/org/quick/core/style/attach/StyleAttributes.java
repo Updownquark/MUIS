@@ -28,7 +28,7 @@ public class StyleAttributes {
 				if (ret.length() > 0)
 					ret.append(';');
 				ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append('=');
-				String valueStr = ((StyleAttribute<Object>) attr).getType().toString(style.get(attr));
+				String valueStr = ((StyleAttribute<Object>) attr).getType().toString(style.get(attr).get());
 				valueStr = valueStr.replaceAll("\"", "'");
 				ret.append(valueStr);
 			}

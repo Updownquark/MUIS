@@ -9,7 +9,7 @@
 	<dependencies>
 		<classpath>classes</classpath>
 	</dependencies>
-	<style-sheet ref="src/main/styles/base-styles.mss" />
+	<style-sheet ref="src/main/styles/base-styles.qss" />
 	<types>
 		<!-- Widgets -->
         <type tag="block">org.quick.base.widget.Block</type>

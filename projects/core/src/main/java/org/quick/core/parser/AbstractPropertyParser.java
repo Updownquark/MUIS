@@ -120,9 +120,12 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
 		QuickClassView cv;
 		if (property != null) {
-			cv = new QuickClassView(theEnvironment, parseEnv.cv(),
-				(QuickToolkit) property.getType().getClass().getClassLoader());
-			if (property.getClass().getClassLoader() != property.getType().getClass().getClassLoader())
+			if (property.getType().getClass().getClassLoader() instanceof QuickToolkit)
+				cv = new QuickClassView(theEnvironment, parseEnv.cv(), (QuickToolkit) property.getType().getClass().getClassLoader());
+			else
+				cv = new QuickClassView(theEnvironment, parseEnv.cv(), null);
+			if (property.getClass().getClassLoader() != property.getType().getClass().getClassLoader()
+				&& property.getClass().getClassLoader() instanceof QuickToolkit)
 				cv = new QuickClassView(theEnvironment, cv, (QuickToolkit) property.getClass().getClassLoader());
 			// Add property's and property type's variables, functions, etc. into the context
 			for (Function<String, ObservableValue<?>> valueGetter : property.getValueSuppliers())
@@ -155,7 +158,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
 			return parsedValue;
 		else if (property.getType().canAccept(parsedValue.getType()))
-			return parsedValue.mapV(v -> {
+			return parsedValue.mapV(property.getType().getType(), v -> {
 				try {
 					return property.getType().<Object, T> cast((TypeToken<Object>) parsedValue.getType(), v);
 				} catch (Exception e) {

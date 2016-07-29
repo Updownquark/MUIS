@@ -56,6 +56,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		setFocusable(true);
 		getDefaultStyleListener().addDomain(org.quick.core.style.FontStyle.getDomainInstance());
 		theDocument = new SimpleSettableValue<>(TypeToken.of(QuickDocumentModel.class), false);
+		theDocument.set(doc, null);
 		theFlattenedDocument = QuickDocumentModel.flatten(theDocument);
 		theFlattenedDocument.changes().act(evt -> {
 			boolean needsResize = false;

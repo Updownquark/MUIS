@@ -14,11 +14,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 	private final Map<String, ObservableValue<?>> theValues;
 	private final List<Function<String, ObservableValue<?>>> theValueGetters;
 	private final Map<String, List<ExpressionFunction<?>>> theFunctions;
-	private final Map<String, Unit<?, ?>> theUnits;
+	private final Map<String, List<Unit<?, ?>>> theUnits;
 
 	private DefaultExpressionContext(List<ExpressionContext> parents, Map<String, ObservableValue<?>> values,
 		List<Function<String, ObservableValue<?>>> valueGetters, Map<String, List<ExpressionFunction<?>>> functions,
-		Map<String, Unit<?, ?>> units) {
+		Map<String, List<Unit<?, ?>>> units) {
 		theParents = Collections.unmodifiableList(new ArrayList<>(parents));
 		theValues = Collections.unmodifiableMap(new LinkedHashMap<>(values));
 		theValueGetters = Collections.unmodifiableList(valueGetters);
@@ -27,7 +27,11 @@ public class DefaultExpressionContext implements ExpressionContext {
 			fns.put(fn.getKey(), Collections.unmodifiableList(new ArrayList<>(fn.getValue())));
 		}
 		theFunctions = Collections.unmodifiableMap(fns);
-		theUnits = Collections.unmodifiableMap(units);
+		Map<String, List<Unit<?, ?>>> us = new LinkedHashMap<>();
+		for (Map.Entry<String, List<Unit<?, ?>>> unit : units.entrySet()) {
+			us.put(unit.getKey(), Collections.unmodifiableList(new ArrayList<>(unit.getValue())));
+		}
+		theUnits = Collections.unmodifiableMap(us);
 	}
 
 	@Override
@@ -49,7 +53,9 @@ public class DefaultExpressionContext implements ExpressionContext {
 	}
 
 	@Override
-	public void getFunctions(String name, List<ExpressionFunction<?>> functions) {
+	public <T extends Collection<ExpressionFunction<?>>> T getFunctions(String name, T functions) {
+		if (functions == null)
+			functions = (T) new ArrayList<ExpressionFunction<?>>();
 		List<ExpressionFunction<?>> fns = theFunctions.get(name);
 		if (fns != null) {
 			for (ExpressionFunction<?> fn : fns)
@@ -57,11 +63,19 @@ public class DefaultExpressionContext implements ExpressionContext {
 		}
 		for (ExpressionContext ctx : theParents)
 			ctx.getFunctions(name, functions);
+		return functions;
 	}
 
 	@Override
-	public Unit<?, ?> getUnit(String name) {
-		return theUnits.get(name);
+	public <T extends Collection<Unit<?, ?>>> T getUnits(String name, T units) {
+		if (units == null)
+			units = (T) new ArrayList<Unit<?, ?>>();
+		List<Unit<?, ?>> us= theUnits.get(name);
+		if(us!=null)
+			units.addAll(us);
+		for (ExpressionContext parent : theParents)
+			parent.getUnits(name, units);
+		return units;
 	}
 
 	public static Builder build() {
@@ -73,7 +87,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 		private final Map<String, ObservableValue<?>> theValues;
 		private final List<Function<String, ObservableValue<?>>> theValueGetters;
 		private final Map<String, List<ExpressionFunction<?>>> theFunctions;
-		private final Map<String, Unit<?, ?>> theUnits;
+		private final Map<String, List<Unit<?, ?>>> theUnits;
 
 		private Builder() {
 			theParents = new ArrayList<>();
@@ -99,18 +113,13 @@ public class DefaultExpressionContext implements ExpressionContext {
 		}
 
 		public Builder withFunction(String name, ExpressionFunction<?> fn) {
-			List<ExpressionFunction<?>> fns = theFunctions.get(name);
-			if (fns == null) {
-				fns = new ArrayList<>(1);
-				theFunctions.put(name, fns);
-			}
-			fns.add(fn);
+			theFunctions.computeIfAbsent(name, n -> new ArrayList<>(1)).add(fn);
 			return this;
 		}
 
 		public <F, T2> Builder withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
 			ExFunction<? super F, ? extends T2, QuickException> operator) {
-			theUnits.put(name, new Unit<>(name, from, to, operator));
+			theUnits.computeIfAbsent(name, n -> new ArrayList<>(1)).add(new Unit<>(name, from, to, operator));
 			return this;
 		}
 

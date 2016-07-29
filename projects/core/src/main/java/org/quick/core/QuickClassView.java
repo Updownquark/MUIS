@@ -240,15 +240,14 @@ public class QuickClassView {
 			if(toolkit == null)
 				throw new QuickException("No toolkit mapped to namespace " + namespace);
 			String className = toolkit.getMappedClass(tag);
-			if(className == null)
-				return null;
-			return toolkit.loadClass(className, superClass);
+			if (className != null)
+				return toolkit.loadClass(className, superClass);
+			throw new QuickException("No class mapped to " + namespace + ":" + tag + " in scoped namespaces");
 		} else {
 			for(QuickToolkit toolkit : getScopedToolkits()) {
 				String className = toolkit.getMappedClass(tag);
-				if (className == null)
-					return null;
-				return toolkit.loadClass(className, superClass);
+				if (className != null)
+					return toolkit.loadClass(className, superClass);
 			}
 			throw new QuickException("No class mapped to " + tag + " in scoped namespaces");
 		}
@@ -256,7 +255,7 @@ public class QuickClassView {
 
 	/**
 	 * Attempts to resolve the named class in all toolkits scoped in this class view
-	 * 
+	 *
 	 * @param s The fully-qualified class name of the class to resolve
 	 * @return The resolved class
 	 * @throws ClassNotFoundException If the class cannot be resolved in any toolkit scoped in this class view

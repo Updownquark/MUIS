@@ -15,7 +15,7 @@ import org.quick.core.tags.ModelAttribute;
 import org.quick.core.tags.Template;
 
 /** A text box with up and down arrows to increment or decrement the value */
-@Template(location = "../../../../spinner.qck", //
+@Template(location = "../../../../spinner.qml", //
 	attributes = { //
 		@ModelAttribute(name = "value", type = Object.class), //
 		@ModelAttribute(name = "increment", type = ObservableAction.class), //

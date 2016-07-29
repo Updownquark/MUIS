@@ -7,7 +7,7 @@
 	</description>
 	<version>0.0.1</version>
 	<dependencies />
-	<style-sheet ref="../src/main/styles/core-styles.mss" />
+	<style-sheet ref="../src/main/styles/core-styles.qss" />
 	<types>
 	    <!-- Element types -->
 		<type tag="body">org.quick.core.BodyElement</type>

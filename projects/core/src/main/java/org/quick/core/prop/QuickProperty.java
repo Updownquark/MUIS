@@ -9,6 +9,8 @@ import java.util.function.Function;
 import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * Represents a property in Quick
  *
@@ -74,6 +76,26 @@ public abstract class QuickProperty<T> {
 
 	/** @return What kind of property this is */
 	protected abstract String getPropertyTypeName();
+
+	public boolean canAccept(Object value) {
+		if (value == null) {
+			if (theType.getType().isPrimitive())
+				return false;
+		} else {
+			TypeToken<Object> type = (TypeToken<Object>) TypeToken.of(value.getClass());
+			if (!theType.canAccept(type))
+				return false;
+			try {
+				value = theType.cast(type, value);
+			} catch (QuickException e) {
+				return false;
+			}
+		}
+		if (theValidator != null && !theValidator.isValid((T) value))
+			return false;
+
+		return true;
+	}
 
 	@Override
 	public String toString() {

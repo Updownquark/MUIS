@@ -26,35 +26,26 @@ public class ImmutableStyle implements QuickStyle {
 	}
 
 	@Override
-	public boolean isSetLocal(StyleAttribute<?> attr) {
-		return theValues.containsKey(attr);
-	}
-
-	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
 		return theValues.containsKey(attr);
 	}
 
 	@Override
-	public ObservableSet<StyleAttribute<?>> localAttributes() {
+	public ObservableSet<StyleAttribute<?>> attributes() {
 		return ObservableSet.constant(new TypeToken<StyleAttribute<?>>() {}, theValues.keySet());
 	}
 
 	@Override
-	public ObservableSet<StyleAttribute<?>> attributes() {
-		return localAttributes();
-	}
-
-	@Override
-	public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-		return ObservableValue.constant(attr.getType().getType(), (T) theValues.get(attr));
-	}
-
-	@Override
-	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+	public <T> T get(StyleAttribute<T> attr, boolean withDefault) {
 		if (!withDefault || theValues.containsKey(attr))
-			return getLocal(attr);
-		return ObservableValue.constant(attr.getType().getType(), attr.getDefault());
+			return (T) theValues.get(attr);
+		else
+			return attr.getDefault();
+	}
+
+	@Override
+	public <T> ObservableValue<T> observe(StyleAttribute<T> attr, boolean withDefault) {
+		return ObservableValue.constant(attr.getType().getType(), get(attr, withDefault));
 	}
 
 	@Override

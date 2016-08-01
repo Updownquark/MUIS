@@ -16,7 +16,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	private StyleCondition(StateCondition state, List<QuickTemplate.AttachPoint> rolePath, Set<String> groups,
 		Class<? extends QuickElement> type) {
 		theState = state;
-		theRolePath = Collections.unmodifiableList(rolePath);
+		theRolePath = rolePath == null ? Collections.emptyList() : Collections.unmodifiableList(rolePath);
 		theGroups = Collections.unmodifiableSet(groups);
 		if (!QuickElement.class.isAssignableFrom(type))
 			throw new IllegalArgumentException("The type of a condition must extend " + QuickElement.class.getName());
@@ -164,13 +164,39 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 	public static class Builder {
 		private final Class<? extends QuickElement> theType;
+		private StateCondition theState;
+		private List<QuickTemplate.AttachPoint> theRolePath;
+		private Set<String> theGroups;
 
 		private Builder(Class<? extends QuickElement> type) {
 			if (!QuickElement.class.isAssignableFrom(type))
 				throw new IllegalArgumentException("The type of a condition must extend " + QuickElement.class.getName());
 			theType = type;
+			theGroups = new LinkedHashSet<>();
 		}
 
-		public StyleCondition build() {}
+		public Builder setState(StateCondition state) {
+			theState = state;
+			return this;
+		}
+
+		public Builder forPath(List<QuickTemplate.AttachPoint> rolePath) {
+			theRolePath = rolePath;
+			return this;
+		}
+
+		public Builder forPath(QuickTemplate.AttachPoint... rolePath) {
+			return forPath(Arrays.asList(rolePath));
+		}
+
+		public Builder forGroup(String... group) {
+			for (String g : group)
+				theGroups.add(g);
+			return this;
+		}
+
+		public StyleCondition build() {
+			return new StyleCondition(theState, theRolePath, theGroups, theType);
+		}
 	}
 }

@@ -1,35 +1,30 @@
 package org.quick.core.parser;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 import org.quick.core.*;
-import org.quick.core.style.sheet.StateGroupTypeExpression;
-import org.quick.core.style.sheet.TemplateRole;
-import org.quick.core.style.stateful.StateExpression;
+import org.quick.core.style2.StateCondition;
+import org.quick.core.style2.StyleCondition;
 
-public class ExpressionContextStack implements Iterable<StateGroupTypeExpression<?>> {
+public class ExpressionContextStack {
 	public class ExpressionContext {
 		private final QuickClassView theClassView;
 
-		private final ArrayList<Class<? extends QuickElement>> theTypes;
+		private Class<? extends QuickElement> theType;
 
-		final ArrayList<String> theGroups;
+		final Set<String> theGroups;
 
-		StateExpression theState;
+		StateCondition theState;
 
-		TemplateRole theTemplatePath;
+		QuickTemplate.AttachPoint theTemplateRole;
 
 		ExpressionContext(ExpressionContext parent) {
 			theClassView = new QuickClassView(theEnv, parent == null ? theEnv.cv() : parent.theClassView, theToollkit);
-			theTypes = new ArrayList<>();
-			theGroups = new ArrayList<>();
+			theGroups = new LinkedHashSet<>();
 		}
 
 		boolean isEmpty() {
-			return theTypes.isEmpty() && theGroups.isEmpty() && theState == null && theTemplatePath == null;
+			return theType == null && theGroups.isEmpty() && theState == null && theTemplateRole == null;
 		}
 
 		public QuickClassView getClassView() {
@@ -66,50 +61,23 @@ public class ExpressionContextStack implements Iterable<StateGroupTypeExpression
 	}
 
 	public void addType(Class<? extends QuickElement> type) throws QuickParseException {
-		for(int i = theStack.size() - 1; i >= 0; i--) {
-			if(!theStack.get(i).theTypes.isEmpty()) {
-				boolean isSubType = false;
-				for(Class<?> preType : theStack.get(i).theTypes) {
-					if(preType.equals(type))
-						throw new QuickParseException("Type " + type.getSimpleName() + " is already in this category");
-					if(preType.isAssignableFrom(type)) {
-						isSubType = true;
-						break;
-					}
-				}
-				if(!isSubType) {
-					throw new QuickParseException("Type " + type.getSimpleName() + " is not a sub type of a type in a super-category");
-				}
-			}
-		}
-		top().theTypes.add(type);
+		Class<? extends QuickElement> topType = getTopType();
+		if (!topType.isAssignableFrom(topType))
+			throw new QuickParseException("Type " + type.getName() + " is not a sub type of a " + type.getName());
+		if (topType != type)
+			top().theType = type;
 	}
 
 	public void addGroup(String groupName) throws QuickParseException {
-		for(int i = 0; i < theStack.size() - 1; i++) {
-			if(theStack.get(i).theTemplatePath != null)
-				break;
-			if(!theStack.get(i).theGroups.isEmpty())
-				throw new QuickParseException(
-					"Groups are not hierarchical--a category with a group cannot contain a category with a group");
-		}
 		top().theGroups.add(groupName);
 	}
 
-	public void setState(StateExpression state) {
+	public void setState(StateCondition state) {
 		top().theState = state;
 	}
 
 	public void addAttachPoint(String attachPoint, QuickEnvironment env) throws QuickParseException {
-		Class<? extends QuickElement> type = null;
-		for(int i = theStack.size() - 1; i >= 0; i--) {
-			if(!theStack.get(i).theTypes.isEmpty()) {
-				if(theStack.get(i).theTypes.size() > 1)
-					throw new QuickParseException("Cannot attach-point specific styles to more than one type at once");
-				type = theStack.get(i).theTypes.get(0);
-				break;
-			}
-		}
+		Class<? extends QuickElement> type = getTopType();
 		if(type == null)
 			type = QuickElement.class;
 		if(!(QuickTemplate.class.isAssignableFrom(type)))
@@ -123,124 +91,47 @@ public class ExpressionContextStack implements Iterable<StateGroupTypeExpression
 		QuickTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
 		if(ap == null)
 			throw new QuickParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
-		Set<String> parentGroups = new LinkedHashSet<>();
-		for(int i = theStack.size() - 1; i >= 0; i--)
-			if(!theStack.get(i).theGroups.isEmpty()) {
-				parentGroups.addAll(theStack.get(i).theGroups);
-				break;
-			}
-		top().theTemplatePath = new TemplateRole(ap, parentGroups, (Class<? extends QuickTemplate>) type, getTopTemplateRole());
-		top().theTypes.add(ap.type);
+		top().theTemplateRole = ap;
+		top().theType = ap.type;
 	}
 
-	public Class<? extends QuickElement> [] getTopTypes() {
+	public Class<? extends QuickElement> getTopType() {
 		for(int i = theStack.size() - 1; i >= 0; i--) {
-			if(theStack.get(i).theTemplatePath != null)
-				return new Class[0];
-			if(!theStack.get(i).theTypes.isEmpty())
-				return theStack.get(i).theTypes.toArray(new Class[theStack.get(i).theTypes.size()]);
+			if (theStack.get(i).theType != null)
+				return theStack.get(i).theType;
 		}
-		return new Class[0];
+		return QuickElement.class;
 	}
 
-	public TemplateRole getTopTemplateRole() {
-		for(int i = theStack.size() - 1; i >= 0; i--) {
-			if(theStack.get(i).theTemplatePath != null)
-				return theStack.get(i).theTemplatePath;
+	public StateCondition getState() {
+		StateCondition state = null;
+		for (ExpressionContext ctx : theStack) {
+			if (ctx.theState != null) {
+				if (state == null)
+					state = ctx.theState;
+				else
+					state = state.and(ctx.theState);
+			}
 		}
-		return null;
+		return state;
 	}
 
-	@Override
-	public java.util.Iterator<StateGroupTypeExpression<?>> iterator() {
-		if(top().isEmpty()) {
-			return new java.util.Iterator<StateGroupTypeExpression<?>>() {
-				@Override
-				public boolean hasNext() {
-					return false;
-				}
+	public Set<String> getGroups() {
+		Set<String> groups = new LinkedHashSet<>();
+		for (ExpressionContext ctx : theStack)
+			groups.addAll(ctx.theGroups);
+		return groups;
+	}
 
-				@Override
-				public StateGroupTypeExpression<?> next() {
-					return null;
-				}
+	public List<QuickTemplate.AttachPoint> getTemplatePath() {
+		List<QuickTemplate.AttachPoint> templatePath = new ArrayList<>();
+		for (ExpressionContext ctx : theStack)
+			if (ctx.theTemplateRole != null)
+				templatePath.add(ctx.theTemplateRole);
+		return templatePath;
+	}
 
-				@Override
-				public void remove() {
-				}
-			};
-		}
-		return new java.util.Iterator<StateGroupTypeExpression<?>>() {
-			private Class<? extends QuickElement> [] theIterableTypes;
-
-			private ArrayList<String> theIterableGroups;
-
-			private StateExpression theOverallState;
-
-			private TemplateRole theTemplatePath;
-
-			private int theTypeIdx;
-
-			private int theGroupIdx;
-
-			private boolean hasCalledNext;
-
-			{
-				theIterableTypes = getTopTypes();
-				theTemplatePath = getTopTemplateRole();
-				theIterableGroups = new ArrayList<>();
-				for(int i = theStack.size() - 1; i >= 0; i--) {
-					if(theStack.get(i).theTemplatePath != null)
-						break;
-					if(theIterableGroups.isEmpty())
-						theIterableGroups.addAll(theStack.get(i).theGroups);
-				}
-				for(ExpressionContext ctx : theStack) {
-					if(ctx.theState != null) {
-						if(theOverallState == null)
-							theOverallState = ctx.theState;
-						else
-							theOverallState = theOverallState.and(ctx.theState);
-					}
-				}
-			}
-
-			@Override
-			public boolean hasNext() {
-				return !hasCalledNext || theTypeIdx < theIterableTypes.length || theGroupIdx < theIterableGroups.size();
-			}
-
-			@Override
-			public StateGroupTypeExpression<?> next() {
-				StateGroupTypeExpression<?> ret;
-				if(theGroupIdx < theIterableGroups.size()) {
-					if(theTypeIdx < theIterableTypes.length) {
-						ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx),
-							theIterableTypes[theTypeIdx++], theTemplatePath);
-					} else {
-						ret = new StateGroupTypeExpression<>(theOverallState, theIterableGroups.get(theGroupIdx), null, theTemplatePath);
-					}
-					if(theTypeIdx >= theIterableTypes.length) {
-						theGroupIdx++;
-						theTypeIdx = 0;
-					}
-				} else if(theIterableGroups.isEmpty()) {
-					if(theTypeIdx < theIterableTypes.length) {
-						ret = new StateGroupTypeExpression<>(theOverallState, null, theIterableTypes[theTypeIdx++], theTemplatePath);
-					} else if(theIterableTypes.length == 0) {
-						ret = new StateGroupTypeExpression<>(theOverallState, null, null, theTemplatePath);
-					} else
-						throw new java.util.NoSuchElementException();
-				} else
-					throw new java.util.NoSuchElementException();
-				hasCalledNext = true;
-				return ret;
-			}
-
-			@Override
-			public void remove() {
-				throw new UnsupportedOperationException();
-			}
-		};
+	public StyleCondition asCondition() {
+		return StyleCondition.build(getTopType()).setState(getState()).forGroups(getGroups()).forPath(getTemplatePath()).build();
 	}
 }

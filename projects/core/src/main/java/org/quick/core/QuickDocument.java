@@ -16,8 +16,7 @@ import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style.attach.DocumentStyleSheet;
-import org.quick.core.style.attach.NamedStyleGroup;
+import org.quick.core.style2.DocumentStyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
@@ -73,9 +72,7 @@ public class QuickDocument implements QuickParseEnv {
 
 	private QuickMessageCenter theMessageCenter;
 
-	private DocumentStyleSheet theDocumentStyle;
-
-	private NamedStyleGroup [] theDocumentGroups;
+	private org.quick.core.style2.DocumentStyleSheet theDocumentStyle;
 
 	private ScrollPolicy theScrollPolicy;
 
@@ -136,8 +133,7 @@ public class QuickDocument implements QuickParseEnv {
 			.build();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();
 		theMessageCenter = new QuickMessageCenter(env, this, null);
-		theDocumentStyle = new DocumentStyleSheet(this);
-		theDocumentGroups = new NamedStyleGroup[] {new NamedStyleGroup(this, "")};
+		theDocumentStyle = DocumentStyleSheet.build(this);
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new java.util.concurrent.CopyOnWriteArrayList<>();
 		thePressedKeys = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -173,18 +169,11 @@ public class QuickDocument implements QuickParseEnv {
 		theTargetController = ((org.observe.DefaultObservableValue<QuickEventPositionCapture>) theObservableTarget).control(null);
 		ObservableValue
 			.flatten(theObservableTarget
-				.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().getSelf().get(BackgroundStyle.cursor)))
+				.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().get(BackgroundStyle.cursor)))
 			.act(event -> {
 				if (event.getValue() != null && theGraphics != null)
 					theGraphics.setCursor(event.getValue());
 			});
-
-		applyHead();
-	}
-
-	private void applyHead() {
-		for(org.quick.core.style.sheet.ParsedStyleSheet styleSheet : theHead.getStyleSheets())
-			theDocumentStyle.addStyleSheet(styleSheet);
 	}
 
 	/** @param graphics The getter for graphics to be redrawn when the rendering is updated */
@@ -261,64 +250,6 @@ public class QuickDocument implements QuickParseEnv {
 	/** @return The root element of the document */
 	public BodyElement getRoot() {
 		return theRoot;
-	}
-
-	/** @return The number of named groups that exist in this document */
-	public int getGroupCount() {
-		return theDocumentGroups.length;
-	}
-
-	/** @return An Iterable to iterate through this document's groups */
-	public Iterable<NamedStyleGroup> groups() {
-		return () -> {
-			return new GroupIterator(theDocumentGroups);
-		};
-	}
-
-	/**
-	 * @param name The name of the group to determine existence of
-	 * @return Whether a group with the given name exists in this document
-	 */
-	public boolean hasGroup(String name) {
-		for(NamedStyleGroup group : theDocumentGroups)
-			if(group.getName().equals(name))
-				return true;
-		return false;
-	}
-
-	/**
-	 * Gets a group by name, or creates one if no such group exists
-	 *
-	 * @param name The name of the group to get or create
-	 * @return The group in this document with the given name. Will never be null.
-	 */
-	public NamedStyleGroup getGroup(String name) {
-		for(NamedStyleGroup group : theDocumentGroups)
-			if(group.getName().equals(name))
-				return group;
-		NamedStyleGroup ret = new NamedStyleGroup(this, name);
-		theDocumentGroups = ArrayUtils.add(theDocumentGroups, ret);
-		java.util.Arrays.sort(theDocumentGroups, (NamedStyleGroup g1, NamedStyleGroup g2) -> {
-			return g1.getName().compareToIgnoreCase(g2.getName());
-		});
-		return ret;
-	}
-
-	/**
-	 * Removes a group from a document. This will remove the group from every element that is a member of the group as well.
-	 *
-	 * @param name The name of the group to remove from this document
-	 */
-	public void removeGroup(String name) {
-		if("".equals(name))
-			throw new IllegalArgumentException("Cannot remove the unnamed group from the document");
-		for(NamedStyleGroup group : theDocumentGroups)
-			if(group.getName().equals(name)) {
-				for(QuickElement el : group.members())
-					el.getStyle().removeGroup(group);
-				theDocumentGroups = ArrayUtils.remove(theDocumentGroups, group);
-				break;
-			}
 	}
 
 	/** Called to initialize the document after all the parsing and linking has been performed */
@@ -834,32 +765,5 @@ public class QuickDocument implements QuickParseEnv {
 		else
 			evt = new org.quick.core.event.CharInputEvent(this, theRoot, thePressedButtons, thePressedKeys, c);
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.UserQueueEvent(evt, false), true);
-	}
-
-	private static class GroupIterator implements java.util.Iterator<NamedStyleGroup> {
-		private final NamedStyleGroup [] theGroups;
-
-		private int theIndex;
-
-		GroupIterator(NamedStyleGroup [] groups) {
-			theGroups = groups;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return theIndex < theGroups.length;
-		}
-
-		@Override
-		public NamedStyleGroup next() {
-			NamedStyleGroup ret = theGroups[theIndex];
-			theIndex++;
-			return ret;
-		}
-
-		@Override
-		public void remove() {
-			throw new UnsupportedOperationException("Document's group iterator does not support modification");
-		}
 	}
 }

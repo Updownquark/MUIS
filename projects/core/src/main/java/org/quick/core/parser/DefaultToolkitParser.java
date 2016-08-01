@@ -9,7 +9,7 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickException;
 import org.quick.core.QuickPermission;
 import org.quick.core.QuickToolkit;
-import org.quick.core.style.sheet.ParsedStyleSheet;
+import org.quick.core.style2.ImmutableStyleSheet;
 import org.quick.util.QuickUtils;
 
 public class DefaultToolkitParser implements QuickToolkitParser {
@@ -164,11 +164,11 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 			}
 			if (ssLoc != null) {
 				try {
-					ParsedStyleSheet ret = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, toolkit,
+					ImmutableStyleSheet ret = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, toolkit,
 						theEnvironment.getPropertyParser(), theEnvironment.cv(), theEnvironment.msg());
 					// If there are fatal errors, the parser will return log the errors and return null
 					if (ret != null) {
-						ret.startAnimation();
+						// ret.startAnimation();
 						builder.addStyleSheet(ret);
 					}
 				} catch (Exception e) {

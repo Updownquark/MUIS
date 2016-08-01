@@ -111,8 +111,8 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
-				Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
+				Size margin = parent.getStyle().get(LayoutStyle.margin).get();
+				Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 				LayoutSize ret = get(type, crossSize, csMax, 0, padding, null);
 				ret.add(margin);
 				ret.add(margin);
@@ -179,8 +179,8 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 	public void layout(final QuickElement parent, final QuickElement [] children) {
 		final int parentWidth = parent.bounds().getWidth();
 		final int parentHeight = parent.bounds().getHeight();
-		final Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
-		final Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
+		final Size margin = parent.getStyle().get(LayoutStyle.margin).get();
+		final Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		LayoutUtils.LayoutInterpolation<int []> wResult = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<int []>() {
 			@Override
 			public int [] getLayoutValue(LayoutGuideType type) {

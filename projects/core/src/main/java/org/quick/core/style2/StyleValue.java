@@ -1,79 +1,110 @@
 package org.quick.core.style2;
 
+import java.util.Objects;
+
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.Subscription;
-import org.quick.core.QuickException;
+import org.observe.util.ObservableUtils;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 
 import com.google.common.reflect.TypeToken;
 
 public class StyleValue<T> implements ObservableValue<T> {
-	private final private final StyleAttribute<T> theAttr;
-	private final ObservableValue<T> theWrapped;
+	private final StyleAttribute<T> theAttribute;
+	private final ObservableValue<? extends T> theValue;
 	private final QuickMessageCenter theMessageCenter;
 
-	public StyleValue(QuickStyle style, StyleAttribute<T> attr, ObservableValue<T> wrap, QuickMessageCenter msg) {
-		theAttr = attr;
-		theWrapped = wrap;
+	public StyleValue(StyleAttribute<T> attribute, ObservableValue<? extends T> value, QuickMessageCenter msg) {
+		theAttribute = attribute;
+		theValue = value;
 		theMessageCenter = msg;
 	}
 
-	@Override
-	public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
-		return theWrapped.subscribe(new Observer<ObservableValueEvent<T>>() {
-			boolean isOverridden;
-
-			@Override
-			public <V extends ObservableValueEvent<T>> void onNext(V value) {
-				if (theAttr.getValidator() != null) {
-					try {
-						theAttr.getValidator().assertValid(value.getValue());
-						observer.onNext(createChangeEvent(getPreValue(value.getOldValue()), value.getValue(), value.getCause()));
-						isOverridden = false;
-					} catch (QuickException e) {
-						theMessageCenter.error(
-							(value.isInitial() ? "Initial" : "Updated") + " value for " + theAttr + " " + value.getValue() + " is invalid",
-							e);
-						if (!isOverridden)
-							observer.onNext(createChangeEvent(getPreValue(value.getOldValue()), theAttr.getDefault(), value.getCause()));
-						isOverridden = true;
-					}
-				} else
-					observer.onNext(createChangeEvent(value.getOldValue(), value.getValue(), value.getCause()));
-			}
-
-			T getPreValue(T old) {
-				if (isOverridden)
-					return theAttr.getDefault();
-				else
-					return old;
-			}
-		});
-	}
-
-	@Override
-	public boolean isSafe() {
-		return theWrapped.isSafe();
+	public StyleAttribute<T> getAttribute() {
+		return theAttribute;
 	}
 
 	@Override
 	public TypeToken<T> getType() {
-		return theWrapped.getType();
+		return theAttribute.getType().getType();
 	}
 
 	@Override
 	public T get() {
-		T value = theWrapped.get();
-		if (theAttr.getValidator() != null)
-			try {
-				theAttr.getValidator().assertValid(value);
-			} catch (QuickException e) {
-				theMessageCenter.error("Value for " + theAttr + " " + value + " is invalid", e);
-				return theAttr.getDefault();
+		T value = theValue.get();
+		if (theAttribute.canAccept(value))
+			return value;
+		else {
+			theMessageCenter.info("Value " + value + " from observable " + theValue + " is unacceptable for style attribute " + theAttribute
+				+ ". Using default value.");
+			return theAttribute.getDefault();
+		}
+	}
+
+	@Override
+	public StyleAttributeEvent<T> createInitialEvent(T value) {
+		return new StyleAttributeEvent<>(this, true, null, value, null);
+	}
+
+	@Override
+	public StyleAttributeEvent<T> createChangeEvent(T oldVal, T newVal, Object cause) {
+		return new StyleAttributeEvent<>(this, false, oldVal, newVal, cause);
+	}
+
+	@Override
+	public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+		return theValue.subscribe(new Observer<ObservableValueEvent<? extends T>>() {
+			@Override
+			public <V extends ObservableValueEvent<? extends T>> void onNext(V event) {
+				if (theAttribute.canAccept(event.getValue()))
+					observer.onNext(ObservableUtils.wrap(event, StyleValue.this));
+				else {
+					theMessageCenter.info("Value " + event.getValue() + " from observable " + theValue
+						+ " is unacceptable for style attribute " + theAttribute + ". Using default value.");
+					if (theAttribute.canAccept(event.getOldValue()))
+						observer.onNext(createChangeEvent(event.getOldValue(), theAttribute.getDefault(), event));
+					// else Nothing. Stay at default value.
+				}
 			}
-		return value;
+
+			@Override
+			public <V extends ObservableValueEvent<? extends T>> void onCompleted(V event) {
+				// Not sure what this would mean, but I guess we'll propagate it
+				if (theAttribute.canAccept(event.getValue()))
+					observer.onCompleted(ObservableUtils.wrap(event, StyleValue.this));
+				else {
+					theMessageCenter.info("Value " + event.getValue() + " from observable " + theValue
+						+ " is unacceptable for style attribute " + theAttribute + ". Using default value.");
+					observer.onCompleted(createChangeEvent(theAttribute.getDefault(), theAttribute.getDefault(), event));
+				}
+			}
+		});
+	}
+
+
+	@Override
+	public boolean isSafe() {
+		return theValue.isSafe();
+	}
+
+	@Override
+	public int hashCode() {
+		return theValue.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj==null || obj.getClass()!=getClass())
+			return false;
+		StyleValue<?> sv = (StyleValue<?>) obj;
+		return Objects.equals(theValue, sv.theValue);
+	}
+
+	@Override
+	public String toString() {
+		return theValue.toString();
 	}
 }

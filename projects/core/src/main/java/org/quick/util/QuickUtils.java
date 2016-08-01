@@ -15,6 +15,7 @@ import org.quick.core.QuickException;
 import org.quick.core.event.UserEvent;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.FontStyle;
+import org.quick.core.style2.QuickStyle;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 
@@ -231,7 +232,7 @@ public class QuickUtils {
 	 * @param style The style to get the background color for
 	 * @return The background color to paint for the style
 	 */
-	public static ObservableValue<Color> getBackground(org.quick.core.style.QuickStyle style) {
+	public static ObservableValue<Color> getBackground(QuickStyle style) {
 		return style.get(BackgroundStyle.color).combineV(QuickUtils::getColor, style.get(BackgroundStyle.transparency));
 	}
 
@@ -241,7 +242,7 @@ public class QuickUtils {
 	 * @param style The style to get the font color for
 	 * @return The font color to paint for the style
 	 */
-	public static ObservableValue<Color> getFontColor(org.quick.core.style.QuickStyle style) {
+	public static ObservableValue<Color> getFontColor(QuickStyle style) {
 		return style.get(FontStyle.color).combineV(QuickUtils::getColor, style.get(FontStyle.transparency));
 	}
 
@@ -249,7 +250,7 @@ public class QuickUtils {
 	 * @param style The style to derive the font from
 	 * @return The font to use to render text in the specified style
 	 */
-	public static ObservableValue<java.awt.Font> getFont(org.quick.core.style.QuickStyle style) {
+	public static ObservableValue<java.awt.Font> getFont(QuickStyle style) {
 		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
 		ObservableValue<String> family = style.get(FontStyle.family);
 		ObservableValue<Color> color = getFontColor(style);
@@ -359,6 +360,15 @@ public class QuickUtils {
 		return Collections.unmodifiableMap(fns);
 	}
 
+	/**
+	 * Checks whether a variable of type <code>left</code> may be assigned a value of type <code>right</code>. This is more lenient than
+	 * {@link TypeToken#isAssignableFrom(TypeToken)} because this method allows for auto (un)boxing and conversion between compatible
+	 * primitive types (e.g. float f=0).
+	 * 
+	 * @param left The type of the variable to assign
+	 * @param right The type of the value being assigned
+	 * @return Whether the assignment is allowable
+	 */
 	public static boolean isAssignableFrom(TypeToken<?> left, TypeToken<?> right) {
 		if (left.isAssignableFrom(right) || left.wrap().isAssignableFrom(right)) // Auto boxing/unboxing
 			return true;
@@ -381,6 +391,10 @@ public class QuickUtils {
 		return false;
 	}
 
+	/**
+	 * @param type The type to make an array type of
+	 * @return An array type whose component type is <code>type</code>
+	 */
 	public static <T> TypeToken<T[]> arrayTypeOf(TypeToken<T> type) {
 		return new TypeToken<T[]>() {}.where(new TypeParameter<T>() {}, type);
 	}
@@ -388,7 +402,7 @@ public class QuickUtils {
 	/**
 	 * For types that pass {@link #isAssignableFrom(TypeToken, TypeToken)}, this method converts the given value to the correct run-time
 	 * type
-	 * 
+	 *
 	 * @param type The type to convert to
 	 * @param value The value to convert
 	 * @return The converted value

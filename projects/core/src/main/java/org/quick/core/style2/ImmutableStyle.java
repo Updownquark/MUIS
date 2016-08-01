@@ -6,23 +6,16 @@ import java.util.Map;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
-import org.quick.core.QuickElement;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 
 import com.google.common.reflect.TypeToken;
 
 public class ImmutableStyle implements QuickStyle {
-	private final QuickElement theElement;
-	private final Map<StyleAttribute<?>, Object> theValues;
+	private final Map<StyleAttribute<?>, StyleValue<?>> theValues;
 
-	private ImmutableStyle(QuickElement element, Map<StyleAttribute<?>, Object> values) {
-		theElement=element;
+	private ImmutableStyle(Map<StyleAttribute<?>, StyleValue<?>> values) {
 		theValues=Collections.unmodifiableMap(values);
-	}
-
-	@Override
-	public QuickElement getElement() {
-		return theElement;
 	}
 
 	@Override
@@ -36,16 +29,11 @@ public class ImmutableStyle implements QuickStyle {
 	}
 
 	@Override
-	public <T> T get(StyleAttribute<T> attr, boolean withDefault) {
-		if (!withDefault || theValues.containsKey(attr))
-			return (T) theValues.get(attr);
+	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+		if (theValues.containsKey(attr))
+			return (StyleValue<T>) theValues.get(attr);
 		else
-			return attr.getDefault();
-	}
-
-	@Override
-	public <T> ObservableValue<T> observe(StyleAttribute<T> attr, boolean withDefault) {
-		return ObservableValue.constant(attr.getType().getType(), get(attr, withDefault));
+			return ObservableValue.constant(attr.getType().getType(), withDefault ? attr.getDefault() : null);
 	}
 
 	@Override
@@ -63,28 +51,30 @@ public class ImmutableStyle implements QuickStyle {
 		return theValues.toString();
 	}
 
-	public static Builder build(QuickElement element) {
-		return new Builder(element);
+	public static Builder build(QuickMessageCenter msg) {
+		return new Builder(msg);
 	}
 
-	public static class Builder {
-		private final QuickElement theElement;
-		private final Map<StyleAttribute<?>, Object> theValues;
+	public static class Builder implements StyleSetter {
+		private final QuickMessageCenter theMessageCenter;
+		private final Map<StyleAttribute<?>, StyleValue<?>> theValues;
 
-		private Builder(QuickElement element) {
-			theElement = element;
+		private Builder(QuickMessageCenter msg) {
+			theMessageCenter = msg;
 			theValues = new LinkedHashMap<>();
 		}
 
-		public <T> Builder set(StyleAttribute<T> attr, T value) {
-			if (!attr.canAccept(value))
-				throw new IllegalArgumentException("Value " + value + " is not valid for attribute " + attr);
-			theValues.put(attr, value);
+		@Override
+		public <T> Builder set(StyleAttribute<T> attr, ObservableValue<? extends T> value) {
+			if (!attr.getType().getType().isAssignableFrom(value.getType()))
+				throw new IllegalArgumentException(
+					"Type of value " + value + " (" + value.getType() + ") is not valid for attribute " + attr);
+			theValues.put(attr, new StyleValue<>(attr, value, theMessageCenter));
 			return this;
 		}
 
 		public ImmutableStyle build() {
-			return new ImmutableStyle(theElement, theValues);
+			return new ImmutableStyle(theValues);
 		}
 	}
 }

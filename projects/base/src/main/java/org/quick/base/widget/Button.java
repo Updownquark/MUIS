@@ -66,7 +66,7 @@ public class Button extends org.quick.core.QuickTemplate {
 						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
 						int dx = click.x - unclick.x;
 						int dy = click.y - unclick.y;
-						double tol = Button.this.getStyle().getSelf().get(org.quick.base.style.ButtonStyle.clickTolerance).get();
+						double tol = Button.this.getStyle().get(org.quick.base.style.ButtonStyle.clickTolerance).get();
 						if(dx > tol || dy > tol)
 							return;
 						double dist2 = dx * dx + dy * dy;
@@ -102,7 +102,7 @@ public class Button extends org.quick.core.QuickTemplate {
 					}
 				}
 			});
-			getStyle().getSelf().get(BackgroundStyle.cornerRadius).act(event -> relayout(false));
+			getStyle().get(BackgroundStyle.cornerRadius).act(event -> relayout(false));
 		}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
@@ -125,7 +125,7 @@ public class Button extends org.quick.core.QuickTemplate {
 
 	@Override
 	public void doLayout() {
-		org.quick.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
+		org.quick.core.style.Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
 		int lOff = radius.evaluate(w);
@@ -135,13 +135,13 @@ public class Button extends org.quick.core.QuickTemplate {
 
 	@Override
 	public SizeGuide getWSizer() {
-		final org.quick.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
+		final org.quick.core.style.Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
 		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
-		final org.quick.core.style.Size radius = getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
+		final org.quick.core.style.Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
 		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
 	}
 

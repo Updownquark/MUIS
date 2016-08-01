@@ -1,4 +1,4 @@
-package org.quick.core.style.attach;
+package org.quick.core.style;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -11,7 +11,8 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
-import org.quick.core.style.*;
+import org.quick.core.style2.ImmutableStyle;
+import org.quick.core.style2.QuickStyle;
 
 import com.google.common.reflect.TypeToken;
 
@@ -24,7 +25,7 @@ public class StyleAttributes {
 		}, true)//
 		.withToString(style -> {
 			StringBuilder ret = new StringBuilder();
-			for (StyleAttribute<?> attr : style.localAttributes()) {
+			for (StyleAttribute<?> attr : style.attributes()) {
 				if (ret.length() > 0)
 					ret.append(';');
 				ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append('=');
@@ -35,6 +36,7 @@ public class StyleAttributes {
 			return ret.toString();
 		}).build();
 
+	/** The type of the group attribute */
 	public static final QuickPropertyType<Set<String>> GROUP_TYPE = QuickPropertyType.build("group", new TypeToken<Set<String>>() {})//
 		.withParser((parser, env, str) -> {
 			String[] split = str.split(",");
@@ -61,12 +63,11 @@ public class StyleAttributes {
 	 * @throws QuickParseException If an unrecoverable error occurs
 	 */
 	public static QuickStyle parseStyle(QuickPropertyParser parser, QuickParseEnv env, String value) throws QuickParseException {
-		SealableStyle ret = new SealableStyle(env.msg());
 		String[] styles = StyleParsingUtils.splitStyles(value);
 		if (styles == null) {
-			ret.seal();
-			return ret;
+			return null;
 		}
+		ImmutableStyle.Builder builder = ImmutableStyle.build(env.msg());
 		for (String style : styles) {
 			int equalIdx = style.indexOf("=");
 			if (equalIdx < 0) {
@@ -101,11 +102,10 @@ public class StyleAttributes {
 			}
 
 			if (attrName != null)
-				StyleParsingUtils.applyStyleAttribute(parser, env, ret, domain, attrName, valueStr);
+				StyleParsingUtils.applyStyleAttribute(parser, env, domain, attrName, valueStr, builder);
 			else
-				StyleParsingUtils.applyStyleSet(parser, env, ret, domain, valueStr);
+				StyleParsingUtils.applyStyleSet(parser, env, domain, valueStr, builder);
 		}
-		ret.seal();
-		return ret;
+		return builder.build();
 	}
 }

@@ -18,6 +18,7 @@ import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
 import org.quick.core.model.SimpleDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.style.FontStyle;
 
 import com.google.common.reflect.TypeToken;
 
@@ -52,9 +53,9 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	 */
 	public QuickTextElement(QuickDocumentModel doc) {
 		if(doc == null)
-			doc = new SimpleDocumentModel(getStyle().getSelf(), msg());
+			doc = new SimpleDocumentModel(this);
 		setFocusable(true);
-		getDefaultStyleListener().addDomain(org.quick.core.style.FontStyle.getDomainInstance());
+		getDefaultStyleListener().watch(FontStyle.getDomainInstance());
 		theDocument = new SimpleSettableValue<>(TypeToken.of(QuickDocumentModel.class), false);
 		theDocument.set(doc, null);
 		theFlattenedDocument = QuickDocumentModel.flatten(theDocument);
@@ -167,7 +168,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	/** @param docModel The new document model for this text element */
 	public void setDocumentModel(QuickDocumentModel docModel) {
 		if(docModel == null)
-			docModel = new SimpleDocumentModel(getStyle().getSelf(), msg());
+			docModel = new SimpleDocumentModel(this);
 		theDocument.set(docModel, null);
 	}
 
@@ -188,7 +189,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		int max = Math.round(maxW);
 
 		int min;
-		boolean isWordWrap = getStyle().getSelf().get(wordWrap).get();
+		boolean isWordWrap = getStyle().get(wordWrap).get();
 		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine));
 		if(isWordWrap || isMultiLine) {
 			maxW = 0;
@@ -217,9 +218,9 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	@Override
 	public SizeGuide getHSizer() {
 		if (theDocument.get().length() == 0) {
-			java.awt.Font font = org.quick.util.QuickUtils.getFont(getStyle().getSelf()).get();
-			java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(), getStyle().getSelf()
-				.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
+			java.awt.Font font = org.quick.util.QuickUtils.getFont(getStyle()).get();
+			java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(),
+				getStyle().get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 			java.awt.font.LineMetrics metrics = font.getLineMetrics("Iq", context);
 			int height = Math.round(metrics.getAscent() + metrics.getDescent());
 			return new SimpleSizeGuide(height, height, height, height, height);

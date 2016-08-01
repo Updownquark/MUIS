@@ -19,7 +19,7 @@ import org.quick.core.QuickException;
 import org.quick.core.QuickToolkit;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.QuickModelConfig;
-import org.quick.core.style.sheet.ParsedStyleSheet;
+import org.quick.core.style2.ImmutableStyleSheet;
 import org.quick.util.QuickUtils;
 
 /** Parses Quick components using the JDOM library */
@@ -53,7 +53,7 @@ public class QuickDomParser implements QuickDocumentParser {
 		if (headEl.length > 1)
 			msg.error("Multiple head elements in document XML");
 		String title = null;
-		List<ParsedStyleSheet> styleSheets = new ArrayList<>();
+		List<ImmutableStyleSheet> styleSheets = new ArrayList<>();
 		Map<String, QuickModelConfig> modelConfigs = new LinkedHashMap<>();
 		if (headEl.length > 0) {
 			if (headEl[0].getTextTrim().length() > 0)
@@ -69,13 +69,12 @@ public class QuickDomParser implements QuickDocumentParser {
 					return null;
 				}
 				try {
-					ParsedStyleSheet styleSheet = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, null,
+					ImmutableStyleSheet styleSheet = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, null,
 						theEnvironment.getPropertyParser(), classView, msg);
 					// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to
 					// the EventQueue somehow
-					styleSheet.startAnimation();
+					// styleSheet.startAnimation();
 					styleSheets.add(styleSheet);
-					styleSheet.seal();
 				} catch (Exception e) {
 					msg.error("Could not read or parse style sheet at " + ref, e, "element", styleSheetEl);
 				}

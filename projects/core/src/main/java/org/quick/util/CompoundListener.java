@@ -2,6 +2,7 @@ package org.quick.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.Consumer;
 
 import org.observe.Action;
 import org.observe.Observable;
@@ -14,8 +15,8 @@ import org.quick.core.event.ChildEvent;
 import org.quick.core.event.QuickEventListener;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.StyleAttributeEvent;
 import org.quick.core.style.StyleDomain;
+import org.quick.core.style2.StyleAttributeEvent;
 
 /**
  * <p>
@@ -279,7 +280,7 @@ public abstract class CompoundListener<T> {
 	 * @param listener The listener to execute when the last style attribute in the current chain changes
 	 * @return The listener for chaining
 	 */
-	public abstract CompoundListener<T> onStyleChange(QuickEventListener<StyleAttributeEvent<? super T>> listener);
+	public abstract CompoundListener<T> onStyleChange(Consumer<? super StyleAttributeEvent<? super T>> listener);
 
 	/**
 	 * @param wanter The object that cares about the attributes that will be listened for on the elements
@@ -361,7 +362,7 @@ public abstract class CompoundListener<T> {
 		ChainedCompoundListener<?> createChain() {
 			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<>(this);
 			theElement.events().filterMap(AttributeChangedEvent.base).takeUntil(theDropObservable).act(ret.attListener);
-			theElement.getStyle().getSelf().allChanges().takeUntil(theDropObservable).act(ret.getStyleListener());
+			theElement.getStyle().allChanges().takeUntil(theDropObservable).act(ret.getStyleListener());
 			return ret;
 		}
 
@@ -667,7 +668,7 @@ public abstract class CompoundListener<T> {
 		 * @return The listener for chaining
 		 */
 		@Override
-		public CompoundListener<Object> onStyleChange(QuickEventListener<StyleAttributeEvent<? super Object>> listener) {
+		public CompoundListener<Object> onStyleChange(Consumer<? super StyleAttributeEvent<? super Object>> listener) {
 			throw new IllegalStateException("No style attributes to listen to");
 		}
 	}
@@ -710,7 +711,7 @@ public abstract class CompoundListener<T> {
 
 		private java.util.Set<StyleDomain> theStyleDomains;
 
-		private HashMap<StyleAttribute<?>, QuickEventListener<StyleAttributeEvent<?>> []> theSpecificStyleListeners;
+		private HashMap<StyleAttribute<?>, Consumer<? super StyleAttributeEvent<?>>[]> theSpecificStyleListeners;
 
 		private StyleAttribute<?> theLastStyleAttr;
 
@@ -749,24 +750,24 @@ public abstract class CompoundListener<T> {
 			};
 			styleListener = event -> {
 				boolean contains;
-				QuickEventListener<StyleAttributeEvent<?>> [] listeners;
+				Consumer<? super StyleAttributeEvent<?>>[] listeners;
 				synchronized(theStyleDomains) {
-					contains = theStyleDomains.contains(event.getAttribute().getDomain());
+					contains = theStyleDomains.contains(event.getObservable().getAttribute().getDomain());
 				}
 				if(!contains)
 					synchronized(theStyleAttributes) {
-						contains = theStyleAttributes.contains(event.getAttribute());
+						contains = theStyleAttributes.contains(event.getObservable().getAttribute());
 					}
 				synchronized(theSpecificStyleListeners) {
-					listeners = theSpecificStyleListeners.get(event.getAttribute());
+					listeners = theSpecificStyleListeners.get(event.getObservable().getAttribute());
 				}
 				if(contains) {
 					for(ChangeListener run : theListeners)
 						run.changed(getElement());
 				}
 				if(listeners != null)
-					for(QuickEventListener<StyleAttributeEvent<?>> listener : listeners)
-						listener.eventOccurred(event);
+					for (Consumer<? super StyleAttributeEvent<?>> listener : listeners)
+						((Consumer<? super StyleAttributeEvent<Object>>) listener).accept((StyleAttributeEvent<Object>) event);
 			};
 		}
 
@@ -994,15 +995,16 @@ public abstract class CompoundListener<T> {
 		}
 
 		@Override
-		public CompoundListener<T> onStyleChange(QuickEventListener<StyleAttributeEvent<? super T>> listener) {
+		public CompoundListener<T> onStyleChange(Consumer<? super StyleAttributeEvent<? super T>> listener) {
 			if(theLastStyleAttr == null)
 				throw new IllegalStateException("No style attribute to listen to");
 			synchronized(theSpecificStyleListeners) {
-				QuickEventListener<StyleAttributeEvent<?>> [] listeners = theSpecificStyleListeners.get(theLastStyleAttr);
+				@SuppressWarnings("rawtypes")
+				Consumer[] listeners = theSpecificStyleListeners.get(theLastStyleAttr);
 				if(listeners == null)
-					listeners = new QuickEventListener[] {listener};
+					listeners = new Consumer[] { listener };
 				else
-					listeners = (QuickEventListener<StyleAttributeEvent<?>> []) org.qommons.ArrayUtils.add(listeners, listener);
+					listeners = org.qommons.ArrayUtils.add(listeners, listener);
 				theSpecificStyleListeners.put(theLastStyleAttr, listeners);
 			}
 			return this;

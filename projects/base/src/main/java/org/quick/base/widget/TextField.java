@@ -67,8 +67,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					getValueElement().setDocumentModel(evt.getValue().getValue1());
 				} else if (evt.getValue().getValue2() != null) {
 					getValueElement().setDocumentModel(evt.getValue().getValue2() ? //
-					new RichDocumentModel(getStyle().getSelf(), msg()) : //
-					new SimpleDocumentModel(getStyle().getSelf(), msg()));
+					new RichDocumentModel(getValueElement()) : //
+					new SimpleDocumentModel(getValueElement()));
 				} else
 					getValueElement().setDocumentModel(null);
 			});
@@ -191,7 +191,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				}) == null).act(evt -> isDocDirty = true);
 			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
 			cursor.setTextElement(getValueElement());
-			cursor.setStyleAnchor(getStyle().getSelf());
+			cursor.setStyleAnchor(getStyle());
 
 			events().filterMap(FocusEvent.blur).act(event -> {
 				pushChanges(event);

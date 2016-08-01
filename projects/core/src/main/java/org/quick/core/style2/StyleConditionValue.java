@@ -3,27 +3,16 @@ package org.quick.core.style2;
 import java.util.Objects;
 
 import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
-import org.observe.Subscription;
-import org.observe.util.ObservableUtils;
+import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 
-import com.google.common.reflect.TypeToken;
-
-public class StyleConditionValue<T> implements ObservableValue<T> {
-	private final StyleAttribute<T> theAttribute;
+public class StyleConditionValue<T> extends StyleValue<T> implements Comparable<StyleConditionValue<?>> {
 	private final StyleCondition theCondition;
-	private final ObservableValue<? extends T> theValue;
 
-	public StyleConditionValue(StyleAttribute<T> attribute, StyleCondition condition, ObservableValue<? extends T> value) {
-		theAttribute = attribute;
+	public StyleConditionValue(StyleAttribute<T> attribute, StyleCondition condition, ObservableValue<? extends T> value,
+		QuickMessageCenter msg) {
+		super(attribute, value, msg);
 		theCondition = condition;
-		theValue = value;
-	}
-
-	public StyleAttribute<T> getAttribute() {
-		return theAttribute;
 	}
 
 	public StyleCondition getCondition() {
@@ -31,65 +20,29 @@ public class StyleConditionValue<T> implements ObservableValue<T> {
 	}
 
 	@Override
-	public TypeToken<T> getType() {
-		return theAttribute.getType().getType();
-	}
-
-	@Override
-	public T get() {
-		return theValue.get();
-	}
-
-	@Override
-	public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
-		return theValue.subscribe(new Observer<ObservableValueEvent<? extends T>>() {
-			@Override
-			public <V extends ObservableValueEvent<? extends T>> void onNext(V event) {
-				if (theAttribute.canAccept(event.getValue()))
-					observer.onNext(ObservableUtils.wrap(event, StyleConditionValue.this));
-				else if (theAttribute.canAccept(event.getOldValue()))
-					observer.onNext(createChangeEvent(event.getOldValue(), theAttribute.getDefault(), event));
-				// else Nothing. Stay at default value.
-			}
-
-			@Override
-			public <V extends ObservableValueEvent<? extends T>> void onCompleted(V event) {
-				// Not sure what this would mean, but I guess we'll propagate it
-				if (theAttribute.canAccept(event.getValue()))
-					observer.onCompleted(ObservableUtils.wrap(event, StyleConditionValue.this));
-				else
-					observer.onCompleted(createChangeEvent(theAttribute.getDefault(), theAttribute.getDefault(), event));
-			}
-		});
-	}
-
-
-	@Override
-	public boolean isSafe() {
-		return theValue.isSafe();
+	public int compareTo(StyleConditionValue<?> o) {
+		return theCondition.compareTo(o.theCondition);
 	}
 
 	@Override
 	public int hashCode() {
-		int ret = 0;
+		int ret = super.hashCode();
+		ret *= 13;
 		if (theCondition != null)
 			ret += theCondition.hashCode();
-		ret *= 13;
-		if (theValue != null)
-			ret += theValue.hashCode();
 		return ret;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof StyleConditionValue))
+		if (!super.equals(obj))
 			return false;
 		StyleConditionValue<?> sev = (StyleConditionValue<?>) obj;
-		return Objects.equals(theCondition, sev.theCondition) && Objects.equals(theValue, sev.theValue);
+		return Objects.equals(theCondition, sev.theCondition);
 	}
 
 	@Override
 	public String toString() {
-		return theCondition + "=" + theValue;
+		return theCondition + "=" + super.toString();
 	}
 }

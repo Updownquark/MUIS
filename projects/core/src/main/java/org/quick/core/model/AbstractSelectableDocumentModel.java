@@ -1,7 +1,5 @@
 package org.quick.core.model;
 
-import static org.quick.core.QuickConstants.States.TEXT_SELECTION;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -10,23 +8,22 @@ import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
-import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.qommons.IterableUtils;
 import org.qommons.Transaction;
-import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.core.QuickConstants;
+import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.stateful.InternallyStatefulStyle;
-import org.quick.core.style.stateful.StatefulStyle;
+import org.quick.core.style.StyleAttributes;
+import org.quick.core.style2.QuickStyle;
+import org.quick.core.style2.StyleChangeObservable;
+import org.quick.core.style2.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocumentModel implements SelectableDocumentModel {
-	private final InternallyStatefulStyle theParentStyle;
-
 	private final QuickStyle theNormalStyle;
 	private final QuickStyle theSelectedStyle;
 
@@ -40,14 +37,9 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	private final ReentrantReadWriteLock theLock;
 	private Object theCause;
 
-	/**
-	 * @param msg The message center to log errors against styles in this model
-	 * @param parentStyle The parent style to use for backup styles if this document's content is missing attributes directly
-	 */
-	public AbstractSelectableDocumentModel(QuickMessageCenter msg, InternallyStatefulStyle parentStyle) {
-		theParentStyle = parentStyle;
-		theNormalStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, false);
-		theSelectedStyle = new org.quick.core.model.SimpleDocumentModel.SelectionStyle(msg, parentStyle, true);
+	public AbstractSelectableDocumentModel(QuickElement element) {
+		theNormalStyle = element.getStyle();
+		theSelectedStyle = new SelectionStyle(element);
 		theContentChanges = new SimpleObservable<>();
 		theStyleChanges = new SimpleObservable<>();
 		theSelectionChanges = new SimpleObservable<>();
@@ -55,7 +47,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
 		 * correctly because the cache may have the old color/size/etc */
-		theNormalStyle.allChanges().act(event -> {
+		element.getDefaultStyleListener().act(event -> {
 			int minSel = theCursor;
 			int maxSel = theCursor;
 			if (theSelectionAnchor < minSel)
@@ -70,7 +62,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			int evtEnd = maxSel == length() ? minSel : length();
 			fireStyleEvent(evtStart, evtEnd, event);
 		});
-		theSelectedStyle.allChanges().act(event -> {
+		new StyleChangeObservable(theSelectedStyle, element.getDefaultStyleListener()).act(event -> {
 			if (theCursor == theSelectionAnchor) {
 				return; // No selected text
 			}
@@ -89,11 +81,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	@Override
 	public Observable<QuickDocumentChangeEvent> changes() {
 		return Observable.or(theContentChanges, theStyleChanges, theSelectionChanges);
-	}
-
-	/** @return This document's parent's style */
-	public InternallyStatefulStyle getParentStyle() {
-		return theParentStyle;
 	}
 
 	/** @return The style for text that is not selected */
@@ -812,19 +799,40 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	}
 
 	/** A selected or deselected style for a document */
-	public static class SelectionStyle extends org.quick.core.style.stateful.AbstractInternallyStatefulStyle {
-		/**
-		 * @param msg The message center to log errors against style values
-		 * @param parent The parent style to mutate
-		 * @param selected Whether this is to be the selected or deselected style
-		 */
-		public SelectionStyle(QuickMessageCenter msg, InternallyStatefulStyle parent, final boolean selected) {
-			super(msg,
-				ObservableList
-					.constant(TypeToken.of(StatefulStyle.class),
-						(StatefulStyle) parent),
-				selected ? ObservableSet.unique(ObservableCollection.flattenCollections(parent.getState(),
-					ObservableSet.constant(TypeToken.of(QuickState.class), TEXT_SELECTION)), Object::equals) : parent.getState());
+	public static class SelectionStyle implements org.quick.core.style2.QuickStyle {
+		private final QuickElement theElement;
+		private final ObservableSet<QuickState> theSelectedState;
+
+		public SelectionStyle(QuickElement element) {
+			theElement = element;
+			theSelectedState = ObservableSet.constant(TypeToken.of(QuickState.class), QuickConstants.States.TEXT_SELECTION);
+		}
+
+		@Override
+		public ObservableSet<StyleAttribute<?>> attributes() {
+			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
+			ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
+			StyleSheet sheet = theElement.getDocument().getStyle();
+			return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
+		}
+
+		@Override
+		public boolean isSet(StyleAttribute<?> attr) {
+			QuickStyle localStyle = theElement.atts().get(StyleAttributes.STYLE_ATTRIBUTE);
+			if (localStyle != null && localStyle.isSet(attr))
+				return true;
+			StyleSheet sheet = theElement.getDocument().getStyle();
+			if (sheet.isSet(theElement, theSelectedState, attr))
+				return true;
+			return false;
+		}
+
+		@Override
+		public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
+			ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
+			StyleSheet sheet = theElement.getDocument().getStyle();
+			return ObservableValue.first(localValue, sheet.get(theElement, theSelectedState, attr, withDefault));
 		}
 	}
 
@@ -834,7 +842,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		private final int theStart;
 		private final int theEnd;
 		private final QuickStyle theStyle;
-		private final ObservableList<QuickStyle> theDependencies;
 
 		StyledSequenceWrapper(StyledSequence toWrap, QuickStyle backup, int start, int end) {
 			theWrapped = toWrap;
@@ -845,33 +852,23 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
 			if(end < start || end > toWrap.length())
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
-			theDependencies = ObservableList.flatten(ObservableList.constant(new TypeToken<ObservableList<QuickStyle>>() {},
-				theWrapped.getStyle().getDependencies(), ObservableList.constant(TypeToken.of(QuickStyle.class), theBackup)));
 
 			theStyle = new QuickStyle() {
 				@Override
-				public ObservableList<QuickStyle> getDependencies() {
-					return theDependencies;
+				public ObservableSet<StyleAttribute<?>> attributes() {
+					return ObservableSet.unique(
+						ObservableCollection.flattenCollections(theWrapped.getStyle().attributes(), theBackup.attributes()),
+						Object::equals);
 				}
 
 				@Override
 				public boolean isSet(StyleAttribute<?> attr) {
-					return theWrapped.getStyle() != null && theWrapped.getStyle().isSet(attr);
+					return theWrapped.getStyle() != null && theWrapped.getStyle().isSet(attr) || theBackup.isSet(attr);
 				}
 
 				@Override
-				public boolean isSetDeep(StyleAttribute<?> attr) {
-					return (theWrapped.getStyle() != null && theWrapped.getStyle().isSetDeep(attr)) || theBackup.isSetDeep(attr);
-				}
-
-				@Override
-				public <T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
-					return theWrapped.getStyle().getLocal(attr);
-				}
-
-				@Override
-				public ObservableSet<StyleAttribute<?>> localAttributes() {
-					return theWrapped.getStyle().localAttributes();
+				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+					return ObservableValue.first(theWrapped.getStyle().get(attr, false), theBackup.get(attr, true));
 				}
 			};
 		}

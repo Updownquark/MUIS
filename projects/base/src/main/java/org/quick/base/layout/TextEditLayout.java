@@ -12,6 +12,7 @@ import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.style2.QuickStyle;
 import org.quick.util.CompoundListener;
 
 /** Controls the location of the text inside a text-editing widget */
@@ -135,11 +136,11 @@ public class TextEditLayout implements QuickLayout {
 					final Integer length = parent.atts().get(charLengthAtt);
 					if(length != null) {
 						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
-						org.quick.core.style.QuickStyle style;
+						QuickStyle style;
 						if(doc.length() > 0)
 							style = doc.getStyleAt(0);
 						else
-							style = children[0].getStyle().getSelf();
+							style = children[0].getStyle();
 						java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
 						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(),
 							style.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
@@ -200,11 +201,11 @@ public class TextEditLayout implements QuickLayout {
 					final Integer rows = parent.atts().get(charRowsAtt);
 					if(rows != null) {
 						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
-						org.quick.core.style.QuickStyle style;
+						QuickStyle style;
 						if(doc.length() > 0)
 							style = doc.getStyleAt(0);
 						else
-							style = children[0].getStyle().getSelf();
+							style = children[0].getStyle();
 						java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
 						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style
 							.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
@@ -231,7 +232,7 @@ public class TextEditLayout implements QuickLayout {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		boolean wrap = children[0].getStyle().getSelf().get(org.quick.core.style.FontStyle.wordWrap).get();
+		boolean wrap = children[0].getStyle().get(org.quick.core.style.FontStyle.wordWrap).get();
 		int w = wrap ? parent.bounds().getWidth() : children[0].bounds().getHorizontal().getGuide().getPreferred(Integer.MAX_VALUE, true);
 		int h = children[0].bounds().getVertical().getGuide().getPreferred(w, !wrap);
 

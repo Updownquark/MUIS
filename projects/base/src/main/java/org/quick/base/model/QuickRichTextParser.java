@@ -17,6 +17,7 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
+import org.quick.core.style2.QuickStyle;
 
 /** Parses and formats text in the Quick rich format */
 public class QuickRichTextParser {
@@ -156,7 +157,7 @@ public class QuickRichTextParser {
 			else {
 				java.awt.Color color = org.quick.core.style.Colors.parseIfColor(tagContent.toString());
 				if(color != null) {
-					if(color.equals(model.last().getStyle().getLocal(FontStyle.color)))
+					if (color.equals(model.last().getStyle().get(FontStyle.color).get()))
 						model.clear(FontStyle.color);
 					else
 						throw new QuickParseException("Font color at this location (" + index + ") is not " + tagContent);
@@ -248,7 +249,7 @@ public class QuickRichTextParser {
 				else {
 					QuickStyle style;
 					try {
-						style = org.quick.core.style.attach.StyleAttributes.parseStyle(parser, env, tagContent.toString());
+						style = org.quick.core.style.StyleAttributes.parseStyle(parser, env, tagContent.toString());
 					} catch(QuickExceptionWrapper e) {
 						throw new QuickParseException("Could not parse tag " + richText.substring(start - 1, end + 1) + " at index " + index
 							+ ": " + e.getMessage(), e.getCause());
@@ -288,7 +289,7 @@ public class QuickRichTextParser {
 		for(StyledSequence seq : model) {
 			Map<StyleDomain, Set<StyleAttribute<?>>> genericAtts = new java.util.HashMap<>();
 			if(lastStyle != null) {
-				for(StyleAttribute<?> att : lastStyle.localAttributes()) {
+				for (StyleAttribute<?> att : lastStyle.attributes()) {
 					if(seq.getStyle().isSet(att))
 						continue;
 
@@ -336,7 +337,7 @@ public class QuickRichTextParser {
 				}
 				genericAtts.clear();
 			}
-			for(StyleAttribute<?> att : seq.getStyle().localAttributes()) {
+			for (StyleAttribute<?> att : seq.getStyle().attributes()) {
 				Object value = seq.getStyle().get(att);
 				if(lastStyle != null && lastStyle.get(att) == value)
 					continue;

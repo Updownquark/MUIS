@@ -204,7 +204,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	}
 
 	private void up(QuickTextElement element, boolean shift) {
-		if(!element.getStyle().getSelf().get(org.quick.core.style.FontStyle.wordWrap).get())
+		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			return;
 		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 			return;
@@ -225,7 +225,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	}
 
 	private void down(QuickTextElement element, boolean shift) {
-		if(!element.getStyle().getSelf().get(org.quick.core.style.FontStyle.wordWrap).get())
+		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			return;
 		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
 			return;
@@ -260,7 +260,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			return;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		int newCursor;
-		if(!element.getStyle().getSelf().get(org.quick.core.style.FontStyle.wordWrap).get())
+		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = 0;
 		else {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
@@ -277,7 +277,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			return;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
 		int newCursor;
-		if(!element.getStyle().getSelf().get(org.quick.core.style.FontStyle.wordWrap).get())
+		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = doc.length();
 		else {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());

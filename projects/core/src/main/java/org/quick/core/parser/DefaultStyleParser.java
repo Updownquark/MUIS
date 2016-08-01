@@ -8,7 +8,6 @@ import java.util.regex.Pattern;
 
 import org.jdom2.Element;
 import org.observe.ObservableValue;
-import org.observe.collect.ObservableList;
 import org.quick.core.*;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
@@ -16,13 +15,11 @@ import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 import org.quick.core.style.StyleParsingUtils;
-import org.quick.core.style.sheet.ParsedStyleSheet;
-import org.quick.core.style.sheet.StateGroupTypeExpression;
-import org.quick.core.style.sheet.StyleSheet;
-import org.quick.core.style.stateful.StateExpression;
+import org.quick.core.style2.ConditionalStyleSetter;
+import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style2.StateCondition;
+import org.quick.core.style2.StyleCondition;
 import org.quick.util.QuickUtils;
-
-import com.google.common.reflect.TypeToken;
 
 /** Parses .qss XML style files for Quick */
 public class DefaultStyleParser implements QuickStyleParser {
@@ -40,7 +37,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 	}
 
 	@Override
-	public ParsedStyleSheet parseStyleSheet(URL location, QuickToolkit toolkit, QuickPropertyParser parser, QuickClassView cv,
+	public ImmutableStyleSheet parseStyleSheet(URL location, QuickToolkit toolkit, QuickPropertyParser parser, QuickClassView cv,
 		QuickMessageCenter msg) throws IOException, QuickParseException {
 		Element rootEl;
 		try {
@@ -49,13 +46,13 @@ public class DefaultStyleParser implements QuickStyleParser {
 			throw new QuickParseException("Could not parse quick style XML for " + location, e);
 		}
 
-		ParsedStyleSheet styleSheet = new ParsedStyleSheet(msg, ObservableList.constant(TypeToken.of(StyleSheet.class)));
 		ExpressionContextStack stack = new ExpressionContextStack(theEnvironment, toolkit);
 		stack.push();
 		addNamespaces(rootEl, location, stack, msg);
 		QuickParseEnv parseEnv = new SimpleParseEnv(cv, msg, DefaultExpressionContext.build().build()); // TODO time variables
+		ImmutableStyleSheet.Builder builder = ImmutableStyleSheet.build(msg);
 		for (Element child : rootEl.getChildren())
-			parseStyleElement(child, location, parser, parseEnv, stack, styleSheet);
+			parseStyleElement(child, location, parser, parseEnv, stack, builder);
 		return null;
 	}
 
@@ -86,7 +83,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 	}
 
 	private void parseStyleElement(Element xml, URL location, QuickPropertyParser parser, QuickParseEnv parseEnv,
-		ExpressionContextStack stack, ParsedStyleSheet styleSheet) {
+		ExpressionContextStack stack, ConditionalStyleSetter setter) {
 		stack.push();
 		addNamespaces(xml, location, stack, parseEnv.msg());
 		String name = xml.getAttributeValue("name");
@@ -108,7 +105,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 			}
 			break;
 		case "state":
-			StateExpression state;
+			StateCondition state;
 			try {
 				state = parseState(name, stack);
 			} catch (QuickParseException e) {
@@ -140,29 +137,31 @@ public class DefaultStyleParser implements QuickStyleParser {
 				}
 				String attr = child.getAttributeValue("name");
 				String valueStr = child.getAttributeValue("value");
-				applyStyleValue(name, attr, valueStr, parser, parseEnv, styleSheet, stack);
+				applyStyleValue(name, attr, valueStr, parser, parseEnv, setter, stack);
 			}
 			break;
 		case "attr":
 			String domain = xml.getAttributeValue("domain");
 			String valueStr = xml.getAttributeValue("value");
-			applyStyleValue(domain, name, valueStr, parser, parseEnv, styleSheet, stack);
+			applyStyleValue(domain, name, valueStr, parser, parseEnv, setter, stack);
 		}
+		for (Element child : xml.getChildren())
+			parseStyleElement(child, location, parser, parseEnv, stack, setter);
 		stack.pop();
 	}
 
-	private StateExpression parseState(String name, ExpressionContextStack stack) throws QuickParseException {
+	private StateCondition parseState(String name, ExpressionContextStack stack) throws QuickParseException {
 		return parseState(name, stack, new int[] { 0 }, new int[] { name.length() });
 	}
 
-	private StateExpression parseState(String name, ExpressionContextStack stack, int[] start, int[] end) throws QuickParseException {
+	private StateCondition parseState(String name, ExpressionContextStack stack, int[] start, int[] end) throws QuickParseException {
 		if (start[0] == end[0])
 			return null;
-		StateExpression total = null;
+		StateCondition total = null;
 		boolean and = false;
 		boolean or = false;
 		while (start[0] != end[0]) {
-			StateExpression next = parseNextState(name, stack, start, end);
+			StateCondition next = parseNextState(name, stack, start, end);
 			if (total == null)
 				total = next;
 			else if (and) {
@@ -192,7 +191,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 		return total;
 	}
 
-	private StateExpression parseNextState(String name, ExpressionContextStack stack, int[] start, int[] end) throws QuickParseException {
+	private StateCondition parseNextState(String name, ExpressionContextStack stack, int[] start, int[] end) throws QuickParseException {
 		while (start[0] != end[0] && Character.isWhitespace(name.charAt(start[0])))
 			start[0]++;
 		switch (name.charAt(start[0])) {
@@ -200,7 +199,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 			int endParen = getEndParen(name);
 			if (endParen < 0)
 				throw new QuickParseException("Parentheses do not match");
-			StateExpression next = parseState(name, stack, new int[] { start[0] + 1 }, new int[] { endParen });
+			StateCondition next = parseState(name, stack, new int[] { start[0] + 1 }, new int[] { endParen });
 			start[0] = endParen + 1;
 			return next;
 		case '!':
@@ -213,7 +212,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 			}
 			QuickState state = findState(matcher.group(), stack);
 			start[0] += matcher.end();
-			return StateExpression.forState(state);
+			return StateCondition.forState(state);
 		}
 	}
 
@@ -232,27 +231,23 @@ public class DefaultStyleParser implements QuickStyleParser {
 	}
 
 	private QuickState findState(String name, ExpressionContextStack stack) throws QuickParseException {
-		Class<? extends QuickElement>[] types = stack.getTopTypes();
-		if (types.length == 0)
-			types = new Class[] { QuickElement.class };
+		Class<? extends QuickElement> type = stack.getTopType();
 		QuickState ret = null;
-		for (int i = 0; i < types.length; i++) {
-			boolean found = false;
-			QuickState[] states = org.quick.util.QuickUtils.getStatesFor(types[i]);
-			for (int j = 0; j < states.length; j++)
-				if (states[j].getName().equals(name)) {
-					found = true;
-					if (ret == null)
-						ret = states[j];
-				}
-			if (!found)
-				throw new QuickParseException("Element type " + types[i].getName() + " does not support state \"" + name + "\"");
-		}
+		boolean found = false;
+		QuickState[] states = org.quick.util.QuickUtils.getStatesFor(type);
+		for (int j = 0; j < states.length; j++)
+			if (states[j].getName().equals(name)) {
+				found = true;
+				if (ret == null)
+					ret = states[j];
+			}
+		if (!found)
+			throw new QuickParseException("Element type " + type.getName() + " does not support state \"" + name + "\"");
 		return ret;
 	}
 
 	private void applyStyleValue(String domainName, String attrName, String valueStr, QuickPropertyParser parser, QuickParseEnv parseEnv,
-		ParsedStyleSheet styleSheet, ExpressionContextStack stack) {
+		ConditionalStyleSetter setter, ExpressionContextStack stack) {
 		String ns;
 		int nsIdx = domainName.indexOf(':');
 		if (nsIdx >= 0) {
@@ -281,16 +276,11 @@ public class DefaultStyleParser implements QuickStyleParser {
 			return;
 		}
 
-		if(stack.size()>0){
-			for(StateGroupTypeExpression<?> expr : stack){
-				applyParsedValue(parser, parseEnv, styleAttr, valueStr, styleSheet, expr);
-			}
-		} else
-			applyParsedValue(parser, parseEnv, styleAttr, valueStr, styleSheet, null);
+		applyParsedValue(parser, parseEnv, styleAttr, valueStr, setter, stack.asCondition());
 	}
 
 	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
-		ParsedStyleSheet styleSheet, StateGroupTypeExpression<?> expr) {
+		ConditionalStyleSetter setter, StyleCondition condition) {
 		ObservableValue<T> value;
 		try {
 			value = parser.parseProperty(styleAttr, env, valueStr);
@@ -299,6 +289,6 @@ public class DefaultStyleParser implements QuickStyleParser {
 				+ styleAttr.getDomain().getName(), e);
 			return;
 		}
-		styleSheet.set(styleAttr, expr, value);
+		setter.set(styleAttr, condition, value);
 	}
 }

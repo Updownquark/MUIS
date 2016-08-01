@@ -3,8 +3,8 @@ package org.quick.base.widget;
 import org.quick.base.style.BorderStyle;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style.QuickStyle;
 import org.quick.core.style.Size;
+import org.quick.core.style2.QuickStyle;
 import org.quick.core.tags.Template;
 
 /** Wraps an element (or set thereof) in a border */
@@ -14,7 +14,7 @@ public class BorderPane extends org.quick.core.QuickTemplate {
 	public BorderPane() {
 		life().runWhen(
 			() -> {
-				QuickStyle selfStyle = getStyle().getSelf();
+				QuickStyle selfStyle = getStyle();
 				org.observe.Observable.or(selfStyle.get(BackgroundStyle.cornerRadius), selfStyle.get(BorderStyle.thickness),
 					selfStyle.get(BorderStyle.inset)).act(event -> relayout(false));
 			}, org.quick.core.QuickConstants.CoreStage.INITIALIZED.toString(), 1);
@@ -27,7 +27,7 @@ public class BorderPane extends org.quick.core.QuickTemplate {
 
 	@Override
 	public void doLayout() {
-		QuickStyle selfStyle = getStyle().getSelf();
+		QuickStyle selfStyle = getStyle();
 		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
 		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
 		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
@@ -40,7 +40,7 @@ public class BorderPane extends org.quick.core.QuickTemplate {
 
 	@Override
 	public SizeGuide getWSizer() {
-		QuickStyle selfStyle = getStyle().getSelf();
+		QuickStyle selfStyle = getStyle();
 		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
 		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
 		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
@@ -49,7 +49,7 @@ public class BorderPane extends org.quick.core.QuickTemplate {
 
 	@Override
 	public SizeGuide getHSizer() {
-		QuickStyle selfStyle = getStyle().getSelf();
+		QuickStyle selfStyle = getStyle();
 		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
 		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
 		thickness += selfStyle.get(BorderStyle.inset).get().intValue();

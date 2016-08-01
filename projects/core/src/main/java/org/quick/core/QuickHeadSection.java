@@ -2,15 +2,15 @@ package org.quick.core;
 
 import java.util.*;
 
-import org.quick.core.style.sheet.ParsedStyleSheet;
+import org.quick.core.style2.ImmutableStyleSheet;
 
 /** Metadata for a Quick document */
 public class QuickHeadSection {
 	private final String theTitle;
-	private final List<ParsedStyleSheet> theStyleSheets;
+	private final List<ImmutableStyleSheet> theStyleSheets;
 	private final Map<String, Object> theModels;
 
-	private QuickHeadSection(String title, List<ParsedStyleSheet> styleSheets, Map<String, Object> models) {
+	private QuickHeadSection(String title, List<ImmutableStyleSheet> styleSheets, Map<String, Object> models) {
 		theTitle = title;
 		theStyleSheets = Collections.unmodifiableList(new ArrayList<>(styleSheets));
 		theModels = Collections.unmodifiableMap(new TreeMap<>(models));
@@ -22,7 +22,7 @@ public class QuickHeadSection {
 	}
 
 	/** @return All style sheets specified in this head section */
-	public List<ParsedStyleSheet> getStyleSheets() {
+	public List<ImmutableStyleSheet> getStyleSheets() {
 		return theStyleSheets;
 	}
 
@@ -47,7 +47,7 @@ public class QuickHeadSection {
 	/** Builds a {@link QuickHeadSection} */
 	public static class Builder {
 		private String theTitle;
-		private List<ParsedStyleSheet> theStyleSheets = new ArrayList<>();
+		private List<ImmutableStyleSheet> theStyleSheets = new ArrayList<>();
 		private Map<String, Object> theModels = new TreeMap<>();
 
 		Builder() {}
@@ -65,7 +65,7 @@ public class QuickHeadSection {
 		 * @param styleSheet The style sheet to add to the head section
 		 * @return This builder, for chaining
 		 */
-		public Builder addStyleSheet(ParsedStyleSheet styleSheet) {
+		public Builder addStyleSheet(ImmutableStyleSheet styleSheet) {
 			theStyleSheets.add(styleSheet);
 			return this;
 		}

@@ -6,7 +6,7 @@ import java.util.Map;
 import org.quick.core.*;
 import org.quick.core.model.DefaultQuickModel;
 import org.quick.core.model.QuickModelConfig;
-import org.quick.core.style.sheet.ParsedStyleSheet;
+import org.quick.core.style2.ImmutableStyleSheet;
 
 /** Creates active Quick content from parsed structures */
 public class QuickContentCreator {
@@ -142,7 +142,7 @@ public class QuickContentCreator {
 		throws QuickParseException {
 		QuickHeadSection.Builder builder = QuickHeadSection.build();
 		builder.setTitle(structure.getTitle());
-		for (ParsedStyleSheet ss : structure.getStyleSheets())
+		for (ImmutableStyleSheet ss : structure.getStyleSheets())
 			builder.addStyleSheet(ss);
 		for (Map.Entry<String, QuickModelConfig> mc : structure.getModelConfigs().entrySet())
 			builder.addModel(mc.getKey(), DefaultQuickModel.buildQuickModel(mc.getValue().without("name"), parser, parseEnv));

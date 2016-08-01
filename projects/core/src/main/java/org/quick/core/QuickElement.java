@@ -2,10 +2,9 @@
 package org.quick.core;
 
 import java.awt.Rectangle;
-import java.util.*;
+import java.util.List;
 
 import org.observe.Action;
-import org.qommons.ArrayUtils;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.event.*;
@@ -16,9 +15,11 @@ import org.quick.core.mgr.QuickLifeCycleManager.Controller;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style.QuickStyle;
+import org.quick.core.style.LightedStyle;
+import org.quick.core.style.StyleAttributes;
 import org.quick.core.style.Texture;
-import org.quick.core.style.attach.*;
+import org.quick.core.style2.QuickElementStyle;
+import org.quick.core.style2.StyleChangeObservable;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 
@@ -67,9 +68,9 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private final ImmutableChildList<QuickElement> theExposedChildren;
 
-	private final ElementStyle theStyle;
+	private final QuickElementStyle theStyle;
 
-	private final CompoundStyleListener theDefaultStyleListener;
+	private final StyleChangeObservable theDefaultStyleListener;
 
 	private final CoreStateControllers theStateControllers;
 
@@ -106,16 +107,12 @@ public abstract class QuickElement implements QuickParseEnv {
 		theChildren = new ChildList(this);
 		theExposedChildren = new ImmutableChildList<>(theChildren);
 		theAttributeManager = new AttributeManager(this);
-		theStyle = new ElementStyle(this);
-		theDefaultStyleListener = new CompoundStyleListener(this) {
-			@Override
-			public void styleChanged(QuickStyle style) {
-				repaint(null, false);
-			}
-		};
-		theDefaultStyleListener.addDomain(BackgroundStyle.getDomainInstance());
-		theDefaultStyleListener.addDomain(org.quick.core.style.LightedStyle.getDomainInstance());
-		theDefaultStyleListener.add();
+		theStyle = new QuickElementStyle(this);
+		theDefaultStyleListener = new StyleChangeObservable(theStyle);
+		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
+		theDefaultStyleListener.act(evt -> {
+			repaint(null, false);
+		});
 		events().filterMap(ChildEvent.child).act(event -> {
 			events().fire(new SizeNeedsChangedEvent(QuickElement.this, null));
 			switch (event.getType()) {
@@ -175,44 +172,12 @@ public abstract class QuickElement implements QuickParseEnv {
 		theAttributeManager.accept(styleWanter, StyleAttributes.STYLE_ATTRIBUTE);
 		// events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
 		// (StylePathAccepter) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
-		final boolean [] groupCallbackLock = new boolean[1];
-		theAttributeManager.accept(styleWanter, StyleAttributes.GROUP_ATTRIBUTE).act(event -> {
-			if(groupCallbackLock[0])
-				return;
-			groupCallbackLock[0] = true;
-			try {
-				setGroups(event.getValue());
-			} finally {
-				groupCallbackLock[0] = false;
-			}
-		});
-		events().filterMap(GroupMemberEvent.groups).act(event -> {
-			if(groupCallbackLock[0])
-				return;
-			groupCallbackLock[0] = true;
-			try {
-				ArrayList<String> groupList = new ArrayList<>();
-				for(TypedStyleGroup<?> group : getStyle().groups(true))
-					groupList.add(group.getRoot().getName());
-				Set<String> groups = new LinkedHashSet<>(groupList);
-				if (!ArrayUtils.equals(groups, atts().get(StyleAttributes.GROUP_ATTRIBUTE)))
-					try {
-						atts().set(StyleAttributes.GROUP_ATTRIBUTE, groups);
-					} catch(QuickException e) {
-						msg().warn("Error reconciling " + StyleAttributes.GROUP_ATTRIBUTE + " attribute with group membership change", e,
-							"group", event.getGroup());
-					}
-			} finally {
-				groupCallbackLock[0] = false;
-			}
-		});
 		bounds().act(event -> {
 			Rectangle old = event.getOldValue();
 			if(old == null || event.getValue().width != old.width || event.getValue().height != old.height)
 				relayout(false);
 		});
 		theLifeCycleManager.runWhen(() -> {
-			setGroups(theAttributeManager.get(StyleAttributes.GROUP_ATTRIBUTE));
 			repaint(null, false);
 		}, CoreStage.INIT_SELF.toString(), 2);
 		addAnnotatedStates();
@@ -309,43 +274,6 @@ public abstract class QuickElement implements QuickParseEnv {
 		});
 	}
 
-	private void setGroups(Set<String> groupNames) {
-		if(getDocument() == null)
-			return;
-		if(groupNames == null)
-			groupNames = Collections.emptySet();
-		ArrayList<NamedStyleGroup> groups = new ArrayList<>();
-		for(NamedStyleGroup group : getDocument().groups())
-			groups.add(group);
-		ArrayUtils.adjust(groups.toArray(new NamedStyleGroup[0]), groupNames.toArray(new String[0]),
-			new ArrayUtils.DifferenceListener<NamedStyleGroup, String>() {
-				@Override
-			public boolean identity(NamedStyleGroup o1, String o2) {
-				return o1.getName().equals(o2);
-			}
-
-			@Override
-			public NamedStyleGroup added(String o, int mIdx, int retIdx) {
-				getStyle().addGroup(getDocument().getGroup(o));
-				return null;
-			}
-
-			@Override
-			public NamedStyleGroup removed(NamedStyleGroup o, int oIdx, int incMod, int retIdx) {
-				if(o.isMember(QuickElement.this))
-					getStyle().removeGroup(o);
-				return null;
-			}
-
-			@Override
-			public NamedStyleGroup set(NamedStyleGroup o1, int idx1, int incMod, String o2, int idx2, int retIdx) {
-				if(!o1.isMember(QuickElement.this))
-					getStyle().addGroup(o1);
-				return null;
-			}
-		});
-	}
-
 	/** @return The document that this element belongs to */
 	public final QuickDocument getDocument() {
 		return theDocument;
@@ -425,7 +353,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	/** @return The style that modifies this element's appearance */
-	public final ElementStyle getStyle() {
+	public final QuickElementStyle getStyle() {
 		return theStyle;
 	}
 
@@ -611,7 +539,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @return The default style listener to add domains and styles to listen to. When one of the registered styles changes, this element
 	 *         repaints itself.
 	 */
-	public final CompoundStyleListener getDefaultStyleListener() {
+	public final StyleChangeObservable getDefaultStyleListener() {
 		return theDefaultStyleListener;
 	}
 
@@ -770,7 +698,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/** @return Whether this element is at least partially transparent */
 	public boolean isTransparent() {
-		return getStyle().getSelf().get(BackgroundStyle.transparency).get() > 0;
+		return getStyle().get(BackgroundStyle.transparency).get() > 0;
 	}
 
 	/**
@@ -849,7 +777,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param area The area to paint
 	 */
 	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area) {
-		Texture tex = getStyle().getSelf().get(BackgroundStyle.texture).get();
+		Texture tex = getStyle().get(BackgroundStyle.texture).get();
 		if(tex != null)
 			tex.render(graphics, this, area);
 	}

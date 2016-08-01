@@ -18,7 +18,7 @@ import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.style.FontStyle;
-import org.quick.core.style.QuickStyle;
+import org.quick.core.style2.QuickStyle;
 
 /** An overlay for a text editor that flashes a cursor above a document */
 public class DocumentCursorOverlay extends QuickElement {
@@ -191,7 +191,7 @@ public class DocumentCursorOverlay extends QuickElement {
 			imgGraphics.drawLine(0, 0, (int) width - 1, (int) ascent - 1);
 		imgGraphics.dispose();
 
-		boolean wordWrap = theTextElement.getStyle().getSelf().get(FontStyle.wordWrap).get();
+		boolean wordWrap = theTextElement.getStyle().get(FontStyle.wordWrap).get();
 		java.awt.geom.Point2D cursorLoc2D = theTextElement.getDocumentModel().get().getLocationAt(doc.getCursor(),
 			wordWrap ? theTextElement.bounds().getWidth() : Integer.MAX_VALUE);
 		Point loc = new Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));

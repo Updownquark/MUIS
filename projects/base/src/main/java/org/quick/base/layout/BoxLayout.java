@@ -49,8 +49,8 @@ public class BoxLayout implements QuickLayout {
 	@Override
 	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
-		Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
+		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
+		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		switch (dir) {
 		case UP:
 		case DOWN:
@@ -65,8 +65,8 @@ public class BoxLayout implements QuickLayout {
 	@Override
 	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
-		Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
+		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
+		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		switch (dir) {
 		case UP:
 		case DOWN:
@@ -193,8 +193,8 @@ public class BoxLayout implements QuickLayout {
 		final Direction dir = parent.atts().get(direction, Direction.RIGHT);
 		Alignment align = parent.atts().get(alignment, Alignment.begin);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.begin);
-		final Size margin = parent.getStyle().getSelf().get(LayoutStyle.margin).get();
-		final Size padding = parent.getStyle().getSelf().get(LayoutStyle.padding).get();
+		final Size margin = parent.getStyle().get(LayoutStyle.margin).get();
+		final Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 
 		final int parallelSize = parent.bounds().get(dir.getOrientation()).getSize();
 		final int crossSize = parent.bounds().get(dir.getOrientation().opposite()).getSize();

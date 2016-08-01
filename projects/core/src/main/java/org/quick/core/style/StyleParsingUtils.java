@@ -4,6 +4,7 @@ import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickPropertyParser;
+import org.quick.core.style2.StyleSetter;
 
 /** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {
@@ -19,34 +20,36 @@ public class StyleParsingUtils {
 	public static StyleDomain getStyleDomain(String ns, String domainName, org.quick.core.QuickClassView classView) throws QuickException {
 		org.quick.core.QuickToolkit toolkit = null;
 		String domainClassName;
-		if(ns == null) {
+		if (ns == null) {
 			domainClassName = classView.getMappedClass(ns, domainName);
-			if(domainClassName == null)
+			if (domainClassName == null)
 				throw new QuickException("No style domain mapped to " + domainName + " in class view");
 		} else {
 			toolkit = classView.getToolkit(ns);
-			if(toolkit == null) {
+			if (toolkit == null) {
 				throw new QuickException("No toolkit mapped to namespace " + ns);
 			}
 			domainClassName = toolkit.getMappedClass(domainName);
-			if(domainClassName == null) {
-				throw new QuickException("No style domain mapped to " + domainName + " in toolkit " + toolkit.getName() + "(ns=" + ns + ")");
+			if (domainClassName == null) {
+				throw new QuickException(
+					"No style domain mapped to " + domainName + " in toolkit " + toolkit.getName() + "(ns=" + ns + ")");
 			}
 		}
 
 		Class<? extends org.quick.core.style.StyleDomain> domainClass;
 		try {
-			if(toolkit != null)
+			if (toolkit != null)
 				domainClass = toolkit.loadClass(domainClassName, org.quick.core.style.StyleDomain.class);
 			else
 				domainClass = classView.loadMappedClass(ns, domainName, StyleDomain.class);
-		} catch(QuickException e) {
+		} catch (QuickException e) {
 			throw new QuickException("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
 		}
 		org.quick.core.style.StyleDomain domain;
 		try {
-			domain = (org.quick.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null, new Object[0]);
-		} catch(Exception e) {
+			domain = (org.quick.core.style.StyleDomain) domainClass.getMethod("getDomainInstance", new Class[0]).invoke(null,
+				new Object[0]);
+		} catch (Exception e) {
 			throw new QuickException("Could not get domain instance", e);
 		}
 		return domain;
@@ -60,26 +63,26 @@ public class StyleParsingUtils {
 	 * @param value The style value to split
 	 * @return The styles or style sets to parse
 	 */
-	public static String [] splitStyles(String value) {
+	public static String[] splitStyles(String value) {
 		java.util.ArrayList<String> ret = new java.util.ArrayList<>(1);
 		int begin = 0;
 		int bracket = 0;
 		int c;
-		for(c = 0; c < value.length(); c++) {
+		for (c = 0; c < value.length(); c++) {
 			char ch = value.charAt(c);
-			if(Character.isWhitespace(ch))
+			if (Character.isWhitespace(ch))
 				continue;
-			if(ch == ';' && bracket == 0) {
-				if(c - begin > 0)
+			if (ch == ';' && bracket == 0) {
+				if (c - begin > 0)
 					ret.add(value.substring(begin, c).trim());
 				begin = c + 1;
 				continue;
-			} else if(ch == '{')
+			} else if (ch == '{')
 				bracket++;
-			else if(ch == '}' && bracket > 0)
+			else if (ch == '}' && bracket > 0)
 				bracket--;
 		}
-		if(c > begin)
+		if (c > begin)
 			ret.add(value.substring(begin, c).trim());
 		return ret.toArray(new String[ret.size()]);
 	}
@@ -89,39 +92,39 @@ public class StyleParsingUtils {
 	 *
 	 * @param parser The property parser to parse the style value
 	 * @param env The parsing environment
-	 * @param style The style to apply the attribute to
 	 * @param domain The domain of the style
 	 * @param attrName The name of the attribute
 	 * @param valueStr The serialized value for the attribute
+	 * @param setter The style to apply the style value
 	 */
-	public static void applyStyleAttribute(QuickPropertyParser parser, QuickParseEnv env, MutableStyle style, StyleDomain domain,
-		String attrName, String valueStr) {
+	public static void applyStyleAttribute(QuickPropertyParser parser, QuickParseEnv env, StyleDomain domain, String attrName,
+		String valueStr, StyleSetter setter) {
 		StyleAttribute<?> styleAttr = null;
-		for(StyleAttribute<?> attrib : domain)
-			if(attrib.getName().equals(attrName)) {
+		for (StyleAttribute<?> attrib : domain)
+			if (attrib.getName().equals(attrName)) {
 				styleAttr = attrib;
 				break;
 			}
 
-		if(styleAttr == null) {
+		if (styleAttr == null) {
 			env.msg().warn("No such attribute " + attrName + " in domain " + domain.getName());
 			return;
 		}
 
-		applyParsedValue(parser, env, styleAttr, valueStr, style);
+		applyParsedValue(parser, env, styleAttr, valueStr, setter);
 	}
 
 	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
-		MutableStyle style) {
+		StyleSetter setter) {
 		ObservableValue<T> value;
 		try {
 			value = parser.parseProperty(styleAttr, env, valueStr);
-		} catch(org.quick.core.QuickException e) {
+		} catch (org.quick.core.QuickException e) {
 			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
 				+ styleAttr.getDomain().getName(), e);
 			return;
 		}
-		style.set(styleAttr, value);
+		setter.set(styleAttr, value);
 	}
 
 	/**
@@ -129,27 +132,27 @@ public class StyleParsingUtils {
 	 *
 	 * @param parser The property parser to parse style values
 	 * @param env The parsing environment
-	 * @param style The style to apply the settings to
 	 * @param domain The domain that the bulk style is for
 	 * @param valueStr The serialized bulk style value
+	 * @param setter The setter to apply the style values
 	 */
-	public static void applyStyleSet(QuickPropertyParser parser, QuickParseEnv env, MutableStyle style, StyleDomain domain,
-		String valueStr) {
+	public static void applyStyleSet(QuickPropertyParser parser, QuickParseEnv env, StyleDomain domain, String valueStr,
+		StyleSetter setter) {
 		// Setting domain attributes in bulk
-		if(valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(valueStr.length() - 1) != '}') {
+		if (valueStr.length() < 2 || valueStr.charAt(0) != '{' || valueStr.charAt(valueStr.length() - 1) != '}') {
 			env.msg().warn("When only a domain is specified, styles must be in the form {property=value; property=value}");
 			return;
 		}
-		String [] propEntries = valueStr.substring(1, valueStr.length() - 1).split(";");
-		for(String propEntry : propEntries) {
+		String[] propEntries = valueStr.substring(1, valueStr.length() - 1).split(";");
+		for (String propEntry : propEntries) {
 			int idx = propEntry.indexOf('=');
-			if(idx < 0) {
+			if (idx < 0) {
 				env.msg().warn("Bulk style setting " + propEntry.trim() + " is missing an equals sign");
 				continue;
 			}
 			String attrName = propEntry.substring(0, idx).trim();
 			String propVal = propEntry.substring(idx + 1).trim();
-			applyStyleAttribute(parser, env, style, domain, attrName, propVal);
+			applyStyleAttribute(parser, env, domain, attrName, propVal, setter);
 		}
 	}
 }

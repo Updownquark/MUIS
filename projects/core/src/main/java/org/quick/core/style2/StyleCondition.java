@@ -3,9 +3,12 @@ package org.quick.core.style2;
 import java.util.*;
 
 import org.observe.ObservableValue;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
-import org.quick.core.style.attach.StyleAttributes;
+import org.quick.core.mgr.QuickState;
+import org.quick.core.style.StyleAttributes;
 
 public class StyleCondition implements Comparable<StyleCondition> {
 	private final StateCondition theState;
@@ -86,6 +89,35 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			stateMatches = ObservableValue.constant(true);
 		else
 			stateMatches = theState.observeMatches(element.state().activeStates());
+
+		ObservableValue<Boolean> groupMatches;
+		if (theGroups.isEmpty())
+			groupMatches = ObservableValue.constant(true);
+		else
+			groupMatches = element.atts().getHolder(StyleAttributes.GROUP_ATTRIBUTE)
+				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
+
+		ObservableValue<Boolean> rolePathMatches;
+		if (theRolePath.isEmpty())
+			rolePathMatches = ObservableValue.constant(true);
+		else // TODO Make this observable. Probably easier when element children are observable collections
+			rolePathMatches = ObservableValue.constant(rolePathMatches(element, theRolePath.size() - 1));
+
+		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, rolePathMatches);
+	}
+
+	public ObservableValue<Boolean> matches(QuickElement element, ObservableSet<QuickState> extraStates) {
+		if (!theType.isInstance(element))
+			return ObservableValue.constant(false);
+
+		ObservableValue<Boolean> stateMatches;
+		if (theState == null)
+			stateMatches = ObservableValue.constant(true);
+		else {
+			ObservableSet<QuickState> allStates = ObservableSet
+				.unique(ObservableCollection.flattenCollections(element.state().activeStates(), extraStates), Object::equals);
+			stateMatches = theState.observeMatches(allStates);
+		}
 
 		ObservableValue<Boolean> groupMatches;
 		if (theGroups.isEmpty())
@@ -187,6 +219,11 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 		public Builder forPath(QuickTemplate.AttachPoint... rolePath) {
 			return forPath(Arrays.asList(rolePath));
+		}
+
+		public Builder forGroups(Collection<String> group) {
+			theGroups.addAll(group);
+			return this;
 		}
 
 		public Builder forGroup(String... group) {

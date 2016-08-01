@@ -4,18 +4,21 @@ import java.net.URL;
 import java.util.*;
 
 import org.observe.collect.ObservableList;
-import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.Version;
-import org.quick.core.style.sheet.StyleSheet;
+import org.quick.core.style.StyleAttribute;
+import org.quick.core.style2.CompoundStyleSheet;
+import org.quick.core.style2.MutableStyleSheet;
+import org.quick.core.style2.StyleConditionValue;
+import org.quick.core.style2.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
 /** Represents a toolkit that contains resources for use in a Quick document */
 public class QuickToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
-	public class ToolkitStyleSheet extends org.quick.core.style.sheet.AbstractStyleSheet {
-		ToolkitStyleSheet(QuickMessageCenter msg, ObservableList<StyleSheet> dependencies) {
-			super(msg, dependencies);
+	public class ToolkitStyleSheet extends CompoundStyleSheet {
+		ToolkitStyleSheet(ObservableList<StyleSheet> dependencies) {
+			super(dependencies);
 		}
 
 		@Override
@@ -52,8 +55,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		theClassMappings = Collections.unmodifiableMap(new LinkedHashMap<>(classMap));
 		theResourceMappings = Collections.unmodifiableMap(new LinkedHashMap<>(resMap));
 		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
-		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
-		theStyle = new ToolkitStyleSheet(env.msg(), styleDepends);
+		theStyle = new ToolkitStyleSheet(theStyleDependencyController.immutable());
 
 		for(URL cp : cps)
 			super.addURL(cp);
@@ -284,10 +286,18 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		return theName + " v" + theVersion;
 	}
 
+	/**
+	 * Creates a toolkit builder
+	 * 
+	 * @param env The environment that the toolkit is in
+	 * @param location The location of the toolkit
+	 * @return The builder
+	 */
 	public static Builder build(QuickEnvironment env, URL location) {
 		return new Builder(env, location);
 	}
 
+	/** Builds a QuickToolkit */
 	public static class Builder {
 		private final QuickEnvironment theEnvironment;
 		private final URL theLocation;
@@ -436,32 +446,28 @@ public class QuickToolkit extends java.net.URLClassLoader {
 			if(theBuiltToolkit == null)
 				throw new IllegalStateException("Styles must be added after the toolkit is built");
 			if(!theLocation.equals(QuickEnvironment.CORE_TOOLKIT) && !(styleSheet instanceof ToolkitStyleSheet)) {
-				for(org.quick.core.style.StyleAttribute<?> attr : styleSheet.allAttrs()) {
+				for (StyleAttribute<?> attr : styleSheet.attributes()) {
 					if(attr.getDomain().getClass().getClassLoader() == theBuiltToolkit)
 						continue;
-					for(org.quick.core.style.StyleExpressionValue<org.quick.core.style.sheet.StateGroupTypeExpression<?>, ?> sev : styleSheet
-						.getExpressions(attr)) {
-						boolean isSpecific = false;
-						org.quick.core.style.sheet.TemplateRole role = sev.getExpression().getTemplateRole();
-						while(role != null) {
-							if(role.getRole().template.getDefiner().getClassLoader() == theBuiltToolkit) {
-								isSpecific = true;
+					for (StyleConditionValue<?> sev : styleSheet.getStyleExpressions(attr)) {
+						if (sev.getCondition().getType().getClassLoader() == theBuiltToolkit)
+							continue;
+						boolean roleInTK = false;
+						for (QuickTemplate.AttachPoint role : sev.getCondition().getRolePath()) {
+							if (role.template.getDefiner().getClassLoader() == theBuiltToolkit) {
+								roleInTK = true;
 								break;
 							}
-							role = role.getParent();
 						}
-						if(!isSpecific && (sev.getExpression().getType() == null
-							|| sev.getExpression().getType().getClassLoader() != theBuiltToolkit)) {
-							String msg = "Toolkit " + theLocation + ": Style sheet";
-							if(styleSheet instanceof org.quick.core.style.sheet.ParsedStyleSheet)
-								msg += " defined in " + ((org.quick.core.style.sheet.ParsedStyleSheet) styleSheet).getLocation();
-							msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
-							if(!(styleSheet instanceof org.quick.core.style.sheet.MutableStyleSheet))
-								throw new IllegalStateException(msg);
-							else {
-								theEnvironment.msg().error(msg);
-								((org.quick.core.style.sheet.MutableStyleSheet) styleSheet).clear(attr, sev.getExpression());
-							}
+						if (roleInTK)
+							continue;
+						String msg = "Toolkit " + theLocation + ": Style sheet";
+						msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
+						if (!(styleSheet instanceof MutableStyleSheet))
+							throw new IllegalStateException(msg);
+						else {
+							theEnvironment.msg().error(msg);
+							((MutableStyleSheet) styleSheet).clear(attr, sev.getCondition());
 						}
 					}
 				}

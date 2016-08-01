@@ -5,7 +5,7 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.attach.StyleAttributes;
+import org.quick.core.style.StyleAttributes;
 
 public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
@@ -14,9 +14,16 @@ public class QuickElementStyle implements QuickStyle {
 		theElement = element;
 	}
 
-	@Override
 	public QuickElement getElement() {
 		return theElement;
+	}
+
+	@Override
+	public ObservableSet<StyleAttribute<?>> attributes() {
+		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
+		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
+		StyleSheet sheet = theElement.getDocument().getStyle();
+		return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
 	}
 
 	@Override
@@ -30,29 +37,11 @@ public class QuickElementStyle implements QuickStyle {
 		return false;
 	}
 
-
 	@Override
-	public ObservableSet<StyleAttribute<?>> attributes() {
+	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
-		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
+		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
 		StyleSheet sheet = theElement.getDocument().getStyle();
-		return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
-	}
-
-	@Override
-	public <T> T get(StyleAttribute<T> attr, boolean withDefault) {
-		QuickStyle localStyle = theElement.atts().get(StyleAttributes.STYLE_ATTRIBUTE);
-		if (localStyle != null && localStyle.isSet(attr))
-			return localStyle.get(attr, false);
-		StyleSheet sheet = theElement.getDocument().getStyle();
-		return sheet.get(theElement, attr, withDefault);
-	}
-
-	@Override
-	public <T> ObservableValue<T> observe(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
-		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.observe(attr, false)));
-		StyleSheet sheet = theElement.getDocument().getStyle();
-		return ObservableValue.first(localValue, sheet.observe(theElement, attr, withDefault));
+		return ObservableValue.first(localValue, sheet.get(theElement, attr, withDefault));
 	}
 }

@@ -51,8 +51,8 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 	@Override
 	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size marginSz = parent.getStyle().getSelf().get(margin).get();
-		Size paddingSz = parent.getStyle().getSelf().get(padding).get();
+		Size marginSz = parent.getStyle().get(margin).get();
+		Size paddingSz = parent.getStyle().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
 		boolean major = dir.getOrientation() == Orientation.horizontal;
 
@@ -62,8 +62,8 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 	@Override
 	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size marginSz = parent.getStyle().getSelf().get(margin).get();
-		Size paddingSz = parent.getStyle().getSelf().get(padding).get();
+		Size marginSz = parent.getStyle().get(margin).get();
+		Size paddingSz = parent.getStyle().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
 		boolean major = dir.getOrientation() == vertical;
 
@@ -191,8 +191,8 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 	@Override
 	public void layout(QuickElement parent, QuickElement [] children) {
 		Direction dir = parent.atts().get(direction, Direction.RIGHT);
-		Size marginSz = parent.getStyle().getSelf().get(margin).get();
-		Size paddingSz = parent.getStyle().getSelf().get(padding).get();
+		Size marginSz = parent.getStyle().get(margin).get();
+		Size paddingSz = parent.getStyle().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
 		Alignment align = parent.atts().get(alignment, dir.getStartEnd() == End.leading ? Alignment.begin : Alignment.end);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.center);

@@ -21,6 +21,7 @@ public class FontStyle implements StyleDomain {
 		/** A single-pixel solid underline */
 		on,
 		/** A double-pixel solid underline */
+		@SuppressWarnings("hiding")
 		heavy,
 		/** A dashed-underline */
 		dashed,
@@ -80,20 +81,33 @@ public class FontStyle implements StyleDomain {
 	public static final StyleAttribute<Double> stretch;
 
 	// Font weights
+	/** The {@link #weight} of normal text */
 	public static final double normalWeight = 1;
+	/** The {@link #weight} of extra-light text (the lightest named weight, lighter than {@link #light}) */
 	public static final double extraLight = TextAttribute.WEIGHT_EXTRA_LIGHT;
+	/** The {@link #weight} of light text (heavier than {@link #extraLight}, lighter than {@link #demiLight}) */
 	public static final double light = TextAttribute.WEIGHT_LIGHT;
+	/** The {@link #weight} of demi-light text (heavier than {@link #light}, lighter than {@link #semiBold}) */
 	public static final double demiLight = TextAttribute.WEIGHT_DEMILIGHT;
+	/** The {@link #weight} of semi-bold text (heavier than {@link #demiLight}, lighter than {@link #medium}) */
 	public static final double semiBold = TextAttribute.WEIGHT_SEMIBOLD;
+	/** The {@link #weight} of medium text (heavier than {@link #semiBold}, lighter than {@link #demiBold}) */
 	public static final double medium = TextAttribute.WEIGHT_MEDIUM;
+	/** The {@link #weight} of demi-bold text (heavier than {@link #medium}, lighter than {@link #bold}) */
 	public static final double demiBold = TextAttribute.WEIGHT_DEMIBOLD;
+	/** The {@link #weight} of bold text (heavier than {@link #demiBold}, lighter than {@link #heavy}) */
 	public static final double bold = TextAttribute.WEIGHT_BOLD;
+	/** The {@link #weight} of heavy text (heavier than {@link #bold}, lighter than {@link #extraBold}) */
 	public static final double heavy = TextAttribute.WEIGHT_HEAVY;
+	/** The {@link #weight} of extra bold text (heavier than {@link #heavy}, lighter than {@link #ultraBold}) */
 	public static final double extraBold = TextAttribute.WEIGHT_EXTRABOLD;
+	/** The {@link #weight} of ultra bold text (the heaviest named weight, heavier than {@link #extraBold}) */
 	public static final double ultraBold = TextAttribute.WEIGHT_ULTRABOLD;
 
 	// Font slants
+	/** The {@link #slant} of normal text */
 	public static final double normalSlant = TextAttribute.POSTURE_REGULAR;
+	/** The {@link #slant} of italic text */
 	public static final double italic = TextAttribute.POSTURE_OBLIQUE;
 
 	static {

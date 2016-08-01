@@ -10,13 +10,13 @@ public class BaseTexture implements Texture {
 		int y = area == null ? 0 : area.y;
 		int renderW = area == null ? element.bounds().getWidth() : (area.width < w ? area.width : w);
 		int renderH = area == null ? element.bounds().getHeight() : (area.height < h ? area.height : h);
-		java.awt.Color bg = org.quick.util.QuickUtils.getBackground(element.getStyle().getSelf()).get();
+		java.awt.Color bg = org.quick.util.QuickUtils.getBackground(element.getStyle()).get();
 		if(bg.getAlpha() == 0)
 			return;
 		java.awt.Rectangle preClip = graphics.getClipBounds();
 		graphics.setClip(x, y, renderW, renderH);
 		graphics.setColor(bg);
-		Size cornerRad = element.getStyle().getSelf().get(BackgroundStyle.cornerRadius).get();
+		Size cornerRad = element.getStyle().get(BackgroundStyle.cornerRadius).get();
 		int wRad = cornerRad.evaluate(w);
 		int hRad = cornerRad.evaluate(h);
 		int wRad2 = wRad * 2;

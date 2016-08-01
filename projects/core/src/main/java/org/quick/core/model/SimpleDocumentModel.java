@@ -4,29 +4,22 @@ import java.util.Iterator;
 
 import org.qommons.IterableUtils;
 import org.qommons.Transaction;
-import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.style.stateful.InternallyStatefulStyle;
+import org.quick.core.QuickElement;
 
 /** A very simple document model that uses a single style and keeps a single, mutable set of content and supports single interval selection */
 public class SimpleDocumentModel extends AbstractSelectableDocumentModel implements MutableSelectableDocumentModel {
 	private final StringBuilder theContent;
 
 	/**
-	 * @param parentStyle The parent style for this document
-	 * @param msg The message center to log errors in style values
 	 * @param text The initial text for this field
 	 */
-	public SimpleDocumentModel(InternallyStatefulStyle parentStyle, QuickMessageCenter msg, String text) {
-		this(parentStyle, msg);
+	public SimpleDocumentModel(QuickElement element, String text) {
+		this(element);
 		theContent.append(text);
 	}
 
-	/**
-	 * @param parentStyle The parent style for this document
-	 * @param msg The message center to log errors in style values
-	 */
-	public SimpleDocumentModel(InternallyStatefulStyle parentStyle, QuickMessageCenter msg) {
-		super(msg, parentStyle);
+	public SimpleDocumentModel(QuickElement element) {
+		super(element);
 		theContent = new StringBuilder();
 	}
 

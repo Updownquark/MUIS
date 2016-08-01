@@ -34,9 +34,9 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 							msg().warn(rich.getName() + " attribute specified, but model overridden.  Ignoring.");
 						setDocumentModel(tuple.getValue1());
 					} else if(tuple.getValue2() == Boolean.TRUE)
-						setDocumentModel(new RichDocumentModel(getDocumentBackingStyle(), msg()));
+						setDocumentModel(new RichDocumentModel(getValue()));
 					else
-						setDocumentModel(new SimpleDocumentModel(getDocumentBackingStyle(), msg()));
+						setDocumentModel(new SimpleDocumentModel(getValue()));
 				});
 				atts().getHolder(ModelAttributes.value).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).act(event -> {
 					if (event.getValue().getValue1() == null)
@@ -114,16 +114,6 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 	public ObservableValue<QuickDocumentModel> getDocumentModel() {
 		// TODO This does not account for the fact that the value element could change (e.g. setText above)
 		return getValue().getDocumentModel();
-	}
-
-	private org.quick.core.style.stateful.InternallyStatefulStyle getDocumentBackingStyle() {
-		if(getChildren().isEmpty()) {
-			QuickTextElement newText = new QuickTextElement();
-			getChildManager().add(newText);
-			return newText.getStyle().getSelf();
-		} else {
-			return getValue().getStyle().getSelf();
-		}
 	}
 
 	/** @param doc The document model for this label */

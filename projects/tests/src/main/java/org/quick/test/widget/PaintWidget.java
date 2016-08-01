@@ -53,7 +53,7 @@ public class PaintWidget extends org.quick.base.widget.Block {
 				if(isMouseDown) {
 					Point pos = mEvt.getPosition(PaintWidget.this);
 					try {
-						theImage.setRGB(pos.x, pos.y, getStyle().getSelf().get(org.quick.core.style.FontStyle.color).get().getRGB());
+						theImage.setRGB(pos.x, pos.y, getStyle().get(org.quick.core.style.FontStyle.color).get().getRGB());
 					} catch(ArrayIndexOutOfBoundsException e) {
 						System.err.println("Position " + pos + " out of bounds (" + bounds().getWidth() + "x" + bounds().getHeight() + ")");
 					}
@@ -78,7 +78,7 @@ public class PaintWidget extends org.quick.base.widget.Block {
 		super.paintSelf(graphics, area);
 		if(theImage != null) {
 			graphics.drawImage(theImage, 0, 0, theImage.getWidth(), theImage.getHeight(),
-				getStyle().getSelf().get(org.quick.core.style.BackgroundStyle.color).get(), null);
+				getStyle().get(org.quick.core.style.BackgroundStyle.color).get(), null);
 		}
 	}
 
@@ -92,7 +92,7 @@ public class PaintWidget extends org.quick.base.widget.Block {
 			int h = bounds().getHeight() > theImage.getHeight() ? bounds().getHeight() : theImage.getHeight();
 			java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_4BYTE_ABGR);
 			img.getGraphics().drawImage(theImage, 0, 0, theImage.getWidth(), theImage.getHeight(),
-				getStyle().getSelf().get(org.quick.core.style.BackgroundStyle.color).get(), null);
+				getStyle().get(org.quick.core.style.BackgroundStyle.color).get(), null);
 			repaint(null, false);
 		}
 	}

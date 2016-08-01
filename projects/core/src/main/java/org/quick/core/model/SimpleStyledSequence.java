@@ -1,7 +1,7 @@
 package org.quick.core.model;
 
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
-import org.quick.core.style.QuickStyle;
+import org.quick.core.style2.QuickStyle;
 
 /** A simple styled sequence */
 public class SimpleStyledSequence implements StyledSequence {

@@ -8,7 +8,8 @@ import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.*;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
-import org.quick.core.style.sheet.StyleSheet;
+import org.quick.core.style2.CompoundStyleSheet;
+import org.quick.core.style2.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
@@ -17,9 +18,9 @@ public class QuickEnvironment implements QuickParseEnv {
 	/** The location of the core toolkit */
 	public static final java.net.URL CORE_TOOLKIT = QuickEnvironment.class.getResource("/QuickRegistry.xml");
 
-	private static class EnvironmentStyle extends org.quick.core.style.sheet.AbstractStyleSheet {
-		EnvironmentStyle(QuickMessageCenter msg, ObservableList<StyleSheet> dependencies) {
-			super(msg, dependencies);
+	private static class EnvironmentStyle extends CompoundStyleSheet {
+		EnvironmentStyle(ObservableList<StyleSheet> dependencies) {
+			super(dependencies);
 		}
 
 		@Override
@@ -49,8 +50,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
 		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
-		ObservableList<StyleSheet> styleDepends = theStyleDependencyController.immutable();
-		theStyle = new EnvironmentStyle(theMessageCenter, styleDepends);
+		theStyle = new EnvironmentStyle(theStyleDependencyController.immutable());
 		theToolkitLock = new Object();
 	}
 

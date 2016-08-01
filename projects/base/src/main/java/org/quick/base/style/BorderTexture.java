@@ -10,18 +10,18 @@ public class BorderTexture extends org.quick.core.style.BaseTexture {
 	@Override
 	public void render(Graphics2D graphics, QuickElement element, Rectangle area) {
 		super.render(graphics, element, area);
-		int thickness = element.getStyle().getSelf().get(BorderStyle.thickness).get().intValue();
+		int thickness = element.getStyle().get(BorderStyle.thickness).get().intValue();
 		if(thickness == 0)
 			return;
-		int inset = element.getStyle().getSelf().get(BorderStyle.inset).get().intValue();
+		int inset = element.getStyle().get(BorderStyle.inset).get().intValue();
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
-		org.quick.core.style.Size radius = element.getStyle().getSelf().get(org.quick.core.style.BackgroundStyle.cornerRadius).get();
+		org.quick.core.style.Size radius = element.getStyle().get(org.quick.core.style.BackgroundStyle.cornerRadius).get();
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
-		Color color = element.getStyle().getSelf().get(BorderStyle.color).get();
-		float dashLength = element.getStyle().getSelf().get(BorderStyle.dashLength).get().floatValue();
-		float dashInterim = element.getStyle().getSelf().get(BorderStyle.dashInterim).get().floatValue();
+		Color color = element.getStyle().get(BorderStyle.color).get();
+		float dashLength = element.getStyle().get(BorderStyle.dashLength).get().floatValue();
+		float dashInterim = element.getStyle().get(BorderStyle.dashInterim).get().floatValue();
 		BasicStroke stroke;
 		if(dashInterim == 0)
 			stroke = new BasicStroke(thickness);

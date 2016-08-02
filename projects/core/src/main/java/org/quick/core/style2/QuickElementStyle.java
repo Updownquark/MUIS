@@ -42,6 +42,6 @@ public class QuickElementStyle implements QuickStyle {
 		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
 		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
 		StyleSheet sheet = theElement.getDocument().getStyle();
-		return ObservableValue.first(localValue, sheet.get(theElement, attr, withDefault));
+		return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, sheet.get(theElement, attr, withDefault));
 	}
 }

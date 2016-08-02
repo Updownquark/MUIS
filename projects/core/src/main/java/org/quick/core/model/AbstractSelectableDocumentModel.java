@@ -47,6 +47,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
 		 * correctly because the cache may have the old color/size/etc */
+		// TODO This represents a memory leak, since it is never unsubscribed
 		element.getDefaultStyleListener().act(event -> {
 			int minSel = theCursor;
 			int maxSel = theCursor;
@@ -832,7 +833,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
 			ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
 			StyleSheet sheet = theElement.getDocument().getStyle();
-			return ObservableValue.first(localValue, sheet.get(theElement, theSelectedState, attr, withDefault));
+			return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue,
+				sheet.get(theElement, theSelectedState, attr, withDefault));
 		}
 	}
 
@@ -868,7 +870,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 				@Override
 				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-					return ObservableValue.first(theWrapped.getStyle().get(attr, false), theBackup.get(attr, true));
+					return ObservableValue.firstValue(attr.getType().getType(), null, null, theWrapped.getStyle().get(attr, false),
+						theBackup.get(attr, true));
 				}
 			};
 		}

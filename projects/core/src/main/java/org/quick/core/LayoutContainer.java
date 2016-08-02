@@ -1,5 +1,6 @@
 package org.quick.core;
 
+import org.observe.Observable;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
@@ -69,8 +70,8 @@ public class LayoutContainer extends QuickElement {
 	}
 
 	@Override
-	protected void registerChild(QuickElement child) {
-		super.registerChild(child);
+	protected void registerChild(QuickElement child, Observable<?> until) {
+		super.registerChild(child, until);
 		QuickLayout layout = getLayout();
 		if (layout != null)
 			layout.childAdded(this, child);

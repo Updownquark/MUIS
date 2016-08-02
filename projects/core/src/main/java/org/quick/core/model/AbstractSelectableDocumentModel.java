@@ -37,6 +37,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	private final ReentrantReadWriteLock theLock;
 	private Object theCause;
 
+	/** @param element The element that this document is for */
 	public AbstractSelectableDocumentModel(QuickElement element) {
 		theNormalStyle = element.getStyle();
 		theSelectedStyle = new SelectionStyle(element);
@@ -804,6 +805,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		private final QuickElement theElement;
 		private final ObservableSet<QuickState> theSelectedState;
 
+		/** @param element The element that this document is for */
 		public SelectionStyle(QuickElement element) {
 			theElement = element;
 			theSelectedState = ObservableSet.constant(TypeToken.of(QuickState.class), QuickConstants.States.TEXT_SELECTION);

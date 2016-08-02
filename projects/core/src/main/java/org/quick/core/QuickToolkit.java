@@ -288,7 +288,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 
 	/**
 	 * Creates a toolkit builder
-	 * 
+	 *
 	 * @param env The environment that the toolkit is in
 	 * @param location The location of the toolkit
 	 * @return The builder
@@ -453,7 +453,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 						if (sev.getCondition().getType().getClassLoader() == theBuiltToolkit)
 							continue;
 						boolean roleInTK = false;
-						for (QuickTemplate.AttachPoint role : sev.getCondition().getRolePath()) {
+						for (QuickTemplate.AttachPoint<?> role : sev.getCondition().getRolePath()) {
 							if (role.template.getDefiner().getClassLoader() == theBuiltToolkit) {
 								roleInTK = true;
 								break;

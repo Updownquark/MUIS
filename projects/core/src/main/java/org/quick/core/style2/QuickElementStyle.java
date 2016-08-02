@@ -7,13 +7,16 @@ import org.quick.core.QuickElement;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleAttributes;
 
+/** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
 
+	/** @param element The element that this style is for */
 	public QuickElementStyle(QuickElement element) {
 		theElement = element;
 	}
 
+	/** @return The element that this style is for */
 	public QuickElement getElement() {
 		return theElement;
 	}

@@ -168,6 +168,26 @@ public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle>
 		return getBounds();
 	}
 
+	/**
+	 * @param x The x position relative to this bounds' coordinate system
+	 * @param y The y position relative to this bounds' coordinate system
+	 * @return Whether this bounds overlaps the given coordinate
+	 */
+	public boolean contains(int x, int y) {
+		int xDiff = x - theX;
+		if (xDiff < 0 || xDiff >= theW)
+			return false;
+		int yDiff = y - theY;
+		if (yDiff < 0 || yDiff >= theH)
+			return false;
+		return true;
+	}
+
+	/** @return Whether this bounds has zero area */
+	public boolean isEmpty(){
+		return theW == 0 && theH == 0;
+	}
+
 	@Override
 	public TypeToken<Rectangle> getType() {
 		return TypeToken.of(Rectangle.class);

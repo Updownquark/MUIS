@@ -1,6 +1,7 @@
 package org.quick.core.parser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 
 import org.quick.core.*;
@@ -35,7 +36,7 @@ public class QuickContentCreator {
 			if (child instanceof WidgetStructure)
 				elements.add(createFromStructure(doc, doc.getRoot(), (WidgetStructure) child, true));
 		}
-		doc.getRoot().initChildren(elements.toArray(new QuickElement[elements.size()]));
+		doc.getRoot().initChildren(elements);
 	}
 
 	/**
@@ -68,7 +69,7 @@ public class QuickContentCreator {
 				if (child != null)
 					children.add(child);
 			}
-			ret.initChildren(children.toArray(new QuickElement[children.size()]));
+			ret.initChildren(children);
 		}
 		return ret;
 	}
@@ -131,13 +132,22 @@ public class QuickContentCreator {
 			QuickTextElement ret = new QuickTextElement(text.getContent());
 			ret.init(parent.getDocument(), parent.getDocument().getEnvironment().getCoreToolkit(), parent.getDocument().getClassView(),
 				parent, null, text.isCData() ? "CDATA" : null);
-			ret.initChildren(new QuickElement[0]);
+			ret.initChildren(Collections.emptyList());
 			return ret;
 		} else {
 			throw new QuickParseException("Unrecognized " + QuickContent.class.getName() + " extension: " + child.getClass().getName());
 		}
 	}
 
+	/**
+	 * Creates a document head section from its structure
+	 *
+	 * @param structure The structure representing the head section
+	 * @param parser The property parser for parsing model values
+	 * @param parseEnv The parse environment for parsing model values
+	 * @return The new head section
+	 * @throws QuickParseException If an error occurs parsing the head section
+	 */
 	public QuickHeadSection createHeadFromStructure(QuickHeadStructure structure, QuickPropertyParser parser, QuickParseEnv parseEnv)
 		throws QuickParseException {
 		QuickHeadSection.Builder builder = QuickHeadSection.build();

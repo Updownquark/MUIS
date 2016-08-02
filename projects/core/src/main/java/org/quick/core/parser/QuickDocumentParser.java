@@ -5,10 +5,13 @@ import java.io.Reader;
 import java.net.URL;
 
 import org.quick.core.QuickClassView;
+import org.quick.core.QuickDocument;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.mgr.QuickMessageCenter;
 
+/** Parses {@link QuickDocument}s */
 public interface QuickDocumentParser {
+	/** @return The environment that this parser parses documents for */
 	QuickEnvironment getEnvironment();
 
 	/**
@@ -30,6 +33,7 @@ public interface QuickDocumentParser {
 	 *
 	 * @param location The location of the resource to read
 	 * @param reader The reader to the resource structure
+	 * @param classView The root class view for the document
 	 * @param parseEnv The parse environment in which to parse the document
 	 * @param rootClassView The class view for the root of the widget structure
 	 * @param msg The message center to report parsing errors to

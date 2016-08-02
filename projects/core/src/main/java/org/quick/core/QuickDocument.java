@@ -11,7 +11,6 @@ import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.qommons.ArrayUtils;
 import org.quick.core.event.*;
-import org.quick.core.mgr.QuickLocker;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
@@ -98,8 +97,6 @@ public class QuickDocument implements QuickParseEnv {
 
 	private final Object theKeysLock;
 
-	private final QuickLocker theLocker;
-
 	private volatile QuickRendering theRendering;
 
 	private GraphicsGetter theGraphics;
@@ -140,7 +137,6 @@ public class QuickDocument implements QuickParseEnv {
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
-		theLocker = new QuickLocker();
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
 		theObservableFocus = new org.observe.DefaultObservableValue<QuickElement>() {
@@ -240,11 +236,6 @@ public class QuickDocument implements QuickParseEnv {
 	/** @return The style sheet for this document */
 	public DocumentStyleSheet getStyle() {
 		return theDocumentStyle;
-	}
-
-	/** @return The locker to keep track of element locks */
-	public QuickLocker getLocker() {
-		return theLocker;
 	}
 
 	/** @return The root element of the document */
@@ -580,7 +571,7 @@ public class QuickDocument implements QuickParseEnv {
 		QuickElement lastChild = theFocus;
 		QuickElement parent = theFocus.getParent();
 		while(parent != null) {
-			QuickElement [] children = parent.getChildren().sortByZ();
+			QuickElement[] children = parent.getChildren().sortByZ().toArray();
 			if(!forward) {
 				ArrayUtils.reverse(children);
 			}
@@ -613,7 +604,7 @@ public class QuickDocument implements QuickParseEnv {
 			if(first)
 				root = root.ch().get(0);
 			else
-				root = root.ch().getLast();
+				root = root.ch().last();
 		return root;
 	}
 

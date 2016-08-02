@@ -3,12 +3,14 @@ package org.quick.core;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
+import org.observe.DefaultSettableValue;
+import org.observe.Observable;
 import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
 import org.observe.Observer;
-import org.observe.Subscription;
-import org.quick.core.event.ChildEvent;
+import org.observe.SettableValue;
+import org.observe.collect.ObservableList;
 import org.quick.core.layout.SizeGuide;
-import org.quick.core.mgr.AbstractElementList;
 import org.quick.core.mgr.ElementList;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickBehavior;
@@ -37,8 +39,12 @@ import com.google.common.reflect.TypeToken;
  * the XML invoking the widget.
  */
 public abstract class QuickTemplate extends QuickElement {
-	/** An attach point under a template widget */
-	public static class AttachPoint {
+	/**
+	 * An attach point under a template widget
+	 *
+	 * @param <E> The type of element that belongs in the attach point's place
+	 */
+	public static class AttachPoint<E extends QuickElement> {
 		/** The template structure that this attach point belongs to */
 		public final TemplateStructure template;
 
@@ -49,7 +55,7 @@ public abstract class QuickTemplate extends QuickElement {
 		public final String name;
 
 		/** The type of element that may occupy the attach point */
-		public final Class<? extends QuickElement> type;
+		public final Class<E> type;
 
 		/**
 		 * Whether the attach point may be specified externally
@@ -88,13 +94,13 @@ public abstract class QuickTemplate extends QuickElement {
 
 		/**
 		 * Whether the element or set of elements at the attach point can be changed generically. This only affects the mutability of the
-		 * attach point as accessed from the list returned from {@link QuickTemplate#initChildren(QuickElement[])}.
+		 * attach point as accessed from the list returned from {@link QuickTemplate#initChildren(List)}.
 		 *
 		 * @see TemplateStructure#MUTABLE
 		 */
 		public final boolean mutable;
 
-		AttachPoint(TemplateStructure temp, QuickContent src, String aName, Class<? extends QuickElement> aType, boolean ext, boolean req,
+		AttachPoint(TemplateStructure temp, QuickContent src, String aName, Class<E> aType, boolean ext, boolean req,
 			boolean mult, boolean def, boolean impl, boolean isMutable) {
 			template = temp;
 			source = src;
@@ -115,7 +121,7 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	/** Represents the structure of a templated widget */
-	public static class TemplateStructure implements Iterable<AttachPoint> {
+	public static class TemplateStructure implements Iterable<AttachPoint<?>> {
 		/** The prefix for template-related attributes in the template file */
 		public static final String TEMPLATE_PREFIX = "template-";
 
@@ -187,22 +193,22 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		/** The property type for the role attribute */
-		public static final QuickPropertyType<AttachPoint> roleType = QuickPropertyType.build("role", TypeToken.of(AttachPoint.class))
+		public static final QuickPropertyType<AttachPoint<?>> roleType = QuickPropertyType.build("role", new TypeToken<AttachPoint<?>>(){})
 			.build();
 
 		/** The role attribute, defining how children added to a template are used */
-		public static class RoleAttribute extends QuickAttribute<AttachPoint> {
+		public static class RoleAttribute extends QuickAttribute<AttachPoint<?>> {
 			private final TemplateStructure theTemplate;
 
 			private RoleAttribute(TemplateStructure templateStruct) {
-				super("role", roleType, new PropertyValidator<AttachPoint>() {
+				super("role", roleType, new PropertyValidator<AttachPoint<?>>() {
 					@Override
-					public boolean isValid(AttachPoint value) {
+					public boolean isValid(AttachPoint<?> value) {
 						return value.template == templateStruct;
 					}
 
 					@Override
-					public void assertValid(AttachPoint value) throws QuickException {
+					public void assertValid(AttachPoint<?> value) throws QuickException {
 						if (value.template != templateStruct)
 							throw new QuickException(
 								"Attach point " + value.name + " from template " + value.template.getDefiner().getName()
@@ -225,9 +231,9 @@ public abstract class QuickTemplate extends QuickElement {
 		private final TemplateStructure theSuperStructure;
 		private WidgetStructure theWidgetStructure;
 		private Map<String, Class<?>> theModelAttributes;
-		private AttachPoint theDefaultAttachPoint;
-		private Map<String, AttachPoint> theAttachPoints;
-		private Map<AttachPoint, QuickContent> theAttachPointWidgets;
+		private AttachPoint<?> theDefaultAttachPoint;
+		private Map<String, AttachPoint<?>> theAttachPoints;
+		private Map<AttachPoint<?>, QuickContent> theAttachPointWidgets;
 		private Map<String, QuickModelConfig> theModels;
 		private Class<? extends QuickLayout> theLayoutClass;
 		private List<Class<? extends QuickBehavior<?>>> theBehaviors;
@@ -250,10 +256,10 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		/** @param attaches The map of attach points to the widget structure where the attach points point to */
-		private void addAttaches(Map<AttachPoint, QuickContent> attaches) {
-			Map<String, AttachPoint> attachPoints = new java.util.LinkedHashMap<>(attaches.size());
-			AttachPoint defAP = null;
-			for (AttachPoint ap : attaches.keySet()) {
+		private void addAttaches(Map<AttachPoint<?>, QuickContent> attaches) {
+			Map<String, AttachPoint<?>> attachPoints = new java.util.LinkedHashMap<>(attaches.size());
+			AttachPoint<?> defAP = null;
+			for (AttachPoint<?> ap : attaches.keySet()) {
 				attachPoints.put(ap.name, ap);
 				if (ap.isDefault)
 					defAP = ap;
@@ -290,19 +296,24 @@ public abstract class QuickTemplate extends QuickElement {
 			return theWidgetStructure;
 		}
 
+		/** @return All attach points in this template structure */
+		public Collection<AttachPoint<?>> getAttachPoints() {
+			return theAttachPoints.values();
+		}
+
 		/**
 		 * @param name The name of the attach point to get, or null to get the default attach point
 		 * @return The attach point definition with the given name, or the default attach point if name==null, or null if no attach point
 		 *         with the given name exists or name==null and this template structure has no default attach point
 		 */
-		public AttachPoint getAttachPoint(String name) {
+		public AttachPoint<?> getAttachPoint(String name) {
 			if (name == null)
 				return theDefaultAttachPoint;
 			return theAttachPoints.get(name);
 		}
 
 		/** @return This template structure's default attach point, or null if it does not have one */
-		public AttachPoint getDefaultAttachPoint() {
+		public AttachPoint<?> getDefaultAttachPoint() {
 			return theDefaultAttachPoint;
 		}
 
@@ -310,8 +321,8 @@ public abstract class QuickTemplate extends QuickElement {
 		 * @param content A piece of this template's {@link #getWidgetStructure() widget structure}
 		 * @return The attach point that the content represents
 		 */
-		public AttachPoint getAttachPoint(QuickContent content) {
-			for (Map.Entry<AttachPoint, QuickContent> attach : theAttachPointWidgets.entrySet()) {
+		public AttachPoint<?> getAttachPoint(QuickContent content) {
+			for (Map.Entry<AttachPoint<?>, QuickContent> attach : theAttachPointWidgets.entrySet()) {
 				if (attach.getValue() == content)
 					return attach.getKey();
 			}
@@ -322,8 +333,8 @@ public abstract class QuickTemplate extends QuickElement {
 		 * @param child The child to get the role for
 		 * @return The attach point whose role the child is in, or null if the child is not in a role in this template structure
 		 */
-		public AttachPoint getRole(QuickElement child) {
-			AttachPoint ret = child.atts().get(role);
+		public AttachPoint<?> getRole(QuickElement child) {
+			AttachPoint<?> ret = child.atts().get(role);
 			if (ret == null)
 				ret = theDefaultAttachPoint;
 			return ret;
@@ -333,7 +344,7 @@ public abstract class QuickTemplate extends QuickElement {
 		 * @param attachPoint The attach point to get the widget structure of
 		 * @return The widget structure associated with the given attach point
 		 */
-		public QuickContent getWidgetStructure(AttachPoint attachPoint) {
+		public QuickContent getWidgetStructure(AttachPoint<?> attachPoint) {
 			return theAttachPointWidgets.get(attachPoint);
 		}
 
@@ -348,7 +359,7 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		@Override
-		public java.util.Iterator<AttachPoint> iterator() {
+		public java.util.Iterator<AttachPoint<?>> iterator() {
 			return Collections.unmodifiableList(new ArrayList<>(theAttachPoints.values())).listIterator();
 		}
 
@@ -525,7 +536,7 @@ public abstract class QuickTemplate extends QuickElement {
 						+ templateType.getName() + " cannot be loaded", e);
 				}
 			}
-			Map<AttachPoint, QuickContent> attaches = new HashMap<>();
+			Map<AttachPoint<?>, QuickContent> attaches = new HashMap<>();
 			try {
 				content = (WidgetStructure) pullAttachPoints(templateStruct, content, null, attaches);
 			} catch (QuickException e) {
@@ -534,7 +545,7 @@ public abstract class QuickTemplate extends QuickElement {
 			}
 			templateStruct.setWidgetStructure(content);
 			List<String> defaults = new ArrayList<>();
-			for (AttachPoint ap : attaches.keySet())
+			for (AttachPoint<?> ap : attaches.keySet())
 				if (ap.isDefault)
 					defaults.add(ap.name);
 			if (defaults.size() > 1)
@@ -573,7 +584,7 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		private static QuickContent pullAttachPoints(TemplateStructure template, WidgetStructure structure, WidgetStructure parent,
-			Map<AttachPoint, QuickContent> attaches) throws QuickException {
+			Map<AttachPoint<?>, QuickContent> attaches) throws QuickException {
 			WidgetStructure ret;
 			if (structure.getTagName().equals(TemplateStructure.GENERIC_TEXT)) {
 				if (!structure.getChildren().isEmpty())
@@ -648,7 +659,7 @@ public abstract class QuickTemplate extends QuickElement {
 				if (implementation && multiple)
 					throw new QuickException("Attach points (" + name + ") that allow multiples cannot be implementations");
 
-				Map<AttachPoint, QuickContent> check = new HashMap<>();
+				Map<AttachPoint<?>, QuickContent> check = new HashMap<>();
 				QuickContent replacement = pullAttachPoints(template, child, ret, check);
 				ret.addChild(replacement);
 
@@ -659,7 +670,8 @@ public abstract class QuickTemplate extends QuickElement {
 				} else {
 					attaches.putAll(check);
 				}
-				attaches.put(new AttachPoint(template, replacement, name, type, external, required, multiple, def, implementation, mutable),
+				attaches.put(
+					new AttachPoint<>(template, replacement, name, type, external, required, multiple, def, implementation, mutable),
 					replacement);
 			}
 			ret.seal();
@@ -679,101 +691,140 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 	}
 
-	/** Represents an attach point within a particular widget instance */
-	protected class AttachPointInstance {
+	/**
+	 * Represents an attach point within a particular widget instance
+	 *
+	 * @param <E> The type of element that belongs in the attach point's place
+	 */
+	protected class AttachPointInstance<E extends QuickElement> {
 		/** The attach point this instance is for */
-		public final AttachPoint attachPoint;
+		public final AttachPoint<E> attachPoint;
 
 		private final ElementList<?> theParentChildren;
 
-		private final QuickContainer<QuickElement> theContainer;
+		private final SettableValue<E> theValue;
 
-		AttachPointInstance(AttachPoint ap, QuickTemplate template, ElementList<?> pc) {
+		private final QuickContainer<E> theContainer;
+
+		AttachPointInstance(AttachPoint<E> ap, QuickTemplate template, ElementList<?> pc) {
 			attachPoint = ap;
 			theParentChildren = pc;
-			if (attachPoint.multiple)
-				theContainer = new AttachPointInstanceContainer(attachPoint, template, theParentChildren);
-			else
-				theContainer = null;
-		}
+			if (attachPoint.multiple){
+				theValue=null;
+				theContainer = new AttachPointInstanceContainer<>(attachPoint, template, theParentChildren);
+			} else{
+				theValue = new DefaultSettableValue<E>() {
+					private Observer<ObservableValueEvent<E>> theController = control(null);
 
-		/** @return The element occupying the attach point */
-		public QuickElement getValue() {
-			if (attachPoint.multiple)
-				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
-			for (QuickElement el : theParentChildren)
-				if (attachPoint.template.getRole(el) == attachPoint)
-					return el;
-			return null;
-		}
-
-		/**
-		 * @param el The element to set as the occupant of the attach point
-		 * @return The element that was occupying the attach point before this call
-		 * @throws IllegalArgumentException If the given widget cannot occupy the attach point
-		 */
-		public QuickElement setValue(QuickElement el) throws IllegalArgumentException {
-			if (attachPoint.multiple)
-				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
-			assertFits(attachPoint, el);
-			if (el == null) {
-				Iterator<? extends QuickElement> iter = theParentChildren.iterator();
-				while (iter.hasNext()) {
-					QuickElement ret = iter.next();
-					if (attachPoint.template.getRole(ret) == attachPoint) {
-						iter.remove();
-						return ret;
+					@Override
+					public TypeToken<E> getType() {
+						return TypeToken.of(attachPoint.type);
 					}
-				}
-				return null;
-			}
 
-			// Scan the parent children for either the element occupying the attach point (and replace it) or
-			// for the first element whose widget template occurs after the attach point declaration (and insert the element before it).
-			// If neither occurs, just add the element at the end
-			HashSet<QuickElement> postAttachEls = new HashSet<>();
-			HashSet<AttachPoint> postAttachAPs = new HashSet<>();
-			{
-				boolean foundAttach = false;
-				for (QuickContent sibling : attachPoint.source.getParent().getChildren()) {
-					if (foundAttach) {
-						if (sibling instanceof WidgetStructure
-							&& ((WidgetStructure) sibling).getAttributes().containsKey(TemplateStructure.ATTACH_POINT)) {
-							postAttachAPs.add(attachPoint.template
-								.getAttachPoint(((WidgetStructure) sibling).getAttributes().get(TemplateStructure.ATTACH_POINT)));
-						} else {
-							QuickElement staticEl = theStaticContent.get(sibling);
-							if (staticEl != null)
-								postAttachEls.add(staticEl);
+					@Override
+					public E get() {
+						for (QuickElement el : theParentChildren)
+							if (attachPoint.template.getRole(el) == attachPoint)
+								return (E) el;
+						return null;
+					}
+
+					@Override
+					public <V extends E> E set(V value, Object cause) throws IllegalArgumentException {
+						String err = isEnabled().get();
+						if (err == null)
+							err = isAcceptable(value);
+						if (err != null)
+							throw new IllegalArgumentException(err);
+						E old = doReplace(value);
+						theController.onNext(createChangeEvent(old, value, cause));
+						return old;
+					}
+
+					@Override
+					public <V extends E> String isAcceptable(V value) {
+						return isAcceptable(value);
+					}
+
+					@Override
+					public ObservableValue<String> isEnabled() {
+						String msg = null;
+						if (!attachPoint.mutable)
+							msg = "Attach point " + attachPoint + " cannot be modified";
+						return ObservableValue.constant(TypeToken.of(String.class), msg);
+					}
+
+					private E doReplace(E el) {
+						if (el == null) {
+							Iterator<? extends QuickElement> iter = theParentChildren.iterator();
+							while (iter.hasNext()) {
+								QuickElement ret = iter.next();
+								if (attachPoint.template.getRole(ret) == attachPoint) {
+									iter.remove();
+									return (E) ret;
+								}
+							}
+							return null;
 						}
-					} else if (sibling == attachPoint.source)
-						foundAttach = true;
-				}
-			}
-			ListIterator<? extends QuickElement> iter = theParentChildren.listIterator();
-			while (iter.hasNext()) {
-				QuickElement ret = iter.next();
-				if (attachPoint.template.getRole(ret) == attachPoint) {
-					((ListIterator<QuickElement>) iter).set(el);
-					return ret;
-				} else {
-					boolean postAttach = postAttachEls.contains(ret);
-					if (!postAttach && postAttachAPs.contains(ret.atts().get(attachPoint.template.role)))
-						postAttach = true;
-					if (postAttach) {
-						iter.hasPrevious();
-						iter.previous();
+
+						// Scan the parent children for either the element occupying the attach point (and replace it) or
+						// for the first element whose widget template occurs after the attach point declaration (and insert the element
+						// before it).
+						// If neither occurs, just add the element at the end
+						HashSet<QuickElement> postAttachEls = new HashSet<>();
+						HashSet<AttachPoint<?>> postAttachAPs = new HashSet<>();
+						{
+							boolean foundAttach = false;
+							for (QuickContent sibling : attachPoint.source.getParent().getChildren()) {
+								if (foundAttach) {
+									if (sibling instanceof WidgetStructure
+										&& ((WidgetStructure) sibling).getAttributes().containsKey(TemplateStructure.ATTACH_POINT)) {
+										postAttachAPs.add(attachPoint.template.getAttachPoint(
+											((WidgetStructure) sibling).getAttributes().get(TemplateStructure.ATTACH_POINT)));
+									} else {
+										QuickElement staticEl = theStaticContent.get(sibling);
+										if (staticEl != null)
+											postAttachEls.add(staticEl);
+									}
+								} else if (sibling == attachPoint.source)
+									foundAttach = true;
+							}
+						}
+						ListIterator<? extends QuickElement> iter = theParentChildren.listIterator();
+						while (iter.hasNext()) {
+							QuickElement ret = iter.next();
+							if (attachPoint.template.getRole(ret) == attachPoint) {
+								((ListIterator<QuickElement>) iter).set(el);
+								return (E) ret;
+							} else {
+								boolean postAttach = postAttachEls.contains(ret);
+								if (!postAttach && postAttachAPs.contains(ret.atts().get(attachPoint.template.role)))
+									postAttach = true;
+								if (postAttach) {
+									iter.hasPrevious();
+									iter.previous();
+									((ListIterator<QuickElement>) iter).add(el);
+									return null;
+								}
+							}
+						}
 						((ListIterator<QuickElement>) iter).add(el);
 						return null;
 					}
-				}
+				};
+				theContainer = null;
 			}
-			((ListIterator<QuickElement>) iter).add(el);
-			return null;
+		}
+
+		/** @return The element occupying the attach point */
+		public SettableValue<E> getValue() {
+			if (attachPoint.multiple)
+				throw new IllegalStateException("The " + attachPoint.name + " attach point allows multiple elements");
+			return theValue;
 		}
 
 		/** @return A container for the elements occupying the multiple-enabled attach point */
-		public QuickContainer<QuickElement> getContainer() {
+		public QuickContainer<E> getContainer() {
 			if (!attachPoint.multiple)
 				throw new IllegalStateException("The " + attachPoint.name + " attach point does not allow multiple elements");
 			return theContainer;
@@ -788,7 +839,7 @@ public abstract class QuickTemplate extends QuickElement {
 	 */
 	private final Object theRoleWanter;
 
-	private final Map<AttachPoint, AttachPointInstance> theAttachPoints;
+	private final Map<AttachPoint<?>, AttachPointInstance<?>> theAttachPoints;
 
 	private final Map<String, Object> theModels;
 
@@ -798,7 +849,7 @@ public abstract class QuickTemplate extends QuickElement {
 
 	// Valid during initialization only (prior to initChildren())--will be null after that
 
-	private Map<AttachPoint, List<QuickElement>> theAttachmentMappings;
+	private Map<AttachPoint<?>, List<QuickElement>> theAttachmentMappings;
 
 	private Set<QuickElement> theUninitialized;
 
@@ -856,8 +907,8 @@ public abstract class QuickTemplate extends QuickElement {
 	 * @return The container of all elements occupying the attach point in this widget instance
 	 * @throws IllegalArgumentException If the attach point is not recognized in this templated widget or does not support multiple elements
 	 */
-	protected QuickContainer<QuickElement> getContainer(AttachPoint attach) throws IllegalArgumentException {
-		AttachPointInstance instance = theAttachPoints.get(attach);
+	protected <E extends QuickElement> QuickContainer<E> getContainer(AttachPoint<E> attach) throws IllegalArgumentException {
+		AttachPointInstance<E> instance = (AttachPointInstance<E>) theAttachPoints.get(attach);
 		if (instance == null)
 			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
 		return instance.getContainer();
@@ -867,24 +918,11 @@ public abstract class QuickTemplate extends QuickElement {
 	 * @param attach The attach point to get the element at
 	 * @return The element attached at the given attach point. May be null.
 	 */
-	protected QuickElement getElement(AttachPoint attach) {
-		AttachPointInstance instance = theAttachPoints.get(attach);
+	protected <E extends QuickElement> SettableValue<E> getElement(AttachPoint<E> attach) {
+		AttachPointInstance<E> instance = (AttachPointInstance<E>) theAttachPoints.get(attach);
 		if (instance == null)
 			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
 		return instance.getValue();
-	}
-
-	/**
-	 * @param attach The attach point to set the element at
-	 * @param element The element to set for the given attach point. May be null if the attach point is not required.
-	 * @return The element that occupied the attach point before this call
-	 * @throws IllegalArgumentException If the given element may not be set as occupying the given attach point
-	 */
-	protected QuickElement setElement(AttachPoint attach, QuickElement element) throws IllegalArgumentException {
-		AttachPointInstance instance = theAttachPoints.get(attach);
-		if (instance == null)
-			throw new IllegalArgumentException("Unrecognized attach point: " + attach + " in " + getClass().getName());
-		return instance.setValue(element);
 	}
 
 	private void initModels(TemplateStructure template, DefaultExpressionContext.Builder ctxBuilder) throws QuickException {
@@ -964,8 +1002,8 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	@Override
-	protected void registerChild(QuickElement child) {
-		super.registerChild(child);
+	protected void registerChild(QuickElement child, Observable<?> until) {
+		super.registerChild(child, until);
 		if (theLayout != null)
 			theLayout.childAdded(this, child);
 	}
@@ -978,7 +1016,7 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	@Override
-	public ElementList<? extends QuickElement> initChildren(QuickElement[] children) {
+	public ElementList<? extends QuickElement> initChildren(List<QuickElement> children) {
 		if (theTemplateStructure == null)
 			return getChildManager(); // Failed to parse template structure
 		if (theAttachmentMappings == null)
@@ -1062,7 +1100,7 @@ public abstract class QuickTemplate extends QuickElement {
 	private QuickElement createTemplateChild(TemplateStructure template, QuickElement parent, QuickContent child,
 		org.quick.core.parser.QuickContentCreator creator, QuickParseEnv templateCtx) throws QuickParseException {
 		QuickElement ret;
-		AttachPoint ap = template.getAttachPoint(child);
+		AttachPoint<?> ap = template.getAttachPoint(child);
 		List<QuickElement> mappings = null;
 		if (ap != null) {
 			mappings = theAttachmentMappings.get(ap);
@@ -1114,34 +1152,35 @@ public abstract class QuickTemplate extends QuickElement {
 		return ret;
 	}
 
-	private void initExternalChildren(QuickElement[] children, TemplateStructure template) {
-		AttachPoint[] roles = new AttachPoint[children.length];
-		for (int c = 0; c < children.length; c++) {
-			children[c].atts().accept(theRoleWanter, template.role);
-			roles[c] = children[c].atts().get(template.role);
+	private void initExternalChildren(List<QuickElement> children, TemplateStructure template) {
+		AttachPoint<?>[] roles = new AttachPoint[children.size()];
+		for (int c = 0; c < children.size(); c++) {
+			QuickElement child = children.get(c);
+			child.atts().accept(theRoleWanter, template.role);
+			roles[c] = child.atts().get(template.role);
 			if (roles[c] == null) {
 				roles[c] = template.getDefaultAttachPoint();
 				try {
-					children[c].atts().set(template.role, roles[c]);
+					child.atts().set(template.role, roles[c]);
 				} catch (QuickException e) {
 					throw new IllegalArgumentException("Should not get error here", e);
 				}
 			}
 			if (roles[c] == null) {
-				msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", children[c]);
+				msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", child);
 				return;
 			}
 			if (!roles[c].external) {
 				msg().error(
 					"Role \"" + roles[c] + "\" is not specifiable externally for templated widget " + template.getDefiner().getName(),
-					"child", children[c]);
+					"child", child);
 				return;
 			}
-			if (!roles[c].type.isInstance(children[c])) {
+			if (!roles[c].type.isInstance(child)) {
 				msg().error(
 					"Children fulfilling role \"" + roles[c] + "\" in templated widget " + template.getDefiner().getName()
-						+ " must be of type " + roles[c].type.getName() + ", not " + children[c].getClass().getName(),
-					"child", children[c]);
+						+ " must be of type " + roles[c].type.getName() + ", not " + child.getClass().getName(),
+					"child", child);
 				return;
 			}
 			List<QuickElement> attaches = theAttachmentMappings.get(roles[c]);
@@ -1171,11 +1210,12 @@ public abstract class QuickTemplate extends QuickElement {
 				}
 			}
 		});*/
-		for (int c = 0; c < children.length; c++) {
+		for (int c = 0; c < children.size(); c++) {
+			QuickElement child = children.get(c);
 			List<QuickElement> attaches = theAttachmentMappings.get(roles[c]);
 			if (!roles[c].multiple && !attaches.isEmpty()) {
 				msg().error("Multiple children fulfilling role \"" + roles[c] + "\" in templated widget " + template.getDefiner().getName(),
-					"child", children[c]);
+					"child", child);
 				return;
 			}
 			QuickContent widgetStruct = template.getWidgetStructure(roles[c]);
@@ -1184,14 +1224,14 @@ public abstract class QuickTemplate extends QuickElement {
 					if (attr.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
 						continue;
 					try {
-						children[c].atts().set(attr.getKey(), attr.getValue(), children[c].getParent());
+						child.atts().set(attr.getKey(), attr.getValue(), child.getParent());
 					} catch (QuickException e) {
-						children[c].msg().error(
+						child.msg().error(
 							"Template-specified attribute " + attr.getKey() + "=" + attr.getValue() + " is not supported by content", e);
 					}
 				}
 			}
-			attaches.add(children[c]);
+			attaches.add(child);
 		}
 	}
 
@@ -1199,12 +1239,12 @@ public abstract class QuickTemplate extends QuickElement {
 		boolean ret = true;
 		if (struct.getSuperStructure() != null)
 			ret &= verifyTemplateStructure(struct.getSuperStructure());
-		for (AttachPoint ap : struct)
+		for (AttachPoint<?> ap : struct)
 			ret &= verifyAttachPoint(struct, ap);
 		return ret;
 	}
 
-	private boolean verifyAttachPoint(TemplateStructure struct, AttachPoint ap) {
+	private boolean verifyAttachPoint(TemplateStructure struct, AttachPoint<?> ap) {
 		if (ap.required && theAttachmentMappings.get(ap).isEmpty()) {
 			msg().error("No widget specified for role " + ap.name + " for template " + struct.getDefiner().getName());
 			return false;
@@ -1216,9 +1256,9 @@ public abstract class QuickTemplate extends QuickElement {
 		if (parent != this && !theUninitialized.contains(parent))
 			return;
 		List<QuickElement> ret = new ArrayList<>();
-		List<AttachPoint> attaches = new ArrayList<>();
+		List<AttachPoint<?>> attaches = new ArrayList<>();
 		for (QuickContent childStruct : structure.getChildren()) {
-			AttachPoint ap = theTemplateStructure.getAttachPoint(childStruct);
+			AttachPoint<?> ap = theTemplateStructure.getAttachPoint(childStruct);
 			if (ap != null) {
 				attaches.add(ap);
 				for (QuickElement child : theAttachmentMappings.get(ap)) {
@@ -1233,8 +1273,6 @@ public abstract class QuickTemplate extends QuickElement {
 					initTemplateChildren(child, (WidgetStructure) childStruct);
 			}
 		}
-		QuickElement[] children = ret.toArray(new QuickElement[ret.size()]);
-
 		try {
 			parent.atts().set(TemplateStructure.IMPLEMENTATION, null, this);
 		} catch (QuickException e) {
@@ -1243,62 +1281,58 @@ public abstract class QuickTemplate extends QuickElement {
 
 		ElementList<?> childList;
 		if (parent == this)
-			childList = super.initChildren(children);
+			childList = super.initChildren(ret);
 		else
-			childList = parent.initChildren(children);
+			childList = parent.initChildren(ret);
 
-		for (AttachPoint attach : attaches)
-			theAttachPoints.put(attach, new AttachPointInstance(attach, this, childList));
+		for (AttachPoint<?> attach : attaches)
+			theAttachPoints.put(attach, new AttachPointInstance<>(attach, this, childList));
 	}
 
-	static void assertFits(AttachPoint attach, QuickElement e) {
+	static String assertFits(AttachPoint<?> attach, QuickElement e) {
 		if (e == null) {
 			if (attach.required)
-				throw new IllegalArgumentException("Attach point " + attach + " is required--may not be set to null");
-			return;
+				return "Attach point " + attach + " is required--may not be set to null";
+			else
+				return null;
 		}
 		if (!attach.type.isInstance(e))
-			throw new IllegalArgumentException(
-				e.getClass().getName() + " may not be assigned to attach point " + attach + " (type " + attach.type.getName() + ")");
+			return e.getClass().getName() + " may not be assigned to attach point " + attach + " (type " + attach.type.getName() + ")";
+		return null;
 	}
 
-	private class AttachPointSetChildList extends AbstractElementList<QuickElement> {
+	ObservableList<? extends ObservableList<? extends QuickElement>> getAttachPointContentList(){
+		ObservableList<AttachPoint<?>> aps = ObservableList.constant(new TypeToken<AttachPoint<?>>() {},
+			new ArrayList<>(theTemplateStructure.getAttachPoints()));
+		return aps.map(ap -> {
+			ObservableList<? extends QuickElement> contents;
+			if(!ap.external)
+				contents = ObservableList.constant(TypeToken.of(QuickElement.class));
+			else if(ap.multiple){
+				contents = getContainer(ap).getContent();
+			} else{
+				ObservableValue<ObservableList<QuickElement>> el = getElement(ap)
+					.mapV(e -> e == null ? ObservableList.constant(TypeToken.of(QuickElement.class))
+						: ObservableList.constant(TypeToken.of(QuickElement.class), e));
+				contents = ObservableList.flattenValue(el);
+			}
+			return contents;
+		});
+	}
+
+	private class AttachPointSetChildList extends ObservableList.FlattenedObservableList<QuickElement> implements ElementList<QuickElement> {
 		AttachPointSetChildList() {
-			super(QuickTemplate.this);
+			super(getAttachPointContentList());
 		}
 
 		@Override
-		public Subscription subscribe(Observer<? super ChildEvent> observer) {
-			// TODO Listeners not supported yet
-			return () -> {
-			};
-		}
-
-		@Override
-		public int size() {
-			int ret = 0;
-			for (@SuppressWarnings("unused")
-			QuickElement item : this)
-				ret++;
-			return ret;
-		}
-
-		@Override
-		public AttachPointSetIterator iterator() {
-			return listIterator();
-		}
-
-		@Override
-		public QuickElement[] toArray() {
-			ArrayList<QuickElement> ret = new ArrayList<>();
-			for (QuickElement item : this)
-				ret.add(item);
-			return ret.toArray(new QuickElement[ret.size()]);
+		public QuickElement getParent(){
+			return QuickTemplate.this;
 		}
 
 		@Override
 		public boolean add(QuickElement e) {
-			AttachPoint role = e.atts().get(theTemplateStructure.role);
+			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
 			if (role == null)
 				role = theTemplateStructure.getDefaultAttachPoint();
 			if (role == null) {
@@ -1314,12 +1348,13 @@ public abstract class QuickTemplate extends QuickElement {
 				throw new UnsupportedOperationException("The " + role.name + " attach point's elements must be of type "
 					+ role.type.getName() + ", not " + e.getClass().getName());
 			if (role.multiple)
-				return getContainer(role).getContent().add(e);
+				return getContainer((AttachPoint<QuickElement>) role).getContent().add(e);
 			else {
-				if (getElement(role) != null)
+				SettableValue<QuickElement> apVal = getElement((AttachPoint<QuickElement>) role);
+				if (apVal.get() != null)
 					throw new UnsupportedOperationException(
 						"The " + role.name + " attach point only supports a single element and is already occupied");
-				setElement(role, e);
+				apVal.set(e, null);
 				return true;
 			}
 		}
@@ -1329,7 +1364,7 @@ public abstract class QuickTemplate extends QuickElement {
 			if (!(o instanceof QuickElement))
 				return false;
 			QuickElement e = (QuickElement) o;
-			AttachPoint role = e.atts().get(theTemplateStructure.role);
+			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
 			if (role == null)
 				role = theTemplateStructure.getDefaultAttachPoint();
 			if (role == null)
@@ -1341,62 +1376,32 @@ public abstract class QuickTemplate extends QuickElement {
 			if (!role.mutable)
 				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
 			if (role.multiple) {
+				getContainer(role).getContent().remove(e);
+				// TODO move this to AttachPointInstanceElementList
 				org.quick.core.mgr.ElementList<? extends QuickElement> content = getContainer(role).getContent();
 				if (role.required && content.size() == 1 && content.get(0).equals(e))
 					throw new UnsupportedOperationException(
 						"The " + role.name + " attach point is required and only has one element left in it");
 				return content.remove(e);
 			} else {
-				if (!e.equals(getElement(role)))
+				SettableValue<QuickElement> apVal = getElement((AttachPoint<QuickElement>) role);
+				if (!e.equals(apVal.get()))
 					return false;
 				if (role.required)
 					throw new UnsupportedOperationException("The " + role.name + " attach point is required");
-				setElement(role, null);
+				apVal.set(null, null);
 				return true;
 			}
 		}
 
 		@Override
-		public boolean addAll(Collection<? extends QuickElement> c) {
-			boolean ret = false;
-			for (QuickElement item : c)
-				ret |= add(item);
-			return ret;
-		}
-
-		@Override
 		public boolean addAll(int index, Collection<? extends QuickElement> c) {
-			for (QuickElement child : c) {
-				add(index, child);
-				index++;
-			}
-			return c.size() > 0;
-		}
-
-		@Override
-		public boolean removeAll(Collection<?> c) {
-			boolean ret = false;
-			for (Object item : c)
-				ret |= remove(item);
-			return ret;
-		}
-
-		@Override
-		public boolean retainAll(Collection<?> c) {
-			boolean ret = false;
-			Iterator<QuickElement> iter = iterator();
-			while (iter.hasNext()) {
-				if (!c.contains(iter.next())) {
-					iter.remove();
-					ret = true;
-				}
-			}
-			return ret;
+			throw new UnsupportedOperationException("add at index unsupported");
 		}
 
 		@Override
 		public void clear() {
-			for (AttachPoint ap : theTemplateStructure) {
+			for (AttachPoint<?> ap : theTemplateStructure) {
 				if (!ap.external)
 					continue;
 				if (ap.required)
@@ -1406,309 +1411,132 @@ public abstract class QuickTemplate extends QuickElement {
 						throw new UnsupportedOperationException("Template has non-empty, immutable attach points--can't be cleared");
 				}
 			}
-			for (AttachPoint ap : theTemplateStructure) {
+			for (AttachPoint<?> ap : theTemplateStructure) {
 				if (ap.multiple)
 					getContainer(ap).getContent().clear();
 				else
-					setElement(ap, null);
+					getElement(ap).set(null, null);
 			}
-		}
-
-		@Override
-		public QuickElement get(int index) {
-			if (index < 0)
-				throw new IndexOutOfBoundsException("" + index);
-			int origIndex = index;
-			int length = 0;
-			for (QuickElement item : this) {
-				length++;
-				if (index == 0)
-					return item;
-				index--;
-			}
-			throw new IndexOutOfBoundsException(origIndex + " out of " + length);
 		}
 
 		@Override
 		public QuickElement set(int index, QuickElement element) {
-			if (index < 0)
-				throw new IndexOutOfBoundsException("" + index);
-			ListIterator<QuickElement> iter = listIterator();
-			QuickElement ret = null;
-			int i = 0;
-			for (i = 0; i <= index && iter.hasNext(); i++)
-				ret = iter.next();
-			if (i == index + 1) {
-				iter.set(element);
-				return ret;
+			QuickElement e = get(index);
+			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
+			if (role == null)
+				role = theTemplateStructure.getDefaultAttachPoint();
+			if (role == null)
+				throw new UnsupportedOperationException("Templated widget " + QuickTemplate.class.getName()
+					+ " does not have a default attach point, and therefore does not support replacement"
+					+ " of children without a role assignment");
+			if (!role.external)
+				throw new UnsupportedOperationException("The " + role.name + " attach point is not externally-exposed");
+			if (!role.mutable)
+				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
+			if (!role.type.isInstance(e))
+				throw new UnsupportedOperationException("The " + role.name + " attach point's elements must be of type "
+					+ role.type.getName() + ", not " + e.getClass().getName());
+			AttachPoint<?> elRole = element.atts().get(theTemplateStructure.role);
+			if (elRole != null && elRole != role)
+				throw new UnsupportedOperationException(
+					"The role of the element to set (" + elRole + ") is not the same as the element being replaced (" + role + ")");
+			if (role.multiple) {
+				ElementList<QuickElement> contents = getContainer((AttachPoint<QuickElement>) role).getContent();
+				int contentIdx = contents.indexOf(e);
+				if (contentIdx < 0)
+					throw new UnsupportedOperationException("The contents of the " + role.name
+						+ " attach point does not include the element at index " + index + " in the contents list");
+				contents.set(contentIdx, element);
+			} else {
+				SettableValue<QuickElement> apVal = getElement((AttachPoint<QuickElement>) role);
+				if (apVal.get() != e)
+					throw new UnsupportedOperationException(
+						"The " + role.name + " attach point's value is not the element at index " + index);
+				apVal.set(element, null);
 			}
-			throw new IndexOutOfBoundsException(index + " out of " + (i - 1));
+			return e;
 		}
 
 		@Override
 		public void add(int index, QuickElement element) {
-			if (index < 0)
-				throw new IndexOutOfBoundsException("" + index);
-			ListIterator<QuickElement> iter = listIterator();
-			int i = 0;
-			for (i = 0; i < index && iter.hasNext(); i++)
-				iter.next();
-			if (i == index) {
-				iter.add(element);
-				return;
-			}
-			throw new IndexOutOfBoundsException(index + " out of " + i);
+			throw new UnsupportedOperationException("add at index unsupported");
 		}
 
 		@Override
 		public QuickElement remove(int index) {
-			if (index < 0)
-				throw new IndexOutOfBoundsException("" + index);
-			ListIterator<QuickElement> iter = listIterator();
-			QuickElement ret = null;
-			int i = 0;
-			for (i = 0; i <= index && iter.hasNext(); i++)
-				ret = iter.next();
-			if (i == index + 1) {
-				iter.remove();
-				return ret;
-			}
-			throw new IndexOutOfBoundsException(index + " out of " + (i - 1));
-		}
-
-		@Override
-		public AttachPointSetIterator listIterator() {
-			return new AttachPointSetIterator();
-		}
-
-		@Override
-		public ListIterator<QuickElement> listIterator(int index) {
-			ListIterator<QuickElement> ret = listIterator();
-			int i;
-			for (i = 0; i < index && ret.hasNext(); i++)
-				ret.next();
-			if (i == index)
-				return ret;
-			throw new IndexOutOfBoundsException(index + " out of " + i);
-		}
-
-		@Override
-		public List<QuickElement> subList(int fromIndex, int toIndex) {
-			return new org.quick.core.mgr.SubList<>(this, fromIndex, toIndex);
-		}
-
-		@Override
-		public boolean addAll(QuickElement[] children) {
-			return addAll(Arrays.asList(children));
-		}
-
-		@Override
-		public boolean addAll(int index, QuickElement[] children) {
-			return addAll(index, Arrays.asList(children));
-		}
-
-		/** Iterates over the elements in the set this templated element's external attach points */
-		private class AttachPointSetIterator implements ListIterator<QuickElement> {
-			private ListIterator<AttachPoint> theAPIter = (ListIterator<AttachPoint>) theTemplateStructure.iterator();
-
-			private AttachPoint theLastAttachPoint;
-
-			private ListIterator<? extends QuickElement> theAPContainer;
-
-			private QuickElement theAPElement;
-
-			private boolean calledHasNext = false;
-
-			private boolean calledHasPrevious = false;
-
-			private int theDirection;
-
-			private int theIndex;
-
-			@Override
-			public boolean hasNext() {
-				if (calledHasNext)
-					return true;
-				calledHasNext = true;
-				calledHasPrevious = false;
-				while ((theAPContainer == null || !theAPContainer.hasNext()) && theAPElement == null && theAPIter.hasNext()) {
-					theAPContainer = null;
-					theLastAttachPoint = theAPIter.next();
-					if (theLastAttachPoint.external) {
-						if (theLastAttachPoint.multiple)
-							theAPContainer = getContainer(theLastAttachPoint).getContent().listIterator();
-						else
-							theAPElement = getElement(theLastAttachPoint);
-					}
-				}
-				return (theAPContainer != null && theAPContainer.hasNext()) || theAPElement != null;
-			}
-
-			@Override
-			public QuickElement next() {
-				if (!calledHasNext && !hasNext())
-					throw new java.util.NoSuchElementException();
-				theIndex++;
-				theDirection = 1;
-				calledHasNext = false;
-				calledHasPrevious = false;
-				if (theAPContainer != null)
-					return theAPContainer.next();
-				else {
-					QuickElement ret = theAPElement;
-					theAPElement = null;
-					return ret;
-				}
-			}
-
-			/** @return The attach point that the last returned element belongs to */
-			@SuppressWarnings("unused")
-			AttachPoint getLastAttachPoint() {
-				return theLastAttachPoint;
-			}
-
-			@Override
-			public boolean hasPrevious() {
-				if (calledHasPrevious)
-					return true;
-				calledHasPrevious = true;
-				calledHasNext = false;
-				while ((theAPContainer == null || !theAPContainer.hasPrevious()) && theAPElement == null && theAPIter.hasPrevious()) {
-					theAPContainer = null;
-					theLastAttachPoint = theAPIter.previous();
-					if (theLastAttachPoint.external) {
-						if (theLastAttachPoint.multiple)
-							theAPContainer = getContainer(theLastAttachPoint).getContent().listIterator();
-						else
-							theAPElement = getElement(theLastAttachPoint);
-					}
-				}
-				return (theAPContainer != null && theAPContainer.hasPrevious()) || theAPElement != null;
-			}
-
-			@Override
-			public QuickElement previous() {
-				if (!calledHasPrevious && !hasPrevious())
-					throw new java.util.NoSuchElementException();
-				theDirection = -1;
-				calledHasNext = false;
-				calledHasPrevious = false;
-				if (theAPContainer != null)
-					return theAPContainer.previous();
-				else {
-					QuickElement ret = theAPElement;
-					theAPElement = null;
-					return ret;
-				}
-			}
-
-			@Override
-			public int nextIndex() {
-				return theIndex;
-			}
-
-			@Override
-			public int previousIndex() {
-				return theIndex - 1;
-			}
-
-			@Override
-			public void set(QuickElement e) {
-				if (theDirection == 0)
-					throw new IllegalStateException("next() or previous() must be called prior to calling set");
-				if (!theLastAttachPoint.mutable)
-					throw new UnsupportedOperationException("The " + theLastAttachPoint.name + " attach point is not mutable");
-				if (!theLastAttachPoint.type.isInstance(e))
-					throw new UnsupportedOperationException(
-						"The " + theLastAttachPoint.name + " attach points only supports elements of type "
-							+ theLastAttachPoint.type.getName() + ", not " + e.getClass().getName());
-				if (theAPContainer != null)
-					((ListIterator<QuickElement>) theAPContainer).set(e);
-				else
-					setElement(theLastAttachPoint, e);
-			}
-
-			@Override
-			public void add(QuickElement e) {
-				if (theLastAttachPoint == null) {
-					AttachPointSetChildList.this.add(theIndex, e);
-					return;
-				}
-				if (!theLastAttachPoint.mutable)
-					throw new UnsupportedOperationException("The " + theLastAttachPoint.name + " attach point is not mutable");
-				if (!theLastAttachPoint.multiple)
-					throw new UnsupportedOperationException(
-						"The " + theLastAttachPoint.name + " attach point does not support multiple elements");
-				if (!theLastAttachPoint.type.isInstance(e))
-					throw new UnsupportedOperationException(
-						"The " + theLastAttachPoint.name + " attach points only supports elements of type "
-							+ theLastAttachPoint.type.getName() + ", not " + e.getClass().getName());
-				((ListIterator<QuickElement>) theAPContainer).add(e);
-			}
-
-			@Override
-			public void remove() {
-				if (theDirection == 0)
-					throw new IllegalStateException("next() or previous() must be called prior to calling remove");
-				if (!theLastAttachPoint.mutable)
-					throw new UnsupportedOperationException("The " + theLastAttachPoint.name + " attach point is not mutable");
-				if (theAPContainer != null)
-					theAPContainer.remove();
-				else
-					setElement(theLastAttachPoint, null);
-				if (theDirection > 0)
-					theIndex--;
-				else
-					theIndex++;
-			}
+			QuickElement el = get(index);
+			remove(el);
+			return el;
 		}
 	}
 
-	private static class AttachPointInstanceContainer implements QuickContainer<QuickElement> {
-		private AttachPointInstanceElementList theContent;
+	private class AttachPointInstanceContainer<E extends QuickElement> implements QuickContainer<E> {
+		private AttachPointInstanceElementList<?, E> theContent;
 
-		AttachPointInstanceContainer(AttachPoint ap, QuickTemplate template, ElementList<?> parentChildren) {
-			theContent = new AttachPointInstanceElementList(ap, template, parentChildren);
+		AttachPointInstanceContainer(AttachPoint<E> ap, QuickTemplate template, ElementList<?> parentChildren) {
+			theContent = new AttachPointInstanceElementList<>(ap, template, parentChildren);
 		}
 
 		@Override
-		public ElementList<QuickElement> getContent() {
+		public ElementList<E> getContent() {
 			return theContent;
 		}
 	}
 
-	private static class AttachPointInstanceElementList extends org.quick.util.FilteredElementList<QuickElement> {
-		private final AttachPoint theAttach;
+	private class AttachPointInstanceElementList<E1 extends QuickElement, E2 extends QuickElement>
+		extends ObservableList.DynamicFilteredList<E1, E2> implements ElementList<E2> {
+		@SuppressWarnings("unused")
+		private final AttachPoint<E2> theAttachPoint;
 
-		AttachPointInstanceElementList(AttachPoint ap, QuickTemplate template, ElementList<?> parentChildren) {
-			super(template, parentChildren);
-			theAttach = ap;
+		AttachPointInstanceElementList(AttachPoint<E2> ap, QuickTemplate template, ElementList<E1> parentChildren) {
+			super(parentChildren, TypeToken.of(ap.type), e -> {
+				AttachPoint<?> elAp = e.atts().get(ap.template.role);
+				FilterMapResult<E2> result = null;
+				if (elAp == ap || (ap.isDefault && elAp == null))
+					result = new FilterMapResult<>((E2) e, true);
+				return result;
+			}, e -> (E1) e);
+			theAttachPoint = ap;
 		}
 
 		@Override
-		protected boolean filter(QuickElement element) {
-			return theAttach.template.getRole(element) == theAttach;
+		public QuickElement getParent() {
+			return QuickTemplate.this;
 		}
 
 		@Override
-		protected void assertMutable() {
-			if (!theAttach.mutable)
-				throw new UnsupportedOperationException(
-					"Attach point " + theAttach + " of template " + theAttach.template.getDefiner().getName() + " is not mutable");
+		public boolean addAll(int index, Collection<? extends E2> c) {
+			throw new UnsupportedOperationException("Not implemented");
 		}
 
 		@Override
-		protected void assertFits(QuickElement e) {
-			if (e == null)
-				throw new IllegalArgumentException("Cannot add null elements to an element container");
-			QuickTemplate.assertFits(theAttach, e);
-			if (contains(e))
-				throw new IllegalArgumentException("Element is already in this container");
+		public E2 set(int index, E2 element) {
+			throw new UnsupportedOperationException("Not implemented");
 		}
 
 		@Override
-		protected QuickElement[] newArray(int size) {
-			return new QuickElement[size];
+		public void add(int index, E2 element) {
+			throw new UnsupportedOperationException("Not implemented");
+		}
+
+		@Override
+		public E2 remove(int index) {
+			throw new UnsupportedOperationException("Not implemented");
+		}
+
+		@Override
+		public boolean add(E2 e) {
+			throw new UnsupportedOperationException("Not implemented");
+		}
+
+		@Override
+		public boolean remove(Object o) {
+			throw new UnsupportedOperationException("Not implemented");
+		}
+
+		@Override
+		public void clear() {
+			throw new UnsupportedOperationException("Not implemented");
 		}
 	}
 }

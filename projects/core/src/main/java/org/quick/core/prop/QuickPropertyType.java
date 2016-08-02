@@ -40,7 +40,19 @@ import com.google.common.reflect.TypeToken;
 public final class QuickPropertyType<T> {
 	private static final SimpleDateFormat INSTANT_FORMAT = new SimpleDateFormat("ddMMMyyyy HH:mm:ss");
 
+	/**
+	 * An interface that a property type can use to parse its own values
+	 *
+	 * @param <T> The type of property to parse
+	 */
 	public interface PropertySelfParser<T> {
+		/**
+		 * @param parser The property parser
+		 * @param parseEnv The parse environment
+		 * @param value The text to parse
+		 * @return The parsed value
+		 * @throws QuickParseException If an error occurs parsing the text
+		 */
 		ObservableValue<T> parse(QuickPropertyParser parser, QuickParseEnv parseEnv, String value) throws QuickParseException;
 	}
 
@@ -78,6 +90,7 @@ public final class QuickPropertyType<T> {
 		return theType;
 	}
 
+	/** @return Whether this property type is an action type */
 	public boolean isAction() {
 		return isAction;
 	}
@@ -87,14 +100,17 @@ public final class QuickPropertyType<T> {
 		return theParser;
 	}
 
+	/** @return Whether this property type parses its own values by default */
 	public boolean isSelfParsingByDefault() {
 		return isSelfParsingByDefault;
 	}
 
+	/** @return A function that generates reference names for values to be injected into a parsed value */
 	public Function<Integer, String> getReferenceReplacementGenerator() {
 		return theReferenceReplacementGenerator;
 	}
 
+	/** @return The expression context for this property type */
 	public ExpressionContext getContext() {
 		return theContext;
 	}
@@ -139,6 +155,12 @@ public final class QuickPropertyType<T> {
 		return cast;
 	}
 
+	/**
+	 * Prints a value
+	 *
+	 * @param value The value to print
+	 * @return The string representation of the value
+	 */
 	public String toString(T value) {
 		if (thePrinter != null)
 			return thePrinter.apply(value);
@@ -151,14 +173,33 @@ public final class QuickPropertyType<T> {
 		return theName;
 	}
 
+	/**
+	 * Builds a value property
+	 *
+	 * @param name The name for the property type
+	 * @param type The run-time type for the property type
+	 * @return A builder for the property type
+	 */
 	public static <T> QuickPropertyType.Builder<T> build(String name, TypeToken<T> type) {
 		return new Builder<>(name, type, false);
 	}
 
+	/**
+	 * Builds an action property
+	 *
+	 * @param name The name for the property type
+	 * @param type The run-time type for the property type
+	 * @return A builder for the property type
+	 */
 	public static <T> QuickPropertyType.Builder<T> buildAction(String name, TypeToken<T> type) {
 		return new Builder<>(name, type, true);
 	}
 
+	/**
+	 * Builds {@link QuickPropertyType}s
+	 *
+	 * @param <T> The type of the property
+	 */
 	public static class Builder<T> {
 		private final String theName;
 		private final TypeToken<T> theType;
@@ -178,32 +219,55 @@ public final class QuickPropertyType<T> {
 			isAction = action;
 		}
 
+		/**
+		 * @param parser The self-parser for the property type
+		 * @param parseSelfByDefault Whether to parse our own properties by default
+		 * @return This builder
+		 */
 		public Builder<T> withParser(PropertySelfParser<T> parser, boolean parseSelfByDefault) {
 			theParser = parser;
 			isSelfParsingByDefault = parseSelfByDefault;
 			return this;
 		}
 
+		/**
+		 * @param replacementGen The reference replacement generator for model value replacements in this property
+		 * @return This builder
+		 */
 		public Builder<T> withRefReplaceGenerator(Function<Integer, String> replacementGen) {
 			theReferenceReplacementGenerator = replacementGen;
 			return this;
 		}
 
+		/**
+		 * @param from The type of value to convert from
+		 * @param map The type of value to convert to
+		 * @return This builder
+		 */
 		public <F> Builder<T> map(TypeToken<F> from, ExFunction<? super F, ? extends T, QuickException> map) {
 			theMappings.add(new TypeMapping<>(from, theType, map));
 			return this;
 		}
 
+		/**
+		 * @param toString The function to print property values
+		 * @return This builder
+		 */
 		public Builder<T> withToString(Function<? super T, String> toString) {
 			thePrinter = toString;
 			return this;
 		}
 
+		/**
+		 * @param builder A function to build up an expression context
+		 * @return This builder
+		 */
 		public Builder<T> buildContext(Consumer<DefaultExpressionContext.Builder> builder) {
 			builder.accept(theCtxBuilder);
 			return this;
 		}
 
+		/** @return The new property type */
 		public QuickPropertyType<T> build() {
 			if (isSelfParsingByDefault && theParser == null)
 				throw new IllegalArgumentException("Cannot parse self by default with no parser");
@@ -212,25 +276,30 @@ public final class QuickPropertyType<T> {
 		}
 	}
 
+	/** The default property type for string-valued properties */
 	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeToken.of(String.class))
 		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(String.class), s), true)//
 		.map(TypeToken.of(CharSequence.class), seq -> seq.toString())//
 		.build();
 
+	/** The default property type for boolean-valued properties */
 	public static final QuickPropertyType<Boolean> boole = QuickPropertyType.build("boolean", TypeToken.of(Boolean.class)).build();
 
+	/** The default property type for integer-valued properties */
 	public static final QuickPropertyType<Integer> integer = QuickPropertyType.build("integer", TypeToken.of(Integer.class))
 		.map(TypeToken.of(Number.class), num -> num.intValue())//
 		.map(TypeToken.of(Long.class), l -> l.intValue())//
 		.map(TypeToken.of(Character.class), c -> (int) c.charValue())//
 		.build();
 
+	/** The default property type for floating-point-valued properties */
 	public static final QuickPropertyType<Double> floating = QuickPropertyType.build("float", TypeToken.of(Double.class))
 		.map(TypeToken.of(Number.class), num -> num.doubleValue())//
 		.map(TypeToken.of(Long.class), l -> l.doubleValue())//
 		.map(TypeToken.of(Character.class), c -> (double) c.charValue())//
 		.build();
 
+	/** The default property type for time-instant-valued properties */
 	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeToken.of(Instant.class))
 		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Instant.class), parseInstant(s)), true)//
 		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l))//
@@ -246,8 +315,10 @@ public final class QuickPropertyType<T> {
 		}
 	}
 
+	/** All chronological units (h, m, s, etc.) supported by the {@link #duration} property type */
 	public static final Map<String, ChronoUnit> SUPPORTED_CHRONO_UNITS;
 
+	/** The default property type for time-duration-valued properties */
 	public static final QuickPropertyType<Duration> duration;
 
 	static {
@@ -345,6 +416,7 @@ public final class QuickPropertyType<T> {
 		return str.toString();
 	}
 
+	/** The default property type for color-valued properties */
 	public static final QuickPropertyType<Color> color;
 
 	static {
@@ -386,6 +458,12 @@ public final class QuickPropertyType<T> {
 		color = colorBuilder.build();
 	}
 
+	/**
+	 * Creates a property type for parsing values of an enum
+	 * 
+	 * @param enumType The enum class
+	 * @return The property type for the enum
+	 */
 	public static final <T extends Enum<T>> QuickPropertyType<T> forEnum(Class<T> enumType) {
 		TypeToken<T> typeToken = TypeToken.of(enumType);
 		Map<String, T> byName = new HashMap<>();
@@ -461,6 +539,12 @@ public final class QuickPropertyType<T> {
 		return builder.build();
 	}
 
+	/**
+	 * Creates a property type that parses a java type
+	 * 
+	 * @param type The super class of the type to produce
+	 * @return The property type
+	 */
 	public static final <T> QuickPropertyType<Class<? extends T>> forType(Class<T> type) {
 		TypeToken<Class<? extends T>> typeToken = new TypeToken<Class<? extends T>>() {}.where(new TypeParameter<T>() {},
 			TypeToken.of(type));
@@ -486,6 +570,12 @@ public final class QuickPropertyType<T> {
 			.build();
 	}
 
+	/**
+	 * Creates a property type that instantiates a type
+	 * 
+	 * @param type The super class of the type of values to produce
+	 * @return The property type
+	 */
 	public static final <T> QuickPropertyType<T> forTypeInstance(Class<T> type) {
 		return build(type.getName(), TypeToken.of(type))//
 			.withParser((parser, env, s) -> {
@@ -524,8 +614,10 @@ public final class QuickPropertyType<T> {
 			.build();
 	}
 
+	/** The default property type for QuickElement-type-valued properties */
 	public static final QuickPropertyType<Class<? extends QuickElement>> elementType = forType(QuickElement.class);
 
+	/** The default property type for QuickElement-valued properties */
 	public static final QuickPropertyType<QuickElement> element = forTypeInstance(QuickElement.class);
 
 	/**

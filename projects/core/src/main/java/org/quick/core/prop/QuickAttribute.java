@@ -26,12 +26,26 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 		return "attribute";
 	}
 
+	/**
+	 * @param name The name for the attribute
+	 * @param type The type for the attribute
+	 * @return A builder to build the attribute
+	 */
 	public static <T> Builder<T> build(String name, QuickPropertyType<T> type) {
 		return new Builder<>(name, type);
 	}
 
+	/**
+	 * Builds a {@link QuickAttribute}
+	 * 
+	 * @param <T> The type of the attribute
+	 */
 	public static class Builder<T> extends QuickProperty.Builder<T> {
-		public Builder(String name, QuickPropertyType<T> type) {
+		/**
+		 * @param name The name for the attribute
+		 * @param type The type for the attribute
+		 */
+		protected Builder(String name, QuickPropertyType<T> type) {
 			super(name, type);
 		}
 

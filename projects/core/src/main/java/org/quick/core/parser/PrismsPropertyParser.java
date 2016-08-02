@@ -983,6 +983,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		};
 	}
 
+	/** Represents a value with a unit (e.g. 9px for 9 pixels) */
 	public static class ParsedUnitValue extends ParsedItem {
 		private ParsedItem theValue;
 		private String theUnit;
@@ -994,10 +995,12 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			theUnit = getStored("unit").text;
 		}
 
+		/** @return The value of the expression */
 		public ParsedItem getValue() {
 			return theValue;
 		}
 
+		/** @return The unit of the expression */
 		public String getUnit() {
 			return theUnit;
 		}
@@ -1016,6 +1019,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}
 	}
 
+	/** Represents a placeholder for an injected value */
 	public static class ParsedPlaceHolder extends ParsedItem {
 		private String theName;
 
@@ -1025,6 +1029,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			theName = getStored("name").text;
 		}
 
+		/** @return The name of the placeholder */
 		public String getName() {
 			return theName;
 		}

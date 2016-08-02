@@ -12,9 +12,11 @@ import org.quick.core.QuickToolkit;
 import org.quick.core.style2.ImmutableStyleSheet;
 import org.quick.util.QuickUtils;
 
+/** The default parser for Quick toolkits */
 public class DefaultToolkitParser implements QuickToolkitParser {
 	private final QuickEnvironment theEnvironment;
 
+	/** @param env The environment that this toolkit is to be part of */
 	public DefaultToolkitParser(QuickEnvironment env) {
 		theEnvironment = env;
 	}

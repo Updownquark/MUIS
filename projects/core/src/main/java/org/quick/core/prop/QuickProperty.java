@@ -46,6 +46,7 @@ public abstract class QuickProperty<T> {
 	 * @param name The name for the property
 	 * @param type The type of the property
 	 * @param validator The validator for the property
+	 * @param valueSuppliers The value suppliers to supply named values for this property when parsed
 	 */
 	protected QuickProperty(String name, QuickPropertyType<T> type, PropertyValidator<T> validator,
 		List<Function<String, ObservableValue<?>>> valueSuppliers) {
@@ -70,6 +71,7 @@ public abstract class QuickProperty<T> {
 		return theValidator;
 	}
 
+	/** @return The list of value suppliers tha can supply named values for this property when parsed */
 	public List<Function<String, ObservableValue<?>>> getValueSuppliers() {
 		return theValueSuppliers;
 	}
@@ -77,6 +79,10 @@ public abstract class QuickProperty<T> {
 	/** @return What kind of property this is */
 	protected abstract String getPropertyTypeName();
 
+	/**
+	 * @param value The value to test
+	 * @return Whether the value can be set for this property
+	 */
 	public boolean canAccept(Object value) {
 		if (value == null) {
 			if (theType.getType().isPrimitive())
@@ -115,44 +121,66 @@ public abstract class QuickProperty<T> {
 		return theName.hashCode() * 13 + theType.hashCode() * 7;
 	}
 
+	/**
+	 * Builds a {@link QuickProperty}
+	 *
+	 * @param <T> The type of the property
+	 */
 	public static abstract class Builder<T> {
 		private final String theName;
 		private final QuickPropertyType<T> theType;
 		private PropertyValidator<T> theValidator;
 		private final List<Function<String, ObservableValue<?>>> theValueSuppliers;
 
-		public Builder(String name, QuickPropertyType<T> type) {
+		/**
+		 * @param name The name of the property
+		 * @param type The type of the property
+		 */
+		protected Builder(String name, QuickPropertyType<T> type) {
 			theName = name;
 			theType = type;
 			theValueSuppliers = new ArrayList<>();
 		}
 
+		/**
+		 * @param validator The validator to set for the property
+		 * @return This builder
+		 */
 		public Builder<T> validate(PropertyValidator<T> validator) {
 			theValidator = validator;
 			return this;
 		}
 
+		/**
+		 * @param values The value supplier to add
+		 * @return This builder
+		 */
 		public Builder<T> withValues(Function<String, ObservableValue<?>> values) {
 			theValueSuppliers.add(values);
 			return this;
 		}
 
+		/** @return The property name set for this builder */
 		protected String getName() {
 			return theName;
 		}
 
+		/** @return The property type set for this builder */
 		protected QuickPropertyType<T> getType() {
 			return theType;
 		}
 
+		/** @return The validator set for this builder */
 		protected PropertyValidator<T> getValidator() {
 			return theValidator;
 		}
 
+		/** @return The list of value suppliers set for this builder */
 		protected List<Function<String, ObservableValue<?>>> getValueSuppliers() {
 			return theValueSuppliers;
 		}
 
+		/** @return The new property */
 		public abstract QuickProperty<T> build();
 	}
 

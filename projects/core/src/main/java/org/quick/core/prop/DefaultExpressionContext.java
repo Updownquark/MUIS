@@ -9,6 +9,7 @@ import org.quick.core.QuickException;
 
 import com.google.common.reflect.TypeToken;
 
+/** Default implementation of ExpressionContext */
 public class DefaultExpressionContext implements ExpressionContext {
 	private final List<ExpressionContext> theParents;
 	private final Map<String, ObservableValue<?>> theValues;
@@ -78,10 +79,12 @@ public class DefaultExpressionContext implements ExpressionContext {
 		return units;
 	}
 
+	/** @return A builder to build a {@link DefaultExpressionContext} */
 	public static Builder build() {
 		return new Builder();
 	}
 
+	/** Builds {@link DefaultExpressionContext}s */
 	public static class Builder {
 		private final List<ExpressionContext> theParents;
 		private final Map<String, ObservableValue<?>> theValues;
@@ -97,32 +100,58 @@ public class DefaultExpressionContext implements ExpressionContext {
 			theUnits = new LinkedHashMap<>();
 		}
 
+		/**
+		 * @param ctx The context that the new context should inherit data from
+		 * @return This builder
+		 */
 		public Builder withParent(ExpressionContext ctx) {
 			theParents.add(ctx);
 			return this;
 		}
 
+		/**
+		 * @param name The name of the value
+		 * @param value The value
+		 * @return This builder
+		 */
 		public Builder withValue(String name, ObservableValue<?> value) {
 			theValues.put(name, value);
 			return this;
 		}
 
+		/**
+		 * @param getter A function that discovers named values at runtime
+		 * @return This builder
+		 */
 		public Builder withValueGetter(Function<String, ObservableValue<?>> getter) {
 			theValueGetters.add(getter);
 			return this;
 		}
 
+		/**
+		 * @param name The name of the function
+		 * @param fn The function
+		 * @return This builder
+		 */
 		public Builder withFunction(String name, ExpressionFunction<?> fn) {
 			theFunctions.computeIfAbsent(name, n -> new ArrayList<>(1)).add(fn);
 			return this;
 		}
 
+		/**
+		 * @param name The name of the unit
+		 * @param from The type of value to convert
+		 * @param to The type of value to produce
+		 * @param operator The conversion function
+		 * @return This builder
+		 */
 		public <F, T2> Builder withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
 			ExFunction<? super F, ? extends T2, QuickException> operator) {
 			theUnits.computeIfAbsent(name, n -> new ArrayList<>(1)).add(new Unit<>(name, from, to, operator));
 			return this;
 		}
 
+		/** @return A new builder with the same data as this one has currently */
 		public Builder copy(){
 			Builder newBuilder=new Builder();
 			newBuilder.theParents.addAll(theParents);
@@ -132,6 +161,7 @@ public class DefaultExpressionContext implements ExpressionContext {
 			return newBuilder;
 		}
 
+		/** @return The built context */
 		public DefaultExpressionContext build() {
 			return new DefaultExpressionContext(theParents, theValues, theValueGetters, theFunctions, theUnits);
 		}

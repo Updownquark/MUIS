@@ -2,12 +2,20 @@
 package org.quick.core;
 
 import java.awt.Rectangle;
+import java.util.Collections;
 import java.util.List;
 
 import org.observe.Action;
+import org.observe.Observable;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.qommons.Transaction;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
-import org.quick.core.event.*;
+import org.quick.core.event.BoundsChangedEvent;
+import org.quick.core.event.FocusEvent;
+import org.quick.core.event.MouseEvent;
+import org.quick.core.event.SizeNeedsChangedEvent;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.*;
@@ -31,13 +39,6 @@ import org.quick.core.tags.StateSupport;
 		@State(name = States.FOCUS_NAME, priority = States.FOCUS_PRIORITY),
 		@State(name = States.TEXT_SELECTION_NAME, priority = States.TEXT_SELECTION_PRIORITY)})
 public abstract class QuickElement implements QuickParseEnv {
-	/**
-	 * Used to lock this elements' child sets
-	 *
-	 * @see QuickLock
-	 */
-	public static final String CHILDREN_LOCK_TYPE = "Quick Child Lock";
-
 	private final QuickLifeCycleManager theLifeCycleManager;
 
 	private QuickLifeCycleManager.Controller theLifeCycleController;
@@ -66,7 +67,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private final ChildList theChildren;
 
-	private final ImmutableChildList<QuickElement> theExposedChildren;
+	private final ElementList<QuickElement> theExposedChildren;
 
 	private final QuickElementStyle theStyle;
 
@@ -105,7 +106,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			}
 		theBounds = new ElementBounds(this);
 		theChildren = new ChildList(this);
-		theExposedChildren = new ImmutableChildList<>(theChildren);
+		theExposedChildren = theChildren.immutable();
 		theAttributeManager = new AttributeManager(this);
 		theStyle = new QuickElementStyle(this);
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
@@ -113,65 +114,45 @@ public abstract class QuickElement implements QuickParseEnv {
 		theDefaultStyleListener.act(evt -> {
 			repaint(null, false);
 		});
-		events().filterMap(ChildEvent.child).act(event -> {
-			events().fire(new SizeNeedsChangedEvent(QuickElement.this, null));
-			switch (event.getType()) {
-			case ADD:
-				registerChild(event.getChild());
-				break;
-			case REMOVE:
-				// Need to repaint where the element left even if nothing changes as a result of the layout
-				unregisterChild(event.getChild());
-				repaint(event.getChild().theBounds.getBounds(), false);
-				break;
-			case MOVE:
-				// The child has changed indexes which may have affected its z-order, so we need to repaint over its bounds.
-			repaint(event.getChild().theBounds.getBounds(), false);
-				break;
+		theChildren.onOrderedElement(el -> {
+			el.subscribe(new Observer<ObservableValueEvent<QuickElement>>() {
+				@Override
+				public <V extends ObservableValueEvent<QuickElement>> void onNext(V event) {
+					if (!event.isInitial())
+						unregisterChild(event.getOldValue());
+					registerChild(event.getValue(), el);
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<QuickElement>> void onCompleted(V event) {
+					unregisterChild(event.getValue());
+				}
+			});
+		});
+		theChildren.simpleChanges().act(cause -> events().fire(new SizeNeedsChangedEvent(QuickElement.this, null)));
+		theChildren.changes().act(event -> {
+			Rectangle bounds = null;
+			for (QuickElement child : event.values) {
+				if (child.bounds().isEmpty())
+					continue;
+				else if (bounds == null)
+					bounds = child.bounds().getBounds();
+				else
+					bounds.add(child.bounds().getBounds());
 			}
-		});
-		theChildren.events().filterMap(BoundsChangedEvent.bounds).filter(event -> !isStamp(event.getElement())).act(event -> {
-			Rectangle paintRect = event.getValue().union(event.getOldValue());
-			repaint(paintRect, false);
-		});
-		theChildren.events().filterMap(SizeNeedsChangedEvent.sizeNeeds).act(new Action<SizeNeedsChangedEvent>() {
-			@Override
-			public void act(SizeNeedsChangedEvent event) {
-				if(!isInPreferred(org.quick.core.layout.Orientation.horizontal) || !isInPreferred(org.quick.core.layout.Orientation.vertical)) {
-					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(QuickElement.this, event);
-					events().fire(newEvent);
-					if(!newEvent.isHandled()) {
-						newEvent.handle();
-						relayout(false);
-					}
-				} else {
-					event.handle();
-					relayout(false);
+			if (event.oldValues != null) {
+				for (QuickElement child : event.oldValues) {
+					if (bounds == null)
+						bounds = child.bounds().getBounds();
+					else if (!child.bounds().isEmpty())
+						bounds.add(child.bounds().getBounds());
 				}
 			}
-
-			private boolean isInPreferred(org.quick.core.layout.Orientation orient) {
-				QuickElement parent = getParent();
-				if(parent == null)
-					return true;
-				org.quick.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
-				int size = dim.getSize();
-				int cross = bounds().get(orient.opposite()).getSize();
-				int minPref = org.quick.core.layout.LayoutUtils.getSize(QuickElement.this, orient,
-					org.quick.core.layout.LayoutGuideType.minPref, parent.bounds().get(orient).getSize(), cross, false, null);
-				if(size < minPref)
-					return false;
-				int maxPref = org.quick.core.layout.LayoutUtils.getSize(QuickElement.this, orient,
-					org.quick.core.layout.LayoutGuideType.maxPref, parent.bounds().get(orient).getSize(), cross, false, null);
-				if(size > maxPref)
-					return false;
-				return true;
-			}
+			if (bounds != null)
+				repaint(bounds, false);
 		});
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, StyleAttributes.STYLE_ATTRIBUTE);
-		// events().filterMap(AttributeChangedEvent.att(StyleAttributeType.STYLE_ATTRIBUTE)).act(
-		// (StylePathAccepter) StyleAttributeType.STYLE_ATTRIBUTE.getPathAccepter());
 		bounds().act(event -> {
 			Rectangle old = event.getOldValue();
 			if(old == null || event.getValue().width != old.width || event.getValue().height != old.height)
@@ -415,14 +396,12 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param children The child elements specified in the Quick XML
 	 * @return The child list that the children are populated into
 	 */
-	public ElementList<? extends QuickElement> initChildren(QuickElement [] children) {
+	public ElementList<? extends QuickElement> initChildren(List<QuickElement> children) {
 		theLifeCycleController.advance(CoreStage.INIT_CHILDREN.toString());
-		try (QuickLock lock = theDocument.getLocker().lock(CHILDREN_LOCK_TYPE, this, true)) {
+		try (Transaction t = theChildren.lock(true, null)) {
 			theChildren.clear();
 			theChildren.addAll(children);
 		}
-		for(QuickElement child : children)
-			registerChild(child);
 		if(theBounds.getWidth() != 0 && theBounds.getHeight() != 0) // No point laying out if there's nothing to show
 			relayout(false);
 		theLifeCycleController.advance(CoreStage.INITIALIZED.toString());
@@ -433,10 +412,69 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * Called when a child is introduced to this parent
 	 *
 	 * @param child The child that has been added to this parent
+	 * @param until An observable that will fire when the child is removed
 	 */
-	protected void registerChild(QuickElement child) {
+	protected void registerChild(QuickElement child, Observable<?> until) {
 		if(child.getParent() != this)
 			child.setParent(this);
+
+		// Need to catch the child up to where the parent is in the life cycle
+		if (child.life().isAfter(CoreStage.INIT_SELF.name()) < 0 && life().isAfter(CoreStage.PARSE_CHILDREN.name()) > 0) {
+			QuickToolkit tk;
+			if (child.getClass().getClassLoader() instanceof QuickToolkit)
+				tk = (QuickToolkit) child.getClass().getClassLoader();
+			else
+				tk = getDocument().getEnvironment().getCoreToolkit();
+			org.quick.core.QuickClassView classView = new org.quick.core.QuickClassView(getDocument().getEnvironment(),
+				getParent().getClassView(), tk);
+			child.init(getDocument(), tk, classView, getParent(), null, null);
+		}
+		if (child.life().isAfter(CoreStage.INIT_CHILDREN.name()) < 0 && life().isAfter(CoreStage.INITIALIZED.name()) > 0) {
+			child.initChildren(Collections.emptyList());
+		}
+		if (child.life().isAfter(CoreStage.STARTUP.name()) < 0 && life().isAfter(CoreStage.READY.name()) > 0) {
+			child.postCreate();
+		}
+
+		child.events().takeUntil(until).filterMap(BoundsChangedEvent.bounds).filter(event -> !isStamp(event.getElement())).act(event -> {
+			Rectangle paintRect = event.getValue().union(event.getOldValue());
+			repaint(paintRect, false);
+		});
+		child.events().filterMap(SizeNeedsChangedEvent.sizeNeeds).act(new Action<SizeNeedsChangedEvent>() {
+			@Override
+			public void act(SizeNeedsChangedEvent event) {
+				if (!isInPreferred(org.quick.core.layout.Orientation.horizontal)
+					|| !isInPreferred(org.quick.core.layout.Orientation.vertical)) {
+					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(QuickElement.this, event);
+					events().fire(newEvent);
+					if (!newEvent.isHandled()) {
+						newEvent.handle();
+						relayout(false);
+					}
+				} else {
+					event.handle();
+					relayout(false);
+				}
+			}
+
+			private boolean isInPreferred(org.quick.core.layout.Orientation orient) {
+				QuickElement parent = getParent();
+				if (parent == null)
+					return true;
+				org.quick.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
+				int size = dim.getSize();
+				int cross = bounds().get(orient.opposite()).getSize();
+				int minPref = org.quick.core.layout.LayoutUtils.getSize(QuickElement.this, orient,
+					org.quick.core.layout.LayoutGuideType.minPref, parent.bounds().get(orient).getSize(), cross, false, null);
+				if (size < minPref)
+					return false;
+				int maxPref = org.quick.core.layout.LayoutUtils.getSize(QuickElement.this, orient,
+					org.quick.core.layout.LayoutGuideType.maxPref, parent.bounds().get(orient).getSize(), cross, false, null);
+				if (size > maxPref)
+					return false;
+				return true;
+			}
+		});
 	}
 
 	/**
@@ -507,7 +545,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	/** @return An unmodifiable list of this element's children */
-	public ImmutableChildList<? extends QuickElement> getChildren() {
+	public ElementList<? extends QuickElement> getChildren() {
 		return theExposedChildren;
 	}
 
@@ -516,7 +554,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 *
 	 * @return An unmodifiable list of this element's children
 	 */
-	public ImmutableChildList<? extends QuickElement> ch() {
+	public ElementList<? extends QuickElement> ch() {
 		return getChildren();
 	}
 
@@ -790,7 +828,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @return The cached bounds used to draw each of the element's children
 	 */
 	public QuickElementCapture [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
-		QuickElement [] children = ch().sortByZ();
+		QuickElement[] children = ch().sortByZ().toArray();
 		QuickElementCapture [] childBounds = new QuickElementCapture[children.length];
 		if(children.length == 0)
 			return childBounds;

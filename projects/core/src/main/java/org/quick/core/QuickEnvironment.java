@@ -33,7 +33,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	private QuickDocumentParser theDocumentParser;
 	private QuickContentCreator theContentCreator;
 	private QuickStyleParser theStyleParser;
-	private QuickPropertyParser theAttributeParser;
+	private QuickPropertyParser thePropertyParser;
 
 	private final DefaultExpressionContext theContext;
 	private final QuickMessageCenter theMessageCenter;
@@ -72,12 +72,14 @@ public class QuickEnvironment implements QuickParseEnv {
 		return theContentCreator;
 	}
 
+	/** @return The parser to parse style sheets in this environment */
 	public QuickStyleParser getStyleParser() {
 		return theStyleParser;
 	}
 
+	/** @return The parser to parse property values in this environment */
 	public QuickPropertyParser getPropertyParser() {
-		return theAttributeParser;
+		return thePropertyParser;
 	}
 
 	/** @return The message center for this environment */
@@ -152,14 +154,21 @@ public class QuickEnvironment implements QuickParseEnv {
 		}
 	}
 
+	/** @return A builder for an environment */
 	public static Builder build() {
 		return new Builder();
 	}
 
+	/** Builds {@link QuickEnvironment}s */
 	public static class Builder {
 		private final QuickEnvironment theEnv = new QuickEnvironment();
 		private final java.util.concurrent.atomic.AtomicBoolean isBuilt = new java.util.concurrent.atomic.AtomicBoolean(false);
 
+		/**
+		 * Populates this builder with default values for all needed fields
+		 *
+		 * @return This builder
+		 */
 		public Builder withDefaults() {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
@@ -167,10 +176,14 @@ public class QuickEnvironment implements QuickParseEnv {
 			theEnv.theDocumentParser = new org.quick.core.parser.QuickDomParser(theEnv);
 			theEnv.theContentCreator = new QuickContentCreator();
 			theEnv.theStyleParser = new DefaultStyleParser(theEnv);
-			theEnv.theAttributeParser = new PrismsPropertyParser(theEnv);
+			theEnv.thePropertyParser = new PrismsPropertyParser(theEnv);
 			return this;
 		}
 
+		/**
+		 * @param toolkitParser The toolkit parser for the environment
+		 * @return This builder
+		 */
 		public Builder setToolkitParser(QuickToolkitParser toolkitParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
@@ -178,6 +191,10 @@ public class QuickEnvironment implements QuickParseEnv {
 			return this;
 		}
 
+		/**
+		 * @param documentParser The document parser for the environment
+		 * @return This builder
+		 */
 		public Builder setDocumentParser(QuickDocumentParser documentParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
@@ -185,6 +202,10 @@ public class QuickEnvironment implements QuickParseEnv {
 			return this;
 		}
 
+		/**
+		 * @param contentCreator The content creator for the environment
+		 * @return This builder
+		 */
 		public Builder setContentCreator(QuickContentCreator contentCreator) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
@@ -192,6 +213,10 @@ public class QuickEnvironment implements QuickParseEnv {
 			return this;
 		}
 
+		/**
+		 * @param styleParser The style sheet parser for the environment
+		 * @return This builder
+		 */
 		public Builder setStyleParser(QuickStyleParser styleParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
@@ -199,13 +224,18 @@ public class QuickEnvironment implements QuickParseEnv {
 			return this;
 		}
 
-		public Builder setAttributeParser(QuickPropertyParser attributeParser) {
+		/**
+		 * @param propertyParser The property parser for the environment
+		 * @return This builder
+		 */
+		public Builder setPropertyParser(QuickPropertyParser propertyParser) {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
-			theEnv.theAttributeParser = attributeParser;
+			theEnv.thePropertyParser = propertyParser;
 			return this;
 		}
 
+		/** @return A new QuickEnvironment with this builder's settings */
 		public QuickEnvironment build() {
 			if(theEnv.theToolkitParser == null)
 				throw new IllegalStateException("No toolkit parser set");
@@ -215,8 +245,8 @@ public class QuickEnvironment implements QuickParseEnv {
 				throw new IllegalStateException("No content creator set");
 			if(theEnv.theStyleParser == null)
 				throw new IllegalStateException("No style parser set");
-			if(theEnv.theAttributeParser == null)
-				throw new IllegalStateException("No attribute parser set");
+			if(theEnv.thePropertyParser == null)
+				throw new IllegalStateException("No property parser set");
 			isBuilt.set(true);
 			return theEnv;
 		}

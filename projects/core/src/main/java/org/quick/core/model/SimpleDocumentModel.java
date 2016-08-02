@@ -11,6 +11,7 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 	private final StringBuilder theContent;
 
 	/**
+	 * @param element The element that this document is for
 	 * @param text The initial text for this field
 	 */
 	public SimpleDocumentModel(QuickElement element, String text) {
@@ -18,6 +19,7 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 		theContent.append(text);
 	}
 
+	/** @param element The element that this document is for */
 	public SimpleDocumentModel(QuickElement element) {
 		super(element);
 		theContent = new StringBuilder();

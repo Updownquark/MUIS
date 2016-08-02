@@ -1,5 +1,7 @@
 package org.quick.core;
 
+import org.quick.core.mgr.ElementList;
+
 /**
  * <p>
  * Marks an element (typically, though technically any class may implement this) that logically (rather than "physically") contains a set of
@@ -20,12 +22,12 @@ package org.quick.core;
  * of the specific container than just that it implements this interface. The non-modification methods of the list may be used in any
  * context.
  * </p>
- * 
+ *
  * <p>
  * Concrete classes implementing this interface should typically declare the type of element contained, instead of being generic containers
  * themselves.
  * </p>
- * 
+ *
  * <p>
  * Another context this interface might be used in is that an element (or other structure) might expose more than one element container. For
  * example, a tab container might expose its main content either by implementing this interface or by providing a method that returns a
@@ -42,5 +44,5 @@ public interface QuickContainer<E extends QuickElement> {
 	 * @return The logical contents of this container
 	 * @see QuickContainer
 	 */
-	org.quick.core.mgr.ElementList<E> getContent();
+	ElementList<E> getContent();
 }

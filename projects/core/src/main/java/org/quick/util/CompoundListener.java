@@ -6,17 +6,19 @@ import java.util.function.Consumer;
 
 import org.observe.Action;
 import org.observe.Observable;
-import org.observe.Observer;
+import org.observe.SimpleObservable;
 import org.observe.Subscription;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.event.AttributeChangedEvent;
-import org.quick.core.event.ChildEvent;
 import org.quick.core.event.QuickEventListener;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 import org.quick.core.style2.StyleAttributeEvent;
+import org.quick.core.style2.StyleChangeObservable;
+import org.quick.util.CompoundListener.CompoundElementListener;
+import org.quick.util.CompoundListener.IndividualElementListener;
 
 /**
  * <p>
@@ -282,6 +284,8 @@ public abstract class CompoundListener<T> {
 	 */
 	public abstract CompoundListener<T> onStyleChange(Consumer<? super StyleAttributeEvent<? super T>> listener);
 
+	public abstract Observable<?> onDrop();
+
 	/**
 	 * @param wanter The object that cares about the attributes that will be listened for on the elements
 	 * @return Creates a {@link MultiElementCompoundListener} for creating compound listeners on multiple elements
@@ -305,13 +309,13 @@ public abstract class CompoundListener<T> {
 
 		private final Object theWanter;
 
-		private ChildCompoundListener theChildListener;
+		private final ChildCompoundListener theChildListener;
+		private final StyleChangeObservable theStyleObservable;
 
 		private final ChangeListener theAllIndividualsChecker;
 
 		private final ChangeListener theIndividualChecker;
-		private Observable<Void> theDropObservable;
-		private Observer<Void> theDropController;
+		private SimpleObservable<Object> theDropObservable;
 
 		CompoundElementListener(QuickElement element, Object wanter) {
 			theElement = element;
@@ -323,8 +327,7 @@ public abstract class CompoundListener<T> {
 			theIndividualChecker = el -> {
 				theChildListener.updateIndividual(el);
 			};
-			theDropObservable = new org.observe.DefaultObservable<>();
-			theDropController = ((org.observe.DefaultObservable<Void>) theDropObservable).control(null);
+			theDropObservable = new SimpleObservable<>();
 		}
 
 		/** @return The element that this listener is for */
@@ -360,10 +363,7 @@ public abstract class CompoundListener<T> {
 
 		@Override
 		ChainedCompoundListener<?> createChain() {
-			ChainedCompoundListener<?> ret = new SelfChainedCompoundListener<>(this);
-			theElement.events().filterMap(AttributeChangedEvent.base).takeUntil(theDropObservable).act(ret.attListener);
-			theElement.getStyle().allChanges().takeUntil(theDropObservable).act(ret.getStyleListener());
-			return ret;
+			return new SelfChainedCompoundListener<>(this);
 		}
 
 		/**
@@ -382,9 +382,14 @@ public abstract class CompoundListener<T> {
 		/** Releases all resources and requirements associated with this compound listener */
 		@Override
 		public void drop() {
-			theDropController.onNext(null);
+			theDropObservable.onNext(null);
 			super.drop();
 			theChildListener.drop();
+		}
+
+		@Override
+		public Observable<?> onDrop() {
+			return theDropObservable.readOnly();
 		}
 	}
 
@@ -718,9 +723,6 @@ public abstract class CompoundListener<T> {
 		private boolean isActive;
 
 		private boolean isDropped;
-
-		Action<AttributeChangedEvent<?>> attListener;
-		Action<StyleAttributeEvent<?>> styleListener;
 
 		ChainedCompoundListener() {
 			theChained = new java.util.LinkedHashMap<>();

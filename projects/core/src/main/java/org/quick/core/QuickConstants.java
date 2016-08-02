@@ -21,7 +21,7 @@ public final class QuickConstants {
 		INIT_SELF,
 		/** The children of this element as configured in XML are being parsed. This is a transition time where no work is done by the core. */
 		PARSE_CHILDREN,
-		/** The {@link QuickElement#initChildren(QuickElement[])} method is populating this element with its contents */
+		/** The {@link QuickElement#initChildren(java.util.List)} method is populating this element with its contents */
 		INIT_CHILDREN,
 		/**
 		 * This element is fully initialized, but the rest of the document may be loading. This is a transition time where no work is done
@@ -29,15 +29,14 @@ public final class QuickConstants {
 		 */
 		INITIALIZED,
 		/**
-		 * The {@link QuickElement#postCreate()} method is performing context-sensitive initialization work. The core
-		 * performs attribute checks during this time. Before this stage, attributes may be added which are not recognized
-		 * by the element. During this stage, all unchecked attributes are checked and errors are logged for any attributes
-		 * that are unrecognized or malformatted as well as for any required attributes whose values have not been set.
-		 * During and after this stage, no attributes may be set in the element unless they have been
-		 * {@link AttributeManager#accept(Object, QuickAttribute) accepted} and the type is correct. An element's children are
-		 * started up at the tail end of this stage, so note that when an element transitions out of this stage, its
-		 * contents will be in the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though
-		 * all its attribute work has completed.
+		 * The {@link QuickElement#postCreate()} method is performing context-sensitive initialization work. The core performs attribute
+		 * checks during this time. Before this stage, attributes may be added which are not recognized by the element. During this stage,
+		 * all unchecked attributes are checked and errors are logged for any attributes that are unrecognized or malformatted as well as
+		 * for any required attributes whose values have not been set. During and after this stage, no attributes may be set in the element
+		 * unless they have been {@link AttributeManager#accept(Object, org.quick.core.prop.QuickAttribute) accepted} and the type is
+		 * correct. An element's children are started up at the tail end of this stage, so note that when an element transitions out of this
+		 * stage, its contents will be in the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all
+		 * its attribute work has completed.
 		 */
 		STARTUP,
 		/** The element has been fully initialized within the full document context and is ready to render and receive events */

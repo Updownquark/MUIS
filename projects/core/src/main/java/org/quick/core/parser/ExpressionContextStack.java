@@ -6,7 +6,9 @@ import org.quick.core.*;
 import org.quick.core.style2.StateCondition;
 import org.quick.core.style2.StyleCondition;
 
+/** Used for parsing hierarchical style sheets */
 public class ExpressionContextStack {
+	/** A point in the expression context hierarchy */
 	public class ExpressionContext {
 		private final QuickClassView theClassView;
 
@@ -16,7 +18,7 @@ public class ExpressionContextStack {
 
 		StateCondition theState;
 
-		QuickTemplate.AttachPoint theTemplateRole;
+		QuickTemplate.AttachPoint<?> theTemplateRole;
 
 		ExpressionContext(ExpressionContext parent) {
 			theClassView = new QuickClassView(theEnv, parent == null ? theEnv.cv() : parent.theClassView, theToollkit);
@@ -27,6 +29,7 @@ public class ExpressionContextStack {
 			return theType == null && theGroups.isEmpty() && theState == null && theTemplateRole == null;
 		}
 
+		/** @return The class view at the this point in the context hierarchy */
 		public QuickClassView getClassView() {
 			return theClassView;
 		}
@@ -37,30 +40,44 @@ public class ExpressionContextStack {
 
 	private final LinkedList<ExpressionContext> theStack;
 
+	/**
+	 * @param env The environment to parse in
+	 * @param toolkit The toolkit to parse for
+	 */
 	public ExpressionContextStack(QuickEnvironment env, QuickToolkit toolkit) {
 		theEnv = env;
 		theToollkit = toolkit;
 		theStack = new LinkedList<>();
 	}
 
+	/** @return The depth of the stack */
 	public int size() {
 		return theStack.size();
 	}
 
+	/** Creates a new context at the top of the stack */
 	public void push() {
 		ExpressionContext top = theStack.isEmpty() ? null : theStack.getLast();
 		theStack.add(new ExpressionContext(top));
 	}
 
+	/** Removes the context at the top of the stack */
 	public void pop() {
 		theStack.removeLast();
 	}
 
+	/** @return The context at the top of the stack */
 	public ExpressionContext top() {
 		return theStack.getLast();
 	}
 
-	public void addType(Class<? extends QuickElement> type) throws QuickParseException {
+	/**
+	 * Sets the type for the top of the stack
+	 * 
+	 * @param type The type to set
+	 * @throws QuickParseException If the given type is not valid for this point in the context stack
+	 */
+	public void setType(Class<? extends QuickElement> type) throws QuickParseException {
 		Class<? extends QuickElement> topType = getTopType();
 		if (!topType.isAssignableFrom(topType))
 			throw new QuickParseException("Type " + type.getName() + " is not a sub type of a " + type.getName());
@@ -68,15 +85,31 @@ public class ExpressionContextStack {
 			top().theType = type;
 	}
 
-	public void addGroup(String groupName) throws QuickParseException {
+	/**
+	 * Adds a group to the top of the stack
+	 * 
+	 * @param groupName The name of the group to add
+	 */
+	public void addGroup(String groupName) {
 		top().theGroups.add(groupName);
 	}
 
+	/**
+	 * Sets the state condition for the top of the stack
+	 * 
+	 * @param state The state condition
+	 */
 	public void setState(StateCondition state) {
 		top().theState = state;
 	}
 
-	public void addAttachPoint(String attachPoint, QuickEnvironment env) throws QuickParseException {
+	/**
+	 * Sets the template role (attach point) for the top of the stack
+	 * 
+	 * @param attachPoint The attach point or the top of the stack
+	 * @throws QuickParseException If the given attach point is not valid for this point in the context stack
+	 */
+	public void addAttachPoint(String attachPoint) throws QuickParseException {
 		Class<? extends QuickElement> type = getTopType();
 		if(type == null)
 			type = QuickElement.class;
@@ -84,17 +117,18 @@ public class ExpressionContextStack {
 			throw new QuickParseException("Element type " + type.getName() + " is not templated--cannot specify attach point styles");
 		QuickTemplate.TemplateStructure templateStruct;
 		try {
-			templateStruct = QuickTemplate.TemplateStructure.getTemplateStructure(env, (Class<? extends QuickTemplate>) type);
+			templateStruct = QuickTemplate.TemplateStructure.getTemplateStructure(theEnv, (Class<? extends QuickTemplate>) type);
 		} catch(QuickException e) {
 			throw new QuickParseException("Could not parse template structure for " + type.getName(), e);
 		}
-		QuickTemplate.AttachPoint ap = templateStruct.getAttachPoint(attachPoint);
+		QuickTemplate.AttachPoint<?> ap = templateStruct.getAttachPoint(attachPoint);
 		if(ap == null)
 			throw new QuickParseException("Template " + type.getName() + " has no attach point named \"" + attachPoint + "\"");
 		top().theTemplateRole = ap;
 		top().theType = ap.type;
 	}
 
+	/** @return The element type for the top of the context stack */
 	public Class<? extends QuickElement> getTopType() {
 		for(int i = theStack.size() - 1; i >= 0; i--) {
 			if (theStack.get(i).theType != null)
@@ -103,6 +137,7 @@ public class ExpressionContextStack {
 		return QuickElement.class;
 	}
 
+	/** @return The state condition for the top of the context stack */
 	public StateCondition getState() {
 		StateCondition state = null;
 		for (ExpressionContext ctx : theStack) {
@@ -116,6 +151,7 @@ public class ExpressionContextStack {
 		return state;
 	}
 
+	/** @return The set of groups for the top of the context stack */
 	public Set<String> getGroups() {
 		Set<String> groups = new LinkedHashSet<>();
 		for (ExpressionContext ctx : theStack)
@@ -123,14 +159,16 @@ public class ExpressionContextStack {
 		return groups;
 	}
 
-	public List<QuickTemplate.AttachPoint> getTemplatePath() {
-		List<QuickTemplate.AttachPoint> templatePath = new ArrayList<>();
+	/** @return The template path for the top of the context stack */
+	public List<QuickTemplate.AttachPoint<?>> getTemplatePath() {
+		List<QuickTemplate.AttachPoint<?>> templatePath = new ArrayList<>();
 		for (ExpressionContext ctx : theStack)
 			if (ctx.theTemplateRole != null)
 				templatePath.add(ctx.theTemplateRole);
 		return templatePath;
 	}
 
+	/** @return The style condition representing the current context */
 	public StyleCondition asCondition() {
 		return StyleCondition.build(getTopType()).setState(getState()).forGroups(getGroups()).forPath(getTemplatePath()).build();
 	}

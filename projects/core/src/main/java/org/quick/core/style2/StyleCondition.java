@@ -12,11 +12,11 @@ import org.quick.core.style.StyleAttributes;
 
 public class StyleCondition implements Comparable<StyleCondition> {
 	private final StateCondition theState;
-	private final List<QuickTemplate.AttachPoint> theRolePath;
+	private final List<QuickTemplate.AttachPoint<?>> theRolePath;
 	private final Set<String> theGroups;
 	private final Class<? extends QuickElement> theType;
 
-	private StyleCondition(StateCondition state, List<QuickTemplate.AttachPoint> rolePath, Set<String> groups,
+	private StyleCondition(StateCondition state, List<QuickTemplate.AttachPoint<?>> rolePath, Set<String> groups,
 		Class<? extends QuickElement> type) {
 		theState = state;
 		theRolePath = rolePath == null ? Collections.emptyList() : Collections.unmodifiableList(rolePath);
@@ -30,7 +30,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return theState;
 	}
 
-	public List<QuickTemplate.AttachPoint> getRolePath() {
+	public List<QuickTemplate.AttachPoint<?>> getRolePath() {
 		return theRolePath;
 	}
 
@@ -197,7 +197,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	public static class Builder {
 		private final Class<? extends QuickElement> theType;
 		private StateCondition theState;
-		private List<QuickTemplate.AttachPoint> theRolePath;
+		private List<QuickTemplate.AttachPoint<?>> theRolePath;
 		private Set<String> theGroups;
 
 		private Builder(Class<? extends QuickElement> type) {
@@ -212,12 +212,12 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			return this;
 		}
 
-		public Builder forPath(List<QuickTemplate.AttachPoint> rolePath) {
+		public Builder forPath(List<QuickTemplate.AttachPoint<?>> rolePath) {
 			theRolePath = rolePath;
 			return this;
 		}
 
-		public Builder forPath(QuickTemplate.AttachPoint... rolePath) {
+		public Builder forPath(QuickTemplate.AttachPoint<?>... rolePath) {
 			return forPath(Arrays.asList(rolePath));
 		}
 

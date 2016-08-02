@@ -98,7 +98,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 			}
 			if (type != null) {
 				try {
-					stack.addType(type);
+					stack.setType(type);
 				} catch (QuickParseException e) {
 					parseEnv.msg().error(e.getMessage(), e, "type", type);
 				}
@@ -116,15 +116,11 @@ public class DefaultStyleParser implements QuickStyleParser {
 				stack.setState(state);
 			break;
 		case "group":
-			try {
-				stack.addGroup(name);
-			} catch (QuickParseException e) {
-				parseEnv.msg().error(e.getMessage(), e, "group", name);
-			}
+			stack.addGroup(name);
 			break;
 		case "attach-point":
 			try {
-				stack.addAttachPoint(name, theEnvironment);
+				stack.addAttachPoint(name);
 			} catch (QuickParseException e) {
 				parseEnv.msg().error(e.getMessage(), e, "attach-point", name);
 			}

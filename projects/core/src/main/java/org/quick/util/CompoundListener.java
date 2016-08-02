@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 
 import org.observe.Action;
-import org.observe.Observable;
 import org.observe.SimpleObservable;
 import org.observe.Subscription;
 import org.quick.core.QuickElement;
@@ -16,7 +15,6 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 import org.quick.core.style2.StyleAttributeEvent;
-import org.quick.core.style2.StyleChangeObservable;
 import org.quick.util.CompoundListener.CompoundElementListener;
 import org.quick.util.CompoundListener.IndividualElementListener;
 
@@ -284,8 +282,6 @@ public abstract class CompoundListener<T> {
 	 */
 	public abstract CompoundListener<T> onStyleChange(Consumer<? super StyleAttributeEvent<? super T>> listener);
 
-	public abstract Observable<?> onDrop();
-
 	/**
 	 * @param wanter The object that cares about the attributes that will be listened for on the elements
 	 * @return Creates a {@link MultiElementCompoundListener} for creating compound listeners on multiple elements
@@ -310,12 +306,11 @@ public abstract class CompoundListener<T> {
 		private final Object theWanter;
 
 		private final ChildCompoundListener theChildListener;
-		private final StyleChangeObservable theStyleObservable;
-
 		private final ChangeListener theAllIndividualsChecker;
 
 		private final ChangeListener theIndividualChecker;
 		private SimpleObservable<Object> theDropObservable;
+
 
 		CompoundElementListener(QuickElement element, Object wanter) {
 			theElement = element;
@@ -385,11 +380,6 @@ public abstract class CompoundListener<T> {
 			theDropObservable.onNext(null);
 			super.drop();
 			theChildListener.drop();
-		}
-
-		@Override
-		public Observable<?> onDrop() {
-			return theDropObservable.readOnly();
 		}
 	}
 
@@ -723,6 +713,9 @@ public abstract class CompoundListener<T> {
 		private boolean isActive;
 
 		private boolean isDropped;
+
+		Action<AttributeChangedEvent<?>> attListener;
+		Action<StyleAttributeEvent<?>> styleListener;
 
 		ChainedCompoundListener() {
 			theChained = new java.util.LinkedHashMap<>();

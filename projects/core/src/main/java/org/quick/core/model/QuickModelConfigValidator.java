@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import org.quick.core.parser.QuickParseException;
 
+/** Enforces custom constraints on {@link QuickModelConfig} instances */
 public class QuickModelConfigValidator {
 	private interface Constraint {
 		void validate(QuickModelConfig config, int count) throws QuickParseException;
@@ -22,6 +23,7 @@ public class QuickModelConfigValidator {
 		final Map<String, List<Constraint>> childConstraints;
 		final boolean acceptsUnmatched;
 
+		@SuppressWarnings("hiding")
 		ConfigChecker(String path, int min, int max, Boolean withText, Map<String, List<Constraint>> childConstraints,
 			boolean withUnmatched) {
 			this.path = path;
@@ -60,6 +62,10 @@ public class QuickModelConfigValidator {
 		acceptsUnmatched = withUnmatched;
 	}
 
+	/**
+	 * @param config The config to validate
+	 * @throws QuickParseException If the config fails validation
+	 */
 	public void validate(QuickModelConfig config) throws QuickParseException {
 		validateChildren(config, theConstraints, acceptsUnmatched);
 	}
@@ -100,18 +106,35 @@ public class QuickModelConfigValidator {
 		return Collections.unmodifiableMap(built);
 	}
 
+	/** Builds contraints for sub-configs */
 	public interface ChildConstraintBuilder {
+		/**
+		 * Sets this builder to allow unmatched config points
+		 *
+		 * @return This builder
+		 */
 		ChildConstraintBuilder withUnmatched();
 
+		/**
+		 * @param childNames The names of the children to allow
+		 * @return This builder
+		 */
 		ChildConstraintBuilder withConfig(String... childNames);
 
+		/**
+		 * @param childName The name of the child to allow
+		 * @param builder Builds a constraint for children with the given name
+		 * @return This builder
+		 */
 		ChildConstraintBuilder forConfig(String childName, Consumer<ConstraintBuilder> builder);
 	}
 
+	/** @return A builder to build a validator */
 	public static Builder build() {
 		return new Builder();
 	}
 
+	/** Builds {@link QuickModelConfigValidator}s */
 	public static class Builder implements ChildConstraintBuilder {
 		private final Map<String, List<ConstraintBuilder>> theConstraints;
 		private boolean acceptUnmatched;
@@ -154,11 +177,13 @@ public class QuickModelConfigValidator {
 			return this;
 		}
 
+		/** @return The built validator */
 		public QuickModelConfigValidator build() {
 			return new QuickModelConfigValidator(QuickModelConfigValidator.build(theConstraints), acceptUnmatched);
 		}
 	}
 
+	/** Builds {@link ConfigChecker}s */
 	public static class ConstraintBuilder implements ChildConstraintBuilder, ConstraintBuilderInternal {
 		private final String path;
 		private int min;

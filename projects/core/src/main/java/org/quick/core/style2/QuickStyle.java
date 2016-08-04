@@ -4,6 +4,7 @@ import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
 import org.quick.core.style.StyleAttribute;
 
+/** Defines style attribute values */
 public interface QuickStyle {
 	/**
 	 * @param attr The attribute to check

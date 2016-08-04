@@ -8,10 +8,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.observe.*;
 import org.observe.collect.ObservableSet;
+import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
 
 import com.google.common.reflect.TypeToken;
 
+/** A condition on an {@link QuickElement element's} active states */
 public abstract class StateCondition implements Comparable<StateCondition> {
 	/** A state expression that depends on any number of other expressions */
 	public static abstract class StateCollectionExpression extends StateCondition implements Iterable<StateCondition> {
@@ -324,6 +326,10 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 	 */
 	public abstract boolean matches(Set<QuickState> states);
 
+	/**
+	 * @param states The set of states to check against
+	 * @return An observable boolean reflecing whether this state condition matches the given set of active states
+	 */
 	public ObservableValue<Boolean> observeMatches(ObservableSet<QuickState> states) {
 		class StateMatchObserver implements ObservableValue<Boolean> {
 			@Override
@@ -370,10 +376,16 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 	 */
 	public abstract StateCondition getUnique();
 
+	/** @return The priority of this condition, determining its precedence in a {@link StyleSheet} */
 	public final int getPriority() {
 		return thePriority;
 	}
 
+	/**
+	 * Calculates the priority of this condition initially
+	 * 
+	 * @return The priority
+	 */
 	protected abstract int initPriority();
 
 	@Override

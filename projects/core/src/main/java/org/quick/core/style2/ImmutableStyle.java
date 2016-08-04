@@ -11,6 +11,7 @@ import org.quick.core.style.StyleAttribute;
 
 import com.google.common.reflect.TypeToken;
 
+/** A QuickStyle that cannot be modified */
 public class ImmutableStyle implements QuickStyle {
 	private final Map<StyleAttribute<?>, StyleValue<?>> theValues;
 
@@ -51,10 +52,15 @@ public class ImmutableStyle implements QuickStyle {
 		return theValues.toString();
 	}
 
+	/**
+	 * @param msg The message center to log invalid style values
+	 * @return A builder to build a {@link ImmutableStyle}
+	 */
 	public static Builder build(QuickMessageCenter msg) {
 		return new Builder(msg);
 	}
 
+	/** Builds {@link ImmutableStyle}s */
 	public static class Builder implements StyleSetter {
 		private final QuickMessageCenter theMessageCenter;
 		private final Map<StyleAttribute<?>, StyleValue<?>> theValues;
@@ -73,6 +79,7 @@ public class ImmutableStyle implements QuickStyle {
 			return this;
 		}
 
+		/** @return The new {@link ImmutableStyle} */
 		public ImmutableStyle build() {
 			return new ImmutableStyle(theValues);
 		}

@@ -11,6 +11,7 @@ import org.quick.core.style.StyleAttribute;
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
+/** A StyleSheet that cannot be modified */
 public class ImmutableStyleSheet implements StyleSheet {
 	private final Map<StyleAttribute<?>, ObservableSortedSet<? extends StyleConditionValue<?>>> theValues;
 
@@ -41,10 +42,15 @@ public class ImmutableStyleSheet implements StyleSheet {
 			: ObservableSortedSet.empty(new TypeToken<StyleConditionValue<?>>() {}));
 	}
 
+	/**
+	 * @param msg The message center to log invalid attribute values
+	 * @return A builder to build an {@link ImmutableStyleSheet}
+	 */
 	public static Builder build(QuickMessageCenter msg) {
 		return new Builder(msg);
 	}
 
+	/** Builds {@link ImmutableStyleSheet}s */
 	public static class Builder implements ConditionalStyleSetter {
 		private final QuickMessageCenter theMessageCenter;
 		private final Map<StyleAttribute<?>, SortedSet<? extends StyleConditionValue<?>>> theValues;
@@ -61,6 +67,11 @@ public class ImmutableStyleSheet implements StyleSheet {
 			((SortedSet<StyleConditionValue<?>>) theValues.computeIfAbsent(attr, a -> new TreeSet<>()))
 				.add(new StyleConditionValue<>(attr, condition, value, theMessageCenter));
 			return this;
+		}
+
+		/** @return The new {@link ImmutableStyleSheet} */
+		public ImmutableStyleSheet build() {
+			return new ImmutableStyleSheet(theValues);
 		}
 	}
 }

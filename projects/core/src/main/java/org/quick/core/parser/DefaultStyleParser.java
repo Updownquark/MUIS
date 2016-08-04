@@ -53,7 +53,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 		ImmutableStyleSheet.Builder builder = ImmutableStyleSheet.build(msg);
 		for (Element child : rootEl.getChildren())
 			parseStyleElement(child, location, parser, parseEnv, stack, builder);
-		return null;
+		return builder.build();
 	}
 
 	private void addNamespaces(Element xml, URL location, ExpressionContextStack stack, QuickMessageCenter msg) {

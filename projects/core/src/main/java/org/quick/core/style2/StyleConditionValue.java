@@ -6,15 +6,27 @@ import org.observe.ObservableValue;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.style.StyleAttribute;
 
+/**
+ * A conditional style value in a {@link StyleSheet}
+ * 
+ * @param <T> The type of the attribute that this value is for
+ */
 public class StyleConditionValue<T> extends StyleValue<T> implements Comparable<StyleConditionValue<?>> {
 	private final StyleCondition theCondition;
 
+	/**
+	 * @param attribute The style attribute that this value is for
+	 * @param condition The condition under which this value applies
+	 * @param value The value for the attribute
+	 * @param msg The message center to log values from the observable that are not acceptable for the style attribute
+	 */
 	public StyleConditionValue(StyleAttribute<T> attribute, StyleCondition condition, ObservableValue<? extends T> value,
 		QuickMessageCenter msg) {
 		super(attribute, value, msg);
 		theCondition = condition;
 	}
 
+	/** @return The condition under which this value applies */
 	public StyleCondition getCondition() {
 		return theCondition;
 	}

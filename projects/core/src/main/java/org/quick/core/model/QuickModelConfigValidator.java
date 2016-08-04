@@ -183,44 +183,66 @@ public class QuickModelConfigValidator {
 		}
 	}
 
-	/** Builds {@link ConfigChecker}s */
+	/** Builds constraints for child configs */
 	public static class ConstraintBuilder implements ChildConstraintBuilder, ConstraintBuilderInternal {
-		private final String path;
-		private int min;
-		private int max = 1;
-		private Boolean withText = Boolean.FALSE;
+		private final String thePath;
+		private int theMin;
+		private int theMax = 1;
+		private Boolean isWithText = Boolean.FALSE;
 		private Map<String, List<ConstraintBuilder>> childConstraints;
 		private boolean acceptUnmatched;
 
 		private ConstraintBuilder(String path) {
-			this.path = path;
+			this.thePath = path;
 		}
 
+		/**
+		 * Specifies this child constraint as required
+		 * 
+		 * @return This builder
+		 */
 		public ConstraintBuilder required() {
-			min = 1;
+			theMin = 1;
 			return this;
 		}
 
+		/**
+		 * @param times The min number of times this child may be specified
+		 * @return This builder
+		 */
 		public ConstraintBuilder atLeast(int times) {
-			min = times;
-			if (max == 1)
-				max = Integer.MAX_VALUE;
+			theMin = times;
+			if (theMax == 1)
+				theMax = Integer.MAX_VALUE;
 			return this;
 		}
 
+		/**
+		 * @param times The max number of times this child may be specified
+		 * @return This builder
+		 */
 		public ConstraintBuilder atMost(int times) {
-			max = times;
+			theMax = times;
 			return this;
 		}
 
+		/**
+		 * @param min The min number of times this child may be specified
+		 * @param max The max number of times this child may be specified
+		 * @return This builder
+		 */
 		public ConstraintBuilder between(int min, int max) {
-			this.min = min;
-			this.max = max;
+			this.theMin = min;
+			this.theMax = max;
 			return this;
 		}
 
-		public ConstraintBuilder withText(boolean optional) {
-			withText = optional ? null : Boolean.TRUE;
+		/**
+		 * @param withText Whether this child config must or must not specify text
+		 * @return This builder
+		 */
+		public ConstraintBuilder withText(boolean withText) {
+			isWithText = withText ? null : Boolean.TRUE;
 			return this;
 		}
 
@@ -251,7 +273,7 @@ public class QuickModelConfigValidator {
 				cs = new ArrayList<>();
 				childConstraints.put(childName, cs);
 			}
-			ConstraintBuilder childBuilder = new ConstraintBuilder(path + "/" + childName);
+			ConstraintBuilder childBuilder = new ConstraintBuilder(thePath + "/" + childName);
 			cs.add(childBuilder);
 			builder.accept(childBuilder);
 			return this;
@@ -259,7 +281,8 @@ public class QuickModelConfigValidator {
 
 		@Override
 		public ConfigChecker build() {
-			return new ConfigChecker(path, min, max, withText, QuickModelConfigValidator.build(childConstraints), acceptUnmatched);
+			return new ConfigChecker(thePath, theMin, theMax, isWithText, QuickModelConfigValidator.build(childConstraints),
+				acceptUnmatched);
 		}
 	}
 }

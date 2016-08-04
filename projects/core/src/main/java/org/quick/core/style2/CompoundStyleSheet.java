@@ -7,13 +7,16 @@ import org.observe.collect.ObservableSortedSet;
 import org.quick.core.QuickElement;
 import org.quick.core.style.StyleAttribute;
 
+/** A StyleSheet whose style values come from other StyleSheets */
 public class CompoundStyleSheet implements StyleSheet {
 	private final ObservableList<StyleSheet> theComponents;
 
+	/** @param components The style sheets that this style sheet will use as sources */
 	public CompoundStyleSheet(ObservableList<StyleSheet> components) {
 		theComponents = components;
 	}
 
+	/** @return The style sheets that this style sheet uses for sources */
 	public ObservableList<StyleSheet> getComponents() {
 		return theComponents;
 	}

@@ -12,17 +12,28 @@ import org.quick.core.style.StyleAttribute;
 
 import com.google.common.reflect.TypeToken;
 
+/**
+ * An attribute's value within a {@link QuickStyle}
+ *
+ * @param <T> The type of the attribute that this value is for
+ */
 public class StyleValue<T> implements ObservableValue<T> {
 	private final StyleAttribute<T> theAttribute;
 	private final ObservableValue<? extends T> theValue;
 	private final QuickMessageCenter theMessageCenter;
 
+	/**
+	 * @param attribute The style attribute that this value is for
+	 * @param value The value for the attribute
+	 * @param msg The message center to log values from the observable that are not acceptable for the style attribute
+	 */
 	public StyleValue(StyleAttribute<T> attribute, ObservableValue<? extends T> value, QuickMessageCenter msg) {
 		theAttribute = attribute;
 		theValue = value;
 		theMessageCenter = msg;
 	}
 
+	/** @return The style attribute that this value is for */
 	public StyleAttribute<T> getAttribute() {
 		return theAttribute;
 	}

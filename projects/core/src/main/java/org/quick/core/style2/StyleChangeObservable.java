@@ -13,6 +13,7 @@ import org.qommons.ListenerSet;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 
+/** A utility for listening to style changes where the particular attributes of interest may not be known initially and may change */
 public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>> {
 	private final QuickStyle theStyle;
 	private final Set<StyleDomain> theDomains;
@@ -21,6 +22,7 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 	private final ListenerSet<Runnable> theWatchListeners;
 	private Subscription theSubscription;
 
+	/** @param style The style to listen to */
 	public StyleChangeObservable(QuickStyle style) {
 		theStyle = style;
 		theDomains = new ConcurrentHashSet<>();
@@ -38,6 +40,10 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		theWatchListeners = new ListenerSet<>();
 	}
 
+	/**
+	 * @param style The style to listen to
+	 * @param other Another {@link StyleChangeObservable}. This observable will listen to the same attributes as this other observable.
+	 */
 	public StyleChangeObservable(QuickStyle style, StyleChangeObservable other) {
 		theStyle = style;
 		theDomains = other.theDomains;
@@ -71,6 +77,12 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		return false;
 	}
 
+	/**
+	 * Adds one or more domains, for which all style values will be listened to
+	 *
+	 * @param domains The style domains to watch
+	 * @return This observable
+	 */
 	public StyleChangeObservable watch(StyleDomain... domains) {
 		boolean changed = false;
 		for (StyleDomain domain : domains)
@@ -80,6 +92,12 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		return this;
 	}
 
+	/**
+	 * Removes one or more domains from the set of domains for which all styles are listened to
+	 *
+	 * @param domains The domains to cease listening to
+	 * @return This observable
+	 */
 	public StyleChangeObservable unwatch(StyleDomain... domains) {
 		boolean changed = false;
 		for (StyleDomain domain : domains)
@@ -89,6 +107,12 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		return this;
 	}
 
+	/**
+	 * Adds one or more attributes which will be listened to
+	 *
+	 * @param attributes The attributes to watch
+	 * @return This observable
+	 */
 	public StyleChangeObservable watch(StyleAttribute<?>... attributes) {
 		boolean changed = false;
 		for (StyleAttribute<?> attr : attributes) {
@@ -100,6 +124,12 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		return this;
 	}
 
+	/**
+	 * REmoves one or more attributes from the set of attributes which are listened to
+	 *
+	 * @param attributes The attributes to cease listening to
+	 * @return This observable
+	 */
 	public StyleChangeObservable unwatch(StyleAttribute<?>... attributes) {
 		boolean changed = false;
 		for (StyleAttribute<?> attr : attributes) {

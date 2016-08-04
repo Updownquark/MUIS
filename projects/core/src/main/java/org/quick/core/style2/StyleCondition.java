@@ -10,6 +10,10 @@ import org.quick.core.QuickTemplate;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.style.StyleAttributes;
 
+/**
+ * A condition that can be evaluated against various attributes of a {@link QuickElement} to determine whether a style value from a
+ * {@link StyleSheet} applies to the element
+ */
 public class StyleCondition implements Comparable<StyleCondition> {
 	private final StateCondition theState;
 	private final List<QuickTemplate.AttachPoint<?>> theRolePath;
@@ -26,18 +30,25 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		theType = type;
 	}
 
+	/** @return The condition on the element's {@link QuickElement#state() state} that must be met for this condition to apply */
 	public StateCondition getState() {
 		return theState;
 	}
 
+	/**
+	 * @return The condition on the element's template {@link org.quick.core.QuickTemplate.TemplateStructure#role role} that must be met for
+	 *         this condition to apply
+	 */
 	public List<QuickTemplate.AttachPoint<?>> getRolePath() {
 		return theRolePath;
 	}
 
+	/** @return The groups that the element must belong to for this condition to apply */
 	public Set<String> getGroups() {
 		return theGroups;
 	}
 
+	/** @return The sub-type of QuickElement that this condition applies to */
 	public Class<? extends QuickElement> getType() {
 		return theType;
 	}
@@ -70,6 +81,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return 0;
 	}
 
+	/** @return The number of subclasses away from {@link QuickElement} that this condition's {@link #getType() type} is */
 	public int getTypeDepth() {
 		int depth = 0;
 		Class<?> type = theType;
@@ -80,6 +92,10 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return depth;
 	}
 
+	/**
+	 * @param element The element to test
+	 * @return An observable boolean reflecting whether this condition currently applies to the given element
+	 */
 	public ObservableValue<Boolean> matches(QuickElement element) {
 		if (!theType.isInstance(element))
 			return ObservableValue.constant(false);
@@ -106,6 +122,11 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, rolePathMatches);
 	}
 
+	/**
+	 * @param element The element to test
+	 * @param extraStates The extra states to test against
+	 * @return An observable boolean reflecting whether this condition currently applies to the given element with the extra states
+	 */
 	public ObservableValue<Boolean> matches(QuickElement element, ObservableSet<QuickState> extraStates) {
 		if (!theType.isInstance(element))
 			return ObservableValue.constant(false);
@@ -136,7 +157,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	}
 
 	private boolean rolePathMatches(QuickElement element, int index) {
-		QuickTemplate.AttachPoint role = theRolePath.get(index);
+		QuickTemplate.AttachPoint<?> role = theRolePath.get(index);
 		if (element.atts().get(role.template.role) != role)
 			return false;
 		if (index == 0)
@@ -167,7 +188,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	public String toString() {
 		StringBuilder str = new StringBuilder(theType.getSimpleName());
 
-		for (QuickTemplate.AttachPoint role : theRolePath)
+		for (QuickTemplate.AttachPoint<?> role : theRolePath)
 			str.append('.').append(role.name);
 
 		if (!theGroups.isEmpty()) {
@@ -190,10 +211,15 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return str.toString();
 	}
 
+	/**
+	 * @param type The sub-type of element to build the condition for
+	 * @return A builder to build a {@link StyleCondition}
+	 */
 	public static Builder build(Class<? extends QuickElement> type) {
 		return new Builder(type);
 	}
 
+	/** Builds {@link StyleCondition}s */
 	public static class Builder {
 		private final Class<? extends QuickElement> theType;
 		private StateCondition theState;
@@ -207,31 +233,52 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			theGroups = new LinkedHashSet<>();
 		}
 
+		/**
+		 * @param state The state for the condition
+		 * @return This builder
+		 */
 		public Builder setState(StateCondition state) {
 			theState = state;
 			return this;
 		}
 
+		/**
+		 * @param rolePath The role path for the condition
+		 * @return This builder
+		 */
 		public Builder forPath(List<QuickTemplate.AttachPoint<?>> rolePath) {
 			theRolePath = rolePath;
 			return this;
 		}
 
+		/**
+		 * @param rolePath The role path for the condition
+		 * @return This builder
+		 */
 		public Builder forPath(QuickTemplate.AttachPoint<?>... rolePath) {
 			return forPath(Arrays.asList(rolePath));
 		}
 
+		/**
+		 * @param group The group set for the condition
+		 * @return This builder
+		 */
 		public Builder forGroups(Collection<String> group) {
 			theGroups.addAll(group);
 			return this;
 		}
 
+		/**
+		 * @param group The group set for the condition
+		 * @return This builder
+		 */
 		public Builder forGroup(String... group) {
 			for (String g : group)
 				theGroups.add(g);
 			return this;
 		}
 
+		/** @return The new style condition */
 		public StyleCondition build() {
 			return new StyleCondition(theState, theRolePath, theGroups, theType);
 		}

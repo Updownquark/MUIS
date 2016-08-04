@@ -13,8 +13,8 @@ import org.quick.core.event.AttributeChangedEvent;
 import org.quick.core.event.QuickEventListener;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
+import org.quick.core.style.StyleAttributeEvent;
 import org.quick.core.style.StyleDomain;
-import org.quick.core.style2.StyleAttributeEvent;
 import org.quick.util.CompoundListener.CompoundElementListener;
 import org.quick.util.CompoundListener.IndividualElementListener;
 

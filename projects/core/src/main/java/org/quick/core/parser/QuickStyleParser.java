@@ -7,7 +7,7 @@ import org.quick.core.QuickClassView;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickToolkit;
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style.ImmutableStyleSheet;
 
 /** Parses style sheets */
 public interface QuickStyleParser {

@@ -7,7 +7,7 @@ import java.util.Map;
 import org.quick.core.*;
 import org.quick.core.model.DefaultQuickModel;
 import org.quick.core.model.QuickModelConfig;
-import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style.ImmutableStyleSheet;
 
 /** Creates active Quick content from parsed structures */
 public class QuickContentCreator {

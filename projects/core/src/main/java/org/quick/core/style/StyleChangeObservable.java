@@ -1,4 +1,4 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -10,8 +10,6 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.qommons.ConcurrentHashSet;
 import org.qommons.ListenerSet;
-import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.StyleDomain;
 
 /** A utility for listening to style changes where the particular attributes of interest may not be known initially and may change */
 public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>> {

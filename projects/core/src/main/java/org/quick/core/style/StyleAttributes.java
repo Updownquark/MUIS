@@ -11,8 +11,6 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
-import org.quick.core.style2.ImmutableStyle;
-import org.quick.core.style2.QuickStyle;
 
 import com.google.common.reflect.TypeToken;
 

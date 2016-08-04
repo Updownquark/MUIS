@@ -1,11 +1,9 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
-import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.StyleAttributes;
 
 /** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {

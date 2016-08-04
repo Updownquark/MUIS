@@ -9,7 +9,7 @@ import java.util.Iterator;
 import org.observe.*;
 import org.qommons.Transaction;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
-import org.quick.core.style2.QuickStyle;
+import org.quick.core.style.QuickStyle;
 
 /** Stores and displays text in Quick */
 public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequence> {

@@ -1,7 +1,6 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
-import org.quick.core.style.StyleAttribute;
 
 /** Accepts a value for a style attribute */
 public interface StyleSetter {

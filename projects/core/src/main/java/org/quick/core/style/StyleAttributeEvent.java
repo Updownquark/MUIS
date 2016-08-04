@@ -1,4 +1,4 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;

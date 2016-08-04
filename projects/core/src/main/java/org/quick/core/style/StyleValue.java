@@ -1,4 +1,4 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import java.util.Objects;
 
@@ -8,7 +8,6 @@ import org.observe.Observer;
 import org.observe.Subscription;
 import org.observe.util.ObservableUtils;
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.style.StyleAttribute;
 
 import com.google.common.reflect.TypeToken;
 

@@ -19,7 +19,7 @@ import org.quick.core.QuickException;
 import org.quick.core.QuickToolkit;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.QuickModelConfig;
-import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style.ImmutableStyleSheet;
 import org.quick.util.QuickUtils;
 
 /** Parses Quick components using the JDOM library */

@@ -3,8 +3,8 @@ package org.quick.core.parser;
 import java.util.*;
 
 import org.quick.core.*;
-import org.quick.core.style2.StateCondition;
-import org.quick.core.style2.StyleCondition;
+import org.quick.core.style.StateCondition;
+import org.quick.core.style.StyleCondition;
 
 /** Used for parsing hierarchical style sheets */
 public class ExpressionContextStack {

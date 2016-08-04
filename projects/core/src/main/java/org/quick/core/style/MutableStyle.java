@@ -1,7 +1,6 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
-import org.quick.core.style.StyleAttribute;
 
 /** A QuickStyle that can be directly modified */
 public interface MutableStyle extends QuickStyle, StyleSetter {

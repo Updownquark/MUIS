@@ -22,12 +22,7 @@ import org.quick.core.mgr.*;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
-import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style.LightedStyle;
-import org.quick.core.style.StyleAttributes;
-import org.quick.core.style.Texture;
-import org.quick.core.style2.QuickElementStyle;
-import org.quick.core.style2.StyleChangeObservable;
+import org.quick.core.style.*;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 

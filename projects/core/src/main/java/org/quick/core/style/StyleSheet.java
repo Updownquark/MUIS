@@ -1,11 +1,10 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.StyleAttribute;
 
 /** Contains property values that are conditional on various properties of an element */
 public interface StyleSheet {

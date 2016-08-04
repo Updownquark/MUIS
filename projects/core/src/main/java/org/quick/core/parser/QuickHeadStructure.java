@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.quick.core.QuickHeadSection;
 import org.quick.core.model.QuickModelConfig;
-import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style.ImmutableStyleSheet;
 
 /** The structure of a {@link QuickHeadSection} before some evaluation */
 public class QuickHeadStructure {

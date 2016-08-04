@@ -5,11 +5,7 @@ import java.util.*;
 
 import org.observe.collect.ObservableList;
 import org.quick.core.parser.Version;
-import org.quick.core.style.StyleAttribute;
-import org.quick.core.style2.CompoundStyleSheet;
-import org.quick.core.style2.MutableStyleSheet;
-import org.quick.core.style2.StyleConditionValue;
-import org.quick.core.style2.StyleSheet;
+import org.quick.core.style.*;
 
 import com.google.common.reflect.TypeToken;
 

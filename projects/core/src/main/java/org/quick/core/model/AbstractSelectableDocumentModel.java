@@ -14,11 +14,7 @@ import org.qommons.Transaction;
 import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.StyleAttributes;
-import org.quick.core.style2.QuickStyle;
-import org.quick.core.style2.StyleChangeObservable;
-import org.quick.core.style2.StyleSheet;
+import org.quick.core.style.*;
 
 import com.google.common.reflect.TypeToken;
 
@@ -801,7 +797,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	}
 
 	/** A selected or deselected style for a document */
-	public static class SelectionStyle implements org.quick.core.style2.QuickStyle {
+	public static class SelectionStyle implements org.quick.core.style.QuickStyle {
 		private final QuickElement theElement;
 		private final ObservableSet<QuickState> theSelectedState;
 

@@ -2,7 +2,7 @@ package org.quick.core;
 
 import java.util.*;
 
-import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style.ImmutableStyleSheet;
 
 /** Metadata for a Quick document */
 public class QuickHeadSection {

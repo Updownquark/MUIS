@@ -1,10 +1,9 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import java.util.Objects;
 
 import org.observe.ObservableValue;
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.style.StyleAttribute;
 
 /**
  * A conditional style value in a {@link StyleSheet}

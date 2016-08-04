@@ -9,7 +9,7 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickException;
 import org.quick.core.QuickPermission;
 import org.quick.core.QuickToolkit;
-import org.quick.core.style2.ImmutableStyleSheet;
+import org.quick.core.style.ImmutableStyleSheet;
 import org.quick.util.QuickUtils;
 
 /** The default parser for Quick toolkits */

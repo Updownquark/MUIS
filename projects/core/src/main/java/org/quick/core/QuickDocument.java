@@ -15,7 +15,7 @@ import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style2.DocumentStyleSheet;
+import org.quick.core.style.DocumentStyleSheet;
 
 import com.google.common.reflect.TypeToken;
 
@@ -71,7 +71,7 @@ public class QuickDocument implements QuickParseEnv {
 
 	private QuickMessageCenter theMessageCenter;
 
-	private org.quick.core.style2.DocumentStyleSheet theDocumentStyle;
+	private org.quick.core.style.DocumentStyleSheet theDocumentStyle;
 
 	private ScrollPolicy theScrollPolicy;
 

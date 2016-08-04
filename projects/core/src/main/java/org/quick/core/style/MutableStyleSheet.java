@@ -1,8 +1,6 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import java.util.ArrayList;
-
-import org.quick.core.style.StyleAttribute;
 
 /** A StyleSheet whose conditional values can be directly set */
 public interface MutableStyleSheet extends StyleSheet, ConditionalStyleSetter {

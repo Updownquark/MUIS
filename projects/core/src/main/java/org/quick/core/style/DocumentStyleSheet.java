@@ -1,4 +1,4 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.collect.ObservableList;
 import org.quick.core.QuickDocument;

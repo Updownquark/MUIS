@@ -1,4 +1,4 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import java.util.*;
 
@@ -8,7 +8,6 @@ import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.StyleAttributes;
 
 /**
  * A condition that can be evaluated against various attributes of a {@link QuickElement} to determine whether a style value from a

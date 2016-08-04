@@ -1,8 +1,7 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
 import org.quick.core.QuickElement;
-import org.quick.core.style.StyleAttribute;
 
 /** Accepts conditional style values */
 public interface ConditionalStyleSetter extends StyleSetter {

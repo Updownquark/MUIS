@@ -8,8 +8,8 @@ import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.*;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
-import org.quick.core.style2.CompoundStyleSheet;
-import org.quick.core.style2.StyleSheet;
+import org.quick.core.style.CompoundStyleSheet;
+import org.quick.core.style.StyleSheet;
 
 import com.google.common.reflect.TypeToken;
 

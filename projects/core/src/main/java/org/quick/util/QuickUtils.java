@@ -15,7 +15,7 @@ import org.quick.core.QuickException;
 import org.quick.core.event.UserEvent;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.FontStyle;
-import org.quick.core.style2.QuickStyle;
+import org.quick.core.style.QuickStyle;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
 

@@ -1,8 +1,7 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
-import org.quick.core.style.StyleAttribute;
 
 /** Defines style attribute values */
 public interface QuickStyle {

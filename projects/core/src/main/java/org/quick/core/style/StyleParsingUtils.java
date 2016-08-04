@@ -4,7 +4,6 @@ import org.observe.ObservableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickPropertyParser;
-import org.quick.core.style2.StyleSetter;
 
 /** A few utility methods for parsing style information from attribute values */
 public class StyleParsingUtils {

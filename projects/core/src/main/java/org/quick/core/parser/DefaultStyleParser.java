@@ -12,13 +12,7 @@ import org.quick.core.*;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.prop.DefaultExpressionContext;
-import org.quick.core.style.StyleAttribute;
-import org.quick.core.style.StyleDomain;
-import org.quick.core.style.StyleParsingUtils;
-import org.quick.core.style2.ConditionalStyleSetter;
-import org.quick.core.style2.ImmutableStyleSheet;
-import org.quick.core.style2.StateCondition;
-import org.quick.core.style2.StyleCondition;
+import org.quick.core.style.*;
 import org.quick.util.QuickUtils;
 
 /** Parses .qss XML style files for Quick */

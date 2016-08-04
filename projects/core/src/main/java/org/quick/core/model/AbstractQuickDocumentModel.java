@@ -9,7 +9,7 @@ import java.awt.geom.Point2D;
 import java.util.Iterator;
 
 import org.qommons.IterableUtils;
-import org.quick.core.style2.QuickStyle;
+import org.quick.core.style.QuickStyle;
 
 /**
  * Provides most of the implementation needed for a {@link QuickDocumentModel}, requiring the concrete subclass only to define

@@ -1,4 +1,4 @@
-package org.quick.core.style2;
+package org.quick.core.style;
 
 import java.util.ArrayList;
 import java.util.Set;

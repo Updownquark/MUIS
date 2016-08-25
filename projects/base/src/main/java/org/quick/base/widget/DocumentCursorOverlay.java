@@ -18,7 +18,7 @@ import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.style.FontStyle;
-import org.quick.core.style2.QuickStyle;
+import org.quick.core.style.QuickStyle;
 
 /** An overlay for a text editor that flashes a cursor above a document */
 public class DocumentCursorOverlay extends QuickElement {

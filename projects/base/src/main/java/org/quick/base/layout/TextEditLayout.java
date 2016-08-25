@@ -1,5 +1,6 @@
 package org.quick.base.layout;
 
+import org.observe.Observable;
 import org.observe.Subscription;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
@@ -12,7 +13,7 @@ import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
-import org.quick.core.style2.QuickStyle;
+import org.quick.core.style.QuickStyle;
 import org.quick.util.CompoundListener;
 
 /** Controls the location of the text inside a text-editing widget */
@@ -36,10 +37,13 @@ public class TextEditLayout implements QuickLayout {
 	}
 
 	@Override
-	public void initChildren(QuickElement parent, QuickElement [] children) {
+	public void install(QuickElement parent, Observable<?> until) {
 		if(theParent != null && theParent != parent)
 			throw new IllegalArgumentException(getClass().getName() + " instances can only manage a single container");
 		theParent = parent;
+		parent.ch().onElement(el->{
+			el.
+		});
 		if(children.length == 0) {
 			theListener.listenerFor(parent);
 			return;

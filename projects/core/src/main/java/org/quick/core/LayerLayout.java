@@ -1,5 +1,6 @@
 package org.quick.core;
 
+import org.observe.Observable;
 import org.quick.core.layout.AbstractSizeGuide;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
@@ -7,15 +8,7 @@ import org.quick.core.layout.SizeGuide;
 /** A very simple layout that sizes children the same as their container */
 public class LayerLayout implements org.quick.core.QuickLayout {
 	@Override
-	public void initChildren(QuickElement parent, QuickElement [] children) {
-	}
-
-	@Override
-	public void childAdded(QuickElement parent, QuickElement child) {
-	}
-
-	@Override
-	public void childRemoved(QuickElement parent, QuickElement child) {
+	public void install(QuickElement parent, Observable<?> until) {
 	}
 
 	@Override
@@ -201,10 +194,6 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 	public void layout(QuickElement parent, QuickElement [] children) {
 		for(QuickElement child : children)
 			child.bounds().setBounds(0, 0, parent.bounds().getWidth(), parent.bounds().getHeight());
-	}
-
-	@Override
-	public void remove(QuickElement parent) {
 	}
 
 	@Override

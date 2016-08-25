@@ -2,6 +2,7 @@ package org.quick.base.layout;
 
 import static org.quick.core.layout.LayoutAttributes.*;
 
+import org.observe.Observable;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.*;
@@ -24,21 +25,9 @@ public class SimpleLayout implements QuickLayout {
 	}
 
 	@Override
-	public void initChildren(QuickElement parent, QuickElement [] children) {
+	public void install(QuickElement parent, Observable<?> until) {
 		theListener.listenerFor(parent);
-	}
-
-	@Override
-	public void remove(QuickElement parent) {
-		theListener.dropFor(parent);
-	}
-
-	@Override
-	public void childAdded(QuickElement parent, QuickElement child) {
-	}
-
-	@Override
-	public void childRemoved(QuickElement parent, QuickElement child) {
+		until.take(1).act(v -> theListener.dropFor(parent));
 	}
 
 	@Override

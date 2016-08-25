@@ -3,8 +3,8 @@ package org.quick.base.widget;
 import org.quick.base.style.BorderStyle;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.style.BackgroundStyle;
+import org.quick.core.style.QuickStyle;
 import org.quick.core.style.Size;
-import org.quick.core.style2.QuickStyle;
 import org.quick.core.tags.Template;
 
 /** Wraps an element (or set thereof) in a border */

@@ -9,6 +9,7 @@ import static org.quick.core.style.LayoutStyle.padding;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 
+import org.observe.Observable;
 import org.quick.core.QuickElement;
 import org.quick.core.layout.*;
 import org.quick.core.style.Size;
@@ -31,21 +32,9 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 	}
 
 	@Override
-	public void initChildren(QuickElement parent, QuickElement [] children) {
+	public void install(QuickElement parent, Observable<?> until) {
 		theListener.listenerFor(parent);
-	}
-
-	@Override
-	public void remove(QuickElement parent) {
-		theListener.dropFor(parent);
-	}
-
-	@Override
-	public void childAdded(QuickElement parent, QuickElement child) {
-	}
-
-	@Override
-	public void childRemoved(QuickElement parent, QuickElement child) {
+		until.take(1).act(v -> theListener.dropFor(parent));
 	}
 
 	@Override

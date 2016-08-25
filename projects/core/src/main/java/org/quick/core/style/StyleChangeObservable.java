@@ -151,6 +151,8 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 	}
 
 	private void start() {
+		if (theStyle == null)
+			return;
 		ObservableSet<StyleAttribute<?>> filteredAttributes = theStyle.attributes().filterStatic(att -> {
 			return theDomains.contains(att.getDomain()) || theAttributes.contains(att);
 		});

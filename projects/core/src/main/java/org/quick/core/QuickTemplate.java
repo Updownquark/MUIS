@@ -1002,20 +1002,6 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	@Override
-	protected void registerChild(QuickElement child, Observable<?> until) {
-		super.registerChild(child, until);
-		if (theLayout != null)
-			theLayout.childAdded(this, child);
-	}
-
-	@Override
-	protected void unregisterChild(QuickElement child) {
-		super.unregisterChild(child);
-		if (theLayout != null)
-			theLayout.childRemoved(this, child);
-	}
-
-	@Override
 	public ElementList<? extends QuickElement> initChildren(List<QuickElement> children) {
 		if (theTemplateStructure == null)
 			return getChildManager(); // Failed to parse template structure
@@ -1040,7 +1026,7 @@ public abstract class QuickTemplate extends QuickElement {
 		initTemplateChildren(this, theTemplateStructure.getWidgetStructure());
 
 		if (theLayout != null)
-			theLayout.initChildren(this, getChildren().toArray());
+			theLayout.install(this, Observable.empty);
 
 		// Don't need these anymore
 		theAttachmentMappings = null;

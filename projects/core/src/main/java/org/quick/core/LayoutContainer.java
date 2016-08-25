@@ -1,7 +1,9 @@
 package org.quick.core;
 
-import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.qommons.BiTuple;
 import org.quick.core.layout.SizeGuide;
+import org.quick.core.mgr.AttributeManager.AttributeHolder;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 
@@ -14,19 +16,21 @@ public class LayoutContainer extends QuickElement {
 	/** Creates a layout container */
 	public LayoutContainer() {
 		QuickLayout defLayout = getDefaultLayout();
-		life().runWhen(() -> {
-			try {
-				atts().require(this, LAYOUT_ATTR, defLayout).act(event -> {
-					if (event.getOldValue() != null)
-						event.getOldValue().remove(this);
-					if (event.getValue() != null)
-						event.getValue().initChildren(this, ch().toArray());
-					relayout(false);
+		AttributeHolder<QuickLayout> layoutAtt;
+		try {
+			layoutAtt = atts().require(this, LAYOUT_ATTR, defLayout);
+			life().runWhen(() -> {
+				ch().onElement(el -> {
+					ObservableValue<? extends BiTuple<? extends QuickElement, QuickLayout>> tupleVal = el.tupleV(layoutAtt);
+					tupleVal.act(tupleEvt -> {
+						if (tupleEvt.getValue().getValue2() != null)
+							tupleEvt.getValue().getValue2().install(tupleEvt.getValue().getValue1(), tupleVal);
+					});
 				});
-			} catch (QuickException e) {
-				msg().error("Could not set default layout", e, "layout", defLayout);
-			}
-		} , QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
+			}, QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
+		} catch (QuickException e) {
+			msg().error("Could not set default layout", e, "layout", defLayout);
+		}
 	}
 
 	/**
@@ -67,21 +71,5 @@ public class LayoutContainer extends QuickElement {
 		if (layout != null)
 			layout.layout(this, getChildren().toArray());
 		super.doLayout();
-	}
-
-	@Override
-	protected void registerChild(QuickElement child, Observable<?> until) {
-		super.registerChild(child, until);
-		QuickLayout layout = getLayout();
-		if (layout != null)
-			layout.childAdded(this, child);
-	}
-
-	@Override
-	protected void unregisterChild(QuickElement child) {
-		super.unregisterChild(child);
-		QuickLayout layout = getLayout();
-		if (layout != null)
-			layout.childRemoved(this, child);
 	}
 }

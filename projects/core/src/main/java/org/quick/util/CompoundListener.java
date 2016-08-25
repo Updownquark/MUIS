@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Consumer;
 
-import org.observe.Action;
-import org.observe.SimpleObservable;
-import org.observe.Subscription;
+import org.observe.*;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableList;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.event.AttributeChangedEvent;
@@ -14,9 +14,8 @@ import org.quick.core.event.QuickEventListener;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleAttributeEvent;
+import org.quick.core.style.StyleChangeObservable;
 import org.quick.core.style.StyleDomain;
-import org.quick.util.CompoundListener.CompoundElementListener;
-import org.quick.util.CompoundListener.IndividualElementListener;
 
 /**
  * <p>
@@ -386,13 +385,10 @@ public abstract class CompoundListener<T> {
 	private static class ChildCompoundListener extends ChainableCompoundListener {
 		private final CompoundElementListener theElListener;
 
-		private Action<ChildEvent> theAddedListener;
-		private Subscription theAddSubscription;
-		private Action<ChildEvent> theRemovedListener;
-		private Subscription theRemoveSubscription;
-
 		private Action<AttributeChangedEvent<?>> theAttListener;
 		private Subscription theAttSubscription;
+		private final StyleChangeObservable theRootStyleObserver;
+		private final Observable<StyleAttributeEvent<?>> theChildStyleObserver;
 		private Action<StyleAttributeEvent<?>> theStyleListener;
 		private Subscription theStyleSubscription;
 
@@ -402,7 +398,26 @@ public abstract class CompoundListener<T> {
 
 		ChildCompoundListener(CompoundElementListener elListener) {
 			theElListener = elListener;
-			theAddedListener = event -> {
+			theRootStyleObserver = new StyleChangeObservable(null);
+			ObservableList<StyleChangeObservable> childObservers = theElListener.getElement().ch()
+				.map(child -> new StyleChangeObservable(child.getStyle(), theRootStyleObserver));
+			theChildStyleObserver = ObservableCollection.fold(childObservers);
+			theElListener.getElement().ch().onOrderedElement(el -> {
+				el.subscribe(new Observer<ObservableValueEvent<? extends QuickElement>>() {
+					@Override
+					public <V extends ObservableValueEvent<? extends QuickElement>> void onNext(V value) {
+						// TODO Auto-generated method stub
+
+					}
+
+					@Override
+					public <V extends ObservableValueEvent<? extends QuickElement>> void onCompleted(V value) {
+						// TODO Auto-generated method stub
+
+					}
+				});
+			});
+			// theAddedListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					((ChildChainedCompoundListener<?>) chain).childAdded(event.getChild());
 				for(String name : getChainNames())
@@ -416,8 +431,8 @@ public abstract class CompoundListener<T> {
 					for(IndividualElementListener listener : theIndividualListeners)
 						listener.individual(event.getChild(), childListener);
 				}
-			};
-			theRemovedListener = event -> {
+			// };
+			// theRemovedListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					((ChildChainedCompoundListener<?>) chain).childRemoved(event.getChild());
 				for(String name : getChainNames())
@@ -428,7 +443,7 @@ public abstract class CompoundListener<T> {
 						childListener.drop();
 					}
 				}
-			};
+			// };
 			theAttListener = event -> {
 				for(ChainedCompoundListener<?> chain : getAnonymousChains())
 					chain.attListener.act(event);

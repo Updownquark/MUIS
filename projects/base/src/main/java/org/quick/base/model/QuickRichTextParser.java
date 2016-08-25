@@ -17,7 +17,6 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
-import org.quick.core.style2.QuickStyle;
 
 /** Parses and formats text in the Quick rich format */
 public class QuickRichTextParser {

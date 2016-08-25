@@ -13,10 +13,7 @@ import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.MutableSelectableDocumentModel;
-import org.quick.core.style.StyleAttribute;
-import org.quick.core.style2.MutableStyle;
-import org.quick.core.style2.QuickStyle;
-import org.quick.core.style2.StyleValue;
+import org.quick.core.style.*;
 
 import com.google.common.reflect.TypeToken;
 

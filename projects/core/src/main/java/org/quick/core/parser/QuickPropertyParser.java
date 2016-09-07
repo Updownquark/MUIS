@@ -12,6 +12,7 @@ public interface QuickPropertyParser {
 	QuickEnvironment getEnvironment();
 
 	/**
+	 * @param <T> The compile-time type of the property
 	 * @param property The action property to parse the action for
 	 * @param parseEnv The parse environment to use
 	 * @param value The text to parse
@@ -21,6 +22,7 @@ public interface QuickPropertyParser {
 	<T> ObservableActionValue<T> parseAction(QuickProperty<T> property, QuickParseEnv parseEnv, String value) throws QuickParseException;
 
 	/**
+	 * @param <T> The compile-time type of the property
 	 * @param property The property to parse the value for
 	 * @param parseEnv The parse environment to use
 	 * @param value The text to parse

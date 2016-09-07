@@ -26,7 +26,8 @@ public interface QuickStyle {
 
 	/**
 	 * Short-hand for {@link #get(StyleAttribute, boolean) get}(attr, true)
-	 *
+	 * 
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to get the value of
 	 * @return The observable value of the attribute in this style's scope
 	 */

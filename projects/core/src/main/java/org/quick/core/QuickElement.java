@@ -104,6 +104,8 @@ public abstract class QuickElement implements QuickParseEnv {
 		theExposedChildren = theChildren.immutable();
 		theAttributeManager = new AttributeManager(this);
 		theStyle = new QuickElementStyle(this);
+		Object styleWanter = new Object();
+		theAttributeManager.accept(styleWanter, StyleAttributes.STYLE_ATTRIBUTE);
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
 		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {
@@ -146,8 +148,6 @@ public abstract class QuickElement implements QuickParseEnv {
 			if (bounds != null)
 				repaint(bounds, false);
 		});
-		Object styleWanter = new Object();
-		theAttributeManager.accept(styleWanter, StyleAttributes.STYLE_ATTRIBUTE);
 		bounds().act(event -> {
 			Rectangle old = event.getOldValue();
 			if(old == null || event.getValue().width != old.width || event.getValue().height != old.height)

@@ -202,7 +202,7 @@ public class AttributeManager {
 			theLastGoodValue = value;
 			fire(oldValue, value);
 			theContainerController.onNext(theContainerObservable.createChangeEvent(oldObservable, theContainedObservable, null));
-			observable.takeUntil(theContainerObservable).act(evt -> {
+			observable.noInit().takeUntil(theContainerObservable).act(evt -> {
 				try {
 					checkValue(evt.getValue());
 				} catch(QuickException e) {
@@ -409,7 +409,11 @@ public class AttributeManager {
 	 *             element has already been initialized and the value is not valid for the given attribute
 	 */
 	public final <T> T set(QuickAttribute<T> attr, String value, QuickParseEnv context) throws QuickException {
-		return getHolder(attr, true).set(value, context);
+		AttributeHolder<T> holder = getHolder(attr, false);
+		if (holder != null)
+			return holder.set(value, context);
+		else
+			throw new QuickException("Attribute " + attr.getName() + " not accepted");
 	}
 
 	/**
@@ -421,7 +425,11 @@ public class AttributeManager {
 	 * @throws QuickException If the attribute is not accepted in this element or the value is not valid
 	 */
 	public final <T> void set(QuickAttribute<T> attr, T value) throws QuickException {
-		getHolder(attr, true).set(value);
+		AttributeHolder<T> holder = getHolder(attr, false);
+		if (holder != null)
+			holder.set(value);
+		else
+			throw new QuickException("Attribute " + attr.getName() + " not accepted");
 	}
 
 	/**
@@ -657,9 +665,9 @@ public class AttributeManager {
 	 */
 	public final void reject(Object wanter, QuickAttribute<?>... attrs) {
 		for(QuickAttribute<?> attr : attrs) {
-			AttributeHolder<?> holder = theAcceptedAttrs.get(attr.getName());
+			AttributeHolder<?> holder = theAcceptedAttrs.get(attr);
 			if(holder != null) {
-				holder.reject(holder);
+				holder.reject(wanter);
 				if(!holder.isWanted()) {
 					theAcceptedAttrs.remove(attr);
 					namedAttrRemoved(attr);

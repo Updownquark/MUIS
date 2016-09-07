@@ -12,6 +12,7 @@ public interface StyleSheet {
 	ObservableSet<StyleAttribute<?>> attributes();
 
 	/**
+	 * @param <T> The type of the attribute
 	 * @param The type of the attribute
 	 * @param attr The style attribute to get all the conditional values for
 	 * @return All conditional values defined in this style sheet for the given attribute

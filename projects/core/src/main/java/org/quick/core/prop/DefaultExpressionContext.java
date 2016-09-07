@@ -139,6 +139,8 @@ public class DefaultExpressionContext implements ExpressionContext {
 		}
 
 		/**
+		 * @param <F> The compile-time type of value the unit accepts
+		 * @param <T2> The compile-time type of value the unit produces
 		 * @param name The name of the unit
 		 * @param from The type of value to convert
 		 * @param to The type of value to produce

@@ -81,6 +81,7 @@ public abstract class ExpressionFunction<T> {
 	public abstract T apply(List<?> values);
 
 	/**
+	 * @param <T> The compile-time return type for the function
 	 * @param returnType The return type for the function
 	 * @return A builder for a function
 	 */
@@ -89,6 +90,7 @@ public abstract class ExpressionFunction<T> {
 	}
 
 	/**
+	 * @param <T> The compile-time return type for the function
 	 * @param fn The supplier to wrap as a function
 	 * @return A function that takes no arguments and uses the given supplier to produce a value
 	 */
@@ -97,6 +99,8 @@ public abstract class ExpressionFunction<T> {
 	}
 
 	/**
+	 * @param <A> The compile-time type of the argument for the function
+	 * @param <T> The compile-time return type for the function
 	 * @param fn The function to wrap as an {@link ExpressionFunction}
 	 * @return An {@link ExpressionFunction} that takes an argument and returns the value produced by the given function
 	 */
@@ -107,6 +111,9 @@ public abstract class ExpressionFunction<T> {
 	}
 
 	/**
+	 * @param <A1> The compile-time type of the first argument for the function
+	 * @param <A2> The compile-time type of the second argument for the function
+	 * @param <T> The compile-time return type for the function
 	 * @param fn The function to wrap as an {@link ExpressionFunction}
 	 * @return An {@link ExpressionFunction} that takes 2 arguments and returns the value produced by the given function
 	 */
@@ -119,6 +126,10 @@ public abstract class ExpressionFunction<T> {
 	}
 
 	/**
+	 * @param <A1> The compile-time type of the first argument for the function
+	 * @param <A2> The compile-time type of the second argument for the function
+	 * @param <A3> The compile-time type of the third argument for the function
+	 * @param <T> The compile-time return type for the function
 	 * @param fn The function to wrap as an {@link ExpressionFunction}
 	 * @return An {@link ExpressionFunction} that takes 3 arguments and returns the value produced by the given function
 	 */

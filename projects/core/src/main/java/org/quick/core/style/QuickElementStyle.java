@@ -23,7 +23,9 @@ public class QuickElementStyle implements QuickStyle {
 	public ObservableSet<StyleAttribute<?>> attributes() {
 		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
 		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
-		StyleSheet sheet = theElement.getDocument().getStyle();
+		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
+		if (sheet == null)
+			return localAttrs;
 		return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
 	}
 

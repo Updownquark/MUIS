@@ -266,6 +266,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	/**
 	 * Does the parsing work by the default method
 	 *
+	 * @param <T> The compile-time type of the value to be parsed
 	 * @param parseEnv The parse environment to use for parsing
 	 * @param type The type to expect from the parsed value
 	 * @param value The text to parse

@@ -379,7 +379,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (bestConstructor == null)
 				throw new QuickParseException("No such constructor found: " + parsedItem);
 			Constructor<?> toInvoke = bestConstructor;
-			return new ObservableValue.ComposedObservableValue<Object>((TypeToken<Object>) typeToCreate, args -> {
+			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) typeToCreate, args -> {
 				try {
 					return toInvoke.newInstance(args);
 				} catch (Exception e) {
@@ -700,7 +700,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (bestMethod == null)
 				throw new QuickParseException("No such method found: " + method);
 			Method toInvoke = bestMethod;
-			return new ObservableValue.ComposedObservableValue<Object>(
+			return new ObservableValue.ComposedObservableValue<>(
 				(TypeToken<Object>) type.resolveType(toInvoke.getGenericReturnType()), args -> {
 					try {
 						return toInvoke.invoke(null, args);
@@ -774,7 +774,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			System.arraycopy(bestMatch.parameters, 0, composed, 1, bestMatch.parameters.length);
 			Method toInvoke = bestMethod;
 			TypeToken<?> resultType = context.getType().resolveType(toInvoke.getGenericReturnType());
-			return new ObservableValue.ComposedObservableValue<Object>((TypeToken<Object>) resultType, args -> {
+			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) resultType, args -> {
 				Object ctx = args[0];
 				Object[] params = new Object[args.length - 1];
 				System.arraycopy(args, 1, params, 0, params.length);
@@ -824,7 +824,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		if (bestFunction == null)
 			throw new QuickParseException("No such function found: " + method);
 		ExpressionFunction<?> toInvoke = bestFunction;
-		return new ObservableValue.ComposedObservableValue<Object>((TypeToken<Object>) toInvoke.getReturnType(), args -> {
+		return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) toInvoke.getReturnType(), args -> {
 			try {
 				return toInvoke.apply(Arrays.asList(args));
 			} catch (RuntimeException e) {

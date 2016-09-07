@@ -13,6 +13,7 @@ public interface ExpressionContext {
 	ObservableValue<?> getVariable(String name);
 
 	/**
+	 * @param <T> The type of the collection to add the functions to
 	 * @param name The name of the function
 	 * @param functions The list to add all this context's functions with the given name to
 	 * @return The list
@@ -20,6 +21,7 @@ public interface ExpressionContext {
 	<T extends Collection<ExpressionFunction<?>>> T getFunctions(String name, T functions);
 
 	/**
+	 * @param <T> The type of the collection to add the units to
 	 * @param name The name of the unit
 	 * @param units The list to add all this context's units with the given name to
 	 * @return The list

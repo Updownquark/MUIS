@@ -27,6 +27,7 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 	}
 
 	/**
+	 * @param <T> The compile-time type of the attribute
 	 * @param name The name for the attribute
 	 * @param type The type for the attribute
 	 * @return A builder to build the attribute
@@ -37,7 +38,7 @@ public class QuickAttribute<T> extends QuickProperty<T> {
 
 	/**
 	 * Builds a {@link QuickAttribute}
-	 * 
+	 *
 	 * @param <T> The type of the attribute
 	 */
 	public static class Builder<T> extends QuickProperty.Builder<T> {

@@ -197,7 +197,8 @@ public class MathUtils {
 
 	/**
 	 * Adds one to a value
-	 *
+	 * 
+	 * @param <T> The compile-time type of the value
 	 * @param value The value to add to
 	 * @return The value
 	 * @throws IllegalArgumentException If the operator cannot be applied to the given operand
@@ -226,6 +227,7 @@ public class MathUtils {
 	/**
 	 * Subtracts one from a value
 	 *
+	 * @param <T> The compile-time type of the value
 	 * @param value The value to subtract from
 	 * @return The value
 	 * @throws IllegalArgumentException If the operator cannot be applied to the given operand

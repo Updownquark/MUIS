@@ -12,47 +12,39 @@ import org.quick.core.layout.*;
 import org.quick.core.style.LayoutStyle;
 import org.quick.core.style.Size;
 import org.quick.util.CompoundListener;
-import org.quick.util.CompoundListener.CompoundElementListener;
 
 /**
  * Lays components out by {@link Region regions}. Containers with this layout may have any number of components in any region except center,
  * which may have zero or one component in it.
  */
 public class BorderLayout implements org.quick.core.QuickLayout {
-	private final CompoundListener.MultiElementCompoundListener theListener;
+	private final CompoundListener theListener;
 
 	/** Creates a border layout */
 	public BorderLayout() {
-		theListener = CompoundListener.create(this);
-		theListener.child().accept(region).onChange(theListener.individualChecker(false)).onChange(CompoundListener.sizeNeedsChanged);
-		theListener.eachChild(new CompoundListener.IndividualElementListener() {
-			@Override
-			public void individual(QuickElement element, CompoundElementListener listener) {
-				listener.chain(Region.left.name()).acceptAll(width, minWidth, maxWidth, right, minRight, maxRight)
-					.onChange(CompoundListener.sizeNeedsChanged);
-				listener.chain(Region.right.name()).acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft)
-					.onChange(CompoundListener.sizeNeedsChanged);
-				listener.chain(Region.top.name()).acceptAll(height, minHeight, maxHeight, bottom, minBottom, maxBottom)
-					.onChange(CompoundListener.sizeNeedsChanged);
-				listener.chain(Region.bottom.name()).acceptAll(height, minHeight, maxHeight, top, minTop, maxTop)
-					.onChange(CompoundListener.sizeNeedsChanged);
-				update(element, listener);
-			}
-
-			@Override
-			public void update(QuickElement element, CompoundElementListener listener) {
-				listener.chain(Region.left.name()).setActive(element.atts().get(region) == Region.left);
-				listener.chain(Region.right.name()).setActive(element.atts().get(region) == Region.right);
-				listener.chain(Region.top.name()).setActive(element.atts().get(region) == Region.top);
-				listener.chain(Region.bottom.name()).setActive(element.atts().get(region) == Region.bottom);
-			}
-		});
+		theListener = CompoundListener.build()//
+			.child(builder -> {
+				builder.accept(region).onEvent(CompoundListener.sizeNeedsChanged);
+				builder.when(el -> el.getAttribute(region) == Region.left, builder2 -> {
+					builder2.acceptAll(width, minWidth, maxWidth, right, minRight, maxRight).onEvent(CompoundListener.sizeNeedsChanged);
+				});
+				builder.when(el -> el.getAttribute(region) == Region.right, builder2 -> {
+					builder2.acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft).onEvent(CompoundListener.sizeNeedsChanged);
+				});
+				builder.when(el -> el.getAttribute(region) == Region.top, builder2 -> {
+					builder2.acceptAll(height, minHeight, maxHeight, bottom, minBottom, maxBottom)
+						.onEvent(CompoundListener.sizeNeedsChanged);
+				});
+				builder.when(el -> el.getAttribute(region) == Region.bottom, builder2 -> {
+					builder2.acceptAll(height, minHeight, maxHeight, top, minTop, maxTop).onEvent(CompoundListener.sizeNeedsChanged);
+				});
+			})//
+			.build();
 	}
 
 	@Override
 	public void install(QuickElement parent, Observable<?> until) {
-		theListener.listenerFor(parent);
-		until.take(1).act(v -> theListener.dropFor(parent));
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

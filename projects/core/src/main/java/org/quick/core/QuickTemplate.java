@@ -903,6 +903,7 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	/**
+	 * @param <E> The type of element in the attach point
 	 * @param attach The attach point to get the container for
 	 * @return The container of all elements occupying the attach point in this widget instance
 	 * @throws IllegalArgumentException If the attach point is not recognized in this templated widget or does not support multiple elements
@@ -915,6 +916,7 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	/**
+	 * @param <E> The type of element in the attach point
 	 * @param attach The attach point to get the element at
 	 * @return The element attached at the given attach point. May be null.
 	 */

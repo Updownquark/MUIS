@@ -176,6 +176,7 @@ public final class QuickPropertyType<T> {
 	/**
 	 * Builds a value property
 	 *
+	 * @param <T> The compile-time type of the property
 	 * @param name The name for the property type
 	 * @param type The run-time type for the property type
 	 * @return A builder for the property type
@@ -187,6 +188,7 @@ public final class QuickPropertyType<T> {
 	/**
 	 * Builds an action property
 	 *
+	 * @param <T> The compile-time type of the property
 	 * @param name The name for the property type
 	 * @param type The run-time type for the property type
 	 * @return A builder for the property type
@@ -240,6 +242,7 @@ public final class QuickPropertyType<T> {
 		}
 
 		/**
+		 * @param <F> The compile-time type of the value to convert from
 		 * @param from The type of value to convert from
 		 * @param map The type of value to convert to
 		 * @return This builder
@@ -460,7 +463,8 @@ public final class QuickPropertyType<T> {
 
 	/**
 	 * Creates a property type for parsing values of an enum
-	 * 
+	 *
+	 * @param <T> The compile-time type of the enum
 	 * @param enumType The enum class
 	 * @return The property type for the enum
 	 */
@@ -541,7 +545,8 @@ public final class QuickPropertyType<T> {
 
 	/**
 	 * Creates a property type that parses a java type
-	 * 
+	 *
+	 * @param <T> The compile-time type of the super class of the type to produce
 	 * @param type The super class of the type to produce
 	 * @return The property type
 	 */
@@ -573,6 +578,7 @@ public final class QuickPropertyType<T> {
 	/**
 	 * Creates a property type that instantiates a type
 	 * 
+	 * @param <T> The compile-time type of the super class of the type of values to produce
 	 * @param type The super class of the type of values to produce
 	 * @return The property type
 	 */

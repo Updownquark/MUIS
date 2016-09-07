@@ -138,7 +138,6 @@ public class QuickModelConfig {
 		String name;
 		Object value;
 
-		@SuppressWarnings("hiding")
 		ConfigPoint(String name, Object value) {
 			this.name = name;
 			this.value = value;

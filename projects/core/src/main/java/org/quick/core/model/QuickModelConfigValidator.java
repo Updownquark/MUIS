@@ -23,7 +23,6 @@ public class QuickModelConfigValidator {
 		final Map<String, List<Constraint>> childConstraints;
 		final boolean acceptsUnmatched;
 
-		@SuppressWarnings("hiding")
 		ConfigChecker(String path, int min, int max, Boolean withText, Map<String, List<Constraint>> childConstraints,
 			boolean withUnmatched) {
 			this.path = path;

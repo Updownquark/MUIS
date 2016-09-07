@@ -33,7 +33,6 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		 * @param type The type of the directive
 		 * @param contents The contents of the directive to parse
 		 */
-		@SuppressWarnings("hiding")
 		public Directive(int start, int length, String type, String contents) {
 			this.start = start;
 			this.length = length;

@@ -5,6 +5,12 @@ import org.quick.core.layout.SizeGuide;
 
 /** Manages the position and size of children in a container */
 public interface QuickLayout {
+	/**
+	 * Installs this layout for an element
+	 * 
+	 * @param parent The element to layout the children of
+	 * @param until An observable that will fire when this layout should cease laying out the parent
+	 */
 	void install(QuickElement parent, Observable<?> until);
 
 	/**

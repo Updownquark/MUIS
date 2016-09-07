@@ -553,7 +553,6 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		final ObservableValue<?>[] parameters;
 		final double distance;
 
-		@SuppressWarnings("hiding")
 		InvokableMatch(ObservableValue<?>[] parameters, double distance) {
 			this.parameters = parameters;
 			this.distance = distance;

@@ -24,16 +24,19 @@ public class TextEditLayout implements QuickLayout {
 	/** Allows the user to set the height (in characters) of a text-editing widget */
 	public static final QuickAttribute<Integer> charRowsAtt = QuickAttribute.build("rows", QuickPropertyType.integer).build();
 
-	private final CompoundListener.MultiElementCompoundListener theListener;
+	private final CompoundListener theListener;
 
 	private QuickElement theParent;
 	private Subscription theDocListenSub;
 
 	/** Creates the layout */
 	public TextEditLayout() {
-		theListener = CompoundListener.create(this);
-		theListener.acceptAll(charLengthAtt, charRowsAtt).onChange(CompoundListener.sizeNeedsChanged);
-		theListener.child().watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onChange(CompoundListener.layout);
+		theListener = CompoundListener.build()//
+			.acceptAll(charLengthAtt, charRowsAtt).onEvent(CompoundListener.sizeNeedsChanged)//
+			.child(childBuilder -> {
+				childBuilder.watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onEvent(CompoundListener.layout);
+			})//
+			.build();
 	}
 
 	@Override
@@ -56,7 +59,7 @@ public class TextEditLayout implements QuickLayout {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		theListener.listenerFor(parent);
+		theListener.listen(parent, parent, until);
 		QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
 		theDocListenSub = doc.changes().filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
 			.act(evt -> theParent.relayout(false));

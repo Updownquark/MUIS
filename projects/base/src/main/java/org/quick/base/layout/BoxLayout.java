@@ -19,20 +19,22 @@ import org.quick.util.CompoundListener;
  * the sizes of children.
  */
 public class BoxLayout implements QuickLayout {
-	private final CompoundListener.MultiElementCompoundListener theListener;
+	private final CompoundListener theListener;
 
 	/** Creates a box layout */
 	public BoxLayout() {
-		theListener = CompoundListener.create(this);
-		theListener.accept(direction).onChange(CompoundListener.sizeNeedsChanged).acceptAll(alignment, crossAlignment)
-			.onChange(CompoundListener.layout);
-		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.sizeNeedsChanged);
+		theListener = CompoundListener.build()//
+			.accept(direction).onEvent(CompoundListener.sizeNeedsChanged).acceptAll(alignment, crossAlignment)
+			.onEvent(CompoundListener.layout)//
+			.child(childBuilder -> {
+				childBuilder.acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onEvent(CompoundListener.sizeNeedsChanged);
+			})//
+			.build();
 	}
 
 	@Override
 	public void install(QuickElement parent, Observable<?> until) {
-		theListener.listenerFor(parent);
-		until.take(1).act(v -> theListener.dropFor(parent));
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

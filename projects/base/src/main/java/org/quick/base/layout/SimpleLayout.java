@@ -15,19 +15,21 @@ import org.quick.util.CompoundListener;
  * and {@link LayoutAttributes#height}) attributes or sizers.
  */
 public class SimpleLayout implements QuickLayout {
-	private final CompoundListener.MultiElementCompoundListener theListener;
+	private final CompoundListener theListener;
 
 	/** Creates a simple layout */
 	public SimpleLayout() {
-		theListener = CompoundListener.create(this);
-		theListener.child().acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
-			.onChange(CompoundListener.sizeNeedsChanged);
+		theListener = CompoundListener.build()//
+			.child(childBuilder -> {
+				childBuilder.acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
+					.onEvent(CompoundListener.sizeNeedsChanged);
+			})//
+			.build();
 	}
 
 	@Override
 	public void install(QuickElement parent, Observable<?> until) {
-		theListener.listenerFor(parent);
-		until.take(1).act(v -> theListener.dropFor(parent));
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

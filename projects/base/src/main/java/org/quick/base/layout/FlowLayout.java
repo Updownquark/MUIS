@@ -18,23 +18,25 @@ import org.quick.util.SimpleCache;
 
 /** Arranges components in order along a single axis, wrapping them to the next row or column as needed. */
 public class FlowLayout implements org.quick.core.QuickLayout {
-	private final CompoundListener.MultiElementCompoundListener theListener;
+	private final CompoundListener theListener;
 
 	private SimpleCache<SizeGuide> theSizerCache;
 
 	/** Creates a flow layout */
 	public FlowLayout() {
-		theListener = CompoundListener.create(this);
-		theListener.acceptAll(direction, fillContainer).onChange(CompoundListener.sizeNeedsChanged)
-			.acceptAll(alignment, crossAlignment, fillContainer).watchAll(margin, padding).onChange(CompoundListener.sizeNeedsChanged);
-		theListener.child().acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onChange(CompoundListener.sizeNeedsChanged);
+		theListener = CompoundListener.build()//
+			.acceptAll(direction, fillContainer).onEvent(CompoundListener.sizeNeedsChanged)
+			.acceptAll(alignment, crossAlignment, fillContainer).watchAll(margin, padding).onEvent(CompoundListener.sizeNeedsChanged)//
+			.child(childBuilder -> {
+				childBuilder.acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onEvent(CompoundListener.sizeNeedsChanged);
+			})//
+			.build();
 		theSizerCache = new SimpleCache<>();
 	}
 
 	@Override
 	public void install(QuickElement parent, Observable<?> until) {
-		theListener.listenerFor(parent);
-		until.take(1).act(v -> theListener.dropFor(parent));
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

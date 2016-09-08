@@ -36,6 +36,7 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 		theUninstallController.onNext(element);
 	}
 
+	/** @param enabled Whether this behavior should be acting on events */
 	public void setEnabled(boolean enabled) {
 		isEnabled = enabled;
 	}

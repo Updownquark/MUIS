@@ -90,6 +90,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	private final QuickMessageCenter theMessageCenter;
 	private List<RichStyleSequence> theSequences;
 
+	/** @param element The element that this document model is for */
 	public RichDocumentModel(QuickElement element) {
 		super(element);
 		theMessageCenter = element.msg();
@@ -193,7 +194,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 				RichStyleSequence last = theSequences.get(theSequences.size() - 1);
 				newSeq.theStyles.putAll(last.theStyles);
 				for (StyleAttribute<?> att : style.attributes())
-					newSeq.theStyles.put(att, new StyleValue<Object>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
+					newSeq.theStyles.put(att, new StyleValue<>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
 				newSeq.theContent.append(csq);
 				theSequences.add(newSeq);
 			}
@@ -223,7 +224,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 					RichStyleSequence newSeq = new RichStyleSequence();
 					newSeq.theStyles.putAll(seq.theStyles);
 					for(StyleAttribute<?> att : style.attributes())
-						newSeq.theStyles.put(att, new StyleValue<Object>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
+						newSeq.theStyles.put(att, new StyleValue<>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
 					newSeq.theContent.append(csq);
 					theSequences.add(split ? i + 1 : 1, newSeq);
 				} else

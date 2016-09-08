@@ -149,18 +149,18 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 							}
 						}
 						if (tuple.getValue3() != null) {
-							String error = ((Validator<Object>) tuple.getValue3()).validate(theLastParsedValue);
-							if (error != null){
-								msg().debug(error);
+							String error2 = ((Validator<Object>) tuple.getValue3()).validate(theLastParsedValue);
+							if (error2 != null){
+								msg().debug(error2);
 								theLastParsedValue = null;
-								return error;
+								return error2;
 							}
 						}
 						SettableValue<?> sv=(SettableValue<?>) tuple.getValue1();
-						String error = ((SettableValue<Object>) sv).isAcceptable(theLastParsedValue);
-						if (error != null)
+						String error2 = ((SettableValue<Object>) sv).isAcceptable(theLastParsedValue);
+						if (error2 != null)
 							theLastParsedValue = null;
-						return error;
+						return error2;
 					}
 
 					@Override

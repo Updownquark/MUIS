@@ -11,16 +11,47 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 
+/** A utility to accept and listen to attributes and listen to style attributes of an element or an element's children in a modular way. */
 public interface CompoundListener {
+	/**
+	 * Adds configured attributes and listeners to an element
+	 *
+	 * @param element The element to add the listeners to
+	 * @param root The root element being listened to. Unless called internally, this will typically be the same as {@code element}.
+	 * @param until An observable that signals the end of this listener's interest in the element. When this observable fires, all
+	 *        attributes added by this listener will be {@link org.quick.core.mgr.AttributeManager#reject(Object, QuickAttribute...)
+	 *        rejected} and all listeners will be removed.
+	 */
 	void listen(QuickElement element, QuickElement root, Observable<?> until);
 
+	/** Performs actions in response to configured events */
 	public interface EventListener {
+		/**
+		 * Called when a configured event occurs
+		 * 
+		 * @param evented The element that the event actually fired on
+		 * @param root The root element being listened to
+		 * @param event The event that occurred
+		 */
 		void eventOccurred(QuickElement evented, QuickElement root, ObservableValueEvent<?> event);
 	}
 
+	/**
+	 * Allows for {@link CompoundListenerBuilder#when(Predicate, Consumer) conditions}
+	 */
 	public interface ElementMock {
+		/**
+		 * @param <T> The type of the attribute
+		 * @param attr The attribute to get the value of
+		 * @return The value of the attribute in the element that this mock represents
+		 */
 		<T> T getAttribute(QuickAttribute<T> attr);
 
+		/**
+		 * @param <T> The type of the attribute
+		 * @param attr The style attribute to get the value of
+		 * @return The value of the style attribute in the element that this mock represents
+		 */
 		<T> T getStyle(StyleAttribute<T> attr);
 	}
 
@@ -144,7 +175,7 @@ public interface CompoundListener {
 
 		/**
 		 * @param builder A function to build a listener to be applied to all children of elements passed to
-		 *        {@link CompoundListener2#listen(QuickElement, QuickElement, Observable)}
+		 *        {@link CompoundListener#listen(QuickElement, QuickElement, Observable)}
 		 * @return This builder, for chaining
 		 */
 		CompoundListenerBuilder child(Consumer<CompoundListenerBuilder> builder);
@@ -152,7 +183,7 @@ public interface CompoundListener {
 		/**
 		 * @param test The condition evaluator
 		 * @param builder A function to build a listener to be applied to elements passed to
-		 *        {@link CompoundListener2#listen(QuickElement, QuickElement, Observable)} when they pass the given test
+		 *        {@link CompoundListener#listen(QuickElement, QuickElement, Observable)} when they pass the given test
 		 * @return This builder, for chaining
 		 */
 		CompoundListenerBuilder when(Predicate<ElementMock> test, Consumer<CompoundListenerBuilder> builder);

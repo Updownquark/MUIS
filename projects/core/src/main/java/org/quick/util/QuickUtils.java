@@ -5,7 +5,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.font.TextAttribute;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
@@ -347,24 +347,10 @@ public class QuickUtils {
 	}
 
 	/**
-	 * Constructs an immutable copy of a map of lists
-	 *
-	 * @param value The value to copy
-	 * @return The copied, immutable value
-	 */
-	public static <K, V> Map<K, List<V>> immutable(Map<K, List<V>> value) {
-		Map<K, List<V>> fns = new LinkedHashMap<>();
-		for (Map.Entry<K, List<V>> entry : value.entrySet()) {
-			fns.put(entry.getKey(), Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
-		}
-		return Collections.unmodifiableMap(fns);
-	}
-
-	/**
 	 * Checks whether a variable of type <code>left</code> may be assigned a value of type <code>right</code>. This is more lenient than
 	 * {@link TypeToken#isAssignableFrom(TypeToken)} because this method allows for auto (un)boxing and conversion between compatible
 	 * primitive types (e.g. float f=0).
-	 * 
+	 *
 	 * @param left The type of the variable to assign
 	 * @param right The type of the value being assigned
 	 * @return Whether the assignment is allowable
@@ -392,6 +378,7 @@ public class QuickUtils {
 	}
 
 	/**
+	 * @param <T> The compile-time type to make an array type of
 	 * @param type The type to make an array type of
 	 * @return An array type whose component type is <code>type</code>
 	 */
@@ -402,7 +389,8 @@ public class QuickUtils {
 	/**
 	 * For types that pass {@link #isAssignableFrom(TypeToken, TypeToken)}, this method converts the given value to the correct run-time
 	 * type
-	 *
+	 * 
+	 * @param <T> The compile-time type to convert to
 	 * @param type The type to convert to
 	 * @param value The value to convert
 	 * @return The converted value

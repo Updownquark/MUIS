@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.quick.core.layout.LayoutAttributes.*;
+import static org.quick.core.style.BackgroundStyle.color;
 
 import org.junit.Test;
 import org.observe.SimpleObservable;
@@ -13,11 +14,14 @@ import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.layout.Region;
 import org.quick.core.mgr.ElementList;
+import org.quick.core.style.Colors;
 import org.quick.core.style.LengthUnit;
 import org.quick.core.style.Size;
 import org.quick.util.CompoundListener;
 
+/** Tests {@link CompoundListener} */
 public class CompoundListenerTest {
+	/** Tests the basic attribute functionality */
 	@Test
 	public void testBasic() {
 		int[] events = new int[1];
@@ -25,6 +29,7 @@ public class CompoundListenerTest {
 			.accept(region).onChange(() -> {
 				events[0]++;
 			})//
+			.watch(color).onChange(() -> events[0]++)//
 			.build();
 
 		QuickElement testEl = new QuickElement() {};
@@ -45,6 +50,8 @@ public class CompoundListenerTest {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(2, events[0]);
+		testEl.atts().set(color, Colors.blue);
+
 		until.onNext(null);
 		assertNull(testEl.atts().getHolder(region));
 		try {
@@ -214,5 +221,25 @@ public class CompoundListenerTest {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(4, events[0]);
+
+		until.onNext(null);
+		assertNull(firstChild.atts().getHolder(region));
+		try {
+			firstChild.atts().set(region, Region.bottom);
+			assertTrue("Should have thrown a QuickException", false);
+		} catch (QuickException e) {
+		}
+		assertNull(secondChild.atts().getHolder(region));
+		try {
+			secondChild.atts().set(region, Region.bottom);
+			assertTrue("Should have thrown a QuickException", false);
+		} catch (QuickException e) {
+		}
+		assertNull(firstChild.atts().getHolder(width));
+		assertNull(firstChild.atts().getHolder(height));
+		assertNull(firstChild.atts().getHolder(right));
+		assertNull(firstChild.atts().getHolder(left));
+		assertNull(firstChild.atts().getHolder(top));
+		assertNull(firstChild.atts().getHolder(bottom));
 	}
 }

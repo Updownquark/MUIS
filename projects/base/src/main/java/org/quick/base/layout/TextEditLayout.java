@@ -1,6 +1,8 @@
 package org.quick.base.layout;
 
-import org.observe.*;
+import org.observe.Observable;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.LayoutGuideType;
@@ -25,9 +27,6 @@ public class TextEditLayout implements QuickLayout {
 
 	private final CompoundListener theListener;
 
-	private QuickElement theParent;
-	private Subscription theDocListenSub;
-
 	/** Creates the layout */
 	public TextEditLayout() {
 		theListener = CompoundListener.build()//
@@ -40,73 +39,24 @@ public class TextEditLayout implements QuickLayout {
 
 	@Override
 	public void install(QuickElement parent, Observable<?> until) {
-		if(theParent != null && theParent != parent)
-			throw new IllegalArgumentException(getClass().getName() + " instances can only manage a single container");
-		theParent = parent;
 		parent.ch().onElement(el->{
 			el.subscribe(new Observer<ObservableValueEvent<? extends QuickElement>>() {
 				@Override
 				public <V extends ObservableValueEvent<? extends QuickElement>> void onNext(V value) {
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public <V extends ObservableValueEvent<? extends QuickElement>> void onCompleted(V value) {
-					// TODO Auto-generated method stub
-
+					childAdded(parent, value.getValue(), Observable.or(until, el.noInit()));
 				}
 			});
 		});
-		if(children.length == 0) {
-			theListener.listenerFor(parent);
-			return;
-		}
-		if(children.length > 1) {
-			parent.msg().error(getClass().getSimpleName() + " allows only one child in a container");
-			return;
-		}
-		if(!(children[0] instanceof DocumentedElement)) {
-			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
-			return;
-		}
 		theListener.listen(parent, parent, until);
-		QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
-		theDocListenSub = doc.changes().filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
-			.act(evt -> theParent.relayout(false));
 	}
 
-	@Override
-	public void childAdded(QuickElement parent, QuickElement child) {
-		if(!(child instanceof DocumentedElement)) {
+	private void childAdded(QuickElement parent, QuickElement child, Observable<?> until) {
+		if (child instanceof DocumentedElement) {
+			QuickDocumentModel doc = ((DocumentedElement) child).getDocumentModel().get();
+			doc.changes().takeUntil(until).filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
+				.act(evt -> parent.relayout(false));
+		} else
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
-			return;
-		}
-		QuickDocumentModel doc = ((DocumentedElement) child).getDocumentModel().get();
-		theDocListenSub = doc.changes().filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
-			.act(evt -> theParent.relayout(false));
-	}
-
-	private void childRemoved(QuickElement parent, QuickElement child) {
-		if(!(child instanceof DocumentedElement)) {
-			return;
-		}
-		if (theDocListenSub != null) {
-			theDocListenSub.unsubscribe();
-			theDocListenSub = null;
-		}
-	}
-
-	@Override
-	public void remove(QuickElement parent) {
-		theListener.dropFor(parent);
-		if (theParent == parent) {
-			if (theDocListenSub != null) {
-				theDocListenSub.unsubscribe();
-				theDocListenSub = null;
-			}
-			theParent = null;
-		}
 	}
 
 	@Override

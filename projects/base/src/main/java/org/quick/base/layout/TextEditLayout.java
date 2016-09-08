@@ -1,7 +1,6 @@
 package org.quick.base.layout;
 
-import org.observe.Observable;
-import org.observe.Subscription;
+import org.observe.*;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.LayoutGuideType;
@@ -45,7 +44,19 @@ public class TextEditLayout implements QuickLayout {
 			throw new IllegalArgumentException(getClass().getName() + " instances can only manage a single container");
 		theParent = parent;
 		parent.ch().onElement(el->{
-			el.
+			el.subscribe(new Observer<ObservableValueEvent<? extends QuickElement>>() {
+				@Override
+				public <V extends ObservableValueEvent<? extends QuickElement>> void onNext(V value) {
+					// TODO Auto-generated method stub
+
+				}
+
+				@Override
+				public <V extends ObservableValueEvent<? extends QuickElement>> void onCompleted(V value) {
+					// TODO Auto-generated method stub
+
+				}
+			});
 		});
 		if(children.length == 0) {
 			theListener.listenerFor(parent);
@@ -76,8 +87,7 @@ public class TextEditLayout implements QuickLayout {
 			.act(evt -> theParent.relayout(false));
 	}
 
-	@Override
-	public void childRemoved(QuickElement parent, QuickElement child) {
+	private void childRemoved(QuickElement parent, QuickElement child) {
 		if(!(child instanceof DocumentedElement)) {
 			return;
 		}

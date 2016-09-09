@@ -109,7 +109,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		if (theGroups.isEmpty())
 			groupMatches = ObservableValue.constant(true);
 		else
-			groupMatches = element.atts().getHolder(StyleAttributes.GROUP_ATTRIBUTE)
+			groupMatches = element.atts().getHolder(StyleAttributes.group)
 				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
 
 		ObservableValue<Boolean> rolePathMatches;
@@ -143,7 +143,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		if (theGroups.isEmpty())
 			groupMatches = ObservableValue.constant(true);
 		else
-			groupMatches = element.atts().getHolder(StyleAttributes.GROUP_ATTRIBUTE)
+			groupMatches = element.atts().getHolder(StyleAttributes.group)
 				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
 
 		ObservableValue<Boolean> rolePathMatches;

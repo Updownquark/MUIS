@@ -78,6 +78,11 @@ public class ImmutableStyle implements QuickStyle {
 			return this;
 		}
 
+		@Override
+		public <T> Builder setConstant(StyleAttribute<T> attr, T value) {
+			return (Builder) StyleSetter.super.setConstant(attr, value);
+		}
+
 		/** @return The new {@link ImmutableStyle} */
 		public ImmutableStyle build() {
 			return new ImmutableStyle(theValues);

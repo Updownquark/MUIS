@@ -1058,7 +1058,7 @@ public abstract class QuickTemplate extends QuickElement {
 						+ theTemplateStructure.getDefiner().getName(), e);
 				}
 			} else if (att.getKey().equals("style")) {
-				QuickStyle elStyle = atts().get(StyleAttributes.STYLE_ATTRIBUTE);
+				QuickStyle elStyle = atts().get(StyleAttributes.style);
 				QuickStyle templateStyle;
 				ImmutableStyle.Builder builder = ImmutableStyle.build(msg());
 				boolean mod = false;
@@ -1067,13 +1067,13 @@ public abstract class QuickTemplate extends QuickElement {
 					for (StyleAttribute<?> styleAtt : templateStyle.attributes()) {
 						if (!elStyle.isSet(styleAtt)) {
 							mod = true;
-							builder.set((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) templateStyle.get(styleAtt));
+							builder.setConstant((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) templateStyle.get(styleAtt));
 						}
 					}
 					if (mod) {
 						for (StyleAttribute<?> styleAtt : elStyle.attributes())
-							builder.set((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) elStyle.get(styleAtt));
-						atts().set(StyleAttributes.STYLE_ATTRIBUTE, builder.build());
+							builder.setConstant((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) elStyle.get(styleAtt));
+						atts().set(StyleAttributes.style, builder.build());
 					}
 				} catch (QuickException e) {
 					msg().error("Could not parse style attribute of template", e);

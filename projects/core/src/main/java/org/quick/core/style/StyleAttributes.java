@@ -21,13 +21,13 @@ public class StyleAttributes {
 		.withParser((parser, env, str) -> {
 			return ObservableValue.constant(TypeToken.of(QuickStyle.class), parseStyle(parser, env, str));
 		}, true)//
-		.withToString(style -> {
+		.withToString(style2 -> {
 			StringBuilder ret = new StringBuilder();
-			for (StyleAttribute<?> attr : style.attributes()) {
+			for (StyleAttribute<?> attr : style2.attributes()) {
 				if (ret.length() > 0)
 					ret.append(';');
 				ret.append(attr.getDomain().getName()).append('.').append(attr.getName()).append('=');
-				String valueStr = ((StyleAttribute<Object>) attr).getType().toString(style.get(attr).get());
+				String valueStr = ((StyleAttribute<Object>) attr).getType().toString(style2.get(attr).get());
 				valueStr = valueStr.replaceAll("\"", "'");
 				ret.append(valueStr);
 			}
@@ -46,10 +46,10 @@ public class StyleAttributes {
 		.build();
 
 	/** The style attribute on Quick elements */
-	public static final QuickAttribute<QuickStyle> STYLE_ATTRIBUTE = QuickAttribute.build("style", STYLE_TYPE).build();
+	public static final QuickAttribute<QuickStyle> style = QuickAttribute.build("style", STYLE_TYPE).build();
 
 	/** The group attribute */
-	public static final QuickAttribute<Set<String>> GROUP_ATTRIBUTE = QuickAttribute.build("group", GROUP_TYPE).build();
+	public static final QuickAttribute<Set<String>> group = QuickAttribute.build("group", GROUP_TYPE).build();
 
 	/**
 	 * Parses a style
@@ -66,14 +66,14 @@ public class StyleAttributes {
 			return null;
 		}
 		ImmutableStyle.Builder builder = ImmutableStyle.build(env.msg());
-		for (String style : styles) {
-			int equalIdx = style.indexOf("=");
+		for (String style2 : styles) {
+			int equalIdx = style2.indexOf("=");
 			if (equalIdx < 0) {
-				env.msg().error("Invalid style: " + style + ".  No '='");
+				env.msg().error("Invalid style: " + style2 + ".  No '='");
 				continue;
 			}
-			String attr = style.substring(0, equalIdx).trim();
-			String valueStr = style.substring(equalIdx + 1).trim();
+			String attr = style2.substring(0, equalIdx).trim();
+			String valueStr = style2.substring(equalIdx + 1).trim();
 			String ns, domainName, attrName;
 			int nsIdx = attr.indexOf(':');
 			if (nsIdx >= 0) {

@@ -14,9 +14,7 @@ import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.layout.Region;
 import org.quick.core.mgr.ElementList;
-import org.quick.core.style.Colors;
-import org.quick.core.style.LengthUnit;
-import org.quick.core.style.Size;
+import org.quick.core.style.*;
 import org.quick.util.CompoundListener;
 
 /** Tests {@link CompoundListener} */
@@ -50,7 +48,13 @@ public class CompoundListenerTest {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(2, events[0]);
-		testEl.atts().set(color, Colors.blue);
+		ImmutableStyle style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.blue).build();
+		try {
+			testEl.atts().set(StyleAttributes.style, style);
+		} catch (QuickException e) {
+			throw new IllegalStateException(e);
+		}
+		assertEquals(3, events[0]);
 
 		until.onNext(null);
 		assertNull(testEl.atts().getHolder(region));
@@ -59,6 +63,13 @@ public class CompoundListenerTest {
 			assertTrue("Should have thrown a QuickException", false);
 		} catch (QuickException e) {
 		}
+		style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.red).build();
+		try {
+			testEl.atts().set(StyleAttributes.style, style);
+		} catch (QuickException e) {
+			throw new IllegalStateException(e);
+		}
+		assertEquals(3, events[0]);
 	}
 
 	@Test

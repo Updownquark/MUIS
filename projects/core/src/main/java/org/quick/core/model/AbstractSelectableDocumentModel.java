@@ -809,7 +809,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> attributes() {
-			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
+			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
 			ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
 			StyleSheet sheet = theElement.getDocument().getStyle();
 			return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
@@ -817,7 +817,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		@Override
 		public boolean isSet(StyleAttribute<?> attr) {
-			QuickStyle localStyle = theElement.atts().get(StyleAttributes.STYLE_ATTRIBUTE);
+			QuickStyle localStyle = theElement.atts().get(StyleAttributes.style);
 			if (localStyle != null && localStyle.isSet(attr))
 				return true;
 			StyleSheet sheet = theElement.getDocument().getStyle();
@@ -828,7 +828,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		@Override
 		public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.STYLE_ATTRIBUTE);
+			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
 			ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
 			StyleSheet sheet = theElement.getDocument().getStyle();
 			return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue,

@@ -97,6 +97,8 @@ public class DefaultStyleParser implements QuickStyleParser {
 					parseEnv.msg().error(e.getMessage(), e, "type", type);
 				}
 			}
+			for (Element child : xml.getChildren())
+				parseStyleElement(child, location, parser, parseEnv, stack, setter);
 			break;
 		case "state":
 			StateCondition state;
@@ -108,9 +110,13 @@ public class DefaultStyleParser implements QuickStyleParser {
 			}
 			if (state != null)
 				stack.setState(state);
+			for (Element child : xml.getChildren())
+				parseStyleElement(child, location, parser, parseEnv, stack, setter);
 			break;
 		case "group":
 			stack.addGroup(name);
+			for (Element child : xml.getChildren())
+				parseStyleElement(child, location, parser, parseEnv, stack, setter);
 			break;
 		case "attach-point":
 			try {
@@ -118,6 +124,8 @@ public class DefaultStyleParser implements QuickStyleParser {
 			} catch (QuickParseException e) {
 				parseEnv.msg().error(e.getMessage(), e, "attach-point", name);
 			}
+			for (Element child : xml.getChildren())
+				parseStyleElement(child, location, parser, parseEnv, stack, setter);
 			break;
 		case "domain":
 			for (Element child : xml.getChildren()) {
@@ -125,6 +133,8 @@ public class DefaultStyleParser implements QuickStyleParser {
 					parseEnv.msg().error("Only attr elements are allowed under domain elements in style sheets", "name", child.getName());
 					continue;
 				}
+				if (!child.getChildren().isEmpty())
+					parseEnv.msg().error("attr elements are not allowed any children");
 				String attr = child.getAttributeValue("name");
 				String valueStr = child.getAttributeValue("value");
 				applyStyleValue(name, attr, valueStr, parser, parseEnv, setter, stack);
@@ -134,9 +144,9 @@ public class DefaultStyleParser implements QuickStyleParser {
 			String domain = xml.getAttributeValue("domain");
 			String valueStr = xml.getAttributeValue("value");
 			applyStyleValue(domain, name, valueStr, parser, parseEnv, setter, stack);
+			if (!xml.getChildren().isEmpty())
+				parseEnv.msg().error("attr elements are not allowed any children");
 		}
-		for (Element child : xml.getChildren())
-			parseStyleElement(child, location, parser, parseEnv, stack, setter);
 		stack.pop();
 	}
 

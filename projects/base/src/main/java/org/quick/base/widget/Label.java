@@ -80,7 +80,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 
 	/** @return The text element containing this label's text */
 	protected QuickTextElement getValue() {
-		return (QuickTextElement) getElement(getTemplate().getAttachPoint("value"));
+		return (QuickTextElement) getElement(getTemplate().getAttachPoint("value")).get();
 	}
 
 	/**

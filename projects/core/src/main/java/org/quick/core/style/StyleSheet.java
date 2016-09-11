@@ -57,9 +57,11 @@ public interface StyleSheet {
 		ObservableSortedSet<StyleConditionValue<T>> exprs = getStyleExpressions(attr)
 			.filterStatic(scv -> scv.getCondition().getType().isInstance(element));
 		exprs = exprs.refreshEach(scv -> scv.getCondition().matches(element)).filter(scv -> scv.getCondition().matches(element).get());
-		ObservableValue<T> value = ObservableValue.flatten(exprs.getFirst());
+		ObservableValue<T> value;
 		if (withDefault)
-			value = value.mapV(v -> v == null ? attr.getDefault() : v);
+			value = ObservableValue.flatten(exprs.getFirst(), () -> attr.getDefault());
+		else
+			value = ObservableValue.flatten(exprs.getFirst());
 		return value;
 	}
 

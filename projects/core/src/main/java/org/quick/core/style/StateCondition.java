@@ -23,6 +23,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		protected StateCollectionExpression(StateCondition... wrapped) {
 			theWrapped = new StateCondition[wrapped.length];
 			System.arraycopy(wrapped, 0, theWrapped, 0, wrapped.length);
+			init();
 		}
 
 		/** @return The number of children in this state expression collection */
@@ -230,6 +231,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		/** @param exp The expression to negate */
 		public Not(StateCondition exp) {
 			theWrapped = exp;
+			init();
 		}
 
 		/** @return The state expression that this expression is a negation of */
@@ -281,6 +283,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		/** @param state The state to evaluate on */
 		public Simple(QuickState state) {
 			theState = state;
+			init();
 		}
 
 		@Override
@@ -314,9 +317,13 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		}
 	}
 
-	private final int thePriority;
+	private int thePriority;
 
 	private StateCondition() {
+	}
+
+	/** Initializes this state's priority. Should only be called once. */
+	protected final void init() {
 		thePriority = initPriority();
 	}
 
@@ -383,7 +390,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 
 	/**
 	 * Calculates the priority of this condition initially
-	 * 
+	 *
 	 * @return The priority
 	 */
 	protected abstract int initPriority();

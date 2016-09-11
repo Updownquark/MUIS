@@ -29,11 +29,11 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 
 	private final SimpleSettableValue<QuickDocumentModel> theDocument;
 	private final QuickDocumentModel theFlattenedDocument;
+	private String theInitText;
 
 	/** Creates a Quick text element */
 	public QuickTextElement() {
 		this("");
-		atts().accept(new Object(), multiLine);
 	}
 
 	/**
@@ -42,22 +42,10 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	 * @param text The text for the element
 	 */
 	public QuickTextElement(String text) {
-		this((QuickDocumentModel) null);
-		setText(text);
-	}
-
-	/**
-	 * Creates a Quick text element with a document
-	 *
-	 * @param doc The document for this element
-	 */
-	public QuickTextElement(QuickDocumentModel doc) {
-		if(doc == null)
-			doc = new SimpleDocumentModel(this);
+		theInitText = text;
 		setFocusable(true);
 		getDefaultStyleListener().watch(FontStyle.getDomainInstance());
 		theDocument = new SimpleSettableValue<>(TypeToken.of(QuickDocumentModel.class), false);
-		theDocument.set(doc, null);
 		theFlattenedDocument = QuickDocumentModel.flatten(theDocument);
 		theFlattenedDocument.changes().act(evt -> {
 			boolean needsResize = false;
@@ -74,9 +62,35 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			if (needsRepaint)
 				repaint(null, repaintImmediate);
 		});
-		life().runWhen(() -> {
-			new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
-		}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
+		life()//
+			.runWhen(() -> {
+				if (theDocument.get() == null)
+					theDocument.set(getInitDocument(theInitText), null);
+				theInitText = null;
+			}, QuickConstants.CoreStage.INIT_SELF.toString(), 1)//
+			.runWhen(() -> {
+				new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
+			}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
+	}
+
+	/**
+	 * Creates a Quick text element with a document
+	 *
+	 * @param doc The document for this element
+	 */
+	public QuickTextElement(QuickDocumentModel doc) {
+		this("");
+		theDocument.set(doc, null);
+	}
+
+	/**
+	 * @param text The initial text for the document
+	 * @return The initial document for the element after initialization. Will not be called if the
+	 *         {@link #QuickTextElement(QuickDocumentModel)} constructor is used or if the document is otherwise initialized previously.
+	 */
+	protected QuickDocumentModel getInitDocument(String text) {
+		atts().accept(new Object(), multiLine);
+		return new SimpleDocumentModel(this, text);
 	}
 
 	private boolean isFontDifferent(QuickDocumentModel.StyleChangeEvent evt) {

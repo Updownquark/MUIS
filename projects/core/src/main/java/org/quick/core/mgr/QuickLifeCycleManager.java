@@ -95,14 +95,15 @@ public class QuickLifeCycleManager {
 	 * @param task The task to run
 	 * @param stage The stage to run the task for
 	 * @param transition When to run the task relative to the given stage:
-	 *            <ul>
-	 *            <li><b>&lt;0</b> just before the transition takes place</li>
-	 *            <li><b>0</b> after the transition is complete</li>
-	 *            <li><b>1</b> just before transitioning away from the stage</li>
-	 *            <li><b>&gt;1</b> after transitioning away from the stage</li>
-	 *            </ul>
+	 *        <ul>
+	 *        <li><b>&lt;0</b> just before the transition takes place</li>
+	 *        <li><b>0</b> after the transition is complete</li>
+	 *        <li><b>1</b> just before transitioning away from the stage</li>
+	 *        <li><b>&gt;1</b> after transitioning away from the stage</li>
+	 *        </ul>
+	 * @return This manager, for chaining
 	 */
-	public void runWhen(final Runnable task, final String stage, final int transition) {
+	public QuickLifeCycleManager runWhen(final Runnable task, final String stage, final int transition) {
 		if(isAfter(stage) >= 0)
 			task.run();
 		else
@@ -128,6 +129,7 @@ public class QuickLifeCycleManager {
 					removeListener(this);
 				}
 			});
+		return this;
 	}
 
 	/**

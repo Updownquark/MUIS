@@ -137,7 +137,7 @@ public final class QuickPropertyType<T> {
 	 * @return Whether this property knows how to convert from items of the from type to items of the to type
 	 */
 	public boolean canConvert(TypeToken<?> from, TypeToken<?> to) {
-		if (QuickUtils.isAssignableFrom(from, to))
+		if (QuickUtils.isAssignableFrom(to, from))
 			return true;
 		for (TypeMapping<?, ?> mapping : theMappings) {
 			if (QuickUtils.isAssignableFrom(mapping.getFromType(), from) && QuickUtils.isAssignableFrom(to, mapping.getToType()))
@@ -462,6 +462,8 @@ public final class QuickPropertyType<T> {
 		String[] split = s.split("\\s+");
 		if (split.length == 0)
 			throw new QuickParseException("No duration in value: " + s);
+		if (split.length == 1 && split[0].matches("\\d+"))
+			return Duration.of(Long.parseLong(split[0]), ChronoUnit.MILLIS);
 		Duration res = Duration.ZERO;
 		Pattern dPat = Pattern.compile("(\\d+)([a-zA-Z]+)");
 		for (String sp : split) {

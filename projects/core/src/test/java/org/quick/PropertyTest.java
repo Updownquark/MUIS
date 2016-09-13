@@ -119,6 +119,10 @@ public class PropertyTest {
 				propParser.parseProperty(durationAtt, env, "10d")//
 					.get());
 
+			Assert.assertEquals(Duration.of(1000, ChronoUnit.MILLIS), //
+				propParser.parseProperty(durationAtt, env, "1000")//
+					.get());
+
 			Assert.assertEquals(Duration.of(10, ChronoUnit.DAYS).plus(Duration.of(5, ChronoUnit.HOURS)), //
 				propParser.parseProperty(durationAtt, env, "10d 5h")//
 					.get());

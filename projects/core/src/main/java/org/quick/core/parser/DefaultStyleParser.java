@@ -43,7 +43,8 @@ public class DefaultStyleParser implements QuickStyleParser {
 		ExpressionContextStack stack = new ExpressionContextStack(theEnvironment, toolkit);
 		stack.push();
 		addNamespaces(rootEl, location, stack, msg);
-		QuickParseEnv parseEnv = new SimpleParseEnv(cv, msg, DefaultExpressionContext.build().build()); // TODO time variables
+		QuickParseEnv parseEnv = new SimpleParseEnv(new QuickClassView(theEnvironment, cv, toolkit), msg,
+			DefaultExpressionContext.build().build()); // TODO time variables
 		ImmutableStyleSheet.Builder builder = ImmutableStyleSheet.build(msg);
 		for (Element child : rootEl.getChildren())
 			parseStyleElement(child, location, parser, parseEnv, stack, builder);

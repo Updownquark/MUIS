@@ -94,15 +94,15 @@
 			</domain>
 		</state>
 		<state name="!enabled">
-			<attr domain="bg" name="color" value="lightgray" />
+			<attr domain="bg" name="color" value="light-gray" />
 		</state>
 	</type>
 	<type name="toggle-button">
 		<state name="selected">
 			<attr domain="bg" name="color" value="cyan" />
-			<state value="hover">
+			<state name="hover">
 			</state>
-			<state value="depressed">
+			<state name="depressed">
 			</state>
 		</state>
 	</type>

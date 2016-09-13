@@ -592,7 +592,7 @@ public abstract class QuickTemplate extends QuickElement {
 				for (Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
 					String attName = att.getKey();
 					if (!attName.startsWith(TEMPLATE_PREFIX))
-						throw new QuickException(structure.getTagName() + " elements may not have non-template attributes");
+						throw new QuickException(structure.getTagName() + " elements may not have non-template attributes: " + attName);
 				}
 
 				return new org.quick.core.parser.QuickText(parent, "", false);

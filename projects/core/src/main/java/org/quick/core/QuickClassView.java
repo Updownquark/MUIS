@@ -1,5 +1,9 @@
 package org.quick.core;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 /** Facilitates instantiating Quick classes via their namespace/tagname mappings */
 public class QuickClassView {
 	private final QuickEnvironment theEnvironment;
@@ -111,8 +115,16 @@ public class QuickClassView {
 	}
 
 	/** @return All namespaces that have been mapped to toolkits in this class view */
-	public String [] getMappedNamespaces() {
-		return theNamespaces.keySet().toArray(new String[theNamespaces.size()]);
+	public Set<String> getMappedNamespaces() {
+		LinkedHashSet<String> nss = new LinkedHashSet<>();
+		addMappedNamespaces(nss);
+		return Collections.unmodifiableSet(nss);
+	}
+
+	private void addMappedNamespaces(Set<String> nss) {
+		nss.addAll(theNamespaces.keySet());
+		if (theParent != null)
+			theParent.addMappedNamespaces(nss);
 	}
 
 	/**
@@ -193,7 +205,7 @@ public class QuickClassView {
 				throw new QuickException(
 					"No class mapped to " + tag + " for namespace " + namespace + " (toolkit " + getToolkit(namespace).getName() + ")");
 			else
-				throw new QuickException("No class mapped to " + tag + " in scoped namespaces");
+				throw new QuickException("No class mapped to " + tag + " in scoped namespaces " + getMappedNamespaces());
 		}
 		return loaded;
 	}
@@ -242,14 +254,14 @@ public class QuickClassView {
 			String className = toolkit.getMappedClass(tag);
 			if (className != null)
 				return toolkit.loadClass(className, superClass);
-			throw new QuickException("No class mapped to " + namespace + ":" + tag + " in scoped namespaces");
+			throw new QuickException("No class mapped to " + namespace + ":" + tag + " in scoped namespaces " + getMappedNamespaces());
 		} else {
 			for(QuickToolkit toolkit : getScopedToolkits()) {
 				String className = toolkit.getMappedClass(tag);
 				if (className != null)
 					return toolkit.loadClass(className, superClass);
 			}
-			throw new QuickException("No class mapped to " + tag + " in scoped namespaces");
+			throw new QuickException("No class mapped to " + tag + " in scoped namespaces " + getMappedNamespaces());
 		}
 	}
 
@@ -267,6 +279,6 @@ public class QuickClassView {
 			} catch (ClassNotFoundException e) {
 			}
 		}
-		throw new ClassNotFoundException("Could not resolve class " + s + " in any scoped toolkit");
+		throw new ClassNotFoundException("Could not resolve class " + s + " in any scoped toolkit " + getMappedNamespaces());
 	}
 }

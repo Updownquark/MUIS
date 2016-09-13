@@ -5,7 +5,11 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.observe.ObservableValue;
-import org.quick.core.*;
+import org.observe.SettableValue;
+import org.quick.core.QuickClassView;
+import org.quick.core.QuickEnvironment;
+import org.quick.core.QuickParseEnv;
+import org.quick.core.QuickToolkit;
 import org.quick.core.model.ObservableActionValue;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.QuickProperty;
@@ -92,14 +96,36 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			throw new QuickParseException("Parser error: Parsed value is not an action");
 		if (property != null && !property.getType().canAccept(parsedValue.getType()))
 			throw new QuickParseException("Type of parsed value for property " + property + " is unacceptable: " + parsedValue.getType());
-		return parsedValue.mapV(property.getType().getType(), v -> {
+
+		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
+			return (ObservableValue<T>) parsedValue;
+		else if (property.getType().canAccept(parsedValue.getType())) {
+			return convert(parsedValue, property, parseEnv);
+		} else
+			throw new QuickParseException("Property " + property + " cannot accept type " + parsedValue.getType() + " of value " + value);
+	}
+
+	private <T, X> ObservableValue<T> convert(ObservableValue<X> parsedValue, QuickProperty<T> property, QuickParseEnv parseEnv) {
+		Function<X, T> forwardMap = v -> {
 			try {
-				return property.getType().cast((TypeToken<Object>) parsedValue.getType(), v);
-			} catch (QuickException e) {
-				parseEnv.msg().error("Could not convert property value " + v + " to acceptable value for property " + property, e);
-				return null;// I guess?
+				return property.getType().cast(parsedValue.getType(), v);
+			} catch (Exception e) {
+				parseEnv.msg().error("Property " + property + " cast from " + parsedValue.getType() + " failed", e);
+				return null; // TODO What to do with this?
 			}
-		});
+		};
+		Function<T, X> reverseMap = v -> {
+			try {
+				return property.getType().castTo(parsedValue.getType(), v);
+			} catch (Exception e) {
+				parseEnv.msg().error("Property " + property + " cast to " + parsedValue.getType() + " failed", e);
+				return null; // TODO What to do with this?
+			}
+		};
+		if (parsedValue instanceof SettableValue && property.getType().canConvertTo(parsedValue.getType()))
+			return ((SettableValue<X>) parsedValue).mapV(property.getType().getType(), forwardMap, reverseMap, true);
+		else
+			return parsedValue.mapV(property.getType().getType(), forwardMap);
 	}
 
 	private <T> ObservableValue<?> parseByType(QuickProperty<T> property, QuickParseEnv parseEnv, String value, String type, boolean action)
@@ -115,58 +141,51 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			start = directive.start + directive.length;
 			directive = parseNextDirective(value, start);
 		}
-		text.add(value.substring(start));
-		DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
-		QuickClassView cv;
-		if (property != null) {
-			if (property.getType().getClass().getClassLoader() instanceof QuickToolkit)
-				cv = new QuickClassView(theEnvironment, parseEnv.cv(), (QuickToolkit) property.getType().getClass().getClassLoader());
-			else
-				cv = new QuickClassView(theEnvironment, parseEnv.cv(), null);
-			if (property.getClass().getClassLoader() != property.getType().getClass().getClassLoader()
-				&& property.getClass().getClassLoader() instanceof QuickToolkit)
-				cv = new QuickClassView(theEnvironment, cv, (QuickToolkit) property.getClass().getClassLoader());
-			// Add property's and property type's variables, functions, etc. into the context
-			for (Function<String, ObservableValue<?>> valueGetter : property.getValueSuppliers())
-				ctx.withValueGetter(valueGetter);
-			ctx.withParent(property.getType().getContext());
-		} else
-			cv = parseEnv.cv();
-		// Add reference replacement variables
-		List<String> replacements = new ArrayList<>();
-		for (int i = 0; i < inserts.size(); i++) {
-			String replacement = getReferenceReplacement(type, property, i);
-			replacements.add(replacement);
-			if (replacement != null) {
-				ctx.withValue(replacement, inserts.get(i));
+		ObservableValue<?> parsedValue;
+		if (inserts.size() == 1 && text.get(0).length() == 0 && start == value.length()) {
+			// Just one directive which contains the whole expression. No need to do all the replacement. Just return the value.
+			parsedValue = inserts.get(0);
+		} else {
+			text.add(value.substring(start));
+			DefaultExpressionContext.Builder ctx = DefaultExpressionContext.build().withParent(parseEnv.getContext());
+			QuickClassView cv;
+			if (property != null) {
+				if (property.getType().getClass().getClassLoader() instanceof QuickToolkit)
+					cv = new QuickClassView(theEnvironment, parseEnv.cv(), (QuickToolkit) property.getType().getClass().getClassLoader());
+				else
+					cv = new QuickClassView(theEnvironment, parseEnv.cv(), null);
+				if (property.getClass().getClassLoader() != property.getType().getClass().getClassLoader()
+					&& property.getClass().getClassLoader() instanceof QuickToolkit)
+					cv = new QuickClassView(theEnvironment, cv, (QuickToolkit) property.getClass().getClassLoader());
+				// Add property's and property type's variables, functions, etc. into the context
+				for (Function<String, ObservableValue<?>> valueGetter : property.getValueSuppliers())
+					ctx.withValueGetter(valueGetter);
+				ctx.withParent(property.getType().getContext());
+			} else
+				cv = parseEnv.cv();
+			// Add reference replacement variables
+			List<String> replacements = new ArrayList<>();
+			for (int i = 0; i < inserts.size(); i++) {
+				String replacement = getReferenceReplacement(type, property, i);
+				replacements.add(replacement);
+				if (replacement != null) {
+					ctx.withValue(replacement, inserts.get(i));
+				}
+			}
+			QuickParseEnv internalParseEnv = new SimpleParseEnv(cv, parseEnv.msg(), ctx.build());
+
+			if (inserts.isEmpty()) {
+				parsedValue = parseValue(type, property, internalParseEnv, value, action);
+			} else if (replacements.stream().anyMatch(r -> r != null)) {
+				StringBuilder builtText = new StringBuilder(text.get(0));
+				for (int i = 0; i < inserts.size(); i++)
+					builtText.append(replacements.get(i)).append(text.get(i + 1));
+				parsedValue = parseValue(type, property, internalParseEnv, builtText.toString(), action);
+			} else {
+				parsedValue = ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, type));
 			}
 		}
-		QuickParseEnv internalParseEnv = new SimpleParseEnv(cv, parseEnv.msg(), ctx.build());
-
-		ObservableValue<?> parsedValue;
-		if (inserts.isEmpty()) {
-			parsedValue = parseValue(type, property, internalParseEnv, value, action);
-		} else if (replacements.stream().anyMatch(r -> r != null)) {
-			StringBuilder builtText = new StringBuilder(text.get(0));
-			for (int i = 0; i < inserts.size(); i++)
-				builtText.append(replacements.get(i)).append(text.get(i + 1));
-			parsedValue = parseValue(type, property, internalParseEnv, builtText.toString(), action);
-		} else {
-			parsedValue = ObservableValue.flatten(new StringBuildingReferenceValue<>(property, internalParseEnv, text, inserts, type));
-		}
-		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
-			return parsedValue;
-		else if (property.getType().canAccept(parsedValue.getType()))
-			return parsedValue.mapV(property.getType().getType(), v -> {
-				try {
-					return property.getType().<Object, T> cast((TypeToken<Object>) parsedValue.getType(), v);
-				} catch (Exception e) {
-					parseEnv.msg().error("Property " + property + " cast from " + parsedValue.getType() + " failed", e);
-					return null; // TODO What to do with this?
-				}
-			});
-		else
-			throw new QuickParseException("Property " + property + " cannot accept type " + parsedValue.getType() + " of value " + value);
+		return parsedValue;
 	}
 
 	/**
@@ -185,6 +204,8 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 				switch (value.charAt(i - 1)) {
 				case '$':
 				case '#':
+					break;
+				default:
 					throw new QuickParseException(
 						"Invalid directive: " + value.charAt(i - 1) + value.charAt(i) + " at position " + (i - 1));
 				}
@@ -213,11 +234,13 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			return null;
 		int depth = 1;
 		int end;
-		for (end = start + 1; (depth == 1 && value.charAt(end) != '}'); end++) {
+		for (end = braceIdx + 1; (depth > 1 || value.charAt(end) != '}'); end++) {
 			if (value.charAt(end) == '{')
 				depth++;
+			else if (value.charAt(end) == '}')
+				depth--;
 		}
-		return new Directive(braceIdx - 1, end - braceIdx + 1, "" + value.charAt(braceIdx - 1), value.substring(braceIdx + 1, end));
+		return new Directive(braceIdx - 1, end - braceIdx + 2, "" + value.charAt(braceIdx - 1), value.substring(braceIdx + 1, end).trim());
 	}
 
 	/**

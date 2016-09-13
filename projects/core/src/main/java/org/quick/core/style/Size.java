@@ -1,5 +1,7 @@
 package org.quick.core.style;
 
+import java.util.Objects;
+
 /** Represents a 1-dimensional size along an axis */
 public class Size implements Comparable<Size> {
 	private float theValue;
@@ -98,6 +100,19 @@ public class Size implements Comparable<Size> {
 			throw new IllegalArgumentException("Cannot compare sizes of units " + theUnit + " and " + o.theUnit);
 		}
 		throw new IllegalStateException("Unrecognized sizes units: " + theUnit + " or " + o.theUnit);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(theValue, theUnit);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Size))
+			return false;
+		Size sz = (Size) obj;
+		return theValue == sz.theValue && theUnit == sz.theUnit;
 	}
 
 	@Override

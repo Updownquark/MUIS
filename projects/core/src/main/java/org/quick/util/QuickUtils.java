@@ -356,13 +356,16 @@ public class QuickUtils {
 	 * @return Whether the assignment is allowable
 	 */
 	public static boolean isAssignableFrom(TypeToken<?> left, TypeToken<?> right) {
-		if (left.isAssignableFrom(right) || left.wrap().isAssignableFrom(right)) // Auto boxing/unboxing
+		// Check auto boxing/unboxing first
+		if (left.isAssignableFrom(right) || left.isAssignableFrom(right.wrap()) || left.wrap().isAssignableFrom(right))
 			return true;
 		// Handle primitive conversions
 		Class<?> primTypeLeft = left.unwrap().getRawType();
 		if (!primTypeLeft.isPrimitive() || !TypeToken.of(Number.class).isAssignableFrom(right.wrap()))
 			return false;
 		Class<?> primTypeRight = right.unwrap().getRawType();
+		if (primTypeLeft == primTypeRight)
+			return true;
 		if (primTypeLeft == Double.TYPE)
 			return primTypeRight == Float.TYPE || primTypeRight == Long.TYPE || primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE
 				|| primTypeRight == Byte.TYPE;
@@ -389,7 +392,7 @@ public class QuickUtils {
 	/**
 	 * For types that pass {@link #isAssignableFrom(TypeToken, TypeToken)}, this method converts the given value to the correct run-time
 	 * type
-	 * 
+	 *
 	 * @param <T> The compile-time type to convert to
 	 * @param type The type to convert to
 	 * @param value The value to convert

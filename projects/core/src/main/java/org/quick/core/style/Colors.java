@@ -497,7 +497,7 @@ public class Colors {
 			str = str.substring(1);
 			if(!str.matches("[0-9a-f]{6}"))
 				throw new QuickParseException("HSB colors must be in the form of #XXXXXX where X is 0-9 or a-f: \"" + original + "\"");
-			return hsb(hexInt(str, 0), hexInt(str, 2), hexInt(str, 4));
+			return Color.getHSBColor(hexInt(str, 0) / 255f, hexInt(str, 2) / 255f, hexInt(str, 4) / 255f);
 		} else if(str.startsWith("rgb(")) {
 			if(str.charAt(str.length() - 1) != ')')
 				throw new QuickParseException("Colors that start with 'rgb(' must end with ')': \"" + original + "\"");
@@ -516,7 +516,7 @@ public class Colors {
 					throw new QuickParseException(
 						"Colors that start with 'rgb('" + " must have 3 integers separated by commas: \"" + original
 						+ "\"");
-				g = Integer.parseInt(original.substring(0, idx));
+				g = Integer.parseInt(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				b = Integer.parseInt(str);
 			} catch(NumberFormatException e) {
@@ -531,31 +531,31 @@ public class Colors {
 			if(str.charAt(str.length() - 1) != ')')
 				throw new QuickParseException("Colors that start with 'hsb(' must end with ')': \"" + original + "\"");
 			str = str.substring(4, str.length() - 1);
-			int h, s, b;
+			float h, s, b;
 			try {
 				int idx = str.indexOf(',');
 				if(idx < 0)
 					throw new QuickParseException(
-						"Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
+						"Colors that start with 'hsb('" + " must have 3 float values separated by commas: \"" + original
 						+ "\"");
-				h = Integer.parseInt(str.substring(0, idx));
+				h = Float.parseFloat(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
 				idx = str.indexOf(',');
 				if(idx < 0)
 					throw new QuickParseException(
-						"Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original
+						"Colors that start with 'hsb('" + " must have 3 float values separated by commas: \"" + original
 						+ "\"");
-				s = Integer.parseInt(str.substring(0, idx));
+				s = Float.parseFloat(str.substring(0, idx));
 				str = str.substring(idx + 1).trim();
-				b = Integer.parseInt(str);
+				b = Float.parseFloat(str);
 			} catch(NumberFormatException e) {
 				throw new QuickParseException(
-					"Colors that start with 'hsb('" + " must have 3 integers separated by commas: \"" + original + "\"");
+					"Colors that start with 'hsb('" + " must have 3 float values separated by commas: \"" + original + "\"");
 			}
 			if(h < 0 || h > 255 || s < 0 || s > 255 || b < 0 || b > 255)
 				throw new QuickParseException("Colors that start with 'hsb('"
-					+ " must have three integers between 0 and 255 separated by commas: \"" + original + "\"");
-			return hsb(h, s, b);
+					+ " must have three float values between 0 and 255 separated by commas: \"" + original + "\"");
+			return Color.getHSBColor(h, s, b);
 		} else
 			return NAMED_COLORS.get(str);
 	}
@@ -588,16 +588,6 @@ public class Colors {
 	 */
 	public static Color rgb(int r, int g, int b) {
 		return new Color(r, g, b);
-	}
-
-	/**
-	 * @param h The hue for the color, from 0-255
-	 * @param s The saturation for the color, from 0-255
-	 * @param b The brightness for the color, from 0-255
-	 * @return The color with the given HSB values
-	 */
-	public static Color hsb(int h, int s, int b) {
-		return Color.getHSBColor(h / 255f, s / 255f, b / 255f);
 	}
 
 	private static final String hexDigits = "0123456789abcdef";

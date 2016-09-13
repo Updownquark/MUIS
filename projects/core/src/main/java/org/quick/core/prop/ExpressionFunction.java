@@ -95,7 +95,11 @@ public abstract class ExpressionFunction<T> {
 	 * @return A function that takes no arguments and uses the given supplier to produce a value
 	 */
 	public static <T> ExpressionFunction<T> build(Supplier<T> fn) {
-		return build(new TypeToken<T>(fn.getClass()) {}, Collections.emptyList(), args -> fn.get());
+		if (isLambda(fn))
+			System.err.println(
+				Thread.currentThread().getStackTrace()[0] + ": WARNING: This utility method may not evaluate types correctly for lambdas");
+		TypeToken<?> fnType = TypeToken.of(fn.getClass());
+		return build((TypeToken<T>) fnType.resolveType(Supplier.class.getTypeParameters()[0]), Collections.emptyList(), args -> fn.get());
 	}
 
 	/**
@@ -105,8 +109,12 @@ public abstract class ExpressionFunction<T> {
 	 * @return An {@link ExpressionFunction} that takes an argument and returns the value produced by the given function
 	 */
 	public static <A, T> ExpressionFunction<T> build(Function<A, T> fn) {
-		return build(new TypeToken<T>(fn.getClass()) {}, Arrays.asList(//
-			new TypeToken<A>(fn.getClass()) {}//
+		if (isLambda(fn))
+			System.err.println(
+				Thread.currentThread().getStackTrace()[0] + ": WARNING: This utility method may not evaluate types correctly for lambdas");
+		TypeToken<?> fnType = TypeToken.of(fn.getClass());
+		return build((TypeToken<T>) fnType.resolveType(Function.class.getTypeParameters()[1]), Arrays.asList(//
+			fnType.resolveType(Function.class.getTypeParameters()[0])//
 		), args -> fn.apply((A) args.get(0)));
 	}
 
@@ -118,10 +126,14 @@ public abstract class ExpressionFunction<T> {
 	 * @return An {@link ExpressionFunction} that takes 2 arguments and returns the value produced by the given function
 	 */
 	public static <A1, A2, T> ExpressionFunction<T> build(BiFunction<A1, A2, T> fn) {
-		return build(new TypeToken<T>(fn.getClass()) {},
+		if (isLambda(fn))
+			System.err.println(
+				Thread.currentThread().getStackTrace()[0] + ": WARNING: This utility method may not evaluate types correctly for lambdas");
+		TypeToken<?> fnType = TypeToken.of(fn.getClass());
+		return build((TypeToken<T>) fnType.resolveType(BiFunction.class.getTypeParameters()[2]),
 			Arrays.asList(//
-				new TypeToken<A1>(fn.getClass()) {}, //
-				new TypeToken<A2>(fn.getClass()) {}//
+				fnType.resolveType(BiFunction.class.getTypeParameters()[0]), //
+				fnType.resolveType(BiFunction.class.getTypeParameters()[1])//
 			), args -> fn.apply((A1) args.get(0), (A2) args.get(1)));
 	}
 
@@ -134,16 +146,24 @@ public abstract class ExpressionFunction<T> {
 	 * @return An {@link ExpressionFunction} that takes 3 arguments and returns the value produced by the given function
 	 */
 	public static <A1, A2, A3, T> ExpressionFunction<T> build(TriFunction<A1, A2, A3, T> fn) {
-		return build(new TypeToken<T>(fn.getClass()) {},
+		if (isLambda(fn))
+			System.err.println(
+				Thread.currentThread().getStackTrace()[0] + ": WARNING: This utility method may not evaluate types correctly for lambdas");
+		TypeToken<?> fnType = TypeToken.of(fn.getClass());
+		return build((TypeToken<T>) fnType.resolveType(TriFunction.class.getTypeParameters()[3]),
 			Arrays.asList(//
-				new TypeToken<A1>(fn.getClass()) {}, //
-				new TypeToken<A2>(fn.getClass()) {}, //
-				new TypeToken<A3>(fn.getClass()) {}//
+				fnType.resolveType(TriFunction.class.getTypeParameters()[0]), //
+				fnType.resolveType(TriFunction.class.getTypeParameters()[1]), //
+				fnType.resolveType(TriFunction.class.getTypeParameters()[2])//
 			), args -> fn.apply((A1) args.get(0), (A2) args.get(1), (A3) args.get(2)));
 	}
 
 	private static <T> ExpressionFunction<T> build(TypeToken<T> returnType, List<TypeToken<?>> argTypes, Function<List<?>, T> apply) {
 		return build(returnType).withArgs(argTypes).withApply(apply).build();
+	}
+
+	private static boolean isLambda(Object obj) {
+		return obj.getClass().toString().contains("$$Lambda$");
 	}
 
 	/**

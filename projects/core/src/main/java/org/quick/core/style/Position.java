@@ -1,5 +1,7 @@
 package org.quick.core.style;
 
+import java.util.Objects;
+
 /** Represents a 1-dimensional position along an axis */
 public class Position implements Comparable<Position> {
 	private float theValue;
@@ -96,6 +98,19 @@ public class Position implements Comparable<Position> {
 			throw new IllegalArgumentException("Cannot compare positions of units " + theUnit + " and " + o.theUnit);
 		}
 		throw new IllegalStateException("Unrecognized position units: " + theUnit + " or " + o.theUnit);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(theValue, theUnit);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Position))
+			return false;
+		Position sz = (Position) obj;
+		return theValue == sz.theValue && theUnit == sz.theUnit;
 	}
 
 	@Override

@@ -61,13 +61,13 @@ public final class QuickPropertyType<T> {
 	private final PropertySelfParser<T> theParser;
 	private final boolean isSelfParsingByDefault;
 	private final Function<Integer, String> theReferenceReplacementGenerator;
-	private final List<TypeMapping<?, T>> theMappings;
+	private final List<TypeMapping<?, ?>> theMappings;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
 	private final boolean isAction;
 
 	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault,
-		Function<Integer, String> replacementGen, List<TypeMapping<?, T>> mappings, Function<? super T, String> printer,
+		Function<Integer, String> replacementGen, List<TypeMapping<?, ?>> mappings, Function<? super T, String> printer,
 		ExpressionContext ctx, boolean action) {
 		theName = name;
 		theType = type;
@@ -120,11 +120,32 @@ public final class QuickPropertyType<T> {
 	 * @return Whether objects of the given type can be converted to items of this property's type
 	 */
 	public boolean canAccept(TypeToken<?> type) {
-		if (QuickUtils.isAssignableFrom(theType, type))
+		return canConvert(type, theType);
+	}
+
+	/**
+	 * @param type The type to check
+	 * @return Whether items of this property's type can be converted to objects of the given type
+	 */
+	public boolean canConvertTo(TypeToken<?> type) {
+		return canConvert(theType, type);
+	}
+
+	/**
+	 * @param from The type to convert from
+	 * @param to The type to convert to
+	 * @return Whether this property knows how to convert from items of the from type to items of the to type
+	 */
+	public boolean canConvert(TypeToken<?> from, TypeToken<?> to) {
+		if (QuickUtils.isAssignableFrom(from, to))
 			return true;
-		for (TypeMapping<?, T> mapping : theMappings)
-			if (QuickUtils.isAssignableFrom(mapping.getFromType(), type))
+		for (TypeMapping<?, ?> mapping : theMappings) {
+			if (QuickUtils.isAssignableFrom(mapping.getFromType(), from) && QuickUtils.isAssignableFrom(to, mapping.getToType()))
 				return true;
+			else if (mapping.getReverseMap() != null && QuickUtils.isAssignableFrom(mapping.getToType(), from)
+				&& QuickUtils.isAssignableFrom(to, mapping.getFromType()))
+				return true;
+		}
 		return false;
 	}
 
@@ -134,25 +155,62 @@ public final class QuickPropertyType<T> {
 	 * of other types, or it may choose to be conservative, only returning non-null for instances of this type.
 	 *
 	 * @param <X> The type of the value to be cast
-	 * @param <V> The type of value cast by this property type
 	 * @param type The run-time type of the value to cast
 	 * @param value The value to cast
 	 * @return An instance of this type whose value matches the parameter in some sense, or null if the conversion cannot be made
 	 * @throws QuickException If an exception occurs in a conversion that should succeed
 	 */
-	public <X, V extends T> V cast(TypeToken<X> type, X value) throws QuickException {
-		V cast = null;
-		if (QuickUtils.isAssignableFrom(theType, type))
-			return (V) QuickUtils.convert(theType, value);
-		boolean mappingFound = false;
-		for (TypeMapping<?, T> mapping : theMappings)
-			if (QuickUtils.isAssignableFrom(mapping.getFromType(), type)) {
-				mappingFound = true;
-				cast = ((TypeMapping<Object, V>) mapping).getMap().apply(QuickUtils.convert(mapping.getFromType(), value));
-			}
-		if(!mappingFound)
-			return null;
-		return cast;
+	public <X> T cast(TypeToken<X> type, X value) throws QuickException {
+		return convert(type, value, theType);
+	}
+
+	/**
+	 * Casts an object of this type to an appropriate value of the given type, or returns null if the given value cannot be interpreted as
+	 * an instance of the given type. This method may choose to convert liberally by creating new instances of this type corresponding to
+	 * instances of other types, or it may choose to be conservative, only returning non-null for instances of this type.
+	 *
+	 * @param <X> The type of the value to cast to
+	 * @param type The run-time type of the value to cast to
+	 * @param value The value to cast
+	 * @return An instance of the given type, or null if the conversion cannot be made
+	 * @throws QuickException If an exception occurs in a conversion that should succeed
+	 */
+	public <X> X castTo(TypeToken<X> type, T value) throws QuickException {
+		return convert(theType, value, type);
+	}
+
+	/**
+	 * @param <F> The compile-time type to convert from
+	 * @param <X> The compile-time type to convert to
+	 * @param fromType The type to convert from
+	 * @param value The value to convert
+	 * @param toType The type to convert to
+	 * @return The converted value, or null if the conversion could not be made
+	 * @throws QuickException If an exception occurs in a conversion that should succeed
+	 */
+	public <F, X> X convert(TypeToken<F> fromType, F value, TypeToken<X> toType) throws QuickException {
+		if (QuickUtils.isAssignableFrom(toType, fromType))
+			return QuickUtils.convert(toType, value);
+		for (TypeMapping<?, ?> mapping : theMappings) {
+			if (QuickUtils.isAssignableFrom(mapping.getFromType(), fromType) && QuickUtils.isAssignableFrom(toType, mapping.getToType()))
+				return doCast(mapping, value, toType);
+			else if (mapping.getReverseMap() != null && QuickUtils.isAssignableFrom(mapping.getToType(), fromType)
+				&& QuickUtils.isAssignableFrom(toType, mapping.getFromType()))
+				return doReverseCast(mapping, value, toType);
+		}
+		return null;
+	}
+
+	private static <F, X> X doCast(TypeMapping<F, ?> mapping, Object value, TypeToken<X> toType) throws QuickException {
+		F from = QuickUtils.convert(mapping.getFromType(), value);
+		Object mapped = mapping.getMap().apply(from);
+		return QuickUtils.convert(toType, mapped);
+	}
+
+	private static <F, X> X doReverseCast(TypeMapping<?, F> mapping, Object value, TypeToken<X> toType) throws QuickException {
+		F from = QuickUtils.convert(mapping.getToType(), value);
+		Object mapped = mapping.getReverseMap().apply(from);
+		return QuickUtils.convert(toType, mapped);
 	}
 
 	/**
@@ -208,7 +266,7 @@ public final class QuickPropertyType<T> {
 		private PropertySelfParser<T> theParser;
 		private boolean isSelfParsingByDefault;
 		private Function<Integer, String> theReferenceReplacementGenerator;
-		private final List<TypeMapping<?, T>> theMappings;
+		private final List<TypeMapping<?, ?>> theMappings;
 		private DefaultExpressionContext.Builder theCtxBuilder;
 		private Function<? super T, String> thePrinter;
 		private final boolean isAction;
@@ -244,11 +302,41 @@ public final class QuickPropertyType<T> {
 		/**
 		 * @param <F> The compile-time type of the value to convert from
 		 * @param from The type of value to convert from
-		 * @param map The type of value to convert to
+		 * @param map The function to convert values
+		 * @param reverseMap The function to reverse the conversion. May be null.
 		 * @return This builder
 		 */
-		public <F> Builder<T> map(TypeToken<F> from, ExFunction<? super F, ? extends T, QuickException> map) {
-			theMappings.add(new TypeMapping<>(from, theType, map));
+		public <F> Builder<T> map(TypeToken<F> from, ExFunction<? super F, ? extends T, QuickException> map,
+			ExFunction<? super T, ? extends F, QuickException> reverseMap) {
+			theMappings.add(new TypeMapping<>(from, theType, map, reverseMap));
+			return this;
+		}
+
+		/**
+		 * @param <X> The compile-time type of the value to convert to
+		 * @param to The type of value to convert to
+		 * @param map The function to convert values
+		 * @param reverseMap The function to reverse the conversion. May be null.
+		 * @return This builder
+		 */
+		public <X> Builder<T> mapTo(TypeToken<X> to, ExFunction<? super T, ? extends X, QuickException> map,
+			ExFunction<? super X, ? extends T, QuickException> reverseMap) {
+			theMappings.add(new TypeMapping<>(theType, to, map, reverseMap));
+			return this;
+		}
+
+		/**
+		 * @param <F> The compile-time type to convert from
+		 * @param <X> The compile-time type to convert to
+		 * @param from The type to convert from
+		 * @param to The type to convert to
+		 * @param map The mapping function
+		 * @param reverseMap The reverse-mapping function. May be null.
+		 * @return This builder
+		 */
+		public <F, X> Builder<T> mapTypes(TypeToken<F> from, TypeToken<X> to, ExFunction<? super F, ? extends X, QuickException> map,
+			ExFunction<? super X, ? extends F, QuickException> reverseMap) {
+			theMappings.add(new TypeMapping<>(from, to, map, reverseMap));
 			return this;
 		}
 
@@ -282,7 +370,7 @@ public final class QuickPropertyType<T> {
 	/** The default property type for string-valued properties */
 	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeToken.of(String.class))
 		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(String.class), s), true)//
-		.map(TypeToken.of(CharSequence.class), seq -> seq.toString())//
+		.map(TypeToken.of(CharSequence.class), seq -> seq.toString(), s -> s)//
 		.build();
 
 	/** The default property type for boolean-valued properties */
@@ -290,24 +378,28 @@ public final class QuickPropertyType<T> {
 
 	/** The default property type for integer-valued properties */
 	public static final QuickPropertyType<Integer> integer = QuickPropertyType.build("integer", TypeToken.of(Integer.class))
-		.map(TypeToken.of(Number.class), num -> num.intValue())//
-		.map(TypeToken.of(Long.class), l -> l.intValue())//
-		.map(TypeToken.of(Character.class), c -> (int) c.charValue())//
+		.map(TypeToken.of(Number.class), num -> num.intValue(), i -> i)//
+		.map(TypeToken.of(Long.class), l -> l.intValue(), i -> Long.valueOf(i))//
+		.map(TypeToken.of(Character.class), c -> (int) c.charValue(), null)//
 		.build();
 
 	/** The default property type for floating-point-valued properties */
 	public static final QuickPropertyType<Double> floating = QuickPropertyType.build("float", TypeToken.of(Double.class))
-		.map(TypeToken.of(Number.class), num -> num.doubleValue())//
-		.map(TypeToken.of(Long.class), l -> l.doubleValue())//
-		.map(TypeToken.of(Character.class), c -> (double) c.charValue())//
+		.map(TypeToken.of(Number.class), num -> num.doubleValue(), d -> d)//
+		.map(TypeToken.of(Long.class), l -> l.doubleValue(), null)//
+		.map(TypeToken.of(Character.class), c -> (double) c.charValue(), null)//
 		.build();
 
 	/** The default property type for time-instant-valued properties */
 	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeToken.of(Instant.class))
 		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Instant.class), parseInstant(s)), true)//
-		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l))//
-		.map(TypeToken.of(Date.class), date -> date.toInstant())//
-		.map(TypeToken.of(Calendar.class), cal -> cal.toInstant())//
+		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l), inst -> inst.toEpochMilli())//
+		.map(TypeToken.of(Date.class), date -> date.toInstant(), inst -> new Date(inst.toEpochMilli()))//
+		.map(TypeToken.of(Calendar.class), cal -> cal.toInstant(), inst -> {
+			Calendar cal = Calendar.getInstance();
+			cal.setTimeInMillis(inst.toEpochMilli());
+			return cal;
+		})//
 		.build();
 
 	private static Instant parseInstant(String s) throws QuickParseException {
@@ -337,52 +429,39 @@ public final class QuickPropertyType<T> {
 		chronoUnits.put("n", ChronoUnit.NANOS);
 		SUPPORTED_CHRONO_UNITS = Collections.unmodifiableMap(chronoUnits);
 
-		Builder<Duration> durationBuilder = QuickPropertyType.build("duration", TypeToken.of(Duration.class))//
-			.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Duration.class), parseDuration(s)), true)//
+		TypeToken<Duration> dType=TypeToken.of(Duration.class);
+		Builder<Duration> durationBuilder = QuickPropertyType.build("duration", dType)//
+			.withParser((parser, env, s) -> ObservableValue.constant(dType, parseDuration(s)), true)//
 			.withToString(d -> toString(d))//
-			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l));
+			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l), d -> d.toMillis());
 		durationBuilder.buildContext(ctx -> {
 			for (Map.Entry<String, ChronoUnit> unit : SUPPORTED_CHRONO_UNITS.entrySet())
-				ctx.withUnit(unit.getKey(), TypeToken.of(Long.class), TypeToken.of(Duration.class), l -> Duration.of(l, unit.getValue()));
+				ctx.withUnit(unit.getKey(), TypeToken.of(Long.class), dType, l -> Duration.of(l, unit.getValue()),
+					d -> d.get(unit.getValue()));
 			ctx//
-				.withFunction("+", ExpressionFunction.build(new BiFunction<Duration, Duration, Duration>() {
-					@Override
-					public Duration apply(Duration t, Duration u) {
-						return t.plus(u);
-					}
-				}))//
-				.withFunction("-", ExpressionFunction.build(new BiFunction<Duration, Duration, Duration>() {
-					@Override
-					public Duration apply(Duration t, Duration u) {
-						return t.minus(u);
-					}
-				}))//
-				.withFunction("*", ExpressionFunction.build(new BiFunction<Duration, Long, Duration>() {
-					@Override
-					public Duration apply(Duration t, Long u) {
-						return t.multipliedBy(u);
-					}
-				}))//
-				.withFunction("*", ExpressionFunction.build(new BiFunction<Long, Duration, Duration>() {
-					@Override
-					public Duration apply(Long t, Duration u) {
-						return u.multipliedBy(t);
-					}
-				}))//
-				.withFunction("/", ExpressionFunction.build(new BiFunction<Duration, Long, Duration>() {
-					@Override
-					public Duration apply(Duration t, Long u) {
-						return t.dividedBy(u);
-					}
-				}));//
+				.withFunction("+",
+					ExpressionFunction.build(dType).withArgs(dType, dType)
+						.withApply(args -> ((Duration) args.get(0)).plus((Duration) args.get(1))).build())//
+				.withFunction("-",
+					ExpressionFunction.build(dType).withArgs(dType, dType)
+						.withApply(args -> ((Duration) args.get(0)).minus((Duration) args.get(1))).build())//
+				.withFunction("*",
+					ExpressionFunction.build(dType).withArgs(dType, TypeToken.of(Long.class))
+						.withApply(args -> ((Duration) args.get(0)).multipliedBy((Long) args.get(1))).build())//
+				.withFunction("*",
+					ExpressionFunction.build(dType).withArgs(TypeToken.of(Long.class), dType)
+						.withApply(args -> ((Duration) args.get(1)).multipliedBy((Long) args.get(0))).build())//
+				.withFunction("/", ExpressionFunction.build(dType).withArgs(dType, TypeToken.of(Long.class))
+					.withApply(args -> ((Duration) args.get(0)).dividedBy((Long) args.get(1))).build())//
+			;
 		});//
 		duration = durationBuilder.build();
 	}
 
 	private static Duration parseDuration(String s) throws QuickParseException {
-		String[] split = s.split("\\w+");
+		String[] split = s.split("\\s+");
 		if (split.length == 0)
-			throw new QuickParseException("No duration in value");
+			throw new QuickParseException("No duration in value: " + s);
 		Duration res = Duration.ZERO;
 		Pattern dPat = Pattern.compile("(\\d+)([a-zA-Z]+)");
 		for (String sp : split) {
@@ -577,7 +656,7 @@ public final class QuickPropertyType<T> {
 
 	/**
 	 * Creates a property type that instantiates a type
-	 * 
+	 *
 	 * @param <T> The compile-time type of the super class of the type of values to produce
 	 * @param type The super class of the type of values to produce
 	 * @return The property type

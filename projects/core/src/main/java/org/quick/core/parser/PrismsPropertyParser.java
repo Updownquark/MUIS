@@ -51,6 +51,8 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}
 		if (matches.length != 1)
 			throw new QuickParseException("One value per property expected: " + value);
+		if (matches[0].getError() != null)
+			throw new QuickParseException(matches[0].getError() + " (" + value + ")");
 		ParsedItem item;
 		try {
 			item = theParser.parseStructures(new ParseStructRoot(value), matches)[0];
@@ -165,14 +167,14 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			if (actionRequired)
 				throw new QuickParseException("Unary operation " + op.getName() + " cannot be an action");
 			ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp(), actionAccepted, false);
-			return mapUnary(arg1, op);
+			return mapUnary(arg1, op, parseEnv);
 		} else if (parsedItem instanceof ParsedBinaryOp) {
 			ParsedBinaryOp op = (ParsedBinaryOp) parsedItem;
 			if (actionRequired)
 				throw new QuickParseException("Binary operation " + op.getName() + " cannot be an action");
 			ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp1(), actionAccepted, false);
 			ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp2(), actionAccepted, false);
-			return combineBinary(arg1, arg2, op);
+			return combineBinary(arg1, arg2, op, parseEnv);
 		} else if (parsedItem instanceof ParsedConditional) {
 			if (actionRequired)
 				throw new QuickParseException("Conditionals cannot be an action");
@@ -197,9 +199,9 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 			ObservableValue<?> assignValue;
 			if (op.getOperand() != null) {
 				ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOperand(), actionAccepted, false);
-				assignValue = getBinaryAssignValue(settable, arg2, op);
+				assignValue = getBinaryAssignValue(settable, arg2, op, parseEnv);
 			} else
-				assignValue = getUnaryAssignValue(settable, op);
+				assignValue = getUnaryAssignValue(settable, op, parseEnv);
 			return makeActionValue(settable, assignValue, op.isPrefix());
 			// Array operations
 		} else if (parsedItem instanceof ParsedArrayIndex) {
@@ -321,7 +323,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException("No such variable " + name);
 			return result;
 		} else if (parsedItem instanceof ParsedPlaceHolder) {
-			ObservableValue<?> result = parseEnv.getContext().getVariable(((ParsedPlaceHolder) parsedItem).getName());
+			ObservableValue<?> result = parseEnv.getContext().getVariable(parsedItem.getMatch().text);
 			if (result == null)
 				throw new QuickParseException("Unrecognized placeholder: " + parsedItem.getMatch().text);
 			return result;
@@ -349,7 +351,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				throw new QuickParseException("Unit " + unitName + " cannot convert from " + unitValue.getValue() + " to type " + type);
 			ObservableValue<?> value = bestMatch.parameters[0];
 			Unit<?, ?> unit = bestUnit;
-			return value.mapV(type, v -> {
+			Function<Object, T> forwardMap = v -> {
 				try {
 					Object unitMapped = ((Unit<Object, ?>) unit).getMap().apply(QuickUtils.convert(unit.getFromType(), v));
 					return QuickUtils.convert(type, unitMapped);
@@ -357,7 +359,21 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 					parseEnv.msg().error("Unit " + unit.getName() + " could not convert value " + v + " to " + unit.getToType(), e);
 					return null; // TODO What to do with this?
 				}
-			});
+			};
+			Function<T, Object> reverseMap = v -> {
+				try {
+					Object unitMapped = ((Unit<Object, Object>) unit).getReverseMap().apply(QuickUtils.convert(unit.getToType(), v));
+					return QuickUtils.convert(unit.getFromType(), unitMapped);
+				} catch (QuickException e) {
+					parseEnv.msg().error("Unit " + unit.getName() + " could not convert value " + v + " to " + unit.getFromType(), e);
+					return null; // TODO What to do with this?
+				}
+			};
+			if (value instanceof SettableValue && unit.getReverseMap() != null) {
+				return ((SettableValue<Object>) value).mapV(type, forwardMap, reverseMap, true);
+			} else {
+				return value.mapV(type, forwardMap);
+			}
 			// Now harder operations
 		} else if (parsedItem instanceof ParsedConstructor) {
 			if (actionRequired)
@@ -833,7 +849,13 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}, true, bestMatch.parameters);
 	}
 
-	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ParsedUnaryOp op) throws QuickParseException {
+	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ParsedUnaryOp op, QuickParseEnv parseEnv)
+		throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (fn.applies(Arrays.asList(arg1.getType())))
+				return arg1.mapV((TypeToken<Object>) fn.getReturnType(), v -> fn.apply(Arrays.asList(v)));
+		}
 		try {
 			switch (op.getName()) {
 			case "+":
@@ -852,8 +874,14 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}
 	}
 
-	private static <T> ObservableValue<T> getUnaryAssignValue(SettableValue<T> arg1, ParsedAssignmentOperator op)
+	private static <T> ObservableValue<T> getUnaryAssignValue(SettableValue<T> arg1, ParsedAssignmentOperator op, QuickParseEnv parseEnv)
 		throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName().substring(0, 1), new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (arg1.getType().isAssignableFrom(fn.getReturnType())
+				&& fn.applies(Arrays.asList(arg1.getType(), TypeToken.of(Integer.TYPE))))
+				return arg1.mapV((TypeToken<T>) fn.getReturnType(), v -> (T) fn.apply(Arrays.asList(v, 1)));
+		}
 		ObservableValue<T> result;
 		try {
 			switch (op.getName()) {
@@ -872,8 +900,13 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		return result;
 	}
 
-	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2, ParsedBinaryOp op)
-		throws QuickParseException {
+	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2, ParsedBinaryOp op,
+		QuickParseEnv parseEnv) throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (fn.applies(Arrays.asList(arg1.getType(), arg2.getType())))
+				return arg1.combineV((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, true);
+		}
 		try {
 			switch (op.getName()) {
 			case "+":
@@ -909,8 +942,15 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}
 	}
 
-	private static ObservableValue<?> getBinaryAssignValue(SettableValue<?> arg1, ObservableValue<?> arg2, ParsedAssignmentOperator op)
-		throws QuickParseException {
+	private static ObservableValue<?> getBinaryAssignValue(SettableValue<?> arg1, ObservableValue<?> arg2, ParsedAssignmentOperator op,
+		QuickParseEnv parseEnv) throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName().substring(0, op.getName().length() - 1),
+			new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (arg1.getType().isAssignableFrom(fn.getReturnType())
+				&& fn.applies(Arrays.asList(arg1.getType(), TypeToken.of(Integer.TYPE))))
+				return arg1.combineV((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, true);
+		}
 		switch (op.getName()) {
 		case "=":
 			if (!QuickUtils.isAssignableFrom(arg1.getType(), arg2.getType()))

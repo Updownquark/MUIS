@@ -145,11 +145,12 @@ public class DefaultExpressionContext implements ExpressionContext {
 		 * @param from The type of value to convert
 		 * @param to The type of value to produce
 		 * @param operator The conversion function
+		 * @param reverse The reverse conversion function. May be null.
 		 * @return This builder
 		 */
 		public <F, T2> Builder withUnit(String name, TypeToken<F> from, TypeToken<T2> to,
-			ExFunction<? super F, ? extends T2, QuickException> operator) {
-			theUnits.computeIfAbsent(name, n -> new ArrayList<>(1)).add(new Unit<>(name, from, to, operator));
+			ExFunction<? super F, ? extends T2, QuickException> operator, ExFunction<? super T2, ? extends F, QuickException> reverse) {
+			theUnits.computeIfAbsent(name, n -> new ArrayList<>(1)).add(new Unit<>(name, from, to, operator, reverse));
 			return this;
 		}
 

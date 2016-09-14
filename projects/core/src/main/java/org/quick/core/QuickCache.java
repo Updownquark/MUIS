@@ -50,8 +50,24 @@ public class QuickCache {
 		 *
 		 * @param key The key for which item generation failed
 		 * @param exception The exception that was thrown representing the failure
+		 * @param firstReport Whether the exception is the direct result of the failure of the generation of the item for the first time
 		 */
-		public void errorOccurred(K key, Throwable exception);
+		public void errorOccurred(K key, Throwable exception, boolean firstReport);
+	}
+
+	/** Wraps an exception thrown from {@link CacheItemType#generate(QuickEnvironment, Object)} */
+	public static class CacheException extends Throwable {
+		private final boolean isFirstThrown;
+
+		CacheException(Throwable e, boolean firstThrown) {
+			super(e);
+			isFirstThrown = firstThrown;
+		}
+
+		/** @return Whether this exception is the direct result of the failure of the generation of the item for the first time */
+		public boolean isFirstThrown() {
+			return isFirstThrown;
+		}
 	}
 
 	private static class CacheKey<K, V, E extends Exception> {
@@ -135,37 +151,50 @@ public class QuickCache {
 	 * @param type The type of item to get
 	 * @param key The key to get the cached item by
 	 * @param generate Whether to generate the value if it does not currently exist in the cache
-	 * @return The value cached for the given type and key
-	 * @throws E If an exception occurs generating a new cache value
+	 * @return The value cached for the given type and key, or null if it has not been generated and {@code generated} is false
+	 * @throws CacheException If an exception occurs generating the cache value
 	 */
-	public <K, V, E extends Exception> V getAndWait(QuickEnvironment env, CacheItemType<K, V, E> type, K key, boolean generate) throws E {
-		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
-		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-		if(stored == null) {
-			if(!generate)
-				return null;
-			stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-			while(stored == null) { // This is in a while loop because it's remotely possible that the entry could be purged before get
-									// returns
-				get(env, type, key, null);
-				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-			}
-		}
+	public <K, V, E extends Exception> V getAndWait(QuickEnvironment env, CacheItemType<K, V, E> type, K key, boolean generate)
+		throws CacheException {
+		Object[] reportedValue = new Object[1];
+		Throwable[] reportedException = new Throwable[1];
+		boolean[] firstThrown = new boolean[1];
+		boolean[] reported = new boolean[1];
+		if (generate) {
+			get(env, type, key, new ItemReceiver<K, V>() {
+				@Override
+				public void itemGenerated(K key2, V value) {
+					reportedValue[0] = value;
+					reported[0] = true;
+				}
 
-		while(stored.isLoading)
-			try {
-				Thread.sleep(10);
-			} catch(InterruptedException e) {
+				@Override
+				public void errorOccurred(K key2, Throwable exception, boolean firstReport) {
+					reportedException[0] = exception;
+					firstThrown[0] = firstReport;
+					reported[0] = true;
+				}
+			});
+
+			while (!reported[0]) {
+				try {
+					Thread.sleep(25);
+				} catch (InterruptedException e) {
+				}
 			}
-		if(stored.theError != null) {
-			if(stored.theError instanceof RuntimeException)
-				throw (RuntimeException) stored.theError;
-			else if(stored.theError instanceof Error)
-				throw (Error) stored.theError;
+			if (reportedException[0] != null)
+				throw new CacheException(reportedException[0], firstThrown[0]);
 			else
-				throw (E) stored.theError;
-		} else
-			return stored.theValue;
+				return (V) reportedValue[0];
+		} else {
+			CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(new CacheKey<>(type, key));
+			if (stored == null)
+				return null;
+			else if (stored.theError != null)
+				throw new CacheException(stored.theError, false);
+			else
+				return stored.theValue;
+		}
 	}
 
 	/**
@@ -178,43 +207,34 @@ public class QuickCache {
 	 * @param type The type of the cached item to get
 	 * @param key The key of the cached item to get
 	 * @param receiver A receiver to be notified when the cached item is available. May be null.
-	 * @return The cached item if it is immediately available, otherwise null
-	 * @throws E The error that occurred while generating the cache value, if the cache has already attempted to generate the item and
-	 *             failed
 	 */
-	public <K, V, E extends Exception> V get(QuickEnvironment env, CacheItemType<K, V, E> type, K key, ItemReceiver<K, V> receiver) throws E {
+	public <K, V, E extends Exception> void get(QuickEnvironment env, CacheItemType<K, V, E> type, K key, ItemReceiver<K, V> receiver) {
 		CacheKey<K, V, E> cacheKey = new CacheKey<>(type, key);
 		CacheKey<K, V, E> stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-		if(stored == null)
+		boolean needsGen = stored == null;
+		if (needsGen) {
 			synchronized(theOuterLock) {
 				stored = (CacheKey<K, V, E>) theInternalCache.get(cacheKey);
-				if(stored == null) {
+				needsGen = stored == null;
+				if (needsGen) {
 					stored = cacheKey;
 					theInternalCache.put(cacheKey, stored);
 					startGet(env, stored);
 				}
 			}
-		if(stored.isLoading && receiver != null)
+		}
+		if (stored.isLoading && receiver != null) {
 			synchronized(stored.theReceivers) {
 				if(stored.isLoading) {
 					stored.theReceivers.add(receiver);
-					return null;
+					return;
 				}
 			}
-		if(stored.theError != null) {
-			if(receiver != null)
-				receiver.errorOccurred(key, stored.theError);
-			if(stored.theError instanceof RuntimeException)
-				throw (RuntimeException) stored.theError;
-			else if(stored.theError instanceof Error)
-				throw (Error) stored.theError;
-			else
-				throw (E) stored.theError;
-		} else {
-			if(receiver != null)
-				receiver.itemGenerated(key, stored.theValue);
-			return stored.theValue;
 		}
+		if (stored.theError != null)
+			receiver.errorOccurred(key, stored.theError, needsGen);
+		else
+			receiver.itemGenerated(key, stored.theValue);
 	}
 
 	/**
@@ -240,7 +260,7 @@ public class QuickCache {
 					synchronized(key.theReceivers) {
 						for(ItemReceiver<K, V> receiver : key.theReceivers)
 							if(key.theError != null)
-								receiver.errorOccurred(key.getKey(), key.theError);
+								receiver.errorOccurred(key.getKey(), key.theError, true);
 							else
 								receiver.itemGenerated(key.getKey(), key.theValue);
 					}

@@ -10,6 +10,7 @@ import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.SettableValue;
 import org.observe.collect.ObservableList;
+import org.quick.core.QuickCache.CacheException;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.ElementList;
 import org.quick.core.model.QuickAppModel;
@@ -392,10 +393,10 @@ public abstract class QuickTemplate extends QuickElement {
 		 * @param env The Quick environment to get the structure within
 		 * @param templateType The template type to get the structure for
 		 * @return The template structure for the given templated type
-		 * @throws QuickException If an error occurs generating the structure
+		 * @throws CacheException If an error occurs generating the structure (contains a QuickException)
 		 */
 		public static TemplateStructure getTemplateStructure(QuickEnvironment env, Class<? extends QuickTemplate> templateType)
-			throws QuickException {
+			throws CacheException {
 			return env.getCache().getAndWait(env, TEMPLATE_STRUCTURE_CACHE_TYPE, templateType, true);
 		}
 
@@ -418,7 +419,11 @@ public abstract class QuickTemplate extends QuickElement {
 			TemplateStructure superStructure = null;
 			while (superType != QuickTemplate.class) {
 				if (superType.getAnnotation(Template.class) != null) {
-					superStructure = getTemplateStructure(env, superType);
+					try {
+						superStructure = getTemplateStructure(env, superType);
+					} catch (CacheException e) {
+						throw (QuickException) e.getCause();
+					}
 					break;
 				}
 				superType = (Class<? extends QuickTemplate>) superType.getSuperclass();
@@ -875,6 +880,8 @@ public abstract class QuickTemplate extends QuickElement {
 				initModels(theTemplateStructure, ctxBuilder);
 			} catch (QuickException e) {
 				msg().fatal("Could not generate template structure", e);
+			} catch (CacheException e) {
+				msg().fatal("Could not generate template structure", e.getCause());
 			}
 		}, QuickConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {

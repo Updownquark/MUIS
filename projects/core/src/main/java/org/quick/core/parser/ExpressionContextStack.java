@@ -3,6 +3,7 @@ package org.quick.core.parser;
 import java.util.*;
 
 import org.quick.core.*;
+import org.quick.core.QuickCache.CacheException;
 import org.quick.core.style.StateCondition;
 import org.quick.core.style.StyleCondition;
 
@@ -73,7 +74,7 @@ public class ExpressionContextStack {
 
 	/**
 	 * Sets the type for the top of the stack
-	 * 
+	 *
 	 * @param type The type to set
 	 * @throws QuickParseException If the given type is not valid for this point in the context stack
 	 */
@@ -87,7 +88,7 @@ public class ExpressionContextStack {
 
 	/**
 	 * Adds a group to the top of the stack
-	 * 
+	 *
 	 * @param groupName The name of the group to add
 	 */
 	public void addGroup(String groupName) {
@@ -96,7 +97,7 @@ public class ExpressionContextStack {
 
 	/**
 	 * Sets the state condition for the top of the stack
-	 * 
+	 *
 	 * @param state The state condition
 	 */
 	public void setState(StateCondition state) {
@@ -105,7 +106,7 @@ public class ExpressionContextStack {
 
 	/**
 	 * Sets the template role (attach point) for the top of the stack
-	 * 
+	 *
 	 * @param attachPoint The attach point or the top of the stack
 	 * @throws QuickParseException If the given attach point is not valid for this point in the context stack
 	 */
@@ -118,8 +119,11 @@ public class ExpressionContextStack {
 		QuickTemplate.TemplateStructure templateStruct;
 		try {
 			templateStruct = QuickTemplate.TemplateStructure.getTemplateStructure(theEnv, (Class<? extends QuickTemplate>) type);
-		} catch(QuickException e) {
-			throw new QuickParseException("Could not parse template structure for " + type.getName(), e);
+		} catch (CacheException e) {
+			if (e.isFirstThrown())
+				throw new QuickParseException("Could not parse template structure for " + type.getName(), e.getCause());
+			else
+				return; // Already reported--just ignore this piece
 		}
 		QuickTemplate.AttachPoint<?> ap = templateStruct.getAttachPoint(attachPoint);
 		if(ap == null)

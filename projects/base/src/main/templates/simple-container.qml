@@ -4,8 +4,7 @@
 	<head>
 	</head>
 	<body>
-		<block template-attach-point="contents" template-external="false" template-mutable="false" template-expose-atts="true"
-			layout="flow">
+		<block template-attach-point="contents" template-external="false" template-mutable="false" layout="flow">
 			<template-element template-attach-point="content" template-multiple="true" template-default="true" />
 		</block>
 	</body>

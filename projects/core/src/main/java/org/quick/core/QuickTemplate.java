@@ -21,7 +21,6 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.SimpleParseEnv;
 import org.quick.core.parser.WidgetStructure;
 import org.quick.core.prop.DefaultExpressionContext;
-import org.quick.core.prop.ExpressionContext;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.ImmutableStyle;
@@ -848,8 +847,6 @@ public abstract class QuickTemplate extends QuickElement {
 
 	private final Map<String, Object> theModels;
 
-	private ExpressionContext theContext;
-
 	private final Map<QuickContent, QuickElement> theStaticContent;
 
 	// Valid during initialization only (prior to initChildren())--will be null after that
@@ -956,11 +953,6 @@ public abstract class QuickTemplate extends QuickElement {
 			theModels.put(modelName, model);
 			ctxBuilder.withValue(modelName, ObservableValue.constant(TypeToken.of(QuickAppModel.class), model));
 		}
-	}
-
-	@Override
-	public ExpressionContext getContext() {
-		return theContext;
 	}
 
 	@Override

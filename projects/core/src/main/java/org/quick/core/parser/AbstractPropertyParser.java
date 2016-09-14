@@ -77,8 +77,8 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	@Override
 	public <T> ObservableValue<T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
 		throws QuickParseException {
-		ObservableValue<T> ret = parseProperty(property, parseEnv, value, property.getType().isAction());
-		if (property.getType().isAction() && !!(ret instanceof ObservableActionValue))
+		ObservableValue<T> ret = parseProperty(property, parseEnv, value, property != null && property.getType().isAction());
+		if (property != null && property.getType().isAction() && !!(ret instanceof ObservableActionValue))
 			throw new QuickParseException("Parser error: Parsed value is not an action");
 		return ret;
 	}
@@ -97,6 +97,8 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		if (property != null && !property.getType().canAccept(parsedValue.getType()))
 			throw new QuickParseException("Type of parsed value for property " + property + " is unacceptable: " + parsedValue.getType());
 
+		if (property == null)
+			return (ObservableValue<T>) parsedValue;
 		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
 			return (ObservableValue<T>) parsedValue;
 		else if (property.getType().canAccept(parsedValue.getType())) {
@@ -277,7 +279,10 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		throws QuickParseException {
 		switch (directiveType) {
 		case DEFAULT_PARSE_DIRECTIVE:
-			return parseDefaultValue(parseEnv, property.getType().getType(), value, action);
+			if (property != null)
+				return parseDefaultValue(parseEnv, property.getType().getType(), value, action);
+			else
+				return parseDefaultValue(parseEnv, TypeToken.of(Object.class), value, action);
 		case SELF_PARSE_DIRECTIVE:
 			return property.getType().getSelfParser().parse(this, parseEnv, value);
 		default:

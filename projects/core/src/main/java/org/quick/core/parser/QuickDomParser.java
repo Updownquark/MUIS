@@ -152,13 +152,8 @@ public class QuickDomParser implements QuickDocumentParser {
 	private QuickModelConfig parseModelConfig(Element element, boolean isRoot, QuickMessageCenter msg, String modelName) {
 		QuickModelConfig.Builder builder = QuickModelConfig.build();
 		builder.withText(element.getTextTrim());
-		for (Attribute att : element.getAttributes()) {
-			if (att.getName().equals("name"))
-				continue;
-			if (isRoot && (att.getName().equals("builder") || att.getName().equals("builder-class")))
-				continue;
+		for (Attribute att : element.getAttributes())
 			builder.add(att.getName(), att.getValue());
-		}
 		for (Element child : element.getChildren()) {
 			if (child.getAttributes().isEmpty() && child.getChildren().isEmpty())
 				builder.add(child.getName(), child.getTextTrim());

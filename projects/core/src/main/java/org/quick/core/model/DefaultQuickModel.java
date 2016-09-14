@@ -89,24 +89,24 @@ public class DefaultQuickModel implements QuickAppModel {
 		private static QuickModelConfigValidator VALIDATOR;
 		static {
 			VALIDATOR = QuickModelConfigValidator.build().forConfig("value", b -> {
-				b.forConfig("name", b2 -> {
-					b2.required();
+				b.anyTimes().forConfig("name", b2 -> {
+					b2.withText(true).required();
 				}).withText(false);
 			}).forConfig("variable", b -> {
-				b.forConfig("name", b2 -> {
-					b2.required();
+				b.anyTimes().forConfig("name", b2 -> {
+					b2.withText(true).required();
 				}).withText(false);
 			}).forConfig("action", b -> {
-				b.forConfig("name", b2 -> {
-					b2.required();
+				b.anyTimes().forConfig("name", b2 -> {
+					b2.withText(true).required();
 				}).withText(false);
 			}).forConfig("model", b -> {
-				b.forConfig("name", b2 -> {
-					b2.required();
+				b.anyTimes().forConfig("name", b2 -> {
+					b2.withText(true).required();
 				});
 			}).forConfig("switch", b -> {
-				b.forConfig("name", b2 -> {
-					b2.required();
+				b.anyTimes().forConfig("name", b2 -> {
+					b2.withText(true).required();
 				})//
 					.forConfig("value", b2 -> {
 						b2.required();
@@ -169,9 +169,8 @@ public class DefaultQuickModel implements QuickAppModel {
 			QuickParseEnv innerEnv = new SimpleParseEnv(parseEnv.cv(), parseEnv.msg(),
 				DefaultExpressionContext.build().withParent(parseEnv.getContext())
 					.withValue("this", ObservableValue.constant(TypeToken.of(QuickAppModel.class), tempModel)).build());
-			for (Map.Entry<String, Object> cfg : config.getAllConfigs()) {
-				QuickModelConfig cfgItem = (QuickModelConfig) cfg.getValue();
-				String name = cfgItem.getString("name");
+			for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs()) {
+				String name = cfg.getKey();
 				if (name == null)
 					throw new QuickParseException(cfg.getKey() + " exepects a name attribute");
 				if (theFields.containsKey(name))
@@ -179,30 +178,30 @@ public class DefaultQuickModel implements QuickAppModel {
 				Object value;
 				switch (cfg.getKey()) {
 				case "value":
-					if (cfgItem.getText() == null)
+					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelValue(cfgItem, parser, innerEnv);
+					value = parseModelValue(cfg.getValue(), parser, innerEnv);
 					break;
 				case "variable":
-					if (cfgItem.getText() == null)
+					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelVariable(cfgItem, parser, innerEnv);
+					value = parseModelVariable(cfg.getValue(), parser, innerEnv);
 					break;
 				case "action":
-					if (cfgItem.getText() == null)
+					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelAction(cfgItem.getText(), parser, innerEnv);
+					value = parseModelAction(cfg.getValue().getText(), parser, innerEnv);
 					break;
 				case "model":
-					value = parseChildModel(cfgItem.without("name"), parser, innerEnv);
+					value = parseChildModel(cfg.getValue().without("name"), parser, innerEnv);
 					break;
 				case "switch":
-					value = parseModelSwitch(cfgItem.without("name"), parser, innerEnv);
+					value = parseModelSwitch(cfg.getValue().without("name"), parser, innerEnv);
 					break;
 				default:
 					throw new QuickParseException("Unrecognized config item: " + cfg.getKey()); // Unnecessary except for compilation
 				}
-				theFields.put(name, value);
+				theFields.put(cfg.getValue().getString("name"), value);
 			}
 			return new DefaultQuickModel(theFields);
 		}

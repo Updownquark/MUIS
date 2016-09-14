@@ -105,6 +105,8 @@ public class DefaultExpressionContext implements ExpressionContext {
 		 * @return This builder
 		 */
 		public Builder withParent(ExpressionContext ctx) {
+			if (ctx == null)
+				throw new NullPointerException();
 			theParents.add(ctx);
 			return this;
 		}
@@ -115,6 +117,8 @@ public class DefaultExpressionContext implements ExpressionContext {
 		 * @return This builder
 		 */
 		public Builder withValue(String name, ObservableValue<?> value) {
+			if (value == null)
+				throw new NullPointerException();
 			theValues.put(name, value);
 			return this;
 		}
@@ -124,6 +128,8 @@ public class DefaultExpressionContext implements ExpressionContext {
 		 * @return This builder
 		 */
 		public Builder withValueGetter(Function<String, ObservableValue<?>> getter) {
+			if (getter == null)
+				throw new NullPointerException();
 			theValueGetters.add(getter);
 			return this;
 		}
@@ -134,6 +140,8 @@ public class DefaultExpressionContext implements ExpressionContext {
 		 * @return This builder
 		 */
 		public Builder withFunction(String name, ExpressionFunction<?> fn) {
+			if (name == null || fn == null)
+				throw new NullPointerException();
 			theFunctions.computeIfAbsent(name, n -> new ArrayList<>(1)).add(fn);
 			return this;
 		}

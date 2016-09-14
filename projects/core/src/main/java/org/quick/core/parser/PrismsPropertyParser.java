@@ -16,6 +16,7 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.ObservableActionValue;
+import org.quick.core.model.QuickAppModel;
 import org.quick.core.prop.ExpressionFunction;
 import org.quick.core.prop.Unit;
 import org.quick.util.QuickUtils;
@@ -769,7 +770,35 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 
 	private ObservableValue<?> evaluateMethod(ParsedMethod method, ObservableValue<?> context, QuickParseEnv parseEnv, TypeToken<?> type,
 		boolean actionAccepted) throws QuickParseException {
-		if (method.isMethod()) {
+		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
+			if (!(context instanceof ObservableValue.ConstantObservableValue))
+				throw new QuickParseException("Model observables must be constant to be evaluated");
+			QuickAppModel model = (QuickAppModel) context.get();
+			Object fieldVal = model.getField(method.getName());
+			if (fieldVal == null)
+				throw new QuickParseException("Model " + method.getContext() + " does not contain field " + method.getName());
+			if (method.isMethod()) {
+				if (fieldVal instanceof ExpressionFunction) {
+					ExpressionFunction<?> fn = (ExpressionFunction<?>) fieldVal;
+					InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
+						parseEnv, type, actionAccepted);
+					return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) fn.getReturnType(), args -> {
+						try {
+							return fn.apply(Arrays.asList(args));
+						} catch (RuntimeException e) {
+							parseEnv.msg().error("Invocation failed for function " + method, e);
+							return null; // TODO What to do with this?
+						}
+					}, true, match.parameters);
+				} else
+					throw new QuickParseException("Field " + method.getName() + " of model " + method.getContext() + " is not a function");
+			} else {
+				if (fieldVal instanceof ObservableValue)
+					return (ObservableValue<?>) fieldVal;
+				else
+					throw new QuickParseException("Field " + method.getName() + " of model " + method.getContext() + " is not a value");
+			}
+		} else if (method.isMethod()) {
 			Method bestMethod = null;
 			InvokableMatch bestMatch = null;
 			for (Method m : context.getType().getRawType().getMethods()) {

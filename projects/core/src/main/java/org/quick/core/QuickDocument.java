@@ -124,8 +124,10 @@ public class QuickDocument implements QuickParseEnv {
 				Object model= getHead().getModel(name);
 				if(model instanceof ObservableValue)
 					return (ObservableValue<?>) model;
-				else
+				else if (model != null)
 					return ObservableValue.constant(model);
+				else
+					return null;
 			})//
 			.build();
 		theAwtToolkit = java.awt.Toolkit.getDefaultToolkit();

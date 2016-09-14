@@ -72,15 +72,9 @@ public class QuickModelConfigValidator {
 	private static void validateChildren(QuickModelConfig config, Map<String, List<Constraint>> constraints, boolean acceptUnmatched)
 		throws QuickParseException {
 		Map<String, Integer> counts = new HashMap<>();
-		for (Map.Entry<String, Object> cfg : config.getAllConfigs()) {
-			Integer count = counts.get(cfg.getKey());
-			if (count == null)
-				count = Integer.valueOf(1);
-			else
-				count = Integer.valueOf(count + 1);
-			counts.put(cfg.getKey(), count);
-		}
-		for (Map.Entry<String, Object> cfg : config.getAllConfigs()) {
+		for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs())
+			counts.compute(cfg.getKey(), (k, oldCount) -> oldCount == null ? 1 : oldCount + 1);
+		for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs()) {
 			List<Constraint> constraint = constraints.get(cfg.getKey());
 			if (constraint == null) {
 				if (acceptUnmatched)
@@ -90,7 +84,7 @@ public class QuickModelConfigValidator {
 			}
 			int count = counts.get(cfg.getKey());
 			for (Constraint c : constraint)
-				c.validate(config, count);
+				c.validate(cfg.getValue(), count);
 		}
 	}
 
@@ -188,7 +182,7 @@ public class QuickModelConfigValidator {
 		private int theMin;
 		private int theMax = 1;
 		private Boolean isWithText = Boolean.FALSE;
-		private Map<String, List<ConstraintBuilder>> childConstraints;
+		private final Map<String, List<ConstraintBuilder>> childConstraints = new LinkedHashMap<>();
 		private boolean acceptUnmatched;
 
 		private ConstraintBuilder(String path) {
@@ -197,7 +191,7 @@ public class QuickModelConfigValidator {
 
 		/**
 		 * Specifies this child constraint as required
-		 * 
+		 *
 		 * @return This builder
 		 */
 		public ConstraintBuilder required() {
@@ -237,6 +231,17 @@ public class QuickModelConfigValidator {
 		}
 
 		/**
+		 * Specifies that this child may be present any number of times
+		 * 
+		 * @return This builder
+		 */
+		public ConstraintBuilder anyTimes() {
+			theMin = 0;
+			theMax = Integer.MAX_VALUE;
+			return this;
+		}
+
+		/**
 		 * @param withText Whether this child config must or must not specify text
 		 * @return This builder
 		 */
@@ -254,11 +259,7 @@ public class QuickModelConfigValidator {
 		@Override
 		public ConstraintBuilder withConfig(String... childNames) {
 			for (String childName : childNames) {
-				List<ConstraintBuilder> cs = childConstraints.get(childName);
-				if (cs == null) {
-					cs = new ArrayList<>();
-					childConstraints.put(childName, cs);
-				}
+				List<ConstraintBuilder> cs = childConstraints.computeIfAbsent(childName, n -> new ArrayList<>());
 				ConstraintBuilder childBuilder = new ConstraintBuilder(childName);
 				cs.add(childBuilder);
 			}
@@ -267,7 +268,7 @@ public class QuickModelConfigValidator {
 
 		@Override
 		public ConstraintBuilder forConfig(String childName, Consumer<ConstraintBuilder> builder) {
-			List<ConstraintBuilder> cs = childConstraints.get(childName);
+			List<ConstraintBuilder> cs = childConstraints.computeIfAbsent(childName, n -> new ArrayList<>());
 			if (cs == null) {
 				cs = new ArrayList<>();
 				childConstraints.put(childName, cs);

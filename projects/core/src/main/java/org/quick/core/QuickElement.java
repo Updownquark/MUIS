@@ -375,12 +375,9 @@ public abstract class QuickElement implements QuickParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
-		DefaultExpressionContext.Builder contextBuilder = DefaultExpressionContext.build();
-		if (parent != null)
-			contextBuilder.withParent(parent.getContext());
-		else
-			contextBuilder.withParent(theDocument.getContext());
-		theContext = contextBuilder.build();
+		theContext = DefaultExpressionContext.build()//
+			.withParent(theDocument.getContext())//
+			.build();
 		setParent(parent);
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}

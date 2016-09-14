@@ -28,7 +28,7 @@ public interface CompoundListener {
 	public interface EventListener {
 		/**
 		 * Called when a configured event occurs
-		 * 
+		 *
 		 * @param evented The element that the event actually fired on
 		 * @param root The root element being listened to
 		 * @param event The event that occurred
@@ -129,7 +129,7 @@ public interface CompoundListener {
 		 */
 		default CompoundListenerBuilder acceptAll(QuickAttribute<?>... attrs) {
 			for (QuickAttribute<?> attr : attrs)
-				require(attr);
+				accept(attr);
 			return this;
 		}
 

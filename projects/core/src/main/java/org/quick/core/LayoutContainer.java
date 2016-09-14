@@ -1,7 +1,5 @@
 package org.quick.core;
 
-import org.observe.ObservableValue;
-import org.qommons.BiTuple;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager.AttributeHolder;
 import org.quick.core.prop.QuickAttribute;
@@ -20,14 +18,8 @@ public class LayoutContainer extends QuickElement {
 		try {
 			layoutAtt = atts().require(this, LAYOUT_ATTR, defLayout);
 			life().runWhen(() -> {
-				ch().onElement(el -> {
-					ObservableValue<? extends BiTuple<? extends QuickElement, QuickLayout>> tupleVal = el.tupleV(layoutAtt);
-					tupleVal.act(tupleEvt -> {
-						if (tupleEvt.getValue().getValue2() != null)
-							tupleEvt.getValue().getValue2().install(tupleEvt.getValue().getValue1(), tupleVal);
-					});
-				});
-			}, QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
+				layoutAtt.value().act(layout -> layout.install(LayoutContainer.this, layoutAtt.noInit()));
+			}, QuickConstants.CoreStage.STARTUP.toString(), -1);
 		} catch (QuickException e) {
 			msg().error("Could not set default layout", e, "layout", defLayout);
 		}

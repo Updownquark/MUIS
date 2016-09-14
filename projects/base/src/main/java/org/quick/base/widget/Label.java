@@ -29,14 +29,27 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 				Object accepter = new Object();
 				atts().accept(accepter, document, rich, ModelAttributes.value, format);
 				atts().getHolder(document).tupleV(atts().getHolder(rich)).value().act(tuple -> {
+					QuickTextElement textEl = getValue();
+					QuickDocumentModel docModel;
 					if(tuple.getValue1() != null) {
 						if(tuple.getValue2() != null)
 							msg().warn(rich.getName() + " attribute specified, but model overridden.  Ignoring.");
+						docModel = tuple.getValue1();
 						setDocumentModel(tuple.getValue1());
-					} else if(tuple.getValue2() == Boolean.TRUE)
-						setDocumentModel(new RichDocumentModel(getValue()));
-					else
-						setDocumentModel(new SimpleDocumentModel(getValue()));
+					} else if (tuple.getValue2() == Boolean.TRUE) {
+						docModel = textEl.getDocumentModel().get();
+						if (docModel == null)
+							docModel = new RichDocumentModel(textEl);
+						else if (!(docModel instanceof RichDocumentModel))
+							docModel = new RichDocumentModel(textEl).setText(textEl.getText());
+					} else {
+						docModel = textEl.getDocumentModel().get();
+						if (docModel == null)
+							docModel = new SimpleDocumentModel(textEl);
+						else if (docModel instanceof RichDocumentModel)
+							docModel = new SimpleDocumentModel(textEl).setText(textEl.getText());
+					}
+					setDocumentModel(docModel);
 				});
 				atts().getHolder(ModelAttributes.value).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).act(event -> {
 					if (event.getValue().getValue1() == null)

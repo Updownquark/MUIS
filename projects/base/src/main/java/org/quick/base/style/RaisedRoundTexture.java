@@ -3,6 +3,8 @@ package org.quick.base.style;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
+import org.quick.core.QuickCache.CacheException;
+
 /** Renders a raised, round, button-looking texture over an element */
 public class RaisedRoundTexture implements org.quick.core.style.Texture
 {
@@ -163,12 +165,16 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				tempSource += 360;
 			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f)); // If we need to generate, step it up
 			org.quick.core.QuickEnvironment env = element.getDocument().getEnvironment();
-			CornerRender cr = env.getCache().getAndWait(env, cornerRendering, key, true);
-			if(cr.getRadius() < maxRad)
-			{
-				// Regenerate with a big enough radius
-				env.getCache().remove(cornerRendering, key);
+			CornerRender cr;
+			try {
 				cr = env.getCache().getAndWait(env, cornerRendering, key, true);
+				if (cr.getRadius() < maxRad) {
+					// Regenerate with a big enough radius
+					env.getCache().remove(cornerRendering, key);
+					cr = env.getCache().getAndWait(env, cornerRendering, key, true);
+				}
+			} catch (CacheException e) {
+				throw (RuntimeException) e.getCause();
 			}
 
 			// Draw the corner

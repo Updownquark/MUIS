@@ -166,11 +166,11 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 							}
 
 							@Override
-							public void errorOccurred(URL key, Throwable exception) {
+							public void errorOccurred(URL key, Throwable exception, boolean firstReport) {
 								msg().error("Could not load image loading icon", exception);
 							}
 						});
-				} catch(org.quick.core.QuickException | java.io.IOException e) {
+				} catch (org.quick.core.QuickException e) {
 					msg().error("Could not retrieve image loading icon", e);
 				}
 			res = getToolkit().getMappedResource("img-load-failed-icon");
@@ -189,11 +189,11 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 							}
 
 							@Override
-							public void errorOccurred(URL key, Throwable exception) {
+							public void errorOccurred(URL key, Throwable exception, boolean firstReport) {
 								msg().error("Could not load image load failed icon", exception);
 							}
 						});
-				} catch(org.quick.core.QuickException | java.io.IOException e) {
+				} catch (org.quick.core.QuickException e) {
 					msg().error("Could not retrieve image load failed icon", e);
 				}
 		}, org.quick.core.QuickConstants.CoreStage.INIT_SELF.toString(), 1);
@@ -216,30 +216,26 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		isLoading = true;
 		theLoadError = null;
 		theImage = null;
-		try {
-			theImage = getDocument().getEnvironment().getCache()
-				.get(getDocument().getEnvironment(), cacheType, location, new org.quick.core.QuickCache.ItemReceiver<URL, ImageData>() {
-					@Override
-					public void itemGenerated(URL key, ImageData value) {
-						if(!key.equals(theLocation))
-							return;
-						theImage = value;
-						isLoading = false;
-						imageChanged();
-					}
+		getDocument().getEnvironment().getCache().get(getDocument().getEnvironment(), cacheType, location,
+			new org.quick.core.QuickCache.ItemReceiver<URL, ImageData>() {
+				@Override
+				public void itemGenerated(URL key, ImageData value) {
+					if (!key.equals(theLocation))
+						return;
+					theImage = value;
+					isLoading = false;
+					imageChanged();
+				}
 
-					@Override
-					public void errorOccurred(URL key, Throwable exception) {
-						if(!key.equals(theLocation))
-							return;
-						theLoadError = exception;
-						isLoading = false;
-						imageChanged();
-					}
-				});
-			imageChanged();
-		} catch(java.io.IOException e) {
-		}
+				@Override
+				public void errorOccurred(URL key, Throwable exception, boolean firstReport) {
+					if (!key.equals(theLocation))
+						return;
+					theLoadError = exception;
+					isLoading = false;
+					imageChanged();
+				}
+			});
 	}
 
 	/** @return The image that this widget should render */

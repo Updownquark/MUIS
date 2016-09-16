@@ -25,20 +25,22 @@ import org.quick.core.tags.Template;
 		@ModelAttribute(name = "rows", type = Integer.class), //
 		@ModelAttribute(name = "multi-line", type = Boolean.class), //
 		@ModelAttribute(name = "document", type = QuickDocumentModel.class), //
-		@ModelAttribute(name = "rich", type = Boolean.class)
-	})
+		@ModelAttribute(name = "rich", type = Boolean.class) })
 public class Spinner extends QuickTemplate {
 	/** The increment attribute, specifying the action to perform when the user clicks the up arrow */
-	public static final QuickAttribute<ObservableAction> increment = QuickAttribute.build("increment", ModelAttributes.actionType).build();
+	public static final QuickAttribute<ObservableAction<?>> increment = QuickAttribute.build("increment", ModelAttributes.actionType)
+		.build();
 	/** The decrement attribute, specifying the action to perform when the user clicks the down arrow */
-	public static final QuickAttribute<ObservableAction> decrement = QuickAttribute.build("decrement", ModelAttributes.actionType).build();
+	public static final QuickAttribute<ObservableAction<?>> decrement = QuickAttribute.build("decrement", ModelAttributes.actionType)
+		.build();
 
 	/** Creates a spinner */
 	public Spinner() {
 		life().runWhen(() -> {
 			Object accepter = new Object();
-			atts().require(accepter, increment, decrement)//
-				.accept(accepter, ModelAttributes.value, BaseAttributes.format, charLengthAtt, charRowsAtt, multiLine,
+			atts().require(accepter, increment);
+			atts().require(accepter, decrement);
+			atts().accept(accepter, ModelAttributes.value, BaseAttributes.format, charLengthAtt, charRowsAtt, multiLine,
 					BaseAttributes.document, BaseAttributes.rich);
 		}, org.quick.core.QuickConstants.CoreStage.INIT_SELF.toString(), 1);
 	}

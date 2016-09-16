@@ -64,11 +64,10 @@ public final class QuickPropertyType<T> {
 	private final List<TypeMapping<?, ?>> theMappings;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
-	private final boolean isAction;
 
 	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault,
 		Function<Integer, String> replacementGen, List<TypeMapping<?, ?>> mappings, Function<? super T, String> printer,
-		ExpressionContext ctx, boolean action) {
+		ExpressionContext ctx) {
 		theName = name;
 		theType = type;
 		theParser = parser;
@@ -77,7 +76,6 @@ public final class QuickPropertyType<T> {
 		theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
 		theContext = ctx;
 		thePrinter = printer;
-		isAction = action;
 	}
 
 	/** @return This property type's name */
@@ -88,11 +86,6 @@ public final class QuickPropertyType<T> {
 	/** @return The java type that this property type parses strings into instances of */
 	public TypeToken<T> getType(){
 		return theType;
-	}
-
-	/** @return Whether this property type is an action type */
-	public boolean isAction() {
-		return isAction;
 	}
 
 	/** @return A parser that knows how to parse property values of this type. May be null if the property type cannot parse itself. */
@@ -240,19 +233,7 @@ public final class QuickPropertyType<T> {
 	 * @return A builder for the property type
 	 */
 	public static <T> QuickPropertyType.Builder<T> build(String name, TypeToken<T> type) {
-		return new Builder<>(name, type, false);
-	}
-
-	/**
-	 * Builds an action property
-	 *
-	 * @param <T> The compile-time type of the property
-	 * @param name The name for the property type
-	 * @param type The run-time type for the property type
-	 * @return A builder for the property type
-	 */
-	public static <T> QuickPropertyType.Builder<T> buildAction(String name, TypeToken<T> type) {
-		return new Builder<>(name, type, true);
+		return new Builder<>(name, type);
 	}
 
 	/**
@@ -269,14 +250,12 @@ public final class QuickPropertyType<T> {
 		private final List<TypeMapping<?, ?>> theMappings;
 		private DefaultExpressionContext.Builder theCtxBuilder;
 		private Function<? super T, String> thePrinter;
-		private final boolean isAction;
 
-		private Builder(String name, TypeToken<T> type, boolean action) {
+		private Builder(String name, TypeToken<T> type) {
 			theName = name;
 			theType = type;
 			theMappings = new ArrayList<>();
 			theCtxBuilder = DefaultExpressionContext.build();
-			isAction = action;
 		}
 
 		/**
@@ -363,7 +342,7 @@ public final class QuickPropertyType<T> {
 			if (isSelfParsingByDefault && theParser == null)
 				throw new IllegalArgumentException("Cannot parse self by default with no parser");
 			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, theReferenceReplacementGenerator,
-				theMappings, thePrinter, theCtxBuilder.build(), isAction);
+				theMappings, thePrinter, theCtxBuilder.build());
 		}
 	}
 

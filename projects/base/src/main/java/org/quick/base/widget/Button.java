@@ -24,7 +24,7 @@ public class Button extends org.quick.core.QuickTemplate {
 
 	private final StateEngine.StateController theEnabledController;
 
-	private final ObservableAction theAction;
+	private final ObservableAction<?> theAction;
 
 	/** Creates a button */
 	public Button() {
@@ -114,13 +114,13 @@ public class Button extends org.quick.core.QuickTemplate {
 	 *
 	 * @return The action that this button will perform when it is clicked
 	 */
-	protected ObservableAction createAction() {
+	protected ObservableAction<?> createAction() {
 		return ObservableAction.flatten(atts().accept(new Object(), ModelAttributes.action));
 	}
 
 	/** @return The panel containing the contents of this button */
 	public Block getContentPane() {
-		return (Block) getElement(getTemplate().getAttachPoint("contents"));
+		return (Block) getElement(getTemplate().getAttachPoint("contents")).get();
 	}
 
 	@Override

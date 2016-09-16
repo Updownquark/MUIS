@@ -15,12 +15,12 @@ import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
-import org.quick.core.model.ObservableActionValue;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.prop.ExpressionFunction;
 import org.quick.core.prop.Unit;
 import org.quick.util.QuickUtils;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 import prisms.lang.*;
@@ -42,7 +42,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 	}
 
 	@Override
-	protected <T> ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value, boolean action)
+	protected <T> ObservableValue<?> parseDefaultValue(QuickParseEnv parseEnv, TypeToken<T> type, String value)
 		throws QuickParseException {
 		ParseMatch[] matches;
 		try {
@@ -60,6 +60,7 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} catch (ParseException e) {
 			throw new QuickParseException("Failed to structure parsed value for " + value, e);
 		}
+		boolean action = TypeToken.of(ObservableAction.class).isAssignableFrom(type);
 		return evaluateTypeless(parseEnv, type, item, action, action);
 	}
 
@@ -790,8 +791,14 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 							return null; // TODO What to do with this?
 						}
 					}, true, match.parameters);
+				} else if (fieldVal instanceof ObservableAction) {
+					if (method.getArguments().length != 0)
+						throw new QuickParseException("Invalid invocation of action " + method.getName() + " of model "
+							+ method.getContext() + ": actions cannot take arguments");
+					return valueOf((ObservableAction<?>) fieldVal);
 				} else
-					throw new QuickParseException("Field " + method.getName() + " of model " + method.getContext() + " is not a function");
+					throw new QuickParseException(
+						"Field " + method.getName() + " of model " + method.getContext() + " is not a function or an action");
 			} else {
 				if (fieldVal instanceof ObservableValue)
 					return (ObservableValue<?>) fieldVal;
@@ -849,6 +856,10 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 				}
 			});
 		}
+	}
+
+	private <T> ObservableValue<ObservableAction<T>> valueOf(ObservableAction<T> action) {
+		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, action.getType()), action);
 	}
 
 	private ObservableValue<?> evaluateFunction(ParsedMethod method, QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted)
@@ -1013,42 +1024,26 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		}
 	}
 
-	private static <T> ObservableActionValue<T> makeActionValue(SettableValue<T> settable, ObservableValue<? extends T> value,
-		boolean valuePreAction) throws QuickParseException {
-		ObservableAction action = settable.assignmentTo(value);
-		return new ObservableActionValue<T>() {
-			@Override
-			public TypeToken<T> getType() {
-				return settable.getType();
-			}
-
-			@Override
-			public boolean isSafe() {
-				return value.isSafe();
-			}
-
-			@Override
-			public T get() {
-				if (valuePreAction) {
-					T ret = settable.get();
-					action.act(null);
-					return ret;
-				} else {
-					action.act(null);
-					return settable.get();
+	private static <T, V extends T> ObservableValue<ObservableAction<V>> makeActionValue(SettableValue<T> settable,
+		ObservableValue<V> value, boolean valuePreAction) throws QuickParseException {
+		ObservableAction<V> action = settable.assignmentTo(value);
+		return ObservableValue.constant(new TypeToken<ObservableAction<V>>() {}.where(new TypeParameter<V>() {}, value.getType().wrap()),
+			new ObservableAction<V>() {
+				@Override
+				public TypeToken<V> getType() {
+					return value.getType();
 				}
-			}
 
-			@Override
-			public void act(Object cause) throws IllegalStateException {
-				action.act(cause);
-			}
+				@Override
+				public V act(Object cause) throws IllegalStateException {
+					return action.act(cause);
+				}
 
-			@Override
-			public ObservableValue<String> isEnabled() {
-				return action.isEnabled();
-			}
-		};
+				@Override
+				public ObservableValue<String> isEnabled() {
+					return action.isEnabled();
+				}
+			});
 	}
 
 	/** Represents a value with a unit (e.g. 9px for 9 pixels) */

@@ -7,12 +7,11 @@ import java.time.temporal.ChronoUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.observe.ObservableValue;
-import org.observe.SettableValue;
-import org.observe.SimpleSettableValue;
-import org.observe.Subscription;
+import org.observe.*;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
+import org.quick.core.model.DefaultQuickModel;
+import org.quick.core.model.ModelAttributes;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.SimpleParseEnv;
@@ -28,6 +27,7 @@ import com.google.common.reflect.TypeToken;
 public class PropertyTest {
 	private final QuickAttribute<Duration> durationAtt = QuickAttribute.build("duration", QuickPropertyType.duration).build();
 	private final QuickAttribute<Double> doubleAtt = QuickAttribute.build("double", QuickPropertyType.floating).build();
+	private final QuickAttribute<Integer> intAtt = QuickAttribute.build("int", QuickPropertyType.integer).build();
 
 	/*@Test
 	public void testEnumFunctionBug() {
@@ -148,6 +148,10 @@ public class PropertyTest {
 			Assert.assertEquals(new Color(128, 196, 255), //
 				propParser.parseProperty(BackgroundStyle.color, env, "rgb(${100+28}, ${200-4}, ${256-1})")//
 					.get());
+
+			Assert.assertEquals(Integer.valueOf(5), //
+				propParser.parseProperty(intAtt, env, "13%8")//
+					.get());
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
 		}
@@ -206,6 +210,39 @@ public class PropertyTest {
 			if (!(result instanceof SettableValue))
 				throw new IllegalStateException("Result should be settable");
 			assertSameObservable(var1.mapV(dType, v -> Math.sqrt(v), v -> v * v, true), result);
+		} catch (QuickParseException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	/** Tests parsing with injected models */
+	@Test
+	public void testModels() {
+		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
+		QuickPropertyParser propParser = env.getPropertyParser();
+
+		TypeToken<Double> dType = TypeToken.of(Double.class);
+		SimpleSettableValue<Double> var1 = new SimpleSettableValue<>(dType, false);
+		var1.set(1d, null);
+		ObservableAction<Double> incVar1 = var1.assignmentTo(var1.mapV(v -> v + 1));
+		DefaultQuickModel model = DefaultQuickModel.build()//
+			.with("var1", var1)//
+			.with("incVar1", incVar1)//
+			.build();
+
+		QuickParseEnv parseEnv = new SimpleParseEnv(env.cv(), env.msg(),
+			DefaultExpressionContext.build().withParent(env.getContext())//
+				.withValue("model", ObservableValue.constant(model))//
+				.build());
+
+		try {
+			ObservableAction<Double> action = (ObservableAction<Double>) propParser
+				.parseProperty(ModelAttributes.action, parseEnv, "model.incVar1()").get();
+			double pre = var1.get();
+			double acted = action.act(null);
+			double post = var1.get();
+			Assert.assertEquals(pre + 1, post, 0.000000001);
+			Assert.assertEquals(post, acted, 0.000000001);
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
 		}

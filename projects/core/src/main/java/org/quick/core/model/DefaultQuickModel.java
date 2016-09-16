@@ -3,6 +3,7 @@ package org.quick.core.model;
 import java.util.*;
 import java.util.function.Function;
 
+import org.observe.ObservableAction;
 import org.observe.ObservableValue;
 import org.observe.SimpleSettableValue;
 import org.quick.core.QuickException;
@@ -80,8 +81,28 @@ public class DefaultQuickModel implements QuickAppModel {
 	}
 
 	/** @return A builder to create a DefaultQuickModel */
-	public Builder build() {
-		return new Builder();
+	public static BuilderApi build() {
+		return new BuilderApi();
+	}
+
+	/** A builder for building models from code (as opposed to from a Quick document) */
+	public static class BuilderApi {
+		private final Map<String, Object> theFields = new LinkedHashMap<>();
+
+		/**
+		 * @param name The name of the field to set
+		 * @param value The value for the field
+		 * @return This builder
+		 */
+		public BuilderApi with(String name, Object value) {
+			theFields.put(name, value);
+			return this;
+		}
+
+		/** @return The new model */
+		public DefaultQuickModel build() {
+			return new DefaultQuickModel(theFields);
+		}
 	}
 
 	/** Builds a {@link DefaultQuickModel} */
@@ -190,7 +211,7 @@ public class DefaultQuickModel implements QuickAppModel {
 				case "action":
 					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value = parseModelAction(cfg.getValue().getText(), parser, innerEnv);
+					value=parseModelAction(cfg.getValue().getText(), parser, innerEnv);
 					break;
 				case "model":
 					value = parseChildModel(cfg.getValue().without("name"), parser, innerEnv);
@@ -231,9 +252,9 @@ public class DefaultQuickModel implements QuickAppModel {
 			return modelVariable;
 		}
 
-		private ObservableActionValue<?> parseModelAction(String text, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private ObservableAction<?> parseModelAction(String text, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
-			return parser.parseAction(null, parseEnv, text);
+			return parser.parseProperty(ModelAttributes.action, parseEnv, text).get();
 		}
 
 		private QuickAppModel parseChildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)

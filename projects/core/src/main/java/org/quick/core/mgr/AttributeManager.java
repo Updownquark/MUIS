@@ -99,19 +99,15 @@ public class AttributeManager {
 
 		/**
 		 * Creates a {@link SettableValue} that reflect's this attribute's model value. The {@link SettableValue#isEnabled()} field will
-		 * only be true if the content of this this attribute is an enabled settable value Calling {@link SettableValue#set(Object, Object)}
-		 * on the value will call the set method on that contained value. The set method will never change the actual content of the
-		 * attribute and will be disabled if the content is a constant value or a non-settable observable.
+		 * only be true if the content of this this attribute is an enabled settable value. Calling
+		 * {@link SettableValue#set(Object, Object)} on the value will call the set method on that contained value. The set method will
+		 * never change the actual content of the attribute and will be disabled if the content is a constant value or a non-settable
+		 * observable.
 		 *
 		 * @return A settable value for setting this attribute's content value
 		 */
 		public final SettableValue<T> asSettable() {
-			return new SettableValue<T>() {
-				@Override
-				public TypeToken<T> getType() {
-					return theAttr.getType().getType();
-				}
-
+			return new SettableValue.SettableFlattenedObservableValue<T>(theContainerObservable, () -> AttributeHolder.this.get()) {
 				@Override
 				public T get() {
 					return AttributeHolder.this.get();
@@ -125,12 +121,6 @@ public class AttributeManager {
 				@Override
 				public boolean isSafe() {
 					return AttributeHolder.this.isSafe();
-				}
-
-				@Override
-				public <V extends T> T set(V value, Object cause) throws IllegalArgumentException {
-					// TODO Auto-generated method stub
-					return null;
 				}
 
 				@Override

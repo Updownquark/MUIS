@@ -106,6 +106,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theStyle = new QuickElementStyle(this);
 		Object styleWanter = new Object();
 		theAttributeManager.accept(styleWanter, StyleAttributes.style);
+		theAttributeManager.accept(styleWanter, StyleAttributes.group);
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
 		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {

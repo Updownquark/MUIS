@@ -3,7 +3,7 @@
 <quick xmlns:base="../../../../base/QuickRegistry.xml" xmlns:test="../../../QuickRegistry.xml">
 	<head>
 		<title>Border Layout Test</title>
-		<style-sheet ref="../styles/quick-tests.mss"></style-sheet>
+		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
 	</head>
 	<body layout="border-layout" style="bg.color=white">
 		<block group="opaque" style="bg.color=red" region="top" height="50" />

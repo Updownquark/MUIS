@@ -9,6 +9,8 @@ import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.mgr.QuickState;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * A condition that can be evaluated against various attributes of a {@link QuickElement} to determine whether a style value from a
  * {@link StyleSheet} applies to the element
@@ -110,7 +112,10 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			groupMatches = ObservableValue.constant(true);
 		else
 			groupMatches = element.atts().getHolder(StyleAttributes.group)
-				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
+				.mapV(TypeToken.of(Boolean.class), groups -> {
+					Set<String> elGroups = groups == null ? Collections.emptySet() : groups;
+					return elGroups.containsAll(theGroups);
+				}, true);
 
 		ObservableValue<Boolean> rolePathMatches;
 		if (theRolePath.isEmpty())
@@ -144,7 +149,10 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			groupMatches = ObservableValue.constant(true);
 		else
 			groupMatches = element.atts().getHolder(StyleAttributes.group)
-				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
+				.mapV(groups -> {
+					Set<String> elGroups = groups == null ? Collections.emptySet() : groups;
+					return elGroups.containsAll(theGroups);
+				});
 
 		ObservableValue<Boolean> rolePathMatches;
 		if (theRolePath.isEmpty())

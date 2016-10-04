@@ -1,12 +1,33 @@
 package org.quick.core.style;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
+import org.observe.SimpleSettableValue;
 
 /** Tests style classes in org.quick.core.style.* packages */
 public class StylesTest {
 	@Test
-	public void doNothing() {
-		// Prevents junit from erroring
+	public void testImmutableStyle() {
+		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
+		v1.set(0d, null);
+		ImmutableStyle style = ImmutableStyle.build(null)//
+			.set(BackgroundStyle.transparency, v1)//
+			.build();
+		assertEquals(v1.get(), style.get(BackgroundStyle.transparency).get(), 0.0000001);
+		v1.set(1d, null);
+		assertEquals(v1.get(), style.get(BackgroundStyle.transparency).get(), 0.0000001);
+		assertEquals(FontStyle.size.getDefault(), style.get(FontStyle.size).get(), 0.000000);
+	}
+
+	@Test
+	public void testImmutableStyleSheet() {
+		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
+		v1.set(0d, null);
+		ImmutableStyleSheet sheet = ImmutableStyleSheet.build(null)//
+			.set(BackgroundStyle.transparency, v1)//
+			.build();
+		// TODO
 	}
 
 //	private static class TestStatefulStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, MutableStyle {

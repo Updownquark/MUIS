@@ -60,6 +60,16 @@ public class ImmutableStyleSheet implements StyleSheet {
 		}
 
 		@Override
+		public <T> Builder setConstant(StyleAttribute<T> attr, T value) {
+			return (Builder) ConditionalStyleSetter.super.setConstant(attr, value);
+		}
+
+		@Override
+		public <T> Builder set(StyleAttribute<T> attr, ObservableValue<? extends T> value) {
+			return (Builder) ConditionalStyleSetter.super.set(attr, value);
+		}
+
+		@Override
 		public <T> Builder set(StyleAttribute<T> attr, StyleCondition condition, ObservableValue<? extends T> value) {
 			if (!attr.getType().getType().isAssignableFrom(value.getType()))
 				throw new IllegalArgumentException("Incompatible types: " + attr.getType().getType() + " and " + value.getType());

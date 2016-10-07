@@ -14,6 +14,7 @@ public class StylesTest {
 		ImmutableStyle style = ImmutableStyle.build(null)//
 			.set(BackgroundStyle.transparency, v1)//
 			.build();
+
 		assertEquals(v1.get(), style.get(BackgroundStyle.transparency).get(), 0.0000001);
 		v1.set(1d, null);
 		assertEquals(v1.get(), style.get(BackgroundStyle.transparency).get(), 0.0000001);
@@ -27,6 +28,11 @@ public class StylesTest {
 		ImmutableStyleSheet sheet = ImmutableStyleSheet.build(null)//
 			.set(BackgroundStyle.transparency, v1)//
 			.build();
+
+		assertEquals(v1.get(), sheet.get(BackgroundStyle.transparency).get(), 0.0000001);
+		v1.set(1d, null);
+		assertEquals(v1.get(), sheet.get(BackgroundStyle.transparency).get(), 0.0000001);
+		assertEquals(FontStyle.size.getDefault(), sheet.get(FontStyle.size).get(), 0.000000);
 		// TODO
 	}
 

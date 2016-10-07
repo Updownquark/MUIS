@@ -2,7 +2,11 @@ package org.quick.core.style;
 
 import java.util.*;
 
+import org.observe.Action;
 import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.Subscription;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
@@ -91,6 +95,56 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			type = type.getSuperclass();
 		}
 		return depth;
+	}
+
+	public ObservableValue<Boolean> matches(StyleConditionInstance<?> value) {
+		if (!theType.isAssignableFrom(value.getElementType()))
+			return ObservableValue.constant(false);
+
+		ObservableValue<Boolean> stateMatches;
+		if (theState == null)
+			stateMatches = ObservableValue.constant(true);
+		else
+			stateMatches = theState.observeMatches(value.getState());
+
+		ObservableValue<Boolean> groupMatches;
+		if (theGroups.isEmpty())
+			groupMatches = ObservableValue.constant(true);
+		else
+			groupMatches = new ObservableValue<Boolean>() {
+				@Override
+				public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
+					boolean[] wasMatch = new boolean[1];
+					Subscription sub = value.getGroups().simpleChanges().act(new Action<Object>() {
+						@Override
+						public void act(Object event) {
+							boolean nowMatch = value.getGroups().containsAll(theGroups);
+							if (wasMatch[0] != nowMatch) {
+								observer.onNext(createChangeEvent(wasMatch[0], nowMatch, event));
+								wasMatch[0] = nowMatch;
+							}
+						}
+					});
+					wasMatch[0] = value.getGroups().containsAll(theGroups);
+					observer.onNext(createInitialEvent(wasMatch[0]));
+					return sub;
+				}
+
+				@Override
+				public boolean isSafe() {
+					return value.getGroups().isSafe();
+				}
+
+				@Override
+				public TypeToken<Boolean> getType() {
+					return TypeToken.of(Boolean.TYPE);
+				}
+
+				@Override
+				public Boolean get() {
+					return value.getGroups().containsAll(theGroups);
+				}
+			};
 	}
 
 	/**

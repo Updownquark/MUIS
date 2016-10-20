@@ -6,6 +6,7 @@ import java.awt.Rectangle;
 import java.net.URL;
 
 import org.quick.base.data.ImageData;
+import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
@@ -290,8 +291,9 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 				theAnimator = new ImageAnimator();
 				org.quick.motion.AnimationManager.get().start(theAnimator);
 			}
-			if(getParent() != null)
-				getParent().relayout(false);
+			QuickElement parent = getParent().get();
+			if (parent != null)
+				parent.relayout(false);
 			repaint(null, false);
 		}
 	}
@@ -308,8 +310,9 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(theHResizePolicy == policy)
 			return;
 		theHResizePolicy = policy;
-		if(getParent() != null)
-			getParent().relayout(false);
+		QuickElement parent = getParent().get();
+		if (parent != null)
+			parent.relayout(false);
 		repaint(null, false);
 	}
 
@@ -325,8 +328,9 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(theVResizePolicy == policy)
 			return;
 		theVResizePolicy = policy;
-		if(getParent() != null)
-			getParent().relayout(false);
+		QuickElement parent = getParent().get();
+		if (parent != null)
+			parent.relayout(false);
 		repaint(null, false);
 	}
 
@@ -345,8 +349,9 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(locked == isProportionLocked)
 			return;
 		isProportionLocked = locked;
-		if(getParent() != null)
-			getParent().relayout(false);
+		QuickElement parent = getParent().get();
+		if (parent != null)
+			parent.relayout(false);
 		repaint(null, false);
 	}
 

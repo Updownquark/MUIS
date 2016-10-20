@@ -86,8 +86,9 @@ public interface StyleConditionInstance<T extends QuickElement> {
 				QuickTemplate.AttachPoint<?> role = element.atts().get((RoleAttribute) att);
 				path.add(role);
 				rolePaths.add(new ArrayList<>(path));
-				if (element.getParent() != null)
-					addTemplatePaths(element.getParent(), rolePaths, path);
+				QuickElement parent = element.getParent().get();
+				if (parent != null)
+					addTemplatePaths(parent, rolePaths, path);
 				path.removeLast();
 			}
 		}

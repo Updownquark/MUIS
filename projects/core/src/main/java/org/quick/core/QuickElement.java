@@ -5,10 +5,7 @@ import java.awt.Rectangle;
 import java.util.Collections;
 import java.util.List;
 
-import org.observe.Action;
-import org.observe.Observable;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
+import org.observe.*;
 import org.qommons.Transaction;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
@@ -25,6 +22,8 @@ import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
 import org.quick.core.tags.State;
 import org.quick.core.tags.StateSupport;
+
+import com.google.common.reflect.TypeToken;
 
 /** The base display element in Quick. Contains base methods to administer content (children, style, placement, etc.) */
 @StateSupport({@State(name = States.CLICK_NAME, priority = States.CLICK_PRIORITY),
@@ -48,7 +47,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private QuickToolkit theToolkit;
 
-	private QuickElement theParent;
+	private final SettableValue<QuickElement> theParent;
 
 	private QuickClassView theClassView;
 
@@ -86,6 +85,11 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/** Creates a Quick element */
 	public QuickElement() {
+		theParent = new org.observe.SimpleSettableValue<>(TypeToken.of(QuickElement.class), true);
+		theParent.act(evt -> {
+			if (evt.getOldValue() != null)
+				evt.getOldValue().theChildren.remove(QuickElement.this);
+		});
 		theMessageCenter = new QuickMessageCenter(null, null, this);
 		theLifeCycleManager = new QuickLifeCycleManager(this, (Controller controller) -> {
 			theLifeCycleController = controller;
@@ -418,9 +422,8 @@ public abstract class QuickElement implements QuickParseEnv {
 				tk = (QuickToolkit) child.getClass().getClassLoader();
 			else
 				tk = getDocument().getEnvironment().getCoreToolkit();
-			org.quick.core.QuickClassView classView = new org.quick.core.QuickClassView(getDocument().getEnvironment(),
-				getParent().getClassView(), tk);
-			child.init(getDocument(), tk, classView, getParent(), null, null);
+			org.quick.core.QuickClassView classView = new org.quick.core.QuickClassView(getDocument().getEnvironment(), theClassView, tk);
+			child.init(getDocument(), tk, classView, this, null, null);
 		}
 		if (child.life().isAfter(CoreStage.INIT_CHILDREN.name()) < 0 && life().isAfter(CoreStage.INITIALIZED.name()) > 0) {
 			child.initChildren(Collections.emptyList());
@@ -451,7 +454,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			}
 
 			private boolean isInPreferred(org.quick.core.layout.Orientation orient) {
-				QuickElement parent = getParent();
+				QuickElement parent = getParent().get();
 				if (parent == null)
 					return true;
 				org.quick.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
@@ -517,8 +520,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	// Hierarchy methods
 
 	/** @return This element's parent in the DOM tree */
-	public final QuickElement getParent() {
-		return theParent;
+	public final ObservableValue<QuickElement> getParent() {
+		return theParent.unsettable();
 	}
 
 	/**
@@ -527,14 +530,9 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param parent The new parent for this element
 	 */
 	protected final void setParent(QuickElement parent) {
-		if(theParent == parent)
+		if (theParent.get() == parent)
 			return;
-		QuickElement oldParent = theParent;
-		if(theParent != null) {
-			theParent.theChildren.remove(this);
-		}
-		theParent = parent;
-		events().fire(new org.quick.core.event.ElementMovedEvent(this, oldParent, parent));
+		theParent.set(parent, null);
 	}
 
 	/** @return An unmodifiable list of this element's children */
@@ -596,8 +594,9 @@ public abstract class QuickElement implements QuickParseEnv {
 		if(theZ == z)
 			return;
 		theZ = z;
-		if(theParent != null)
-			theParent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
+		QuickElement parent = theParent.get();
+		if (parent != null)
+			parent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
 	}
 
 	/** @return The size policy for this item's width */

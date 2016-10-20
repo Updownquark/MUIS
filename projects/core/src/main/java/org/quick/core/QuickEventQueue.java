@@ -478,7 +478,7 @@ public class QuickEventQueue {
 					QuickElement el = theEvent.getElement();
 					while(el != null) {
 						el.events().fire(theEvent.copyFor(el));
-						el = el.getParent();
+						el = el.getParent().get();
 					}
 				}
 			} else
@@ -536,7 +536,7 @@ public class QuickEventQueue {
 				QuickElement el = theEvent.getElement();
 				while(el != null) {
 					el.events().fire(theEvent.copyFor(el));
-					el = el.getParent();
+					el = el.getParent().get();
 				}
 			}
 		}
@@ -741,7 +741,7 @@ public class QuickEventQueue {
 		}
 
 		/**
-		 * The queue thread’s action is to go through the events in the queue. When an event is come to, the dirty paint or layout state of
+		 * The queue threadï¿½s action is to go through the events in the queue. When an event is come to, the dirty paint or layout state of
 		 * the element is checked. If not dirty, remove the event and do nothing. If the dirty time is <=10ms ago, skip the event so that it
 		 * is checked again the next 50ms. Heavy, multiple-op processes on elements from external threads will cause few layout/redraw
 		 * actions this way, but after ops finish, layout/redraw will happen within 60ms, average 35ms.

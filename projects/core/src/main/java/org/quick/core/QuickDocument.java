@@ -571,7 +571,7 @@ public class QuickDocument implements QuickParseEnv {
 
 	boolean searchFocus(QuickElement el, UserEvent cause, boolean forward) {
 		QuickElement lastChild = theFocus;
-		QuickElement parent = theFocus.getParent();
+		QuickElement parent = theFocus.getParent().get();
 		while(parent != null) {
 			QuickElement[] children = parent.getChildren().sortByZ().toArray();
 			if(!forward) {
@@ -596,7 +596,7 @@ public class QuickDocument implements QuickParseEnv {
 				return true;
 			}
 			lastChild = parent;
-			parent = parent.getParent();
+			parent = parent.getParent().get();
 		}
 		return false;
 	}

@@ -14,23 +14,50 @@ import org.quick.core.prop.QuickAttribute;
 
 import com.google.common.reflect.TypeToken;
 
+/**
+ * An instance that may or may not satisfy a particular {@link StyleCondition}
+ *
+ * @param <T> The type of element that this condition is for
+ */
 public interface StyleConditionInstance<T extends QuickElement> {
+	/** @return The type of element that this condition is for */
 	Class<T> getElementType();
 
+	/** @return The set of states that are active in this condition */
 	ObservableSet<QuickState> getState();
 
+	/** @return The set of groups that this condition has */
 	ObservableSet<String> getGroups();
 
+	/** @return The set of template role paths that this condition satisfies */
 	ObservableSet<List<QuickTemplate.AttachPoint<?>>> getRolePaths();
 
+	/**
+	 * Builds an ad-hoc condition instance
+	 *
+	 * @param <T> The compile-time type of element that the condition is for
+	 * @param type The run-time type of the element that the condition is for
+	 * @return A builder to build the condition instance
+	 */
 	public static <T extends QuickElement> Builder<T> build(Class<T> type) {
 		return new Builder<>(type);
 	}
 
+	/**
+	 * @param <T> The type of the element
+	 * @param element The element
+	 * @return A condition instance whose data reflects the element's
+	 */
 	public static <T extends QuickElement> StyleConditionInstance<T> of(T element) {
 		return of(element, null);
 	}
 
+	/**
+	 * @param <T> The type of the element
+	 * @param element The element
+	 * @param extraStates Extra states for the condition that may or may not be present in the element's active states
+	 * @return A condition instance whose data reflects the element's, with the addition of the extra states
+	 */
 	public static <T extends QuickElement> StyleConditionInstance<T> of(T element, ObservableSet<QuickState> extraStates) {
 		ObservableSet<QuickState> states = element.getStateEngine().activeStates();
 		if (extraStates != null)
@@ -44,13 +71,15 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		addTemplatePaths(element, tempRolePaths, new LinkedList<>());
 		rolePaths = ObservableSet.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {}, tempRolePaths);
 
-		return new Builder<>(element.getClass())//
+		return new Builder<>((Class<T>) element.getClass())//
 			.withState(states)//
 			.withGroups(ObservableSet.flattenValue(groupValue))//
 			.withRolePaths(rolePaths)//
 			.build();
 	}
 
+	/** For internal use */
+	@SuppressWarnings("javadoc")
 	static void addTemplatePaths(QuickElement element, Set<List<AttachPoint<?>>> rolePaths, LinkedList<QuickTemplate.AttachPoint<?>> path) {
 		for (QuickAttribute<?> att : element.atts().attributes()) {
 			if (att instanceof RoleAttribute) {
@@ -64,35 +93,53 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		}
 	}
 
+	/**
+	 * Builds ad-hoc condition values
+	 *
+	 * @param <T> The type of element that the condition will be for
+	 */
 	public static class Builder<T extends QuickElement> {
 		private final Class<T> theType;
 		private ObservableSet<QuickState> theState;
 		private ObservableSet<String> theGroups;
 		private ObservableSet<List<QuickTemplate.AttachPoint<?>>> theRolePaths;
 
-		public Builder(Class<T> type) {
+		Builder(Class<T> type) {
 			theType = type;
 			theState = ObservableSet.constant(TypeToken.of(QuickState.class));
 			theGroups = ObservableSet.constant(TypeToken.of(String.class));
 			theRolePaths = ObservableSet.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {});
 		}
 
+		/**
+		 * @param state The states for the condition
+		 * @return This builder
+		 */
 		public Builder<T> withState(ObservableSet<QuickState> state) {
 			theState = state;
 			return this;
 		}
 
+		/**
+		 * @param groups The groups for the condition
+		 * @return This builder
+		 */
 		public Builder<T> withGroups(ObservableSet<String> groups) {
 			theGroups = groups;
 			return this;
 		}
 
+		/**
+		 * @param rolePaths The template role paths for the condition
+		 * @return This builder
+		 */
 		public Builder<T> withRolePaths(ObservableSet<List<QuickTemplate.AttachPoint<?>>> rolePaths) {
 			theRolePaths = rolePaths;
 			return this;
 		}
 
-		public StyleConditionInstance build() {
+		/** @return A new condition instance with this builder's data */
+		public StyleConditionInstance<T> build() {
 			return new DefaultStyleConditionInstance<>(theType, theState, theGroups, theRolePaths);
 		}
 

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.observe.SimpleSettableValue;
+import org.quick.core.QuickElement;
 
 /** Tests style classes in org.quick.core.style.* packages */
 public class StylesTest {
@@ -19,6 +20,7 @@ public class StylesTest {
 		v1.set(1d, null);
 		assertEquals(v1.get(), style.get(BackgroundStyle.transparency).get(), 0.0000001);
 		assertEquals(FontStyle.size.getDefault(), style.get(FontStyle.size).get(), 0.000000);
+		// TODO More!
 	}
 
 	@Test
@@ -29,10 +31,16 @@ public class StylesTest {
 			.set(BackgroundStyle.transparency, v1)//
 			.build();
 
-		assertEquals(v1.get(), sheet.get(BackgroundStyle.transparency).get(), 0.0000001);
+		StyleConditionInstance<QuickElement> catchAll = StyleConditionInstance.build(QuickElement.class).build();
+		assertEquals(v1.get(), sheet.get(catchAll, BackgroundStyle.transparency, false).get(), 0.0000001);
 		v1.set(1d, null);
-		assertEquals(v1.get(), sheet.get(BackgroundStyle.transparency).get(), 0.0000001);
-		assertEquals(FontStyle.size.getDefault(), sheet.get(FontStyle.size).get(), 0.000000);
+		assertEquals(v1.get(), sheet.get(catchAll, BackgroundStyle.transparency, false).get(), 0.0000001);
+		assertEquals(null, sheet.get(catchAll, FontStyle.size, false).get());
+		assertEquals(FontStyle.size.getDefault(), sheet.get(catchAll, FontStyle.size, true).get(), 0.000000);
+		/* Need to test overriding styles by type, states, groups, and role paths
+		 * Need to test observability (changes to a value as the condition or the style sheet is modified
+		 * Test event counts to make sure transactionality is obeyed to maximize performance where possible
+		 */
 		// TODO
 	}
 

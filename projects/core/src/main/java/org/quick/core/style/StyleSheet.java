@@ -20,15 +20,58 @@ public interface StyleSheet {
 	<T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr);
 
 	/**
+	 * @param <T> The type of the attribute
+	 * @param condition The style condition to get attribute values for
+	 * @param attr The attribute get values for
+	 * @return All conditional values defined in this style sheet for the given attribute matching the given condition
+	 */
+	default <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleConditionInstance<?> condition,
+		StyleAttribute<T> attr) {
+		ObservableSortedSet<StyleConditionValue<T>> exprs = getStyleExpressions(attr);
+		exprs = exprs.filterStatic(scv -> scv.getCondition().matchesType(condition.getElementType()));
+		exprs = exprs.refreshEach(scv -> scv.getCondition().matches(condition)).filter(scv -> scv.getCondition().matches(condition).get());
+		return exprs;
+	}
+
+	/**
+	 * @param condition The style condition to use
+	 * @param attr The attribute to check
+	 * @return Whether this style sheet has any values for the given attribute for which the condition is met for the given condition
+	 *         instance
+	 */
+	default boolean isSet(StyleConditionInstance<?> condition, StyleAttribute<?> attr) {
+		for (StyleConditionValue<?> scv : getStyleExpressions(attr))
+			if (scv.getCondition().matches(condition).get())
+				return true;
+		return false;
+	}
+
+	/**
+	 * @param <T> The type of the attribute
+	 * @param condition The style condition to use
+	 * @param attr The style attribute to get the value for
+	 * @param withDefault Whether to use the attribute's default value if this style sheet does not have a value whose condition matches the
+	 *        condition instance instead of null
+	 * @return The value of the given attribute in this style sheet whose condition matches the given condition instance
+	 */
+	default <T> ObservableValue<T> get(StyleConditionInstance<?> condition, StyleAttribute<T> attr, boolean withDefault) {
+		ObservableSortedSet<StyleConditionValue<T>> exprs = getStyleExpressions(condition, attr);
+
+		ObservableValue<T> value;
+		if (withDefault)
+			value = ObservableValue.flatten(exprs.getFirst(), () -> attr.getDefault());
+		else
+			value = ObservableValue.flatten(exprs.getFirst());
+		return value;
+	}
+
+	/**
 	 * @param element The element to use for checking conditions
 	 * @param attr The attribute to check
 	 * @return Whether this style sheet has any values for the given attribute for which the condition is met for the given element
 	 */
 	default boolean isSet(QuickElement element, StyleAttribute<?> attr) {
-		for (StyleConditionValue<?> scv : getStyleExpressions(attr))
-			if (scv.getCondition().matches(element).get())
-				return true;
-		return false;
+		return isSet(StyleConditionInstance.of(element), attr);
 	}
 
 	/**
@@ -39,10 +82,7 @@ public interface StyleSheet {
 	 *         given extra states
 	 */
 	default boolean isSet(QuickElement element, ObservableSet<QuickState> extraStates, StyleAttribute<?> attr) {
-		for (StyleConditionValue<?> scv : getStyleExpressions(attr))
-			if (scv.getCondition().matches(element, extraStates).get())
-				return true;
-		return false;
+		return isSet(StyleConditionInstance.of(element, extraStates), attr);
 	}
 
 	/**
@@ -54,18 +94,7 @@ public interface StyleSheet {
 	 * @return The value of the given attribute in this style sheet whose condition matches the given element
 	 */
 	default <T> ObservableValue<T> get(QuickElement element, StyleAttribute<T> attr, boolean withDefault) {
-		ObservableSortedSet<StyleConditionValue<T>> exprs = getStyleExpressions(attr)
-			.filterStatic(scv -> scv.getCondition().getType().isInstance(element));
-		exprs = exprs//
-			.refreshEach(scv -> scv.getCondition().matches(element))//
-			.filter(scv -> //
-		scv.getCondition().matches(element).get());
-		ObservableValue<T> value;
-		if (withDefault)
-			value = ObservableValue.flatten(exprs.getFirst(), () -> attr.getDefault());
-		else
-			value = ObservableValue.flatten(exprs.getFirst());
-		return value;
+		return get(StyleConditionInstance.of(element), attr, withDefault);
 	}
 
 	/**
@@ -79,13 +108,6 @@ public interface StyleSheet {
 	 */
 	default <T> ObservableValue<T> get(QuickElement element, ObservableSet<QuickState> extraStates, StyleAttribute<T> attr,
 		boolean withDefault) {
-		ObservableSortedSet<StyleConditionValue<T>> exprs = getStyleExpressions(attr)
-			.filterStatic(scv -> scv.getCondition().getType().isInstance(element));
-		exprs = exprs.refreshEach(scv -> scv.getCondition().matches(element, extraStates))
-			.filter(scv -> scv.getCondition().matches(element, extraStates).get());
-		ObservableValue<T> value = ObservableValue.flatten(exprs.getFirst());
-		if (withDefault)
-			value = value.mapV(v -> v == null ? attr.getDefault() : v);
-		return value;
+		return get(StyleConditionInstance.of(element, extraStates), attr, withDefault);
 	}
 }

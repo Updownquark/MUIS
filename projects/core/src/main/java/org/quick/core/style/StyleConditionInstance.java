@@ -70,12 +70,19 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		Set<List<QuickTemplate.AttachPoint<?>>> tempRolePaths = new java.util.LinkedHashSet<>();
 		addTemplatePaths(element, tempRolePaths, new LinkedList<>());
 		rolePaths = ObservableSet.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {}, tempRolePaths);
+		/*rolePaths = org.observe.util.ObservableUtils.getPathSet(element, new TypeToken<QuickTemplate.AttachPoint<?>>() {},
+			StyleConditionInstance::getTemplateRoles, QuickElement::getParent);*/
 
 		return new Builder<>((Class<T>) element.getClass())//
 			.withState(states)//
 			.withGroups(ObservableSet.flattenValue(groupValue))//
 			.withRolePaths(rolePaths)//
 			.build();
+	}
+
+	static ObservableSet<QuickTemplate.AttachPoint<?>> getTemplateRoles(QuickElement element) {
+		// TODO make this observable. Probably easier when attribute manager exposes an observable collection of attributes
+
 	}
 
 	/** For internal use */

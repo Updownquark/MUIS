@@ -54,6 +54,8 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 	@Override
 	public int compareTo(StyleCondition o) {
+		if (this == o)
+			return 0;
 		int compare;
 		if(theState!=null){
 			if(o.theState==null)

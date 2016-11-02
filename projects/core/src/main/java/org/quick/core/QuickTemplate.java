@@ -1211,7 +1211,7 @@ public abstract class QuickTemplate extends QuickElement {
 					if (attr.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
 						continue;
 					try {
-						child.atts().set(attr.getKey(), attr.getValue(), child.getParent());
+						child.atts().set(attr.getKey(), attr.getValue(), child.getParent().get());
 					} catch (QuickException e) {
 						child.msg().error(
 							"Template-specified attribute " + attr.getKey() + "=" + attr.getValue() + " is not supported by content", e);

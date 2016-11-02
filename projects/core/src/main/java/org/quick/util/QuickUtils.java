@@ -32,8 +32,11 @@ public class QuickUtils {
 	 * @return The most distant ancestor of the given element
 	 */
 	public static QuickElement getRoot(QuickElement element) {
-		while(element.getParent() != null)
-			element = element.getParent();
+		QuickElement parent = element.getParent().get();
+		while (parent != null) {
+			element = parent;
+			parent = element.getParent().get();
+		}
 		return element;
 	}
 
@@ -45,7 +48,7 @@ public class QuickUtils {
 		ArrayList<QuickElement> ret = new ArrayList<>();
 		while(element != null) {
 			ret.add(element);
-			element = element.getParent();
+			element = element.getParent().get();
 		}
 		return ArrayUtils.reverse(ret.toArray(new QuickElement[ret.size()]));
 	}
@@ -56,9 +59,11 @@ public class QuickUtils {
 	 */
 	public static int getDepth(QuickElement element) {
 		int ret = 0;
-		while(element.getParent() != null) {
+		QuickElement parent = element.getParent().get();
+		while (parent != null) {
 			ret++;
-			element = element.getParent();
+			element = parent;
+			parent = element.getParent().get();
 		}
 		return ret;
 	}
@@ -71,7 +76,7 @@ public class QuickUtils {
 	public static boolean isAncestor(QuickElement ancestor, QuickElement descendant) {
 		QuickElement parent = descendant;
 		while(parent != null && parent != ancestor)
-			parent = parent.getParent();
+			parent = parent.getParent().get();
 		return parent == ancestor;
 	}
 
@@ -84,7 +89,7 @@ public class QuickUtils {
 		QuickElement [] path1 = path(el1);
 		QuickElement test = el2;
 		while(test != null && !ArrayUtils.contains(path1, test))
-			test = test.getParent();
+			test = test.getParent().get();
 		return test;
 	}
 
@@ -143,16 +148,16 @@ public class QuickUtils {
 		if(common == null)
 			return null;
 		QuickElement parent = el2;
-		while(parent != common) {
+		while (parent != null && parent != common) {
 			ret.x -= parent.bounds().getX();
 			ret.y -= parent.bounds().getY();
-			parent = parent.getParent();
+			parent = parent.getParent().get();
 		}
 		parent = el1;
-		while(parent != common) {
+		while (parent != null && parent != common) {
 			ret.x += parent.bounds().getX();
 			ret.y += parent.bounds().getY();
-			parent = parent.getParent();
+			parent = parent.getParent().get();
 		}
 		return ret;
 	}
@@ -165,10 +170,12 @@ public class QuickUtils {
 		int x = 0;
 		int y = 0;
 		QuickElement el = element;
-		while(el.getParent() != null) {
+		QuickElement parent = el.getParent().get();
+		while (parent != null) {
 			x += el.bounds().getX();
 			y += el.bounds().getY();
-			el = el.getParent();
+			el = parent;
+			parent = el.getParent().get();
 		}
 		return new Point(x, y);
 	}

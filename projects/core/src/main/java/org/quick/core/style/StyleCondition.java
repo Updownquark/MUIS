@@ -9,6 +9,8 @@ import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.mgr.QuickState;
 
+import com.google.common.reflect.TypeToken;
+
 /**
  * A condition that can be evaluated against various attributes of a {@link QuickElement} to determine whether a style value from a
  * {@link StyleSheet} applies to the element
@@ -94,33 +96,49 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	}
 
 	/**
-	 * @param element The element to test
-	 * @return An observable boolean reflecting whether this condition currently applies to the given element
+	 * @param elementType The element type to test
+	 * @return Whether this condition matches the given type
 	 */
-	public ObservableValue<Boolean> matches(QuickElement element) {
-		if (!theType.isInstance(element))
+	public boolean matchesType(Class<? extends QuickElement> elementType) {
+		return theType.isAssignableFrom(elementType);
+	}
+
+	/**
+	 * @param value The style condition to test
+	 * @return An observable boolean reflecting whether this condition currently applies to the given condition
+	 */
+	public ObservableValue<Boolean> matches(StyleConditionInstance<?> value) {
+		if (!matchesType(value.getElementType()))
 			return ObservableValue.constant(false);
 
 		ObservableValue<Boolean> stateMatches;
 		if (theState == null)
 			stateMatches = ObservableValue.constant(true);
 		else
-			stateMatches = theState.observeMatches(element.state().activeStates());
+			stateMatches = theState.observeMatches(value.getState());
 
 		ObservableValue<Boolean> groupMatches;
 		if (theGroups.isEmpty())
 			groupMatches = ObservableValue.constant(true);
 		else
-			groupMatches = element.atts().getHolder(StyleAttributes.group)
-				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
+			groupMatches = value.getGroups().observeContainsAll(ObservableCollection.constant(TypeToken.of(String.class), theGroups));
 
 		ObservableValue<Boolean> rolePathMatches;
 		if (theRolePath.isEmpty())
 			rolePathMatches = ObservableValue.constant(true);
-		else // TODO Make this observable. Probably easier when element children are observable collections
-			rolePathMatches = ObservableValue.constant(rolePathMatches(element, theRolePath.size() - 1));
+		else
+			rolePathMatches = value.getRolePaths()
+				.observeContainsAll(ObservableCollection.constant(new TypeToken<QuickTemplate.AttachPoint<?>>() {}, theRolePath));
 
 		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, rolePathMatches);
+	}
+
+	/**
+	 * @param element The element to test
+	 * @return An observable boolean reflecting whether this condition currently applies to the given element
+	 */
+	public ObservableValue<Boolean> matches(QuickElement element) {
+		return matches(StyleConditionInstance.of(element));
 	}
 
 	/**
@@ -129,46 +147,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	 * @return An observable boolean reflecting whether this condition currently applies to the given element with the extra states
 	 */
 	public ObservableValue<Boolean> matches(QuickElement element, ObservableSet<QuickState> extraStates) {
-		if (!theType.isInstance(element))
-			return ObservableValue.constant(false);
-
-		ObservableValue<Boolean> stateMatches;
-		if (theState == null)
-			stateMatches = ObservableValue.constant(true);
-		else {
-			ObservableSet<QuickState> allStates = ObservableSet
-				.unique(ObservableCollection.flattenCollections(element.state().activeStates(), extraStates), Object::equals);
-			stateMatches = theState.observeMatches(allStates);
-		}
-
-		ObservableValue<Boolean> groupMatches;
-		if (theGroups.isEmpty())
-			groupMatches = ObservableValue.constant(true);
-		else
-			groupMatches = element.atts().getHolder(StyleAttributes.group)
-				.mapV(groups -> Arrays.asList(groups).containsAll(theGroups));
-
-		ObservableValue<Boolean> rolePathMatches;
-		if (theRolePath.isEmpty())
-			rolePathMatches = ObservableValue.constant(true);
-		else // TODO Make this observable. Probably easier when element children are observable collections
-			rolePathMatches = ObservableValue.constant(rolePathMatches(element, theRolePath.size() - 1));
-
-		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, rolePathMatches);
-	}
-
-	private boolean rolePathMatches(QuickElement element, int index) {
-		QuickTemplate.AttachPoint<?> role = theRolePath.get(index);
-		if (element.atts().get(role.template.role) != role)
-			return false;
-		if (index == 0)
-			return true;
-		QuickElement owner = element.getParent();
-		while (owner != null && !(owner instanceof QuickTemplate && ((QuickTemplate) owner).getTemplate() == role.template))
-			owner = owner.getParent();
-		if (owner == null)
-			return false;
-		return rolePathMatches(owner, index - 1);
+		return matches(StyleConditionInstance.of(element, extraStates));
 	}
 
 	@Override

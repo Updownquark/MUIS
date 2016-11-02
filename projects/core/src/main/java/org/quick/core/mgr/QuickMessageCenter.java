@@ -134,8 +134,9 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 		fireListeners(message, cause);
 
 		if(theElement != null) {
-			if(theElement.getParent() != null)
-				theElement.getParent().msg().message(message, cause);
+			QuickElement parent = theElement.getParent().get();
+			if (parent != null)
+				parent.msg().message(message, cause);
 			else
 				theElement.getDocument().msg().message(message, cause);
 		} else if(theDocument != null)

@@ -182,6 +182,8 @@ public final class QuickPropertyType<T> {
 	 * @throws QuickException If an exception occurs in a conversion that should succeed
 	 */
 	public <F, X> X convert(TypeToken<F> fromType, F value, TypeToken<X> toType) throws QuickException {
+		if (toType.getRawType().isAssignableFrom(fromType.getRawType()))
+			return (X) value;
 		if (QuickUtils.isAssignableFrom(toType, fromType))
 			return QuickUtils.convert(toType, value);
 		for (TypeMapping<?, ?> mapping : theMappings) {

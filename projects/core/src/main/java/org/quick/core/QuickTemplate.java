@@ -1307,6 +1307,29 @@ public abstract class QuickTemplate extends QuickElement {
 		});
 	}
 
+	/**
+	 * @param child The child to search for
+	 * @param role The attach point role to search for the child in
+	 * @return The template that manages the given child in the given role
+	 */
+	public static QuickTemplate getTemplateFor(QuickElement child, AttachPoint<?> role) {
+		QuickElement parent = child.getParent().get();
+		while (parent != null) {
+			if (role.template.getDefiner().isInstance(parent)) {
+				QuickTemplate template = (QuickTemplate) parent;
+				boolean found;
+				if (role.multiple)
+					found = template.getContainer(role).getContent().contains(child);
+				else
+					found = template.getElement(role).get() == child;
+				if (found)
+					return template;
+			}
+			parent = parent.getParent().get();
+		}
+		return null;
+	}
+
 	private class AttachPointSetChildList extends ObservableList.FlattenedObservableList<QuickElement> implements ElementList<QuickElement> {
 		AttachPointSetChildList() {
 			super(getAttachPointContentList());

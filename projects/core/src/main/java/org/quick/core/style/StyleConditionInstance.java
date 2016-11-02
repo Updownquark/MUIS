@@ -1,14 +1,19 @@
 package org.quick.core.style;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import org.observe.ObservableValue;
+import org.observe.assoc.ObservableMap;
+import org.observe.assoc.ObservableSetTree;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.qommons.BiTuple;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
-import org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.prop.QuickAttribute;
 
@@ -30,7 +35,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	ObservableSet<String> getGroups();
 
 	/** @return The set of template role paths that this condition satisfies */
-	ObservableSet<List<QuickTemplate.AttachPoint<?>>> getRolePaths();
+	ObservableSet<List<AttachPoint<?>>> getRolePaths();
 
 	/**
 	 * Builds an ad-hoc condition instance
@@ -65,13 +70,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		ObservableValue<ObservableSet<String>> groupValue = element.atts().getHolder(StyleAttributes.group).mapV((Set<String> g) -> {
 			return ObservableSet.<String> constant(TypeToken.of(String.class), g == null ? Collections.<String> emptySet() : g);
 		});
-		// TODO Make this observable. Probably easier when element parent is observable
-		ObservableSet<List<QuickTemplate.AttachPoint<?>>> rolePaths;
-		Set<List<QuickTemplate.AttachPoint<?>>> tempRolePaths = new java.util.LinkedHashSet<>();
-		addTemplatePaths(element, tempRolePaths, new LinkedList<>());
-		rolePaths = ObservableSet.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {}, tempRolePaths);
-		/*rolePaths = org.observe.util.ObservableUtils.getPathSet(element, new TypeToken<QuickTemplate.AttachPoint<?>>() {},
-			StyleConditionInstance::getTemplateRoles, QuickElement::getParent);*/
+		ObservableSet<List<AttachPoint<?>>> rolePaths = StyleConditionInstanceFunctions.getTemplateRoles(element);
 
 		return new Builder<>((Class<T>) element.getClass())//
 			.withState(states)//
@@ -80,24 +79,38 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			.build();
 	}
 
-	static ObservableSet<QuickTemplate.AttachPoint<?>> getTemplateRoles(QuickElement element) {
-		// TODO make this observable. Probably easier when attribute manager exposes an observable collection of attributes
+	/** Internal functions for use by this interface's static methods */
+	static class StyleConditionInstanceFunctions {
+		private static ObservableSet<List<AttachPoint<?>>> getTemplateRoles(QuickElement element) {
+			TypeToken<AttachPoint<?>> apType = new TypeToken<AttachPoint<?>>() {};
+			ObservableSetTree<BiTuple<QuickElement, AttachPoint<?>>, AttachPoint<?>> tree = ObservableSetTree.of(//
+				ObservableValue.constant(new BiTuple<>(element, null)), //
+				apType, tuple -> ObservableValue.constant(apType, tuple.getValue2()), //
+				tuple -> rolesFor(tuple.getValue1())//
+			);
+			ObservableSet<List<AttachPoint<?>>> rawPaths = ObservableSetTree.valuePathsOf(tree, false);
+			ObservableSet<List<AttachPoint<?>>> filteredPaths = rawPaths//
+				.filter(path -> path.get(0) != null) // Filter out the root path
+				.mapEquivalent(path -> { // Remove the first element, which is null, and reverse the path
+					ArrayList<AttachPoint<?>> newPath = new ArrayList<>(path.size() - 1);
+					for (int i = 0; i < newPath.size(); i++)
+						newPath.add(path.get(path.size() - i - 1));
+					return Collections.unmodifiableList(newPath);
+				}, null); // The reverse function is unimportant since Objects.equals doesn't care
+			return filteredPaths;
+		}
 
-	}
-
-	/** For internal use */
-	@SuppressWarnings("javadoc")
-	static void addTemplatePaths(QuickElement element, Set<List<AttachPoint<?>>> rolePaths, LinkedList<QuickTemplate.AttachPoint<?>> path) {
-		for (QuickAttribute<?> att : element.atts().attributes()) {
-			if (att instanceof RoleAttribute) {
-				QuickTemplate.AttachPoint<?> role = element.atts().get((RoleAttribute) att);
-				path.add(role);
-				rolePaths.add(new ArrayList<>(path));
-				QuickElement parent = element.getParent().get();
-				if (parent != null)
-					addTemplatePaths(parent, rolePaths, path);
-				path.removeLast();
-			}
+		private static ObservableSet<BiTuple<QuickElement, AttachPoint<?>>> rolesFor(QuickElement element) {
+			if (element == null)
+				return ObservableSet.constant(new TypeToken<BiTuple<QuickElement, AttachPoint<?>>>() {});
+			ObservableMap<QuickAttribute<?>, ?> attMap = element.atts().getAllValues()
+				.filterKeys(attr -> attr instanceof QuickTemplate.TemplateStructure.RoleAttribute);
+			ObservableMap<QuickAttribute<?>, BiTuple<QuickElement, AttachPoint<?>>> roleMap = attMap.map(v -> {
+				AttachPoint<?> ap = (AttachPoint<?>) v;
+				QuickTemplate template = QuickTemplate.getTemplateFor(element, ap);
+				return new BiTuple<>(template, ap);
+			});
+			return roleMap.entrySet().mapEquivalent(entry -> entry.getValue(), null);
 		}
 	}
 
@@ -110,13 +123,13 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		private final Class<T> theType;
 		private ObservableSet<QuickState> theState;
 		private ObservableSet<String> theGroups;
-		private ObservableSet<List<QuickTemplate.AttachPoint<?>>> theRolePaths;
+		private ObservableSet<List<AttachPoint<?>>> theRolePaths;
 
 		Builder(Class<T> type) {
 			theType = type;
 			theState = ObservableSet.constant(TypeToken.of(QuickState.class));
 			theGroups = ObservableSet.constant(TypeToken.of(String.class));
-			theRolePaths = ObservableSet.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {});
+			theRolePaths = ObservableSet.constant(new TypeToken<List<AttachPoint<?>>>() {});
 		}
 
 		/**
@@ -141,7 +154,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		 * @param rolePaths The template role paths for the condition
 		 * @return This builder
 		 */
-		public Builder<T> withRolePaths(ObservableSet<List<QuickTemplate.AttachPoint<?>>> rolePaths) {
+		public Builder<T> withRolePaths(ObservableSet<List<AttachPoint<?>>> rolePaths) {
 			theRolePaths = rolePaths;
 			return this;
 		}
@@ -155,7 +168,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			private final Class<T> theType;
 			private final ObservableSet<QuickState> theState;
 			private final ObservableSet<String> theGroups;
-			private final ObservableSet<List<QuickTemplate.AttachPoint<?>>> theRolePaths;
+			private final ObservableSet<List<AttachPoint<?>>> theRolePaths;
 
 			DefaultStyleConditionInstance(Class<T> type, ObservableSet<QuickState> state, ObservableSet<String> groups,
 				ObservableSet<List<AttachPoint<?>>> rolePaths) {
@@ -182,7 +195,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			}
 
 			@Override
-			public ObservableSet<List<QuickTemplate.AttachPoint<?>>> getRolePaths() {
+			public ObservableSet<List<AttachPoint<?>>> getRolePaths() {
 				return theRolePaths;
 			}
 		}

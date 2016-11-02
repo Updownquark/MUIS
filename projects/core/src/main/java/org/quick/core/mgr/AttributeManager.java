@@ -5,6 +5,9 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.observe.*;
+import org.observe.assoc.ObservableMap;
+import org.observe.assoc.impl.ObservableMapImpl;
+import org.observe.collect.ObservableSet;
 import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
@@ -305,7 +308,7 @@ public class AttributeManager {
 		}
 	}
 
-	private ConcurrentHashMap<QuickAttribute<?>, AttributeHolder<?>> theAcceptedAttrs;
+	private ObservableMap<QuickAttribute<?>, AttributeHolder<?>> theAcceptedAttrs;
 	private ConcurrentHashMap<String, QuickAttribute<?>> theAttributesByName;
 	private ConcurrentHashMap<String, RawAttributeValue> theRawAttributes;
 
@@ -313,7 +316,7 @@ public class AttributeManager {
 
 	/** @param element The element to manage attribute information for */
 	public AttributeManager(QuickElement element) {
-		theAcceptedAttrs = new ConcurrentHashMap<>();
+		theAcceptedAttrs = new ObservableMapImpl<>(new TypeToken<QuickAttribute<?>>() {}, new TypeToken<AttributeHolder<?>>() {});
 		theAttributesByName = new ConcurrentHashMap<>();
 		theRawAttributes = new ConcurrentHashMap<>();
 		theElement = element;
@@ -334,6 +337,16 @@ public class AttributeManager {
 			theAttributesByName.put(attr.getName(), attr);
 		}
 		return holder;
+	}
+
+	/** @return All attributes accepted in this manager */
+	public ObservableSet<QuickAttribute<?>> getAllAttributes() {
+		return theAcceptedAttrs.keySet().immutable();
+	}
+
+	/** @return A map of all attributes accepted in this manager to their current values */
+	public ObservableMap<QuickAttribute<?>, ?> getAllValues() {
+		return ObservableMap.flatten(theAcceptedAttrs).immutable();
 	}
 
 	/**
@@ -619,14 +632,12 @@ public class AttributeManager {
 			throw new IllegalStateException("Attributes may not be required without an initial value after an element is initialized");
 		AttributeHolder<T> holder = (AttributeHolder<T>) theAcceptedAttrs.get(attr);
 		if(holder != null) {
-			fireAccepted(require, attr, initValue);
 			holder.addWanter(wanter, require); // The attribute is already accepted
 		} else {
 			holder = new AttributeHolder<>(attr);
 			holder.addWanter(wanter, require);
 			theAcceptedAttrs.put(attr, holder);
 			theAttributesByName.put(attr.getName(), attr);
-			fireAccepted(require, attr, initValue);
 			RawAttributeValue strVal = theRawAttributes.remove(attr.getName());
 			if(strVal != null) {
 				try {
@@ -640,10 +651,6 @@ public class AttributeManager {
 		if(initValue != null && holder.get() == null)
 			holder.set(initValue);
 		return holder;
-	}
-
-	private void fireAccepted(boolean require, QuickAttribute<?> attr, Object value) {
-		theElement.events().fire(new org.quick.core.event.AttributeAcceptedEvent(theElement, attr, true, require, value));
 	}
 
 	/**
@@ -662,7 +669,6 @@ public class AttributeManager {
 					theAcceptedAttrs.remove(attr);
 					namedAttrRemoved(attr);
 				}
-				theElement.events().fire(new org.quick.core.event.AttributeAcceptedEvent(theElement, attr, false, false, null));
 			}
 		}
 	}

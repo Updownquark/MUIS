@@ -142,10 +142,10 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 	}
 
 	private void restart() {
-		if (theSubscription == null)
-			return;
-		theSubscription.unsubscribe();
-		theSubscription = null;
+		if (theSubscription != null) {
+			theSubscription.unsubscribe();
+			theSubscription = null;
+		}
 		start();
 		theWatchListeners.forEach(r -> r.run());
 	}
@@ -156,6 +156,9 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		ObservableSet<StyleAttribute<?>> filteredAttributes = theStyle.attributes().filterStatic(att -> {
 			return theDomains.contains(att.getDomain()) || theAttributes.contains(att);
 		});
+		// TODO The events are not getting through the type filter because even though the events coming out of StyleValue are typed
+		// StyleAttributeEvent, those events get wrapped up in flattening, filtering, etc. and enter the filter map as plain old observable
+		// value events. Maybe modify the observable values returned from styles and style sheets to propagate StyleAttributeEvents.
 		Observable<StyleAttributeEvent<?>> styleEventObservable = ObservableCollection
 			.fold(filteredAttributes.map(att -> theStyle.get(att, true))).noInit()
 			.filterMap(evt -> evt instanceof StyleAttributeEvent ? (StyleAttributeEvent<?>) evt : null);

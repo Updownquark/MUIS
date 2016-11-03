@@ -2,11 +2,21 @@ package org.quick.core.style;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-import org.observe.SimpleSettableValue;
-import org.quick.core.QuickElement;
+import java.util.List;
 
-/** Tests style classes in org.quick.core.style.* packages */
+import org.junit.Test;
+import org.observe.ObservableValueTester;
+import org.observe.SimpleSettableValue;
+import org.observe.collect.impl.ObservableHashSet;
+import org.quick.core.QuickConstants.States;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickTemplate.AttachPoint;
+import org.quick.core.QuickTextElement;
+import org.quick.core.mgr.QuickState;
+
+import com.google.common.reflect.TypeToken;
+
+/** Tests style classes in the org.quick.core.style package */
 public class StylesTest {
 	@Test
 	public void testImmutableStyle() {
@@ -24,206 +34,163 @@ public class StylesTest {
 	}
 
 	@Test
-	public void testImmutableStyleSheet() {
+	public void testSimpleStyleSheet() {
 		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
 		v1.set(0d, null);
-		ImmutableStyleSheet sheet = ImmutableStyleSheet.build(null)//
-			.set(BackgroundStyle.transparency, v1)//
-			.build();
+		SimpleStyleSheet sheet = new SimpleStyleSheet(null);
+		sheet.set(BackgroundStyle.transparency, v1);
 
-		StyleConditionInstance<QuickElement> catchAll = StyleConditionInstance.build(QuickElement.class).build();
-		assertEquals(v1.get(), sheet.get(catchAll, BackgroundStyle.transparency, false).get(), 0.0000001);
+		class StyleConditionInstanceBacking {
+			final ObservableHashSet<QuickState> state;
+			final ObservableHashSet<String> groups;
+			final ObservableHashSet<List<AttachPoint<?>>> rolePaths;
+
+			StyleConditionInstanceBacking() {
+				state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
+				groups = new ObservableHashSet<>(TypeToken.of(String.class));
+				rolePaths = new ObservableHashSet<>(new TypeToken<List<AttachPoint<?>>>() {});
+			}
+		}
+		class DeepElement extends QuickTextElement {}
+		StyleConditionInstanceBacking baseBacking = new StyleConditionInstanceBacking();
+		StyleConditionInstanceBacking deepBacking = new StyleConditionInstanceBacking();
+		StyleConditionInstance<QuickElement> baseCondition = StyleConditionInstance.build(QuickElement.class)//
+			.withState(baseBacking.state)//
+			.withGroups(baseBacking.groups)//
+			.withRolePaths(baseBacking.rolePaths).build();
+		StyleConditionInstance<DeepElement> deepCondition = StyleConditionInstance.build(DeepElement.class)//
+			.withState(deepBacking.state)//
+			.withGroups(deepBacking.groups)//
+			.withRolePaths(deepBacking.rolePaths).build();
+
+		ObservableValueTester<Double> baseTester = new ObservableValueTester<>(
+			sheet.get(baseCondition, BackgroundStyle.transparency, false), 0.0000001);
+		ObservableValueTester<Double> deepTester = new ObservableValueTester<>(
+			sheet.get(deepCondition, BackgroundStyle.transparency, false), 0.0000001);
+
+		baseTester.check(v1.get(), 1);
+		deepTester.check(v1.get(), 1);
+
 		v1.set(1d, null);
-		assertEquals(v1.get(), sheet.get(catchAll, BackgroundStyle.transparency, false).get(), 0.0000001);
-		assertEquals(null, sheet.get(catchAll, FontStyle.size, false).get());
-		assertEquals(FontStyle.size.getDefault(), sheet.get(catchAll, FontStyle.size, true).get(), 0.000000);
-		/* Need to test overriding styles by type, states, groups, and role paths
-		 * Need to test observability (changes to a value as the condition or the style sheet is modified
-		 * Test event counts to make sure transactionality is obeyed to maximize performance where possible
-		 */
-		// TODO
-	}
+		baseTester.check(v1.get(), 1);
+		deepTester.check(v1.get(), 1);
 
-//	private static class TestStatefulStyle extends AbstractInternallyStatefulStyle implements MutableStatefulStyle, MutableStyle {
-//		TestStatefulStyle() {
-//			super(new ObservableArrayList<>(TypeToken.of(StatefulStyle.class)), new ObservableHashSet<>(TypeToken.of(QuickState.class)));
-//		}
-//
-//		@Override
-//		public <T> TestStatefulStyle set(StyleAttribute<T> attr, T value) throws ClassCastException, IllegalArgumentException {
-//			super.set(attr, value);
-//			return this;
-//		}
-//
-//		@Override
-//		public <T> TestStatefulStyle set(StyleAttribute<T> attr, StateExpression exp, T value) throws ClassCastException,
-//			IllegalArgumentException {
-//			super.set(attr, exp, value);
-//			return this;
-//		}
-//
-//		@Override
-//		public TestStatefulStyle clear(StyleAttribute<?> attr) {
-//			super.clear(attr);
-//			return this;
-//		}
-//
-//		@Override
-//		public TestStatefulStyle clear(StyleAttribute<?> attr, StateExpression exp) {
-//			super.clear(attr, exp);
-//			return this;
-//		}
-//	}
-//
-//	private static class TestStyleSheet extends AbstractStyleSheet implements MutableStyleSheet {
-//		@SuppressWarnings("unused")
-//		final ObservableList<StyleSheet> dependControl;
-//
-//		public TestStyleSheet() {
-//			super(ObservableUtils.control(new ObservableArrayList<>(TypeToken.of(StyleSheet.class))));
-//			dependControl = ObservableUtils.getController(getConditionalDependencies());
-//		}
-//
-//		@Override
-//		public <T> TestStyleSheet set(StyleAttribute<T> attr, StateGroupTypeExpression<?> exp, T value) throws ClassCastException,
-//			IllegalArgumentException {
-//			super.set(attr, exp, value);
-//			return this;
-//		}
-//
-//		@Override
-//		public TestStyleSheet clear(StyleAttribute<?> attr) {
-//			super.clear(attr);
-//			return this;
-//		}
-//
-//		@Override
-//		public TestStyleSheet clear(StyleAttribute<?> attr, StateGroupTypeExpression<?> exp) {
-//			super.clear(attr, exp);
-//			return this;
-//		}
-//	}
-//
-//	/** Tests functionality of stateful styles in org.quick.core.style.stateful */
-//	@Test
-//	public void testStatefulStyles() {
-//		TestStatefulStyle style = new TestStatefulStyle();
-//
-//		Size [] reported = new Size[1];
-//		int [] changes = new int[1];
-//		int lastChanges = 0;
-//		style.get(cornerRadius, false).value().act(value -> reported[0] = value);
-//		style.allChanges().act(event -> changes[0]++);
-//		ObservableCollection<BiTuple<StyleAttribute<?>, ObservableValue<?>>> values = style.localAttributes().map(
-//			attr -> new BiTuple<>(attr, style.getLocal(attr)));
-//		values.onElement(element -> {
-//			System.out.println("New attribute " + element.get().getValue1() + "=" + element.get().getValue2().get());
-//			element.subscribe(new Observer<ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>>() {
-//				@Override
-//				public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onNext(V2 value2) {
-//					value2.getValue().getValue2().value().noInit().takeUntil(element.noInit()).act(value3 -> {
-//						System.out.println(value2.getValue().getValue1() + "=" + value3);
-//					});
-//				}
-//
-//				@Override
-//				public <V2 extends ObservableValueEvent<BiTuple<StyleAttribute<?>, ObservableValue<?>>>> void onCompleted(V2 value2) {
-//					if(value2.getOldValue() != null) // Don't know why this is fired twice, once with null
-//						System.out.println(value2.getOldValue().getValue1() + " removed");
-//				}
-//			});
-//		});
-//
-//		assertEquals(null, style.get(cornerRadius, false).get());
-//		assertEquals(cornerRadius.getDefault(), style.get(cornerRadius, true).get());
-//		assertEquals(0, changes[0]);
-//
-//		Size clickSize = new Size(100, pixels);
-//		style.set(cornerRadius, new StateExpression.Simple(CLICK), clickSize);
-//		assertEquals(null, style.get(cornerRadius, false).get());
-//		assertEquals(cornerRadius.getDefault(), style.get(cornerRadius, true).get());
-//		assertEquals(null, reported[0]);
-//		assertEquals(0, changes[0]);
-//
-//		style.getState().add(CLICK); // 2 fold events, no Local events
-//		assertEquals(clickSize, style.get(cornerRadius, false).get());
-//		assertEquals(clickSize, reported[0]);
-//		assertTrue(changes[0] > lastChanges);
-//		lastChanges = changes[0];
-//		style.getState().remove(CLICK);
-//		assertEquals(null, style.get(cornerRadius, false).get());
-//		assertEquals(null, reported[0]);
-//		assertTrue(changes[0] > lastChanges);
-//		lastChanges = changes[0];
-//
-//		Size noClickSize = new Size(1000, pixels);
-//		style.set(cornerRadius, new StateExpression.Simple(CLICK).not(), noClickSize);
-//		assertEquals(noClickSize, style.get(cornerRadius, false).get());
-//		assertEquals(noClickSize, reported[0]);
-//		assertTrue(changes[0] > lastChanges);
-//		style.getState().add(CLICK);
-//		assertEquals(clickSize, style.get(cornerRadius, false).get());
-//		assertEquals(clickSize, reported[0]);
-//		assertTrue(changes[0] > lastChanges);
-//		lastChanges = changes[0];
-//		style.getState().remove(CLICK);
-//		assertEquals(noClickSize, style.get(cornerRadius, false).get());
-//		assertEquals(noClickSize, reported[0]);
-//		assertTrue(changes[0] > lastChanges);
-//		lastChanges = changes[0];
-//	}
-//
-//	/** Tests functionality of style sheets in org.quick.core.style.sheet */
-//	@Test
-//	public void testStyleSheet() {
-//		// Create the styles and supporting collections
-//		ObservableHashSet<QuickState> state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
-//		ObservableHashSet<TemplateRole> roles = new ObservableHashSet<>(TypeToken.of(TemplateRole.class));
-//		TestStyleSheet sheet = new TestStyleSheet();
-//		FilteredStyleSheet<QuickElement> filter = new FilteredStyleSheet<>(sheet, null, QuickElement.class, roles);
-//		StatefulStyleSample sample = new StatefulStyleSample(filter, state);
-//		FilteredStyleSheet<BodyElement> bodyFilter = new FilteredStyleSheet<>(sheet, null, BodyElement.class, roles);
-//		StatefulStyleSample bodySample = new StatefulStyleSample(bodyFilter, state);
-//
-//		// Test default values
-//		Size [] reported = new Size[1];
-//		Size [] bodyReported = new Size[1];
-//		sample.get(cornerRadius, false).value().act(value -> reported[0] = value);
-//		bodySample.get(cornerRadius, false).value().act(value -> bodyReported[0] = value);
-//		assertEquals(null, sample.get(cornerRadius, false).get());
-//		assertEquals(cornerRadius.getDefault(), sample.get(cornerRadius, true).get());
-//		assertEquals(null, bodySample.get(cornerRadius, false).get());
-//		assertEquals(cornerRadius.getDefault(), bodySample.get(cornerRadius, true).get());
-//
-//		// Set up values
-//		Size clickSize = new Size(100, pixels);
-//		sheet.set(cornerRadius, new StateGroupTypeExpression<>(StateExpression.forState(CLICK), null, QuickElement.class, null), clickSize);
-//		Size noClickSize = new Size(1000, pixels);
-//		sheet.set(cornerRadius, new StateGroupTypeExpression<>(StateExpression.forState(CLICK).not(), null, QuickElement.class, null),
-//			noClickSize);
-//		Size bodyClickSize = new Size(101, pixels);
-//		sheet.set(cornerRadius, new StateGroupTypeExpression<>(StateExpression.forState(CLICK), null, BodyElement.class, null),
-//			bodyClickSize);
-//
-//		// Test clean values (no states or roles set)
-//		assertEquals(noClickSize, sample.get(cornerRadius, false).get());
-//		assertEquals(noClickSize, bodySample.get(cornerRadius, false).get());
-//
-//		// Test stateful properties of style sheets
-//		state.add(CLICK);
-//		assertEquals(clickSize, sample.get(cornerRadius, false).get());
-//		assertEquals(clickSize, reported[0]);
-//		assertEquals(bodyClickSize, bodySample.get(cornerRadius, false).get());
-//		assertEquals(bodyClickSize, bodyReported[0]);
-//	}
-//
-//	/** Tests style inheritance */
-//	// @Test
-//	public void testDependencies() {
-//	}
-//
-//	/** A more thorough test of style functionality in org.quick.core.style.* */
-//	// @Test
-//	public void testAllThrough() {
-//	}
+		// Throw in these to test default values
+		assertEquals(null, sheet.get(baseCondition, FontStyle.size, false).get());
+		assertEquals(FontStyle.size.getDefault(), sheet.get(baseCondition, FontStyle.size, true).get(), 0.000000);
+
+		// Check stateful style
+		SimpleSettableValue<Double> v2 = new SimpleSettableValue<>(Double.class, false);
+		v2.set(0.5, null);
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickElement.class)//
+				.setState(StateCondition.forState(States.CLICK))//
+				.build(), //
+			v2);
+		// Doesn't apply to either
+		baseTester.check(v1.get(), 0);
+		deepTester.check(v1.get(), 0);
+
+		baseBacking.state.add(States.CLICK);
+		baseTester.check(v2.get(), 1);
+		deepTester.check(v1.get(), 0);
+
+		sheet.clear(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickElement.class)//
+				.setState(StateCondition.forState(States.CLICK))//
+				.build());
+		baseTester.check(v1.get(), 1);
+		deepTester.check(v1.get(), 0);
+
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickElement.class)//
+				.setState(StateCondition.forState(States.CLICK))//
+				.build(), //
+			v2);
+		baseTester.check(v2.get(), 1);
+		deepTester.check(v1.get(), 0);
+
+		v2.set(0.25, null);
+		baseTester.check(v2.get(), 1);
+		deepTester.check(v1.get(), 0);
+
+		// Check type-specific style
+		SimpleSettableValue<Double> v3 = new SimpleSettableValue<>(Double.class, false);
+		v3.set(0.5, null);
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickTextElement.class)//
+				.build(), //
+			v3);
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v3.get(), 1);
+
+		v3.set(0.1, null);
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v3.get(), 1);
+
+		SimpleSettableValue<Double> v4 = new SimpleSettableValue<>(Double.class, false);
+		v4.set(0.5, null);
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(DeepElement.class)//
+				.build(), //
+			v4);
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v4.get(), 1);
+
+		v4.set(0.4, null);
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v4.get(), 1);
+
+		sheet.clear(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickTextElement.class)//
+				.build());
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v4.get(), 0);
+
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickTextElement.class)//
+				.build(), //
+			v3);
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v4.get(), 0);
+
+		sheet.clear(BackgroundStyle.transparency, //
+			StyleCondition.build(DeepElement.class)//
+				.build());
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v3.get(), 1);
+
+		// Test group styles
+		SimpleSettableValue<Double> v5 = new SimpleSettableValue<>(Double.class, false);
+		v5.set(0.5, null);
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickElement.class)//
+				.forGroup("group1")//
+				.build(),
+			v5);
+		baseTester.check(v2.get(), 0);
+		deepTester.check(v3.get(), 0);
+
+		deepBacking.groups.add("group2");
+		deepTester.check(v3.get(), 0);
+		deepBacking.groups.add("group1");
+		deepTester.check(v5.get(), 1); // Groups override type styles
+
+		sheet.set(BackgroundStyle.transparency, //
+			StyleCondition.build(QuickElement.class)//
+				.forGroup("group2")//
+				.build(),
+			v5);
+		deepTester.check(v5.get(), 0);
+
+		deepBacking.groups.remove("group1");
+		deepTester.check(v5.get(), 0, 1); // In this case, we'll tolerate an event even though the value hasn't changed
+
+		deepBacking.groups.remove("group2");
+		deepTester.check(v3.get(), 0, 1); // In this case, we'll tolerate an event even though the value hasn't changed
+
+		// Check role-path styles
+		// TODO This is hard because the QuickTemplate class is written to prevent synthesizing attach points out of nowhere.
+		// They have to be built in the standard way, which requires an environment, etc. Maybe need to do some mocking. :-(
+	}
 }

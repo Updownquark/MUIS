@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.observe.ObservableValue;
-import org.qommons.ArrayUtils;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 
@@ -53,14 +52,13 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 		if (!super.equals(obj))
 			return false;
 		StyleAttribute<?> attr = (StyleAttribute<?>) obj;
-		return attr.theDomain.equals(theDomain) && ArrayUtils.equals(attr.theDefault, theDefault);
+		return attr.theDomain.equals(theDomain);
 	}
 
 	@Override
 	public final int hashCode() {
 		int ret = super.hashCode();
 		ret = ret * 13 + theDomain.hashCode();
-		ret = ret * 13 + ArrayUtils.hashCode(theDefault);
 		return super.hashCode();
 	}
 

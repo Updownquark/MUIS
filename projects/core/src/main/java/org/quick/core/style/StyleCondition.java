@@ -7,6 +7,7 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
+import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.mgr.QuickState;
 
 import com.google.common.reflect.TypeToken;
@@ -17,15 +18,15 @@ import com.google.common.reflect.TypeToken;
  */
 public class StyleCondition implements Comparable<StyleCondition> {
 	private final StateCondition theState;
-	private final List<QuickTemplate.AttachPoint<?>> theRolePath;
-	private final Set<String> theGroups;
+	private final List<AttachPoint<?>> theRolePath;
+	private final NavigableSet<String> theGroups;
 	private final Class<? extends QuickElement> theType;
 
-	private StyleCondition(StateCondition state, List<QuickTemplate.AttachPoint<?>> rolePath, Set<String> groups,
+	private StyleCondition(StateCondition state, List<AttachPoint<?>> rolePath, Set<String> groups,
 		Class<? extends QuickElement> type) {
 		theState = state;
-		theRolePath = rolePath == null ? Collections.emptyList() : Collections.unmodifiableList(rolePath);
-		theGroups = Collections.unmodifiableSet(groups);
+		theRolePath = rolePath == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(rolePath));
+		theGroups = Collections.unmodifiableNavigableSet(new TreeSet<>(groups));
 		if (!QuickElement.class.isAssignableFrom(type))
 			throw new IllegalArgumentException("The type of a condition must extend " + QuickElement.class.getName());
 		theType = type;
@@ -40,7 +41,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	 * @return The condition on the element's template {@link org.quick.core.QuickTemplate.TemplateStructure#role role} that must be met for
 	 *         this condition to apply
 	 */
-	public List<QuickTemplate.AttachPoint<?>> getRolePath() {
+	public List<AttachPoint<?>> getRolePath() {
 		return theRolePath;
 	}
 
@@ -70,9 +71,26 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 		if (theRolePath.size() != o.theRolePath.size())
 			return o.theRolePath.size() - theRolePath.size();
+		Iterator<AttachPoint<?>> apIter1 = theRolePath.iterator();
+		Iterator<AttachPoint<?>> apIter2 = o.theRolePath.iterator();
+		while (apIter1.hasNext()) {
+			int comp = compare(apIter1.next(), apIter2.next());
+			if (comp != 0)
+				return comp;
+		}
 
 		if (theGroups.size() != o.theGroups.size())
 			return o.theGroups.size() - theGroups.size();
+		Iterator<String> groupIter1 = theGroups.iterator();
+		Iterator<String> groupIter2 = o.theGroups.iterator();
+		while (groupIter1.hasNext()) {
+			int comp = groupIter1.next().compareToIgnoreCase(groupIter2.next());
+			if (comp != 0)
+				return comp;
+			comp = groupIter1.next().compareTo(groupIter2.next());
+			if (comp != 0)
+				return comp;
+		}
 
 		if (theType != o.theType) {
 			int depth = getTypeDepth();
@@ -82,6 +100,22 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		}
 
 		return 0;
+	}
+
+	private int compare(AttachPoint<?> ap1, AttachPoint<?> ap2) {
+		String def1 = ap1.template.getDefiner().getName();
+		String def2 = ap2.template.getDefiner().getName();
+		int comp = def1.compareToIgnoreCase(def2);
+		if (comp != 0)
+			return comp;
+		comp = def1.compareTo(def2);
+		if (comp != 0)
+			return comp;
+		comp = ap1.name.compareToIgnoreCase(ap2.name);
+		if (comp != 0)
+			return comp;
+		comp = ap1.name.compareTo(ap2.name);
+		return comp;
 	}
 
 	/** @return The number of subclasses away from {@link QuickElement} that this condition's {@link #getType() type} is */

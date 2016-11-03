@@ -52,6 +52,25 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 			return ret;
 		}
 
+		@Override
+		protected int recursiveCompare(StateCondition o) {
+			int comp = super.recursiveCompare(o);
+			if (comp != 0)
+				return comp;
+			StateCollectionExpression sce = (StateCollectionExpression) o;
+			int i;
+			for (i = 0; i < theWrapped.length && i < sce.theWrapped.length; i++) {
+				comp = theWrapped[i].compareTo(sce.theWrapped[i]);
+				if (comp != 0)
+					return comp;
+			}
+			if (i < theWrapped.length)
+				return 1;
+			else if (i < sce.theWrapped.length)
+				return -1;
+			return 0;
+		}
+
 		/** @return This collection's set of unique children */
 		protected StateCondition[] getWrappedChildren() {
 			SortedSet<StateCondition> ret = new TreeSet<>();
@@ -162,6 +181,11 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		}
 
 		@Override
+		protected int getTypePriority() {
+			return 3;
+		}
+
+		@Override
 		public String toString() {
 			StringBuilder ret = new StringBuilder();
 			ret.append('(');
@@ -208,6 +232,11 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 			if (equal)
 				return this;
 			return new Or(wrapped);
+		}
+
+		@Override
+		protected int getTypePriority() {
+			return 2;
 		}
 
 		@Override
@@ -261,6 +290,19 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		}
 
 		@Override
+		protected int recursiveCompare(StateCondition o) {
+			int comp = super.recursiveCompare(o);
+			if (comp != 0)
+				return comp;
+			return theWrapped.compareTo(((Not) o).theWrapped);
+		}
+
+		@Override
+		protected int getTypePriority() {
+			return 1;
+		}
+
+		@Override
 		public boolean equals(Object o) {
 			return o instanceof Not && theWrapped.equals(((Not) o).theWrapped);
 		}
@@ -302,6 +344,23 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 		}
 
 		@Override
+		protected int recursiveCompare(StateCondition o) {
+			int comp = super.recursiveCompare(o);
+			if (comp != 0)
+				return comp;
+			comp = theState.getName().compareToIgnoreCase(((Simple) o).theState.getName());
+			if (comp != 0)
+				return comp;
+			comp = theState.getName().compareTo(((Simple) o).theState.getName());
+			return comp;
+		}
+
+		@Override
+		protected int getTypePriority() {
+			return 0;
+		}
+
+		@Override
 		public boolean equals(Object o) {
 			return o instanceof Simple && theState.equals(((Simple) o).theState);
 		}
@@ -335,7 +394,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 
 	/**
 	 * @param states The set of states to check against
-	 * @return An observable boolean reflecing whether this state condition matches the given set of active states
+	 * @return An observable boolean reflecting whether this state condition matches the given set of active states
 	 */
 	public ObservableValue<Boolean> observeMatches(ObservableSet<QuickState> states) {
 		class StateMatchObserver implements ObservableValue<Boolean> {
@@ -397,8 +456,30 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 
 	@Override
 	public int compareTo(StateCondition o) {
-		return o.getPriority() - getPriority();
+		int priorityDiff = o.getPriority() - getPriority();
+		if (priorityDiff != 0)
+			return priorityDiff;
+		return getUnique().recursiveCompare(o.getUnique());
 	}
+
+	/**
+	 * Compares the contents of the two state conditions if their overall priorities are the same
+	 *
+	 * @param o The state condition to compare against
+	 * @return The difference in deep priority between the two conditions
+	 */
+	protected int recursiveCompare(StateCondition o) {
+		int typePriority = getTypePriority();
+		int oTypePriority = o.getTypePriority();
+		return typePriority - oTypePriority;
+	}
+
+	/**
+	 * A priority for this condition's type
+	 *
+	 * @return This condition's type's priority
+	 */
+	protected abstract int getTypePriority();
 
 	/** @return An expression that is the logical opposite of this expression */
 	public Not not() {

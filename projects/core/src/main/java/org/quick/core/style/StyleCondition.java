@@ -97,6 +97,10 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			int oDepth = o.getTypeDepth();
 			if (depth != oDepth)
 				return oDepth - depth;
+			int comp = theType.getSimpleName().compareToIgnoreCase(o.theType.getSimpleName());
+			if (comp != 0)
+				return comp;
+			return theType.getName().compareTo(o.theType.getName());
 		}
 
 		return 0;

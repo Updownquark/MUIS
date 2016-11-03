@@ -198,6 +198,43 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			public ObservableSet<List<AttachPoint<?>>> getRolePaths() {
 				return theRolePaths;
 			}
+
+			@Override
+			public String toString() {
+				StringBuilder str = new StringBuilder(theType.getSimpleName());
+
+				if (!theRolePaths.isEmpty()) {
+					str.append('{');
+					boolean first = true;
+					for (List<AttachPoint<?>> rolePath : theRolePaths) {
+						if (!first)
+							str.append("  ");
+						first = false;
+						for (AttachPoint<?> role : rolePath)
+							str.append('.').append(role.name);
+					}
+					str.append('}');
+				}
+
+				if (!theGroups.isEmpty()) {
+					str.append('[');
+					boolean first = true;
+					for (String group : theGroups) {
+						if (!first)
+							str.append(',');
+						first = false;
+						str.append(group);
+					}
+
+					str.append(']');
+				}
+
+				if (theState != null) {
+					str.append('(').append(theState).append(')');
+				}
+
+				return str.toString();
+			}
 		}
 	}
 }

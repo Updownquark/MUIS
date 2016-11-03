@@ -348,6 +348,9 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 			int comp = super.recursiveCompare(o);
 			if (comp != 0)
 				return comp;
+			comp = theState.getPriority() - ((Simple) o).theState.getPriority();
+			if (comp != 0)
+				return comp;
 			comp = theState.getName().compareToIgnoreCase(((Simple) o).theState.getName());
 			if (comp != 0)
 				return comp;

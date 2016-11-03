@@ -41,6 +41,21 @@ public class ImmutableStyleSheet implements StyleSheet {
 			: ObservableSortedSet.empty(new TypeToken<StyleConditionValue<?>>() {}));
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append('{');
+		boolean first = true;
+		for (StyleAttribute<?> att : attributes()) {
+			if (!first)
+				str.append(", ");
+			first = false;
+			str.append(att).append('=').append(getStyleExpressions(att));
+		}
+		str.append('}');
+		return str.toString();
+	}
+
 	/**
 	 * @param msg The message center to log invalid attribute values
 	 * @return A builder to build an {@link ImmutableStyleSheet}

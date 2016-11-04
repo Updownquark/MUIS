@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.observe.Observable;
+import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.Subscription;
 import org.observe.collect.ObservableCollection;
@@ -12,11 +13,11 @@ import org.qommons.ConcurrentHashSet;
 import org.qommons.ListenerSet;
 
 /** A utility for listening to style changes where the particular attributes of interest may not be known initially and may change */
-public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>> {
+public class StyleChangeObservable implements Observable<ObservableValueEvent<?>> {
 	private final QuickStyle theStyle;
 	private final Set<StyleDomain> theDomains;
 	private final Set<StyleAttribute<?>> theAttributes;
-	private final ListenerSet<Observer<? super StyleAttributeEvent<?>>> theStyleListeners;
+	private final ListenerSet<Observer<? super ObservableValueEvent<?>>> theStyleListeners;
 	private final ListenerSet<Runnable> theWatchListeners;
 	private Subscription theSubscription;
 
@@ -63,7 +64,7 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 	}
 
 	@Override
-	public Subscription subscribe(Observer<? super StyleAttributeEvent<?>> observer) {
+	public Subscription subscribe(Observer<? super ObservableValueEvent<?>> observer) {
 		theStyleListeners.add(observer);
 		return () -> {
 			theStyleListeners.remove(observer);
@@ -159,9 +160,8 @@ public class StyleChangeObservable implements Observable<StyleAttributeEvent<?>>
 		// TODO The events are not getting through the type filter because even though the events coming out of StyleValue are typed
 		// StyleAttributeEvent, those events get wrapped up in flattening, filtering, etc. and enter the filter map as plain old observable
 		// value events. Maybe modify the observable values returned from styles and style sheets to propagate StyleAttributeEvents.
-		Observable<StyleAttributeEvent<?>> styleEventObservable = ObservableCollection
-			.fold(filteredAttributes.map(att -> theStyle.get(att, true))).noInit()
-			.filterMap(evt -> evt instanceof StyleAttributeEvent ? (StyleAttributeEvent<?>) evt : null);
+		Observable<? extends ObservableValueEvent<?>> styleEventObservable = ObservableCollection
+			.fold(filteredAttributes.map(att -> theStyle.get(att, true))).noInit();
 		theSubscription = styleEventObservable.act(evt -> theStyleListeners.forEach(listener -> listener.onNext(evt)));
 	}
 }

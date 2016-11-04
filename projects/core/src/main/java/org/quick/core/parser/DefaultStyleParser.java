@@ -235,12 +235,11 @@ public class DefaultStyleParser implements QuickStyleParser {
 		Class<? extends QuickElement> type = stack.getTopType();
 		QuickState ret = null;
 		boolean found = false;
-		QuickState[] states = org.quick.util.QuickUtils.getStatesFor(type);
-		for (int j = 0; j < states.length; j++)
-			if (states[j].getName().equals(name)) {
+		for (QuickState state : org.quick.core.tags.QuickTagUtils.getStatesFor(type))
+			if (state.getName().equals(name)) {
 				found = true;
 				if (ret == null)
-					ret = states[j];
+					ret = state;
 			}
 		if (!found)
 			throw new QuickParseException("Element type " + type.getName() + " does not support state \"" + name + "\"");

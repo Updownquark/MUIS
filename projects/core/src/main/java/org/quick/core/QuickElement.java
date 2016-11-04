@@ -20,13 +20,18 @@ import org.quick.core.mgr.QuickLifeCycleManager.Controller;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
+import org.quick.core.tags.AcceptAttribute;
+import org.quick.core.tags.QuickElementType;
+import org.quick.core.tags.QuickTagUtils;
 import org.quick.core.tags.State;
-import org.quick.core.tags.StateSupport;
 
 import com.google.common.reflect.TypeToken;
 
 /** The base display element in Quick. Contains base methods to administer content (children, style, placement, etc.) */
-@StateSupport({@State(name = States.CLICK_NAME, priority = States.CLICK_PRIORITY),
+@QuickElementType(
+	attributes = { @AcceptAttribute(declaringClass = StyleAttributes.class, field = "style"),
+		@AcceptAttribute(declaringClass = StyleAttributes.class, field = "group") },
+	states={@State(name = States.CLICK_NAME, priority = States.CLICK_PRIORITY),
 		@State(name = States.RIGHT_CLICK_NAME, priority = States.RIGHT_CLICK_PRIORITY),
 		@State(name = States.MIDDLE_CLICK_NAME, priority = States.MIDDLE_CLICK_PRIORITY),
 		@State(name = States.HOVER_NAME, priority = States.HOVER_PRIORITY),
@@ -108,9 +113,6 @@ public abstract class QuickElement implements QuickParseEnv {
 		theExposedChildren = theChildren.immutable();
 		theAttributeManager = new AttributeManager(this);
 		theStyle = new QuickElementStyle(this);
-		Object styleWanter = new Object();
-		theAttributeManager.accept(styleWanter, StyleAttributes.style);
-		theAttributeManager.accept(styleWanter, StyleAttributes.group);
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
 		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {
@@ -167,18 +169,12 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	private void addAnnotatedStates() {
-		Class<?> type = getClass();
-		while(QuickElement.class.isAssignableFrom(type)) {
-			StateSupport states = type.getAnnotation(StateSupport.class);
-			if(states != null)
-				for(State state : states.value()) {
-					try {
-						theStateEngine.addState(new QuickState(state.name(), state.priority()));
-					} catch(IllegalArgumentException e) {
-						msg().warn(e.getMessage(), "state", state);
-					}
-				}
-			type = type.getSuperclass();
+		for (QuickState state : QuickTagUtils.getStatesFor(getClass())) {
+			try {
+				theStateEngine.addState(state);
+			} catch(IllegalArgumentException e) {
+				msg().warn(e.getMessage(), "state", state);
+			}
 		}
 	}
 
@@ -384,7 +380,33 @@ public abstract class QuickElement implements QuickParseEnv {
 			.withParent(theDocument.getContext())//
 			.build();
 		setParent(parent);
+		addAnnotatedAttributes();
+		theDefaultStyleListener.begin();
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
+	}
+
+	private void addAnnotatedAttributes() {
+		Object wanter = new Object();
+		List<QuickTagUtils.AcceptedAttributeStruct<?>> atts;
+		try {
+			atts = QuickTagUtils.getAcceptedAttributes(getClass());
+		} catch (RuntimeException e) {
+			theMessageCenter.fatal("Could not parse attributes on element type " + getClass().getSimpleName() + " from annotation", e);
+			return;
+		}
+		for (QuickTagUtils.AcceptedAttributeStruct<?> att : atts) {
+			if (att.annotation.required())
+				theAttributeManager.require(wanter, att.attribute);
+			else
+				theAttributeManager.accept(wanter, att.attribute);
+			if (att.annotation.defaultValue().length() > 0)
+				try {
+					theAttributeManager.set(att.attribute, att.annotation.defaultValue(), this);
+				} catch (QuickException e) {
+					theMessageCenter.error("Could not set default value " + att.annotation.defaultValue() + " for attribute "
+						+ att.attribute + " from annotation", e);
+				}
+		}
 	}
 
 	/**

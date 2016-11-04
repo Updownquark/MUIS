@@ -16,8 +16,6 @@ import org.quick.core.event.UserEvent;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
-import org.quick.core.tags.State;
-import org.quick.core.tags.StateSupport;
 
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
@@ -297,27 +295,6 @@ public class QuickUtils {
 			attribs.put(TextAttribute.POSTURE, slant.get());
 			return java.awt.Font.getFont(attribs);
 		}, family, color, kerning, ligs, underline, weight, strike, slant);
-	}
-
-	/**
-	 * @param type The type of element
-	 * @return All states supported by the given element type (as annotated by {@link StateSupport})
-	 */
-	public static org.quick.core.mgr.QuickState[] getStatesFor(Class<? extends QuickElement> type) {
-		ArrayList<org.quick.core.mgr.QuickState> ret = new ArrayList<>();
-		Class<?> type2 = type;
-		while(QuickElement.class.isAssignableFrom(type2)) {
-			StateSupport states = type2.getAnnotation(StateSupport.class);
-			if(states != null)
-				for(State state : states.value()) {
-					try {
-						ret.add(new org.quick.core.mgr.QuickState(state.name(), state.priority()));
-					} catch(IllegalArgumentException e) {
-					}
-				}
-			type2 = type2.getSuperclass();
-		}
-		return ret.toArray(new org.quick.core.mgr.QuickState[ret.size()]);
 	}
 
 	/**

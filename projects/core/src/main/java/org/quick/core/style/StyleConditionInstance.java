@@ -86,7 +86,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			ObservableSetTree<BiTuple<QuickElement, AttachPoint<?>>, AttachPoint<?>> tree = ObservableSetTree.of(//
 				ObservableValue.constant(new BiTuple<>(element, null)), //
 				apType, tuple -> ObservableValue.constant(apType, tuple.getValue2()), //
-				tuple -> rolesFor(tuple.getValue1())//
+				tuple -> rolesFor(tuple == null ? null : tuple.getValue1())//
 			);
 			ObservableSet<List<AttachPoint<?>>> rawPaths = ObservableSetTree.valuePathsOf(tree, false);
 			ObservableSet<List<AttachPoint<?>>> filteredPaths = rawPaths//

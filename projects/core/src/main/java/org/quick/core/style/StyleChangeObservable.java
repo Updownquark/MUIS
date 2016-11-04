@@ -20,6 +20,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	private final ListenerSet<Observer<? super ObservableValueEvent<?>>> theStyleListeners;
 	private final ListenerSet<Runnable> theWatchListeners;
 	private Subscription theSubscription;
+	private boolean isStarted;
 
 	/** @param style The style to listen to */
 	public StyleChangeObservable(QuickStyle style) {
@@ -29,7 +30,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 		theStyleListeners = new ListenerSet<>();
 		theStyleListeners.setUsedListener(used -> {
 			if (used) {
-				if (!theDomains.isEmpty() || !theAttributes.isEmpty())
+				if (!theDomains.isEmpty() || !theAttributes.isEmpty() && isStarted)
 					start();
 			} else if (theSubscription != null) {
 				theSubscription.unsubscribe();
@@ -50,7 +51,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 		theStyleListeners = new ListenerSet<>();
 		theStyleListeners.setUsedListener(used -> {
 			if (used) {
-				if (!theDomains.isEmpty() || !theAttributes.isEmpty())
+				if (!theDomains.isEmpty() || !theAttributes.isEmpty() && isStarted)
 					start();
 			} else if (theSubscription != null) {
 				theSubscription.unsubscribe();
@@ -61,6 +62,15 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 		other.theWatchListeners.add(() -> {
 			restart();
 		});
+	}
+
+	/** Makes this observable start listening for style events */
+	public void begin() {
+		if (isStarted)
+			return;
+		isStarted = true;
+		if (theStyleListeners.isUsed())
+			start();
 	}
 
 	@Override
@@ -143,6 +153,8 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	}
 
 	private void restart() {
+		if (!isStarted)
+			return;
 		if (theSubscription != null) {
 			theSubscription.unsubscribe();
 			theSubscription = null;
@@ -152,7 +164,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	}
 
 	private void start() {
-		if (theStyle == null)
+		if (theStyle == null || !isStarted)
 			return;
 		ObservableSet<StyleAttribute<?>> filteredAttributes = theStyle.attributes().filterStatic(att -> {
 			return theDomains.contains(att.getDomain()) || theAttributes.contains(att);
@@ -162,6 +174,8 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 		// value events. Maybe modify the observable values returned from styles and style sheets to propagate StyleAttributeEvents.
 		Observable<? extends ObservableValueEvent<?>> styleEventObservable = ObservableCollection
 			.fold(filteredAttributes.map(att -> theStyle.get(att, true))).noInit();
-		theSubscription = styleEventObservable.act(evt -> theStyleListeners.forEach(listener -> listener.onNext(evt)));
+		theSubscription = styleEventObservable.act(evt -> {
+			theStyleListeners.forEach(listener -> listener.onNext(evt));
+		});
 	}
 }

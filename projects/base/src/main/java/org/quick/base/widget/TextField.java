@@ -1,7 +1,5 @@
 package org.quick.base.widget;
 
-import static org.quick.base.layout.TextEditLayout.charLengthAtt;
-import static org.quick.base.layout.TextEditLayout.charRowsAtt;
 import static org.quick.core.QuickTextElement.multiLine;
 
 import org.observe.*;
@@ -9,6 +7,7 @@ import org.qommons.Transaction;
 import org.qommons.TriTuple;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
+import org.quick.base.layout.TextEditLayout;
 import org.quick.base.model.*;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.FocusEvent;
@@ -37,7 +36,16 @@ import com.google.common.reflect.TypeToken;
 		@ModelAttribute(name = "rows", type = Integer.class), //
 		@ModelAttribute(name = "multi-line", type = Boolean.class)//
 	})
-@StateSupport({ //
+@QuickElementType(
+	attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"),
+		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"),
+		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"),
+		@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"),
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"),
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "validator"),
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"),
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich") },
+	states = { //
 	@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY), //
 	@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)//
 })
@@ -54,10 +62,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		theErrorController = state().control(BaseConstants.States.ERROR);
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
 		theTextEditing = new SimpleTextEditing();
-
-		Object accepter = new Object();
-		atts().accept(accepter, ModelAttributes.value, charLengthAtt, charRowsAtt, multiLine, BaseAttributes.format,
-			BaseAttributes.validator, BaseAttributes.document, BaseAttributes.rich);
 
 		life().runWhen(() -> {
 			atts().getHolder(BaseAttributes.document).tupleV(atts().getHolder(BaseAttributes.rich)).act(evt -> {

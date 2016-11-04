@@ -2,6 +2,7 @@ package org.quick.core;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.observe.DefaultSettableValue;
 import org.observe.Observable;
@@ -28,6 +29,7 @@ import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleAttributes;
 import org.quick.core.tags.ModelAttribute;
+import org.quick.core.tags.QuickTagUtils;
 import org.quick.core.tags.Template;
 import org.quick.util.QuickUtils;
 
@@ -593,10 +595,14 @@ public abstract class QuickTemplate extends QuickElement {
 			if (structure.getTagName().equals(TemplateStructure.GENERIC_TEXT)) {
 				if (!structure.getChildren().isEmpty())
 					throw new QuickException(structure.getTagName() + " elements may not contain children");
+				Set<String> textAtts = QuickTagUtils.getAcceptedAttributes(QuickTextElement.class).stream()
+					.map(att -> att.attribute.getName()).collect(Collectors.toSet());
 				for (Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
 					String attName = att.getKey();
-					if (!attName.startsWith(TEMPLATE_PREFIX))
-						throw new QuickException(structure.getTagName() + " elements may not have non-template attributes: " + attName);
+					if (attName.startsWith(TEMPLATE_PREFIX)) {
+					} else if (textAtts.contains(attName)) {
+					} else
+						throw new QuickException("Unrecognized " + structure.getTagName() + " attributes: " + attName);
 				}
 
 				return new org.quick.core.parser.QuickText(parent, "", false);

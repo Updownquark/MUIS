@@ -8,6 +8,7 @@ import java.util.Iterator;
 
 import org.observe.ObservableValue;
 import org.observe.SimpleSettableValue;
+import org.quick.core.event.SizeNeedsChangedEvent;
 import org.quick.core.layout.AbstractSizeGuide;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
@@ -19,10 +20,13 @@ import org.quick.core.model.SimpleDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.FontStyle;
+import org.quick.core.tags.AcceptAttribute;
+import org.quick.core.tags.QuickElementType;
 
 import com.google.common.reflect.TypeToken;
 
 /** A Quick element that serves as a placeholder for text content which may be interspersed with element children in an element. */
+@QuickElementType(attributes = { @AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine") })
 public class QuickTextElement extends QuickLeaf implements org.quick.core.model.DocumentedElement {
 	/** Whether a text element's document supports multiple lines */
 	public static final QuickAttribute<Boolean> multiLine = QuickAttribute.build("multi-line", QuickPropertyType.boole).build();
@@ -58,7 +62,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 				needsRepaint = repaintImmediate = true;
 			}
 			if (needsResize)
-				events().fire(new org.quick.core.event.SizeNeedsChangedEvent(QuickTextElement.this, null));
+				events().fire(new SizeNeedsChangedEvent(QuickTextElement.this, null));
 			if (needsRepaint)
 				repaint(null, repaintImmediate);
 		});
@@ -70,7 +74,9 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			}, QuickConstants.CoreStage.INIT_SELF.toString(), 1)//
 			.runWhen(() -> {
 				new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
-			}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
+			}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1)//
+			.runWhen(() -> atts().getHolder(multiLine).act(evt -> events().fire(new SizeNeedsChangedEvent(QuickTextElement.this, null))),
+				QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	/**
@@ -89,7 +95,6 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	 *         {@link #QuickTextElement(QuickDocumentModel)} constructor is used or if the document is otherwise initialized previously.
 	 */
 	protected QuickDocumentModel getInitDocument(String text) {
-		atts().accept(new Object(), multiLine);
 		return new SimpleDocumentModel(this, text);
 	}
 

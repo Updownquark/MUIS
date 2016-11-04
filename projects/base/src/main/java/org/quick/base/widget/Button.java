@@ -11,29 +11,28 @@ import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.core.tags.State;
-import org.quick.core.tags.StateSupport;
-import org.quick.core.tags.Template;
+import org.quick.core.tags.*;
 
 /** Implements a button. Buttons can be set to toggle mode or normal mode. Buttons are containers that may have any type of content in them. */
 @Template(location = "../../../../simple-container.qml")
-@StateSupport({@State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY),
-		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)})
+@QuickElementType(attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "action") },
+	states = { @State(name = BaseConstants.States.DEPRESSED_NAME, priority = BaseConstants.States.DEPRESSED_PRIORITY),
+		@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY) })
 public class Button extends org.quick.core.QuickTemplate {
 	private final StateEngine.StateController theDepressedController;
 
 	private final StateEngine.StateController theEnabledController;
 
-	private final ObservableAction<?> theAction;
+	private ObservableAction<?> theAction;
 
 	/** Creates a button */
 	public Button() {
-		theAction = createAction();
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
 		theEnabledController.set(true, null);
 		setFocusable(true);
 		life().runWhen(() -> {
+			theAction = createAction();
 			theAction.isEnabled().act(event -> {
 				theEnabledController.set(event.getValue() == null, event);
 				if (event.getValue() != null)
@@ -115,7 +114,7 @@ public class Button extends org.quick.core.QuickTemplate {
 	 * @return The action that this button will perform when it is clicked
 	 */
 	protected ObservableAction<?> createAction() {
-		return ObservableAction.flatten(atts().accept(new Object(), ModelAttributes.action));
+		return ObservableAction.flatten(atts().getHolder(ModelAttributes.action));
 	}
 
 	/** @return The panel containing the contents of this button */

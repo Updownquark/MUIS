@@ -29,7 +29,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			switch (event.getType()) {
 			case pressed:
 				if(event.getButton() == MouseEvent.ButtonType.left) {
-					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 					switch ((event.getClickCount() - 1) % 3) {
 					case 0: // Single-click
 						int position = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(),

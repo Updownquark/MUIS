@@ -620,12 +620,13 @@ public final class QuickPropertyType<T> {
 	 *
 	 * @param <T> The compile-time type of the super class of the type to produce
 	 * @param type The super class of the type to produce
+	 * @param builder Allows code to modify the property type before it is finished being built
 	 * @return The property type
 	 */
-	public static final <T> QuickPropertyType<Class<? extends T>> forType(Class<T> type) {
+	public static final <T> QuickPropertyType<Class<? extends T>> forType(Class<T> type, Consumer<Builder<Class<? extends T>>> builder) {
 		TypeToken<Class<? extends T>> typeToken = new TypeToken<Class<? extends T>>() {}.where(new TypeParameter<T>() {},
 			TypeToken.of(type));
-		return build(type.getName() + " type", typeToken)//
+		Builder<Class<? extends T>> build = build(type.getName() + " type", typeToken)//
 			.withParser((parser, env, s) -> {
 				Class<?> res;
 				try {
@@ -643,8 +644,10 @@ public final class QuickPropertyType<T> {
 				if (!type.isAssignableFrom(res))
 					throw new QuickParseException("Type " + s + " is not compatible with type " + type.getName());
 				return ObservableValue.constant(typeToken, type.asSubclass(type));
-			}, true)//
-			.build();
+			}, true);
+		if (builder != null)
+			builder.accept(build);
+		return build.build();
 	}
 
 	/**
@@ -652,10 +655,11 @@ public final class QuickPropertyType<T> {
 	 *
 	 * @param <T> The compile-time type of the super class of the type of values to produce
 	 * @param type The super class of the type of values to produce
+	 * @param builder Allows code to modify the property type before it is finished being built
 	 * @return The property type
 	 */
-	public static final <T> QuickPropertyType<T> forTypeInstance(Class<T> type) {
-		return build(type.getName(), TypeToken.of(type))//
+	public static final <T> QuickPropertyType<T> forTypeInstance(Class<T> type, Consumer<Builder<T>> builder) {
+		Builder<T> build = build(type.getName(), TypeToken.of(type))//
 			.withParser((parser, env, s) -> {
 				Class<?> res;
 				try {
@@ -688,15 +692,17 @@ public final class QuickPropertyType<T> {
 				} catch (InvocationTargetException | IllegalAccessException e) {
 					throw new QuickParseException("Could not instantiate type " + name, e);
 				}
-			}, true)//
-			.build();
+			}, true);
+		if (builder != null)
+			builder.accept(build);
+		return build.build();
 	}
 
 	/** The default property type for QuickElement-type-valued properties */
-	public static final QuickPropertyType<Class<? extends QuickElement>> elementType = forType(QuickElement.class);
+	public static final QuickPropertyType<Class<? extends QuickElement>> elementType = forType(QuickElement.class, null);
 
 	/** The default property type for QuickElement-valued properties */
-	public static final QuickPropertyType<QuickElement> element = forTypeInstance(QuickElement.class);
+	public static final QuickPropertyType<QuickElement> element = forTypeInstance(QuickElement.class, null);
 
 	/**
 	 * A resource property--values may be:

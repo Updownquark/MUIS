@@ -9,7 +9,7 @@ import org.quick.core.prop.QuickPropertyType;
 public class LayoutContainer extends QuickElement {
 	/** The attribute that specifies the layout type for a layout container */
 	public static QuickAttribute<QuickLayout> LAYOUT_ATTR = QuickAttribute
-		.build("layout", QuickPropertyType.forTypeInstance(QuickLayout.class)).build();
+		.build("layout", QuickPropertyType.forTypeInstance(QuickLayout.class, null)).build();
 
 	/** Creates a layout container */
 	public LayoutContainer() {

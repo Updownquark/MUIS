@@ -14,27 +14,35 @@ import org.quick.core.prop.QuickPropertyType;
  */
 public final class StyleAttribute<T> extends QuickProperty<T> {
 	private final StyleDomain theDomain;
-
+	private final boolean isInherited;
 	private final T theDefault;
 
 	/**
 	 * @param domain The style domain for the attribute
 	 * @param name The name for the attribute
 	 * @param type The type of the attribute
+	 * @param inherited Whether an element's style can inherit values from its parent for this attribute
 	 * @param defValue The default value for the attribute
 	 * @param validator The validator for the attribute
 	 * @param valueSuppliers The value suppliers for parsing the property
 	 */
-	protected StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, T defValue, PropertyValidator<T> validator,
+	protected StyleAttribute(StyleDomain domain, String name, QuickPropertyType<T> type, boolean inherited, T defValue,
+		PropertyValidator<T> validator,
 		List<Function<String, ObservableValue<?>>> valueSuppliers) {
 		super(name, type, validator, valueSuppliers);
 		theDomain = domain;
+		isInherited = inherited;
 		theDefault = defValue;
 	}
 
 	/** @return The style domain that the attribute belongs to */
 	public StyleDomain getDomain() {
 		return theDomain;
+	}
+
+	/** @return Whether an element's style can inherit values from its parent for this attribute */
+	public boolean isInherited() {
+		return isInherited;
 	}
 
 	/** @return The default value for this attribute */
@@ -81,6 +89,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 	 */
 	public static class Builder<T> extends QuickProperty.Builder<T> {
 		private final StyleDomain theDomain;
+		private boolean isInherited;
 		private final T theDefValue;
 
 		/**
@@ -95,6 +104,17 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 			theDefValue = defValue;
 		}
 
+		/**
+		 * Marks the style created by this builder as inherited, meaning element styles can inherit values for this attribute from their
+		 * parent or ancestors
+		 * 
+		 * @return This builder
+		 */
+		public Builder<T> inherited() {
+			isInherited = true;
+			return this;
+		}
+
 		@Override
 		public Builder<T> validate(PropertyValidator<T> validator) {
 			return (Builder<T>) super.validate(validator);
@@ -107,7 +127,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 
 		@Override
 		public StyleAttribute<T> build() {
-			return new StyleAttribute<>(theDomain, getName(), getType(), theDefValue, getValidator(), getValueSuppliers());
+			return new StyleAttribute<>(theDomain, getName(), getType(), isInherited, theDefValue, getValidator(), getValueSuppliers());
 		}
 	}
 }

@@ -120,11 +120,11 @@ public class FontStyle implements StyleDomain {
 			for (Map.Entry<String, String> entry : families.entrySet())
 				ctx.withValue(entry.getKey(), ObservableValue.constant(TypeToken.of(String.class), entry.getValue()));
 		});
-		family = StyleAttribute.build(instance, "family", familyPTBuilder.build(), "Default").build();
+		family = StyleAttribute.build(instance, "family", familyPTBuilder.build(), "Default").inherited().build();
 		instance.register(family);
-		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, Color.black).build();
+		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, Color.black).inherited().build();
 		instance.register(color);
-		transparency = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 0d)
+		transparency = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 0d).inherited()
 			.validate(new QuickProperty.ComparableValidator<>(0d, 1d)).build();
 		instance.register(transparency);
 		Map<String, Double> weights = new java.util.HashMap<>();
@@ -145,31 +145,33 @@ public class FontStyle implements StyleDomain {
 					for (Map.Entry<String, Double> entry : weights.entrySet())
 						ctx.withValue(entry.getKey(), ObservableValue.constant(TypeToken.of(Double.TYPE), entry.getValue()));
 				}).build(), 1d)
+			.inherited()
 			.validate(new QuickProperty.ComparableValidator<>(0.25d, 3d)).build();
 		instance.register(weight);
 		slant = StyleAttribute.build(instance, "slant", QuickPropertyType.build("slant", TypeToken.of(Double.class))//
 			.buildContext(ctx -> {
 				ctx.withValue("normal", ObservableValue.constant(TypeToken.of(Double.TYPE), normalSlant));
 				ctx.withValue("italic", ObservableValue.constant(TypeToken.of(Double.TYPE), italic));
-			}).build(), 0d).validate(new QuickProperty.ComparableValidator<>(-1d, 1d)).build();
+			}).build(), 0d).validate(new QuickProperty.ComparableValidator<>(-1d, 1d)).inherited().build();
 		instance.register(slant);
-		underline = StyleAttribute.build(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none).build();
+		underline = StyleAttribute.build(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none).inherited()
+			.build();
 		instance.register(underline);
-		strike = StyleAttribute.build(instance, "strike", QuickPropertyType.boole, false).build();
+		strike = StyleAttribute.build(instance, "strike", QuickPropertyType.boole, false).inherited().build();
 		instance.register(strike);
 		size = StyleAttribute.build(instance, "size", QuickPropertyType.floating, 12d)
-			.validate(new QuickProperty.ComparableValidator<>(0.1d, 256d)).build();
+			.validate(new QuickProperty.ComparableValidator<>(0.1d, 256d)).inherited().build();
 		instance.register(size);
-		kerning = StyleAttribute.build(instance, "kerning", QuickPropertyType.boole, true).build();
+		kerning = StyleAttribute.build(instance, "kerning", QuickPropertyType.boole, true).inherited().build();
 		instance.register(kerning);
-		ligatures = StyleAttribute.build(instance, "ligatures", QuickPropertyType.boole, true).build();
+		ligatures = StyleAttribute.build(instance, "ligatures", QuickPropertyType.boole, true).inherited().build();
 		instance.register(ligatures);
-		antiAlias = StyleAttribute.build(instance, "anti-alias", QuickPropertyType.boole, false).build();
+		antiAlias = StyleAttribute.build(instance, "anti-alias", QuickPropertyType.boole, false).inherited().build();
 		instance.register(antiAlias);
-		wordWrap = StyleAttribute.build(instance, "word-wrap", QuickPropertyType.boole, true).build();
+		wordWrap = StyleAttribute.build(instance, "word-wrap", QuickPropertyType.boole, true).inherited().build();
 		instance.register(wordWrap);
 		stretch = StyleAttribute.build(instance, "stretch", QuickPropertyType.floating, 1d)
-			.validate(new QuickProperty.ComparableValidator<>(0.05d, 100d)).build();
+			.validate(new QuickProperty.ComparableValidator<>(0.05d, 100d)).inherited().build();
 		instance.register(stretch);
 	}
 

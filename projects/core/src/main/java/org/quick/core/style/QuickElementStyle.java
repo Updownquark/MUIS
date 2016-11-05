@@ -24,9 +24,14 @@ public class QuickElementStyle implements QuickStyle {
 		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
 		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
 		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
+		ObservableSet<StyleAttribute<?>> parentAtts = ObservableSet
+			.flattenValue(theElement.getParent().mapV(p -> p.getStyle().attributes())).filterStatic(att -> att.isInherited());
+		ObservableCollection<StyleAttribute<?>> flattened;
 		if (sheet == null)
-			return localAttrs;
-		return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
+			flattened = ObservableCollection.flattenCollections(localAttrs, parentAtts);
+		else
+			flattened = ObservableCollection.flattenCollections(localAttrs, parentAtts, sheet.attributes());
+		return ObservableSet.unique(flattened, Object::equals);
 	}
 
 	@Override
@@ -37,6 +42,7 @@ public class QuickElementStyle implements QuickStyle {
 		StyleSheet sheet = theElement.getDocument().getStyle();
 		if (sheet.isSet(theElement, attr))
 			return true;
+		// TODO Include parent style for inherited attributes
 		return false;
 	}
 
@@ -47,6 +53,7 @@ public class QuickElementStyle implements QuickStyle {
 		if (theElement.getDocument() == null)
 			return localValue;
 		StyleSheet sheet = theElement.getDocument().getStyle();
+		// TODO Include parent style for inherited attributes
 		return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, sheet.get(theElement, attr, withDefault));
 	}
 }

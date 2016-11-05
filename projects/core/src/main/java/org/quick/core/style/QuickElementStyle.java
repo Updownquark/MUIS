@@ -5,9 +5,6 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 
-import com.google.common.reflect.TypeParameter;
-import com.google.common.reflect.TypeToken;
-
 /** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
@@ -77,9 +74,19 @@ public class QuickElementStyle implements QuickStyle {
 					return null;
 				return sheet.getBestMatch(p, attr);
 			}));
-			ssMatch = ObservableValue.firstValue(
-				new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {}, attr.getType().getType()), null, null, ssMatch,
-				parentSSMatch);
+			ssMatch = ssMatch.combineV(null, (ss, pSS) -> {
+				if (ss == null && pSS == null)
+					return null;
+				else if (ss == null)
+					return pSS;
+				else if (pSS == null)
+					return ss;
+				int comp = ss.compareTo(pSS);
+				if (comp <= 0)
+					return ss;
+				else
+					return pSS;
+			}, parentSSMatch, true);
 		}
 		if (withDefault)
 			ssValue = ObservableValue.flatten(ssMatch, () -> attr.getDefault());

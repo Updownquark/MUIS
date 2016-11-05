@@ -381,7 +381,6 @@ public abstract class QuickElement implements QuickParseEnv {
 			.build();
 		setParent(parent);
 		addAnnotatedAttributes();
-		theDefaultStyleListener.begin();
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
 	}
 
@@ -510,6 +509,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theLifeCycleController.advance(CoreStage.STARTUP.toString());
 		for(QuickElement child : theChildren)
 			child.postCreate();
+		theDefaultStyleListener.begin();
 		theLifeCycleController.advance(CoreStage.READY.toString());
 	}
 

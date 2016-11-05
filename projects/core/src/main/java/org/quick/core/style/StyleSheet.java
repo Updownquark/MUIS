@@ -46,6 +46,10 @@ public interface StyleSheet {
 		return false;
 	}
 
+	default <T> ObservableValue<StyleConditionValue<T>> getBestMatch(StyleConditionInstance<?> condition, StyleAttribute<T> attr) {
+		return getStyleExpressions(condition, attr).getFirst();
+	}
+
 	/**
 	 * @param <T> The type of the attribute
 	 * @param condition The style condition to use
@@ -55,13 +59,13 @@ public interface StyleSheet {
 	 * @return The value of the given attribute in this style sheet whose condition matches the given condition instance
 	 */
 	default <T> ObservableValue<T> get(StyleConditionInstance<?> condition, StyleAttribute<T> attr, boolean withDefault) {
-		ObservableSortedSet<StyleConditionValue<T>> exprs = getStyleExpressions(condition, attr);
+		ObservableValue<StyleConditionValue<T>> exprs = getBestMatch(condition, attr);
 
 		ObservableValue<T> value;
 		if (withDefault)
-			value = ObservableValue.flatten(exprs.getFirst(), () -> attr.getDefault());
+			value = ObservableValue.flatten(exprs, () -> attr.getDefault());
 		else
-			value = ObservableValue.flatten(exprs.getFirst());
+			value = ObservableValue.flatten(exprs);
 		return value;
 	}
 
@@ -83,6 +87,10 @@ public interface StyleSheet {
 	 */
 	default boolean isSet(QuickElement element, ObservableSet<QuickState> extraStates, StyleAttribute<?> attr) {
 		return isSet(StyleConditionInstance.of(element, extraStates), attr);
+	}
+
+	default <T> ObservableValue<StyleConditionValue<T>> getBestMatch(QuickElement element, StyleAttribute<T> attr) {
+		return getBestMatch(StyleConditionInstance.of(element), attr);
 	}
 
 	/**

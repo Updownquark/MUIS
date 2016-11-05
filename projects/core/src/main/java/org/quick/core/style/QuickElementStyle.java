@@ -5,6 +5,9 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
+
 /** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
@@ -42,7 +45,11 @@ public class QuickElementStyle implements QuickStyle {
 		StyleSheet sheet = theElement.getDocument().getStyle();
 		if (sheet.isSet(theElement, attr))
 			return true;
-		// TODO Include parent style for inherited attributes
+		if (attr.isInherited()) {
+			QuickElement parent = theElement.getParent().get();
+			if (parent != null && parent.getStyle().isSet(attr))
+				return true;
+		}
 		return false;
 	}
 
@@ -50,10 +57,34 @@ public class QuickElementStyle implements QuickStyle {
 	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
 		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
 		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
+		if (attr.isInherited()) {
+			ObservableValue<T> parentLocalValue = ObservableValue.flatten(theElement.getParent().mapV(p -> {
+				if (p == null)
+					return null;
+				ObservableValue<QuickStyle> parentStyle = p.atts().getHolder(StyleAttributes.style);
+				return ObservableValue.flatten(parentStyle.mapV(s -> s.get(attr, false)));
+			}));
+			localValue = ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, parentLocalValue);
+		}
 		if (theElement.getDocument() == null)
 			return localValue;
 		StyleSheet sheet = theElement.getDocument().getStyle();
-		// TODO Include parent style for inherited attributes
-		return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, sheet.get(theElement, attr, withDefault));
+		ObservableValue<StyleConditionValue<T>> ssMatch = sheet.getBestMatch(theElement, attr);
+		ObservableValue<T> ssValue;
+		if (attr.isInherited()) {
+			ObservableValue<StyleConditionValue<T>> parentSSMatch = ObservableValue.flatten(theElement.getParent().mapV(p -> {
+				if (p == null)
+					return null;
+				return sheet.getBestMatch(p, attr);
+			}));
+			ssMatch = ObservableValue.firstValue(
+				new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {}, attr.getType().getType()), null, null, ssMatch,
+				parentSSMatch);
+		}
+		if (withDefault)
+			ssValue = ObservableValue.flatten(ssMatch, () -> attr.getDefault());
+		else
+			ssValue = ObservableValue.flatten(ssMatch);
+		return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, ssValue);
 	}
 }

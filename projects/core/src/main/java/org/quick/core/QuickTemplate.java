@@ -871,6 +871,8 @@ public abstract class QuickTemplate extends QuickElement {
 				QuickEnvironment env = getDocument().getEnvironment();
 				theTemplateStructure = TemplateStructure.getTemplateStructure(env, QuickTemplate.this.getClass());
 				DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build().withParent(super.getContext());
+				ctxBuilder.withValue("attributes",
+					ObservableValue.constant(TypeToken.of(QuickAppModel.class), new TemplateAttributesModel()));
 				initModels(theTemplateStructure, ctxBuilder);
 			} catch (QuickException e) {
 				msg().fatal("Could not generate template structure", e);

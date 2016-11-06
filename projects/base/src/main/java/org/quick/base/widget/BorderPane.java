@@ -5,11 +5,9 @@ import org.quick.core.layout.SizeGuide;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.Size;
-import org.quick.core.tags.Template;
 
 /** Wraps an element (or set thereof) in a border */
-@Template(location = "../../../../simple-container.qml")
-public class BorderPane extends org.quick.core.QuickTemplate {
+public class BorderPane extends SimpleContainer {
 	/** Creates a border pane */
 	public BorderPane() {
 		life().runWhen(

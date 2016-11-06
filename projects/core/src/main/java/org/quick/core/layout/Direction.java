@@ -9,13 +9,13 @@ import static org.quick.core.layout.Orientation.vertical;
 public enum Direction
 {
 	/** Items will be arranged top-to-bottom */
-	DOWN(vertical, leading),
+	down(vertical, leading),
 	/** Items will be arranged bottom-to-top */
-	UP(vertical, trailing),
+	up(vertical, trailing),
 	/** Items will be arranged left-to-right */
-	RIGHT(horizontal, leading),
+	right(horizontal, leading),
 	/** Items will be arranged right-to-left */
-	LEFT(horizontal, trailing);
+	left(horizontal, trailing);
 
 	private final Orientation theOrientation;
 

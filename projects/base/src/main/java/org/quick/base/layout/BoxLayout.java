@@ -13,7 +13,7 @@ import org.quick.core.style.Size;
 import org.quick.util.CompoundListener;
 
 /**
- * Lays out children one-by-one along a given {@link LayoutAttributes#direction direction} ({@link Direction#DOWN DOWN} by default), with a
+ * Lays out children one-by-one along a given {@link LayoutAttributes#direction direction} ({@link Direction#down down} by default), with a
  * given {@link LayoutAttributes#alignment alignment} along the opposite axis. {@link LayoutAttributes#width},
  * {@link LayoutAttributes#height}, {@link LayoutAttributes#minWidth}, and {@link LayoutAttributes#minHeight} may be used to help determine
  * the sizes of children.
@@ -39,15 +39,15 @@ public class BoxLayout implements QuickLayout {
 
 	@Override
 	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Direction dir = parent.atts().get(direction, Direction.right);
 		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		switch (dir) {
-		case UP:
-		case DOWN:
+		case up:
+		case down:
 			return getCrossSizer(parent, children, dir.getOrientation(), margin);
-		case LEFT:
-		case RIGHT:
+		case left:
+		case right:
 			return getMainSizer(parent, children, dir.getOrientation(), margin, padding);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
@@ -55,15 +55,15 @@ public class BoxLayout implements QuickLayout {
 
 	@Override
 	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Direction dir = parent.atts().get(direction, Direction.right);
 		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		switch (dir) {
-		case UP:
-		case DOWN:
+		case up:
+		case down:
 			return getMainSizer(parent, children, dir.getOrientation(), margin, padding);
-		case LEFT:
-		case RIGHT:
+		case left:
+		case right:
 			return getCrossSizer(parent, children, dir.getOrientation(), margin);
 		}
 		throw new IllegalStateException("Unrecognized layout direction: " + dir);
@@ -181,7 +181,7 @@ public class BoxLayout implements QuickLayout {
 
 	@Override
 	public void layout(QuickElement parent, final QuickElement [] children) {
-		final Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		final Direction dir = parent.atts().get(direction, Direction.right);
 		Alignment align = parent.atts().get(alignment, Alignment.begin);
 		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.begin);
 		final Size margin = parent.getStyle().get(LayoutStyle.margin).get();

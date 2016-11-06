@@ -13,7 +13,7 @@
     <body layout="base:simple">
     	<block layout="simple" width="100%" top="0" height="100%">
     		<label left="3" right="3xp" top="0" height="25%">This is a Quick Document</label>
-			<button left="0" right="100%" top="25%" height="50%" layout="box" direction="down" cross-alignment="center" action="model.counter--">
+			<button left="0" right="100%" top="25%" height="50%" cross-alignment="center" action="model.counter--">
 				The first set of Content is short
 				<label style="font.color=red;font.weight=bold;bg.color=purple">The second set of Content is a bit longer than the first set</label>
 				<label style="font.weight=bold;font.size=20" format="${integer}" value="model.counter" />

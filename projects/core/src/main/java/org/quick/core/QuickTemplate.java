@@ -28,8 +28,8 @@ import org.quick.core.style.ImmutableStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleAttributes;
-import org.quick.core.tags.ModelAttribute;
 import org.quick.core.tags.QuickTagUtils;
+import org.quick.core.tags.QuickTagUtils.AcceptedAttributeStruct;
 import org.quick.core.tags.Template;
 import org.quick.util.QuickUtils;
 
@@ -232,7 +232,6 @@ public abstract class QuickTemplate extends QuickElement {
 		private final Class<? extends QuickTemplate> theDefiner;
 		private final TemplateStructure theSuperStructure;
 		private WidgetStructure theWidgetStructure;
-		private Map<String, Class<?>> theModelAttributes;
 		private AttachPoint<?> theDefaultAttachPoint;
 		private Map<String, AttachPoint<?>> theAttachPoints;
 		private Map<AttachPoint<?>, QuickContent> theAttachPointWidgets;
@@ -269,10 +268,6 @@ public abstract class QuickTemplate extends QuickElement {
 			theDefaultAttachPoint = defAP;
 			theAttachPoints = Collections.unmodifiableMap(attachPoints);
 			theAttachPointWidgets = Collections.unmodifiableMap(attaches);
-		}
-
-		private void setModelAttributes(Map<String, Class<?>> atts) {
-			theModelAttributes = Collections.unmodifiableMap(atts);
 		}
 
 		private void setModels(Map<String, QuickModelConfig> models) {
@@ -348,11 +343,6 @@ public abstract class QuickTemplate extends QuickElement {
 		 */
 		public QuickContent getWidgetStructure(AttachPoint<?> attachPoint) {
 			return theAttachPointWidgets.get(attachPoint);
-		}
-
-		/** @return The model attributes specified in this template's annotation */
-		public Map<String, Class<?>> getModelAttributes() {
-			return theModelAttributes;
 		}
 
 		/** @return The behaviors that will be installed to instances of this template */
@@ -436,14 +426,16 @@ public abstract class QuickTemplate extends QuickElement {
 				throw new QuickException("Concrete implementations of " + QuickTemplate.class.getName() + " like " + templateType.getName()
 					+ " must be tagged with @" + Template.class.getName() + " or extend a class that does");
 			}
-			Map<String, Class<?>> modelAtts = new LinkedHashMap<>();
-			for (ModelAttribute att : template.attributes()) {
-				if (modelAtts.put(att.name(), att.type()) != null)
-					throw new QuickException("Multiple model attributes named " + att.name() + " on template " + templateType.getName());
+			Map<String, TypeToken<?>> modelAtts = new LinkedHashMap<>();
+			for (AcceptedAttributeStruct<?> att : QuickTagUtils.getAcceptedAttributes(templateType)) {
+				if (modelAtts.put(att.attribute.getName(), att.attribute.getType().getType()) != null)
+					throw new QuickException(
+						"Multiple model attributes named " + att.attribute.getName() + " on template " + templateType.getName());
 				TemplateStructure superS = superStructure;
 				while (superS != null) {
-					if (superS.getModel(att.name()) != null)
-						throw new QuickException("Model attribute " + att.name() + " on template " + superS.getDefiner().getName()
+					if (superS.getModel(att.attribute.getName()) != null)
+						throw new QuickException(
+							"Model attribute " + att.attribute.getName() + " on template " + superS.getDefiner().getName()
 							+ " cannot be overridden by template " + templateType.getName());
 				}
 			}
@@ -496,7 +488,6 @@ public abstract class QuickTemplate extends QuickElement {
 			WidgetStructure content = docStruct.getContent();
 			String layout = content.getAttributes().remove(LayoutContainer.LAYOUT_ATTR.getName());
 			TemplateStructure templateStruct = new TemplateStructure(templateType, superStructure);
-			templateStruct.setModelAttributes(modelAtts);
 			templateStruct.setModels(models);
 			String behaviorStr = content.getAttributes().remove(BEHAVIOR);
 			if (behaviorStr != null) {
@@ -941,16 +932,19 @@ public abstract class QuickTemplate extends QuickElement {
 		if (template.getSuperStructure() != null)
 			initModels(template.getSuperStructure(), ctxBuilder);
 
+		List<AcceptedAttributeStruct<?>> templateAtts = QuickTagUtils.getAcceptedAttributes(template.getDefiner());
 		Map<String, QuickAttribute<?>> atts = new HashMap<>();
 		for (QuickAttribute<?> att : atts().attributes()) {
-			Class<?> modelAttType = template.getModelAttributes().get(att.getName());
-			if (modelAttType != null && modelAttType.isAssignableFrom(att.getType().getType().getRawType()))
+			boolean found = false;
+			for (AcceptedAttributeStruct<?> tAtt : templateAtts) {
+				if (tAtt.attribute.equals(att)) {
+					found = true;
+					break;
+				}
+			}
+			if (found)
 				atts.put(att.getName(), att);
 		}
-		for (String att : template.getModelAttributes().keySet())
-			if (!atts.containsKey(att))
-				throw new QuickException("Template-declared attribute " + att + ", type " + template.getModelAttributes().get(att).getName()
-					+ " has not been accepted in this template widget's attributes");
 		for (String modelName : template.getModels()) {
 			QuickModelConfig modelConfig = template.getModel(modelName);
 			QuickAppModel model = org.quick.core.model.DefaultQuickModel.buildQuickModel(modelConfig,

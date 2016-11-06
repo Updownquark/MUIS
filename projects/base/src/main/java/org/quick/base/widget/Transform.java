@@ -7,17 +7,14 @@ import java.awt.geom.AffineTransform;
 
 import org.quick.core.QuickElementCapture;
 import org.quick.core.QuickException;
-import org.quick.core.QuickTemplate;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
-import org.quick.core.tags.Template;
 
 /** A widget with the capability to rotate and/or reflect its contents */
-@Template(location = "../../../../simple-container.qck")
-public class Transform extends QuickTemplate {
+public class Transform extends SimpleContainer {
 	/** The attribute allowing the user to reflect this widget's contents across either the x or the y axis */
 	public static final QuickAttribute<Orientation> flip = QuickAttribute.build("flip", QuickPropertyType.forEnum(Orientation.class))
 		.build();

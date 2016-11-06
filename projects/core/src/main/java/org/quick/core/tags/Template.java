@@ -12,6 +12,4 @@ import java.lang.annotation.Target;
 public @interface Template {
 	/** The location of the file to load the templated widget's definition from */
 	String location();
-	/** Attributes that may be specified on the templated widget to affect its data model */
-	ModelAttribute[] attributes() default {};
 }

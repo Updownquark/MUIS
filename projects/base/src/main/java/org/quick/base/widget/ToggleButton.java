@@ -15,8 +15,12 @@ import com.google.common.reflect.TypeToken;
  * A button that has a {@link org.quick.base.BaseConstants.States#SELECTED selected} state and modifies a boolean attribute value based on
  * that state
  */
-@QuickElementType(attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "selected") },
-	states = { @State(name = BaseConstants.States.SELECTED_NAME, priority = BaseConstants.States.SELECTED_PRIORITY) })
+@QuickElementType(//
+	attributes = { //
+		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "selected")//
+	}, states = { //
+		@State(name = BaseConstants.States.SELECTED_NAME, priority = BaseConstants.States.SELECTED_PRIORITY)//
+	})
 public class ToggleButton extends Button {
 	private StateEngine.StateController theSelectedController;
 

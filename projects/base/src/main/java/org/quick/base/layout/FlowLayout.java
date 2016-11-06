@@ -41,7 +41,7 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 
 	@Override
 	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Direction dir = parent.atts().get(direction, Direction.right);
 		Size marginSz = parent.getStyle().get(margin).get();
 		Size paddingSz = parent.getStyle().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
@@ -52,7 +52,7 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 
 	@Override
 	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Direction dir = parent.atts().get(direction, Direction.right);
 		Size marginSz = parent.getStyle().get(margin).get();
 		Size paddingSz = parent.getStyle().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);
@@ -181,7 +181,7 @@ public class FlowLayout implements org.quick.core.QuickLayout {
 
 	@Override
 	public void layout(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.RIGHT);
+		Direction dir = parent.atts().get(direction, Direction.right);
 		Size marginSz = parent.getStyle().get(margin).get();
 		Size paddingSz = parent.getStyle().get(padding).get();
 		boolean fill = parent.atts().get(fillContainer, false);

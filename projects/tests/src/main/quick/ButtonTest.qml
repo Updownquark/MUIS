@@ -31,7 +31,8 @@
 				<label style="font.color=red;font.weight=bold;bg.color=purple">The second set of Content is a bit longer than the first set</label>
 				<label style="font.weight=bold;font.size=20" format="${integer}" value="model.counter" />
 			</button>
-			<block left="3" right="3xp" top="75%" height="25%" style="bg.transparency=0;bg.color=${model.counterColor}">This block should change color with button clicks</block>
+			<button left="45%" right="55%" top="75%" bottom="80%" action="model.counter=10">Reset</button>
+			<block left="3" right="3xp" top="80%" height="25%" style="bg.transparency=0;bg.color=${model.counterColor}">This block should change color with button clicks</block>
     	</block>
     </body>
 </quick>

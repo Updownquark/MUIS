@@ -387,7 +387,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			Object def;
 			if (config.getString("default") != null && !config.getString("default").equals("null")) {
 				ObservableValue<?> defValue = parseValue(config.get("default"), parser, parseEnv);
-				if (allCommon && !common.equals(defValue))
+				if (allCommon && !common.equals(defValue.getType()))
 					allCommon = false;
 				def = defValue.get();
 			} else

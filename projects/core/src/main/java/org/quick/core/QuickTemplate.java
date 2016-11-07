@@ -22,6 +22,7 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.SimpleParseEnv;
 import org.quick.core.parser.WidgetStructure;
 import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.ExpressionContext;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.ImmutableStyle;
@@ -843,6 +844,7 @@ public abstract class QuickTemplate extends QuickElement {
 	private final Map<AttachPoint<?>, AttachPointInstance<?>> theAttachPoints;
 
 	private final Map<String, Object> theModels;
+	private ExpressionContext theTemplateContext;
 
 	private final Map<QuickContent, QuickElement> theStaticContent;
 
@@ -874,6 +876,7 @@ public abstract class QuickTemplate extends QuickElement {
 				ctxBuilder.withValue("attributes",
 					ObservableValue.constant(TypeToken.of(QuickAppModel.class), new TemplateAttributesModel()));
 				initModels(theTemplateStructure, ctxBuilder);
+				theTemplateContext = ctxBuilder.build();
 			} catch (QuickException e) {
 				msg().fatal("Could not generate template structure", e);
 			} catch (CacheException e) {
@@ -1115,7 +1118,7 @@ public abstract class QuickTemplate extends QuickElement {
 				for (QuickContent content : apStruct.getChildren())
 					implStruct.addChild(content);
 				implStruct.seal();
-				ret = creator.getChild(parent, implStruct, false);
+				ret = creator.getChild(parent, theTemplateContext, implStruct, false);
 				ret.atts().accept(theRoleWanter, template.role);
 				try {
 					ret.atts().set(template.role, ap);
@@ -1124,9 +1127,9 @@ public abstract class QuickTemplate extends QuickElement {
 					throw new IllegalStateException("Should not have thrown exception here", e);
 				}
 			} else
-				ret = creator.getChild(parent, child, false);
+				ret = creator.getChild(parent, theTemplateContext, child, false);
 		} else
-			ret = creator.getChild(parent, child, false);
+			ret = creator.getChild(parent, theTemplateContext, child, false);
 		if (ap != null)
 			mappings.add(ret);
 		else if (!theStaticContent.containsKey(child))
@@ -1330,6 +1333,28 @@ public abstract class QuickTemplate extends QuickElement {
 			parent = parent.getParent().get();
 		}
 		return null;
+	}
+
+	private class TemplateAttributesModel implements QuickAppModel {
+		private final Map<String, QuickAttribute<?>> theAttributes;
+
+		TemplateAttributesModel() {
+			theAttributes = new LinkedHashMap<>();
+			for (AcceptedAttributeStruct<?> attr : QuickTagUtils.getAcceptedAttributes(QuickTemplate.this.getClass()))
+				theAttributes.put(attr.attribute.getName(), attr.attribute);
+		}
+
+		@Override
+		public Set<String> getFields() {
+			return Collections.unmodifiableSet(theAttributes.keySet());
+		}
+
+		@Override
+		public Object getField(String name) {
+			if (theAttributes.containsKey(name))
+				return atts().getHolder(theAttributes.get(name));
+			return null;
+		}
 	}
 
 	private class AttachPointSetChildList extends ObservableList.FlattenedObservableList<QuickElement> implements ElementList<QuickElement> {

@@ -361,11 +361,12 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param toolkit The toolkit that this element belongs to
 	 * @param classView The class view for this element
 	 * @param parent The parent that this element is under
+	 * @param parentCtx Expression context to populate model values into this element. May be null.
 	 * @param namespace The namespace used to create this element
 	 * @param tagName The tag name used to create this element
 	 */
-	public final void init(QuickDocument doc, QuickToolkit toolkit, QuickClassView classView, QuickElement parent, String namespace,
-		String tagName) {
+	public final void init(QuickDocument doc, QuickToolkit toolkit, QuickClassView classView, QuickElement parent,
+		ExpressionContext parentCtx, String namespace, String tagName) {
 		theLifeCycleController.advance(CoreStage.INIT_SELF.toString());
 		if(doc == null)
 			throw new IllegalArgumentException("Cannot create an element without a document");
@@ -376,9 +377,11 @@ public abstract class QuickElement implements QuickParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
-		theContext = DefaultExpressionContext.build()//
-			.withParent(theDocument.getContext())//
-			.build();
+		DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build()//
+			.withParent(theDocument.getContext());
+		if (parentCtx != null)
+			ctxBuilder.withParent(parentCtx);
+		theContext = ctxBuilder.build();
 		setParent(parent);
 		addAnnotatedAttributes();
 		theLifeCycleController.advance(CoreStage.PARSE_CHILDREN.toString());
@@ -444,7 +447,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			else
 				tk = getDocument().getEnvironment().getCoreToolkit();
 			org.quick.core.QuickClassView classView = new org.quick.core.QuickClassView(getDocument().getEnvironment(), theClassView, tk);
-			child.init(getDocument(), tk, classView, this, null, null);
+			child.init(getDocument(), tk, classView, this, null, null, null);
 		}
 		if (child.life().isAfter(CoreStage.INIT_CHILDREN.name()) < 0 && life().isAfter(CoreStage.INITIALIZED.name()) > 0) {
 			child.initChildren(Collections.emptyList());

@@ -21,6 +21,7 @@ public class StyleAttributes {
 		.withParser((parser, env, str) -> {
 			return ObservableValue.constant(TypeToken.of(QuickStyle.class), parseStyle(parser, env, str));
 		}, true)//
+		.withRefReplaceGenerator(idx -> new StringBuilder("^{").append(idx).append('}').toString())//
 		.withToString(style2 -> {
 			StringBuilder ret = new StringBuilder();
 			for (StyleAttribute<?> attr : style2.attributes()) {

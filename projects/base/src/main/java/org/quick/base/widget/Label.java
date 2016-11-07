@@ -14,6 +14,8 @@ import org.quick.core.QuickConstants;
 import org.quick.core.QuickException;
 import org.quick.core.QuickTextElement;
 import org.quick.core.model.*;
+import org.quick.core.tags.AcceptAttribute;
+import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.Template;
 
 /**
@@ -21,13 +23,18 @@ import org.quick.core.tags.Template;
  * different and its style sheet attributes may be different (margin and padding are typically 0)
  */
 @Template(location = "../../../../label.qml")
+@QuickElementType(//
+	attributes = { //
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich"), //
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"), //
+		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"),//
+	})
 public class Label extends org.quick.core.QuickTemplate implements org.quick.core.model.DocumentedElement {
 	/** Creates the label */
 	public Label() {
 		life().runWhen(
 			() -> {
-				Object accepter = new Object();
-				atts().accept(accepter, document, rich, ModelAttributes.value, format);
 				atts().getHolder(document).tupleV(atts().getHolder(rich)).value().act(tuple -> {
 					QuickTextElement textEl = getValue();
 					QuickDocumentModel docModel;

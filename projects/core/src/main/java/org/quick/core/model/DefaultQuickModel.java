@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import org.observe.ObservableAction;
 import org.observe.ObservableValue;
+import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
@@ -12,6 +13,7 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.SimpleParseEnv;
 import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -116,6 +118,10 @@ public class DefaultQuickModel implements QuickAppModel {
 			}).forConfig("variable", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
+				}).forConfig("min", b2 -> {
+					b2.withText(true).required();
+				}).forConfig("max", b2 -> {
+					b2.withText(true).required();
 				}).withText(false);
 			}).forConfig("action", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
@@ -130,15 +136,15 @@ public class DefaultQuickModel implements QuickAppModel {
 					b2.withText(true).required();
 				})//
 					.forConfig("value", b2 -> {
-						b2.required();
+						b2.withText(true).required();
 					})//
 					.forConfig("case", b2 -> {
-						b2.forConfig("from", b3 -> {
-							b3.required();
-						});
+						b2.forConfig("value", b3 -> {
+							b3.withText(true).required();
+						}).withText(true).atLeast(1);
 					})//
 					.forConfig("default", b3 -> {
-						b3.withText(false);
+						b3.withText(true);
 					}).withText(false);
 			}).build();
 		}
@@ -207,11 +213,14 @@ public class DefaultQuickModel implements QuickAppModel {
 					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
 					value = parseModelVariable(cfg.getValue(), parser, innerEnv);
+					if (cfg.getValue().get("min") != null | cfg.getValue().get("max") != null)
+						value = constrainValue((ObservableValue<?>) value, cfg.getValue().get("min"), cfg.getValue().get("max"), parser,
+							innerEnv);
 					break;
 				case "action":
 					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
-					value=parseModelAction(cfg.getValue().getText(), parser, innerEnv);
+					value = parseModelAction(cfg.getValue().getText(), parser, innerEnv);
 					break;
 				case "model":
 					value = parseChildModel(cfg.getValue().without("name"), parser, innerEnv);
@@ -233,6 +242,94 @@ public class DefaultQuickModel implements QuickAppModel {
 				return parser.parseProperty(null, parseEnv, (String) config);
 			QuickModelConfig cfg = (QuickModelConfig) config;
 			return parser.parseProperty(null, parseEnv, cfg.getText());
+		}
+
+		private <T, V> ObservableValue<V> constrainValue(ObservableValue<T> value, Object minConfig, Object maxConfig,
+			QuickPropertyParser parser, QuickParseEnv parseEnv) {
+			if (!(value instanceof SettableValue)) {
+				parseEnv.msg().warn("Attempting to constrain unsettable value", "value", value, "min", minConfig, "max", maxConfig);
+				return (ObservableValue<V>) value;
+			} else if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), value.getType())) {
+				parseEnv.msg().warn("Attempting to constrain uncomparable value", "value", value, "min", minConfig, "max", maxConfig);
+				return (ObservableValue<V>) value;
+			}
+			ObservableValue<?> minValue = null;
+			ObservableValue<?> maxValue = null;
+			if (minConfig != null) {
+				try {
+					minValue = parseValue(minConfig, parser, parseEnv);
+				} catch (QuickParseException e) {
+					parseEnv.msg().warn("Could not parse min constraint for value", "value", value, "min", minConfig);
+				}
+				if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), minValue.getType())) {
+					parseEnv.msg().warn("Min constraint is not comparable", "value", value, "min", minConfig, "minValue", minValue);
+					minValue = null;
+				}
+			}
+			if (maxConfig != null) {
+				try {
+					maxValue = parseValue(maxConfig, parser, parseEnv);
+				} catch (QuickParseException e) {
+					parseEnv.msg().warn("Could not parse max constraint for value", "value", value, "max", maxConfig);
+				}
+				if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), minValue.getType())) {
+					parseEnv.msg().warn("Max constraint is not comparable", "value", value, "max", minConfig, "maxValue", maxValue);
+					minValue = null;
+				}
+			}
+
+			if (minValue == null && maxValue == null)
+				return (ObservableValue<V>) value;
+
+			TypeToken<?> superType = value.getType();
+			if (minValue != null && !QuickUtils.isAssignableFrom(superType, minValue.getType())) {
+				if (QuickUtils.isAssignableFrom(minValue.getType(), superType))
+					superType = minValue.getType();
+				else {
+					parseEnv.msg().warn("Min constraint is incompatible with value", "value", value, "min", minConfig, "minValue",
+						minValue);
+				}
+			}
+			if (maxValue != null && !QuickUtils.isAssignableFrom(superType, maxValue.getType())) {
+				if (QuickUtils.isAssignableFrom(maxValue.getType(), superType))
+					superType = maxValue.getType();
+				else {
+					parseEnv.msg().warn("Max constraint is incompatible with value", "value", value, "max", maxConfig, "maxValue",
+						maxValue);
+				}
+			}
+			if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), superType)) {
+				parseEnv.msg().warn("Super type of value and constraints, " + superType + " is not comparable", "value", value, "min",
+					minConfig, "minValue", minValue, "max", maxConfig, "maxValue", maxValue);
+				return (ObservableValue<V>) value;
+			}
+
+			TypeToken<V> fType = (TypeToken<V>) superType;
+			SettableValue<V> settableValue = (SettableValue<V>) value;
+			if (!settableValue.getType().equals(superType)) {
+				settableValue = ((SettableValue<T>) settableValue).<V> mapV(fType, (T v) -> QuickUtils.convert(fType, v),
+					(V v) -> QuickUtils.convert(value.getType(), v), true);
+			}
+			ObservableValue<?> fMin = minValue;
+			ObservableValue<?> fMax = maxValue;
+			settableValue = settableValue.filterAccept(v -> {
+				if (fMin != null) {
+					V minV = (V) fMin.get();
+					if (((Comparable<V>) v).compareTo(minV) < 0)
+						return "Value must be at least " + minV;
+				}
+				if (fMax != null) {
+					V maxV = (V) fMax.get();
+					if (((Comparable<V>) v).compareTo(maxV) > 0)
+						return "Value must be at most " + maxV;
+				}
+				return null;
+			});
+			if (minValue != null && !(minValue instanceof ObservableValue.ConstantObservableValue))
+				settableValue = settableValue.refresh(minValue.noInit());
+			if (maxValue != null && !(maxValue instanceof ObservableValue.ConstantObservableValue))
+				settableValue = settableValue.refresh(maxValue.noInit());
+			return settableValue;
 		}
 
 		private Object parseModelValue(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
@@ -267,11 +364,11 @@ public class DefaultQuickModel implements QuickAppModel {
 
 		private ObservableValue<?> parseModelSwitch(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
-			ObservableValue<?> value = parseValue(config, parser, parseEnv);
+			ObservableValue<?> value = parseValue(config.get("value"), parser, parseEnv);
 			Map<Object, ObservableValue<?>> mappings = new HashMap<>();
 			Map<Object, Object> valueMappings = new HashMap<>();
 			for (QuickModelConfig caseConfig : (List<QuickModelConfig>) (List<?>) config.getValues("case")) {
-				Object from = parseValue(caseConfig.get("from"), parser, parseEnv).get();
+				Object from = parseValue(caseConfig.get("value"), parser, parseEnv).get();
 				ObservableValue<?> to = parseValue(caseConfig, parser, parseEnv);
 				mappings.put(from, to);
 				Object toVal = to.get();

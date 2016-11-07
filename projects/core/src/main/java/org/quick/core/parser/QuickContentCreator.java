@@ -16,12 +16,11 @@ public class QuickContentCreator {
 	 * Fills in a document with widget structure
 	 *
 	 * @param doc The document to fill
-	 * @param parentCtx Expression context to populate model values into the elements. May be null.
 	 * @param content The parsed content to fill the document with
 	 * @throws QuickParseException If an unrecoverable error occurs
 	 */
-	public void fillDocument(QuickDocument doc, ExpressionContext parentCtx, WidgetStructure content) throws QuickParseException {
-		doc.getRoot().init(doc, doc.getEnvironment().getCoreToolkit(), content.getClassView(), null, null, content.getNamespace(),
+	public void fillDocument(QuickDocument doc, WidgetStructure content) throws QuickParseException {
+		doc.getRoot().init(doc, doc.getEnvironment().getCoreToolkit(), content.getClassView(), null, content.getNamespace(),
 			content.getTagName());
 		// Add the attributes
 		for (java.util.Map.Entry<String, String> att : content.getAttributes().entrySet()) {
@@ -36,7 +35,7 @@ public class QuickContentCreator {
 		ArrayList<QuickElement> elements = new ArrayList<>();
 		for (QuickContent child : content.getChildren()) {
 			if (child instanceof WidgetStructure)
-				elements.add(createFromStructure(doc, doc.getRoot(), parentCtx, (WidgetStructure) child, true));
+				elements.add(createFromStructure(doc, doc.getRoot(), null, (WidgetStructure) child, true));
 		}
 		doc.getRoot().initChildren(elements);
 	}
@@ -55,11 +54,23 @@ public class QuickContentCreator {
 		boolean withChildren)
 		throws QuickParseException {
 		// Create the element
-		QuickElement ret = createElement(doc, parent, parentCtx, structure);
+		QuickElement ret = createElement(doc, parent, structure);
 		// Add the attributes
+		QuickParseEnv parseEnv;
+		if (parent != null) {
+			if (parentCtx == null)
+				parseEnv = parent;
+			else
+				parseEnv = new SimpleParseEnv(parent.cv(), parent.msg(), parentCtx);
+		} else {
+			if (parentCtx == null)
+				parseEnv = doc;
+			else
+				parseEnv = new SimpleParseEnv(doc.cv(), doc.msg(), parentCtx);
+		}
 		for (java.util.Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
 			try {
-				ret.atts().set(att.getKey(), att.getValue(), parent);
+				ret.atts().set(att.getKey(), att.getValue(), parseEnv);
 			} catch (QuickException e) {
 				ret.msg().error("Could not set attribute \"" + att.getKey() + "\"", e, "attribute", att.getKey(), "value", att.getValue());
 			}
@@ -77,7 +88,7 @@ public class QuickContentCreator {
 		return ret;
 	}
 
-	QuickElement createElement(QuickDocument doc, QuickElement parent, ExpressionContext parentCtx, WidgetStructure structure)
+	QuickElement createElement(QuickDocument doc, QuickElement parent, WidgetStructure structure)
 		throws QuickParseException {
 		String ns = structure.getNamespace();
 		if (ns != null && ns.length() == 0)
@@ -115,7 +126,7 @@ public class QuickContentCreator {
 		} catch (Throwable e) {
 			throw new QuickParseException("Could not instantiate Quick element class " + className, e);
 		}
-		ret.init(doc, toolkit, structure.getClassView(), parent, parentCtx, ns, structure.getTagName());
+		ret.init(doc, toolkit, structure.getClassView(), parent, ns, structure.getTagName());
 		return ret;
 	}
 
@@ -123,7 +134,6 @@ public class QuickContentCreator {
 	 * Creates an element from content
 	 *
 	 * @param parent The parent of the child to create
-	 * @param parentCtx Expression context to populate model values into the new element. May be null.
 	 * @param child The structure of the child
 	 * @param withChildren Whether to populate the child's descendants, if any
 	 * @return The new element
@@ -137,7 +147,7 @@ public class QuickContentCreator {
 			QuickText text = (QuickText) child;
 			QuickTextElement ret = new QuickTextElement(text.getContent());
 			ret.init(parent.getDocument(), parent.getDocument().getEnvironment().getCoreToolkit(), parent.getDocument().getClassView(),
-				parent, parentCtx, null, text.isCData() ? "CDATA" : null);
+				parent, null, text.isCData() ? "CDATA" : null);
 			ret.initChildren(Collections.emptyList());
 			return ret;
 		} else {

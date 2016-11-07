@@ -4,10 +4,23 @@
     <head>
         <title>Testing Buttons</title>
         <model name="model" builder="default-model">
-        	<variable name="counter">10</variable>
+        	<variable name="counter" min="0">10</variable>
         	<!--<value name="counterMod">counter%3</value>-->
         	<action name="incCounter">this.counter--</action>
         	<!--<value name="color">new java.awt.Color(this.counterMod==0 ? 255 : 0, this.counterMod==1 ? 255 : 0, this.counterMod==2 ? 255 : 0)</value>-->
+        	<switch name="counterColor" value="this.counter">
+        		<case value="10">org.quick.core.style.Colors.blue</case>
+        		<case value="9">org.quick.core.style.Colors.purple</case>
+        		<case value="8">org.quick.core.style.Colors.red</case>
+        		<case value="7">org.quick.core.style.Colors.orange</case>
+        		<case value="6">org.quick.core.style.Colors.yellow</case>
+        		<case value="5">org.quick.core.style.Colors.green</case>
+        		<case value="4">org.quick.core.style.Colors.blue</case>
+        		<case value="3">org.quick.core.style.Colors.cyan</case>
+        		<case value="2">org.quick.core.style.Colors.magenta</case>
+        		<case value="1">org.quick.core.style.Colors.white</case>
+        		<case value="0">org.quick.core.style.Colors.saddleBrown</case>
+        	</switch>
         </model>
     </head>
     <body layout="base:simple">
@@ -18,7 +31,7 @@
 				<label style="font.color=red;font.weight=bold;bg.color=purple">The second set of Content is a bit longer than the first set</label>
 				<label style="font.weight=bold;font.size=20" format="${integer}" value="model.counter" />
 			</button>
-			<block left="3" right="3xp" top="75%" height="25%" style="bg.transparency=0;bg.color=saddle-brown">This block should change color with button clicks</block>
+			<block left="3" right="3xp" top="75%" height="25%" style="bg.transparency=0;bg.color=${model.counterColor}">This block should change color with button clicks</block>
     	</block>
     </body>
 </quick>

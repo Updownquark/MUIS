@@ -195,7 +195,7 @@ public class AttributeManager {
 			theLastGoodValue = value;
 			fire(oldValue, value);
 			theContainerController.onNext(theContainerObservable.createChangeEvent(oldObservable, theContainedObservable, null));
-			observable.noInit().takeUntil(theContainerObservable).act(evt -> {
+			observable.noInit().takeUntil(theContainerObservable.noInit()).act(evt -> {
 				try {
 					checkValue(evt.getValue());
 				} catch(QuickException e) {

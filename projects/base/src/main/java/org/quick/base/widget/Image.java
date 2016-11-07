@@ -5,8 +5,18 @@ import java.net.URL;
 import org.quick.core.QuickConstants;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.tags.AcceptAttribute;
+import org.quick.core.tags.QuickElementType;
 
 /** An extension of GenericImage that allows users to specify its content and behavior with attributes */
+@QuickElementType(//
+	attributes = { //
+		@AcceptAttribute(declaringClass = Image.class, field = "src", required = true), //
+		@AcceptAttribute(declaringClass = Image.class, field = "resize"), //
+		@AcceptAttribute(declaringClass = Image.class, field = "hResize"), //
+		@AcceptAttribute(declaringClass = Image.class, field = "vResize"), //
+		@AcceptAttribute(declaringClass = Image.class, field = "propLocked"),//
+	})
 public class Image extends GenericImage {
 	/** The attribute to use to specify the image resource that an image is to render */
 	public static final QuickAttribute<URL> src = QuickAttribute.build("src", QuickPropertyType.resource).build();
@@ -32,10 +42,10 @@ public class Image extends GenericImage {
 	/** Creates an image element */
 	public Image() {
 		life().runWhen(() -> {
-			atts().require(this, src).act(event -> {
+			atts().getHolder(src).act(event -> {
 				setImageLocation(event.getValue());
 			});
-			atts().accept(this, resize).act(event -> {
+			atts().getHolder(resize).act(event -> {
 				ImageResizePolicy policy = event.getValue();
 				if (atts().get(hResize) != null || atts().get(vResize) != null) {
 					if (policy != null)
@@ -54,7 +64,7 @@ public class Image extends GenericImage {
 					setVerticalResizePolicy(policy);
 				}
 			});
-			atts().accept(this, hResize).act(event -> {
+			atts().getHolder(hResize).act(event -> {
 				ImageResizePolicy policy = event.getValue();
 				if (policy == null)
 					policy = atts().get(resize);
@@ -62,7 +72,7 @@ public class Image extends GenericImage {
 					policy = ImageResizePolicy.lockIfEmpty;
 				setHorizontalResizePolicy(policy);
 			});
-			atts().accept(this, vResize).act(event -> {
+			atts().getHolder(vResize).act(event -> {
 				ImageResizePolicy policy = event.getValue();
 				if (policy == null)
 					policy = atts().get(resize);
@@ -70,7 +80,7 @@ public class Image extends GenericImage {
 					policy = ImageResizePolicy.lockIfEmpty;
 				setVerticalResizePolicy(policy);
 			});
-			atts().accept(this, propLocked).act(event -> {
+			atts().getHolder(propLocked).act(event -> {
 				Boolean locked = event.getValue();
 				setProportionLocked(locked == null ? false : locked.booleanValue());
 			});

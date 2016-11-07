@@ -101,7 +101,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 							theDebugPanel.setCursor(cursor);
 					}
 				});
-			env.getContentCreator().fillDocument(quickDoc, null, docStruct.getContent());
+			env.getContentCreator().fillDocument(quickDoc, docStruct.getContent());
 		} catch (java.io.IOException e) {
 			throw new IllegalArgumentException("Could not access address " + address, e);
 		} catch (org.quick.core.parser.QuickParseException e) {

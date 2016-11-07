@@ -1085,12 +1085,13 @@ public abstract class QuickTemplate extends QuickElement {
 			}
 		}
 
+		QuickParseEnv templateParseEnv = new SimpleParseEnv(getClassView(), getMessageCenter(), theTemplateContext);
 		for (QuickContent content : structure.getWidgetStructure().getChildren())
-			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator(), this);
+			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator(), templateParseEnv);
 	}
 
 	private QuickElement createTemplateChild(TemplateStructure template, QuickElement parent, QuickContent child,
-		org.quick.core.parser.QuickContentCreator creator, QuickParseEnv templateCtx) throws QuickParseException {
+		org.quick.core.parser.QuickContentCreator creator, QuickParseEnv templateParseEnv) throws QuickParseException {
 		QuickElement ret;
 		AttachPoint<?> ap = template.getAttachPoint(child);
 		List<QuickElement> mappings = null;
@@ -1122,7 +1123,7 @@ public abstract class QuickTemplate extends QuickElement {
 				ret.atts().accept(theRoleWanter, template.role);
 				try {
 					ret.atts().set(template.role, ap);
-					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateCtx);
+					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateParseEnv);
 				} catch (QuickException e) {
 					throw new IllegalStateException("Should not have thrown exception here", e);
 				}
@@ -1139,7 +1140,7 @@ public abstract class QuickTemplate extends QuickElement {
 
 		if (child instanceof WidgetStructure)
 			for (QuickContent sub : ((WidgetStructure) child).getChildren())
-				createTemplateChild(template, ret, sub, creator, templateCtx);
+				createTemplateChild(template, ret, sub, creator, templateParseEnv);
 
 		return ret;
 	}
@@ -1341,7 +1342,21 @@ public abstract class QuickTemplate extends QuickElement {
 		TemplateAttributesModel() {
 			theAttributes = new LinkedHashMap<>();
 			for (AcceptedAttributeStruct<?> attr : QuickTagUtils.getAcceptedAttributes(QuickTemplate.this.getClass()))
-				theAttributes.put(attr.attribute.getName(), attr.attribute);
+				theAttributes.put(toModelName(attr.attribute.getName()), attr.attribute);
+		}
+
+		private String toModelName(String attrName) {
+			int dashIdx = attrName.indexOf('-');
+			if (dashIdx < 0)
+				return attrName;
+			StringBuilder modelName = new StringBuilder(attrName);
+			while (dashIdx >= 0) {
+				modelName.deleteCharAt(dashIdx);
+				if (modelName.length() > dashIdx)
+					modelName.setCharAt(dashIdx, Character.toUpperCase(modelName.charAt(dashIdx)));
+				dashIdx = modelName.indexOf("-");
+			}
+			return modelName.toString();
 		}
 
 		@Override

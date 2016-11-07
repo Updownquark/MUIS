@@ -12,8 +12,18 @@ import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.tags.AcceptAttribute;
+import org.quick.core.tags.QuickElementType;
 
 /** A widget with the capability to rotate and/or reflect its contents */
+@QuickElementType(//
+	attributes = { //
+		@AcceptAttribute(declaringClass = Transform.class, field = "flip"), //
+		@AcceptAttribute(declaringClass = Transform.class, field = "rotate"), //
+		@AcceptAttribute(declaringClass = Transform.class, field = "scale"), //
+		@AcceptAttribute(declaringClass = Transform.class, field = "scaleX"), //
+		@AcceptAttribute(declaringClass = Transform.class, field = "scaleY"),//
+	})
 public class Transform extends SimpleContainer {
 	/** The attribute allowing the user to reflect this widget's contents across either the x or the y axis */
 	public static final QuickAttribute<Orientation> flip = QuickAttribute.build("flip", QuickPropertyType.forEnum(Orientation.class))
@@ -34,18 +44,16 @@ public class Transform extends SimpleContainer {
 	/** Creates a transform widget */
 	public Transform() {
 		life().runWhen(() -> {
-				atts().accept(this, flip).act(event -> {
+			atts().getHolder(flip).act(event -> {
 				events().fire(new org.quick.core.event.SizeNeedsChangedEvent(Transform.this, null));
 				relayout(false);
 			});
-				atts().accept(this, rotate).act(
-					event -> {
-				if(event.getValue() % 90 != 0) {
-					msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value",
-						event.getValue());
+			atts().getHolder(rotate).act(event -> {
+				if (event.getValue() % 90 != 0) {
+					msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value", event.getValue());
 					try {
 						atts().set(rotate, Math.round(event.getValue() / 90) * 90.0);
-					} catch(QuickException e) {
+					} catch (QuickException e) {
 						throw new IllegalStateException(e);
 					}
 					return;

@@ -1,9 +1,5 @@
 package org.quick.base.widget;
 
-import static org.quick.base.layout.TextEditLayout.charLengthAtt;
-import static org.quick.base.layout.TextEditLayout.charRowsAtt;
-import static org.quick.core.QuickTextElement.multiLine;
-
 import org.observe.ObservableAction;
 import org.quick.base.BaseAttributes;
 import org.quick.base.layout.TextEditLayout;
@@ -19,15 +15,16 @@ import org.quick.core.tags.Template;
 @Template(location = "../../../../spinner.qml")
 @QuickElementType(
 	attributes = { //
+		@AcceptAttribute(declaringClass = Spinner.class, field = "increment", required = true), //
+		@AcceptAttribute(declaringClass = Spinner.class, field = "decrement", required = true), //
 		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"), //
-		@AcceptAttribute(declaringClass = Spinner.class, field = "increment"), //
-		@AcceptAttribute(declaringClass = Spinner.class, field = "decrement"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"), //
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich"), //
 		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"), //
 		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"), //
-		@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"), //
-		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //
-		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich") })
+		@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine") //
+	})
 public class Spinner extends QuickTemplate {
 	/** The increment attribute, specifying the action to perform when the user clicks the up arrow */
 	public static final QuickAttribute<ObservableAction<?>> increment = QuickAttribute.build("increment", ModelAttributes.actionType)
@@ -38,12 +35,5 @@ public class Spinner extends QuickTemplate {
 
 	/** Creates a spinner */
 	public Spinner() {
-		life().runWhen(() -> {
-			Object accepter = new Object();
-			atts().require(accepter, increment);
-			atts().require(accepter, decrement);
-			atts().accept(accepter, ModelAttributes.value, BaseAttributes.format, charLengthAtt, charRowsAtt, multiLine,
-					BaseAttributes.document, BaseAttributes.rich);
-		}, org.quick.core.QuickConstants.CoreStage.INIT_SELF.toString(), 1);
 	}
 }

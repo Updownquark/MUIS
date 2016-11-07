@@ -115,13 +115,24 @@ public class StyleParsingUtils {
 
 	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
 		StyleSetter setter) {
-		ObservableValue<T> value;
-		try {
-			value = parser.parseProperty(styleAttr, env, valueStr);
-		} catch (org.quick.core.QuickException e) {
-			env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
-				+ styleAttr.getDomain().getName(), e);
-			return;
+		ObservableValue<T> value = null;
+		if (valueStr.startsWith("^{") && valueStr.endsWith("}")) {
+			value = (ObservableValue<T>) env.getContext().getVariable(valueStr);
+			if (value != null) {
+				if (!styleAttr.getType().canAccept(value.getType())) {
+					env.msg().error("Value " + valueStr + " cannot be assigned to attribute styleAttr");
+					return;
+				}
+			}
+		}
+		if (value == null) {
+			try {
+				value = parser.parseProperty(styleAttr, env, valueStr);
+			} catch (org.quick.core.QuickException e) {
+				env.msg().warn("Value " + valueStr + " is not appropriate for style attribute " + styleAttr.getName() + " of domain "
+					+ styleAttr.getDomain().getName(), e);
+				return;
+			}
 		}
 		setter.set(styleAttr, value);
 	}

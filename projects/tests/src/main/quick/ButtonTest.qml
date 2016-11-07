@@ -4,7 +4,7 @@
     <head>
         <title>Testing Buttons</title>
         <model name="model" builder="default-model">
-        	<variable name="counter" min="0">10</variable>
+        	<variable name="counter" min="0" max="10">10</variable>
         	<!--<value name="counterMod">counter%3</value>-->
         	<action name="incCounter">this.counter--</action>
         	<!--<value name="color">new java.awt.Color(this.counterMod==0 ? 255 : 0, this.counterMod==1 ? 255 : 0, this.counterMod==2 ? 255 : 0)</value>-->

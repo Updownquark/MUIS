@@ -15,10 +15,7 @@ import org.quick.core.model.ModelAttributes;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.SimpleParseEnv;
-import org.quick.core.prop.DefaultExpressionContext;
-import org.quick.core.prop.ExpressionFunction;
-import org.quick.core.prop.QuickAttribute;
-import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.prop.*;
 import org.quick.core.style.*;
 
 import com.google.common.reflect.TypeToken;
@@ -53,14 +50,29 @@ public class PropertyTest {
 	public void testBasicProperties() {
 		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
 		QuickPropertyParser propParser = env.getPropertyParser();
+		QuickProperty<Integer> intProp = QuickAttribute.build("int", QuickPropertyType.integer).build();
+		QuickProperty<Long> longProp = QuickAttribute.build("long", QuickPropertyType.build("long", TypeToken.of(Long.class)).build())
+			.build();
+		QuickProperty<Double> doubleProp = BackgroundStyle.transparency;
+		QuickProperty<Float> floatProp = QuickAttribute.build("float", QuickPropertyType.build("float", TypeToken.of(Float.class)).build())
+			.build();
+		QuickProperty<Boolean> boolProp = FontStyle.strike;
+		QuickProperty<String> stringProp = QuickAttribute.build("string", QuickPropertyType.string).build();
+		QuickProperty<Character> charProp = QuickAttribute
+			.build("char", QuickPropertyType.build("char", TypeToken.of(Character.class)).build()).build();
 		try {
-			Assert.assertEquals(2.5, //
-				propParser.parseProperty(BackgroundStyle.transparency, env, "2.5")//
-					.get().doubleValue(),
-				0);
-
+			// Literals
+			Assert.assertEquals(Integer.valueOf(0), propParser.parseProperty(intProp, env, "0").get());
+			Assert.assertEquals(Long.valueOf(0xff1L), propParser.parseProperty(longProp, env, "0xff1l").get());
+			Assert.assertEquals(Double.valueOf(0.5), propParser.parseProperty(doubleProp, env, "0.5").get());
+			Assert.assertEquals(Float.valueOf(0x1.ffp-1f), propParser.parseProperty(floatProp, env, "0x1.ffp-1f").get());
+			Assert.assertEquals(Boolean.TRUE, propParser.parseProperty(boolProp, env, "true").get());
+			Assert.assertEquals("", propParser.parseProperty(stringProp, env, "\"\"").get());
+			Assert.assertEquals("A string\u00b0\t8 4", propParser.parseProperty(stringProp, env, "\"A string\\u00b0\\t8 4\"").get());
+			Assert.assertEquals(Character.valueOf('"'), propParser.parseProperty(charProp, env, "'\"'").get());
+			Assert.assertEquals(Character.valueOf('\u00b0'), propParser.parseProperty(charProp, env, "'\\u00b0'").get());
 			Assert.assertEquals(2.0, //
-				propParser.parseProperty(BackgroundStyle.transparency, env, "2")//
+				propParser.parseProperty(doubleProp, env, "2")//
 					.get().doubleValue(),
 				0);
 

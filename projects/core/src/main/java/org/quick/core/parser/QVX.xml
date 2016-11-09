@@ -23,21 +23,10 @@
 		<literal>&apos;</literal>
 	</entity>
 	<entity name="string" order="1" impl="prisms.lang.types.ParsedString">
-		<select>
-			<option>
-				<literal>&quot;</literal>
-				<charset storeAs="value" pattern=".*">
-					<exclude escape="\&quot;">&quot;</exclude>
-				</charset>
-			</option>
-			<option>
-				<literal>`</literal>
-				<charset storeAs="value" pattern=".*">
-					<exclude escape="\&quot;">&quot;</exclude>
-				</charset>
-				<literal>`</literal>
-			</option>
-		</select>
+		<literal>&quot;</literal>
+		<charset storeAs="value" pattern=".*">
+			<exclude escape="\&quot;">&quot;</exclude>
+		</charset>
 	</entity>
 	<entity name="number" order="2" impl="prisms.lang.types.ParsedNumber">
 		<option>

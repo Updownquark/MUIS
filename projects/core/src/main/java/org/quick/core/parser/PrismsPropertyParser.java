@@ -1,5 +1,6 @@
 package org.quick.core.parser;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.*;
 import java.lang.reflect.Type;
@@ -8,6 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import javax.swing.JFrame;
 
 import org.observe.*;
 import org.observe.collect.ObservableList;
@@ -24,6 +27,7 @@ import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 import prisms.lang.*;
+import prisms.lang.debug.PrismsParserDebugGUI;
 import prisms.lang.types.*;
 
 /** A property parser that uses the parser in prisms.lang to parse values */
@@ -39,6 +43,10 @@ public class PrismsPropertyParser extends AbstractPropertyParser {
 		} catch (IOException e) {
 			throw new IllegalStateException("Could not configure property parser", e);
 		}
+		PrismsParserDebugGUI debug = new PrismsParserDebugGUI(new File("PrismsParserDebug.config"));
+		JFrame frame = PrismsParserDebugGUI.getDebuggerFrame(debug);
+		theParser.setDebugger(debug);
+		frame.setVisible(true);
 	}
 
 	@Override

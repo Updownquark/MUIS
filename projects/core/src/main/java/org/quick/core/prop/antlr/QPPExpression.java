@@ -22,7 +22,7 @@ abstract class QPPExpression<N extends ParseTree> {
 	}
 
 	@Override
-	public String toString() {
+	public final String toString() {
 		return theCtx.getText();
 	}
 

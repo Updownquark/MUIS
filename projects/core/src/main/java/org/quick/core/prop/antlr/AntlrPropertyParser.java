@@ -137,21 +137,19 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void visitTerminal(TerminalNode node) {
-			// TODO Auto-generated method stub
-			super.visitTerminal(node);
+			// Don't think there's anything to do here, but might be useful to have it for debugging sometime
 		}
 
 		@Override
 		public void exitEveryRule(ParserRuleContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitEveryRule(ctx);
+			// Don't think there's anything to do here, but might be useful to have it for debugging sometime
 		}
 
 		@Override
 		public void exitLiteral(LiteralContext ctx) {
 			switch (ctx.start.getType()) {
 			case QPPParser.IntegerLiteral:
-				push(new ExpressionTypes.IntegerLiteralExpression(ctx));
+				push(new ExpressionTypes.IntegerLiteral(ctx));
 				break;
 			case QPPParser.FloatingPointLiteral:
 				push(new ExpressionTypes.FloatLiteral(ctx));
@@ -192,7 +190,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitAssignment(AssignmentContext ctx) {
-			push(new ExpressionTypes.BinaryExpression<>(ctx, ctx.assignmentOperator().getText(), pop(ctx.leftHandSide()),
+			push(new ExpressionTypes.BinaryOperation(ctx, ctx.assignmentOperator().getText(), pop(ctx.leftHandSide()),
 				pop(ctx.expression())));
 		}
 
@@ -217,8 +215,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitFieldAccess(FieldAccessContext ctx) {
 			if (ctx.primary() != null)
-				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.primary()),
-					ctx.Identifier().getText()));
+				push(
+					new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.primary()), ctx.Identifier().getText()));
 			else if (ctx.typeName() != null)
 				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.typeName()),
 					"super." + ctx.Identifier().getText()));
@@ -289,7 +287,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitEqualityExpression(EqualityExpressionContext ctx) {
 			if (ctx.equalityExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, getOperator(ctx), pop(ctx.equalityExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.equalityExpression()),
 					pop(ctx.relationalExpression())));
 			else
 				ascend(ctx.relationalExpression(), ctx);
@@ -302,9 +300,9 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitRelationalExpression(RelationalExpressionContext ctx) {
 			if (ctx.referenceType() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, "instanceof", pop(ctx.relationalExpression()), pop(ctx.referenceType())));
+				push(new ExpressionTypes.BinaryOperation(ctx, "instanceof", pop(ctx.relationalExpression()), pop(ctx.referenceType())));
 			else if (ctx.relationalExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, getOperator(ctx), pop(ctx.relationalExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.relationalExpression()),
 					pop(ctx.shiftExpression())));
 			else
 				ascend(ctx.shiftExpression(), ctx);
@@ -317,7 +315,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitConditionalOrExpression(ConditionalOrExpressionContext ctx) {
 			if (ctx.conditionalOrExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, "||", pop(ctx.conditionalOrExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, "||", pop(ctx.conditionalOrExpression()),
 					pop(ctx.conditionalAndExpression())));
 			else
 				ascend(ctx.conditionalAndExpression(), ctx);
@@ -326,7 +324,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitConditionalAndExpression(ConditionalAndExpressionContext ctx) {
 			if (ctx.conditionalAndExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, "&&", pop(ctx.conditionalAndExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, "&&", pop(ctx.conditionalAndExpression()),
 					pop(ctx.inclusiveOrExpression())));
 			else
 				ascend(ctx.inclusiveOrExpression(), ctx);
@@ -335,7 +333,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitInclusiveOrExpression(InclusiveOrExpressionContext ctx) {
 			if (ctx.inclusiveOrExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, "|", pop(ctx.inclusiveOrExpression()), pop(ctx.exclusiveOrExpression())));
+				push(new ExpressionTypes.BinaryOperation(ctx, "|", pop(ctx.inclusiveOrExpression()), pop(ctx.exclusiveOrExpression())));
 			else
 				ascend(ctx.exclusiveOrExpression(), ctx);
 		}
@@ -343,7 +341,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitExclusiveOrExpression(ExclusiveOrExpressionContext ctx) {
 			if (ctx.exclusiveOrExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, "^", pop(ctx.exclusiveOrExpression()), pop(ctx.andExpression())));
+				push(new ExpressionTypes.BinaryOperation(ctx, "^", pop(ctx.exclusiveOrExpression()), pop(ctx.andExpression())));
 			else
 				ascend(ctx.andExpression(), ctx);
 		}
@@ -351,7 +349,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitAndExpression(AndExpressionContext ctx) {
 			if (ctx.andExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, "&", pop(ctx.andExpression()), pop(ctx.equalityExpression())));
+				push(new ExpressionTypes.BinaryOperation(ctx, "&", pop(ctx.andExpression()), pop(ctx.equalityExpression())));
 			else
 				ascend(ctx.equalityExpression(), ctx);
 		}
@@ -368,7 +366,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitShiftExpression(ShiftExpressionContext ctx) {
 			if (ctx.shiftExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, getOperator(ctx), pop(ctx.shiftExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.shiftExpression()),
 					pop(ctx.additiveExpression())));
 			else
 				ascend(ctx.additiveExpression(), ctx);
@@ -381,7 +379,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitAdditiveExpression(AdditiveExpressionContext ctx) {
 			if (ctx.additiveExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, getOperator(ctx), pop(ctx.additiveExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.additiveExpression()),
 					pop(ctx.multiplicativeExpression())));
 			else
 				ascend(ctx.multiplicativeExpression(), ctx);
@@ -394,7 +392,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitMultiplicativeExpression(MultiplicativeExpressionContext ctx) {
 			if (ctx.multiplicativeExpression() != null)
-				push(new ExpressionTypes.BinaryExpression<>(ctx, getOperator(ctx), pop(ctx.multiplicativeExpression()),
+				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.multiplicativeExpression()),
 					pop(ctx.unaryExpression())));
 			else
 				ascend(ctx.unaryExpression(), ctx);
@@ -411,7 +409,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			else if (ctx.preDecrementExpression() != null)
 				ascend(ctx.preDecrementExpression(), ctx);
 			else if (ctx.unaryExpression() != null)
-				push(new ExpressionTypes.UnaryExpression<>(ctx, getOperator(ctx), true, pop(ctx.unaryExpression())));
+				push(new ExpressionTypes.UnaryOperation(ctx, getOperator(ctx), true, pop(ctx.unaryExpression())));
 			else
 				ascend(ctx.unaryExpressionNotPlusMinus(), ctx);
 		}
@@ -427,7 +425,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			else if (ctx.castExpression() != null)
 				ascend(ctx.castExpression(), ctx);
 			else
-				push(new ExpressionTypes.UnaryExpression<>(ctx, getOperator(ctx), true, pop(ctx.unaryExpression())));
+				push(new ExpressionTypes.UnaryOperation(ctx, getOperator(ctx), true, pop(ctx.unaryExpression())));
 		}
 
 		private String getOperator(UnaryExpressionNotPlusMinusContext ctx) {
@@ -446,7 +444,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitPreIncrementExpression(PreIncrementExpressionContext ctx) {
-			push(new ExpressionTypes.UnaryExpression<>(ctx, "++", true, pop(ctx.unaryExpression())));
+			push(new ExpressionTypes.UnaryOperation(ctx, "++", true, pop(ctx.unaryExpression())));
 		}
 
 		@Override
@@ -463,7 +461,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitPreDecrementExpression(PreDecrementExpressionContext ctx) {
-			push(new ExpressionTypes.UnaryExpression<>(ctx, "--", true, pop(ctx.unaryExpression())));
+			push(new ExpressionTypes.UnaryOperation(ctx, "--", true, pop(ctx.unaryExpression())));
 		}
 
 		@Override
@@ -719,14 +717,14 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			if (methodName != null && methodName.apply(ctx) != null) {
 				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, methodName.apply(ctx).getText(), typeArgs, args);
 			} else if (typeName != null && typeName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, pop(typeName.apply(ctx)), isSuper,
-					identifier.apply(ctx).getText(), typeArgs, args);
-			} else if (expressionName != null && expressionName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, pop(expressionName.apply(ctx)), isSuper,
-					identifier.apply(ctx).getText(), typeArgs, args);
-			} else if (primary != null && primary.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, pop(primary.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(typeName.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
 					typeArgs, args);
+			} else if (expressionName != null && expressionName.apply(ctx) != null) {
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(expressionName.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
+					typeArgs, args);
+			} else if (primary != null && primary.apply(ctx) != null) {
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(primary.apply(ctx)), isSuper, identifier.apply(ctx).getText(), typeArgs,
+					args);
 			} else {
 				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, identifier.apply(ctx).getText(), typeArgs, args);
 			}
@@ -754,8 +752,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitTypeName(TypeNameContext ctx) {
 			if (ctx.packageOrTypeName() != null)
-				push(new ExpressionTypes.QualifiedName(ctx,
-					(ExpressionTypes.QualifiedName) pop(ctx.packageOrTypeName()), ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.packageOrTypeName()),
+					ctx.Identifier().getText()));
 			else
 				push(new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier().getText()));
 		}
@@ -763,8 +761,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitPackageOrTypeName(PackageOrTypeNameContext ctx) {
 			if (ctx.packageOrTypeName() != null)
-				push(new ExpressionTypes.QualifiedName(ctx,
-					(ExpressionTypes.QualifiedName) pop(ctx.packageOrTypeName()), ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.packageOrTypeName()),
+					ctx.Identifier().getText()));
 			else
 				push(new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier().getText()));
 		}

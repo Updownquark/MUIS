@@ -12,8 +12,6 @@ import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.parser.MathUtils;
-import org.quick.core.parser.PrismsPropertyParser.ParsedPlaceHolder;
-import org.quick.core.parser.PrismsPropertyParser.ParsedUnitValue;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.prop.ExpressionFunction;
 import org.quick.core.prop.Unit;
@@ -23,26 +21,25 @@ import org.quick.util.QuickUtils;
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
-import prisms.lang.ParsedItem;
-import prisms.lang.types.*;
+import prisms.lang.types.ParsedIdentifier;
+import prisms.lang.types.ParsedType;
 
 public class AntlrPropertyEvaluator {
 	private static final Set<String> ASSIGN_BIOPS = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(//
 		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=")));
 
 	private static <T> ObservableValue<? extends T> evaluateTypeChecked(QuickParseEnv parseEnv, TypeToken<T> type,
-		QPPExpression<?> parsedItem,
-		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
+		QPPExpression<?> parsedItem, boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		ObservableValue<?> result = evaluateTypeless(parseEnv, type, parsedItem, actionAccepted, actionRequired);
 
 		if (!QuickUtils.isAssignableFrom(type, result.getType()))
-			throw new QuickParseException(parsedItem.getContext().getText() + " evaluates to type " + result.getType()
-				+ ", which is not compatible with expected type " + type);
+			throw new QuickParseException(
+				parsedItem + " evaluates to type " + result.getType() + ", which is not compatible with expected type " + type);
 		return (ObservableValue<? extends T>) result;
 	}
 
 	public static <T> ObservableValue<?> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression<?> parsedItem,
-		boolean actionAccepted, boolean actionRequired) {
+		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		// Sort from easiest to hardest
 		// Literals first
 		if (parsedItem instanceof ExpressionTypes.NullLiteral) {
@@ -55,56 +52,93 @@ public class AntlrPropertyEvaluator {
 			ExpressionTypes.Literal<?> literal = (ExpressionTypes.Literal<?>) parsedItem;
 			return ObservableValue.constant((TypeToken<Object>) literal.getType(), literal.getValue());
 			// Now easy operations
-		} else if (parsedItem instanceof ParsedParenthetic) {
-			return evaluateTypeChecked(parseEnv, type, ((ParsedParenthetic) parsedItem).getContent(), actionAccepted, actionRequired);
-		} else if (parsedItem instanceof ExpressionTypes.BinaryExpression) {
-			ExpressionTypes.BinaryExpression<?> bin = (ExpressionTypes.BinaryExpression<?>) parsedItem;
-			boolean actionOp = ASSIGN_BIOPS.contains(bin.getName());
+		} else if (parsedItem instanceof ExpressionTypes.Parenthetic) {
+			return evaluateTypeChecked(parseEnv, type, ((ExpressionTypes.Parenthetic) parsedItem).getContents(), actionAccepted,
+				actionRequired);
+		} else if (parsedItem instanceof ExpressionTypes.Operation) {
+			ExpressionTypes.Operation op = (ExpressionTypes.Operation) parsedItem;
+			boolean actionOp = ASSIGN_BIOPS.contains(op.getName());
 			if (actionRequired && !actionOp)
-				throw new QuickParseException(bin.getName() + " operation cannot be an action");
-			if (bin.getName().equals("instanceof")) {
-				TypeToken<?> testType = evaluateType(parseEnv, bin.getRight(), type);
-				if (testType.getType() instanceof ParameterizedType)
+				throw new QuickParseException(op.getName() + " operation cannot be an action");
+			else if (!actionAccepted && actionOp)
+				throw new QuickParseException("Assignment operator " + op.getName() + " must be an action");
+
+			ObservableValue<?> primary = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getPrimaryOperand(), actionAccepted,
+				false);
+			if (actionOp) {
+				if (!(primary instanceof SettableValue))
 					throw new QuickParseException(
-						"instanceof checks cannot be performed against parameterized types: " + bin.getRight().getContext().getText());
-				ObservableValue<?> var = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), bin.getLeft(), actionAccepted,
-					false);
-				if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
-					if (testType.isAssignableFrom(var.getType())) {
-						parseEnv.msg().warn(
-							bin.getLeft().getContext().getText() + " is always an instance of " + bin.getRight().getContext().getText()
-							+ " (if non-null)");
-						return var.mapV(MathUtils.BOOLEAN, v -> v != null, true);
-					} else if (!var.getType().isAssignableFrom(testType)) {
-						parseEnv.msg()
-							.error(
-								bin.getLeft().getContext().getText() + " is never an instance of " + bin.getRight().getContext().getText());
-						return ObservableValue.constant(MathUtils.BOOLEAN, false);
+						op.getPrimaryOperand() + " does not parse to a settable value; cannot be assigned: " + op);
+			}
+			if (op instanceof ExpressionTypes.UnaryOperation) {
+				ExpressionTypes.UnaryOperation unOp = (ExpressionTypes.UnaryOperation) op;
+				ObservableValue<?> assignValue;
+				if (actionOp) {
+					SettableValue<Object> settable = (SettableValue<Object>) primary;
+					assignValue = getUnaryAssignValue(settable, (ExpressionTypes.UnaryOperation) op, parseEnv);
+					return makeActionValue(settable, assignValue, unOp.isPreOp());
+				} else {
+					return mapUnary(primary, unOp, parseEnv);
+				}
+			} else {
+				ExpressionTypes.BinaryOperation binOp = (ExpressionTypes.BinaryOperation) op;
+				if (binOp.getName().equals("instanceof")) {
+					// This warrants its own block here instead of doing it in the combineBinary because the right argument is a type
+					TypeToken<?> testType = evaluateType(parseEnv, binOp.getRight(), type);
+					if (testType.getType() instanceof ParameterizedType)
+						throw new QuickParseException(
+							"instanceof checks cannot be performed against parameterized types: " + binOp.getRight());
+					if (!testType.getRawType().isInterface() && !primary.getType().getRawType().isInterface()) {
+						if (testType.isAssignableFrom(primary.getType())) {
+							parseEnv.msg()
+								.warn(binOp.getPrimaryOperand() + " is always an instance of " + binOp.getRight() + " (if non-null)");
+							return primary.mapV(MathUtils.BOOLEAN, v -> v != null, true);
+						} else if (!primary.getType().isAssignableFrom(testType)) {
+							parseEnv.msg().error(binOp.getPrimaryOperand() + " is never an instance of " + binOp.getRight());
+							return ObservableValue.constant(MathUtils.BOOLEAN, false);
+						} else {
+							return primary.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+						}
 					} else {
-						return var.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+						return primary.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
 					}
 				} else {
-					return var.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+					ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), binOp.getRight(), actionAccepted,
+						false);
+					if (actionOp) {
+						SettableValue<Object> settable = (SettableValue<Object>) primary;
+						ObservableValue<?> assignValue = getBinaryAssignValue(settable, arg2, binOp, parseEnv);
+						return makeActionValue(settable, assignValue, false);
+					} else {
+						return combineBinary(primary, arg2, binOp, parseEnv);
+					}
 				}
-			} else if (actionOp) {
-			} else {
-				ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), bin.getLeft(), actionAccepted, false);
-				ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), bin.getRight(), actionAccepted, false);
-				return combineBinary(arg1, arg2, bin, parseEnv);
 			}
-		} else if (parsedItem instanceof ParsedCast) {
+		} else if (parsedItem instanceof ExpressionTypes.Conditional) {
+			if (actionRequired)
+				throw new QuickParseException("Conditionals cannot be an action");
+			ExpressionTypes.Conditional cond = (ExpressionTypes.Conditional) parsedItem;
+			ObservableValue<?> condition = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), cond.getCondition(), actionAccepted,
+				false);
+			if (!TypeToken.of(Boolean.class).isAssignableFrom(condition.getType().wrap()))
+				throw new QuickParseException(
+					"Condition in " + cond + " evaluates to type " + condition.getType() + ", which is not boolean");
+			ObservableValue<? extends T> affirm = evaluateTypeChecked(parseEnv, type, cond.getAffirmative(), actionAccepted, false);
+			ObservableValue<? extends T> neg = evaluateTypeChecked(parseEnv, type, cond.getNegative(), actionAccepted, false);
+			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(v -> v ? affirm : neg));
+		} else if (parsedItem instanceof ExpressionTypes.Cast) {
 			if (actionRequired)
 				throw new QuickParseException("Cast cannot be an action");
-			ParsedCast cast = (ParsedCast) parsedItem;
-			TypeToken<?> testType = evaluateType(parseEnv, (ParsedType) cast.getType(), type);
+			ExpressionTypes.Cast cast = (ExpressionTypes.Cast) parsedItem;
+			TypeToken<?> testType = evaluateType(parseEnv, cast.getType(), type);
 			ObservableValue<?> var = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), cast.getValue(), actionAccepted, false);
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
 					parseEnv.msg().warn(
-						cast.getValue().getMatch().text + " is always an instance of " + cast.getType().getMatch().text + " (if non-null)");
+						cast.getValue() + " is always an instance of " + cast.getType() + " (if non-null)");
 					return var.mapV((TypeToken<Object>) testType, v -> v, true);
 				} else if (!var.getType().isAssignableFrom(testType)) {
-					parseEnv.msg().error(cast.getValue().getMatch().text + " is never an instance of " + cast.getType().getMatch().text);
+					parseEnv.msg().error(cast.getValue() + " is never an instance of " + cast.getType());
 					return var.mapV((TypeToken<Object>) testType, v -> {
 						if (v == null)
 							return null;
@@ -128,52 +162,11 @@ public class AntlrPropertyEvaluator {
 				}, true);
 			}
 			// Harder operations
-		} else if (parsedItem instanceof ParsedUnaryOp) {
-			ParsedUnaryOp op = (ParsedUnaryOp) parsedItem;
-			if (actionRequired)
-				throw new QuickParseException("Unary operation " + op.getName() + " cannot be an action");
-			ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp(), actionAccepted, false);
-			return mapUnary(arg1, op, parseEnv);
-		} else if (parsedItem instanceof ParsedBinaryOp) {
-			ParsedBinaryOp op = (ParsedBinaryOp) parsedItem;
-			if (actionRequired)
-				throw new QuickParseException("Binary operation " + op.getName() + " cannot be an action");
-			ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp1(), actionAccepted, false);
-			ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp2(), actionAccepted, false);
-			return combineBinary(arg1, arg2, op, parseEnv);
-		} else if (parsedItem instanceof ExpressionTypes.Conditional) {
-			if (actionRequired)
-				throw new QuickParseException("Conditionals cannot be an action");
-			ExpressionTypes.Conditional cond = (ExpressionTypes.Conditional) parsedItem;
-			ObservableValue<?> condition = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), cond.getCondition(), actionAccepted,
-				false);
-			if (!TypeToken.of(Boolean.class).isAssignableFrom(condition.getType().wrap()))
-				throw new QuickParseException(
-					"Condition in " + cond.getContext().getText() + " evaluates to type " + condition.getType() + ", which is not boolean");
-			ObservableValue<? extends T> affirm = evaluateTypeChecked(parseEnv, type, cond.getAffirmative(), actionAccepted, false);
-			ObservableValue<? extends T> neg = evaluateTypeChecked(parseEnv, type, cond.getNegative(), actionAccepted, false);
-			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(v -> v ? affirm : neg));
-			// Assignments
-		} else if (parsedItem instanceof ParsedAssignmentOperator) {
-			if (!actionAccepted)
-				throw new QuickParseException("Assignment operator must be an action");
-			ParsedAssignmentOperator op = (ParsedAssignmentOperator) parsedItem;
-			ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getVariable(), actionAccepted, false);
-			if (!(arg1 instanceof SettableValue))
-				throw new QuickParseException(op.getVariable().getMatch().text + " does not parse to a settable value");
-			SettableValue<Object> settable = (SettableValue<Object>) arg1;
-			ObservableValue<?> assignValue;
-			if (op.getOperand() != null) {
-				ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOperand(), actionAccepted, false);
-				assignValue = getBinaryAssignValue(settable, arg2, op, parseEnv);
-			} else
-				assignValue = getUnaryAssignValue(settable, op, parseEnv);
-			return makeActionValue(settable, assignValue, op.isPrefix());
 			// Array operations
-		} else if (parsedItem instanceof ParsedArrayIndex) {
+		} else if (parsedItem instanceof ExpressionTypes.ArrayAccess) {
 			if (actionRequired)
 				throw new QuickParseException("Array index operation cannot be an action");
-			ParsedArrayIndex pai = (ParsedArrayIndex) parsedItem;
+			ExpressionTypes.ArrayAccess pai = (ExpressionTypes.ArrayAccess) parsedItem;
 			ObservableValue<?> array = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), pai.getArray(), actionAccepted, false);
 			TypeToken<? extends T> resultType;
 			{
@@ -185,17 +178,18 @@ public class AntlrPropertyEvaluator {
 				} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
 					testResultType = array.getType().resolveType(ObservableOrderedCollection.class.getTypeParameters()[0]);
 				} else {
-					throw new QuickParseException("array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType()
+					throw new QuickParseException("array value in " + parsedItem + " evaluates to type " + array.getType()
 						+ ", which is not indexable");
 				}
 				if (!QuickUtils.isAssignableFrom(type, testResultType))
-					throw new QuickParseException("array value in " + parsedItem.getMatch().text + " evaluates to type " + array.getType()
+					throw new QuickParseException("array value in " + parsedItem + " evaluates to type " + array.getType()
 						+ " which is not indexable to type " + type);
 				resultType = (TypeToken<? extends T>) testResultType;
 			}
 			ObservableValue<?> index = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), pai.getIndex(), actionAccepted, false);
 			if (!TypeToken.of(Long.class).isAssignableFrom(array.getType().wrap())) {
-				throw new QuickParseException("index value in " + parsedItem.getMatch().text + " evaluates to type " + index.getType()
+				throw new QuickParseException(
+					"index value in " + parsedItem + " evaluates to type " + index.getType()
 					+ ", which is not a valid index");
 			}
 			if (TypeToken.of(ObservableList.class).isAssignableFrom(array.getType())) {
@@ -215,22 +209,19 @@ public class AntlrPropertyEvaluator {
 						return ((List<? extends T>) a).get(idx);
 					}
 				}, (ObservableValue<? extends Number>) index, true);
-		} else if (parsedItem instanceof ParsedArrayInitializer) {
+		} else if (parsedItem instanceof ExpressionTypes.ArrayInitializer) {
 			if (actionRequired)
 				throw new QuickParseException("Array init operation cannot be an action");
-			ParsedArrayInitializer arrayInit = (ParsedArrayInitializer) parsedItem;
+			ExpressionTypes.ArrayInitializer arrayInit = (ExpressionTypes.ArrayInitializer) parsedItem;
 			TypeToken<?> arrayType = evaluateType(parseEnv, arrayInit.getType(), type);
-			if (arrayInit.getSizes().length > 0) {
-				if (arrayInit.getStored("valueSet") != null)
-					throw new QuickParseException(
-						"Array sizes may not be specified for array initialization when a value list is specified as well");
-				ObservableValue<? extends Number>[] sizes = new ObservableValue[arrayInit.getSizes().length];
+			if (arrayInit.getSizes() != null) {
+				ObservableValue<? extends Number>[] sizes = new ObservableValue[arrayInit.getSizes().size()];
 				for (int i = 0; i < sizes.length; i++) {
 					arrayType = QuickUtils.arrayTypeOf(arrayType);
-					ObservableValue<?> size_i = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), arrayInit.getSizes()[i],
+					ObservableValue<?> size_i = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), arrayInit.getSizes().get(i),
 						actionAccepted, false);
 					if (!QuickUtils.isAssignableFrom(TypeToken.of(Integer.TYPE), size_i.getType()))
-						throw new QuickParseException("Array size " + arrayInit.getSizes()[i].getMatch().text + " parses to type "
+						throw new QuickParseException("Array size " + arrayInit.getSizes().get(i) + " parses to type "
 							+ size_i.getType() + ", which is not a valid array size type");
 					sizes[i] = (ObservableValue<? extends Number>) size_i;
 				}
@@ -253,14 +244,14 @@ public class AntlrPropertyEvaluator {
 						return array;
 					}
 				}, true, sizes);
-			} else if (arrayInit.getStored("valueSet") != null) {
-				ObservableValue<?>[] elements = new ObservableValue[arrayInit.getElements().length];
+			} else if (arrayInit.getElements() != null) {
+				ObservableValue<?>[] elements = new ObservableValue[arrayInit.getElements().size()];
 				TypeToken<?> componentType = arrayType.getComponentType();
 				for (int i = 0; i < elements.length; i++) {
-					ObservableValue<?> element_i = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), arrayInit.getElements()[i],
+					ObservableValue<?> element_i = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), arrayInit.getElements().get(i),
 						actionAccepted, false);
 					if (!QuickUtils.isAssignableFrom(componentType, element_i.getType()))
-						throw new QuickParseException("Array element " + arrayInit.getElements()[i].getMatch().text + " parses to type "
+						throw new QuickParseException("Array element " + arrayInit.getElements().get(i) + " parses to type "
 							+ element_i.getType() + ", which cannot be cast to " + componentType);
 					elements[i] = element_i;
 				}
@@ -279,23 +270,28 @@ public class AntlrPropertyEvaluator {
 				throw new QuickParseException("Either array sizes or a value list must be specifieded for array initialization");
 			// Now pulling stuff from the context
 			// Identifier, placeholder, and unit
-		} else if (parsedItem instanceof ParsedIdentifier) {
+		} else if(parsedItem instanceof ExpressionTypes.QualifiedName){
 			if (actionRequired)
-				throw new QuickParseException("Identifier cannot be an action");
-			String name = ((ParsedIdentifier) parsedItem).getName();
-			ObservableValue<?> result = parseEnv.getContext().getVariable(name);
+				throw new QuickParseException(parsedItem + " cannot be an action");
+			ExpressionTypes.QualifiedName qName=(ExpressionTypes.QualifiedName) parsedItem;
+			if (qName.getQualifier() == null) {
+				ObservableValue<?> result = parseEnv.getContext().getVariable(qName.getName());
+				if (result == null)
+					throw new QuickParseException("No such variable " + qName.getName());
+				return result;
+			} else {
+				throw new QuickParseException("Qualified names not implemented");
+			}
+		} else if (parsedItem instanceof ExpressionTypes.Placeholder) {
+			ExpressionTypes.Placeholder placeholder = (ExpressionTypes.Placeholder) parsedItem;
+			ObservableValue<?> result = parseEnv.getContext().getVariable(placeholder.print());
 			if (result == null)
-				throw new QuickParseException("No such variable " + name);
+				throw new QuickParseException("Unrecognized placeholder: " + placeholder);
 			return result;
-		} else if (parsedItem instanceof ParsedPlaceHolder) {
-			ObservableValue<?> result = parseEnv.getContext().getVariable(parsedItem.getMatch().text);
-			if (result == null)
-				throw new QuickParseException("Unrecognized placeholder: " + parsedItem.getMatch().text);
-			return result;
-		} else if (parsedItem instanceof ParsedUnitValue) {
+		} else if (parsedItem instanceof ExpressionTypes.UnitValue) {
 			if (actionRequired)
 				throw new QuickParseException("Unit value cannot be an action");
-			ParsedUnitValue unitValue = (ParsedUnitValue) parsedItem;
+			ExpressionTypes.UnitValue unitValue = (ExpressionTypes.UnitValue) parsedItem;
 			String unitName = unitValue.getUnit();
 			List<Unit<?, ?>> units = parseEnv.getContext().getUnits(unitName, new ArrayList<>());
 			if (units.isEmpty())
@@ -305,7 +301,7 @@ public class AntlrPropertyEvaluator {
 			for (Unit<?, ?> u : units) {
 				if (!QuickUtils.isAssignableFrom(type, u.getToType()))
 					continue;
-				InvokableMatch match = getMatch(new TypeToken[] { u.getFromType() }, false, new ParsedItem[] { unitValue.getValue() },
+				InvokableMatch match = getMatch(new TypeToken[] { u.getFromType() }, false, Arrays.asList(unitValue.getValue()),
 					parseEnv, type, actionAccepted);
 				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
 					bestUnit = u;
@@ -340,10 +336,10 @@ public class AntlrPropertyEvaluator {
 				return value.mapV(type, forwardMap);
 			}
 			// Now harder operations
-		} else if (parsedItem instanceof ParsedConstructor) {
+		} else if (parsedItem instanceof ExpressionTypes.Constructor) {
 			if (actionRequired)
 				throw new QuickParseException("Constructor cannot be an action");
-			ParsedConstructor constructor = (ParsedConstructor) parsedItem;
+			ExpressionTypes.Constructor constructor = (ExpressionTypes.Constructor) parsedItem;
 			TypeToken<?> typeToCreate = evaluateType(parseEnv, constructor.getType(), type);
 			Constructor<?> bestConstructor = null;
 			InvokableMatch bestMatch = null;
@@ -369,40 +365,40 @@ public class AntlrPropertyEvaluator {
 				}
 			}, true, bestMatch.parameters);
 		} else if (parsedItem instanceof ExpressionTypes.MemberAccess) {
-			ExpressionTypes.MemberAccess method = (ExpressionTypes.MemberAccess) parsedItem;
-			if (actionRequired && method instanceof ExpressionTypes.FieldAccess)
+			ExpressionTypes.MemberAccess member = (ExpressionTypes.MemberAccess) parsedItem;
+			if (actionRequired && member instanceof ExpressionTypes.FieldAccess)
 				throw new QuickParseException("Field access cannot be an action");
 
-			if (method.getContext() == null) {
-				if (method instanceof ExpressionTypes.MethodInvocation) {
+			if (member.getMemberContext() == null) {
+				if (member instanceof ExpressionTypes.MethodInvocation) {
 					// A function
-					return evaluateFunction((MethodInvocation) method, parseEnv, type, actionAccepted);
+					return evaluateFunction((MethodInvocation) member, parseEnv, type, actionAccepted);
 				} else {
 					// A variable
-					ObservableValue<?> result = parseEnv.getContext().getVariable(method.getName());
+					ObservableValue<?> result = parseEnv.getContext().getVariable(member.getName());
 					if (result == null)
-						throw new QuickParseException(method.getName() + " cannot be resolved");
+						throw new QuickParseException(member.getName() + " cannot be resolved");
 					return result;
 				}
 			} else {
 				// May be a method invocation on a value or a static invocation on a type
-				String rootCtx = getRootContext(method.getMemberContext());
+				String rootCtx = getRootContext(member.getMemberContext());
 				Class<?> contextType = null;
 				if (rootCtx != null && parseEnv.getContext().getVariable(rootCtx) == null) {
 					// May be a static invocation on a type
 					try {
-						contextType = rawType(method.getContext().toString(), parseEnv);
+						contextType = rawType(member.getMemberContext().toString(), parseEnv);
 					} catch (QuickParseException e) {
 						// We'll throw a different exception later if we can't resolve it
 					}
 				}
 				if (contextType != null) {
-					return evaluateStatic(method, contextType, parseEnv, type, actionAccepted);
+					return evaluateStatic(member, contextType, parseEnv, type, actionAccepted);
 				} else {
 					// Not a static invocation. Evaluate the context. Let that evaluation throw the exception if needed.
-					ObservableValue<?> context = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), method.getContext(),
+					ObservableValue<?> context = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), member.getMemberContext(),
 						actionAccepted, false);
-					return evaluateMethod(method, context, parseEnv, type, actionAccepted);
+					return evaluateMemberAccess(member, context, parseEnv, type, actionAccepted);
 				}
 			}
 		} else
@@ -563,8 +559,7 @@ public class AntlrPropertyEvaluator {
 	}
 
 	private static InvokableMatch getMatch(Type[] paramTypes, boolean varArgs, List<QPPExpression<?>> arguments, QuickParseEnv env,
-		TypeToken<?> type,
-		boolean actionAccepted) throws QuickParseException {
+		TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		TypeToken<?>[] typeTokenParams = new TypeToken[paramTypes.length];
 		for (int i = 0; i < paramTypes.length; i++)
 			typeTokenParams[i] = type.resolveType(paramTypes[i]);
@@ -572,8 +567,7 @@ public class AntlrPropertyEvaluator {
 	}
 
 	private static InvokableMatch getMatch(TypeToken<?>[] paramTypes, boolean varArgs, List<QPPExpression<?>> arguments,
-		QuickParseEnv parseEnv,
-		TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
+		QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		TypeToken<?>[] argTargetTypes = new TypeToken[arguments.size()];
 		if (paramTypes.length == arguments.size()) {
 			argTargetTypes = paramTypes;
@@ -708,7 +702,7 @@ public class AntlrPropertyEvaluator {
 				private final TypeToken<Object> fieldType = (TypeToken<Object>) TypeToken.of(fieldRef.getGenericType());
 
 				@Override
-				public Subscription subscribe(Observer<? super ObservableValueEvent<Object>> observer) {
+				public Subscription subscribe(org.observe.Observer<? super ObservableValueEvent<Object>> observer) {
 					return () -> {
 					}; // Can't get notifications on a field change
 				}
@@ -744,11 +738,11 @@ public class AntlrPropertyEvaluator {
 			QuickAppModel model = (QuickAppModel) context.get();
 			Object fieldVal = model.getField(field.getName());
 			if (fieldVal == null)
-				throw new QuickParseException("Model " + field.getContext() + " does not contain field " + field.getName());
+				throw new QuickParseException("Model " + field.getMemberContext() + " does not contain field " + field.getName());
 			if (fieldVal instanceof ObservableValue)
 				return (ObservableValue<?>) fieldVal;
 			else
-				throw new QuickParseException("Field " + field.getName() + " of model " + field.getContext() + " is not a value");
+				throw new QuickParseException("Field " + field.getName() + " of model " + field.getMemberContext() + " is not a value");
 		} else {
 			Field fieldRef;
 			try {
@@ -771,67 +765,97 @@ public class AntlrPropertyEvaluator {
 		}
 	}
 
-	private static ObservableValue<?> evaluateMethod(ExpressionTypes.MethodInvocation method, ObservableValue<?> context,
-		QuickParseEnv parseEnv, TypeToken<?> type,
-		boolean actionAccepted) throws QuickParseException {
+	private static ObservableValue<?> evaluateMemberAccess(ExpressionTypes.MemberAccess member, ObservableValue<?> context,
+		QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
 			if (!(context instanceof ObservableValue.ConstantObservableValue))
 				throw new QuickParseException("Model observables must be constant to be evaluated");
 			QuickAppModel model = (QuickAppModel) context.get();
-			Object fieldVal = model.getField(method.getName());
+			Object fieldVal = model.getField(member.getName());
 			if (fieldVal == null)
-				throw new QuickParseException("Model " + method.getContext() + " does not contain field " + method.getName());
-			if (fieldVal instanceof ExpressionFunction) {
-				ExpressionFunction<?> fn = (ExpressionFunction<?>) fieldVal;
-				InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
-					parseEnv, type, actionAccepted);
-				return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) fn.getReturnType(), args -> {
+				throw new QuickParseException("Model " + member.getMemberContext() + " does not contain field " + member.getName());
+			if (member instanceof ExpressionTypes.FieldAccess) {
+				if (fieldVal instanceof ObservableValue)
+					return (ObservableValue<?>) fieldVal;
+				else
+					throw new QuickParseException(
+						"Field " + member.getName() + " of model " + member.getMemberContext() + " is not a value");
+			} else {
+				ExpressionTypes.MethodInvocation method = (ExpressionTypes.MethodInvocation) member;
+				if (fieldVal instanceof ExpressionFunction) {
+					ExpressionFunction<?> fn = (ExpressionFunction<?>) fieldVal;
+					InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
+						parseEnv, type, actionAccepted);
+					return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) fn.getReturnType(), args -> {
+						try {
+							return fn.apply(Arrays.asList(args));
+						} catch (RuntimeException e) {
+							parseEnv.msg().error("Invocation failed for function " + method, e);
+							return null; // TODO What to do with this?
+						}
+					}, true, match.parameters);
+				} else if (fieldVal instanceof ObservableAction) {
+					if (method.getArguments().size() != 0)
+						throw new QuickParseException("Invalid invocation of action " + method.getName() + " of model "
+							+ member.getMemberContext() + ": actions cannot take arguments");
+					return valueOf((ObservableAction<?>) fieldVal);
+				} else
+					throw new QuickParseException(
+						"Field " + method.getName() + " of model " + method.getMemberContext() + " is not a function or an action");
+			}
+		} else {
+			if (member instanceof ExpressionTypes.FieldAccess) {
+				Field fieldRef;
+				try {
+					fieldRef = context.getType().getRawType().getField(member.getName());
+				} catch (NoSuchFieldException e) {
+					throw new QuickParseException("No such field " + member.getMemberContext() + "." + member.getName(), e);
+				} catch (SecurityException e) {
+					throw new QuickParseException("Could not access field " + member.getMemberContext() + "." + member.getName(), e);
+				}
+				if ((fieldRef.getModifiers() & Modifier.STATIC) != 0)
+					throw new QuickParseException("Field " + context + "." + fieldRef.getName() + " is static");
+				return context.mapV((TypeToken<Object>) context.getType().resolveType(fieldRef.getGenericType()), v -> {
 					try {
-						return fn.apply(Arrays.asList(args));
-					} catch (RuntimeException e) {
-						parseEnv.msg().error("Invocation failed for function " + method, e);
+						return fieldRef.get(v);
+					} catch (Exception e) {
+						parseEnv.msg().error("Could not get field " + member.getMemberContext() + "." + fieldRef.getName(), e);
 						return null; // TODO What to do with this?
 					}
-				}, true, match.parameters);
-			} else if (fieldVal instanceof ObservableAction) {
-				if (method.getArguments().size() != 0)
-					throw new QuickParseException("Invalid invocation of action " + method.getName() + " of model " + method.getContext()
-						+ ": actions cannot take arguments");
-				return valueOf((ObservableAction<?>) fieldVal);
-			} else
-				throw new QuickParseException(
-					"Field " + method.getName() + " of model " + method.getContext() + " is not a function or an action");
-		} else {
-			Method bestMethod = null;
-			InvokableMatch bestMatch = null;
-			for (Method m : context.getType().getRawType().getMethods()) {
-				if (!m.getName().equals(method.getName()) || !m.isAccessible())
-					continue;
-				InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(), method.getArguments(), parseEnv, type,
-					actionAccepted);
-				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
-					bestMatch = match;
-					bestMethod = m;
+				});
+			} else {
+				ExpressionTypes.MethodInvocation method = (ExpressionTypes.MethodInvocation) member;
+				Method bestMethod = null;
+				InvokableMatch bestMatch = null;
+				for (Method m : context.getType().getRawType().getMethods()) {
+					if (!m.getName().equals(method.getName()) || !m.isAccessible())
+						continue;
+					InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(), method.getArguments(), parseEnv, type,
+						actionAccepted);
+					if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+						bestMatch = match;
+						bestMethod = m;
+					}
 				}
+				if (bestMethod == null)
+					throw new QuickParseException("No such method found: " + method);
+				ObservableValue<?>[] composed = new ObservableValue[bestMatch.parameters.length + 1];
+				composed[0] = context;
+				System.arraycopy(bestMatch.parameters, 0, composed, 1, bestMatch.parameters.length);
+				Method toInvoke = bestMethod;
+				TypeToken<?> resultType = context.getType().resolveType(toInvoke.getGenericReturnType());
+				return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) resultType, args -> {
+					Object ctx = args[0];
+					Object[] params = new Object[args.length - 1];
+					System.arraycopy(args, 1, params, 0, params.length);
+					try {
+						return toInvoke.invoke(ctx, params);
+					} catch (Exception e) {
+						parseEnv.msg().error("Invocation failed for method " + method, e);
+						return null; // TODO What to do with this?
+					}
+				}, true, composed);
 			}
-			if (bestMethod == null)
-				throw new QuickParseException("No such method found: " + method);
-			ObservableValue<?>[] composed = new ObservableValue[bestMatch.parameters.length + 1];
-			composed[0] = context;
-			System.arraycopy(bestMatch.parameters, 0, composed, 1, bestMatch.parameters.length);
-			Method toInvoke = bestMethod;
-			TypeToken<?> resultType = context.getType().resolveType(toInvoke.getGenericReturnType());
-			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) resultType, args -> {
-				Object ctx = args[0];
-				Object[] params = new Object[args.length - 1];
-				System.arraycopy(args, 1, params, 0, params.length);
-				try {
-					return toInvoke.invoke(ctx, params);
-				} catch (Exception e) {
-					parseEnv.msg().error("Invocation failed for method " + method, e);
-					return null; // TODO What to do with this?
-				}
-			}, true, composed);
 		}
 	}
 
@@ -840,8 +864,7 @@ public class AntlrPropertyEvaluator {
 	}
 
 	private static ObservableValue<?> evaluateFunction(ExpressionTypes.MethodInvocation method, QuickParseEnv parseEnv, TypeToken<?> type,
-		boolean actionAccepted)
-		throws QuickParseException {
+		boolean actionAccepted) throws QuickParseException {
 		List<ExpressionFunction<?>> functions = new ArrayList<>();
 		parseEnv.getContext().getFunctions(method.getName(), functions);
 		ExpressionFunction<?> bestFunction = null;
@@ -867,7 +890,7 @@ public class AntlrPropertyEvaluator {
 		}, true, bestMatch.parameters);
 	}
 
-	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ExpressionTypes.UnaryExpression<?> op, QuickParseEnv parseEnv)
+	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ExpressionTypes.UnaryOperation op, QuickParseEnv parseEnv)
 		throws QuickParseException {
 		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
 		for (ExpressionFunction<?> fn : functions) {
@@ -892,7 +915,8 @@ public class AntlrPropertyEvaluator {
 		}
 	}
 
-	private static <T> ObservableValue<T> getUnaryAssignValue(SettableValue<T> arg1, ParsedAssignmentOperator op, QuickParseEnv parseEnv)
+	private static <T> ObservableValue<T> getUnaryAssignValue(SettableValue<T> arg1, ExpressionTypes.UnaryOperation op,
+		QuickParseEnv parseEnv)
 		throws QuickParseException {
 		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName().substring(0, 1), new ArrayList<>());
 		for (ExpressionFunction<?> fn : functions) {
@@ -919,8 +943,7 @@ public class AntlrPropertyEvaluator {
 	}
 
 	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2,
-		ExpressionTypes.BinaryExpression<?> op,
-		QuickParseEnv parseEnv) throws QuickParseException {
+		ExpressionTypes.BinaryOperation op, QuickParseEnv parseEnv) throws QuickParseException {
 		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
 		for (ExpressionFunction<?> fn : functions) {
 			if (fn.applies(Arrays.asList(arg1.getType(), arg2.getType())))
@@ -961,8 +984,8 @@ public class AntlrPropertyEvaluator {
 		}
 	}
 
-	private static ObservableValue<?> getBinaryAssignValue(SettableValue<?> arg1, ObservableValue<?> arg2, ParsedAssignmentOperator op,
-		QuickParseEnv parseEnv) throws QuickParseException {
+	private static ObservableValue<?> getBinaryAssignValue(SettableValue<?> arg1, ObservableValue<?> arg2,
+		ExpressionTypes.BinaryOperation op, QuickParseEnv parseEnv) throws QuickParseException {
 		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName().substring(0, op.getName().length() - 1),
 			new ArrayList<>());
 		for (ExpressionFunction<?> fn : functions) {
@@ -974,7 +997,7 @@ public class AntlrPropertyEvaluator {
 		case "=":
 			if (!QuickUtils.isAssignableFrom(arg1.getType(), arg2.getType()))
 				throw new QuickParseException(
-					op.getOperand().getMatch().text + ", type " + arg2.getType() + ", cannot be assigned to type " + arg1.getType());
+					op.getRight() + ", type " + arg2.getType() + ", cannot be assigned to type " + arg1.getType());
 			return arg2;
 		case "+=":
 		case "-=":
@@ -995,7 +1018,7 @@ public class AntlrPropertyEvaluator {
 				throw new QuickParseException(e.getMessage(), e);
 			}
 			if (!QuickUtils.isAssignableFrom(arg1.getType(), result.getType()))
-				throw new QuickParseException(op.getVariable().getMatch().text + " " + mathOp + " " + op.getOperand().getMatch().text
+				throw new QuickParseException(op.getPrimaryOperand() + " " + mathOp + " " + op.getRight()
 					+ ", type " + result.getType() + ", cannot be assigned to type " + arg1.getType());
 			return result;
 		default:
@@ -1004,8 +1027,9 @@ public class AntlrPropertyEvaluator {
 	}
 
 	private static <T, V extends T> ObservableValue<ObservableAction<V>> makeActionValue(SettableValue<T> settable,
-		ObservableValue<V> value, boolean valuePreAction) throws QuickParseException {
+		ObservableValue<V> value, boolean resultPreOp) throws QuickParseException {
 		ObservableAction<V> action = settable.assignmentTo(value);
+		// TODO not handling the pre-op boolean at all
 		return ObservableValue.constant(new TypeToken<ObservableAction<V>>() {}.where(new TypeParameter<V>() {}, value.getType().wrap()),
 			new ObservableAction<V>() {
 				@Override

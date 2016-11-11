@@ -1,94 +1,96 @@
 package org.quick.core.prop.antlr;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.observe.ObservableValue;
-import org.observe.SettableValue;
+import org.observe.*;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableOrderedCollection;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
+import org.quick.core.model.QuickAppModel;
 import org.quick.core.parser.MathUtils;
 import org.quick.core.parser.PrismsPropertyParser.ParsedPlaceHolder;
 import org.quick.core.parser.PrismsPropertyParser.ParsedUnitValue;
 import org.quick.core.parser.QuickParseException;
+import org.quick.core.prop.ExpressionFunction;
 import org.quick.core.prop.Unit;
+import org.quick.core.prop.antlr.ExpressionTypes.MethodInvocation;
 import org.quick.util.QuickUtils;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 import prisms.lang.ParsedItem;
 import prisms.lang.types.*;
 
 public class AntlrPropertyEvaluator {
-	private <T> ObservableValue<? extends T> evaluateTypeChecked(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression<?> parsedItem,
+	private static final Set<String> ASSIGN_BIOPS = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(//
+		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=")));
+
+	private static <T> ObservableValue<? extends T> evaluateTypeChecked(QuickParseEnv parseEnv, TypeToken<T> type,
+		QPPExpression<?> parsedItem,
 		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		ObservableValue<?> result = evaluateTypeless(parseEnv, type, parsedItem, actionAccepted, actionRequired);
 
 		if (!QuickUtils.isAssignableFrom(type, result.getType()))
-			throw new QuickParseException(parsedItem.getMatch().text + " evaluates to type " + result.getType()
+			throw new QuickParseException(parsedItem.getContext().getText() + " evaluates to type " + result.getType()
 				+ ", which is not compatible with expected type " + type);
 		return (ObservableValue<? extends T>) result;
 	}
 
-	public static <T> ObservableValue<T> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression<?> parsedItem,
+	public static <T> ObservableValue<?> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression<?> parsedItem,
 		boolean actionAccepted, boolean actionRequired) {
 		// Sort from easiest to hardest
 		// Literals first
-		if (parsedItem instanceof ParsedNull) {
+		if (parsedItem instanceof ExpressionTypes.NullLiteral) {
 			if (actionRequired)
 				throw new QuickParseException("null literal cannot be an action");
 			return ObservableValue.constant(type, null);
-		} else if (parsedItem instanceof ParsedNumber) {
+		} else if (parsedItem instanceof ExpressionTypes.Literal) {
 			if (actionRequired)
-				throw new QuickParseException("number literal cannot be an action");
-			ParsedNumber num = (ParsedNumber) parsedItem;
-			return ObservableValue.constant((TypeToken<Number>) TypeToken.of(num.getValue().getClass()).unwrap(), num.getValue());
-		} else if (parsedItem instanceof ParsedString) {
-			if (actionRequired)
-				throw new QuickParseException("String literal cannot be an action");
-			return ObservableValue.constant(TypeToken.of(String.class), ((ParsedString) parsedItem).getValue());
-		} else if (parsedItem instanceof ParsedBoolean) {
-			if (actionRequired)
-				throw new QuickParseException("boolean literal cannot be an action");
-			return ObservableValue.constant(TypeToken.of(Boolean.TYPE), ((ParsedBoolean) parsedItem).getValue());
-		} else if (parsedItem instanceof ParsedChar) {
-			if (actionRequired)
-				throw new QuickParseException("char literal cannot be an action");
-			return ObservableValue.constant(TypeToken.of(Character.TYPE), ((ParsedChar) parsedItem).getValue());
+				throw new QuickParseException("literal cannot be an action");
+			ExpressionTypes.Literal<?> literal = (ExpressionTypes.Literal<?>) parsedItem;
+			return ObservableValue.constant((TypeToken<Object>) literal.getType(), literal.getValue());
 			// Now easy operations
 		} else if (parsedItem instanceof ParsedParenthetic) {
 			return evaluateTypeChecked(parseEnv, type, ((ParsedParenthetic) parsedItem).getContent(), actionAccepted, actionRequired);
-		} else if (parsedItem instanceof ParsedType) {
-			throw new QuickParseException("Types cannot be evaluated to a value");
-		} else if (parsedItem instanceof ParsedInstanceofOp) {
-			if (actionRequired)
-				throw new QuickParseException("instanceof operation cannot be an action");
-			ParsedInstanceofOp instOf = (ParsedInstanceofOp) parsedItem;
-			ParsedType parsedType = (ParsedType) instOf.getType();
-			if (parsedType.getParameterTypes().length > 0)
-				throw new QuickParseException(
-					"instanceof checks cannot be performed against parameterized types: " + parsedType.getMatch().text);
-			TypeToken<?> testType = evaluateType(parseEnv, parsedType, type);
-			ObservableValue<?> var = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), instOf.getVariable(), actionAccepted, false);
-			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
-				if (testType.isAssignableFrom(var.getType())) {
-					parseEnv.msg().warn(instOf.getVariable().getMatch().text + " is always an instance of " + parsedType.getMatch().text
-						+ " (if non-null)");
-					return var.mapV(MathUtils.BOOLEAN, v -> v != null, true);
-				} else if (!var.getType().isAssignableFrom(testType)) {
-					parseEnv.msg().error(instOf.getVariable().getMatch().text + " is never an instance of " + parsedType.getMatch().text);
-					return ObservableValue.constant(MathUtils.BOOLEAN, false);
+		} else if (parsedItem instanceof ExpressionTypes.BinaryExpression) {
+			ExpressionTypes.BinaryExpression<?> bin = (ExpressionTypes.BinaryExpression<?>) parsedItem;
+			boolean actionOp = ASSIGN_BIOPS.contains(bin.getName());
+			if (actionRequired && !actionOp)
+				throw new QuickParseException(bin.getName() + " operation cannot be an action");
+			if (bin.getName().equals("instanceof")) {
+				TypeToken<?> testType = evaluateType(parseEnv, bin.getRight(), type);
+				if (testType.getType() instanceof ParameterizedType)
+					throw new QuickParseException(
+						"instanceof checks cannot be performed against parameterized types: " + bin.getRight().getContext().getText());
+				ObservableValue<?> var = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), bin.getLeft(), actionAccepted,
+					false);
+				if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
+					if (testType.isAssignableFrom(var.getType())) {
+						parseEnv.msg().warn(
+							bin.getLeft().getContext().getText() + " is always an instance of " + bin.getRight().getContext().getText()
+							+ " (if non-null)");
+						return var.mapV(MathUtils.BOOLEAN, v -> v != null, true);
+					} else if (!var.getType().isAssignableFrom(testType)) {
+						parseEnv.msg()
+							.error(
+								bin.getLeft().getContext().getText() + " is never an instance of " + bin.getRight().getContext().getText());
+						return ObservableValue.constant(MathUtils.BOOLEAN, false);
+					} else {
+						return var.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+					}
 				} else {
 					return var.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
 				}
+			} else if (actionOp) {
 			} else {
-				return var.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+				ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), bin.getLeft(), actionAccepted, false);
+				ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), bin.getRight(), actionAccepted, false);
+				return combineBinary(arg1, arg2, bin, parseEnv);
 			}
 		} else if (parsedItem instanceof ParsedCast) {
 			if (actionRequired)
@@ -139,15 +141,15 @@ public class AntlrPropertyEvaluator {
 			ObservableValue<?> arg1 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp1(), actionAccepted, false);
 			ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), op.getOp2(), actionAccepted, false);
 			return combineBinary(arg1, arg2, op, parseEnv);
-		} else if (parsedItem instanceof ParsedConditional) {
+		} else if (parsedItem instanceof ExpressionTypes.Conditional) {
 			if (actionRequired)
 				throw new QuickParseException("Conditionals cannot be an action");
-			ParsedConditional cond = (ParsedConditional) parsedItem;
+			ExpressionTypes.Conditional cond = (ExpressionTypes.Conditional) parsedItem;
 			ObservableValue<?> condition = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), cond.getCondition(), actionAccepted,
 				false);
 			if (!TypeToken.of(Boolean.class).isAssignableFrom(condition.getType().wrap()))
 				throw new QuickParseException(
-					"Condition in " + cond.getMatch().text + " evaluates to type " + condition.getType() + ", which is not boolean");
+					"Condition in " + cond.getContext().getText() + " evaluates to type " + condition.getType() + ", which is not boolean");
 			ObservableValue<? extends T> affirm = evaluateTypeChecked(parseEnv, type, cond.getAffirmative(), actionAccepted, false);
 			ObservableValue<? extends T> neg = evaluateTypeChecked(parseEnv, type, cond.getNegative(), actionAccepted, false);
 			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(v -> v ? affirm : neg));
@@ -366,15 +368,15 @@ public class AntlrPropertyEvaluator {
 					return null; // TODO What to do with this?
 				}
 			}, true, bestMatch.parameters);
-		} else if (parsedItem instanceof ParsedMethod) {
-			ParsedMethod method = (ParsedMethod) parsedItem;
-			if (actionRequired && !method.isMethod())
+		} else if (parsedItem instanceof ExpressionTypes.MemberAccess) {
+			ExpressionTypes.MemberAccess method = (ExpressionTypes.MemberAccess) parsedItem;
+			if (actionRequired && method instanceof ExpressionTypes.FieldAccess)
 				throw new QuickParseException("Field access cannot be an action");
 
 			if (method.getContext() == null) {
-				if (method.isMethod()) {
+				if (method instanceof ExpressionTypes.MethodInvocation) {
 					// A function
-					return evaluateFunction(method, parseEnv, type, actionAccepted);
+					return evaluateFunction((MethodInvocation) method, parseEnv, type, actionAccepted);
 				} else {
 					// A variable
 					ObservableValue<?> result = parseEnv.getContext().getVariable(method.getName());
@@ -384,7 +386,7 @@ public class AntlrPropertyEvaluator {
 				}
 			} else {
 				// May be a method invocation on a value or a static invocation on a type
-				String rootCtx = getRootContext(method.getContext());
+				String rootCtx = getRootContext(method.getMemberContext());
 				Class<?> contextType = null;
 				if (rootCtx != null && parseEnv.getContext().getVariable(rootCtx) == null) {
 					// May be a static invocation on a type
@@ -407,4 +409,619 @@ public class AntlrPropertyEvaluator {
 			throw new QuickParseException("Unrecognized parsed item type: " + parsedItem.getClass());
 	}
 
+	private static TypeToken<?> evaluateType(QuickParseEnv parseEnv, QPPExpression<?> parsedType, TypeToken<?> expected)
+		throws QuickParseException {
+		Type reflectType = getReflectType(parsedType, expected, parseEnv);
+
+		return TypeToken.of(reflectType);
+	}
+
+	private static Type getReflectType(QPPExpression<?> parsedType, TypeToken<?> expected, QuickParseEnv parseEnv)
+		throws QuickParseException {
+		Type reflectType;
+		if (parsedType.isParameterized())
+			reflectType = parameterizedType(parsedType.getName(), parsedType.getParameterTypes(), expected, parseEnv);
+		else
+			reflectType = rawType(parsedType.getName(), parseEnv);
+
+		for (int i = 0; i < parsedType.getArrayDimension(); i++)
+			reflectType = arrayType(reflectType);
+
+		if (parsedType.isBounded())
+			reflectType = boundedType(reflectType, parsedType.isUpperBound());
+
+		return reflectType;
+	}
+
+	private static Type parameterizedType(String name, QPPExpression<?>[] parameterTypes, TypeToken<?> expected, QuickParseEnv parseEnv)
+		throws QuickParseException {
+		Class<?> raw = rawType(name, parseEnv);
+
+		Type[] typeArgs = new Type[raw.getTypeParameters().length];
+		if (parameterTypes.length == 0) {
+			// Diamond operator. Figure out the parameter types.
+			for (int i = 0; i < typeArgs.length; i++)
+				typeArgs[i] = expected.resolveType(raw.getTypeParameters()[i]).getType();
+		} else if (parameterTypes.length != typeArgs.length)
+			throw new QuickParseException("Type " + raw.getName() + " cannot be parameterized with " + parameterTypes.length + " types");
+		else {
+			for (int i = 0; i < typeArgs.length; i++)
+				typeArgs[i] = getReflectType(parameterTypes[i], expected.resolveType(raw.getTypeParameters()[i]), parseEnv);
+		}
+
+		class ParameterizedType implements java.lang.reflect.ParameterizedType {
+			@Override
+			public Type getRawType() {
+				return raw;
+			}
+
+			@Override
+			public Type[] getActualTypeArguments() {
+				return typeArgs;
+			}
+
+			@Override
+			public Type getOwnerType() {
+				return null;
+			}
+		}
+		return new ParameterizedType();
+	}
+
+	private static Class<?> rawType(String name, QuickParseEnv parseEnv) throws QuickParseException {
+		int dotIdx = name.lastIndexOf('.');
+		if (dotIdx < 0) {
+			Class<?> quickType;
+			try {
+				quickType = parseEnv.cv().loadIfMapped(name, Object.class);
+			} catch (QuickException e) {
+				throw new QuickParseException(e.getMessage(), e);
+			}
+			if (quickType != null)
+				return quickType;
+		}
+		try {
+			return parseEnv.cv().loadClass(name);
+		} catch (ClassNotFoundException e) {
+			// Do nothing. We'll throw our own exception if we can't find the class.
+		}
+		StringBuilder qClassName = new StringBuilder(name);
+		while (dotIdx >= 0) {
+			qClassName.setCharAt(dotIdx, '$');
+			try {
+				return parseEnv.cv().loadClass(qClassName.toString());
+			} catch (ClassNotFoundException e) {
+			}
+			dotIdx = qClassName.lastIndexOf(".");
+		}
+		throw new QuickParseException("Could not load class " + name);
+	}
+
+	private static Type arrayType(Type reflectType) {
+		if (reflectType instanceof Class)
+			return Array.newInstance((Class<?>) reflectType, 0).getClass();
+		class ArrayType implements GenericArrayType {
+			@Override
+			public Type getGenericComponentType() {
+				return reflectType;
+			}
+		}
+		return new ArrayType();
+	}
+
+	private static Type boundedType(Type reflectType, boolean upperBound) {
+		class WildcardType implements java.lang.reflect.WildcardType {
+			private final Type[] upperBounds;
+			private final Type[] lowerBounds;
+
+			public WildcardType(Type boundType, boolean upperBnd) {
+				upperBounds = upperBnd ? new Type[] { boundType } : new Type[0];
+				lowerBounds = upperBnd ? new Type[0] : new Type[] { boundType };
+			}
+
+			@Override
+			public Type[] getUpperBounds() {
+				return upperBounds;
+			}
+
+			@Override
+			public Type[] getLowerBounds() {
+				return lowerBounds;
+			}
+		}
+		return new WildcardType(reflectType, upperBound);
+	}
+
+	static class InvokableMatch {
+		final ObservableValue<?>[] parameters;
+		final double distance;
+
+		InvokableMatch(ObservableValue<?>[] parameters, double distance) {
+			this.parameters = parameters;
+			this.distance = distance;
+		}
+	}
+
+	private static String getRootContext(QPPExpression<?> context) {
+		if (context instanceof ExpressionTypes.MemberAccess) {
+			ExpressionTypes.MemberAccess method = (ExpressionTypes.MemberAccess) context;
+			if (method instanceof ExpressionTypes.MethodInvocation)
+				return null;
+			String ret = getRootContext(method.getMemberContext());
+			if (ret == null)
+				return null;
+			return ret + "." + method.getName();
+		} else if (context instanceof ParsedType) {
+			ParsedType type = (ParsedType) context;
+			if (type.isBounded() || type.isParameterized())
+				return null;
+			return type.toString();
+		} else if (context instanceof ParsedIdentifier)
+			return ((ParsedIdentifier) context).getName();
+		else
+			return null;
+	}
+
+	private static InvokableMatch getMatch(Type[] paramTypes, boolean varArgs, List<QPPExpression<?>> arguments, QuickParseEnv env,
+		TypeToken<?> type,
+		boolean actionAccepted) throws QuickParseException {
+		TypeToken<?>[] typeTokenParams = new TypeToken[paramTypes.length];
+		for (int i = 0; i < paramTypes.length; i++)
+			typeTokenParams[i] = type.resolveType(paramTypes[i]);
+		return getMatch(typeTokenParams, varArgs, arguments, env, type, actionAccepted);
+	}
+
+	private static InvokableMatch getMatch(TypeToken<?>[] paramTypes, boolean varArgs, List<QPPExpression<?>> arguments,
+		QuickParseEnv parseEnv,
+		TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
+		TypeToken<?>[] argTargetTypes = new TypeToken[arguments.size()];
+		if (paramTypes.length == arguments.size()) {
+			argTargetTypes = paramTypes;
+		} else if (varArgs) {
+			if (arguments.size() >= paramTypes.length - 1) {
+				for (int i = 0; i < paramTypes.length - 1; i++)
+					argTargetTypes[i] = paramTypes[i];
+				for (int i = paramTypes.length - 1; i < arguments.size(); i++)
+					argTargetTypes[i] = paramTypes[paramTypes.length - 1];
+			} else
+				return null;
+		} else
+			return null;
+
+		ObservableValue<?>[] args = new ObservableValue[arguments.size()];
+		for (int i = 0; i < args.length; i++) {
+			args[i] = evaluateTypeless(parseEnv, argTargetTypes[i], arguments.get(i), actionAccepted, false);
+			if (!QuickUtils.isAssignableFrom(argTargetTypes[i], args[i].getType()))
+				return null;
+		}
+		double distance = 0;
+		for (int i = 0; i < paramTypes.length && i < args.length; i++)
+			distance += getDistance(paramTypes[i].wrap(), args[i].getType().wrap());
+		return new InvokableMatch(args, distance);
+	}
+
+	private static double getDistance(TypeToken<?> paramType, TypeToken<?> argType) {
+		double distance = 0;
+		distance += getRawDistance(paramType.getRawType(), argType.getRawType());
+		if (paramType.getType() instanceof ParameterizedType) {
+			ParameterizedType pt = (ParameterizedType) paramType.getType();
+			for (int i = 0; i < pt.getActualTypeArguments().length; i++) {
+				double paramDist = getDistance(paramType.resolveType(pt.getActualTypeArguments()[i]),
+					argType.resolveType(pt.getActualTypeArguments()[i]));
+				distance += paramDist / 10;
+			}
+		}
+		return distance;
+	}
+
+	private static int getRawDistance(Class<?> paramType, Class<?> argType) {
+		if (paramType.equals(argType))
+			return 0;
+		else if (paramType.isAssignableFrom(argType)) {
+			int dist = 0;
+			while (argType.getSuperclass() != null && paramType.isAssignableFrom(argType.getSuperclass())) {
+				argType = argType.getSuperclass();
+				dist++;
+			}
+			if (paramType.isInterface())
+				dist += getInterfaceDistance(paramType, argType);
+			return dist;
+		} else if (argType.isAssignableFrom(paramType))
+			return getRawDistance(argType, paramType);
+		else if (Number.class.isAssignableFrom(paramType) && Number.class.isAssignableFrom(argType)) {
+			int paramNumTypeOrdinal = getNumberTypeOrdinal(paramType);
+			int argNumTypeOrdinal = getNumberTypeOrdinal(argType);
+			if (paramNumTypeOrdinal < 0 || argNumTypeOrdinal < 0 || argNumTypeOrdinal > paramNumTypeOrdinal)
+				throw new IllegalStateException("Shouldn't get here: " + paramType.getName() + " and " + argType.getName());
+			return paramNumTypeOrdinal - argNumTypeOrdinal;
+		} else
+			throw new IllegalStateException("Shouldn't get here: " + paramType.getName() + " and " + argType.getName());
+	}
+
+	private static int getInterfaceDistance(Class<?> paramType, Class<?> argType) {
+		if (paramType.equals(argType))
+			return 0;
+		for (Class<?> intf : argType.getInterfaces()) {
+			if (paramType.isAssignableFrom(intf))
+				return getInterfaceDistance(paramType, intf) + 1;
+		}
+		throw new IllegalStateException("Shouldn't get here");
+	}
+
+	private static int getNumberTypeOrdinal(Class<?> numType) {
+		if (numType == Byte.class)
+			return 0;
+		else if (numType == Short.class)
+			return 1;
+		else if (numType == Integer.class)
+			return 2;
+		else if (numType == Long.class)
+			return 3;
+		else if (numType == Float.class)
+			return 4;
+		else if (numType == Double.class)
+			return 5;
+		else
+			return -1;
+	}
+
+	private static ObservableValue<?> evaluateStatic(ExpressionTypes.MemberAccess member, Class<?> targetType, QuickParseEnv parseEnv,
+		TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
+		// Evaluate as a static invocation on the type
+		if (member instanceof ExpressionTypes.MethodInvocation) {
+			Method bestMethod = null;
+			InvokableMatch bestMatch = null;
+			for (Method m : targetType.getMethods()) {
+				if ((m.getModifiers() & Modifier.STATIC) == 0 || !m.getName().equals(member.getName()) || !m.isAccessible())
+					continue;
+				InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(),
+					((ExpressionTypes.MethodInvocation) member).getArguments(), parseEnv, type, actionAccepted);
+				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+					bestMatch = match;
+					bestMethod = m;
+				}
+			}
+			if (bestMethod == null)
+				throw new QuickParseException("No such method found: " + member);
+			Method toInvoke = bestMethod;
+			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) type.resolveType(toInvoke.getGenericReturnType()),
+				args -> {
+					try {
+						return toInvoke.invoke(null, args);
+					} catch (Exception e) {
+						parseEnv.msg().error("Invocation failed for static method " + member, e);
+						return null; // TODO What to do with this?
+					}
+				}, true, bestMatch.parameters);
+		} else {
+			Field fieldRef;
+			try {
+				fieldRef = targetType.getField(member.getName());
+			} catch (NoSuchFieldException e) {
+				throw new QuickParseException("No such field " + targetType.getName() + "." + member.getName(), e);
+			} catch (SecurityException e) {
+				throw new QuickParseException("Could not access field " + targetType.getName() + "." + member.getName(), e);
+			}
+			if ((fieldRef.getModifiers() & Modifier.STATIC) == 0)
+				throw new QuickParseException("Field " + targetType.getName() + "." + fieldRef.getName() + " is not static");
+			return new ObservableValue<Object>() {
+				private final TypeToken<Object> fieldType = (TypeToken<Object>) TypeToken.of(fieldRef.getGenericType());
+
+				@Override
+				public Subscription subscribe(Observer<? super ObservableValueEvent<Object>> observer) {
+					return () -> {
+					}; // Can't get notifications on a field change
+				}
+
+				@Override
+				public boolean isSafe() {
+					return true;
+				}
+
+				@Override
+				public TypeToken<Object> getType() {
+					return fieldType;
+				}
+
+				@Override
+				public Object get() {
+					try {
+						return fieldRef.get(null);
+					} catch (Exception e) {
+						parseEnv.msg().error("Could not get static field " + targetType.getName() + "." + fieldRef.getName(), e);
+						return null; // TODO What to do with this?
+					}
+				}
+			};
+		}
+	}
+
+	private static ObservableValue<?> evaluateField(ExpressionTypes.FieldAccess field, ObservableValue<?> context, QuickParseEnv parseEnv,
+		TypeToken<?> type) throws QuickParseException {
+		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
+			if (!(context instanceof ObservableValue.ConstantObservableValue))
+				throw new QuickParseException("Model observables must be constant to be evaluated");
+			QuickAppModel model = (QuickAppModel) context.get();
+			Object fieldVal = model.getField(field.getName());
+			if (fieldVal == null)
+				throw new QuickParseException("Model " + field.getContext() + " does not contain field " + field.getName());
+			if (fieldVal instanceof ObservableValue)
+				return (ObservableValue<?>) fieldVal;
+			else
+				throw new QuickParseException("Field " + field.getName() + " of model " + field.getContext() + " is not a value");
+		} else {
+			Field fieldRef;
+			try {
+				fieldRef = context.getType().getRawType().getField(field.getName());
+			} catch (NoSuchFieldException e) {
+				throw new QuickParseException("No such field " + context + "." + field.getName(), e);
+			} catch (SecurityException e) {
+				throw new QuickParseException("Could not access field " + context + "." + field.getName(), e);
+			}
+			if ((fieldRef.getModifiers() & Modifier.STATIC) != 0)
+				throw new QuickParseException("Field " + context + "." + fieldRef.getName() + " is static");
+			return context.mapV((TypeToken<Object>) context.getType().resolveType(fieldRef.getGenericType()), v -> {
+				try {
+					return fieldRef.get(v);
+				} catch (Exception e) {
+					parseEnv.msg().error("Could not get field " + context + "." + fieldRef.getName(), e);
+					return null; // TODO What to do with this?
+				}
+			});
+		}
+	}
+
+	private static ObservableValue<?> evaluateMethod(ExpressionTypes.MethodInvocation method, ObservableValue<?> context,
+		QuickParseEnv parseEnv, TypeToken<?> type,
+		boolean actionAccepted) throws QuickParseException {
+		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
+			if (!(context instanceof ObservableValue.ConstantObservableValue))
+				throw new QuickParseException("Model observables must be constant to be evaluated");
+			QuickAppModel model = (QuickAppModel) context.get();
+			Object fieldVal = model.getField(method.getName());
+			if (fieldVal == null)
+				throw new QuickParseException("Model " + method.getContext() + " does not contain field " + method.getName());
+			if (fieldVal instanceof ExpressionFunction) {
+				ExpressionFunction<?> fn = (ExpressionFunction<?>) fieldVal;
+				InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
+					parseEnv, type, actionAccepted);
+				return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) fn.getReturnType(), args -> {
+					try {
+						return fn.apply(Arrays.asList(args));
+					} catch (RuntimeException e) {
+						parseEnv.msg().error("Invocation failed for function " + method, e);
+						return null; // TODO What to do with this?
+					}
+				}, true, match.parameters);
+			} else if (fieldVal instanceof ObservableAction) {
+				if (method.getArguments().size() != 0)
+					throw new QuickParseException("Invalid invocation of action " + method.getName() + " of model " + method.getContext()
+						+ ": actions cannot take arguments");
+				return valueOf((ObservableAction<?>) fieldVal);
+			} else
+				throw new QuickParseException(
+					"Field " + method.getName() + " of model " + method.getContext() + " is not a function or an action");
+		} else {
+			Method bestMethod = null;
+			InvokableMatch bestMatch = null;
+			for (Method m : context.getType().getRawType().getMethods()) {
+				if (!m.getName().equals(method.getName()) || !m.isAccessible())
+					continue;
+				InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(), method.getArguments(), parseEnv, type,
+					actionAccepted);
+				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+					bestMatch = match;
+					bestMethod = m;
+				}
+			}
+			if (bestMethod == null)
+				throw new QuickParseException("No such method found: " + method);
+			ObservableValue<?>[] composed = new ObservableValue[bestMatch.parameters.length + 1];
+			composed[0] = context;
+			System.arraycopy(bestMatch.parameters, 0, composed, 1, bestMatch.parameters.length);
+			Method toInvoke = bestMethod;
+			TypeToken<?> resultType = context.getType().resolveType(toInvoke.getGenericReturnType());
+			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) resultType, args -> {
+				Object ctx = args[0];
+				Object[] params = new Object[args.length - 1];
+				System.arraycopy(args, 1, params, 0, params.length);
+				try {
+					return toInvoke.invoke(ctx, params);
+				} catch (Exception e) {
+					parseEnv.msg().error("Invocation failed for method " + method, e);
+					return null; // TODO What to do with this?
+				}
+			}, true, composed);
+		}
+	}
+
+	private static <T> ObservableValue<ObservableAction<T>> valueOf(ObservableAction<T> action) {
+		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, action.getType()), action);
+	}
+
+	private static ObservableValue<?> evaluateFunction(ExpressionTypes.MethodInvocation method, QuickParseEnv parseEnv, TypeToken<?> type,
+		boolean actionAccepted)
+		throws QuickParseException {
+		List<ExpressionFunction<?>> functions = new ArrayList<>();
+		parseEnv.getContext().getFunctions(method.getName(), functions);
+		ExpressionFunction<?> bestFunction = null;
+		InvokableMatch bestMatch = null;
+		for (ExpressionFunction<?> fn : functions) {
+			InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
+				parseEnv, type, actionAccepted);
+			if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+				bestMatch = match;
+				bestFunction = fn;
+			}
+		}
+		if (bestFunction == null)
+			throw new QuickParseException("No such function found: " + method);
+		ExpressionFunction<?> toInvoke = bestFunction;
+		return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) toInvoke.getReturnType(), args -> {
+			try {
+				return toInvoke.apply(Arrays.asList(args));
+			} catch (RuntimeException e) {
+				parseEnv.msg().error("Invocation failed for function " + method, e);
+				return null; // TODO What to do with this?
+			}
+		}, true, bestMatch.parameters);
+	}
+
+	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ExpressionTypes.UnaryExpression<?> op, QuickParseEnv parseEnv)
+		throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (fn.applies(Arrays.asList(arg1.getType())))
+				return arg1.mapV((TypeToken<Object>) fn.getReturnType(), v -> fn.apply(Arrays.asList(v)));
+		}
+		try {
+			switch (op.getName()) {
+			case "+":
+			case "-":
+			case "~":
+				try {
+					return MathUtils.unaryOp(op.getName(), arg1);
+				} catch (IllegalArgumentException e) {
+					throw new QuickParseException(e.getMessage(), e);
+				}
+			default:
+				throw new QuickParseException("Unrecognized unary operator: " + op.getName());
+			}
+		} catch (IllegalArgumentException e) {
+			throw new QuickParseException(e.getMessage(), e);
+		}
+	}
+
+	private static <T> ObservableValue<T> getUnaryAssignValue(SettableValue<T> arg1, ParsedAssignmentOperator op, QuickParseEnv parseEnv)
+		throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName().substring(0, 1), new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (arg1.getType().isAssignableFrom(fn.getReturnType())
+				&& fn.applies(Arrays.asList(arg1.getType(), TypeToken.of(Integer.TYPE))))
+				return arg1.mapV((TypeToken<T>) fn.getReturnType(), v -> (T) fn.apply(Arrays.asList(v, 1)));
+		}
+		ObservableValue<T> result;
+		try {
+			switch (op.getName()) {
+			case "++":
+				result = MathUtils.addOne(arg1);
+				break;
+			case "--":
+				result = MathUtils.minusOne(arg1);
+				break;
+			default:
+				throw new QuickParseException("Unrecognized unary assignment operator: " + op.getName());
+			}
+		} catch (IllegalArgumentException e) {
+			throw new QuickParseException(e.getMessage(), e);
+		}
+		return result;
+	}
+
+	private static ObservableValue<?> combineBinary(ObservableValue<?> arg1, ObservableValue<?> arg2,
+		ExpressionTypes.BinaryExpression<?> op,
+		QuickParseEnv parseEnv) throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (fn.applies(Arrays.asList(arg1.getType(), arg2.getType())))
+				return arg1.combineV((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, true);
+		}
+		try {
+			switch (op.getName()) {
+			case "+":
+				TypeToken<String> strType = TypeToken.of(String.class);
+				if (strType.isAssignableFrom(arg1.getType()) || strType.isAssignableFrom(arg2.getType())) {
+					return arg1.combineV(strType, (a1, a2) -> new StringBuilder().append(a1).append(a2).toString(), arg2, true);
+				}
+				//$FALL-THROUGH$
+			case "-":
+			case "*":
+			case "/":
+			case "%":
+			case "<<":
+			case ">>":
+			case ">>>":
+			case "&":
+			case "|":
+			case "^":
+			case "&&":
+			case "||":
+			case "==":
+			case "!=":
+			case ">":
+			case "<":
+			case ">=":
+			case "<=":
+				return MathUtils.binaryMathOp(op.getName(), arg1, arg2);
+			default:
+				throw new QuickParseException("Unrecognized binary operator: " + op.getName());
+			}
+		} catch (IllegalArgumentException e) {
+			throw new QuickParseException(e.getMessage(), e);
+		}
+	}
+
+	private static ObservableValue<?> getBinaryAssignValue(SettableValue<?> arg1, ObservableValue<?> arg2, ParsedAssignmentOperator op,
+		QuickParseEnv parseEnv) throws QuickParseException {
+		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName().substring(0, op.getName().length() - 1),
+			new ArrayList<>());
+		for (ExpressionFunction<?> fn : functions) {
+			if (arg1.getType().isAssignableFrom(fn.getReturnType())
+				&& fn.applies(Arrays.asList(arg1.getType(), TypeToken.of(Integer.TYPE))))
+				return arg1.combineV((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, true);
+		}
+		switch (op.getName()) {
+		case "=":
+			if (!QuickUtils.isAssignableFrom(arg1.getType(), arg2.getType()))
+				throw new QuickParseException(
+					op.getOperand().getMatch().text + ", type " + arg2.getType() + ", cannot be assigned to type " + arg1.getType());
+			return arg2;
+		case "+=":
+		case "-=":
+		case "*=":
+		case "/=":
+		case "%=":
+		case "&=":
+		case "|=":
+		case "^=":
+		case "<<=":
+		case ">>=":
+		case ">>>=":
+			String mathOp = op.getName().substring(0, op.getName().length() - 1);
+			ObservableValue<?> result;
+			try {
+				result = MathUtils.binaryMathOp(mathOp, arg1, arg2);
+			} catch (IllegalArgumentException e) {
+				throw new QuickParseException(e.getMessage(), e);
+			}
+			if (!QuickUtils.isAssignableFrom(arg1.getType(), result.getType()))
+				throw new QuickParseException(op.getVariable().getMatch().text + " " + mathOp + " " + op.getOperand().getMatch().text
+					+ ", type " + result.getType() + ", cannot be assigned to type " + arg1.getType());
+			return result;
+		default:
+			throw new QuickParseException("Unrecognized binary assignment operator: " + op.getName());
+		}
+	}
+
+	private static <T, V extends T> ObservableValue<ObservableAction<V>> makeActionValue(SettableValue<T> settable,
+		ObservableValue<V> value, boolean valuePreAction) throws QuickParseException {
+		ObservableAction<V> action = settable.assignmentTo(value);
+		return ObservableValue.constant(new TypeToken<ObservableAction<V>>() {}.where(new TypeParameter<V>() {}, value.getType().wrap()),
+			new ObservableAction<V>() {
+				@Override
+				public TypeToken<V> getType() {
+					return value.getType();
+				}
+
+				@Override
+				public V act(Object cause) throws IllegalStateException {
+					return action.act(cause);
+				}
+
+				@Override
+				public ObservableValue<String> isEnabled() {
+					return action.isEnabled();
+				}
+			});
+	}
 }

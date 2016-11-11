@@ -154,16 +154,16 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				push(new ExpressionTypes.IntegerLiteralExpression(ctx));
 				break;
 			case QPPParser.FloatingPointLiteral:
-				push(new ExpressionTypes.FloatLiteralExpression(ctx));
+				push(new ExpressionTypes.FloatLiteral(ctx));
 				break;
 			case QPPParser.BooleanLiteral:
-				push(new ExpressionTypes.BooleanLiteralExpression(ctx));
+				push(new ExpressionTypes.BooleanLiteral(ctx));
 				break;
 			case QPPParser.CharacterLiteral:
-				push(new ExpressionTypes.CharLiteralExpression(ctx));
+				push(new ExpressionTypes.CharLiteral(ctx));
 				break;
 			case QPPParser.StringLiteral:
-				push(new ExpressionTypes.StringLiteralExpression(ctx));
+				push(new ExpressionTypes.StringLiteral(ctx));
 				break;
 			default:
 				push(new ExpressionTypes.InterpreterError(ctx,
@@ -175,19 +175,19 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitExpressionName(ExpressionNameContext ctx) {
 			if (ctx.ambiguousName() != null)
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, (ExpressionTypes.QualifiedNameExpression) pop(ctx.ambiguousName()),
+				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.ambiguousName()),
 					ctx.Identifier().getText()));
 			else
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, null, ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier().getText()));
 		}
 
 		@Override
 		public void exitAmbiguousName(AmbiguousNameContext ctx) {
 			if (ctx.ambiguousName() != null)
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, (ExpressionTypes.QualifiedNameExpression) pop(ctx.ambiguousName()),
+				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.ambiguousName()),
 					ctx.Identifier().getText()));
 			else
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, null, ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier().getText()));
 		}
 
 		@Override
@@ -217,13 +217,13 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitFieldAccess(FieldAccessContext ctx) {
 			if (ctx.primary() != null)
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, (ExpressionTypes.QualifiedNameExpression) pop(ctx.primary()),
+				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.primary()),
 					ctx.Identifier().getText()));
 			else if (ctx.typeName() != null)
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, (ExpressionTypes.QualifiedNameExpression) pop(ctx.typeName()),
+				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.typeName()),
 					"super." + ctx.Identifier().getText()));
 			else
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, null, "super." + ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, null, "super." + ctx.Identifier().getText()));
 		}
 
 		@Override
@@ -359,7 +359,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitConditionalExpression(ConditionalExpressionContext ctx) {
 			if (ctx.expression() != null)
-				push(new ExpressionTypes.ConditionalExpression(ctx, pop(ctx.conditionalOrExpression()), pop(ctx.expression()),
+				push(new ExpressionTypes.Conditional(ctx, pop(ctx.conditionalOrExpression()), pop(ctx.expression()),
 					pop(ctx.conditionalExpression())));
 			else
 				ascend(ctx.conditionalOrExpression(), ctx);
@@ -713,22 +713,22 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			Function<C, TypeArgumentsContext> typeArguments, Function<C, MethodNameContext> methodName,
 			Function<C, TerminalNode> identifier, Function<C, TypeNameContext> typeName, Function<C, ExpressionNameContext> expressionName,
 			Function<C, PrimaryContext> primary, boolean isSuper) {
-			ExpressionTypes.MethodInvocationExpression exp;
+			ExpressionTypes.MethodInvocation exp;
 			List<QPPExpression<?>> args = argumentList.apply(ctx).expression().stream().map(x -> pop(x)).collect(Collectors.toList());
-			List<ExpressionTypes.TypeExpression<?>> typeArgs = typeArguments == null ? null : parseTypeArguments(typeArguments.apply(ctx));
+			List<ExpressionTypes.Type<?>> typeArgs = typeArguments == null ? null : parseTypeArguments(typeArguments.apply(ctx));
 			if (methodName != null && methodName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocationExpression(ctx, null, isSuper, methodName.apply(ctx).getText(), typeArgs, args);
+				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, methodName.apply(ctx).getText(), typeArgs, args);
 			} else if (typeName != null && typeName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocationExpression(ctx, pop(typeName.apply(ctx)), isSuper,
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(typeName.apply(ctx)), isSuper,
 					identifier.apply(ctx).getText(), typeArgs, args);
 			} else if (expressionName != null && expressionName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocationExpression(ctx, pop(expressionName.apply(ctx)), isSuper,
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(expressionName.apply(ctx)), isSuper,
 					identifier.apply(ctx).getText(), typeArgs, args);
 			} else if (primary != null && primary.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocationExpression(ctx, pop(primary.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(primary.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
 					typeArgs, args);
 			} else {
-				exp = new ExpressionTypes.MethodInvocationExpression(ctx, null, isSuper, identifier.apply(ctx).getText(), typeArgs, args);
+				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, identifier.apply(ctx).getText(), typeArgs, args);
 			}
 			push(exp);
 		}
@@ -738,9 +738,9 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				: argumentList.expression().stream().map(x -> pop(x)).collect(Collectors.toList());
 		}
 
-		List<ExpressionTypes.TypeExpression<?>> parseTypeArguments(TypeArgumentsContext typeArguments) {
+		List<ExpressionTypes.Type<?>> parseTypeArguments(TypeArgumentsContext typeArguments) {
 			return typeArguments == null ? null : typeArguments.typeArgumentList().typeArgument().stream()
-				.map(a -> (ExpressionTypes.TypeExpression<?>) pop(a)).collect(Collectors.toList());
+				.map(a -> (ExpressionTypes.Type<?>) pop(a)).collect(Collectors.toList());
 		}
 
 		@Override
@@ -754,19 +754,19 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitTypeName(TypeNameContext ctx) {
 			if (ctx.packageOrTypeName() != null)
-				push(new ExpressionTypes.QualifiedNameExpression(ctx,
-					(ExpressionTypes.QualifiedNameExpression) pop(ctx.packageOrTypeName()), ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx,
+					(ExpressionTypes.QualifiedName) pop(ctx.packageOrTypeName()), ctx.Identifier().getText()));
 			else
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, null, ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier().getText()));
 		}
 
 		@Override
 		public void exitPackageOrTypeName(PackageOrTypeNameContext ctx) {
 			if (ctx.packageOrTypeName() != null)
-				push(new ExpressionTypes.QualifiedNameExpression(ctx,
-					(ExpressionTypes.QualifiedNameExpression) pop(ctx.packageOrTypeName()), ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx,
+					(ExpressionTypes.QualifiedName) pop(ctx.packageOrTypeName()), ctx.Identifier().getText()));
 			else
-				push(new ExpressionTypes.QualifiedNameExpression(ctx, null, ctx.Identifier().getText()));
+				push(new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier().getText()));
 		}
 
 		@Override
@@ -779,7 +779,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitClassType(ClassTypeContext ctx) {
-			push(new ExpressionTypes.ClassTypeExpression(ctx, ctx.Identifier().getText(), parseTypeArguments(ctx.typeArguments())));
+			push(new ExpressionTypes.ClassType(ctx, ctx.Identifier().getText(), parseTypeArguments(ctx.typeArguments())));
 		}
 
 		@Override

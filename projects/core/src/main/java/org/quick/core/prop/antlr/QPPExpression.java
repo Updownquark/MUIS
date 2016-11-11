@@ -1,8 +1,8 @@
 package org.quick.core.prop.antlr;
 
-import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.ParserRuleContext;
 
-abstract class QPPExpression<N extends ParseTree> {
+abstract class QPPExpression<N extends ParserRuleContext> {
 	private final N theCtx;
 	private String theError;
 

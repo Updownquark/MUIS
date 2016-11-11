@@ -21,9 +21,6 @@ import org.quick.util.QuickUtils;
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
-import prisms.lang.types.ParsedIdentifier;
-import prisms.lang.types.ParsedType;
-
 public class AntlrPropertyEvaluator {
 	private static final Set<String> ASSIGN_BIOPS = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(//
 		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=")));
@@ -547,14 +544,13 @@ public class AntlrPropertyEvaluator {
 			if (ret == null)
 				return null;
 			return ret + "." + method.getName();
-		} else if (context instanceof ParsedType) {
-			ParsedType type = (ParsedType) context;
-			if (type.isBounded() || type.isParameterized())
-				return null;
-			return type.toString();
-		} else if (context instanceof ParsedIdentifier)
-			return ((ParsedIdentifier) context).getName();
-		else
+		} else if (context instanceof ExpressionTypes.QualifiedName) {
+			ExpressionTypes.QualifiedName qName = (ExpressionTypes.QualifiedName) context;
+			if (qName.getQualifier() == null)
+				return qName.getName();
+			String ctxStr = getRootContext(qName.getQualifier());
+			return ctxStr + "." + qName.getName();
+		} else
 			return null;
 	}
 

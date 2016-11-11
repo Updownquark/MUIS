@@ -3,8 +3,6 @@ package org.quick.core.prop.antlr;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.quick.core.prop.antlr.QPPParser.ClassTypeContext;
 import org.quick.core.prop.antlr.QPPParser.ConditionalExpressionContext;
 import org.quick.core.prop.antlr.QPPParser.LiteralContext;
@@ -12,31 +10,11 @@ import org.quick.core.prop.antlr.QPPParser.LiteralContext;
 import com.google.common.reflect.TypeToken;
 
 class ExpressionTypes {
-	static class ParseError extends QPPExpression<ErrorNode> {
-		public ParseError(ErrorNode ctx) {
-			super(ctx);
-		}
-	}
-
-	static class InterpreterError extends QPPExpression<ParseTree> {
-		private final String theError;
-
-		public InterpreterError(ParseTree ctx, String error) {
-			super(ctx);
-			theError = error;
-		}
-
-		@Override
-		public String print() {
-			return super.print() + ": " + theError;
-		}
-	}
-
-	static class QualifiedName extends QPPExpression<ParseTree> {
+	static class QualifiedName extends QPPExpression<ParserRuleContext> {
 		private final ExpressionTypes.QualifiedName theQualifier;
 		private final String theName;
 
-		public QualifiedName(ParseTree ctx, QualifiedName qualifier, String name) {
+		public QualifiedName(ParserRuleContext ctx, QualifiedName qualifier, String name) {
 			super(ctx);
 			theQualifier = qualifier;
 			theName = name;
@@ -59,7 +37,7 @@ class ExpressionTypes {
 		}
 	}
 
-	static abstract class Type<N extends ParseTree> extends QPPExpression<N> {
+	static abstract class Type<N extends ParserRuleContext> extends QPPExpression<N> {
 		private final TypeToken<?> theType;
 
 		public Type(N ctx) {
@@ -477,7 +455,7 @@ class ExpressionTypes {
 
 		@Override
 		public String print() {
-			return new StringBuilder().append('{').append(theName).append('}').toString();
+			return toString();
 		}
 	}
 

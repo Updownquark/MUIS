@@ -1,5 +1,5 @@
 /*
- * This grammar supports parsing of the Quick Property format, which is loosely based on the Java 8 format, found at:
+ * This grammar supports parsing of the Quick Property format, which is based on the Java 8 format, found at:
  * https://github.com/antlr/grammars-v4/blob/master/java8/Java8.g4
  * which uses the BSD license:
 
@@ -36,8 +36,6 @@ grammar QPP;
 options {
 	// antlr will generate java lexer and parser
 	language = Java;
-	// generated parser should create abstract syntax tree
-	output = AST;
 }
 
 @lexer::header {
@@ -220,6 +218,7 @@ primary
 
 primaryNoNewArray
 	:	literal
+	|	placeholder
 	|	typeName ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
 	|	'this'
@@ -229,7 +228,6 @@ primaryNoNewArray
 	|	fieldAccess
 	|	arrayAccess
 	|	methodInvocation
-	|	methodReference
 	;
 
 primaryNoNewArray_lf_arrayAccess
@@ -238,6 +236,7 @@ primaryNoNewArray_lf_arrayAccess
 
 primaryNoNewArray_lfno_arrayAccess
 	:	literal
+	|	placeholder
 	|	typeName ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
 	|	'this'
@@ -246,7 +245,6 @@ primaryNoNewArray_lfno_arrayAccess
 	|	classInstanceCreationExpression
 	|	fieldAccess
 	|	methodInvocation
-	|	methodReference
 	;
 
 primaryNoNewArray_lf_primary
@@ -254,7 +252,6 @@ primaryNoNewArray_lf_primary
 	|	fieldAccess_lf_primary
 	|	arrayAccess_lf_primary
 	|	methodInvocation_lf_primary
-	|	methodReference_lf_primary
 	;
 
 primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary
@@ -265,11 +262,11 @@ primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary
 	:	classInstanceCreationExpression_lf_primary
 	|	fieldAccess_lf_primary
 	|	methodInvocation_lf_primary
-	|	methodReference_lf_primary
 	;
 
 primaryNoNewArray_lfno_primary
 	:	literal
+	|	placeholder
 	|	typeName ('[' ']')* '.' 'class'
 	|	unannPrimitiveType ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
@@ -280,7 +277,6 @@ primaryNoNewArray_lfno_primary
 	|	fieldAccess_lfno_primary
 	|	arrayAccess_lfno_primary
 	|	methodInvocation_lfno_primary
-	|	methodReference_lfno_primary
 	;
 
 primaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary
@@ -289,6 +285,7 @@ primaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary
 
 primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary
 	:	literal
+	|	placeholder
 	|	typeName ('[' ']')* '.' 'class'
 	|	unannPrimitiveType ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
@@ -298,7 +295,6 @@ primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary
 	|	classInstanceCreationExpression_lfno_primary
 	|	fieldAccess_lfno_primary
 	|	methodInvocation_lfno_primary
-	|	methodReference_lfno_primary
 	;
 
 classInstanceCreationExpression
@@ -359,6 +355,10 @@ arrayAccess_lfno_primary
 		)*
 	;
 
+placeholder
+	:	'?<' IntegerLiteral '>'
+	;
+
 methodInvocation
 	:	methodName '(' argumentList? ')'
 	|	typeName '.' typeArguments? Identifier '(' argumentList? ')'
@@ -382,29 +382,6 @@ methodInvocation_lfno_primary
 
 argumentList
 	:	expression (',' expression)*
-	;
-
-methodReference
-	:	expressionName '::' typeArguments? Identifier
-	|	referenceType '::' typeArguments? Identifier
-	|	primary '::' typeArguments? Identifier
-	|	'super' '::' typeArguments? Identifier
-	|	typeName '.' 'super' '::' typeArguments? Identifier
-	|	classType '::' typeArguments? 'new'
-	|	arrayType '::' 'new'
-	;
-
-methodReference_lf_primary
-	:	'::' typeArguments? Identifier
-	;
-
-methodReference_lfno_primary
-	:	expressionName '::' typeArguments? Identifier
-	|	referenceType '::' typeArguments? Identifier
-	|	'super' '::' typeArguments? Identifier
-	|	typeName '.' 'super' '::' typeArguments? Identifier
-	|	classType '::' typeArguments? 'new'
-	|	arrayType '::' 'new'
 	;
 
 arrayCreationExpression
@@ -554,8 +531,13 @@ postfixExpression
 		)
 		(	postIncrementExpression_lf_postfixExpression
 		|	postDecrementExpression_lf_postfixExpression
+		|	unitName
 		)*
 	;
+
+unitName
+ 	: UnitName | Identifier
+ 	;
 
 postIncrementExpression
 	:	postfixExpression '++'
@@ -926,6 +908,10 @@ Identifier
 	:	JavaLetter JavaLetterOrDigit*
 	;
 
+UnitName
+	:	UnitLetter UnitLetter*
+	;
+
 fragment
 JavaLetter
 	:	[a-zA-Z$_] // these are the "java letters" below 0x7F
@@ -946,6 +932,16 @@ JavaLetterOrDigit
 	|	// covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF
 		[\uD800-\uDBFF] [\uDC00-\uDFFF]
 		{Character.isJavaIdentifierPart(Character.toCodePoint((char)_input.LA(-2), (char)_input.LA(-1)))}?
+	;
+
+fragment
+UnitLetter
+	//Same as java letters, plus %, !, @, and ~
+	:	[a-zA-Z$_%!@~]
+	|	~[\u0000-\u007F\uD800-\uDBFF]
+		{Character.isJavaIdentifierStart(_input.LA(-1))}?
+	|	[\uD800-\uDBFF] [\uDC00-\uDFFF]
+		{Character.isJavaIdentifierStart(Character.toCodePoint((char)_input.LA(-2), (char)_input.LA(-1)))}?
 	;
 
 //

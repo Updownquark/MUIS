@@ -8,6 +8,7 @@ import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.*;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
+import org.quick.core.prop.antlr.AntlrPropertyParser;
 import org.quick.core.style.CompoundStyleSheet;
 import org.quick.core.style.StyleSheet;
 
@@ -176,7 +177,7 @@ public class QuickEnvironment implements QuickParseEnv {
 			theEnv.theDocumentParser = new org.quick.core.parser.QuickDomParser(theEnv);
 			theEnv.theContentCreator = new QuickContentCreator();
 			theEnv.theStyleParser = new DefaultStyleParser(theEnv);
-			theEnv.thePropertyParser = new PrismsPropertyParser(theEnv);
+			theEnv.thePropertyParser = new AntlrPropertyParser(theEnv);
 			return this;
 		}
 

@@ -67,10 +67,11 @@ public class PropertyTest {
 			Assert.assertEquals(Double.valueOf(0.5), propParser.parseProperty(doubleProp, env, "0.5").get());
 			Assert.assertEquals(Float.valueOf(0x1.ffp-1f), propParser.parseProperty(floatProp, env, "0x1.ffp-1f").get());
 			Assert.assertEquals(Boolean.TRUE, propParser.parseProperty(boolProp, env, "true").get());
-			Assert.assertEquals("", propParser.parseProperty(stringProp, env, "\"\"").get());
-			Assert.assertEquals("A string\u00b0\t8 4", propParser.parseProperty(stringProp, env, "\"A string\\u00b0\\t8 4\"").get());
-			Assert.assertEquals(Character.valueOf('"'), propParser.parseProperty(charProp, env, "'\"'").get());
-			Assert.assertEquals(Character.valueOf('\u00b0'), propParser.parseProperty(charProp, env, "'\\u00b0'").get());
+			Assert.assertEquals("\"\"", propParser.parseProperty(stringProp, env, "\"\"").get());
+			Assert.assertEquals("", propParser.parseProperty(stringProp, env, "${\"\"}").get());
+			Assert.assertEquals("A string\u00b0\t8 4", propParser.parseProperty(stringProp, env, "${\"A string\\u00b0\\t8 4\"}").get());
+			Assert.assertEquals(Character.valueOf('"'), propParser.parseProperty(charProp, env, "${'\"'}").get());
+			Assert.assertEquals(Character.valueOf('\u00b0'), propParser.parseProperty(charProp, env, "${'\\u00b0'}").get());
 			Assert.assertEquals(2.0, //
 				propParser.parseProperty(doubleProp, env, "2")//
 					.get().doubleValue(),

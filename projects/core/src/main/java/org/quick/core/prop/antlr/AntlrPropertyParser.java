@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.observe.ObservableAction;
@@ -51,7 +50,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			walker.walk(compiler, parser.expression());
 			return compiler.getExpression();
 		} catch (RecognitionException e) {
-			throw new QuickParseException("Recognition exception is never thrown, only declared.");
+			throw new QuickParseException("Parsing failed for " + expression, e);
 		} catch (IllegalStateException e) {
 			throw new QuickParseException("Parsing failed for " + expression, e);
 		}
@@ -90,13 +89,16 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			System.out.println(parser.compile("c=10").print());
 			System.out.println(parser.compile("c+=10").print());
 			System.out.println(parser.compile("a.b.c+=10").print());
+
+			System.out.println(parser.compile("10px"));
+			System.out.println(parser.compile("10%"));
 		} catch (QuickParseException e) {
 			e.printStackTrace();
 		}
 	}
 
 	private static class QPPCompiler extends QPPBaseListener {
-		private final Map<ParseTree, QPPExpression<?>> theDanglingExpressions;
+		private final Map<ParserRuleContext, QPPExpression<?>> theDanglingExpressions;
 
 		public QPPCompiler() {
 			theDanglingExpressions = new HashMap<>();
@@ -112,15 +114,23 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			push(expression, expression.getContext());
 		}
 
-		private void push(QPPExpression<?> expression, ParseTree ctx) {
+		private void push(QPPExpression<?> expression, ParserRuleContext ctx) {
+			if (ctx == null)
+				throw new NullPointerException();
+			if (ctx.exception != null)
+				throw ctx.exception;
 			theDanglingExpressions.put(ctx, expression);
 		}
 
-		private void ascend(ParseTree inner, ParseTree outer) {
+		private void ascend(ParserRuleContext inner, ParserRuleContext outer) {
+			if (outer.exception != null)
+				throw outer.exception;
 			push(pop(inner), outer);
 		}
 
-		private QPPExpression<?> pop(ParseTree ctx) {
+		private QPPExpression<?> pop(ParserRuleContext ctx) {
+			if (ctx == null)
+				throw new NullPointerException();
 			QPPExpression<?> exp = theDanglingExpressions.remove(ctx);
 			if (exp == null)
 				throw new IllegalStateException(
@@ -132,7 +142,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void visitErrorNode(ErrorNode arg0) {
-			push(new ExpressionTypes.ParseError(arg0));
+			throw new IllegalStateException("Unexpected token ( " + arg0.getSymbol().getText() + ", type "
+				+ QPPParser.tokenNames[arg0.getSymbol().getType()] + " ) at position " + arg0.getSymbol().getStartIndex());
 		}
 
 		@Override
@@ -164,9 +175,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				push(new ExpressionTypes.StringLiteral(ctx));
 				break;
 			default:
-				push(new ExpressionTypes.InterpreterError(ctx,
-					"Unrecognized literal type: " + QPPParser.tokenNames[ctx.start.getType()] + " (" + ctx.start.getType() + ")"));
-				break;
+				throw new IllegalStateException("Unrecognized literal type: " + QPPParser.tokenNames[ctx.start.getType()] + " ("
+					+ ctx.start.getType() + ") at position " + ctx.start.getStartIndex());
 			}
 		}
 
@@ -267,12 +277,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitMethodReference_lfno_primary(MethodReference_lfno_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitMethodReference_lfno_primary(ctx);
-		}
-
-		@Override
 		public void exitCastExpression(CastExpressionContext ctx) {
 			// TODO Auto-generated method stub
 			super.exitCastExpression(ctx);
@@ -294,7 +298,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(EqualityExpressionContext ctx) {
-			return "== or !=";
+			return ((TerminalNode) ctx.getChild(1)).getText();
 		}
 
 		@Override
@@ -309,8 +313,16 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(RelationalExpressionContext ctx) {
-			return "relation";
+			return ((TerminalNode) ctx.getChild(1)).getText();
 		}
+
+		// @Override
+		// public void exitUnitValueExpression(UnitValueExpressionContext ctx) {
+		// if (ctx.unitValueExpression() != null)
+		// push(new ExpressionTypes.UnitValue(ctx, pop(ctx.unitValueExpression()), ctx.unitName().getText()));
+		// else
+		// ascend(ctx.unaryExpression(), ctx);
+		// }
 
 		@Override
 		public void exitConditionalOrExpression(ConditionalOrExpressionContext ctx) {
@@ -373,7 +385,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(ShiftExpressionContext ctx) {
-			return "shift";
+			return ((TerminalNode) ctx.getChild(1)).getText();
 		}
 
 		@Override
@@ -386,7 +398,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(AdditiveExpressionContext ctx) {
-			return "additive";
+			return ((TerminalNode) ctx.getChild(1)).getText();
 		}
 
 		@Override
@@ -399,7 +411,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(MultiplicativeExpressionContext ctx) {
-			return "multiplicative";
+			return ((TerminalNode) ctx.getChild(1)).getText();
 		}
 
 		@Override
@@ -415,7 +427,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(UnaryExpressionContext ctx) {
-			return "plus/minus";
+			return ((TerminalNode) ctx.getChild(0)).getText();
 		}
 
 		@Override
@@ -429,17 +441,22 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(UnaryExpressionNotPlusMinusContext ctx) {
-			return "~ or !";
+			return "~ or !"; // TODO
 		}
 
 		@Override
 		public void exitPostfixExpression(PostfixExpressionContext ctx) {
-			if (ctx.primary() != null)
-				ascend(ctx.primary(), ctx);
-			else if (ctx.expressionName() != null)
-				ascend(ctx.expressionName(), ctx);
+			QPPExpression<?> operand;
+			if(ctx.primary()!=null)
+				operand = pop(ctx.primary());
 			else
-				super.exitPostfixExpression(ctx); // TODO Partial implementation
+				operand = pop(ctx.expressionName());
+			QPPExpression<?> result = operand;
+			int inc = 0, dec = 0, u = 0;
+			for (int i = 1; i < ctx.getChildCount(); i++) {
+				// TODO Apply successive post increments, post decrements, and unit names
+			}
+			push(result, ctx);
 		}
 
 		@Override
@@ -490,11 +507,56 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
+		public void exitPrimaryNoNewArray(PrimaryNoNewArrayContext ctx) {
+			if (ctx.literal() != null)
+				ascend(ctx.literal(), ctx);
+			else if (ctx.placeholder() != null)
+				ascend(ctx.placeholder(), ctx);
+			// typeName ('[' ']')* '.' 'class'
+			// 'void' '.' 'class'
+			// 'this'
+			// typeName '.' 'this'
+			else if (ctx.expression() != null)
+				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
+			else if (ctx.classInstanceCreationExpression() != null)
+				ascend(ctx.classInstanceCreationExpression(), ctx);
+			else if (ctx.fieldAccess() != null)
+				ascend(ctx.fieldAccess(), ctx);
+			else if (ctx.arrayAccess() != null)
+				ascend(ctx.arrayAccess(), ctx);
+			else if (ctx.methodInvocation() != null)
+				ascend(ctx.methodInvocation(), ctx);
+			else
+				super.exitPrimaryNoNewArray(ctx); // TODO Partial implementation
+		}
+
+		@Override
+		public void exitPrimaryNoNewArray_lf_primary(PrimaryNoNewArray_lf_primaryContext ctx) {
+			if (ctx.classInstanceCreationExpression_lf_primary() != null)
+				ascend(ctx.classInstanceCreationExpression_lf_primary(), ctx);
+			else if (ctx.fieldAccess_lf_primary() != null)
+				ascend(ctx.fieldAccess_lf_primary(), ctx);
+			else if (ctx.arrayAccess_lf_primary() != null)
+				ascend(ctx.arrayAccess_lf_primary(), ctx);
+			else if (ctx.methodInvocation_lf_primary() != null)
+				ascend(ctx.methodInvocation_lf_primary(), ctx);
+			else
+				super.exitPrimaryNoNewArray_lf_primary(ctx);
+		}
+
+		@Override
 		public void exitPrimaryNoNewArray_lfno_primary(PrimaryNoNewArray_lfno_primaryContext ctx) {
 			if (ctx.literal() != null)
 				ascend(ctx.literal(), ctx);
+			else if (ctx.placeholder() != null)
+				ascend(ctx.placeholder(), ctx);
+			// typeName ('[' ']')* '.' 'class'
+			// unannPrimitiveType ('[' ']')* '.' 'class'
+			// 'void' '.' 'class'
+			// 'this'
+			// typeName '.' 'this'
 			else if (ctx.expression() != null)
-				ascend(ctx.expression(), ctx);
+				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
 			else if (ctx.classInstanceCreationExpression_lfno_primary() != null)
 				ascend(ctx.classInstanceCreationExpression_lfno_primary(), ctx);
 			else if (ctx.fieldAccess_lfno_primary() != null)
@@ -503,62 +565,87 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.arrayAccess_lfno_primary(), ctx);
 			else if (ctx.methodInvocation_lfno_primary() != null)
 				ascend(ctx.methodInvocation_lfno_primary(), ctx);
-			else if (ctx.methodReference_lfno_primary() != null)
-				ascend(ctx.methodReference_lfno_primary(), ctx);
 			else
 				super.exitPrimaryNoNewArray_lfno_primary(ctx); // TODO Partial implementation
 		}
 
 		@Override
-		public void exitPrimaryNoNewArray_lf_primary(PrimaryNoNewArray_lf_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray_lf_primary(ctx);
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(
-			PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(ctx);
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray(PrimaryNoNewArrayContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray(ctx);
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(
-			PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(ctx);
+		public void exitPrimaryNoNewArray_lf_arrayAccess(PrimaryNoNewArray_lf_arrayAccessContext ctx) {
+			// TODO What do I do here? No contents
+			super.exitPrimaryNoNewArray_lf_arrayAccess(ctx);
 		}
 
 		@Override
 		public void exitPrimaryNoNewArray_lfno_arrayAccess(PrimaryNoNewArray_lfno_arrayAccessContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray_lfno_arrayAccess(ctx);
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(
-			PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(ctx);
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lf_arrayAccess(PrimaryNoNewArray_lf_arrayAccessContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimaryNoNewArray_lf_arrayAccess(ctx);
+			if (ctx.literal() != null)
+				ascend(ctx.literal(), ctx);
+			else if (ctx.placeholder() != null)
+				ascend(ctx.placeholder(), ctx);
+			// typeName ('[' ']')* '.' 'class'
+			// 'void' '.' 'class'
+			// 'this'
+			// typeName '.' 'this'
+			else if (ctx.expression() != null)
+				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
+			else if (ctx.classInstanceCreationExpression() != null)
+				ascend(ctx.classInstanceCreationExpression(), ctx);
+			else if (ctx.fieldAccess() != null)
+				ascend(ctx.fieldAccess(), ctx);
+			else if (ctx.methodInvocation() != null)
+				ascend(ctx.methodInvocation(), ctx);
+			else
+				super.exitPrimaryNoNewArray_lfno_arrayAccess(ctx); // TODO Partial implementation
 		}
 
 		@Override
 		public void exitPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(
 			PrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primaryContext ctx) {
-			// TODO Auto-generated method stub
+			// TODO What do I do here? No contents
 			super.exitPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(ctx);
+		}
+
+		@Override
+		public void exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(
+			PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) {
+			if (ctx.classInstanceCreationExpression_lf_primary() != null)
+				ascend(ctx.classInstanceCreationExpression_lf_primary(), ctx);
+			else if (ctx.fieldAccess_lf_primary() != null)
+				ascend(ctx.fieldAccess_lf_primary(), ctx);
+			else if (ctx.methodInvocation_lf_primary() != null)
+				ascend(ctx.methodInvocation_lf_primary(), ctx);
+			else
+				super.exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(ctx); // TODO Partial implementation
+		}
+
+		@Override
+		public void exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(
+			PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) {
+			// TODO What do I do here? No contents
+			super.exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(ctx);
+		}
+
+		@Override
+		public void exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(
+			PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) {
+			if (ctx.literal() != null)
+				ascend(ctx.literal(), ctx);
+			else if (ctx.placeholder() != null)
+				ascend(ctx.placeholder(), ctx);
+			// typeName ('[' ']')* '.' 'class'
+			// unannPrimitiveType ('[' ']')* '.' 'class'
+			// 'void' '.' 'class'
+			// 'this'
+			// typeName '.' 'this'
+			else if (ctx.expression() != null)
+				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
+			else if (ctx.classInstanceCreationExpression_lfno_primary() != null)
+				ascend(ctx.classInstanceCreationExpression_lfno_primary(), ctx);
+			else if (ctx.fieldAccess_lfno_primary() != null)
+				ascend(ctx.fieldAccess_lfno_primary(), ctx);
+			else if (ctx.methodInvocation_lfno_primary() != null)
+				ascend(ctx.methodInvocation_lfno_primary(), ctx);
+			else
+				super.exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(ctx); // TODO Partial implementation
 		}
 
 		@Override
@@ -652,12 +739,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitMethodReference_lf_primary(MethodReference_lf_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitMethodReference_lf_primary(ctx);
-		}
-
-		@Override
 		public void exitPackageName(PackageNameContext ctx) {
 			// TODO Auto-generated method stub
 			super.exitPackageName(ctx);
@@ -712,7 +793,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			Function<C, TerminalNode> identifier, Function<C, TypeNameContext> typeName, Function<C, ExpressionNameContext> expressionName,
 			Function<C, PrimaryContext> primary, boolean isSuper) {
 			ExpressionTypes.MethodInvocation exp;
-			List<QPPExpression<?>> args = argumentList.apply(ctx).expression().stream().map(x -> pop(x)).collect(Collectors.toList());
+			List<QPPExpression<?>> args = parseArguments(argumentList.apply(ctx));
 			List<ExpressionTypes.Type<?>> typeArgs = typeArguments == null ? null : parseTypeArguments(typeArguments.apply(ctx));
 			if (methodName != null && methodName.apply(ctx) != null) {
 				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, methodName.apply(ctx).getText(), typeArgs, args);
@@ -799,12 +880,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitMethodReference(MethodReferenceContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitMethodReference(ctx);
-		}
-
-		@Override
 		public void exitNumericType(NumericTypeContext ctx) {
 			// TODO Auto-generated method stub
 			super.exitNumericType(ctx);
@@ -814,6 +889,11 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		public void exitTypeArgumentsOrDiamond(TypeArgumentsOrDiamondContext ctx) {
 			// TODO Auto-generated method stub
 			super.exitTypeArgumentsOrDiamond(ctx);
+		}
+
+		@Override
+		public void exitPlaceholder(PlaceholderContext ctx) {
+			push(new ExpressionTypes.Placeholder(ctx, ctx.IntegerLiteral().getText()));
 		}
 	}
 }

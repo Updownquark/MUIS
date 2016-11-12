@@ -31,21 +31,21 @@ public class BackgroundStyle implements StyleDomain {
 		/** The text cursor */
 		text("text", Cursor.TEXT_CURSOR),
 		/** The north-resize cursor */
-		northResize("n-resize", Cursor.N_RESIZE_CURSOR),
+		northResize("nResize", Cursor.N_RESIZE_CURSOR),
 		/** The east-resize cursor */
-		eastResize("e-resize", Cursor.E_RESIZE_CURSOR),
+		eastResize("eResize", Cursor.E_RESIZE_CURSOR),
 		/** The south-resize cursor */
-		southResize("s-resize", Cursor.S_RESIZE_CURSOR),
+		southResize("sResize", Cursor.S_RESIZE_CURSOR),
 		/** The west-resize cursor */
-		westResize("w-resize", Cursor.W_RESIZE_CURSOR),
+		westResize("wResize", Cursor.W_RESIZE_CURSOR),
 		/** The north-east-resize cursor */
-		northEastResize("ne-resize", Cursor.NE_RESIZE_CURSOR),
+		northEastResize("neResize", Cursor.NE_RESIZE_CURSOR),
 		/** The south-east-resize cursor */
-		southEastResize("se-resize", Cursor.SE_RESIZE_CURSOR),
+		southEastResize("seResize", Cursor.SE_RESIZE_CURSOR),
 		/** The south-west-resize cursor */
-		southWestResize("sw-resize", Cursor.SW_RESIZE_CURSOR),
+		southWestResize("swResize", Cursor.SW_RESIZE_CURSOR),
 		/** The north-west-resize cursor */
-		northWestResize("nw-resize", Cursor.NW_RESIZE_CURSOR);
+		northWestResize("nwResize", Cursor.NW_RESIZE_CURSOR);
 
 		/** The value to display for this cursor and the value to parse to this cursor */
 		public final String display;

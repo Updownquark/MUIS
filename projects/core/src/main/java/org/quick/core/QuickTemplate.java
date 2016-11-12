@@ -1459,7 +1459,7 @@ public abstract class QuickTemplate extends QuickElement {
 				if (ap.required)
 					throw new UnsupportedOperationException("Template has required attach points--can't be cleared");
 				if (!ap.mutable) {
-					if ((ap.multiple && !getContainer(ap).getContent().isEmpty()) || (!ap.multiple && getElement(ap) != null))
+					if ((ap.multiple && !getContainer(ap).getContent().isEmpty()) || (!ap.multiple && getElement(ap).get() != null))
 						throw new UnsupportedOperationException("Template has non-empty, immutable attach points--can't be cleared");
 				}
 			}

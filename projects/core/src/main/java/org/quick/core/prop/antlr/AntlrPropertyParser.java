@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.observe.ObservableAction;
@@ -316,14 +317,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			return ((TerminalNode) ctx.getChild(1)).getText();
 		}
 
-		// @Override
-		// public void exitUnitValueExpression(UnitValueExpressionContext ctx) {
-		// if (ctx.unitValueExpression() != null)
-		// push(new ExpressionTypes.UnitValue(ctx, pop(ctx.unitValueExpression()), ctx.unitName().getText()));
-		// else
-		// ascend(ctx.unaryExpression(), ctx);
-		// }
-
 		@Override
 		public void exitConditionalOrExpression(ConditionalOrExpressionContext ctx) {
 			if (ctx.conditionalOrExpression() != null)
@@ -441,7 +434,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		private String getOperator(UnaryExpressionNotPlusMinusContext ctx) {
-			return "~ or !"; // TODO
+			return ctx.getChild(0).getText();
 		}
 
 		@Override
@@ -454,7 +447,19 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			QPPExpression<?> result = operand;
 			int inc = 0, dec = 0, u = 0;
 			for (int i = 1; i < ctx.getChildCount(); i++) {
-				// TODO Apply successive post increments, post decrements, and unit names
+				ParseTree child = ctx.getChild(i);
+				if (inc < ctx.postIncrementExpression_lf_postfixExpression().size()
+					&& child == ctx.postIncrementExpression_lf_postfixExpression(inc)) {
+					result = new ExpressionTypes.UnaryOperation(ctx, child.getText(), false, result);
+					inc++;
+				} else if (dec < ctx.postDecrementExpression_lf_postfixExpression().size()
+					&& child == ctx.postDecrementExpression_lf_postfixExpression(dec)) {
+					result = new ExpressionTypes.UnaryOperation(ctx, child.getText(), false, result);
+					dec++;
+				} else if (u < ctx.unitName().size() && child == ctx.unitName(u)) {
+					result = new ExpressionTypes.UnitValue(ctx, result, child.getText());
+					u++;
+				}
 			}
 			push(result, ctx);
 		}

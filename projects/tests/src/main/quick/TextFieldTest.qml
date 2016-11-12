@@ -3,7 +3,7 @@
 <quick>
     <head>
         <title>Text Field Test</title>
-		<style-sheet ref="../styles/quick-tests.mss"></style-sheet>
+		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
 		<model name="text-field-model" builder="default-model">
 			<variable name="simpleString">&quot;&quot;</variable>
 			<variable name="simpleInt">0</variable>

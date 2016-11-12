@@ -66,7 +66,7 @@ public class Transform extends SimpleContainer {
 
 	/** @return This widget's contents block */
 	public Block getContents() {
-		return (Block) getElement(getTemplate().getAttachPoint("contents"));
+		return (Block) getElement(getTemplate().getAttachPoint("contents")).get();
 	}
 
 	@Override

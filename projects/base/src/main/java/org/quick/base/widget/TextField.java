@@ -105,10 +105,10 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					return ObservableValue.constant(disabled);
 				return ((SettableValue<?>) tuple.getValue1()).isEnabled();
 			}));
-			theEnabledController.link(enabled.mapV(e->e!=null));
+			theEnabledController.link(enabled.mapV(e -> e != null, true));
 			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
-				if(tuple.getValue1()==null && tuple.getValue2()!=null)
+				if (tuple.getValue1() == null && tuple.getValue2() == null)
 					configError = "No value";
 				else if (tuple.getValue2() == null) {
 					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
@@ -188,7 +188,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				.filter(evt -> (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
 					return c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this;
 				}) == null).act(evt -> isDocDirty = true);
-			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay"));
+			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
 			cursor.setTextElement(getValueElement());
 			cursor.setStyleAnchor(getStyle());
 
@@ -208,7 +208,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 
 	/** @return The text element containing the text that is the value of this text field */
 	protected org.quick.core.QuickTextElement getValueElement() {
-		return (org.quick.core.QuickTextElement) getElement(getTemplate().getAttachPoint("value"));
+		return (org.quick.core.QuickTextElement) getElement(getTemplate().getAttachPoint("value")).get();
 	}
 
 	/** @return The document model that is edited directly by the user */

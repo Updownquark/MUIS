@@ -20,7 +20,7 @@ public class BorderPane extends SimpleContainer {
 
 	/** @return The panel containing the contents of this border */
 	public Block getContentPane() {
-		return (Block) getElement(getTemplate().getAttachPoint("contents"));
+		return (Block) getElement(getTemplate().getAttachPoint("contents")).get();
 	}
 
 	@Override

@@ -97,10 +97,14 @@ public class PropertyTest {
 				propParser.parseProperty(BackgroundStyle.cornerRadius, env, "2px")//
 					.get());
 
+			Assert.assertEquals(new Size(2, LengthUnit.lexips), //
+				propParser.parseProperty(BackgroundStyle.cornerRadius, env, "2xp")//
+					.get());
+
 			try {
-				propParser.parseProperty(BackgroundStyle.cornerRadius, env, "2xp").get();
-				throw new IllegalStateException("Should have thrown an IllegalArgumentException");
-			} catch (IllegalArgumentException e) {
+				propParser.parseProperty(BackgroundStyle.cornerRadius, env, "\"\"").get();
+				throw new IllegalStateException("Should have thrown a QuickParseException");
+			} catch (QuickParseException e) {
 			}
 
 			// Parsing an invalid value is allowed; validation is done outside of parsing
@@ -111,7 +115,7 @@ public class PropertyTest {
 					.get());
 
 			Assert.assertEquals(Cursor.getPredefinedCursor(BackgroundStyle.PreDefinedCursor.northResize.type), //
-				propParser.parseProperty(BackgroundStyle.cursor, env, "n-resize")//
+				propParser.parseProperty(BackgroundStyle.cursor, env, "nResize")//
 					.get());
 
 			Assert.assertEquals(BaseTexture.class, //
@@ -237,10 +241,16 @@ public class PropertyTest {
 		TypeToken<Double> dType = TypeToken.of(Double.class);
 		SimpleSettableValue<Double> var1 = new SimpleSettableValue<>(dType, false);
 		var1.set(1d, null);
+		SimpleSettableValue<Double> var2 = new SimpleSettableValue<>(dType, false);
+		var2.set(5d, null);
 		ObservableAction<Double> incVar1 = var1.assignmentTo(var1.mapV(v -> v + 1));
+		DefaultQuickModel nested = DefaultQuickModel.build()//
+			.with("var2", var2)//
+			.build();
 		DefaultQuickModel model = DefaultQuickModel.build()//
 			.with("var1", var1)//
 			.with("incVar1", incVar1)//
+			.with("nested", nested)//
 			.build();
 
 		QuickParseEnv parseEnv = new SimpleParseEnv(env.cv(), env.msg(),
@@ -256,6 +266,10 @@ public class PropertyTest {
 			double post = var1.get();
 			Assert.assertEquals(pre + 1, post, 0.000000001);
 			Assert.assertEquals(post, acted, 0.000000001);
+
+			pre = var2.get();
+			Assert.assertEquals(pre, propParser.parseProperty(ModelAttributes.action, parseEnv, "model.nested.var2+=10").get());
+			Assert.assertEquals(pre + 10, var2.get(), 0.000000001);
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
 		}

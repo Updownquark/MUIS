@@ -4,9 +4,9 @@ import java.util.Objects;
 
 /** Represents a 1-dimensional size along an axis */
 public class Size implements Comparable<Size> {
-	private float theValue;
+	private final float theValue;
 
-	private LengthUnit theUnit;
+	private final LengthUnit theUnit;
 
 	/** Creates a Size (0px) */
 	public Size() {
@@ -22,8 +22,6 @@ public class Size implements Comparable<Size> {
 	 */
 	public Size(float value, LengthUnit unit) {
 		theValue = value;
-		if(!unit.isSize())
-			throw new IllegalArgumentException(unit + " is not a size unit");
 		theUnit = unit;
 	}
 
@@ -35,16 +33,6 @@ public class Size implements Comparable<Size> {
 	/** @return This length's unit */
 	public LengthUnit getUnit() {
 		return theUnit;
-	}
-
-	/** @param value The value for this size */
-	public void setValue(float value) {
-		theValue = value;
-	}
-
-	/** @param unit The unit for this size */
-	public void setUnit(LengthUnit unit) {
-		theUnit = unit;
 	}
 
 	/**

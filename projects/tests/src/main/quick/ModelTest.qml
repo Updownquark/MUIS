@@ -3,7 +3,7 @@
 <quick xmlns:test="../../../QuickRegistry.xml">
     <head>
         <title>Model Test</title>
-		<style-sheet ref="../styles/quick-tests.mss"></style-sheet>
+		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
         <model name="model" builder="default-builder">
         	<variable name="colorIndex">0</variable>
         	<model name="bg">

@@ -499,7 +499,7 @@ multiplicativeExpression
 	:	unaryExpression
 	|	multiplicativeExpression '*' unaryExpression
 	|	multiplicativeExpression '/' unaryExpression
-	|	multiplicativeExpression '%' unaryExpression
+	|	multiplicativeExpression UnitName unaryExpression
 	;
 
 unaryExpression
@@ -886,7 +886,7 @@ DIV : '/';
 BITAND : '&';
 BITOR : '|';
 CARET : '^';
-MOD : '%';
+//MOD : '%';
 ARROW : '->';
 COLONCOLON : '::';
 

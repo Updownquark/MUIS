@@ -43,7 +43,6 @@ public class LayoutAttributes {
 		.map(TypeToken.of(Double.class), d -> new Size(Math.round(d), LengthUnit.pixels), null)//
 		.buildContext(ctx -> {
 			ctx.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.pixels), null)//
-				// xp is not a size unit, but we'll let the Size constructor throw a more intelligible error
 				.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.lexips), null)//
 				.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.percent), null);
 		})//

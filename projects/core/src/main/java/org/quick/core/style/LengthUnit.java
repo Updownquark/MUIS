@@ -1,46 +1,33 @@
 package org.quick.core.style;
 
 /** An enumeration of the different length unit options available in Quick */
-public enum LengthUnit
-{
+public enum LengthUnit {
 	// TODO ??? inches, centimeters, ems, etc.
 
 	/** Represents a length in pixels */
-	pixels("px", false, true),
+	pixels("px", false),
 	/** Represents a length as a fraction of the total length available in the parent */
-	percent("%", true, true),
+	percent("%", true),
 	/** Represents a length in pixels away from the far edge of the container */
-	lexips("xp", true, false);
+	lexips("xp", true);
 
 	/** The attribute value that represents this length unit */
 	public final String attrValue;
 
 	private boolean isRelative;
 
-	private boolean isSize;
-
-	LengthUnit(String attrVal, boolean relative, boolean size)
-	{
+	LengthUnit(String attrVal, boolean relative) {
 		attrValue = attrVal;
 		isRelative = relative;
-		isSize = size;
 	}
 
 	/** @return Whether lengths of this unit are relative to another length */
-	public boolean isRelative()
-	{
+	public boolean isRelative() {
 		return isRelative;
 	}
 
-	/** @return Whether this length unit can be used in sizes or is just a positional unit */
-	public boolean isSize()
-	{
-		return isSize;
-	}
-
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return attrValue;
 	}
 }

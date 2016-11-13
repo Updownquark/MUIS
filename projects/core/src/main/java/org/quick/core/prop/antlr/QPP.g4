@@ -149,11 +149,6 @@ wildcardBounds
  * Productions from §6 (Names)
  */
 
-packageName
-	:	Identifier
-	|	packageName '.' Identifier
-	;
-
 typeName
 	:	Identifier
 	|	packageOrTypeName '.' Identifier
@@ -248,8 +243,7 @@ primaryNoNewArray_lfno_arrayAccess
 	;
 
 primaryNoNewArray_lf_primary
-	:	classInstanceCreationExpression_lf_primary
-	|	fieldAccess_lf_primary
+	:	fieldAccess_lf_primary
 	|	arrayAccess_lf_primary
 	|	methodInvocation_lf_primary
 	;
@@ -259,8 +253,7 @@ primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary
 	;
 
 primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary
-	:	classInstanceCreationExpression_lf_primary
-	|	fieldAccess_lf_primary
+	:	fieldAccess_lf_primary
 	|	methodInvocation_lf_primary
 	;
 
@@ -273,8 +266,7 @@ primaryNoNewArray_lfno_primary
 	|	'this'
 	|	typeName '.' 'this'
 	|	'(' expression ')'
-	|	classInstanceCreationExpression_lfno_primary
-	|	fieldAccess_lfno_primary
+	|	classInstanceCreationExpression
 	|	arrayAccess_lfno_primary
 	|	methodInvocation_lfno_primary
 	;
@@ -292,24 +284,12 @@ primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary
 	|	'this'
 	|	typeName '.' 'this'
 	|	'(' expression ')'
-	|	classInstanceCreationExpression_lfno_primary
-	|	fieldAccess_lfno_primary
+	|	classInstanceCreationExpression
 	|	methodInvocation_lfno_primary
 	;
 
 classInstanceCreationExpression
 	:	'new' typeArguments? Identifier ('.' Identifier)* typeArgumentsOrDiamond? '(' argumentList? ')'
-	|	expressionName '.' 'new' typeArguments? Identifier typeArgumentsOrDiamond? '(' argumentList? ')'
-	|	primary '.' 'new' typeArguments? Identifier typeArgumentsOrDiamond? '(' argumentList? ')'
-	;
-
-classInstanceCreationExpression_lf_primary
-	:	'.' 'new' typeArguments? Identifier typeArgumentsOrDiamond? '(' argumentList? ')'
-	;
-
-classInstanceCreationExpression_lfno_primary
-	:	'new' typeArguments? Identifier ('.' Identifier)* typeArgumentsOrDiamond? '(' argumentList? ')'
-	|	expressionName '.' 'new' typeArguments? Identifier typeArgumentsOrDiamond? '(' argumentList? ')'
 	;
 
 typeArgumentsOrDiamond
@@ -319,17 +299,10 @@ typeArgumentsOrDiamond
 
 fieldAccess
 	:	primary '.' Identifier
-	|	'super' '.' Identifier
-	|	typeName '.' 'super' '.' Identifier
 	;
 
 fieldAccess_lf_primary
 	:	'.' Identifier
-	;
-
-fieldAccess_lfno_primary
-	:	'super' '.' Identifier
-	|	typeName '.' 'super' '.' Identifier
 	;
 
 arrayAccess

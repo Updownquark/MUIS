@@ -10,6 +10,8 @@ import org.quick.core.prop.antlr.QPPParser.LiteralContext;
 import com.google.common.reflect.TypeToken;
 
 class ExpressionTypes {
+	private ExpressionTypes() {}
+
 	static class QualifiedName extends QPPExpression<ParserRuleContext> {
 		private final ExpressionTypes.QualifiedName theQualifier;
 		private final String theName;
@@ -100,28 +102,14 @@ class ExpressionTypes {
 	}
 
 	static class MethodInvocation extends MemberAccess {
-		private final boolean isSuper;
 		private final List<Type<?>> theTypeArguments;
 		private final List<QPPExpression<?>> theArguments;
 
 		public MethodInvocation(ParserRuleContext ctx, QPPExpression<?> methodCtx, String name,
 			List<Type<?>> typeArgs, List<QPPExpression<?>> args) {
 			super(ctx, methodCtx, name);
-			isSuper = false;
 			theTypeArguments = typeArgs;
 			theArguments = args;
-		}
-
-		protected MethodInvocation(ParserRuleContext ctx, QPPExpression<?> methodCtx, boolean isSuper, String name,
-			List<Type<?>> typeArgs, List<QPPExpression<?>> args) {
-			super(ctx, methodCtx, name);
-			this.isSuper = isSuper;
-			theTypeArguments = typeArgs;
-			theArguments = args;
-		}
-
-		public boolean isSuper() {
-			return isSuper;
 		}
 
 		public List<Type<?>> getTypeArguments() {

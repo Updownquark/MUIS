@@ -43,7 +43,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 			// parser generates abstract syntax tree
 			QPPParser parser = new QPPParser(tokens);
-			// QPPParser.expression_return ret = parser.expression();
 
 			// acquire parse result
 			ParseTreeWalker walker = new ParseTreeWalker();
@@ -228,9 +227,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			if (ctx.primary() != null)
 				push(
 					new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.primary()), ctx.Identifier().getText()));
-			else if (ctx.typeName() != null)
-				push(new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.typeName()),
-					"super." + ctx.Identifier().getText()));
 			else
 				push(new ExpressionTypes.QualifiedName(ctx, null, "super." + ctx.Identifier().getText()));
 		}
@@ -239,12 +235,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		public void exitFieldAccess_lf_primary(FieldAccess_lf_primaryContext ctx) {
 			// TODO Auto-generated method stub
 			super.exitFieldAccess_lf_primary(ctx);
-		}
-
-		@Override
-		public void exitFieldAccess_lfno_primary(FieldAccess_lfno_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitFieldAccess_lfno_primary(ctx);
 		}
 
 		@Override
@@ -329,8 +319,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitConditionalAndExpression(ConditionalAndExpressionContext ctx) {
 			if (ctx.conditionalAndExpression() != null)
-				push(new ExpressionTypes.BinaryOperation(ctx, "&&", pop(ctx.conditionalAndExpression()),
-					pop(ctx.inclusiveOrExpression())));
+				push(new ExpressionTypes.BinaryOperation(ctx, "&&", pop(ctx.conditionalAndExpression()), pop(ctx.inclusiveOrExpression())));
 			else
 				ascend(ctx.inclusiveOrExpression(), ctx);
 		}
@@ -371,8 +360,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitShiftExpression(ShiftExpressionContext ctx) {
 			if (ctx.shiftExpression() != null)
-				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.shiftExpression()),
-					pop(ctx.additiveExpression())));
+				push(new ExpressionTypes.BinaryOperation(ctx, getOperator(ctx), pop(ctx.shiftExpression()), pop(ctx.additiveExpression())));
 			else
 				ascend(ctx.additiveExpression(), ctx);
 		}
@@ -440,7 +428,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitPostfixExpression(PostfixExpressionContext ctx) {
 			QPPExpression<?> operand;
-			if(ctx.primary()!=null)
+			if (ctx.primary() != null)
 				operand = pop(ctx.primary());
 			else
 				operand = pop(ctx.expressionName());
@@ -505,10 +493,46 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				init = pop(ctx.primaryNoNewArray_lfno_primary());
 			else
 				init = pop(ctx.arrayCreationExpression());
+			for (PrimaryNoNewArray_lf_primaryContext mod : ctx.primaryNoNewArray_lf_primary()) {
+				init = modify(init, mod);
+			}
 			if (ctx.primaryNoNewArray_lf_primary().isEmpty())
 				push(init, ctx);
 			else
 				super.exitPrimary(ctx); // TODO Partial implementation
+		}
+
+		private QPPExpression<?> modify(QPPExpression<?> init, PrimaryNoNewArray_lf_primaryContext mod) {
+			if (mod.fieldAccess_lf_primary() != null)
+				return new ExpressionTypes.FieldAccess(mod, init, mod.fieldAccess_lf_primary().Identifier().getText());
+			else if (mod.arrayAccess_lf_primary() != null)
+				return modify(init, mod.arrayAccess_lf_primary());
+			else if (mod.methodInvocation_lf_primary() != null)
+				return new ExpressionTypes.MethodInvocation(mod, init, mod.methodInvocation_lf_primary().Identifier().getText(),
+					parseTypeArguments(mod.methodInvocation_lf_primary().typeArguments()),
+					parseArguments(mod.methodInvocation_lf_primary().argumentList()));
+			else
+				throw new IllegalStateException("Unrecognized type of " + mod.getClass().getSimpleName() + " modifier");
+		}
+
+		private QPPExpression<?> modify(QPPExpression<?> init, ArrayAccess_lf_primaryContext mod) {
+			init = modify(init, mod.primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary());
+			init = new ExpressionTypes.ArrayAccess(mod, init, pop(mod.expression(0)));
+			for (int i = 1; i < mod.expression().size(); i++)
+				init = new ExpressionTypes.ArrayAccess(mod.primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(i - 1), init,
+					pop(mod.expression(i)));
+			return init;
+		}
+
+		private QPPExpression<?> modify(QPPExpression<?> init, PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext mod) {
+			if (mod.fieldAccess_lf_primary() != null)
+				return new ExpressionTypes.FieldAccess(mod, init, mod.fieldAccess_lf_primary().Identifier().getText());
+			else if (mod.methodInvocation_lf_primary() != null)
+				return new ExpressionTypes.MethodInvocation(mod, init, mod.methodInvocation_lf_primary().Identifier().getText(),
+					parseTypeArguments(mod.methodInvocation_lf_primary().typeArguments()),
+					parseArguments(mod.methodInvocation_lf_primary().argumentList()));
+			else
+				throw new IllegalStateException("Unrecognized type of " + mod.getClass().getSimpleName() + " modifier");
 		}
 
 		@Override
@@ -536,20 +560,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitPrimaryNoNewArray_lf_primary(PrimaryNoNewArray_lf_primaryContext ctx) {
-			if (ctx.classInstanceCreationExpression_lf_primary() != null)
-				ascend(ctx.classInstanceCreationExpression_lf_primary(), ctx);
-			else if (ctx.fieldAccess_lf_primary() != null)
-				ascend(ctx.fieldAccess_lf_primary(), ctx);
-			else if (ctx.arrayAccess_lf_primary() != null)
-				ascend(ctx.arrayAccess_lf_primary(), ctx);
-			else if (ctx.methodInvocation_lf_primary() != null)
-				ascend(ctx.methodInvocation_lf_primary(), ctx);
-			else
-				super.exitPrimaryNoNewArray_lf_primary(ctx);
-		}
-
-		@Override
 		public void exitPrimaryNoNewArray_lfno_primary(PrimaryNoNewArray_lfno_primaryContext ctx) {
 			if (ctx.literal() != null)
 				ascend(ctx.literal(), ctx);
@@ -562,22 +572,12 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			// typeName '.' 'this'
 			else if (ctx.expression() != null)
 				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
-			else if (ctx.classInstanceCreationExpression_lfno_primary() != null)
-				ascend(ctx.classInstanceCreationExpression_lfno_primary(), ctx);
-			else if (ctx.fieldAccess_lfno_primary() != null)
-				ascend(ctx.fieldAccess_lfno_primary(), ctx);
 			else if (ctx.arrayAccess_lfno_primary() != null)
 				ascend(ctx.arrayAccess_lfno_primary(), ctx);
 			else if (ctx.methodInvocation_lfno_primary() != null)
 				ascend(ctx.methodInvocation_lfno_primary(), ctx);
 			else
 				super.exitPrimaryNoNewArray_lfno_primary(ctx); // TODO Partial implementation
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lf_arrayAccess(PrimaryNoNewArray_lf_arrayAccessContext ctx) {
-			// TODO What do I do here? No contents
-			super.exitPrimaryNoNewArray_lf_arrayAccess(ctx);
 		}
 
 		@Override
@@ -603,33 +603,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(
-			PrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primaryContext ctx) {
-			// TODO What do I do here? No contents
-			super.exitPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(ctx);
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(
-			PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) {
-			if (ctx.classInstanceCreationExpression_lf_primary() != null)
-				ascend(ctx.classInstanceCreationExpression_lf_primary(), ctx);
-			else if (ctx.fieldAccess_lf_primary() != null)
-				ascend(ctx.fieldAccess_lf_primary(), ctx);
-			else if (ctx.methodInvocation_lf_primary() != null)
-				ascend(ctx.methodInvocation_lf_primary(), ctx);
-			else
-				super.exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(ctx); // TODO Partial implementation
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(
-			PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) {
-			// TODO What do I do here? No contents
-			super.exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(ctx);
-		}
-
-		@Override
 		public void exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(
 			PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) {
 			if (ctx.literal() != null)
@@ -643,10 +616,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			// typeName '.' 'this'
 			else if (ctx.expression() != null)
 				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
-			else if (ctx.classInstanceCreationExpression_lfno_primary() != null)
-				ascend(ctx.classInstanceCreationExpression_lfno_primary(), ctx);
-			else if (ctx.fieldAccess_lfno_primary() != null)
-				ascend(ctx.fieldAccess_lfno_primary(), ctx);
 			else if (ctx.methodInvocation_lfno_primary() != null)
 				ascend(ctx.methodInvocation_lfno_primary(), ctx);
 			else
@@ -654,39 +623,9 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitClassInstanceCreationExpression_lfno_primary(ClassInstanceCreationExpression_lfno_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitClassInstanceCreationExpression_lfno_primary(ctx);
-		}
-
-		@Override
 		public void exitArrayInitializer(ArrayInitializerContext ctx) {
 			// TODO Auto-generated method stub
 			super.exitArrayInitializer(ctx);
-		}
-
-		@Override
-		public void exitDimExprs(DimExprsContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitDimExprs(ctx);
-		}
-
-		@Override
-		public void exitFloatingPointType(FloatingPointTypeContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitFloatingPointType(ctx);
-		}
-
-		@Override
-		public void exitDimExpr(DimExprContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitDimExpr(ctx);
-		}
-
-		@Override
-		public void exitIntegralType(IntegralTypeContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitIntegralType(ctx);
 		}
 
 		@Override
@@ -744,15 +683,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
-		public void exitPackageName(PackageNameContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPackageName(ctx);
-		}
-
-		@Override
 		public void exitPrimitiveType(PrimitiveTypeContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPrimitiveType(ctx);
+			push(new ExpressionTypes.QualifiedName(ctx, null, ctx.getText()));
 		}
 
 		@Override
@@ -768,53 +700,73 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitConstantExpression(ConstantExpressionContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitConstantExpression(ctx);
+			ascend(ctx.expression(), ctx);
 		}
 
 		@Override
 		public void exitMethodInvocation(MethodInvocationContext ctx) {
-			// TODO how to recognize type.super.method()?
-			methodFor(ctx, c -> c.argumentList(), c -> c.typeArguments(), c -> c.methodName(), c -> c.Identifier(), c -> c.typeName(),
-				c -> c.expressionName(), c -> c.primary(), false);
+			push(methodFor(ctx, c -> c.argumentList(), c -> c.typeArguments(), c -> c.methodName(), c -> c.Identifier(), c -> c.typeName(),
+				c -> c.expressionName(), c -> c.primary()));
 		}
 
 		@Override
 		public void exitMethodInvocation_lf_primary(MethodInvocation_lf_primaryContext ctx) {
 			// TODO how to recognize type.super.method()?
-			methodFor(ctx, c -> c.argumentList(), c -> c.typeArguments(), null, c -> c.Identifier(), null, null, null, false);
+			push(methodFor(ctx, c -> c.argumentList(), c -> c.typeArguments(), null, c -> c.Identifier(), null, null, null));
 		}
 
 		@Override
 		public void exitMethodInvocation_lfno_primary(MethodInvocation_lfno_primaryContext ctx) {
 			// TODO how to recognize type.super.method()?
-			methodFor(ctx, //
+			push(methodFor(ctx, //
 				c -> c.argumentList(), c -> c.typeArguments(), c -> c.methodName(), c -> c.Identifier(), c -> c.typeName(),
-				c -> c.expressionName(), null, false);
+				c -> c.expressionName(), null));
 		}
 
-		private <C extends ParserRuleContext> void methodFor(C ctx, Function<C, ArgumentListContext> argumentList,
-			Function<C, TypeArgumentsContext> typeArguments, Function<C, MethodNameContext> methodName,
-			Function<C, TerminalNode> identifier, Function<C, TypeNameContext> typeName, Function<C, ExpressionNameContext> expressionName,
-			Function<C, PrimaryContext> primary, boolean isSuper) {
+		private <C extends ParserRuleContext> ExpressionTypes.MethodInvocation methodFor(C ctx,
+			Function<C, ArgumentListContext> argumentList, Function<C, TypeArgumentsContext> typeArguments,
+			Function<C, MethodNameContext> methodName, Function<C, TerminalNode> identifier, Function<C, TypeNameContext> typeName,
+			Function<C, ExpressionNameContext> expressionName, Function<C, PrimaryContext> primary) {
 			ExpressionTypes.MethodInvocation exp;
 			List<QPPExpression<?>> args = parseArguments(argumentList.apply(ctx));
 			List<ExpressionTypes.Type<?>> typeArgs = typeArguments == null ? null : parseTypeArguments(typeArguments.apply(ctx));
 			if (methodName != null && methodName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, methodName.apply(ctx).getText(), typeArgs, args);
+				exp = new ExpressionTypes.MethodInvocation(ctx, null, methodName.apply(ctx).getText(), typeArgs, args);
 			} else if (typeName != null && typeName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, pop(typeName.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
-					typeArgs, args);
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(typeName.apply(ctx)), identifier.apply(ctx).getText(), typeArgs, args);
 			} else if (expressionName != null && expressionName.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, pop(expressionName.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(expressionName.apply(ctx)), identifier.apply(ctx).getText(), typeArgs,
+					args);
+			} else if (primary != null && primary.apply(ctx) != null) {
+				exp = new ExpressionTypes.MethodInvocation(ctx, pop(primary.apply(ctx)), identifier.apply(ctx).getText(), typeArgs, args);
+			} else {
+				exp = new ExpressionTypes.MethodInvocation(ctx, null, identifier.apply(ctx).getText(), typeArgs, args);
+			}
+			return exp;
+		}
+
+		private <C extends ParserRuleContext> ExpressionTypes.Constructor constructorFor(C ctx,
+			Function<C, ArgumentListContext> argumentList, Function<C, TypeArgumentsContext> typeArguments,
+			Function<C, MethodNameContext> methodName, Function<C, TerminalNode> identifier, Function<C, TypeNameContext> typeName,
+			Function<C, ExpressionNameContext> expressionName, Function<C, PrimaryContext> primary, boolean isSuper) {
+			ExpressionTypes.Constructor exp;
+			List<QPPExpression<?>> args = parseArguments(argumentList.apply(ctx));
+			List<ExpressionTypes.Type<?>> typeArgs = typeArguments == null ? null : parseTypeArguments(typeArguments.apply(ctx));
+			if (methodName != null && methodName.apply(ctx) != null) {
+				exp = new ExpressionTypes.Constructor(ctx, null, isSuper, methodName.apply(ctx).getText(), typeArgs, args);
+			} else if (typeName != null && typeName.apply(ctx) != null) {
+				exp = new ExpressionTypes.Constructor(ctx, pop(typeName.apply(ctx)), isSuper, identifier.apply(ctx).getText(), typeArgs,
+					args);
+			} else if (expressionName != null && expressionName.apply(ctx) != null) {
+				exp = new ExpressionTypes.Constructor(ctx, pop(expressionName.apply(ctx)), isSuper, identifier.apply(ctx).getText(),
 					typeArgs, args);
 			} else if (primary != null && primary.apply(ctx) != null) {
-				exp = new ExpressionTypes.MethodInvocation(ctx, pop(primary.apply(ctx)), isSuper, identifier.apply(ctx).getText(), typeArgs,
+				exp = new ExpressionTypes.Constructor(ctx, pop(primary.apply(ctx)), isSuper, identifier.apply(ctx).getText(), typeArgs,
 					args);
 			} else {
-				exp = new ExpressionTypes.MethodInvocation(ctx, null, isSuper, identifier.apply(ctx).getText(), typeArgs, args);
+				exp = new ExpressionTypes.Constructor(ctx, null, isSuper, identifier.apply(ctx).getText(), typeArgs, args);
 			}
-			push(exp);
+			return exp;
 		}
 
 		List<QPPExpression<?>> parseArguments(ArgumentListContext argumentList) {
@@ -868,26 +820,28 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitArrayType(ArrayTypeContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitArrayType(ctx);
-		}
-
-		@Override
-		public void exitMethodName(MethodNameContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitMethodName(ctx);
-		}
-
-		@Override
-		public void exitClassInstanceCreationExpression_lf_primary(ClassInstanceCreationExpression_lf_primaryContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitClassInstanceCreationExpression_lf_primary(ctx);
+			int dim=0;
+			for(int i=0;i<ctx.dims().getChildCount();i++)
+				if(ctx.dims().getChild(i).getText().equals("["))
+					dim++;
+			QPPExpression<?> type;
+			if(ctx.primitiveType()!=null)
+				type=pop(ctx.primitiveType());
+			else if(ctx.classType()!=null)
+				type=pop(ctx.classType());
+			else
+				throw new IllegalStateException();
+			push(new ExpressionTypes.ArrayType(ctx, type, dim);
 		}
 
 		@Override
 		public void exitNumericType(NumericTypeContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitNumericType(ctx);
+			if (ctx.integralType() != null)
+				ascend(ctx.integralType(), ctx);
+			else if (ctx.floatingPointType() != null)
+				ascend(ctx.floatingPointType(), ctx);
+			else
+				throw new IllegalStateException();
 		}
 
 		@Override

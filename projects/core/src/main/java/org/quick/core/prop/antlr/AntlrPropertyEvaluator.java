@@ -81,7 +81,7 @@ public class AntlrPropertyEvaluator {
 				ExpressionTypes.BinaryOperation binOp = (ExpressionTypes.BinaryOperation) op;
 				if (binOp.getName().equals("instanceof")) {
 					// This warrants its own block here instead of doing it in the combineBinary because the right argument is a type
-					TypeToken<?> testType = evaluateType(parseEnv, binOp.getRight(), type);
+					TypeToken<?> testType = evaluateType(parseEnv, (ExpressionTypes.Type) binOp.getRight(), type);
 					if (testType.getType() instanceof ParameterizedType)
 						throw new QuickParseException(
 							"instanceof checks cannot be performed against parameterized types: " + binOp.getRight());
@@ -267,18 +267,6 @@ public class AntlrPropertyEvaluator {
 				throw new QuickParseException("Either array sizes or a value list must be specifieded for array initialization");
 			// Now pulling stuff from the context
 			// Identifier, placeholder, and unit
-		} else if(parsedItem instanceof ExpressionTypes.QualifiedName){
-			if (actionRequired)
-				throw new QuickParseException(parsedItem + " cannot be an action");
-			ExpressionTypes.QualifiedName qName=(ExpressionTypes.QualifiedName) parsedItem;
-			if (qName.getQualifier() == null) {
-				ObservableValue<?> result = parseEnv.getContext().getVariable(qName.getName());
-				if (result == null)
-					throw new QuickParseException("No such variable " + qName.getName());
-				return result;
-			} else {
-				throw new QuickParseException("Qualified names not implemented");
-			}
 		} else if (parsedItem instanceof ExpressionTypes.Placeholder) {
 			ExpressionTypes.Placeholder placeholder = (ExpressionTypes.Placeholder) parsedItem;
 			ObservableValue<?> result = parseEnv.getContext().getVariable(placeholder.print());
@@ -361,85 +349,101 @@ public class AntlrPropertyEvaluator {
 					return null; // TODO What to do with this?
 				}
 			}, true, bestMatch.parameters);
+		} else if (parsedItem instanceof ExpressionTypes.QualifiedName) {
+			ExpressionTypes.QualifiedName qName = (ExpressionTypes.QualifiedName) parsedItem;
+			return evaluateMember(new ExpressionTypes.FieldAccess(qName.getContext(), qName.getQualifier(), qName.getName()), parseEnv,
+				type, actionAccepted, actionRequired);
 		} else if (parsedItem instanceof ExpressionTypes.MemberAccess) {
 			ExpressionTypes.MemberAccess member = (ExpressionTypes.MemberAccess) parsedItem;
-			if (actionRequired && member instanceof ExpressionTypes.FieldAccess)
-				throw new QuickParseException("Field access cannot be an action");
-
-			if (member.getMemberContext() == null) {
-				if (member instanceof ExpressionTypes.MethodInvocation) {
-					// A function
-					return evaluateFunction((MethodInvocation) member, parseEnv, type, actionAccepted);
-				} else {
-					// A variable
-					ObservableValue<?> result = parseEnv.getContext().getVariable(member.getName());
-					if (result == null)
-						throw new QuickParseException(member.getName() + " cannot be resolved");
-					return result;
-				}
-			} else {
-				// May be a method invocation on a value or a static invocation on a type
-				String rootCtx = getRootContext(member.getMemberContext());
-				Class<?> contextType = null;
-				if (rootCtx != null && parseEnv.getContext().getVariable(rootCtx) == null) {
-					// May be a static invocation on a type
-					try {
-						contextType = rawType(member.getMemberContext().toString(), parseEnv);
-					} catch (QuickParseException e) {
-						// We'll throw a different exception later if we can't resolve it
-					}
-				}
-				if (contextType != null) {
-					return evaluateStatic(member, contextType, parseEnv, type, actionAccepted);
-				} else {
-					// Not a static invocation. Evaluate the context. Let that evaluation throw the exception if needed.
-					ObservableValue<?> context = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), member.getMemberContext(),
-						actionAccepted, false);
-					return evaluateMemberAccess(member, context, parseEnv, type, actionAccepted);
-				}
-			}
+			return evaluateMember(member, parseEnv, type, actionAccepted, actionRequired);
 		} else
 			throw new QuickParseException("Unrecognized parsed item type: " + parsedItem.getClass());
 	}
 
-	private static TypeToken<?> evaluateType(QuickParseEnv parseEnv, QPPExpression parsedType, TypeToken<?> expected)
+	private static <T> ObservableValue<?> evaluateMember(ExpressionTypes.MemberAccess member, QuickParseEnv parseEnv, TypeToken<T> type,
+		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
+		if (actionRequired && member instanceof ExpressionTypes.FieldAccess)
+			throw new QuickParseException("Field access cannot be an action");
+
+		if (member.getMemberContext() == null) {
+			if (member instanceof ExpressionTypes.MethodInvocation) {
+				// A function
+				return evaluateFunction((MethodInvocation) member, parseEnv, type, actionAccepted);
+			} else {
+				// A variable
+				ObservableValue<?> result = parseEnv.getContext().getVariable(member.getName());
+				if (result == null)
+					throw new QuickParseException(member.getName() + " cannot be resolved");
+				return result;
+			}
+		} else {
+			// May be a method invocation on a value or a static invocation on a type
+			String rootCtx = getRootContext(member.getMemberContext());
+			Class<?> contextType = null;
+			if (rootCtx != null && parseEnv.getContext().getVariable(rootCtx) == null) {
+				// May be a static invocation on a type
+				try {
+					contextType = rawType(member.getMemberContext().toString(), parseEnv);
+				} catch (QuickParseException e) {
+					// We'll throw a different exception later if we can't resolve it
+				}
+			}
+			if (contextType != null) {
+				return evaluateStatic(member, contextType, parseEnv, type, actionAccepted);
+			} else {
+				// Not a static invocation. Evaluate the context. Let that evaluation throw the exception if needed.
+				ObservableValue<?> context = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), member.getMemberContext(),
+					actionAccepted, false);
+				return evaluateMemberAccess(member, context, parseEnv, type, actionAccepted);
+			}
+		}
+	}
+
+	private static TypeToken<?> evaluateType(QuickParseEnv parseEnv, ExpressionTypes.Type parsedType, TypeToken<?> expected)
 		throws QuickParseException {
 		Type reflectType = getReflectType(parsedType, expected, parseEnv);
 
 		return TypeToken.of(reflectType);
 	}
 
-	private static Type getReflectType(QPPExpression parsedType, TypeToken<?> expected, QuickParseEnv parseEnv)
+	private static Type getReflectType(ExpressionTypes.Type parsedType, TypeToken<?> expected, QuickParseEnv parseEnv)
 		throws QuickParseException {
-		Type reflectType;
-		if (parsedType.isParameterized())
-			reflectType = parameterizedType(parsedType.getName(), parsedType.getParameterTypes(), expected, parseEnv);
-		else
-			reflectType = rawType(parsedType.getName(), parseEnv);
-
-		for (int i = 0; i < parsedType.getArrayDimension(); i++)
-			reflectType = arrayType(reflectType);
-
-		if (parsedType.isBounded())
-			reflectType = boundedType(reflectType, parsedType.isUpperBound());
-
-		return reflectType;
+		if (parsedType instanceof ExpressionTypes.PrimitiveType)
+			return ((ExpressionTypes.PrimitiveType) parsedType).getType();
+		else if (parsedType instanceof ExpressionTypes.ClassType) {
+			ExpressionTypes.ClassType classType = (ExpressionTypes.ClassType) parsedType;
+			if (classType.getTypeArgs() == null)
+				return rawType(classType.getName(), parseEnv);
+			else
+				return parameterizedType(classType.getName(), classType.getTypeArgs(), expected, parseEnv);
+		} else if (parsedType instanceof ExpressionTypes.ArrayType) {
+			ExpressionTypes.ArrayType arrayType = (ExpressionTypes.ArrayType) parsedType;
+			TypeToken<?> expectedComponent = expected;
+			for (int i = 0; i < arrayType.getDimension() && expectedComponent.isArray(); i++)
+				expectedComponent = expectedComponent.getComponentType();
+			Type arrayTypeResult = arrayType(getReflectType(arrayType.getComponentType(), expectedComponent, parseEnv));
+			for (int i = 1; i < arrayType.getDimension(); i++)
+				arrayTypeResult = arrayType(arrayTypeResult);
+			return arrayTypeResult;
+		} else
+			throw new QuickParseException("Unrecognized type: " + parsedType.getClass().getSimpleName());
 	}
 
-	private static Type parameterizedType(String name, QPPExpression[] parameterTypes, TypeToken<?> expected, QuickParseEnv parseEnv)
+	private static Type parameterizedType(String name, List<ExpressionTypes.Type> parameterTypes, TypeToken<?> expected,
+		QuickParseEnv parseEnv)
 		throws QuickParseException {
 		Class<?> raw = rawType(name, parseEnv);
 
 		Type[] typeArgs = new Type[raw.getTypeParameters().length];
-		if (parameterTypes.length == 0) {
+		if (parameterTypes.isEmpty()) {
 			// Diamond operator. Figure out the parameter types.
 			for (int i = 0; i < typeArgs.length; i++)
 				typeArgs[i] = expected.resolveType(raw.getTypeParameters()[i]).getType();
-		} else if (parameterTypes.length != typeArgs.length)
-			throw new QuickParseException("Type " + raw.getName() + " cannot be parameterized with " + parameterTypes.length + " types");
+		} else if (parameterTypes.size() != typeArgs.length)
+			throw new QuickParseException("Type " + raw.getName() + " cannot be parameterized with " + parameterTypes.size() + " types");
 		else {
 			for (int i = 0; i < typeArgs.length; i++)
-				typeArgs[i] = getReflectType(parameterTypes[i], expected.resolveType(raw.getTypeParameters()[i]), parseEnv);
+				typeArgs[i] = getReflectType(parameterTypes.get(i), expected.resolveType(raw.getTypeParameters()[i]), parseEnv);
 		}
 
 		class ParameterizedType implements java.lang.reflect.ParameterizedType {
@@ -500,29 +504,6 @@ public class AntlrPropertyEvaluator {
 			}
 		}
 		return new ArrayType();
-	}
-
-	private static Type boundedType(Type reflectType, boolean upperBound) {
-		class WildcardType implements java.lang.reflect.WildcardType {
-			private final Type[] upperBounds;
-			private final Type[] lowerBounds;
-
-			public WildcardType(Type boundType, boolean upperBnd) {
-				upperBounds = upperBnd ? new Type[] { boundType } : new Type[0];
-				lowerBounds = upperBnd ? new Type[0] : new Type[] { boundType };
-			}
-
-			@Override
-			public Type[] getUpperBounds() {
-				return upperBounds;
-			}
-
-			@Override
-			public Type[] getLowerBounds() {
-				return lowerBounds;
-			}
-		}
-		return new WildcardType(reflectType, upperBound);
 	}
 
 	static class InvokableMatch {
@@ -726,41 +707,6 @@ public class AntlrPropertyEvaluator {
 		}
 	}
 
-	private static ObservableValue<?> evaluateField(ExpressionTypes.FieldAccess field, ObservableValue<?> context, QuickParseEnv parseEnv,
-		TypeToken<?> type) throws QuickParseException {
-		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
-			if (!(context instanceof ObservableValue.ConstantObservableValue))
-				throw new QuickParseException("Model observables must be constant to be evaluated");
-			QuickAppModel model = (QuickAppModel) context.get();
-			Object fieldVal = model.getField(field.getName());
-			if (fieldVal == null)
-				throw new QuickParseException("Model " + field.getMemberContext() + " does not contain field " + field.getName());
-			if (fieldVal instanceof ObservableValue)
-				return (ObservableValue<?>) fieldVal;
-			else
-				throw new QuickParseException("Field " + field.getName() + " of model " + field.getMemberContext() + " is not a value");
-		} else {
-			Field fieldRef;
-			try {
-				fieldRef = context.getType().getRawType().getField(field.getName());
-			} catch (NoSuchFieldException e) {
-				throw new QuickParseException("No such field " + context + "." + field.getName(), e);
-			} catch (SecurityException e) {
-				throw new QuickParseException("Could not access field " + context + "." + field.getName(), e);
-			}
-			if ((fieldRef.getModifiers() & Modifier.STATIC) != 0)
-				throw new QuickParseException("Field " + context + "." + fieldRef.getName() + " is static");
-			return context.mapV((TypeToken<Object>) context.getType().resolveType(fieldRef.getGenericType()), v -> {
-				try {
-					return fieldRef.get(v);
-				} catch (Exception e) {
-					parseEnv.msg().error("Could not get field " + context + "." + fieldRef.getName(), e);
-					return null; // TODO What to do with this?
-				}
-			});
-		}
-	}
-
 	private static ObservableValue<?> evaluateMemberAccess(ExpressionTypes.MemberAccess member, ObservableValue<?> context,
 		QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
@@ -774,8 +720,7 @@ public class AntlrPropertyEvaluator {
 				if (fieldVal instanceof ObservableValue)
 					return (ObservableValue<?>) fieldVal;
 				else
-					throw new QuickParseException(
-						"Field " + member.getName() + " of model " + member.getMemberContext() + " is not a value");
+					return ObservableValue.constant(fieldVal);
 			} else {
 				ExpressionTypes.MethodInvocation method = (ExpressionTypes.MethodInvocation) member;
 				if (fieldVal instanceof ExpressionFunction) {
@@ -1022,20 +967,27 @@ public class AntlrPropertyEvaluator {
 		}
 	}
 
-	private static <T, V extends T> ObservableValue<ObservableAction<V>> makeActionValue(SettableValue<T> settable,
+	private static <T, V extends T> ObservableValue<ObservableAction<T>> makeActionValue(SettableValue<T> settable,
 		ObservableValue<V> value, boolean resultPreOp) throws QuickParseException {
 		ObservableAction<V> action = settable.assignmentTo(value);
 		// TODO not handling the pre-op boolean at all
-		return ObservableValue.constant(new TypeToken<ObservableAction<V>>() {}.where(new TypeParameter<V>() {}, value.getType().wrap()),
-			new ObservableAction<V>() {
+		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, settable.getType().wrap()),
+			new ObservableAction<T>() {
 				@Override
-				public TypeToken<V> getType() {
-					return value.getType();
+				public TypeToken<T> getType() {
+					return settable.getType();
 				}
 
 				@Override
-				public V act(Object cause) throws IllegalStateException {
-					return action.act(cause);
+				public T act(Object cause) throws IllegalStateException {
+					T ret;
+					if (resultPreOp) {
+						ret=settable.get();
+						action.act(cause);
+					} else {
+						ret = action.act(cause);
+					}
+					return ret;
 				}
 
 				@Override

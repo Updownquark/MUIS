@@ -3,11 +3,9 @@ package org.quick.core.prop.antlr;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.quick.core.prop.antlr.QPPParser.ClassTypeContext;
 import org.quick.core.prop.antlr.QPPParser.ConditionalExpressionContext;
 import org.quick.core.prop.antlr.QPPParser.LiteralContext;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 class ExpressionTypes {
@@ -41,18 +39,9 @@ class ExpressionTypes {
 	}
 
 	static abstract class Type extends QPPExpression {
-		private final TypeToken<?> theType;
-
 		public Type(ParserRuleContext ctx) {
 			super(ctx);
-			theType = parseType(ctx);
 		}
-
-		public TypeToken<?> getType() {
-			return theType;
-		}
-
-		protected abstract TypeToken<?> parseType(ParserRuleContext ctx);
 	}
 
 	static class PrimitiveType extends Type {
@@ -65,9 +54,32 @@ class ExpressionTypes {
 			thePrimType = type;
 		}
 
+		public Class<?> getType() {
+			return thePrimType;
+		}
+
 		@Override
-		protected TypeToken<?> parseType(ParserRuleContext ctx) {
-			return TypeToken.of(thePrimType);
+		public String print() {
+			if (thePrimType == Void.TYPE)
+				return "void";
+			else if (thePrimType == Boolean.TYPE)
+				return "boolean";
+			else if (thePrimType == Character.TYPE)
+				return "char";
+			else if (thePrimType == Byte.TYPE)
+				return "byte";
+			else if (thePrimType == Short.TYPE)
+				return "short";
+			else if (thePrimType == Integer.TYPE)
+				return "int";
+			else if (thePrimType == Long.TYPE)
+				return "long";
+			else if (thePrimType == Float.TYPE)
+				return "float";
+			else if (thePrimType == Double.TYPE)
+				return "double";
+			else
+				throw new IllegalStateException("Unrecognized primitive type: " + thePrimType.getName());
 		}
 	}
 
@@ -75,15 +87,33 @@ class ExpressionTypes {
 		private final String theName;
 		private final List<Type> theTypeArgs;
 
-		public ClassType(ClassTypeContext ctx, String name, List<Type> typeArgs) {
+		public ClassType(ParserRuleContext ctx, String name, List<Type> typeArgs) {
 			super(ctx);
 			theName = name;
 			theTypeArgs = typeArgs;
 		}
 
+		public String getName() {
+			return theName;
+		}
+
+		public List<Type> getTypeArgs() {
+			return theTypeArgs;
+		}
+
 		@Override
-		protected TypeToken<?> parseType(ParserRuleContext ctx) {
-			// TODO Auto-generated method stub
+		public String print() {
+			if (theTypeArgs == null)
+				return theName;
+			StringBuilder print = new StringBuilder(theName);
+			print.append('<');
+			for (int i = 0; i < theTypeArgs.size(); i++) {
+				if (i > 0)
+					print.append(", ");
+				print.append(theTypeArgs.get(i).print());
+			}
+			print.append('>');
+			return print.toString();
 		}
 	}
 
@@ -97,16 +127,20 @@ class ExpressionTypes {
 			theDimension = dims;
 		}
 
-		@Override
-		protected TypeToken<?> parseType(ParserRuleContext ctx) {
-			TypeToken<?> type = theComponentType.getType();
-			for (int i = 0; i < theDimension; i++)
-				type = arrayOf(type);
-			return type;
+		public Type getComponentType() {
+			return theComponentType;
 		}
 
-		private <T> TypeToken<T[]> arrayOf(TypeToken<T> type) {
-			return new TypeToken<T[]>() {}.where(new TypeParameter<T>() {}, type);
+		public int getDimension() {
+			return theDimension;
+		}
+
+		@Override
+		public String print() {
+			StringBuilder print = new StringBuilder(theComponentType.print());
+			for (int i = 0; i < theDimension; i++)
+				print.append("[]");
+			return print.toString();
 		}
 	}
 
@@ -331,18 +365,19 @@ class ExpressionTypes {
 	}
 
 	static class ArrayInitializer extends QPPExpression {
-		private final QPPExpression theType;
+		private final ArrayType theType;
 		private final List<QPPExpression> theSizes;
 		private final List<QPPExpression> theElements;
 
-		public ArrayInitializer(ParserRuleContext ctx, QPPExpression type, List<QPPExpression> sizes, List<QPPExpression> elements) {
+		public ArrayInitializer(ParserRuleContext ctx, Type componentType, int dimension, List<QPPExpression> sizes,
+			List<QPPExpression> elements) {
 			super(ctx);
-			theType = type;
+			theType = new ArrayType(ctx, componentType, dimension);
 			theSizes = sizes;
 			theElements = elements;
 		}
 
-		public QPPExpression getType() {
+		public ArrayType getType() {
 			return theType;
 		}
 
@@ -374,37 +409,25 @@ class ExpressionTypes {
 	}
 
 	static class Constructor extends QPPExpression {
-		private final QPPExpression theType;
-		private final boolean isDiamond;
+		private final ClassType theType;
 		private final List<Type> theConstructorTypeArguments;
-		private final List<Type> theTypeArguments;
 		private final List<QPPExpression> theArguments;
 
-		public Constructor(ParserRuleContext ctx, QPPExpression type, boolean diamond, List<Type> constructorTypeArgs,
-			List<Type> typeArgs, List<QPPExpression> args) {
+		public Constructor(ParserRuleContext ctx, ClassType type, List<Type> constructorTypeArgs,
+			List<QPPExpression> args) {
 			super(ctx);
 			theType = type;
-			isDiamond = diamond;
 			theConstructorTypeArguments = constructorTypeArgs;
-			theTypeArguments = typeArgs;
 			theArguments = args;
 		}
 
-		public QPPExpression getType() {
+		public ClassType getType() {
 			return theType;
-		}
-
-		public boolean isDiamond() {
-			return isDiamond;
 		}
 
 		/** @return The type arguments for the constructor itself, not the type to be constructed */
 		public List<Type> getConstructorTypeArguments() {
 			return theConstructorTypeArguments;
-		}
-
-		public List<Type> getTypeArguments() {
-			return theTypeArguments;
 		}
 
 		public List<QPPExpression> getArguments() {
@@ -414,17 +437,6 @@ class ExpressionTypes {
 		@Override
 		public String print() {
 			StringBuilder print = new StringBuilder().append("new ").append(theType.print());
-			if (isDiamond)
-				print.append("<>");
-			else if (theTypeArguments != null) {
-				print.append('<');
-				for (int i = 0; i < theTypeArguments.size(); i++) {
-					if (i > 0)
-						print.append(", ");
-					print.append(theTypeArguments.get(i).print());
-				}
-				print.append('>');
-			}
 			print.append('(');
 			for (int i = 0; i < theArguments.size(); i++) {
 				if (i != 0)

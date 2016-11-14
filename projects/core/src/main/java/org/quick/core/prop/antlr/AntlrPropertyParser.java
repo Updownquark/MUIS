@@ -18,7 +18,6 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.AbstractPropertyParser;
 import org.quick.core.parser.QuickParseException;
-import org.quick.core.prop.antlr.ExpressionTypes.Type;
 import org.quick.core.prop.antlr.QPPParser.*;
 
 import com.google.common.reflect.TypeToken;
@@ -225,11 +224,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitFieldAccess(FieldAccessContext ctx) {
-			if (ctx.primary() != null)
-				push(
-					new ExpressionTypes.QualifiedName(ctx, (ExpressionTypes.QualifiedName) pop(ctx.primary()), ctx.Identifier().getText()));
-			else
-				push(new ExpressionTypes.QualifiedName(ctx, null, "super." + ctx.Identifier().getText()));
+			push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.primary()), ctx.Identifier().getText()));
 		}
 
 		@Override
@@ -256,13 +251,18 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitClassInstanceCreationExpression(ClassInstanceCreationExpressionContext ctx) {
-			ExpressionTypes.QualifiedName qName = new ExpressionTypes.QualifiedName(ctx, null, ctx.Identifier(0).getText());
+			StringBuilder typeName = new StringBuilder(ctx.Identifier(0).getText());
 			for (int i = 1; i < ctx.Identifier().size(); i++)
-				qName = new ExpressionTypes.QualifiedName(ctx, qName, ctx.Identifier(i).getText());
-			boolean diamond = ctx.typeArgumentsOrDiamond() != null && ctx.typeArgumentsOrDiamond().typeArguments() == null;
-			push(new ExpressionTypes.Constructor(ctx, qName, diamond, parseTypeArguments(ctx.typeArguments()),
-				ctx.typeArgumentsOrDiamond() == null || diamond ? null : parseTypeArguments(ctx.typeArgumentsOrDiamond().typeArguments()),
-				parseArguments(ctx.argumentList())));
+				typeName.append('.').append(ctx.Identifier(i).getText());
+			List<ExpressionTypes.Type> classTypeArgs;
+			if (ctx.typeArgumentsOrDiamond() == null)
+				classTypeArgs = null;
+			else if (ctx.typeArgumentsOrDiamond().typeArguments() == null)
+				classTypeArgs = Collections.emptyList();
+			else
+				classTypeArgs = parseTypeArguments(ctx.typeArgumentsOrDiamond().typeArguments());
+			push(new ExpressionTypes.Constructor(ctx, new ExpressionTypes.ClassType(ctx, typeName.toString(), classTypeArgs),
+				parseTypeArguments(ctx.typeArguments()), parseArguments(ctx.argumentList())));
 		}
 
 		@Override
@@ -272,12 +272,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			else
 				push(
 					new ExpressionTypes.Cast(ctx, (ExpressionTypes.Type) pop(ctx.referenceType()), pop(ctx.unaryExpressionNotPlusMinus())));
-		}
-
-		@Override
-		public void exitVariableInitializerList(VariableInitializerListContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitVariableInitializerList(ctx);
 		}
 
 		@Override
@@ -460,14 +454,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitPostIncrementExpression(PostIncrementExpressionContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPostIncrementExpression(ctx);
-		}
-
-		@Override
-		public void exitPostIncrementExpression_lf_postfixExpression(PostIncrementExpression_lf_postfixExpressionContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPostIncrementExpression_lf_postfixExpression(ctx);
+			push(new ExpressionTypes.UnaryOperation(ctx, "++", false, pop(ctx.postfixExpression())));
 		}
 
 		@Override
@@ -477,14 +464,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitPostDecrementExpression(PostDecrementExpressionContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPostDecrementExpression(ctx);
-		}
-
-		@Override
-		public void exitPostDecrementExpression_lf_postfixExpression(PostDecrementExpression_lf_postfixExpressionContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitPostDecrementExpression_lf_postfixExpression(ctx);
+			push(new ExpressionTypes.UnaryOperation(ctx, "--", false, pop(ctx.postfixExpression())));
 		}
 
 		@Override
@@ -497,10 +477,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			for (PrimaryNoNewArray_lf_primaryContext mod : ctx.primaryNoNewArray_lf_primary()) {
 				init = modify(init, mod);
 			}
-			if (ctx.primaryNoNewArray_lf_primary().isEmpty())
-				push(init, ctx);
-			else
-				super.exitPrimary(ctx); // TODO Partial implementation
+			push(init, ctx);
 		}
 
 		private QPPExpression modify(QPPExpression init, PrimaryNoNewArray_lf_primaryContext mod) {
@@ -542,10 +519,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.literal(), ctx);
 			else if (ctx.placeholder() != null)
 				ascend(ctx.placeholder(), ctx);
-			// typeName ('[' ']')* '.' 'class'
-			// 'void' '.' 'class'
-			// 'this'
-			// typeName '.' 'this'
 			else if (ctx.expression() != null)
 				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
 			else if (ctx.classInstanceCreationExpression() != null)
@@ -556,8 +529,35 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.arrayAccess(), ctx);
 			else if (ctx.methodInvocation() != null)
 				ascend(ctx.methodInvocation(), ctx);
+			else {
+				// typeName ('[' ']')* '.' 'class'
+				// 'void' '.' 'class'
+				// 'this'
+				// typeName '.' 'this'
+				boolean clazz = false;
+				int dims = 0;
+				for (int i = 0; i < ctx.getChildCount(); i++) {
+					if (ctx.getChild(i).getText().equals("class"))
+						clazz = true;
+					else if (ctx.getChild(i).getText().equals("["))
+						dims++;
+				}
+				if (dims > 0)
+					push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
+				else if (clazz)
+					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
+				else if (ctx.typeName() == null)
+					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
+				else
+					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
+			}
+		}
+
+		private ExpressionTypes.Type typeFor(QPPExpression expr) {
+			if (expr instanceof ExpressionTypes.Type)
+				return (ExpressionTypes.Type) expr;
 			else
-				super.exitPrimaryNoNewArray(ctx); // TODO Partial implementation
+				return new ExpressionTypes.ClassType(expr.getContext(), ((ExpressionTypes.QualifiedName) expr).print(), null);
 		}
 
 		@Override
@@ -566,19 +566,38 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.literal(), ctx);
 			else if (ctx.placeholder() != null)
 				ascend(ctx.placeholder(), ctx);
-			// typeName ('[' ']')* '.' 'class'
-			// unannPrimitiveType ('[' ']')* '.' 'class'
-			// 'void' '.' 'class'
-			// 'this'
-			// typeName '.' 'this'
 			else if (ctx.expression() != null)
 				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
 			else if (ctx.arrayAccess_lfno_primary() != null)
 				ascend(ctx.arrayAccess_lfno_primary(), ctx);
 			else if (ctx.methodInvocation_lfno_primary() != null)
 				ascend(ctx.methodInvocation_lfno_primary(), ctx);
-			else
-				super.exitPrimaryNoNewArray_lfno_primary(ctx); // TODO Partial implementation
+			else {
+				// typeName ('[' ']')* '.' 'class'
+				// unannPrimitiveType ('[' ']')* '.' 'class'
+				// 'void' '.' 'class'
+				// 'this'
+				// typeName '.' 'this'
+				boolean clazz = false;
+				int dims = 0;
+				for (int i = 0; i < ctx.getChildCount(); i++) {
+					if (ctx.getChild(i).getText().equals("class"))
+						clazz = true;
+					else if (ctx.getChild(i).getText().equals("["))
+						dims++;
+				}
+				if (dims > 0) {
+					if (ctx.typeName() != null)
+						push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
+					else
+						push(new ExpressionTypes.ArrayType(ctx, (ExpressionTypes.Type) pop(ctx.unannPrimitiveType()), dims));
+				} else if (clazz)
+					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
+				else if (ctx.typeName() == null)
+					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
+				else
+					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
+			}
 		}
 
 		@Override
@@ -587,10 +606,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.literal(), ctx);
 			else if (ctx.placeholder() != null)
 				ascend(ctx.placeholder(), ctx);
-			// typeName ('[' ']')* '.' 'class'
-			// 'void' '.' 'class'
-			// 'this'
-			// typeName '.' 'this'
 			else if (ctx.expression() != null)
 				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
 			else if (ctx.classInstanceCreationExpression() != null)
@@ -599,8 +614,28 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.fieldAccess(), ctx);
 			else if (ctx.methodInvocation() != null)
 				ascend(ctx.methodInvocation(), ctx);
-			else
-				super.exitPrimaryNoNewArray_lfno_arrayAccess(ctx); // TODO Partial implementation
+			else {
+				// typeName ('[' ']')* '.' 'class'
+				// 'void' '.' 'class'
+				// 'this'
+				// typeName '.' 'this'
+				boolean clazz = false;
+				int dims = 0;
+				for (int i = 0; i < ctx.getChildCount(); i++) {
+					if (ctx.getChild(i).getText().equals("class"))
+						clazz = true;
+					else if (ctx.getChild(i).getText().equals("["))
+						dims++;
+				}
+				if (dims > 0)
+					push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
+				else if (clazz)
+					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
+				else if (ctx.typeName() == null)
+					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
+				else
+					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
+			}
 		}
 
 		@Override
@@ -610,49 +645,61 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.literal(), ctx);
 			else if (ctx.placeholder() != null)
 				ascend(ctx.placeholder(), ctx);
-			// typeName ('[' ']')* '.' 'class'
-			// unannPrimitiveType ('[' ']')* '.' 'class'
-			// 'void' '.' 'class'
-			// 'this'
-			// typeName '.' 'this'
 			else if (ctx.expression() != null)
 				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
 			else if (ctx.methodInvocation_lfno_primary() != null)
 				ascend(ctx.methodInvocation_lfno_primary(), ctx);
-			else
-				super.exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(ctx); // TODO Partial implementation
-		}
-
-		@Override
-		public void exitArrayInitializer(ArrayInitializerContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitArrayInitializer(ctx);
+			else {
+				// typeName ('[' ']')* '.' 'class'
+				// unannPrimitiveType ('[' ']')* '.' 'class'
+				// 'void' '.' 'class'
+				// 'this'
+				// typeName '.' 'this'
+				boolean clazz = false;
+				int dims = 0;
+				for (int i = 0; i < ctx.getChildCount(); i++) {
+					if (ctx.getChild(i).getText().equals("class"))
+						clazz = true;
+					else if (ctx.getChild(i).getText().equals("["))
+						dims++;
+				}
+				if (dims > 0) {
+					if (ctx.typeName() != null)
+						push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
+					else
+						push(new ExpressionTypes.ArrayType(ctx, (ExpressionTypes.Type) pop(ctx.unannPrimitiveType()), dims));
+				} else if (clazz)
+					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
+				else if (ctx.typeName() == null)
+					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
+				else
+					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
+			}
 		}
 
 		@Override
 		public void exitArrayCreationExpression(ArrayCreationExpressionContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitArrayCreationExpression(ctx);
+			ExpressionTypes.Type type = (ExpressionTypes.Type) (ctx.primitiveType() != null ? pop(ctx.primitiveType())
+				: pop(ctx.classType()));
+			int dims = dimCount(ctx.dims());
+			if (ctx.dimExprs() != null) {
+				dims += ctx.dimExprs().dimExpr().size();
+				List<QPPExpression> sizes = ctx.dimExprs().dimExpr().stream().map(dimExpr -> pop(dimExpr.expression()))
+					.collect(Collectors.toList());
+				push(new ExpressionTypes.ArrayInitializer(ctx, type, dims, sizes, null));
+			} else {
+				List<QPPExpression> elements = ctx.arrayInitializer().variableInitializerList().variableInitializer().stream()
+					.map(varInit -> pop(varInit.expression())).collect(Collectors.toList());
+				push(new ExpressionTypes.ArrayInitializer(ctx, type, dims, null, elements));
+			}
 		}
 
-		@Override
-		public void exitDims(DimsContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitDims(ctx);
-		}
-
-		@Override
-		public void exitUnannPrimitiveType(UnannPrimitiveTypeContext ctx) {
-			if(ctx.numericType()!=null)
-				ascend(ctx.numericType(), ctx);
-			else
-				push(new ExpressionTypes.PrimitiveType(ctx, Boolean.TYPE));
-		}
-
-		@Override
-		public void exitVariableInitializer(VariableInitializerContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitVariableInitializer(ctx);
+		private int dimCount(DimsContext dims) {
+			int dim = 0;
+			for (int i = 0; i < dims.getChildCount(); i++)
+				if (dims.getChild(i).getText().equals("["))
+					dim++;
+			return dim;
 		}
 
 		@Override
@@ -673,13 +720,11 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitMethodInvocation_lf_primary(MethodInvocation_lf_primaryContext ctx) {
-			// TODO how to recognize type.super.method()?
 			push(methodFor(ctx, c -> c.argumentList(), c -> c.typeArguments(), null, c -> c.Identifier(), null, null, null));
 		}
 
 		@Override
 		public void exitMethodInvocation_lfno_primary(MethodInvocation_lfno_primaryContext ctx) {
-			// TODO how to recognize type.super.method()?
 			push(methodFor(ctx, //
 				c -> c.argumentList(), c -> c.typeArguments(), c -> c.methodName(), c -> c.Identifier(), c -> c.typeName(),
 				c -> c.expressionName(), null));
@@ -715,14 +760,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		List<ExpressionTypes.Type> parseTypeArguments(TypeArgumentsContext typeArguments) {
 			return typeArguments == null ? null : typeArguments.typeArgumentList().typeArgument().stream()
 				.map(a -> (ExpressionTypes.Type) pop(a)).collect(Collectors.toList());
-		}
-
-		@Override
-		public void exitTypeArgument(TypeArgumentContext ctx) {
-			if (ctx.referenceType() != null)
-				ascend(ctx.referenceType(), ctx);
-			else
-				ascend(ctx.wildcard(), ctx);
 		}
 
 		@Override
@@ -815,6 +852,14 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		}
 
 		@Override
+		public void exitUnannPrimitiveType(UnannPrimitiveTypeContext ctx) {
+			if (ctx.numericType() != null)
+				ascend(ctx.numericType(), ctx);
+			else
+				push(new ExpressionTypes.PrimitiveType(ctx, Boolean.TYPE));
+		}
+
+		@Override
 		public void exitNumericType(NumericTypeContext ctx) {
 			if (ctx.integralType() != null)
 				ascend(ctx.integralType(), ctx);
@@ -826,10 +871,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 		@Override
 		public void exitArrayType(ArrayTypeContext ctx) {
-			int dim = 0;
-			for (int i = 0; i < ctx.dims().getChildCount(); i++)
-				if (ctx.dims().getChild(i).getText().equals("["))
-					dim++;
+			int dim = dimCount(ctx.dims());
 			QPPExpression type;
 			if (ctx.primitiveType() != null)
 				type = pop(ctx.primitiveType());
@@ -837,37 +879,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				type = pop(ctx.classType());
 			else
 				throw new IllegalStateException();
-			push(new ExpressionTypes.ArrayType(ctx, (Type) type, dim));
-		}
-
-		@Override
-		public void exitTypeBound(TypeBoundContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitTypeBound(ctx);
-		}
-
-		@Override
-		public void exitWildcard(WildcardContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitWildcard(ctx);
-		}
-
-		@Override
-		public void exitWildcardBounds(WildcardBoundsContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitWildcardBounds(ctx);
-		}
-
-		@Override
-		public void exitTypeVariable(TypeVariableContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitTypeVariable(ctx);
-		}
-
-		@Override
-		public void exitTypeParameter(TypeParameterContext ctx) {
-			// TODO Auto-generated method stub
-			super.exitTypeParameter(ctx);
+			push(new ExpressionTypes.ArrayType(ctx, (ExpressionTypes.Type) type, dim));
 		}
 
 		@Override

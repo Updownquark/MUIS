@@ -96,10 +96,6 @@ classType
 	:	Identifier typeArguments?
 	;
 
-typeVariable
-	:	Identifier
-	;
-
 arrayType
 	:	primitiveType dims
 	|	classType dims
@@ -107,15 +103,6 @@ arrayType
 
 dims
 	:	'[' ']' ('[' ']')*
-	;
-
-typeParameter
-	:	Identifier typeBound?
-	;
-
-typeBound
-	:	'extends' typeVariable
-	|	'extends' classType
 	;
 
 typeArguments
@@ -128,16 +115,6 @@ typeArgumentList
 
 typeArgument
 	:	referenceType
-	|	wildcard
-	;
-
-wildcard
-	:	'?' wildcardBounds?
-	;
-
-wildcardBounds
-	:	'extends' referenceType
-	|	'super' referenceType
 	;
 
 /*

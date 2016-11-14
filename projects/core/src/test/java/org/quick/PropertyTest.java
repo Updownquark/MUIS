@@ -268,7 +268,14 @@ public class PropertyTest {
 			Assert.assertEquals(post, acted, 0.000000001);
 
 			pre = var2.get();
-			Assert.assertEquals(pre, propParser.parseProperty(ModelAttributes.action, parseEnv, "model.nested.var2+=10").get());
+			Assert.assertEquals(pre, propParser.parseProperty(ModelAttributes.action, parseEnv, "model.nested.var2++").get().act(null));
+			Assert.assertEquals(pre + 1, var2.get(), 0.000000001);
+			pre = var2.get();
+			Assert.assertEquals(pre + 1, propParser.parseProperty(ModelAttributes.action, parseEnv, "++model.nested.var2").get().act(null));
+			Assert.assertEquals(pre + 1, var2.get(), 0.000000001);
+			pre = var2.get();
+			Assert.assertEquals(pre + 10,
+				propParser.parseProperty(ModelAttributes.action, parseEnv, "model.nested.var2+=10").get().act(null));
 			Assert.assertEquals(pre + 10, var2.get(), 0.000000001);
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);

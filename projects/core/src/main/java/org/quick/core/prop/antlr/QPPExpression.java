@@ -2,15 +2,15 @@ package org.quick.core.prop.antlr;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
-abstract class QPPExpression<N extends ParserRuleContext> {
-	private final N theCtx;
+abstract class QPPExpression {
+	private final ParserRuleContext theCtx;
 	private String theError;
 
-	protected QPPExpression(N ctx) {
+	protected QPPExpression(ParserRuleContext ctx) {
 		theCtx = ctx;
 	}
 
-	public N getContext() {
+	public ParserRuleContext getContext() {
 		return theCtx;
 	}
 

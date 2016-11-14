@@ -7,12 +7,13 @@ import org.quick.core.prop.antlr.QPPParser.ClassTypeContext;
 import org.quick.core.prop.antlr.QPPParser.ConditionalExpressionContext;
 import org.quick.core.prop.antlr.QPPParser.LiteralContext;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 class ExpressionTypes {
 	private ExpressionTypes() {}
 
-	static class QualifiedName extends QPPExpression<ParserRuleContext> {
+	static class QualifiedName extends QPPExpression {
 		private final ExpressionTypes.QualifiedName theQualifier;
 		private final String theName;
 
@@ -39,10 +40,10 @@ class ExpressionTypes {
 		}
 	}
 
-	static abstract class Type<N extends ParserRuleContext> extends QPPExpression<N> {
+	static abstract class Type extends QPPExpression {
 		private final TypeToken<?> theType;
 
-		public Type(N ctx) {
+		public Type(ParserRuleContext ctx) {
 			super(ctx);
 			theType = parseType(ctx);
 		}
@@ -51,37 +52,75 @@ class ExpressionTypes {
 			return theType;
 		}
 
-		protected abstract TypeToken<?> parseType(N ctx);
+		protected abstract TypeToken<?> parseType(ParserRuleContext ctx);
 	}
 
-	static class ClassType extends ExpressionTypes.Type<ClassTypeContext> {
-		private final String theName;
-		private final List<ExpressionTypes.Type<?>> theTypeArgs;
+	static class PrimitiveType extends Type {
+		private final Class<?> thePrimType;
 
-		public ClassType(ClassTypeContext ctx, String name, List<Type<?>> typeArgs) {
+		public PrimitiveType(ParserRuleContext ctx, Class<?> type) {
+			super(ctx);
+			if (!type.isPrimitive())
+				throw new IllegalArgumentException();
+			thePrimType = type;
+		}
+
+		@Override
+		protected TypeToken<?> parseType(ParserRuleContext ctx) {
+			return TypeToken.of(thePrimType);
+		}
+	}
+
+	static class ClassType extends ExpressionTypes.Type {
+		private final String theName;
+		private final List<Type> theTypeArgs;
+
+		public ClassType(ClassTypeContext ctx, String name, List<Type> typeArgs) {
 			super(ctx);
 			theName = name;
 			theTypeArgs = typeArgs;
 		}
 
 		@Override
-		protected TypeToken<?> parseType(ClassTypeContext ctx) {
+		protected TypeToken<?> parseType(ParserRuleContext ctx) {
 			// TODO Auto-generated method stub
-			return null;
 		}
 	}
 
-	static class MemberAccess extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theMemberContext;
+	static class ArrayType extends Type {
+		private final Type theComponentType;
+		private final int theDimension;
+
+		public ArrayType(ParserRuleContext ctx, Type componentType, int dims) {
+			super(ctx);
+			theComponentType = componentType;
+			theDimension = dims;
+		}
+
+		@Override
+		protected TypeToken<?> parseType(ParserRuleContext ctx) {
+			TypeToken<?> type = theComponentType.getType();
+			for (int i = 0; i < theDimension; i++)
+				type = arrayOf(type);
+			return type;
+		}
+
+		private <T> TypeToken<T[]> arrayOf(TypeToken<T> type) {
+			return new TypeToken<T[]>() {}.where(new TypeParameter<T>() {}, type);
+		}
+	}
+
+	static class MemberAccess extends QPPExpression {
+		private final QPPExpression theMemberContext;
 		private final String theName;
 
-		public MemberAccess(ParserRuleContext ctx, QPPExpression<?> memberContext, String name) {
+		public MemberAccess(ParserRuleContext ctx, QPPExpression memberContext, String name) {
 			super(ctx);
 			theMemberContext = memberContext;
 			theName = name;
 		}
 
-		public QPPExpression<?> getMemberContext() {
+		public QPPExpression getMemberContext() {
 			return theMemberContext;
 		}
 
@@ -96,27 +135,27 @@ class ExpressionTypes {
 	}
 
 	static class FieldAccess extends MemberAccess {
-		public FieldAccess(ParserRuleContext ctx, QPPExpression<?> methodCtx, String name) {
+		public FieldAccess(ParserRuleContext ctx, QPPExpression methodCtx, String name) {
 			super(ctx, methodCtx, name);
 		}
 	}
 
 	static class MethodInvocation extends MemberAccess {
-		private final List<Type<?>> theTypeArguments;
-		private final List<QPPExpression<?>> theArguments;
+		private final List<Type> theTypeArguments;
+		private final List<QPPExpression> theArguments;
 
-		public MethodInvocation(ParserRuleContext ctx, QPPExpression<?> methodCtx, String name,
-			List<Type<?>> typeArgs, List<QPPExpression<?>> args) {
+		public MethodInvocation(ParserRuleContext ctx, QPPExpression methodCtx, String name, List<Type> typeArgs,
+			List<QPPExpression> args) {
 			super(ctx, methodCtx, name);
 			theTypeArguments = typeArgs;
 			theArguments = args;
 		}
 
-		public List<Type<?>> getTypeArguments() {
+		public List<Type> getTypeArguments() {
 			return theTypeArguments;
 		}
 
-		public List<QPPExpression<?>> getArguments() {
+		public List<QPPExpression> getArguments() {
 			return theArguments;
 		}
 
@@ -125,8 +164,6 @@ class ExpressionTypes {
 			StringBuilder print = new StringBuilder();
 			if (getMemberContext() != null)
 				print.append(getMemberContext().print()).append('.');
-			if (isSuper)
-				print.append("super.");
 			print.append(getName());
 			print.append('(');
 			for (int i = 0; i < theArguments.size(); i++) {
@@ -139,52 +176,40 @@ class ExpressionTypes {
 		}
 	}
 
-	// static class Type extends QPPExpression {
-	// private final List<String> theQualifiedName;
-	// private final List<TypeParameter> theParameters;
-	// }
-	//
-	// static class TypeParameter extends QPPExpression {
-	// private final String theTypeParamName;
-	// private final boolean theBoundExtends;
-	// private final Type theBoundType;
-	// }
+	static class Parenthetic extends QPPExpression {
+		private final QPPExpression theContents;
 
-	static class Parenthetic extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theContents;
-
-		public Parenthetic(ParserRuleContext ctx, QPPExpression<?> contents) {
+		public Parenthetic(ParserRuleContext ctx, QPPExpression contents) {
 			super(ctx);
 			theContents = contents;
 		}
 
-		public QPPExpression<?> getContents() {
+		public QPPExpression getContents() {
 			return theContents;
 		}
 	}
 
-	static class Conditional extends QPPExpression<ConditionalExpressionContext> {
-		private final QPPExpression<?> theCondition;
-		private final QPPExpression<?> theAffirmative;
-		private final QPPExpression<?> theNegative;
+	static class Conditional extends QPPExpression {
+		private final QPPExpression theCondition;
+		private final QPPExpression theAffirmative;
+		private final QPPExpression theNegative;
 
-		public Conditional(ConditionalExpressionContext ctx, QPPExpression<?> condition, QPPExpression<?> affirmative,
-			QPPExpression<?> negative) {
+		public Conditional(ConditionalExpressionContext ctx, QPPExpression condition, QPPExpression affirmative, QPPExpression negative) {
 			super(ctx);
 			theCondition = condition;
 			theAffirmative = affirmative;
 			theNegative = negative;
 		}
 
-		public QPPExpression<?> getCondition() {
+		public QPPExpression getCondition() {
 			return theCondition;
 		}
 
-		public QPPExpression<?> getAffirmative() {
+		public QPPExpression getAffirmative() {
 			return theAffirmative;
 		}
 
-		public QPPExpression<?> getNegative() {
+		public QPPExpression getNegative() {
 			return theNegative;
 		}
 
@@ -195,11 +220,11 @@ class ExpressionTypes {
 		}
 	}
 
-	static class Operation extends QPPExpression<ParserRuleContext> {
+	static class Operation extends QPPExpression {
 		private final String theName;
-		private final QPPExpression<?> thePrimaryOperand;
+		private final QPPExpression thePrimaryOperand;
 
-		public Operation(ParserRuleContext ctx, String name, QPPExpression<?> left) {
+		public Operation(ParserRuleContext ctx, String name, QPPExpression left) {
 			super(ctx);
 			theName = name;
 			thePrimaryOperand = left;
@@ -209,20 +234,20 @@ class ExpressionTypes {
 			return theName;
 		}
 
-		public QPPExpression<?> getPrimaryOperand() {
+		public QPPExpression getPrimaryOperand() {
 			return thePrimaryOperand;
 		}
 	}
 
 	static class BinaryOperation extends Operation {
-		private final QPPExpression<?> theRight;
+		private final QPPExpression theRight;
 
-		public BinaryOperation(ParserRuleContext ctx, String name, QPPExpression<?> left, QPPExpression<?> right) {
+		public BinaryOperation(ParserRuleContext ctx, String name, QPPExpression left, QPPExpression right) {
 			super(ctx, name, left);
 			theRight = right;
 		}
 
-		public QPPExpression<?> getRight() {
+		public QPPExpression getRight() {
 			return theRight;
 		}
 
@@ -235,7 +260,7 @@ class ExpressionTypes {
 	static class UnaryOperation extends Operation {
 		private boolean isPreOp;
 
-		public UnaryOperation(ParserRuleContext ctx, String name, boolean preOp, QPPExpression<?> operand) {
+		public UnaryOperation(ParserRuleContext ctx, String name, boolean preOp, QPPExpression operand) {
 			super(ctx, name, operand);
 			isPreOp = preOp;
 		}
@@ -257,21 +282,21 @@ class ExpressionTypes {
 		}
 	}
 
-	static class Cast extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theType;
-		private final QPPExpression<?> theValue;
+	static class Cast extends QPPExpression {
+		private final Type theType;
+		private final QPPExpression theValue;
 
-		public Cast(ParserRuleContext ctx, QPPExpression<?> type, QPPExpression<?> value) {
+		public Cast(ParserRuleContext ctx, Type type, QPPExpression value) {
 			super(ctx);
 			theType = type;
 			theValue = value;
 		}
 
-		public QPPExpression<?> getType() {
+		public Type getType() {
 			return theType;
 		}
 
-		public QPPExpression<?> getValue() {
+		public QPPExpression getValue() {
 			return theValue;
 		}
 
@@ -281,21 +306,21 @@ class ExpressionTypes {
 		}
 	}
 
-	static class ArrayAccess extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theArray;
-		private final QPPExpression<?> theIndex;
+	static class ArrayAccess extends QPPExpression {
+		private final QPPExpression theArray;
+		private final QPPExpression theIndex;
 
-		public ArrayAccess(ParserRuleContext ctx, QPPExpression<?> array, QPPExpression<?> index) {
+		public ArrayAccess(ParserRuleContext ctx, QPPExpression array, QPPExpression index) {
 			super(ctx);
 			theArray = array;
 			theIndex = index;
 		}
 
-		public QPPExpression<?> getArray() {
+		public QPPExpression getArray() {
 			return theArray;
 		}
 
-		public QPPExpression<?> getIndex() {
+		public QPPExpression getIndex() {
 			return theIndex;
 		}
 
@@ -305,28 +330,27 @@ class ExpressionTypes {
 		}
 	}
 
-	static class ArrayInitializer extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theType;
-		private final List<QPPExpression<?>> theSizes;
-		private final List<QPPExpression<?>> theElements;
+	static class ArrayInitializer extends QPPExpression {
+		private final QPPExpression theType;
+		private final List<QPPExpression> theSizes;
+		private final List<QPPExpression> theElements;
 
-		public ArrayInitializer(ParserRuleContext ctx, QPPExpression<?> type, List<QPPExpression<?>> sizes,
-			List<QPPExpression<?>> elements) {
+		public ArrayInitializer(ParserRuleContext ctx, QPPExpression type, List<QPPExpression> sizes, List<QPPExpression> elements) {
 			super(ctx);
 			theType = type;
 			theSizes = sizes;
 			theElements = elements;
 		}
 
-		public QPPExpression<?> getType() {
+		public QPPExpression getType() {
 			return theType;
 		}
 
-		public List<QPPExpression<?>> getSizes() {
+		public List<QPPExpression> getSizes() {
 			return theSizes;
 		}
 
-		public List<QPPExpression<?>> getElements() {
+		public List<QPPExpression> getElements() {
 			return theElements;
 		}
 
@@ -334,7 +358,7 @@ class ExpressionTypes {
 		public String print() {
 			StringBuilder print = new StringBuilder().append("new ").append(theType.print());
 			if (theSizes != null) {
-				for (QPPExpression<?> size : theSizes)
+				for (QPPExpression size : theSizes)
 					print.append('[').append(size.print()).append(']');
 			} else {
 				print.append('{');
@@ -349,22 +373,24 @@ class ExpressionTypes {
 		}
 	}
 
-	static class Constructor extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theType;
+	static class Constructor extends QPPExpression {
+		private final QPPExpression theType;
 		private final boolean isDiamond;
-		private final List<Type<?>> theTypeArguments;
-		private final List<QPPExpression<?>> theArguments;
+		private final List<Type> theConstructorTypeArguments;
+		private final List<Type> theTypeArguments;
+		private final List<QPPExpression> theArguments;
 
-		public Constructor(ParserRuleContext ctx, QPPExpression<?> type, boolean diamond, List<Type<?>> typeArgs,
-			List<QPPExpression<?>> args) {
+		public Constructor(ParserRuleContext ctx, QPPExpression type, boolean diamond, List<Type> constructorTypeArgs,
+			List<Type> typeArgs, List<QPPExpression> args) {
 			super(ctx);
 			theType = type;
 			isDiamond = diamond;
+			theConstructorTypeArguments = constructorTypeArgs;
 			theTypeArguments = typeArgs;
 			theArguments = args;
 		}
 
-		public QPPExpression<?> getType() {
+		public QPPExpression getType() {
 			return theType;
 		}
 
@@ -372,11 +398,16 @@ class ExpressionTypes {
 			return isDiamond;
 		}
 
-		public List<Type<?>> getTypeArguments() {
+		/** @return The type arguments for the constructor itself, not the type to be constructed */
+		public List<Type> getConstructorTypeArguments() {
+			return theConstructorTypeArguments;
+		}
+
+		public List<Type> getTypeArguments() {
 			return theTypeArguments;
 		}
 
-		public List<QPPExpression<?>> getArguments() {
+		public List<QPPExpression> getArguments() {
 			return theArguments;
 		}
 
@@ -405,17 +436,17 @@ class ExpressionTypes {
 		}
 	}
 
-	static class UnitValue extends QPPExpression<ParserRuleContext> {
-		private final QPPExpression<?> theValue;
+	static class UnitValue extends QPPExpression {
+		private final QPPExpression theValue;
 		private final String theUnit;
 
-		public UnitValue(ParserRuleContext ctx, QPPExpression<?> value, String unit) {
+		public UnitValue(ParserRuleContext ctx, QPPExpression value, String unit) {
 			super(ctx);
 			theValue = value;
 			theUnit = unit;
 		}
 
-		public QPPExpression<?> getValue() {
+		public QPPExpression getValue() {
 			return theValue;
 		}
 
@@ -429,7 +460,7 @@ class ExpressionTypes {
 		}
 	}
 
-	static class Placeholder extends QPPExpression<ParserRuleContext> {
+	static class Placeholder extends QPPExpression {
 		private final String theName;
 
 		public Placeholder(ParserRuleContext ctx, String name) {
@@ -447,7 +478,7 @@ class ExpressionTypes {
 		}
 	}
 
-	static abstract class Literal<T> extends QPPExpression<LiteralContext> {
+	static abstract class Literal<T> extends QPPExpression {
 		private final TypeToken<? extends T> theType;
 		private final T theValue;
 
@@ -467,7 +498,7 @@ class ExpressionTypes {
 
 		protected abstract TypeToken<? extends T> getType(LiteralContext ctx);
 
-		protected abstract T parseValue(LiteralContext ctx);
+		protected abstract T parseValue(ParserRuleContext ctx);
 
 		@Override
 		public String print() {
@@ -486,7 +517,7 @@ class ExpressionTypes {
 		}
 
 		@Override
-		protected Void parseValue(LiteralContext ctx) {
+		protected Void parseValue(ParserRuleContext ctx) {
 			return null;
 		}
 	}
@@ -512,7 +543,7 @@ class ExpressionTypes {
 		}
 
 		@Override
-		protected Number parseValue(LiteralContext ctx) {
+		protected Number parseValue(ParserRuleContext ctx) {
 			String text = ctx.getText();
 			boolean isLong = getType().getRawType() == Long.TYPE;
 			boolean isHex = text.startsWith("0x") || text.startsWith("0X");
@@ -565,7 +596,7 @@ class ExpressionTypes {
 		}
 
 		@Override
-		protected Number parseValue(LiteralContext ctx) {
+		protected Number parseValue(ParserRuleContext ctx) {
 			String text = ctx.getText();
 			boolean isFloat = getType().getRawType() == Float.TYPE;
 			if (isFloat)
@@ -586,7 +617,7 @@ class ExpressionTypes {
 		}
 
 		@Override
-		protected Boolean parseValue(LiteralContext ctx) {
+		protected Boolean parseValue(ParserRuleContext ctx) {
 			return Boolean.valueOf(ctx.getText());
 		}
 	}
@@ -602,7 +633,7 @@ class ExpressionTypes {
 		}
 
 		@Override
-		protected Character parseValue(LiteralContext ctx) {
+		protected Character parseValue(ParserRuleContext ctx) {
 			String text = ctx.getText();
 			return unescapeJavaString(text.substring(1, text.length() - 1)).charAt(0); // Take off the quotes and unescape
 		}
@@ -619,7 +650,7 @@ class ExpressionTypes {
 		}
 
 		@Override
-		protected String parseValue(LiteralContext ctx) {
+		protected String parseValue(ParserRuleContext ctx) {
 			String text = ctx.getText();
 			return unescapeJavaString(text.substring(1, text.length() - 1)); // Take off the quotes and unescape
 		}

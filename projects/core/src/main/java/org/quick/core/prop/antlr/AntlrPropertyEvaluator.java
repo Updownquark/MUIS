@@ -26,7 +26,7 @@ public class AntlrPropertyEvaluator {
 		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=")));
 
 	private static <T> ObservableValue<? extends T> evaluateTypeChecked(QuickParseEnv parseEnv, TypeToken<T> type,
-		QPPExpression<?> parsedItem, boolean actionAccepted, boolean actionRequired) throws QuickParseException {
+		QPPExpression parsedItem, boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		ObservableValue<?> result = evaluateTypeless(parseEnv, type, parsedItem, actionAccepted, actionRequired);
 
 		if (!QuickUtils.isAssignableFrom(type, result.getType()))
@@ -35,7 +35,7 @@ public class AntlrPropertyEvaluator {
 		return (ObservableValue<? extends T>) result;
 	}
 
-	public static <T> ObservableValue<?> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression<?> parsedItem,
+	public static <T> ObservableValue<?> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression parsedItem,
 		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		// Sort from easiest to hardest
 		// Literals first
@@ -402,14 +402,14 @@ public class AntlrPropertyEvaluator {
 			throw new QuickParseException("Unrecognized parsed item type: " + parsedItem.getClass());
 	}
 
-	private static TypeToken<?> evaluateType(QuickParseEnv parseEnv, QPPExpression<?> parsedType, TypeToken<?> expected)
+	private static TypeToken<?> evaluateType(QuickParseEnv parseEnv, QPPExpression parsedType, TypeToken<?> expected)
 		throws QuickParseException {
 		Type reflectType = getReflectType(parsedType, expected, parseEnv);
 
 		return TypeToken.of(reflectType);
 	}
 
-	private static Type getReflectType(QPPExpression<?> parsedType, TypeToken<?> expected, QuickParseEnv parseEnv)
+	private static Type getReflectType(QPPExpression parsedType, TypeToken<?> expected, QuickParseEnv parseEnv)
 		throws QuickParseException {
 		Type reflectType;
 		if (parsedType.isParameterized())
@@ -426,7 +426,7 @@ public class AntlrPropertyEvaluator {
 		return reflectType;
 	}
 
-	private static Type parameterizedType(String name, QPPExpression<?>[] parameterTypes, TypeToken<?> expected, QuickParseEnv parseEnv)
+	private static Type parameterizedType(String name, QPPExpression[] parameterTypes, TypeToken<?> expected, QuickParseEnv parseEnv)
 		throws QuickParseException {
 		Class<?> raw = rawType(name, parseEnv);
 
@@ -535,7 +535,7 @@ public class AntlrPropertyEvaluator {
 		}
 	}
 
-	private static String getRootContext(QPPExpression<?> context) {
+	private static String getRootContext(QPPExpression context) {
 		if (context instanceof ExpressionTypes.MemberAccess) {
 			ExpressionTypes.MemberAccess method = (ExpressionTypes.MemberAccess) context;
 			if (method instanceof ExpressionTypes.MethodInvocation)
@@ -554,7 +554,7 @@ public class AntlrPropertyEvaluator {
 			return null;
 	}
 
-	private static InvokableMatch getMatch(Type[] paramTypes, boolean varArgs, List<QPPExpression<?>> arguments, QuickParseEnv env,
+	private static InvokableMatch getMatch(Type[] paramTypes, boolean varArgs, List<QPPExpression> arguments, QuickParseEnv env,
 		TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		TypeToken<?>[] typeTokenParams = new TypeToken[paramTypes.length];
 		for (int i = 0; i < paramTypes.length; i++)
@@ -562,7 +562,7 @@ public class AntlrPropertyEvaluator {
 		return getMatch(typeTokenParams, varArgs, arguments, env, type, actionAccepted);
 	}
 
-	private static InvokableMatch getMatch(TypeToken<?>[] paramTypes, boolean varArgs, List<QPPExpression<?>> arguments,
+	private static InvokableMatch getMatch(TypeToken<?>[] paramTypes, boolean varArgs, List<QPPExpression> arguments,
 		QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		TypeToken<?>[] argTargetTypes = new TypeToken[arguments.size()];
 		if (paramTypes.length == arguments.size()) {

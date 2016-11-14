@@ -103,7 +103,6 @@ typeVariable
 arrayType
 	:	primitiveType dims
 	|	classType dims
-	|	typeVariable dims
 	;
 
 dims
@@ -116,11 +115,7 @@ typeParameter
 
 typeBound
 	:	'extends' typeVariable
-	|	'extends' classType additionalBound*
-	;
-
-additionalBound
-	:	'&' classType
+	|	'extends' classType
 	;
 
 typeArguments
@@ -530,7 +525,7 @@ postDecrementExpression_lf_postfixExpression
 
 castExpression
 	:	'(' primitiveType ')' unaryExpression
-	|	'(' referenceType additionalBound* ')' unaryExpressionNotPlusMinus
+	|	'(' referenceType ')' unaryExpressionNotPlusMinus
 	;
 
 // LEXER

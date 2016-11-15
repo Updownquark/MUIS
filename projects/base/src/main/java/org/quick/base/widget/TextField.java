@@ -178,7 +178,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				};
 				return contentError;
 			}));
-			theErrorController.link(error.mapV(err -> err != null));
+			theErrorController.link(error.mapV(err -> err != null, true));
 		}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
 		life().runWhen(() -> {
 			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());

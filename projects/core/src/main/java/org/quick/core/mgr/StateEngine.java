@@ -285,6 +285,8 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 		@Override
 		public Boolean set(Boolean active, Object cause) throws IllegalArgumentException {
+			if (active == null)
+				throw new IllegalArgumentException("A null boolean is not allowed");
 			return stateChanged(theState, active, cause);
 		}
 

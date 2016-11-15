@@ -4,14 +4,14 @@
     <head>
         <title>Text Field Test</title>
 		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
-		<model name="text-field-model" builder="default-model">
+		<model name="textFieldModel" builder="default-model">
 			<variable name="simpleString">&quot;&quot;</variable>
 			<variable name="simpleInt">0</variable>
 		</model>
     </head>
     <body xmlns:base="../../../../base/QuickRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">
-   			<text-field length="30" format="${formats.string}" value="text-field-model.simpleString">This is a text field</text-field>
+   			<text-field length="30" format="${formats.string}" value="textFieldModel.simpleString">This is a text field</text-field>
    			<border>
    				This text is in a normal border
    			</border>
@@ -20,11 +20,11 @@
    				Can't put multi-lines in Quick files though.  Gotta be typed by the user currently.
    			</text-field>
    			This text field's value is duplicated on the next line
-   			<text-field length="30" format="formats.string" value="text-field-model.simpleString" />
-   			<label format="${formats.string}" value="text-field-model.simpleString" />
+   			<text-field length="30" format="${formats.string}" value="textFieldModel.simpleString" />
+   			<label format="${formats.string}" value="textFieldModel.simpleString" />
    			This one too, but this text field's value can only be an integer
-   			<text-field length="30" format="formats.integer" value="text-field-model.simpleInt" />
-   			<label format="${formats.integer}" value="text-field-model.simpleInt" />
+   			<text-field length="30" format="${formats.integer}" value="textFieldModel.simpleInt" />
+   			<label format="${formats.integer}" value="textFieldModel.simpleInt" />
    		</block>
     </body>
 </quick>

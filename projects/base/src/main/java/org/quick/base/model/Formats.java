@@ -33,6 +33,11 @@ public class Formats {
 		public Object parse(QuickDocumentModel doc) throws QuickParseException {
 			throw new QuickParseException("The default formatter does not support parsing", -1, -1);
 		}
+
+		@Override
+		public String toString() {
+			return "formats.def";
+		}
 	};
 
 	/** A function that is a pass-through for non-null values and returns the default formatter for null values */
@@ -61,6 +66,11 @@ public class Formats {
 		@Override
 		public String parse(QuickDocumentModel doc) throws QuickParseException {
 			return doc.toString();
+		}
+
+		@Override
+		public String toString() {
+			return "formats.string";
 		}
 	};
 
@@ -94,6 +104,11 @@ public class Formats {
 				throw new QuickParseException(e, -1, -1);
 			}
 		}
+
+		@Override
+		public String toString() {
+			return "formats.integer";
+		}
 	};
 
 	/** Formats and parses colors using the {@link Colors} class */
@@ -123,6 +138,11 @@ public class Formats {
 				throw new QuickParseException(e.getMessage(), e, -1, -1);
 			}
 			return ret;
+		}
+
+		@Override
+		public String toString() {
+			return "formats.color";
 		}
 	};
 }

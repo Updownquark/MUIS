@@ -11,7 +11,7 @@
     </head>
     <body xmlns:base="../../../../base/QuickRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">
-   			<text-field length="30" format="formats.string" value="text-field-model.simpleString">This is a text field</text-field>
+   			<text-field length="30" format="${formats.string}" value="text-field-model.simpleString">This is a text field</text-field>
    			<border>
    				This text is in a normal border
    			</border>
@@ -21,10 +21,10 @@
    			</text-field>
    			This text field's value is duplicated on the next line
    			<text-field length="30" format="formats.string" value="text-field-model.simpleString" />
-   			<label format="formats.string" value="text-field-model.simpleString" />
+   			<label format="${formats.string}" value="text-field-model.simpleString" />
    			This one too, but this text field's value can only be an integer
    			<text-field length="30" format="formats.integer" value="text-field-model.simpleInt" />
-   			<label format="formats.integer" value="text-field-model.simpleInt" />
+   			<label format="${formats.integer}" value="text-field-model.simpleInt" />
    		</block>
     </body>
 </quick>

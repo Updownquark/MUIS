@@ -108,7 +108,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			theEnabledController.link(enabled.mapV(e -> e != null, true));
 			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
-				if (tuple.getValue1() == null && tuple.getValue2() == null)
+				if (tuple.getValue1() == null)
 					configError = "No value";
 				else if (tuple.getValue2() == null) {
 					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))

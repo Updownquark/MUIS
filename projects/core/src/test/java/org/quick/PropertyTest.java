@@ -25,6 +25,7 @@ public class PropertyTest {
 	private final QuickAttribute<Duration> durationAtt = QuickAttribute.build("duration", QuickPropertyType.duration).build();
 	private final QuickAttribute<Double> doubleAtt = QuickAttribute.build("double", QuickPropertyType.floating).build();
 	private final QuickAttribute<Integer> intAtt = QuickAttribute.build("int", QuickPropertyType.integer).build();
+	private final QuickProperty<Color> colorAtt = BackgroundStyle.color;
 
 	/*@Test
 	public void testEnumFunctionBug() {
@@ -142,6 +143,10 @@ public class PropertyTest {
 
 			Assert.assertEquals(Duration.of(10, ChronoUnit.DAYS).plus(Duration.of(5, ChronoUnit.HOURS)), //
 				propParser.parseProperty(durationAtt, env, "10d 5h")//
+					.get());
+
+			Assert.assertEquals(Colors.blue, //
+				propParser.parseProperty(colorAtt, env, "${colors.blue}")//
 					.get());
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);

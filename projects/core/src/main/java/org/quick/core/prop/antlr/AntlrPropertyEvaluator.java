@@ -23,7 +23,7 @@ import com.google.common.reflect.TypeToken;
 
 public class AntlrPropertyEvaluator {
 	private static final Set<String> ASSIGN_BIOPS = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(//
-		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=")));
+		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "++", "--")));
 
 	private static <T> ObservableValue<? extends T> evaluateTypeChecked(QuickParseEnv parseEnv, TypeToken<T> type,
 		QPPExpression parsedItem, boolean actionAccepted, boolean actionRequired) throws QuickParseException {
@@ -73,7 +73,7 @@ public class AntlrPropertyEvaluator {
 				if (actionOp) {
 					SettableValue<Object> settable = (SettableValue<Object>) primary;
 					assignValue = getUnaryAssignValue(settable, (ExpressionTypes.UnaryOperation) op, parseEnv);
-					return makeActionValue(settable, assignValue, unOp.isPreOp());
+					return makeActionValue(settable, assignValue, !unOp.isPreOp());
 				} else {
 					return mapUnary(primary, unOp, parseEnv);
 				}

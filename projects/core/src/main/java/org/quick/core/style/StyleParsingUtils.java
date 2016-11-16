@@ -115,7 +115,7 @@ public class StyleParsingUtils {
 
 	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
 		StyleSetter setter) {
-		ObservableValue<T> value = null;
+		ObservableValue<? extends T> value = null;
 		if (valueStr.startsWith("^{") && valueStr.endsWith("}")) {
 			value = (ObservableValue<T>) env.getContext().getVariable(valueStr);
 			if (value != null) {

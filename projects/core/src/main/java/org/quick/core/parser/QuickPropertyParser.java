@@ -18,5 +18,6 @@ public interface QuickPropertyParser {
 	 * @return The parsed value
 	 * @throws QuickParseException If an error occurs parsing the value
 	 */
-	<T> ObservableValue<T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value) throws QuickParseException;
+	<T> ObservableValue<? extends T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
+		throws QuickParseException;
 }

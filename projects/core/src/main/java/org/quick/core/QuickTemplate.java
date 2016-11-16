@@ -225,6 +225,16 @@ public abstract class QuickTemplate extends QuickElement {
 			public TemplateStructure getTemplate() {
 				return theTemplate;
 			}
+
+			@Override
+			public int hashCode() {
+				return super.hashCode() * 19 + theTemplate.getDefiner().hashCode();
+			}
+
+			@Override
+			public boolean equals(Object o) {
+				return super.equals(o) && theTemplate == ((RoleAttribute) o).theTemplate;
+			}
 		}
 
 		/** The attribute in a child of a template instance which marks the child as replacing an attach point from the definition */
@@ -1255,6 +1265,11 @@ public abstract class QuickTemplate extends QuickElement {
 			if (ap != null) {
 				attaches.add(ap);
 				for (QuickElement child : theAttachmentMappings.get(ap)) {
+					try {
+						child.atts().require(theRoleWanter, theTemplateStructure.role, ap);
+					} catch (QuickException e) {
+						msg().error("Could not set default attach point role for " + ap, e);
+					}
 					ret.add(child);
 					if (childStruct instanceof WidgetStructure)
 						initTemplateChildren(child, (WidgetStructure) childStruct);

@@ -281,7 +281,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 
 	private static <T> void applyParsedValue(QuickPropertyParser parser, QuickParseEnv env, StyleAttribute<T> styleAttr, String valueStr,
 		ConditionalStyleSetter setter, StyleCondition condition) {
-		ObservableValue<T> value;
+		ObservableValue<? extends T> value;
 		try {
 			value = parser.parseProperty(styleAttr, env, valueStr);
 		} catch (org.quick.core.QuickException e) {

@@ -6,8 +6,9 @@ import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.Subscription;
-import org.observe.util.ObservableUtils;
+import org.quick.core.QuickException;
 import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -45,12 +46,23 @@ public class StyleValue<T> implements ObservableValue<T> {
 	@Override
 	public T get() {
 		T value = theValue.get();
-		if (theAttribute.canAccept(value))
-			return value;
-		else {
+		if (!theAttribute.canAccept(value)) {
 			theMessageCenter.info("Value " + value + " from observable " + theValue + " is unacceptable for style attribute " + theAttribute
 				+ ". Using default value.");
 			return theAttribute.getDefault();
+		}
+		if (getType().getRawType().isInstance(value))
+			return value;
+		else if (QuickUtils.isAssignableFrom(getType(), theValue.getType()))
+			return QuickUtils.convert(getType(), value);
+		else {
+			try {
+				return theAttribute.getType().cast((TypeToken<T>) theValue.getType(), value);
+			} catch (QuickException e) {
+				theMessageCenter.error("Value " + value + " from observable " + theValue + " is unacceptable for style attribute "
+					+ theAttribute + ". Using default value.", e);
+				return theAttribute.getDefault();
+			}
 		}
 	}
 
@@ -70,7 +82,7 @@ public class StyleValue<T> implements ObservableValue<T> {
 			@Override
 			public <V extends ObservableValueEvent<? extends T>> void onNext(V event) {
 				if (theAttribute.canAccept(event.getValue()))
-					observer.onNext(ObservableUtils.wrap(event, StyleValue.this));
+					observer.onNext(wrap(event));
 				else {
 					theMessageCenter.info("Value " + event.getValue() + " from observable " + theValue
 						+ " is unacceptable for style attribute " + theAttribute + ". Using default value.");
@@ -84,12 +96,20 @@ public class StyleValue<T> implements ObservableValue<T> {
 			public <V extends ObservableValueEvent<? extends T>> void onCompleted(V event) {
 				// Not sure what this would mean, but I guess we'll propagate it
 				if (theAttribute.canAccept(event.getValue()))
-					observer.onCompleted(ObservableUtils.wrap(event, StyleValue.this));
+					observer.onCompleted(wrap(event));
 				else {
 					theMessageCenter.info("Value " + event.getValue() + " from observable " + theValue
 						+ " is unacceptable for style attribute " + theAttribute + ". Using default value.");
 					observer.onCompleted(createChangeEvent(theAttribute.getDefault(), theAttribute.getDefault(), event));
 				}
+			}
+
+			private ObservableValueEvent<T> wrap(ObservableValueEvent<? extends T> event) {
+				if (event.isInitial())
+					return createInitialEvent(QuickUtils.convert(getType(), event.getValue()));
+				else
+					return createChangeEvent(QuickUtils.convert(getType(), event.getOldValue()),
+						QuickUtils.convert(getType(), event.getValue()), event.getCause());
 			}
 		});
 	}

@@ -18,7 +18,8 @@ public class BaseAttributes {
 	public static final QuickAttribute<QuickFormatter<?>> format = QuickAttribute.build("format", QuickPropertyType
 		.forTypeInstance((Class<QuickFormatter<?>>) (Class<?>) QuickFormatter.class, builder -> builder.buildContext(ctx -> {
 			ctx.withValue("string", ObservableValue.constant(new TypeToken<QuickFormatter<String>>() {}, Formats.string))
-				.withValue("integer", ObservableValue.constant(new TypeToken<QuickFormatter<Number>>() {}, Formats.integer))
+				.withValue("number", ObservableValue.constant(new TypeToken<QuickFormatter<Number>>() {}, Formats.number))
+				.withValue("integer", ObservableValue.constant(new TypeToken<QuickFormatter<Integer>>() {}, Formats.integer))
 				.withValue("color", ObservableValue.constant(new TypeToken<QuickFormatter<Color>>() {}, Formats.color))
 				.withValue("default", ObservableValue.constant(new TypeToken<QuickFormatter<Object>>() {}, Formats.def));
 		}))).build();

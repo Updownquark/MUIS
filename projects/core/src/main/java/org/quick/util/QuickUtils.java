@@ -385,7 +385,7 @@ public class QuickUtils {
 	public static <T> T convert(TypeToken<T> type, Object value) {
 		if (type.isPrimitive() && value == null)
 			throw new NullPointerException("null cannot be assigned to " + type);
-		if (type.isAssignableFrom(value.getClass()) || type.wrap().isAssignableFrom(value.getClass()))
+		if (value == null || type.getRawType().isInstance(value))
 			return (T) value;
 		Class<?> primType = type.unwrap().getRawType();
 		if (!primType.isPrimitive() || !(value instanceof Number))

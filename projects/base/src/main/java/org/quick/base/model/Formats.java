@@ -75,7 +75,7 @@ public class Formats {
 	};
 
 	/** Formats integers (type long) */
-	public static final QuickFormatter<Number> integer = new QuickFormatter<Number>() {
+	public static final QuickFormatter<Number> number = new QuickFormatter<Number>() {
 		@Override
 		public TypeToken<Number> getFormatType() {
 			return TypeToken.of(Number.class);
@@ -101,6 +101,40 @@ public class Formats {
 				else
 					return Long.valueOf(str);
 			} catch(NumberFormatException e) {
+				throw new QuickParseException(e, -1, -1);
+			}
+		}
+
+		@Override
+		public String toString() {
+			return "formats.number";
+		}
+	};
+
+	/** Formats integers */
+	public static final QuickFormatter<Integer> integer = new QuickFormatter<Integer>() {
+		@Override
+		public TypeToken<Integer> getFormatType() {
+			return TypeToken.of(Integer.class);
+		}
+
+		@Override
+		public void append(Integer value, MutableDocumentModel doc) {
+			if (value != null)
+				doc.append(value.toString());
+		}
+
+		@Override
+		public TypeToken<Integer> getParseType() {
+			return TypeToken.of(Integer.class);
+		}
+
+		@Override
+		public Integer parse(QuickDocumentModel doc) throws QuickParseException {
+			try {
+				String str = doc.toString();
+				return Integer.valueOf(str);
+			} catch (NumberFormatException e) {
 				throw new QuickParseException(e, -1, -1);
 			}
 		}

@@ -11,14 +11,11 @@
     </head>
     <body xmlns:base="../../../../base/QuickRegistry.xml">
    		<block layout="base:box" style="font.family=Arial" direction="down">
-   			<text-field length="30" format="${formats.string}" value="textFieldModel.simpleString">This is a text field</text-field>
+   			<text-field length="30" format="${formats.string}" value="textFieldModel.simpleString" />
    			<border>
    				This text is in a normal border
    			</border>
-   			<text-field group="tfredborder" length="50">This text field's border should be red</text-field>
-   			<text-field multi-line="true" length="100" rows="4">This text field can have multiple lines.
-   				Can't put multi-lines in Quick files though.  Gotta be typed by the user currently.
-   			</text-field>
+   			<text-field group="tfredborder" length="50" value="&quot;This text field's border should be red&quot;" />
    			This text field's value is duplicated on the next line
    			<text-field length="30" format="${formats.string}" value="textFieldModel.simpleString" />
    			<label format="${formats.string}" value="textFieldModel.simpleString" />

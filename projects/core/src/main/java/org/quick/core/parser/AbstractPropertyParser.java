@@ -13,6 +13,7 @@ import org.quick.core.QuickToolkit;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
@@ -60,7 +61,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	}
 
 	@Override
-	public <T> ObservableValue<T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
+	public <T> ObservableValue<? extends T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
 		throws QuickParseException {
 		checkValueDirectives(value);
 
@@ -72,7 +73,7 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 		if (property == null)
 			return (ObservableValue<T>) parsedValue;
-		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
+		if (QuickUtils.isAssignableFrom(property.getType().getType(), parsedValue.getType()))
 			return (ObservableValue<T>) parsedValue;
 		else if (property.getType().canAccept(parsedValue.getType()))
 			return convert(parsedValue, property, parseEnv);

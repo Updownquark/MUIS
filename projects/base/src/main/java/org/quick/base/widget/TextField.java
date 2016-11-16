@@ -18,6 +18,7 @@ import org.quick.core.model.*;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.tags.*;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -32,7 +33,7 @@ import com.google.common.reflect.TypeToken;
  */
 @Template(location = "../../../../text-field.qml")
 @QuickElementType(
-	attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"),
+	attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value", required = true),
 		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"),
 		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"),
 		@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"),
@@ -59,6 +60,29 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		theTextEditing = new SimpleTextEditing();
 
 		life().runWhen(() -> {
+			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
+			theTextEditing.install(this);
+			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
+			doc.changes()
+				.filter(evt -> (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
+					return c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this;
+				}) == null).act(evt -> isDocDirty = true);
+			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
+			cursor.setTextElement(getValueElement());
+			cursor.setStyleAnchor(getStyle());
+
+			events().filterMap(FocusEvent.blur).act(event -> {
+				pushChanges(event);
+			});
+			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
+				if (event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
+					if (Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
+						return;
+					pushChanges(event);
+				} else if (event.getKeyCode() == KeyBoardEvent.KeyCode.ESCAPE)
+					resetDocument(event);
+			});
+
 			atts().getHolder(BaseAttributes.document).tupleV(atts().getHolder(BaseAttributes.rich)).act(evt -> {
 				if (evt.getValue().getValue1() != null) {
 					if (evt.getValue().getValue2() != null)
@@ -71,7 +95,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				} else
 					getValueElement().setDocumentModel(null);
 			});
-			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
 			ObservableValue<TriTuple<ObservableValue<? extends Object>, QuickFormatter<?>, Validator<?>>> trioObs = //
 				atts().getHolder(ModelAttributes.value).getContainer().tupleV(//
 					atts().getHolder(BaseAttributes.format), atts().getHolder(BaseAttributes.validator));
@@ -90,11 +113,12 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				} else{
 					if (tuple.getValue2().getParseType() == null)
 						disabled = "Formatter does not support parsing";
-					else if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
+					else if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), tuple.getValue1().getType()))
 						configError = "Formatter is not compatible with value";
-					else if (!tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+					else if (!QuickUtils.isAssignableFrom(tuple.getValue1().getType(), tuple.getValue2().getParseType()))
 						configError = "Formatter cannot parse value's type";
-					else if (tuple.getValue3() != null && !tuple.getValue3().getType().isAssignableFrom(tuple.getValue2().getParseType()))
+					else if (tuple.getValue3() != null
+						&& !QuickUtils.isAssignableFrom(tuple.getValue3().getType(), tuple.getValue2().getParseType()))
 						configError = "Validator is not valid for type " + tuple.getValue2().getParseType();
 				}
 
@@ -108,17 +132,17 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			theEnabledController.link(enabled.mapV(e -> e != null, true));
 			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
-				if (tuple.getValue1() == null)
-					configError = "No value";
-				else if (tuple.getValue2() == null) {
+				if (tuple.getValue2() == null) {
 					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
 						configError = "No formatter";
 				} else{
-					if (!tuple.getValue2().getFormatType().isAssignableFrom(tuple.getValue1().getType()))
-						configError = "Formatter is not compatible with value";
+					if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), tuple.getValue1().getType()))
+						configError = "Formatter for " + tuple.getValue2().getFormatType() + " is not compatible with value "
+							+ tuple.getValue1() + "'s type " + tuple.getValue1().getType();
 					else if (tuple.getValue2().getParseType() != null
-						&& !tuple.getValue1().getType().isAssignableFrom(tuple.getValue2().getParseType()))
-						configError = "Formatter cannot parse value's type";
+						&& !QuickUtils.isAssignableFrom(tuple.getValue1().getType(), tuple.getValue2().getParseType()))
+						configError = "Formatter parseable for " + tuple.getValue2().getParseType() + " cannot parse value "
+							+ tuple.getValue1() + "'s type " + tuple.getValue1().getType();
 				}
 				if (configError != null) {
 					msg().error(configError);
@@ -179,31 +203,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				return contentError;
 			}));
 			theErrorController.link(error.mapV(err -> err != null, true));
-		}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
-		life().runWhen(() -> {
-			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
-			theTextEditing.install(this);
-			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
-			doc.changes()
-				.filter(evt -> (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
-					return c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this;
-				}) == null).act(evt -> isDocDirty = true);
-			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
-			cursor.setTextElement(getValueElement());
-			cursor.setStyleAnchor(getStyle());
-
-			events().filterMap(FocusEvent.blur).act(event -> {
-				pushChanges(event);
-			});
-			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
-				if(event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
-					if(Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
-						return;
-					pushChanges(event);
-				} else if(event.getKeyCode() == KeyBoardEvent.KeyCode.ESCAPE)
-					resetDocument(event);
-			});
-		}, org.quick.core.QuickConstants.CoreStage.INITIALIZED.toString(), 1);
+		}, org.quick.core.QuickConstants.CoreStage.STARTUP.toString(), 1);
 	}
 
 	/** @return The text element containing the text that is the value of this text field */

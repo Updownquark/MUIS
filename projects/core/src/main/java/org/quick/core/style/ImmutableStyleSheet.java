@@ -6,6 +6,7 @@ import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
 import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
@@ -86,7 +87,7 @@ public class ImmutableStyleSheet implements StyleSheet {
 
 		@Override
 		public <T> Builder set(StyleAttribute<T> attr, StyleCondition condition, ObservableValue<? extends T> value) {
-			if (!attr.getType().getType().isAssignableFrom(value.getType()))
+			if (!QuickUtils.isAssignableFrom(attr.getType().getType(), value.getType()))
 				throw new IllegalArgumentException("Incompatible types: " + attr.getType().getType() + " and " + value.getType());
 			((SortedSet<StyleConditionValue<?>>) theValues.computeIfAbsent(attr, a -> new TreeSet<>()))
 				.add(new StyleConditionValue<>(attr, condition, value, theMessageCenter));

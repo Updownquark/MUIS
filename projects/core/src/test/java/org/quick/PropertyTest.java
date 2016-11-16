@@ -207,7 +207,7 @@ public class PropertyTest {
 				.build());
 
 		try {
-			ObservableValue<Double> result = propParser.parseProperty(doubleAtt, parseEnv, "var1");
+			ObservableValue<? extends Double> result = propParser.parseProperty(doubleAtt, parseEnv, "var1");
 			if (!(result instanceof SettableValue))
 				throw new IllegalStateException("Result should be settable");
 			assertSameObservable(var1, result);
@@ -287,7 +287,7 @@ public class PropertyTest {
 		}
 	}
 
-	private static void assertSameObservable(SettableValue<Double> expected, ObservableValue<Double> actual) {
+	private static void assertSameObservable(SettableValue<Double> expected, ObservableValue<? extends Double> actual) {
 		Double previous=expected.get();
 		Assert.assertEquals(expected.get(), actual.get(), 0.0000000001);
 

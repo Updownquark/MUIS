@@ -1,0 +1,7 @@
+<quick-template>
+	<body>
+		<block>
+			<template-element template-attach-point="attach1" />
+		</block>
+	</body>
+</quick-template>

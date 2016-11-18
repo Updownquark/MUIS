@@ -453,15 +453,19 @@ public abstract class QuickTemplate extends QuickElement {
 
 			java.net.URL location;
 			try {
-				location = QuickUtils.resolveURL(templateType.getResource(templateType.getSimpleName() + ".class"), template.location());
+				location = QuickUtils.resolveURL(templateType.getResource(classFileName(templateType) + ".class"), template.location());
 			} catch (QuickException e) {
 				throw new QuickException(
 					"Could not resolve template path " + template.location() + " for templated widget " + templateType.getName(), e);
 			}
 			org.quick.core.parser.QuickDocumentStructure docStruct;
 			try (java.io.Reader templateReader = new java.io.BufferedReader(new java.io.InputStreamReader(location.openStream()))) {
-				QuickClassView classView = new QuickClassView(env, null, (QuickToolkit) templateType.getClassLoader());
-				classView.addNamespace("this", (QuickToolkit) templateType.getClassLoader());
+				QuickClassView classView;
+				if (templateType.getClassLoader() instanceof QuickToolkit) {
+					classView = new QuickClassView(env, null, (QuickToolkit) templateType.getClassLoader());
+					classView.addNamespace("this", (QuickToolkit) templateType.getClassLoader());
+				} else
+					classView = new QuickClassView(env, null, null);
 				org.quick.core.mgr.MutatingMessageCenter msg = new org.quick.core.mgr.MutatingMessageCenter(env.msg(),
 					"Template " + templateType.getName() + ": ", "template", templateType);
 				docStruct = env.getDocumentParser().parseDocument(location, templateReader, classView, msg);
@@ -561,6 +565,14 @@ public abstract class QuickTemplate extends QuickElement {
 					+ template.location() + " for templated widget " + templateType.getName());
 			templateStruct.addAttaches(attaches);
 			return templateStruct;
+		}
+
+		private static String classFileName(Class<? extends QuickTemplate> templateType) {
+			int dotIdx = templateType.getName().lastIndexOf('.');
+			if (dotIdx < 0)
+				return templateType.getName();
+			else
+				return templateType.getName().substring(dotIdx + 1);
 		}
 
 		private static Class<?> getBehaviorTarget(Class<? extends QuickBehavior<?>> behaviorClass) throws QuickException {

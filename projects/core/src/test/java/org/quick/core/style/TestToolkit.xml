@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>Style Test Toolkit</name>
+	<description>
+		Facilitates testing of styles
+	</description>
+	<version>0.0.1</version>
+	<dependencies />
+	<types>
+		<type tag="template1">org.quick.core.style.StylesTest$Templated1</type>
+		<type tag="template2">org.quick.core.style.StylesTest$Templated2</type>
+	</types>
+	<security />
+</registry>

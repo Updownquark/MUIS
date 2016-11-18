@@ -1,23 +1,40 @@
 package org.quick.core.style;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.net.URL;
 import java.util.List;
 
 import org.junit.Test;
 import org.observe.ObservableValueTester;
+import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
 import org.observe.collect.impl.ObservableHashSet;
+import org.quick.core.*;
+import org.quick.core.QuickCache.CacheException;
 import org.quick.core.QuickConstants.States;
-import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate.AttachPoint;
-import org.quick.core.QuickTextElement;
 import org.quick.core.mgr.QuickState;
+import org.quick.core.parser.QuickDocumentStructure;
+import org.quick.core.tags.Template;
 
 import com.google.common.reflect.TypeToken;
 
 /** Tests style classes in the org.quick.core.style package */
 public class StylesTest {
+	class StyleConditionInstanceBacking {
+		final ObservableHashSet<QuickState> state;
+		final ObservableHashSet<String> groups;
+		final ObservableHashSet<List<AttachPoint<?>>> rolePaths;
+
+		StyleConditionInstanceBacking() {
+			state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
+			groups = new ObservableHashSet<>(TypeToken.of(String.class));
+			rolePaths = new ObservableHashSet<>(new TypeToken<List<AttachPoint<?>>>() {});
+		}
+	}
+
 	@Test
 	public void testImmutableStyle() {
 		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
@@ -40,17 +57,6 @@ public class StylesTest {
 		SimpleStyleSheet sheet = new SimpleStyleSheet(null);
 		sheet.set(BackgroundStyle.transparency, v1);
 
-		class StyleConditionInstanceBacking {
-			final ObservableHashSet<QuickState> state;
-			final ObservableHashSet<String> groups;
-			final ObservableHashSet<List<AttachPoint<?>>> rolePaths;
-
-			StyleConditionInstanceBacking() {
-				state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
-				groups = new ObservableHashSet<>(TypeToken.of(String.class));
-				rolePaths = new ObservableHashSet<>(new TypeToken<List<AttachPoint<?>>>() {});
-			}
-		}
 		class DeepElement extends QuickTextElement {}
 		StyleConditionInstanceBacking baseBacking = new StyleConditionInstanceBacking();
 		StyleConditionInstanceBacking deepBacking = new StyleConditionInstanceBacking();
@@ -188,9 +194,63 @@ public class StylesTest {
 
 		deepBacking.groups.remove("group2");
 		deepTester.check(v3.get(), 0, 1); // In this case, we'll tolerate an event even though the value hasn't changed
+	}
 
+	@Test
+	public void testRolePathStyles() throws org.quick.core.parser.QuickParseException, java.io.IOException, CacheException {
 		// Check role-path styles
 		// TODO This is hard because the QuickTemplate class is written to prevent synthesizing attach points out of nowhere.
 		// They have to be built in the standard way, which requires an environment, etc. Maybe need to do some mocking. :-(
+
+		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
+		QuickToolkit testTK = env.getToolkit(StylesTest.class.getResource("TestToolkit.xml"));
+		URL testDoc = StylesTest.class.getResource("testRolePathStyles.qml");
+		QuickTemplate.TemplateStructure template1Struct = QuickTemplate.TemplateStructure.getTemplateStructure(env, Templated1.class);
+		QuickTemplate.TemplateStructure template2Struct = QuickTemplate.TemplateStructure.getTemplateStructure(env, Templated2.class);
+
+		QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(testDoc,
+			new java.io.InputStreamReader(testDoc.openStream()), env.cv(),
+			env.msg());
+		QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(), env);
+		QuickDocument doc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
+		env.getContentCreator().fillDocument(doc, docStruct.getContent());
+		Templated1 template1 = (Templated1) doc.getRoot().getChildren().last();
+		Templated2 template2 = (Templated2) template1.getChildren().last();
+		QuickTextElement text = (QuickTextElement) template2.getChildren().last();
+
+		StyleCondition shallowCondition = StyleCondition.build(QuickElement.class)//
+			.forPath(template1Struct.getAttachPoint("attach1"))//
+			.build();
+		assertTrue(shallowCondition.matches(StyleConditionInstance.of(template2)).get());
+	}
+
+	@Template(location = "template1.qts")
+	public static class Templated1 extends QuickTemplate {
+		public Templated1() {}
+
+		@Override
+		public <E extends QuickElement> QuickContainer<E> getContainer(AttachPoint<E> attach) throws IllegalArgumentException {
+			return super.getContainer(attach);
+		}
+
+		@Override
+		public <E extends QuickElement> SettableValue<E> getElement(AttachPoint<E> attach) {
+			return super.getElement(attach);
+		}
+	}
+
+	@Template(location = "template2.qts")
+	public static class Templated2 extends QuickTemplate {
+		public Templated2() {}
+
+		@Override
+		public <E extends QuickElement> QuickContainer<E> getContainer(AttachPoint<E> attach) throws IllegalArgumentException {
+			return super.getContainer(attach);
+		}
+
+		@Override
+		public <E extends QuickElement> SettableValue<E> getElement(AttachPoint<E> attach) {
+			return super.getElement(attach);
+		}
 	}
 }

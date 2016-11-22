@@ -7,6 +7,7 @@ import java.util.Map;
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
 import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -71,7 +72,7 @@ public class ImmutableStyle implements QuickStyle {
 
 		@Override
 		public <T> Builder set(StyleAttribute<T> attr, ObservableValue<? extends T> value) {
-			if (!attr.getType().getType().isAssignableFrom(value.getType()))
+			if (!QuickUtils.isAssignableFrom(attr.getType().getType(), value.getType()))
 				throw new IllegalArgumentException(
 					"Type of value " + value + " (" + value.getType() + ") is not valid for attribute " + attr);
 			theValues.put(attr, new StyleValue<>(attr, value, theMessageCenter));

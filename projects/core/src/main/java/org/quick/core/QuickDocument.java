@@ -573,7 +573,7 @@ public class QuickDocument implements QuickParseEnv {
 		QuickElement lastChild = theFocus;
 		QuickElement parent = theFocus.getParent().get();
 		while(parent != null) {
-			QuickElement[] children = parent.getChildren().sortByZ().toArray();
+			QuickElement[] children = parent.getPhysicalChildren().sortByZ().toArray();
 			if(!forward) {
 				ArrayUtils.reverse(children);
 			}

@@ -43,7 +43,7 @@ public class LayoutContainer extends QuickElement {
 	public SizeGuide getWSizer() {
 		QuickLayout layout = getLayout();
 		if (layout != null)
-			return layout.getWSizer(this, getChildren().toArray());
+			return layout.getWSizer(this, getPhysicalChildren().toArray());
 		else
 			return super.getWSizer();
 	}
@@ -52,7 +52,7 @@ public class LayoutContainer extends QuickElement {
 	public SizeGuide getHSizer() {
 		QuickLayout layout = getLayout();
 		if (layout != null)
-			return layout.getHSizer(this, getChildren().toArray());
+			return layout.getHSizer(this, getPhysicalChildren().toArray());
 		else
 			return super.getHSizer();
 	}
@@ -61,7 +61,7 @@ public class LayoutContainer extends QuickElement {
 	public void doLayout() {
 		QuickLayout layout = getLayout();
 		if (layout != null)
-			layout.layout(this, getChildren().toArray());
+			layout.layout(this, getPhysicalChildren().toArray());
 		super.doLayout();
 	}
 }

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.observe.*;
+import org.observe.collect.ObservableList;
 import org.qommons.Transaction;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
@@ -412,9 +413,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * Initializes an element's descendants
 	 *
 	 * @param children The child elements specified in the Quick XML
-	 * @return The child list that the children are populated into
 	 */
-	public ElementList<? extends QuickElement> initChildren(List<QuickElement> children) {
+	public void initChildren(List<QuickElement> children) {
 		theLifeCycleController.advance(CoreStage.INIT_CHILDREN.toString());
 		try (Transaction t = theChildren.lock(true, null)) {
 			theChildren.clear();
@@ -423,7 +423,6 @@ public abstract class QuickElement implements QuickParseEnv {
 		if(theBounds.getWidth() != 0 && theBounds.getHeight() != 0) // No point laying out if there's nothing to show
 			relayout(false);
 		theLifeCycleController.advance(CoreStage.INITIALIZED.toString());
-		return theChildren;
 	}
 
 	/**
@@ -557,18 +556,26 @@ public abstract class QuickElement implements QuickParseEnv {
 		theParent.set(parent, null);
 	}
 
-	/** @return An unmodifiable list of this element's children */
-	public ElementList<? extends QuickElement> getChildren() {
+	/** @return An list of the elements immediately contained by this element. By default, this list is immutable. */
+	public ElementList<? extends QuickElement> getPhysicalChildren() {
 		return theExposedChildren;
 	}
 
 	/**
-	 * Short-hand for {@link #getChildren()}
+	 * Short-hand for {@link #getPhysicalChildren()}
 	 *
-	 * @return An unmodifiable list of this element's children
+	 * @return An unmodifiable list of the elements immediately contained by this element
 	 */
 	public ElementList<? extends QuickElement> ch() {
-		return getChildren();
+		return getPhysicalChildren();
+	}
+
+	/**
+	 * @return A list of the logical contents of this element. By default, this is the same as its {@link #getPhysicalChildren() physical
+	 *         children}.
+	 */
+	public ObservableList<? extends QuickElement> getLogicalChildren() {
+		return theExposedChildren;
 	}
 
 	/** @return An augmented, modifiable {@link List} of this element's children */
@@ -721,7 +728,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 */
 	protected void doLayout() {
 		theLayoutDirtyTime = 0;
-		for(QuickElement child : getChildren())
+		for(QuickElement child : getPhysicalChildren())
 			child.doLayout();
 		repaint(null, false);
 	}

@@ -214,9 +214,9 @@ public class StylesTest {
 		QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(), env);
 		QuickDocument doc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
 		env.getContentCreator().fillDocument(doc, docStruct.getContent());
-		Templated1 template1 = (Templated1) doc.getRoot().getChildren().last();
-		Templated2 template2 = (Templated2) template1.getChildren().last();
-		QuickTextElement text = (QuickTextElement) template2.getChildren().last();
+		Templated1 template1 = (Templated1) doc.getRoot().getLogicalChildren().last();
+		Templated2 template2 = (Templated2) template1.getLogicalChildren().last();
+		QuickTextElement text = (QuickTextElement) template2.getPhysicalChildren().last();
 
 		StyleCondition shallowCondition = StyleCondition.build(QuickElement.class)//
 			.forPath(template1Struct.getAttachPoint("attach1"))//

@@ -85,7 +85,7 @@ public class CompoundListenerTest {
 
 		QuickElement testEl = new QuickElement() {
 			@Override
-			public ElementList<? extends QuickElement> getChildren() {
+			public ElementList<? extends QuickElement> getPhysicalChildren() {
 				return getChildManager();
 			}
 		};
@@ -186,7 +186,7 @@ public class CompoundListenerTest {
 
 		QuickElement testEl = new QuickElement() {
 			@Override
-			public ElementList<? extends QuickElement> getChildren() {
+			public ElementList<? extends QuickElement> getPhysicalChildren() {
 				return getChildManager();
 			}
 		};

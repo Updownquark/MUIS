@@ -5,10 +5,10 @@ import org.quick.core.mgr.ElementList;
 /**
  * <p>
  * Marks an element (typically, though technically any class may implement this) that logically (rather than "physically") contains a set of
- * elements. The content of a container may be different than its {@link QuickElement#getChildren() children}. An example of a container is a
+ * elements. The content of a container may be different than its {@link QuickElement#getPhysicalChildren() children}. An example of a container is a
  * combo or select box. Physically, a combo box contains a content pane (perhaps a text field), a button (with the down arrow), and a menu,
  * which contains the options that the user may select. Logically, though, a combo box just needs a set of options to be specified for it to
- * display. A combo box's {@link QuickElement#getChildren() children} will have the content pane, the button, and the menu; but its
+ * display. A combo box's {@link QuickElement#getPhysicalChildren() children} will have the content pane, the button, and the menu; but its
  * {@link #getContent() content} will just have the options.
  * </p>
  *

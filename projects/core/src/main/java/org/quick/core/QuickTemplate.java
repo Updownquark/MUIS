@@ -47,7 +47,7 @@ public abstract class QuickTemplate extends QuickElement {
 	 *
 	 * @param <E> The type of element that belongs in the attach point's place
 	 */
-	public static class AttachPoint<E extends QuickElement> {
+	public static class AttachPoint<E extends QuickElement> implements Comparable<AttachPoint<?>> {
 		/** The template structure that this attach point belongs to */
 		public final TemplateStructure template;
 
@@ -115,6 +115,17 @@ public abstract class QuickTemplate extends QuickElement {
 			isDefault = def;
 			implementation = impl;
 			mutable = isMutable;
+		}
+
+		@Override
+		public int compareTo(AttachPoint<?> o) {
+			int comp = template.getDefiner().getName().compareTo(o.template.getDefiner().getName());
+			if (comp != 0)
+				return comp;
+			comp = name.compareToIgnoreCase(o.name);
+			if (comp != 0)
+				return comp;
+			return name.compareTo(o.name);
 		}
 
 		@Override
@@ -873,6 +884,7 @@ public abstract class QuickTemplate extends QuickElement {
 	// Valid during initialization only (prior to initChildren())--will be null after that
 
 	private Map<AttachPoint<?>, List<QuickElement>> theAttachmentMappings;
+	private AttachPointSetChildList theAttachPointChildList;
 
 	private Set<QuickElement> theUninitialized;
 
@@ -985,7 +997,7 @@ public abstract class QuickTemplate extends QuickElement {
 	@Override
 	public SizeGuide getWSizer() {
 		if (theLayout != null)
-			return theLayout.getWSizer(this, getChildren().toArray());
+			return theLayout.getWSizer(this, getPhysicalChildren().toArray());
 		else
 			return super.getWSizer();
 	}
@@ -993,7 +1005,7 @@ public abstract class QuickTemplate extends QuickElement {
 	@Override
 	public SizeGuide getHSizer() {
 		if (theLayout != null)
-			return theLayout.getHSizer(this, getChildren().toArray());
+			return theLayout.getHSizer(this, getPhysicalChildren().toArray());
 		else
 			return super.getWSizer();
 	}
@@ -1001,8 +1013,13 @@ public abstract class QuickTemplate extends QuickElement {
 	@Override
 	public void doLayout() {
 		if (theLayout != null)
-			theLayout.layout(this, getChildren().toArray());
+			theLayout.layout(this, getPhysicalChildren().toArray());
 		super.doLayout();
+	}
+
+	@Override
+	public ObservableList<? extends QuickElement> getLogicalChildren() {
+		return theAttachPointChildList;
 	}
 
 	/**
@@ -1030,9 +1047,9 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	@Override
-	public ElementList<? extends QuickElement> initChildren(List<QuickElement> children) {
+	public void initChildren(List<QuickElement> children) {
 		if (theTemplateStructure == null)
-			return getChildManager(); // Failed to parse template structure
+			return; // Failed to parse template structure
 		if (theAttachmentMappings == null)
 			throw new IllegalArgumentException("initChildren() may only be called once on an element");
 
@@ -1042,14 +1059,14 @@ public abstract class QuickTemplate extends QuickElement {
 			initTemplate(theTemplateStructure);
 		} catch (QuickParseException e) {
 			msg().fatal("Failed to implement widget structure for templated type " + QuickTemplate.this.getClass().getName(), e);
-			return getChildManager();
+			return;
 		}
 
 		initExternalChildren(children, theTemplateStructure);
 
 		// Verify we've got all required attach points satisfied, etc.
 		if (!verifyTemplateStructure(theTemplateStructure))
-			return super.ch();
+			return;
 
 		initTemplateChildren(this, theTemplateStructure.getWidgetStructure());
 
@@ -1060,7 +1077,7 @@ public abstract class QuickTemplate extends QuickElement {
 		theAttachmentMappings = null;
 		theUninitialized = null;
 
-		return new AttachPointSetChildList();
+		theAttachPointChildList = new AttachPointSetChildList();
 	}
 
 	private void initTemplate(TemplateStructure structure) throws QuickParseException {
@@ -1299,12 +1316,12 @@ public abstract class QuickTemplate extends QuickElement {
 			throw new IllegalStateException("Should not get error here", e);
 		}
 
-		ElementList<?> childList;
 		if (parent == this)
-			childList = super.initChildren(ret);
+			super.initChildren(ret);
 		else
-			childList = parent.initChildren(ret);
+			parent.initChildren(ret);
 
+		ElementList<?> childList = getPhysicalChildren();
 		for (AttachPoint<?> attach : attaches)
 			theAttachPoints.put(attach, new AttachPointInstance<>(attach, this, childList));
 	}

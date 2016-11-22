@@ -282,7 +282,7 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 		QuickMessage.Type ret = getWorstMessageType();
 		if(theElement == null)
 			return ret;
-		for(QuickElement child : theElement.getChildren()) {
+		for(QuickElement child : theElement.getPhysicalChildren()) {
 			QuickMessage.Type childType = child.msg().getWorstMessageType();
 			if(ret == null || ret.compareTo(childType) < 0)
 				ret = childType;
@@ -296,7 +296,7 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 			return this;
 		ArrayList<Iterable<QuickMessage>> centers = new ArrayList<>();
 		centers.add(this);
-		for(QuickElement child : theElement.getChildren())
+		for(QuickElement child : theElement.getPhysicalChildren())
 			centers.add(child.msg().allMessages());
 		return IterableUtils.iterable((Iterable<QuickMessage>[]) centers.toArray(new Iterable[centers.size()]));
 	}

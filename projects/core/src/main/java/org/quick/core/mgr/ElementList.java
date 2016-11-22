@@ -1,7 +1,5 @@
 package org.quick.core.mgr;
 
-import java.util.NoSuchElementException;
-
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableOrderedCollection;
 import org.qommons.Transaction;
@@ -15,18 +13,6 @@ import org.quick.core.QuickElement;
 public interface ElementList<E extends QuickElement> extends ObservableList<E> {
 	/** @return The parent whose children this list manages */
 	QuickElement getParent();
-
-	/**
-	 * @return The last child in this list
-	 * @throws java.util.NoSuchElementException If this list is empty
-	 */
-	default QuickElement last() throws NoSuchElementException {
-		int size = size();
-		if (size == 0)
-			throw new NoSuchElementException("Empty list");
-		else
-			return get(size - 1);
-	}
 
 	/**
 	 * Moves an element from one index to another

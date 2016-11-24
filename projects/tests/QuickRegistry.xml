@@ -12,6 +12,8 @@
 	</dependencies>
 	<types>
 		<type tag="paint">org.quick.test.widget.PaintWidget</type>
+		<type tag="template1">org.quick.test.Templated1</type>
+		<type tag="template2">org.quick.test.Templated2</type>
 	</types>
 	<resources>
 		<resource tag="hello-world">src/main/resources/helloWorld.jpg</resource>

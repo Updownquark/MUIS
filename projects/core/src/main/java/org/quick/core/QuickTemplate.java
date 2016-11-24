@@ -735,13 +735,13 @@ public abstract class QuickTemplate extends QuickElement {
 		/** The attach point this instance is for */
 		public final AttachPoint<E> attachPoint;
 
-		private final ElementList<?> theParentChildren;
+		private final ObservableList<? extends QuickElement> theParentChildren;
 
 		private final SettableValue<E> theValue;
 
 		private final QuickContainer<E> theContainer;
 
-		AttachPointInstance(AttachPoint<E> ap, QuickTemplate template, ElementList<?> pc) {
+		AttachPointInstance(AttachPoint<E> ap, QuickTemplate template, ObservableList<? extends QuickElement> pc) {
 			attachPoint = ap;
 			theParentChildren = pc;
 			if (attachPoint.multiple){
@@ -1316,12 +1316,15 @@ public abstract class QuickTemplate extends QuickElement {
 			throw new IllegalStateException("Should not get error here", e);
 		}
 
-		if (parent == this)
+		ObservableList<? extends QuickElement> childList;
+		if (parent == this) {
 			super.initChildren(ret);
-		else
+			childList = getPhysicalChildren();
+		} else {
 			parent.initChildren(ret);
+			childList = parent.getLogicalChildren();
+		}
 
-		ElementList<?> childList = getPhysicalChildren();
 		for (AttachPoint<?> attach : attaches)
 			theAttachPoints.put(attach, new AttachPointInstance<>(attach, this, childList));
 	}
@@ -1426,7 +1429,7 @@ public abstract class QuickTemplate extends QuickElement {
 			return QuickTemplate.this;
 		}
 
-		@Override
+		/*@Override
 		public boolean add(QuickElement e) {
 			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
 			if (role == null)
@@ -1488,11 +1491,6 @@ public abstract class QuickTemplate extends QuickElement {
 				apVal.set(null, null);
 				return true;
 			}
-		}
-
-		@Override
-		public boolean addAll(int index, Collection<? extends QuickElement> c) {
-			throw new UnsupportedOperationException("add at index unsupported");
 		}
 
 		@Override
@@ -1563,13 +1561,13 @@ public abstract class QuickTemplate extends QuickElement {
 			QuickElement el = get(index);
 			remove(el);
 			return el;
-		}
+		}*/
 	}
 
 	private class AttachPointInstanceContainer<E extends QuickElement> implements QuickContainer<E> {
 		private AttachPointInstanceElementList<?, E> theContent;
 
-		AttachPointInstanceContainer(AttachPoint<E> ap, QuickTemplate template, ElementList<?> parentChildren) {
+		AttachPointInstanceContainer(AttachPoint<E> ap, QuickTemplate template, ObservableList<? extends QuickElement> parentChildren) {
 			theContent = new AttachPointInstanceElementList<>(ap, template, parentChildren);
 		}
 
@@ -1584,7 +1582,7 @@ public abstract class QuickTemplate extends QuickElement {
 		@SuppressWarnings("unused")
 		private final AttachPoint<E2> theAttachPoint;
 
-		AttachPointInstanceElementList(AttachPoint<E2> ap, QuickTemplate template, ElementList<E1> parentChildren) {
+		AttachPointInstanceElementList(AttachPoint<E2> ap, QuickTemplate template, ObservableList<E1> parentChildren) {
 			super(parentChildren, TypeToken.of(ap.type), e -> {
 				AttachPoint<?> elAp = e.atts().get(ap.template.role);
 				FilterMapResult<E2> result = null;

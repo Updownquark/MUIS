@@ -121,8 +121,14 @@ public class QuickMessage {
 	public String toString() {
 		QuickElement el = element;
 		String ret = "";
-		while(el != null)
-			ret = (el.getNamespace() != null ? el.getNamespace() + ":" : "") + el.getTagName() + "/" + ret;
+		if (el != null) {
+			ret = (el.getNamespace() != null ? el.getNamespace() + ":" : "") + el.getTagName();
+			el = el.getParent().get();
+			while (el != null) {
+				ret = (el.getNamespace() != null ? el.getNamespace() + ":" : "") + el.getTagName() + "/" + ret;
+				el = el.getParent().get();
+			}
+		}
 		return ret + ": " + text;
 	}
 

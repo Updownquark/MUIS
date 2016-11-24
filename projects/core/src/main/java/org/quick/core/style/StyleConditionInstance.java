@@ -90,10 +90,10 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			);
 			ObservableSet<List<AttachPoint<?>>> rawPaths = ObservableSetTree.valuePathsOf(tree, false);
 			ObservableSet<List<AttachPoint<?>>> filteredPaths = rawPaths//
-				.filter(path -> path.get(0) != null) // Filter out the root path
+				.filter(path -> path.size() > 1) // Filter out the root path
 				.mapEquivalent(path -> { // Remove the first element, which is null, and reverse the path
 					ArrayList<AttachPoint<?>> newPath = new ArrayList<>(path.size() - 1);
-					for (int i = 0; i < newPath.size(); i++)
+					for (int i = 0; i < path.size() - 1; i++)
 						newPath.add(path.get(path.size() - i - 1));
 					return Collections.unmodifiableList(newPath);
 				}, null); // The reverse function is unimportant since Objects.equals doesn't care
@@ -104,7 +104,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			if (element == null)
 				return ObservableSet.constant(new TypeToken<BiTuple<QuickElement, AttachPoint<?>>>() {});
 			ObservableMap<QuickAttribute<?>, ?> attMap = element.atts().getAllValues()
-				.filterKeys(attr -> attr instanceof QuickTemplate.TemplateStructure.RoleAttribute);
+				.filterKeysStatic(attr -> attr instanceof QuickTemplate.TemplateStructure.RoleAttribute);
 			ObservableMap<QuickAttribute<?>, BiTuple<QuickElement, AttachPoint<?>>> roleMap = attMap.map(v -> {
 				AttachPoint<?> ap = (AttachPoint<?>) v;
 				QuickTemplate template = QuickTemplate.getTemplateFor(element, ap);

@@ -1,11 +1,11 @@
 package org.quick.core.style;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -242,7 +242,8 @@ public class StylesTest {
 			.forPath(template1Struct.getAttachPoint("attach1"))//
 			.build();
 		StyleConditionInstance<?> temp2CI = StyleConditionInstance.of(template2);
-		assertEquals(Arrays.asList(template1Struct.getAttachPoint("attach1")), new ArrayList<>(temp2CI.getRolePaths()));
+		assertEquals(asList(asList(template1Struct.getAttachPoint("attach1"))), //
+			new ArrayList<>(temp2CI.getRolePaths()));
 		assertTrue(shallowCondition.matches(temp2CI).get());
 	}
 }

@@ -165,8 +165,8 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		if (theRolePath.isEmpty())
 			rolePathMatches = ObservableValue.constant(true);
 		else
-			rolePathMatches = value.getRolePaths()
-				.observeContainsAll(ObservableCollection.constant(new TypeToken<QuickTemplate.AttachPoint<?>>() {}, theRolePath));
+			rolePathMatches = value.getRolePaths().observeContainsAll(
+				ObservableCollection.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {}, Arrays.asList(theRolePath)));
 
 		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, rolePathMatches);
 	}

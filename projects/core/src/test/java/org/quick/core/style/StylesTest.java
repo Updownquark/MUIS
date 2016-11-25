@@ -201,13 +201,12 @@ public class StylesTest {
 
 	/**
 	 * Tests template role-based styles
-	 * 
+	 *
 	 * @throws Exception If an error occurs setting up the test or executing it
 	 */
 	@Test
 	public void testRolePathStyles() throws Exception {
-		// Check role-path styles
-		// TODO This is hard because the QuickTemplate class is written to prevent synthesizing attach points out of nowhere.
+		// This is hard because the QuickTemplate class is written to prevent synthesizing attach points out of nowhere.
 		// They have to be built in the standard way, which requires an environment, etc. Maybe need to do some mocking. :-(
 
 		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();

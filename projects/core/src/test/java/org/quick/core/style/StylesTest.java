@@ -2,11 +2,13 @@ package org.quick.core.style;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 import org.observe.ObservableValueTester;
@@ -234,16 +236,31 @@ public class StylesTest {
 			throw new IllegalStateException(e);
 		}
 
+		AttachPoint<?> attach1 = template1Struct.getAttachPoint("attach1");
+		AttachPoint<?> attach2 = template2Struct.getAttachPoint("attach2");
+
 		QuickTemplate template1 = (QuickTemplate) doc.getRoot().getLogicalChildren().last();
 		QuickTemplate template2 = (QuickTemplate) template1.getLogicalChildren().last();
 		QuickTextElement text = (QuickTextElement) template2.getLogicalChildren().last();
 
 		StyleCondition shallowCondition = StyleCondition.build(QuickElement.class)//
-			.forPath(template1Struct.getAttachPoint("attach1"))//
+			.forPath(attach1)//
 			.build();
 		StyleConditionInstance<?> temp2CI = StyleConditionInstance.of(template2);
-		assertEquals(asList(asList(template1Struct.getAttachPoint("attach1"))), //
-			new ArrayList<>(temp2CI.getRolePaths()));
+		assertEquals(setOf(asList(attach1)), temp2CI.getRolePaths());
 		assertTrue(shallowCondition.matches(temp2CI).get());
+
+		StyleCondition deepCondition = StyleCondition.build(QuickElement.class)//
+			.forPath(attach1, attach2)//
+			.build();
+		StyleConditionInstance<?> textCI = StyleConditionInstance.of(text);
+		assertEquals(setOf(asList(attach2), asList(attach1, attach2)), textCI.getRolePaths());
+		assertTrue(deepCondition.matches(textCI).get());
+		assertFalse(deepCondition.matches(temp2CI).get());
+		assertFalse(shallowCondition.matches(textCI).get());
+	}
+
+	private static <T> Set<T> setOf(T... values) {
+		return new HashSet<>(asList(values));
 	}
 }

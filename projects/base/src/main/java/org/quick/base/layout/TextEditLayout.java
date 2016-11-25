@@ -100,19 +100,17 @@ public class TextEditLayout implements QuickLayout {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(type.isPref()) {
-					final Integer length = parent.atts().get(charLengthAtt);
-					if(length != null) {
-						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
-						QuickStyle style;
-						if(doc.length() > 0)
-							style = doc.getStyleAt(0);
-						else
-							style = children[0].getStyle();
-						java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
-						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(),
-							style.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
-						return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
-					}
+					final int length = parent.atts().get(charLengthAtt, 12);
+					org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
+					QuickStyle style;
+					if (doc.length() > 0)
+						style = doc.getStyleAt(0);
+					else
+						style = children[0].getStyle();
+					java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
+					java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(),
+						style.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
+					return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
 				}
 				return children[0].bounds().getHorizontal().getGuide().get(type, crossSize, csMax);
 			}
@@ -200,15 +198,15 @@ public class TextEditLayout implements QuickLayout {
 			return;
 		}
 		boolean wrap = children[0].getStyle().get(org.quick.core.style.FontStyle.wordWrap).get();
-		int w = wrap ? parent.bounds().getWidth() : children[0].bounds().getHorizontal().getGuide().getPreferred(Integer.MAX_VALUE, true);
+		int w = parent.bounds().getWidth();
 		int h = children[0].bounds().getVertical().getGuide().getPreferred(w, !wrap);
 
 		DocumentedElement child = (DocumentedElement) children[0];
-		if(!(child.getDocumentModel() instanceof SelectableDocumentModel)) {
+		if (!(child.getDocumentModel().get() instanceof SelectableDocumentModel)) {
 			children[0].bounds().setBounds(0, 0, w, h);
 			return;
 		}
-		SelectableDocumentModel doc = (SelectableDocumentModel) child.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) child.getDocumentModel().get();
 		java.awt.geom.Point2D loc = doc.getLocationAt(doc.getCursor(), Integer.MAX_VALUE);
 		int x = children[0].bounds().getX();
 		if(w <= parent.bounds().getWidth())
@@ -244,5 +242,10 @@ public class TextEditLayout implements QuickLayout {
 			h = parent.bounds().getHeight();
 
 		children[0].bounds().setBounds(x, y, w, h);
+	}
+
+	@Override
+	public String toString() {
+		return "text-edit-layout";
 	}
 }

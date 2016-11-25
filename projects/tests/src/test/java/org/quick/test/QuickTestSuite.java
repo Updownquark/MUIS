@@ -1,8 +1,9 @@
-package org.quick;
+package org.quick.test;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.observe.ObservableTest;
+import org.quick.PropertyTest;
 import org.quick.core.style.StylesTest;
 import org.quick.core.util.CompoundListenerTest;
 

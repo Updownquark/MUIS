@@ -48,9 +48,9 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 	protected void charInput(DocumentedElement widget, char ch) {
 		if(ch < ' ' && ch != '\t' && ch != '\n' && ch != '\r' && ch != '\b' && ch != CharInputEvent.PASTE)
 			return;
-		if(!(widget.getDocumentModel() instanceof MutableSelectableDocumentModel))
+		if (!(widget.getDocumentModel().get() instanceof MutableSelectableDocumentModel))
 			return;
-		MutableSelectableDocumentModel doc = (MutableSelectableDocumentModel) widget.getDocumentModel();
+		MutableSelectableDocumentModel doc = (MutableSelectableDocumentModel) widget.getDocumentModel().get();
 		boolean batchDeleted = false;
 		if(doc.getSelectionAnchor() != doc.getCursor()) {
 			doc.delete(doc.getSelectionAnchor(), doc.getCursor());
@@ -71,7 +71,7 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 	}
 
 	private static void pasteFromClipboard(DocumentedElement element) {
-		if(!(element.getDocumentModel() instanceof MutableSelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof MutableSelectableDocumentModel))
 			return;
 		java.awt.datatransfer.Transferable contents = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
 		if(contents == null || !contents.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.stringFlavor))
@@ -86,7 +86,7 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 			((QuickElement) element).msg().error("I/O exception pasting text", e);
 			return;
 		}
-		MutableSelectableDocumentModel doc = (MutableSelectableDocumentModel) element.getDocumentModel();
+		MutableSelectableDocumentModel doc = (MutableSelectableDocumentModel) element.getDocumentModel().get();
 		doc.insert(doc.getCursor(), text);
 	}
 }

@@ -77,9 +77,9 @@ public class DocumentCursorOverlay extends QuickElement {
 			private void repaintCursor() {
 				BufferedImage cursorImage = theCursorImage;
 				Point cursorLoc = theCursorLocation;
-				if(cursorImage != null && cursorLoc != null) {
+				if (cursorImage != null && cursorLoc != null)
 					repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), true);
-				} else
+				else
 					repaint(null, true);
 			}
 		});
@@ -129,9 +129,9 @@ public class DocumentCursorOverlay extends QuickElement {
 			return true;
 		if (interval.isNegative())
 			return false;
-		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(theTextElement.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return false;
-		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel().get();
 		if(doc.getSelectionAnchor() != doc.getCursor())
 			return true;
 		long timeDiff = System.currentTimeMillis() - theLastCursorReset;
@@ -139,9 +139,9 @@ public class DocumentCursorOverlay extends QuickElement {
 	}
 
 	private boolean isBlinking() {
-		if(!(theTextElement.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(theTextElement.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return false;
-		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel().get();
 		if(doc.getSelectionAnchor() != doc.getCursor())
 			return false;
 		Duration interval;
@@ -170,7 +170,7 @@ public class DocumentCursorOverlay extends QuickElement {
 	private BufferedImage genCursorImage(Graphics2D graphics) {
 		if (!(theTextElement.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return new BufferedImage(1, 1, BufferedImage.TYPE_4BYTE_ABGR);
-		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) theTextElement.getDocumentModel().get();
 		QuickStyle cursorStyle = doc.getStyleAt(doc.getCursor());
 		java.awt.Font cursorFont = org.quick.util.QuickUtils.getFont(cursorStyle).get();
 		java.awt.font.LineMetrics metrics = cursorFont.getLineMetrics("I", graphics.getFontRenderContext());

@@ -36,6 +36,8 @@ public class QuickContentCreator {
 		for (QuickContent child : content.getChildren()) {
 			if (child instanceof WidgetStructure)
 				elements.add(createFromStructure(doc, doc.getRoot(), null, (WidgetStructure) child, true));
+			else
+				elements.add(getChild(doc.getRoot(), null, child, true));
 		}
 		doc.getRoot().initChildren(elements);
 	}

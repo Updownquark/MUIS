@@ -85,9 +85,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		@Override
 		public void act(KeyBoardEvent event) {
 			QuickTextElement text = (QuickTextElement) event.getElement();
-			if (!(text.getDocumentModel() instanceof SelectableDocumentModel))
+			if (!(text.getDocumentModel().get() instanceof SelectableDocumentModel))
 				return;
-			SelectableDocumentModel doc = (SelectableDocumentModel) text.getDocumentModel();
+			SelectableDocumentModel doc = (SelectableDocumentModel) text.getDocumentModel().get();
 			try (Transaction t = doc.holdForWrite(event)) {
 				switch (event.getKeyCode()) {
 				case C:
@@ -168,19 +168,19 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	}
 
 	private void copyToClipboard(QuickTextElement element, boolean cut) {
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
 			.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
-		if(cut && element.getDocumentModel() instanceof MutableDocumentModel)
+		if (cut && doc instanceof MutableDocumentModel)
 			((MutableDocumentModel) doc).delete(doc.getSelectionAnchor(), doc.getCursor());
 	}
 
 	private void left(QuickTextElement element, boolean shift) {
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int cursor = doc.getCursor() - 1;
 		if(cursor < 0)
 			cursor = 0;
@@ -191,9 +191,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	}
 
 	private void right(QuickTextElement element, boolean shift) {
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int cursor = doc.getCursor() + 1;
 		if(cursor > doc.length())
 			cursor = doc.length();
@@ -206,9 +206,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	private void up(QuickTextElement element, boolean shift) {
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			return;
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
 		if(loc.getY() == 0)
 			return; // Can't go up from here.
@@ -227,9 +227,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	private void down(QuickTextElement element, boolean shift) {
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			return;
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int cursor = doc.getCursor();
 		int cursorXLoc = theCursorXLoc;
 		if(cursorXLoc < 0) {
@@ -256,9 +256,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	}
 
 	private void home(QuickTextElement element, boolean shift) {
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int newCursor;
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = 0;
@@ -273,9 +273,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	}
 
 	private void end(QuickTextElement element, boolean shift) {
-		if(!(element.getDocumentModel() instanceof SelectableDocumentModel))
+		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 			return;
-		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel();
+		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int newCursor;
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = doc.length();

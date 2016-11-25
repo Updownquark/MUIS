@@ -176,7 +176,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 
 	/** @return This element's text content */
 	public String getText() {
-		return getDocumentModel().toString();
+		return getDocumentModel().get().toString();
 	}
 
 	@Override

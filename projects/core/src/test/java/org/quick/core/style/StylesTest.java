@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +17,6 @@ import org.quick.core.*;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.parser.QuickDocumentStructure;
 
 import com.google.common.reflect.TypeToken;
 
@@ -209,33 +207,15 @@ public class StylesTest {
 		// This is hard because the QuickTemplate class is written to prevent synthesizing attach points out of nowhere.
 		// They have to be built in the standard way, which requires an environment, etc. Maybe need to do some mocking. :-(
 
-		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
-		env.msg().addListener(msg -> {
-			switch (msg.type) {
-			case FATAL:
-			case ERROR:
-			case WARNING:
-				throw new IllegalStateException(msg.toString(), msg.exception);
-			case INFO:
-			case DEBUG:
-				System.out.println(msg);
-				break;
-			}
-		});
-		URL testDoc = StylesTest.class.getResource("testRolePathStyles.qml");
-		QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(testDoc,
-			new java.io.InputStreamReader(testDoc.openStream()), env.cv(), env.msg());
-		QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(), env);
-		QuickDocument doc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
-		env.getContentCreator().fillDocument(doc, docStruct.getContent());
+		QuickDocument doc = org.quick.QuickTestUtils.parseDoc(StylesTest.class.getResource("testRolePathStyles.qml"));
 
 		QuickToolkit testTK = doc.cv().getToolkit("test");
 		QuickTemplate.TemplateStructure template1Struct;
 		QuickTemplate.TemplateStructure template2Struct;
 		try {
-			template1Struct = QuickTemplate.TemplateStructure.getTemplateStructure(env,
+			template1Struct = QuickTemplate.TemplateStructure.getTemplateStructure(doc.getEnvironment(),
 				testTK.loadClass(testTK.getMappedClass("template1"), QuickTemplate.class));
-			template2Struct = QuickTemplate.TemplateStructure.getTemplateStructure(env,
+			template2Struct = QuickTemplate.TemplateStructure.getTemplateStructure(doc.getEnvironment(),
 				testTK.loadClass(testTK.getMappedClass("template2"), QuickTemplate.class));
 		} catch (QuickException e) {
 			throw new IllegalStateException(e);

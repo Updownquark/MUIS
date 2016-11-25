@@ -201,7 +201,24 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 						QuickDocumentModel current = event.getValue();
 						if (current != null) {
 							observer.onNext(createPopulateEvent(current, event));
-							current.changes().takeUntil(theWrapper.noInit()).subscribe(observer);
+							// Need to skip the initial event, and also the one that will be fired as a result of the same event that
+							// this listener is getting.
+							int skip = 1;
+							if (!event.isInitial())
+								skip++;
+							current.changes().takeUntil(theWrapper.skip(skip))
+								.subscribe(new Observer<QuickDocumentChangeEvent>() {
+								@Override
+								public <V extends QuickDocumentChangeEvent> void onNext(V value) {
+									observer.onNext(value);
+								}
+
+								@Override
+								public <V extends QuickDocumentChangeEvent> void onCompleted(V value) {
+									observer.onCompleted(value);
+								}
+							});
+							// observer);
 						}
 					});
 				}

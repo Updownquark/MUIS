@@ -56,7 +56,7 @@ public class QuickCache {
 	}
 
 	/** Wraps an exception thrown from {@link CacheItemType#generate(QuickEnvironment, Object)} */
-	public static class CacheException extends Throwable {
+	public static class CacheException extends Exception {
 		private final boolean isFirstThrown;
 
 		CacheException(Throwable e, boolean firstThrown) {

@@ -15,7 +15,6 @@ import org.observe.ObservableValueTester;
 import org.observe.SimpleSettableValue;
 import org.observe.collect.impl.ObservableHashSet;
 import org.quick.core.*;
-import org.quick.core.QuickCache.CacheException;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.mgr.QuickState;
@@ -37,6 +36,7 @@ public class StylesTest {
 		}
 	}
 
+	/** Tests a simple immutable style */
 	@Test
 	public void testImmutableStyle() {
 		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
@@ -52,6 +52,7 @@ public class StylesTest {
 		// TODO More!
 	}
 
+	/** Tests a simple style sheet */
 	@Test
 	public void testSimpleStyleSheet() {
 		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
@@ -198,8 +199,13 @@ public class StylesTest {
 		deepTester.check(v3.get(), 0, 1); // In this case, we'll tolerate an event even though the value hasn't changed
 	}
 
+	/**
+	 * Tests template role-based styles
+	 * 
+	 * @throws Exception If an error occurs setting up the test or executing it
+	 */
 	@Test
-	public void testRolePathStyles() throws org.quick.core.parser.QuickParseException, java.io.IOException, CacheException {
+	public void testRolePathStyles() throws Exception {
 		// Check role-path styles
 		// TODO This is hard because the QuickTemplate class is written to prevent synthesizing attach points out of nowhere.
 		// They have to be built in the standard way, which requires an environment, etc. Maybe need to do some mocking. :-(

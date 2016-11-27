@@ -76,7 +76,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			});
 			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
 				if (event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
-					if (Boolean.TRUE.equals(atts().get(multiLine)) && !event.isControlPressed())
+					if (atts().get(multiLine, false) && !event.isControlPressed())
 						return;
 					pushChanges(event);
 				} else if (event.getKeyCode() == KeyBoardEvent.KeyCode.ESCAPE)
@@ -129,7 +129,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					return ObservableValue.constant(disabled);
 				return ((SettableValue<?>) tuple.getValue1()).isEnabled();
 			}));
-			theEnabledController.link(enabled.mapV(e -> e != null, true));
+			theEnabledController.link(enabled.mapV(e -> e == null, true));
 			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
 				if (tuple.getValue2() == null) {

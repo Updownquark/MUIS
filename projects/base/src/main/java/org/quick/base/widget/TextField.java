@@ -63,10 +63,14 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
 			theTextEditing.install(this);
 			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
-			doc.changes()
-				.filter(evt -> (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
-					return c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this;
-				}) == null).act(evt -> isDocDirty = true);
+			doc.changes().filter(evt -> {
+				return (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
+					if (c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this)
+						return (TextEditEvent) c;
+					else
+						return null;
+				}) == null;
+			}).act(evt -> isDocDirty = true);
 			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
 			cursor.setTextElement(getValueElement());
 			cursor.setStyleAnchor(getStyle());
@@ -190,8 +194,10 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					public Subscription subscribe(Observer<? super ObservableValueEvent<String>> observer) {
 						return doc.changes().act(evt -> {
 							String newError = get();
-							observer.onNext(createChangeEvent(theLastError, newError, evt));
-							theLastError = newError;
+							if (newError != theLastError) {
+								observer.onNext(createChangeEvent(theLastError, newError, evt));
+								theLastError = newError;
+							}
 						});
 					}
 
@@ -221,8 +227,10 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		if (!isDocDirty || !atts().isSet(ModelAttributes.value) || theErrorController.get())
 			return;
 		SettableValue<?> mv = atts().getHolder(ModelAttributes.value).asSettable();
-		((SettableValue<Object>) mv).set(theLastParsedValue, new TextEditEvent(this, cause));
-		resetDocument(cause);
+		TextEditEvent textEdit = new TextEditEvent(this, cause);
+		((SettableValue<Object>) mv).set(theLastParsedValue, textEdit);
+		resetDocument(textEdit);
+		isDocDirty = false;
 	}
 
 	private void resetDocument(Object cause) {
@@ -234,7 +242,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			return;
 		MutableDocumentModel editModel = (MutableDocumentModel) docModel;
 		QuickFormatter<?> formatter = atts().get(BaseAttributes.format);
-		try (Transaction t = editModel.holdForWrite(new TextEditEvent(this, cause))) {
+		TextEditEvent textEdit = cause instanceof TextEditEvent ? (TextEditEvent) cause : new TextEditEvent(this, cause);
+		try (Transaction t = editModel.holdForWrite(textEdit)) {
 			editModel.clear();
 			if(formatter != null)
 				((QuickFormatter<Object>) formatter).append(mv.get(), editModel);

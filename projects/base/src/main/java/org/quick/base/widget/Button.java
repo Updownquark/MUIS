@@ -1,12 +1,17 @@
 package org.quick.base.widget;
 
+import static org.quick.core.QuickConstants.States.CLICK;
+
 import java.awt.Point;
 
 import org.observe.Action;
 import org.observe.ObservableAction;
+import org.observe.ObservableValueEvent;
 import org.quick.base.BaseConstants;
 import org.quick.core.QuickConstants;
-import org.quick.core.event.*;
+import org.quick.core.event.KeyBoardEvent;
+import org.quick.core.event.MouseEvent;
+import org.quick.core.event.QuickEvent;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.ModelAttributes;
@@ -42,17 +47,17 @@ public class Button extends SimpleContainer {
 				if (event.getValue() != null)
 					theDepressedController.set(false, event);
 			});
-			events().filterMap(StateChangedEvent.state(QuickConstants.States.CLICK)).act(new Action<StateChangedEvent>() {
+			state().observe(CLICK).noInit().act(new Action<ObservableValueEvent<Boolean>>() {
 				private Point theClickLocation;
 
 				@Override
-				public void act(StateChangedEvent event) {
+				public void act(ObservableValueEvent<Boolean> event) {
 					if(!state().is(BaseConstants.States.ENABLED))
 						return;
-					QuickEvent cause = event.getCause();
+					MouseEvent cause = event.getCauseLike(c -> c instanceof MouseEvent ? (MouseEvent) c : null);
 					if(event.getValue()) {
-						if(cause instanceof MouseEvent) {
-							theClickLocation = ((MouseEvent) cause).getPosition(Button.this);
+						if (cause != null) {
+							theClickLocation = cause.getPosition(Button.this);
 							theDepressedController.set(true, cause);
 						} else
 							theClickLocation = null;
@@ -61,12 +66,12 @@ public class Button extends SimpleContainer {
 						theClickLocation = null;
 						checkDepressed(cause);
 						if(click == null || !(cause instanceof MouseEvent)
-							|| ((MouseEvent) cause).getType() != MouseEvent.MouseEventType.released) {
+							|| cause.getType() != MouseEvent.MouseEventType.released) {
 							return;
 						}
 						if(state().is(BaseConstants.States.DEPRESSED))
 							return;
-						Point unclick = ((MouseEvent) cause).getPosition(Button.this);
+						Point unclick = cause.getPosition(Button.this);
 						int dx = click.x - unclick.x;
 						int dy = click.y - unclick.y;
 						double tol = Button.this.getStyle().get(org.quick.base.style.ButtonStyle.clickTolerance).get();

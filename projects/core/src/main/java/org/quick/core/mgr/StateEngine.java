@@ -2,20 +2,18 @@ package org.quick.core.mgr;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.observe.*;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
-import org.qommons.IterableUtils;
+import org.qommons.Transaction;
 import org.quick.core.QuickElement;
-import org.quick.core.event.QuickEvent;
-import org.quick.core.event.StateChangedEvent;
 
 import com.google.common.reflect.TypeToken;
 
 /** Keeps track of states for an entity and fires events when they change */
-public class StateEngine extends DefaultObservable<StateChangedEvent> implements StateSet {
+public class StateEngine implements StateSet {
 	/** Allows control over one state in an engine */
 	public interface StateController extends SettableValue<Boolean> {
 		/** @return The engine that this controller controls a state in */
@@ -25,47 +23,12 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		QuickState getState();
 	}
 
-	private static class StateValue {
-		private final boolean isActive;
-
-		private AtomicInteger theStackChecker;
-
-		StateValue(boolean active, AtomicInteger stackChecker) {
-			isActive = active;
-			theStackChecker = stackChecker;
-		}
-
-		StateValue(boolean active) {
-			isActive = active;
-		}
-
-		boolean isActive() {
-			return isActive;
-		}
-
-		AtomicInteger getStackChecker() {
-			if(theStackChecker == null)
-				theStackChecker = new AtomicInteger();
-			return theStackChecker;
-		}
-
-		void setStackChecker(AtomicInteger stackChecker) {
-			theStackChecker = stackChecker;
-		}
-	}
-
 	private final QuickElement theElement;
-	private final ConcurrentHashMap<QuickState, StateValue> theStates;
+	private final ConcurrentHashMap<QuickState, StateHolder> theStateHolders;
 	private final ObservableSet<QuickState> theStateSet;
+	private final ObservableSet<QuickState> theExposedStateSet;
 	private final ObservableSet<QuickState> theActiveStates;
-	private final java.util.Set<QuickState> theStateSetController;
-	private final java.util.Set<QuickState> theActiveStateController;
-
-	private StateControllerImpl [] theStateControllers;
-
-	private Object theStateControllerLock;
-
-	private Observer<StateChangedEvent> theObservableController;
+	private final ObservableSet<QuickState> theExposedActiveStates;
 
 	/**
 	 * Creates a state engine
@@ -73,45 +36,26 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	 * @param element The element that this engine keeps state for
 	 */
 	public StateEngine(QuickElement element) {
-		theObservableController = super.control(null);
 		theElement = element;
-		theStates = new ConcurrentHashMap<>();
-		theStateControllers = new StateControllerImpl[0];
-		theStateControllerLock = new Object();
-
-		ObservableHashSet<QuickState> allStates = new ObservableHashSet<>(TypeToken.of(QuickState.class));
-		theStateSetController = allStates;
-		theStateSet = new org.observe.util.ObservableSetWrapper<QuickState>(allStates, false) {
-			@Override
-			public String toString() {
-				return "allStates(" + theElement.getTagName() + ")";
-			}
-		};
-		ObservableHashSet<QuickState> activeStates = new ObservableHashSet<>(theStateSet.getType());
-		theActiveStateController = activeStates;
-		theActiveStates = new org.observe.util.ObservableSetWrapper<QuickState>(activeStates, false) {
-			@Override
-			public String toString() {
-				return "activeStates(" + theElement.getTagName() + ")=" + super.toString();
-			}
-		};
+		theStateHolders = new ConcurrentHashMap<>();
+		theStateSet = new ObservableHashSet<>(TypeToken.of(QuickState.class));
+		theActiveStates = new ObservableHashSet<>(theStateSet.getType());
+		theExposedStateSet = theStateSet.immutable();
+		theExposedActiveStates = theActiveStates.immutable();
 	}
 
 	@Override
 	public boolean is(QuickState state) {
-		return isActive(theStates.get(state));
+		return theActiveStates.contains(state);
 	}
 
 	@Override
 	public ObservableValue<Boolean> observe(QuickState state) {
-		for(StateController control : theStateControllers)
-			if(control.getState().equals(state))
-				return control.unsettable();
-		return ObservableValue.constant(TypeToken.of(Boolean.TYPE), false);
-	}
-
-	private static boolean isActive(StateValue stateValue) {
-		return stateValue != null && stateValue.isActive();
+		StateHolder holder = theStateHolders.get(state);
+		if (holder != null)
+			return holder;
+		else
+			return ObservableValue.constant(TypeToken.of(Boolean.TYPE), false);
 	}
 
 	/**
@@ -119,10 +63,8 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	 * @return Whether the given state is controller in this state engine
 	 */
 	public boolean recognizes(QuickState state) {
-		for(StateController control : theStateControllers)
-			if(control.getState().equals(state))
-				return true;
-		return false;
+		StateHolder holder = theStateHolders.get(state);
+		return holder != null && holder.theController.get() != null;
 	}
 
 	/**
@@ -130,65 +72,30 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	 * @return The state controlled by this engine with the given name, or null if this engine does not control a state with the given name
 	 */
 	public QuickState getState(String stateName) {
-		for(StateController control : theStateControllers)
-			if(control.getState().getName().equals(stateName))
-				return control.getState();
+		for (QuickState state : theStateHolders.keySet())
+			if (state.getName().equals(stateName))
+				return state;
 		return null;
 	}
 
 	@Override
 	public Iterator<QuickState> iterator() {
-		return IterableUtils.conditionalIterator(theStates.entrySet().iterator(), value -> {
-			if(!isActive(value.getValue()))
-				return null;
-			return value.getKey();
-		}, false);
+		return theExposedActiveStates.iterator();
 	}
 
 	@Override
 	public QuickState [] toArray() {
-		java.util.ArrayList<QuickState> ret = new java.util.ArrayList<>();
-		for(java.util.Map.Entry<QuickState, StateValue> entry : theStates.entrySet()) {
-			if(isActive(entry.getValue()))
-				ret.add(entry.getKey());
-		}
-		return ret.toArray(new QuickState[ret.size()]);
-	}
-
-	/** @return All states that are controlled in this engine, whether they are active or not */
-	public Iterable<QuickState> getAllStates() {
-		return () -> {
-			return new Iterator<QuickState>() {
-				private final StateController [] theControllerSnapshot = theStateControllers;
-
-				private int theIndex;
-
-				@Override
-				public boolean hasNext() {
-					return theIndex < theControllerSnapshot.length;
-				}
-
-				@Override
-				public QuickState next() {
-					return theControllerSnapshot[theIndex++].getState();
-				}
-
-				@Override
-				public void remove() {
-					throw new UnsupportedOperationException();
-				}
-			};
-		};
+		return theExposedActiveStates.toArray();
 	}
 
 	@Override
 	public ObservableSet<QuickState> allStates() {
-		return theStateSet;
+		return theExposedStateSet;
 	}
 
 	@Override
 	public ObservableSet<QuickState> activeStates() {
-		return theActiveStates;
+		return theExposedActiveStates;
 	}
 
 	/**
@@ -198,10 +105,12 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	public void addState(QuickState state) throws IllegalArgumentException {
 		if(state == null)
 			throw new NullPointerException("state cannot be null");
-		if(theStates.containsKey(state))
+		StateHolder holder = theStateHolders.get(state);
+		if (holder != null)
 			throw new IllegalArgumentException("The state \"" + state + "\" is already added to this engine");
-		theStates.put(state, new StateValue(false, new AtomicInteger()));
-		theStateSetController.add(state);
+		holder = new StateHolder(state);
+		theStateHolders.put(state, holder);
+		theStateSet.add(state);
 	}
 
 	/**
@@ -212,48 +121,20 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	public StateController control(QuickState state) throws IllegalArgumentException {
 		if(state == null)
 			throw new NullPointerException("state cannot be null");
-		if(!theStates.containsKey(state))
+		StateHolder holder = theStateHolders.get(state);
+		if (holder == null)
 			throw new IllegalArgumentException("The state \"" + state + "\" is not recognized in this engine");
-		StateControllerImpl ret;
-		synchronized(theStateControllerLock) {
-			for(StateControllerImpl ctrlr : theStateControllers)
-				if(ctrlr.getState().equals(state))
-					throw new IllegalArgumentException("The state \"" + state + "\" is already controlled in this engine");
-			ret = new StateControllerImpl(state);
-			theStateControllers = org.qommons.ArrayUtils.add(theStateControllers, ret);
-		}
+		StateControllerImpl ret = new StateControllerImpl(holder);
+		if (!holder.theController.compareAndSet(null, ret))
+			throw new IllegalArgumentException("The state \"" + state + "\" is already controlled in this engine");
 		return ret;
-	}
-
-	private boolean stateChanged(QuickState state, final boolean active, Object cause) {
-		final StateValue newState = new StateValue(active);
-		StateValue old = theStates.put(state, newState);
-		newState.setStackChecker(old.getStackChecker());
-		final int stack = newState.getStackChecker().incrementAndGet();
-		if(old.isActive() == active)
-			return old.isActive();
-
-		QuickEvent event = cause instanceof QuickEvent ? (QuickEvent) cause : null;
-		StateChangedEvent sce = new StateChangedEvent(theElement, state, false, active, event) {
-			@Override
-			public boolean isOverridden() {
-				return stack != newState.getStackChecker().get();
-			}
-		};
-		theObservableController.onNext(sce);
-		if(active)
-			theActiveStateController.add(state);
-		else
-			theActiveStateController.remove(state);
-		theElement.events().fire(sce);
-		return !active;
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder ret = new StringBuilder();
 		ret.append('{');
-		for(QuickState state : this) {
+		for (QuickState state : theActiveStates) {
 			if(ret.length() > 1)
 				ret.append(", ");
 			ret.append(state.getName());
@@ -262,15 +143,65 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		return ret.toString();
 	}
 
-	private class StateControllerImpl extends DefaultSettableValue<Boolean> implements StateController {
+	private class StateHolder implements ObservableValue<Boolean> {
 		private final QuickState theState;
+		private final AtomicReference<StateControllerImpl> theController;
 
-		private final Observer<ObservableValueEvent<Boolean>> theController;
-
-		public StateControllerImpl(QuickState state) {
+		StateHolder(QuickState state) {
 			theState = state;
-			theController = control(null);
-			StateEngine.this.filter(event -> event.getState().equals(theState)).act(event -> theController.onNext(event));
+			theController = new AtomicReference<>();
+		}
+
+		QuickState getState() {
+			return theState;
+		}
+
+		@Override
+		public TypeToken<Boolean> getType() {
+			return TypeToken.of(Boolean.TYPE);
+		}
+
+		@Override
+		public boolean isSafe() {
+			return theActiveStates.isSafe();
+		}
+
+		@Override
+		public Boolean get() {
+			return theActiveStates.contains(theState);
+		}
+
+		@Override
+		public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
+			Subscription sub = theActiveStates.changes().act(event -> {
+				switch (event.type) {
+				case add:
+					if (event.values.contains(theState))
+						observer.onNext(createChangeEvent(false, true, event));
+					break;
+				case remove:
+					if (event.values.contains(theState))
+						observer.onNext(createChangeEvent(true, false, event));
+					break;
+				case set:
+					if (event.values.contains(theState)) {
+						if (!event.oldValues.contains(theState))
+							observer.onNext(createChangeEvent(false, true, event));
+					} else if (event.oldValues.contains(theState))
+						observer.onNext(createChangeEvent(true, false, event));
+					break;
+				}
+			});
+			observer.onNext(createInitialEvent(theActiveStates.contains(theState)));
+			return sub;
+		}
+	}
+
+	private class StateControllerImpl implements StateController {
+		private final StateHolder theState;
+
+		public StateControllerImpl(StateHolder state) {
+			theState = state;
 		}
 
 		@Override
@@ -280,14 +211,43 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 
 		@Override
 		public QuickState getState() {
-			return theState;
+			return theState.getState();
+		}
+
+		@Override
+		public TypeToken<Boolean> getType() {
+			return TypeToken.of(Boolean.class);
+		}
+
+		@Override
+		public boolean isSafe() {
+			return theState.isSafe();
+		}
+
+		@Override
+		public Boolean get() {
+			return theState.get();
+		}
+
+		@Override
+		public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
+			return theState.subscribe(observer);
 		}
 
 		@Override
 		public Boolean set(Boolean active, Object cause) throws IllegalArgumentException {
 			if (active == null)
 				throw new IllegalArgumentException("A null boolean is not allowed");
-			return stateChanged(theState, active, cause);
+			Transaction trans = cause != null ? theActiveStates.lock(true, cause) : null;
+			try {
+				if (active)
+					return !theActiveStates.add(getState());
+				else
+					return theActiveStates.remove(getState());
+			} finally {
+				if (trans != null)
+					trans.close();
+			}
 		}
 
 		@Override
@@ -298,16 +258,6 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 		@Override
 		public ObservableValue<String> isEnabled() {
 			return ObservableValue.constant(TypeToken.of(String.class), null);
-		}
-
-		@Override
-		public TypeToken<Boolean> getType() {
-			return TypeToken.of(Boolean.class);
-		}
-
-		@Override
-		public Boolean get() {
-			return is(theState);
 		}
 	}
 }

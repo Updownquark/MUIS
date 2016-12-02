@@ -193,17 +193,21 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 			return new Observable<QuickDocumentChangeEvent>() {
 				@Override
 				public Subscription subscribe(Observer<? super QuickDocumentChangeEvent> observer) {
-					return theWrapper.noInit().act(event -> {
+					return theWrapper.act(event -> {
 						QuickDocumentModel old = event.getOldValue();
-						if (old != null && old.length() > 0)
+						if (old != null && old.length() > 0 && !event.isInitial())
 							observer.onNext(createClearEvent(old, event));
 
 						QuickDocumentModel current = event.getValue();
 						if (current != null) {
-							observer.onNext(createPopulateEvent(current, event));
+							if (!event.isInitial())
+								observer.onNext(createPopulateEvent(current, event));
 							// Need to skip the initial event, and also the one that will be fired as a result of the same event that
 							// this listener is getting.
-							current.changes().takeUntil(theWrapper.skip(2))
+							int skip = 1;
+							if (!event.isInitial())
+								skip++;
+							current.changes().takeUntil(theWrapper.skip(skip))
 								.subscribe(new Observer<QuickDocumentChangeEvent>() {
 								@Override
 								public <V extends QuickDocumentChangeEvent> void onNext(V value) {

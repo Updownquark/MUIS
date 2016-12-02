@@ -23,6 +23,7 @@ public class StateEngine implements StateSet {
 		QuickState getState();
 	}
 
+	@SuppressWarnings("unused")
 	private final QuickElement theElement;
 	private final ConcurrentHashMap<QuickState, StateHolder> theStateHolders;
 	private final ObservableSet<QuickState> theStateSet;

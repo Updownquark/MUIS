@@ -64,12 +64,16 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			theTextEditing.install(this); // Installs the text editing behavior
 			// Mark the document dirty when the user edits it
 			doc.changes().filter(evt -> {
-				return (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
-					if (c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this)
-						return (TextEditEvent) c;
-					else
-						return null;
-				}) == null;
+				if (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) {
+					TextEditEvent textEdit = evt.getCauseLike(c -> {
+						if (c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this)
+							return (TextEditEvent) c;
+						else
+							return null;
+					});
+					return textEdit == null;
+				} else
+					return false;
 			}).act(evt -> setDocDirty());
 			// When the value changes outside of this widget, update the document
 			atts().getHolder(ModelAttributes.value).noInit().act(event -> {
@@ -78,10 +82,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			});
 			// Set up the cursor overlay
 			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
-			cursor.setTextElement(getValueElement());
-			cursor.setStyleAnchor(getStyle());
-
-			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue())); // Disables text editing when appropriate
+			cursor.setElement(this, getValueElement());
 
 			// When the user leaves this widget, flush--either modify the value or reset the document
 			events().filterMap(FocusEvent.blur).act(event -> {
@@ -111,7 +112,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					getValueElement().setDocumentModel(evt.getValue().getValue2() ? //
 					new RichDocumentModel(getValueElement()) : //
 					new SimpleDocumentModel(getValueElement()));
-				}
+				} else
+					getValueElement().setDocumentModel(null);
 			});
 			// Set up the enabled state as a function of the value, format and validator
 			ObservableValue<TriTuple<ObservableValue<? extends Object>, QuickFormatter<?>, Validator<?>>> trioObs = //
@@ -225,6 +227,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				return contentError;
 			}));
 			theErrorController.link(error.mapV(err -> err != null, true));
+			resetDocument(null); // Set the document text to the value's initial value
 		}, org.quick.core.QuickConstants.CoreStage.STARTUP.toString(), 1);
 	}
 
@@ -240,10 +243,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	}
 
 	private void setDocDirty() {
-		if (!isDocDirty)
-			System.out.println("Doc dirty");
-		else
-			System.out.println("Doc already dirty");
 		isDocDirty = true;
 	}
 

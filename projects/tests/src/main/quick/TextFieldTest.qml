@@ -16,10 +16,10 @@
    				This text is in a normal border
    			</border>
    			<text-field group="tfredborder" length="50" value="&quot;This text field's border should be red&quot;" />
-   			This text field's value is duplicated on the next line
+   			This text field's value is duplicated on the next line and in the top text field
    			<text-field length="30" format="${formats.string}" value="textFieldModel.simpleString" />
    			<label format="${formats.string}" value="textFieldModel.simpleString" />
-   			This one too, but this text field's value can only be an integer
+   			This field's value is on the next line too, but this one can only be an integer
    			<text-field length="30" format="${formats.integer}" value="textFieldModel.simpleInt" />
    			<label format="${formats.integer}" value="textFieldModel.simpleInt" />
    		</block>

@@ -29,6 +29,8 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 		((QuickElement) element).events().filterMap(CharInputEvent.charInput).takeUntil(theUninstallObservable.filter(el -> {
 			return el == element;
 		})).act(theInputListener);
+		((QuickElement) element).state().observe(org.quick.base.BaseConstants.States.ENABLED).takeUntil(theUninstallObservable)
+			.act(event -> setEnabled(event.getValue()));
 	}
 
 	@Override

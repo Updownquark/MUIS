@@ -204,10 +204,15 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 	@Override
 	public String toString() {
-		StringBuilder str = new StringBuilder(theType.getSimpleName());
+		StringBuilder str = new StringBuilder();
 
-		for (QuickTemplate.AttachPoint<?> role : theRolePath)
-			str.append('.').append(role.name);
+		if (theRolePath.isEmpty())
+			str.append(theType.getSimpleName());
+		else {
+			str.append(theRolePath.get(0).template.getDefiner().getSimpleName());
+			for (QuickTemplate.AttachPoint<?> role : theRolePath)
+				str.append('.').append(role.name);
+		}
 
 		if (!theGroups.isEmpty()) {
 			str.append('[');

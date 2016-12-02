@@ -4,14 +4,35 @@ import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
+import org.quick.core.mgr.QuickState;
 
 /** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
+	private final ObservableSet<QuickState> theExtraStates;
+	private StyleConditionInstance<?> theCondition;
 
 	/** @param element The element that this style is for */
 	public QuickElementStyle(QuickElement element) {
+		this(element, null);
+	}
+
+	/** @return The condition instance representing this style */
+	public StyleConditionInstance<?> getCondition() {
+		if (theCondition == null) {
+			theCondition = theExtraStates == null ? StyleConditionInstance.of(theElement)
+				: StyleConditionInstance.of(theElement, theExtraStates);
+		}
+		return theCondition;
+	}
+
+	/**
+	 * @param element The element that this style is for
+	 * @param extraStates Extra states, if any to use for determining style from style sheets
+	 */
+	public QuickElementStyle(QuickElement element, ObservableSet<QuickState> extraStates) {
 		theElement = element;
+		theExtraStates = extraStates;
 	}
 
 	/** @return The element that this style is for */
@@ -40,10 +61,11 @@ public class QuickElementStyle implements QuickStyle {
 		if (localStyle != null && localStyle.isSet(attr))
 			return true;
 		StyleSheet sheet = theElement.getDocument().getStyle();
-		if (sheet.isSet(theElement, attr))
+		if (sheet.isSet(getCondition(), attr))
 			return true;
 		if (attr.isInherited()) {
 			QuickElement parent = theElement.getParent().get();
+			// TODO not exactly right, because the parent's style may not have this style's extra states
 			if (parent != null && parent.getStyle().isSet(attr))
 				return true;
 		}
@@ -66,13 +88,15 @@ public class QuickElementStyle implements QuickStyle {
 		if (theElement.getDocument() == null)
 			return localValue;
 		StyleSheet sheet = theElement.getDocument().getStyle();
-		ObservableValue<StyleConditionValue<T>> ssMatch = sheet.getBestMatch(theElement, attr);
+		ObservableValue<StyleConditionValue<T>> ssMatch = sheet.getBestMatch(getCondition(), attr);
 		ObservableValue<T> ssValue;
 		if (attr.isInherited()) {
 			ObservableValue<StyleConditionValue<T>> parentSSMatch = ObservableValue.flatten(theElement.getParent().mapV(p -> {
 				if (p == null)
 					return null;
-				return sheet.getBestMatch(p, attr);
+				StyleConditionInstance<?> pCondition = theExtraStates == null ? StyleConditionInstance.of(p)
+					: StyleConditionInstance.of(p, theExtraStates);
+				return sheet.getBestMatch(pCondition, attr);
 			}));
 			ssMatch = ssMatch.combineV(null, (ss, pSS) -> {
 				if (ss == null && pSS == null)

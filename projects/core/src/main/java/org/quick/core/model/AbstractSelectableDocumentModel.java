@@ -14,7 +14,10 @@ import org.qommons.Transaction;
 import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.*;
+import org.quick.core.style.QuickElementStyle;
+import org.quick.core.style.QuickStyle;
+import org.quick.core.style.StyleAttribute;
+import org.quick.core.style.StyleChangeObservable;
 
 import com.google.common.reflect.TypeToken;
 
@@ -36,7 +39,8 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	/** @param element The element that this document is for */
 	public AbstractSelectableDocumentModel(QuickElement element) {
 		theNormalStyle = element.getStyle();
-		theSelectedStyle = new SelectionStyle(element);
+		theSelectedStyle = new QuickElementStyle(element,
+			ObservableSet.constant(TypeToken.of(QuickState.class), QuickConstants.States.TEXT_SELECTION));
 		theContentChanges = new SimpleObservable<>();
 		theStyleChanges = new SimpleObservable<>();
 		theSelectionChanges = new SimpleObservable<>();
@@ -797,46 +801,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		}
 	}
 
-	/** A selected or deselected style for a document */
-	public static class SelectionStyle implements org.quick.core.style.QuickStyle {
-		private final QuickElement theElement;
-		private final ObservableSet<QuickState> theSelectedState;
-
-		/** @param element The element that this document is for */
-		public SelectionStyle(QuickElement element) {
-			theElement = element;
-			theSelectedState = ObservableSet.constant(TypeToken.of(QuickState.class), QuickConstants.States.TEXT_SELECTION);
-		}
-
-		@Override
-		public ObservableSet<StyleAttribute<?>> attributes() {
-			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
-			ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
-			StyleSheet sheet = theElement.getDocument().getStyle();
-			return ObservableSet.unique(ObservableCollection.flattenCollections(localAttrs, sheet.attributes()), Object::equals);
-		}
-
-		@Override
-		public boolean isSet(StyleAttribute<?> attr) {
-			QuickStyle localStyle = theElement.atts().get(StyleAttributes.style);
-			if (localStyle != null && localStyle.isSet(attr))
-				return true;
-			StyleSheet sheet = theElement.getDocument().getStyle();
-			if (sheet.isSet(theElement, theSelectedState, attr))
-				return true;
-			return false;
-		}
-
-		@Override
-		public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-			ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
-			ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
-			StyleSheet sheet = theElement.getDocument().getStyle();
-			return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue,
-				sheet.get(theElement, theSelectedState, attr, withDefault));
-		}
-	}
-
 	private static class StyledSequenceWrapper implements StyledSequence {
 		private final StyledSequence theWrapped;
 		private final QuickStyle theBackup;
@@ -864,7 +828,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 				@Override
 				public boolean isSet(StyleAttribute<?> attr) {
-					return theWrapped.getStyle() != null && theWrapped.getStyle().isSet(attr) || theBackup.isSet(attr);
+					return (theWrapped.getStyle() != null && theWrapped.getStyle().isSet(attr)) || theBackup.isSet(attr);
 				}
 
 				@Override

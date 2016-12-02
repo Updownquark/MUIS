@@ -86,7 +86,6 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	 */
 	public QuickTextElement(QuickDocumentModel doc) {
 		this("");
-		theDocument.set(doc, null);
 	}
 
 	/**
@@ -186,8 +185,12 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 
 	/** @param docModel The new document model for this text element */
 	public void setDocumentModel(QuickDocumentModel docModel) {
-		if (docModel == null)
-			docModel = new SimpleDocumentModel(this);
+		if (docModel == null) {
+			if (theDocument.get() == null)
+				docModel = new SimpleDocumentModel(this);
+			else
+				return;
+		}
 		theDocument.set(docModel, null);
 	}
 

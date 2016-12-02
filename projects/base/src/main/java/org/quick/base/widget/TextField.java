@@ -111,8 +111,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					getValueElement().setDocumentModel(evt.getValue().getValue2() ? //
 					new RichDocumentModel(getValueElement()) : //
 					new SimpleDocumentModel(getValueElement()));
-				} else
-					getValueElement().setDocumentModel(null);
+				}
 			});
 			// Set up the enabled state as a function of the value, format and validator
 			ObservableValue<TriTuple<ObservableValue<? extends Object>, QuickFormatter<?>, Validator<?>>> trioObs = //

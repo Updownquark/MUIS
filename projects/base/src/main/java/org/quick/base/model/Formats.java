@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.util.function.Function;
 
 import org.quick.core.QuickException;
-import org.quick.core.model.MutableDocumentModel;
-import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.style.Colors;
 
 import com.google.common.reflect.TypeToken;
@@ -13,15 +11,10 @@ import com.google.common.reflect.TypeToken;
 /** A utility class containing standard formats */
 public class Formats {
 	/** Formats objects by their {@link Object#toString()} methods. Does not support parsing. */
-	public static final QuickFormatter<Object> def = new QuickFormatter<Object>() {
+	public static final QuickFormatter<Object> def = new SimpleFormatter<Object>() {
 		@Override
 		public TypeToken<Object> getFormatType() {
 			return TypeToken.of(Object.class);
-		}
-
-		@Override
-		public void append(Object value, MutableDocumentModel doc) {
-			doc.append(String.valueOf(value));
 		}
 
 		@Override
@@ -30,7 +23,12 @@ public class Formats {
 		}
 
 		@Override
-		public Object parse(QuickDocumentModel doc) throws QuickParseException {
+		public String format(Object value) {
+			return String.valueOf(value);
+		}
+
+		@Override
+		public Object parse(String text) throws QuickParseException {
 			throw new QuickParseException("The default formatter does not support parsing", -1, -1);
 		}
 
@@ -46,16 +44,10 @@ public class Formats {
 	};
 
 	/** Simple formatter for strings */
-	public static final QuickFormatter<String> string = new QuickFormatter<String>() {
+	public static final QuickFormatter<String> string = new SimpleFormatter<String>() {
 		@Override
 		public TypeToken<String> getFormatType() {
 			return TypeToken.of(String.class);
-		}
-
-		@Override
-		public void append(String value, MutableDocumentModel doc) {
-			if(value != null)
-				doc.append(value);
 		}
 
 		@Override
@@ -64,8 +56,13 @@ public class Formats {
 		}
 
 		@Override
-		public String parse(QuickDocumentModel doc) throws QuickParseException {
-			return doc.toString();
+		public String format(String value) {
+			return value;
+		}
+
+		@Override
+		public String parse(String text) throws QuickParseException {
+			return text;
 		}
 
 		@Override
@@ -75,16 +72,10 @@ public class Formats {
 	};
 
 	/** Formats integers (type long) */
-	public static final QuickFormatter<Number> number = new QuickFormatter<Number>() {
+	public static final QuickFormatter<Number> number = new SimpleFormatter<Number>() {
 		@Override
 		public TypeToken<Number> getFormatType() {
 			return TypeToken.of(Number.class);
-		}
-
-		@Override
-		public void append(Number value, MutableDocumentModel doc) {
-			if(value != null)
-				doc.append(value.toString());
 		}
 
 		@Override
@@ -93,13 +84,17 @@ public class Formats {
 		}
 
 		@Override
-		public Number parse(QuickDocumentModel doc) throws QuickParseException {
+		public String format(Number value) {
+			return value.toString();
+		}
+
+		@Override
+		public Number parse(String text) throws QuickParseException {
 			try {
-				String str = doc.toString();
-				if (str.indexOf('.') >= 0)
-					return Double.valueOf(str);
+				if (text.indexOf('.') >= 0)
+					return Double.valueOf(text);
 				else
-					return Long.valueOf(str);
+					return Long.valueOf(text);
 			} catch(NumberFormatException e) {
 				throw new QuickParseException(e, -1, -1);
 			}
@@ -112,16 +107,10 @@ public class Formats {
 	};
 
 	/** Formats integers */
-	public static final QuickFormatter<Integer> integer = new QuickFormatter<Integer>() {
+	public static final QuickFormatter<Integer> integer = new SimpleFormatter<Integer>() {
 		@Override
 		public TypeToken<Integer> getFormatType() {
 			return TypeToken.of(Integer.class);
-		}
-
-		@Override
-		public void append(Integer value, MutableDocumentModel doc) {
-			if (value != null)
-				doc.append(value.toString());
 		}
 
 		@Override
@@ -130,10 +119,14 @@ public class Formats {
 		}
 
 		@Override
-		public Integer parse(QuickDocumentModel doc) throws QuickParseException {
+		public String format(Integer value) {
+			return value.toString();
+		}
+
+		@Override
+		public Integer parse(String text) throws QuickParseException {
 			try {
-				String str = doc.toString();
-				return Integer.valueOf(str);
+				return Integer.valueOf(text);
 			} catch (NumberFormatException e) {
 				throw new QuickParseException(e, -1, -1);
 			}
@@ -146,16 +139,10 @@ public class Formats {
 	};
 
 	/** Formats and parses colors using the {@link Colors} class */
-	public static final QuickFormatter<Color> color = new QuickFormatter<Color>() {
+	public static final QuickFormatter<Color> color = new SimpleFormatter<Color>() {
 		@Override
 		public TypeToken<Color> getFormatType() {
 			return TypeToken.of(Color.class);
-		}
-
-		@Override
-		public void append(Color value, MutableDocumentModel doc) {
-			if(value != null)
-				doc.append(Colors.toString(value));
 		}
 
 		@Override
@@ -164,10 +151,15 @@ public class Formats {
 		}
 
 		@Override
-		public Color parse(QuickDocumentModel doc) throws QuickParseException {
+		public String format(Color value) {
+			return value == null ? "" : Colors.toString(value);
+		}
+
+		@Override
+		public Color parse(String text) throws QuickParseException {
 			Color ret;
 			try {
-				ret = Colors.parseColor(doc.toString());
+				ret = Colors.parseColor(text);
 			} catch(QuickException e) {
 				throw new QuickParseException(e.getMessage(), e, -1, -1);
 			}

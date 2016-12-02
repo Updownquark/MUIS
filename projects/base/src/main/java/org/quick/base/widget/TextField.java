@@ -50,7 +50,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	private final StateController theEnabledController;
 	private final SimpleTextEditing theTextEditing;
 
-	private boolean isDocDirty;
+	private volatile boolean isDocDirty;
 	private Object theLastParsedValue;
 
 	/** Creates a text field */
@@ -61,8 +61,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 
 		life().runWhen(() -> {
 			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
-			theTextEditing.install(this);
-			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue()));
+			theTextEditing.install(this); // Installs the text editing behavior
+			// Mark the document dirty when the user edits it
 			doc.changes().filter(evt -> {
 				return (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) && evt.getCauseLike(c -> {
 					if (c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this)
@@ -70,14 +70,28 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					else
 						return null;
 				}) == null;
-			}).act(evt -> isDocDirty = true);
+			}).act(evt -> setDocDirty());
+			// When the value changes outside of this widget, update the document
+			atts().getHolder(ModelAttributes.value).noInit().act(event -> {
+				if (!isDocDirty)
+					resetDocument(event);
+			});
+			// Set up the cursor overlay
 			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
 			cursor.setTextElement(getValueElement());
 			cursor.setStyleAnchor(getStyle());
 
+			theEnabledController.act(evt -> theTextEditing.setEnabled(evt.getValue())); // Disables text editing when appropriate
+
+			// When the user leaves this widget, flush--either modify the value or reset the document
 			events().filterMap(FocusEvent.blur).act(event -> {
-				pushChanges(event);
+				if (theErrorController.get())
+					resetDocument(event);
+				else
+					pushChanges(event);
 			});
+			// When the user presses enter (CTRL+enter is required for a multi-line text field), push the changes
+			// When the user presses escape, reset the document
 			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
 				if (event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
 					if (atts().get(multiLine, false) && !event.isControlPressed())
@@ -87,6 +101,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					resetDocument(event);
 			});
 
+			// Allow the specification of the document and rich attributes
 			atts().getHolder(BaseAttributes.document).tupleV(atts().getHolder(BaseAttributes.rich)).act(evt -> {
 				if (evt.getValue().getValue1() != null) {
 					if (evt.getValue().getValue2() != null)
@@ -99,6 +114,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				} else
 					getValueElement().setDocumentModel(null);
 			});
+			// Set up the enabled state as a function of the value, format and validator
 			ObservableValue<TriTuple<ObservableValue<? extends Object>, QuickFormatter<?>, Validator<?>>> trioObs = //
 				atts().getHolder(ModelAttributes.value).getContainer().tupleV(//
 					atts().getHolder(BaseAttributes.format), atts().getHolder(BaseAttributes.validator));
@@ -134,6 +150,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				return ((SettableValue<?>) tuple.getValue1()).isEnabled();
 			}));
 			theEnabledController.link(enabled.mapV(e -> e == null, true));
+			// Set up the error state as a function of value, formatter, validator, and the document itself
 			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
 				if (tuple.getValue2() == null) {
@@ -223,6 +240,14 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		return getValueElement().getDocumentModel();
 	}
 
+	private void setDocDirty() {
+		if (!isDocDirty)
+			System.out.println("Doc dirty");
+		else
+			System.out.println("Doc already dirty");
+		isDocDirty = true;
+	}
+
 	private void pushChanges(Object cause) {
 		if (!isDocDirty || !atts().isSet(ModelAttributes.value) || theErrorController.get())
 			return;
@@ -230,7 +255,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		TextEditEvent textEdit = new TextEditEvent(this, cause);
 		((SettableValue<Object>) mv).set(theLastParsedValue, textEdit);
 		resetDocument(textEdit);
-		isDocDirty = false;
 	}
 
 	private void resetDocument(Object cause) {
@@ -244,13 +268,13 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		QuickFormatter<?> formatter = atts().get(BaseAttributes.format);
 		TextEditEvent textEdit = cause instanceof TextEditEvent ? (TextEditEvent) cause : new TextEditEvent(this, cause);
 		try (Transaction t = editModel.holdForWrite(textEdit)) {
-			editModel.clear();
 			if(formatter != null)
-				((QuickFormatter<Object>) formatter).append(mv.get(), editModel);
+				((QuickFormatter<Object>) formatter).adjust(editModel, mv.get());
 			else
 				editModel.append("" + mv.get());
 		}
 		theErrorController.set(false, null);
+		isDocDirty = false;
 		// TODO Think of a way to preserve selection?
 	}
 

@@ -15,7 +15,7 @@ public interface StateSet extends Iterable<QuickState> {
 	 * @param state The state to observe
 	 * @return An observable holding whether the state is active in this state set
 	 */
-	ObservableValue<Boolean> subscribe(QuickState state);
+	ObservableValue<Boolean> observe(QuickState state);
 
 	/** @return All states that are currently active in this set */
 	QuickState [] toArray();

@@ -1,5 +1,6 @@
 package org.quick.base.widget;
 
+import static org.quick.base.BaseConstants.States.ENABLED;
 import static org.quick.core.QuickConstants.States.FOCUS;
 
 import java.awt.Graphics2D;
@@ -8,11 +9,9 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.time.Duration;
 
-import org.observe.Action;
 import org.quick.base.style.TextEditStyle;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTextElement;
-import org.quick.core.event.StateChangedEvent;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
@@ -32,6 +31,11 @@ public class DocumentCursorOverlay extends QuickElement {
 
 	private volatile long theLastCursorReset;
 
+	private boolean isFocused;
+	private boolean isEnabled;
+
+	org.quick.motion.Animation theCursorBlinkAnimation;
+
 	/**
 	 * This method must be called by the owning text editor
 	 *
@@ -41,48 +45,30 @@ public class DocumentCursorOverlay extends QuickElement {
 		if(theTextElement != null)
 			throw new IllegalStateException("A " + getClass().getSimpleName() + "'s text element may only be set once");
 		theTextElement = text;
-		theTextElement.events().filterMap(StateChangedEvent.state(FOCUS)).act(new Action<StateChangedEvent>() {
-			org.quick.motion.Animation theCursorBlinkAnimation = new org.quick.motion.Animation() {
-				@Override
-				public boolean update(long time) {
-					if(!theTextElement.state().is(FOCUS))
-						return true;
-					if(isBlinking())
-						repaintCursor();
-					return false;
-				}
-
-				@Override
-				public long getMaxFrequency() {
-					Duration blink;
-					if(theStyleAnchor != null)
-						blink = theStyleAnchor.get(TextEditStyle.cursorBlink).get();
-					else
-						blink = TextEditStyle.cursorBlink.getDefault();
-					if (blink.isZero() || blink.isNegative())
-						return 100;
-					return blink.dividedBy(2).toMillis();
-				}
-			};
+		theCursorBlinkAnimation = new org.quick.motion.Animation() {
+			@Override
+			public boolean update(long time) {
+				if (!theTextElement.state().is(FOCUS))
+					return true;
+				if (isBlinking())
+					repaintCursor();
+				return false;
+			}
 
 			@Override
-			public void act(StateChangedEvent event) {
-				if(event.getValue()) {
-					resetBlink();
-					org.quick.motion.AnimationManager.get().start(theCursorBlinkAnimation);
-				} else
-					repaintCursor();
-			}
-
-			private void repaintCursor() {
-				BufferedImage cursorImage = theCursorImage;
-				Point cursorLoc = theCursorLocation;
-				if (cursorImage != null && cursorLoc != null)
-					repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), true);
+			public long getMaxFrequency() {
+				Duration blink;
+				if (theStyleAnchor != null)
+					blink = theStyleAnchor.get(TextEditStyle.cursorBlink).get();
 				else
-					repaint(null, true);
+					blink = TextEditStyle.cursorBlink.getDefault();
+				if (blink.isZero() || blink.isNegative())
+					return 100;
+				return blink.dividedBy(2).toMillis();
 			}
-		});
+		};
+		theTextElement.state().observe(FOCUS).tupleV(theTextElement.state().observe(ENABLED)).value()
+			.act(tuple -> enableChanged(tuple.getValue1(), tuple.getValue2()));
 		QuickDocumentModel.flatten(theTextElement.getDocumentModel()).changes().act(evt -> {
 			if (evt instanceof SelectionChangeEvent) {
 				resetCursorImage();
@@ -119,7 +105,21 @@ public class DocumentCursorOverlay extends QuickElement {
 		}
 	}
 
+	private void enableChanged(boolean focused, boolean enabled) {
+		isFocused = focused;
+		isEnabled = enabled;
+		if (focused && enabled) {
+			resetBlink();
+			org.quick.motion.AnimationManager.get().start(theCursorBlinkAnimation);
+		} else
+			repaintCursor();
+	}
+
 	private boolean isCursorOn() {
+		if (!isFocused)
+			return false; // Always off if not focused
+		if (!isEnabled)
+			return true; // Always on if focused but disabled
 		Duration interval;
 		if(theStyleAnchor != null)
 			interval = theStyleAnchor.get(TextEditStyle.cursorBlink).get();
@@ -165,6 +165,15 @@ public class DocumentCursorOverlay extends QuickElement {
 		if(cursorImage != null && cursorLoc != null) {
 			repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), false);
 		}
+	}
+
+	private void repaintCursor() {
+		BufferedImage cursorImage = theCursorImage;
+		Point cursorLoc = theCursorLocation;
+		if (cursorImage != null && cursorLoc != null)
+			repaint(new Rectangle(cursorLoc.x, cursorLoc.y, cursorImage.getWidth(), cursorImage.getHeight()), true);
+		else
+			repaint(null, true);
 	}
 
 	private BufferedImage genCursorImage(Graphics2D graphics) {

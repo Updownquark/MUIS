@@ -68,17 +68,14 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 					}
 					MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
 					try (Transaction trans = mutableDoc.holdForWrite(event)) {
-						mutableDoc.clear();
 						QuickFormatter<Object> formatter = (QuickFormatter<Object>) event.getValue().getValue2();
-						if (formatter == null) {
+						if (formatter == null)
 							msg().error("No formatter set for model value" + event.getValue().getValue1());
-						} else {
-							formatter.append(event.getValue().getValue1(), mutableDoc);
-						}
+						else
+							formatter.adjust(mutableDoc, event.getValue().getValue1());
 					} catch (ClassCastException e) {
 						msg().error("Formatter instance " + event.getValue().getValue2() + " is incompatible with model value "
-							+ event.getValue().getValue1(),
-							e);
+							+ event.getValue().getValue1(), e);
 					}
 				});
 			}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);

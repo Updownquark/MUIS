@@ -103,11 +103,11 @@ public class StateEngine extends DefaultObservable<StateChangedEvent> implements
 	}
 
 	@Override
-	public ObservableValue<Boolean> subscribe(QuickState state) {
+	public ObservableValue<Boolean> observe(QuickState state) {
 		for(StateController control : theStateControllers)
 			if(control.getState().equals(state))
 				return control.unsettable();
-		return ObservableValue.constant(null, false);
+		return ObservableValue.constant(TypeToken.of(Boolean.TYPE), false);
 	}
 
 	private static boolean isActive(StateValue stateValue) {

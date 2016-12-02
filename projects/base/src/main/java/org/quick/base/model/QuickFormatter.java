@@ -15,12 +15,23 @@ public interface QuickFormatter<T> {
 	TypeToken<T> getFormatType();
 
 	/**
-	 * Formats a value into a Quick document
+	 * Formats a value onto the end of a Quick document
 	 *
 	 * @param value The value to write
 	 * @param doc The document to write the value into
 	 */
-	void append(T value, MutableDocumentModel doc);
+	void append(MutableDocumentModel doc, T value);
+
+	/**
+	 * Formats a value into of a Quick document, replacing its current contents
+	 *
+	 * @param value The value to write
+	 * @param doc The document to write the value into
+	 */
+	default void adjust(MutableDocumentModel doc, T value) {
+		doc.clear();
+		append(doc, value);
+	}
 
 	/** @return The type of values that this formatter can produce, or null if parsing is not supported */
 	TypeToken<? extends T> getParseType();

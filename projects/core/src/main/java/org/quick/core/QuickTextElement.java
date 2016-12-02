@@ -186,7 +186,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 
 	/** @param docModel The new document model for this text element */
 	public void setDocumentModel(QuickDocumentModel docModel) {
-		if(docModel == null)
+		if (docModel == null)
 			docModel = new SimpleDocumentModel(this);
 		theDocument.set(docModel, null);
 	}

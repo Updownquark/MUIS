@@ -127,6 +127,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			@Override
 			public void close() {
 				if (isLocked) {
+					isLocked = false;
 					theCause = preCause;
 					lock.unlock();
 				}

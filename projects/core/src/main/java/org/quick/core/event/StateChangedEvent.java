@@ -63,7 +63,7 @@ public abstract class StateChangedEvent extends QuickPropertyEvent<Boolean> {
 	 * @param cause The event that was the cause of the state change--may be null
 	 */
 	public StateChangedEvent(QuickElement element, QuickState state, boolean initial, boolean newValue, QuickEvent cause) {
-		super(element, element.state().subscribe(state), initial, initial ? null : !newValue, newValue, cause);
+		super(element, element.state().observe(state), initial, initial ? null : !newValue, newValue, cause);
 		theState = state;
 		theCause = cause;
 	}

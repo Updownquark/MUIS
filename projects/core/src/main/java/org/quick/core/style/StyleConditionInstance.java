@@ -1,9 +1,6 @@
 package org.quick.core.style;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.observe.ObservableValue;
 import org.observe.assoc.ObservableMap;
@@ -14,6 +11,7 @@ import org.qommons.BiTuple;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
+import org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.prop.QuickAttribute;
 
@@ -34,8 +32,11 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	/** @return The set of groups that this condition has */
 	ObservableSet<String> getGroups();
 
-	/** @return The set of template role paths that this condition satisfies */
-	ObservableSet<List<AttachPoint<?>>> getRolePaths();
+	/**
+	 * @param role The template role to get the parent for
+	 * @return The condition instance that defines the given template role for this condition instance. The value may be null.
+	 */
+	ObservableValue<StyleConditionInstance<?>> getRoleParent(AttachPoint<?> role);
 
 	/**
 	 * Builds an ad-hoc condition instance
@@ -70,19 +71,26 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		ObservableValue<ObservableSet<String>> groupValue = element.atts().getHolder(StyleAttributes.group).mapV((Set<String> g) -> {
 			return ObservableSet.<String> constant(TypeToken.of(String.class), g == null ? Collections.<String> emptySet() : g);
 		});
-		ObservableSet<List<AttachPoint<?>>> rolePaths = StyleConditionInstanceFunctions.getTemplateRoles(element);
+		ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles = StyleConditionInstanceFunctions.getTemplateRoles(element);
 
 		return new Builder<>((Class<T>) element.getClass())//
 			.withState(states)//
 			.withGroups(ObservableSet.flattenValue(groupValue))//
-			.withRolePaths(rolePaths)//
+			.withRoles(roles)//
 			.build();
 	}
 
 	/** Internal functions for use by this interface's static methods */
 	static class StyleConditionInstanceFunctions {
-		private static ObservableSet<List<AttachPoint<?>>> getTemplateRoles(QuickElement element) {
+		private static ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> getTemplateRoles(QuickElement element) {
 			TypeToken<AttachPoint<?>> apType = new TypeToken<AttachPoint<?>>() {};
+			ObservableSet<AttachPoint<?>> attachPoints = element.atts().getAllValues()
+				.filterKeysStatic(attr -> attr instanceof RoleAttribute).entrySet()
+				.mapEquivalent(entry -> (AttachPoint<?>) entry.getValue(), //
+					null); // The reverse function is unimportant since Objects.equals doesn't care
+			java.util.function.Function<AttachPoint<?>, StyleConditionInstance<?>> groupFn = ap -> StyleConditionInstance
+				.of(QuickTemplate.getTemplateFor(element, ap));
+			return attachPoints.groupBy(groupFn).unique();
 			ObservableSetTree<BiTuple<QuickElement, AttachPoint<?>>, AttachPoint<?>> tree = ObservableSetTree.of(//
 				ObservableValue.constant(new BiTuple<>(element, null)), //
 				apType, tuple -> ObservableValue.constant(apType, tuple.getValue2()), //
@@ -123,13 +131,13 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		private final Class<T> theType;
 		private ObservableSet<QuickState> theState;
 		private ObservableSet<String> theGroups;
-		private ObservableSet<List<AttachPoint<?>>> theRolePaths;
+		private ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> theRoles;
 
 		Builder(Class<T> type) {
 			theType = type;
 			theState = ObservableSet.constant(TypeToken.of(QuickState.class));
 			theGroups = ObservableSet.constant(TypeToken.of(String.class));
-			theRolePaths = ObservableSet.constant(new TypeToken<List<AttachPoint<?>>>() {});
+			theRoles = ObservableMap.empty(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
 		}
 
 		/**
@@ -151,32 +159,31 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		}
 
 		/**
-		 * @param rolePaths The template role paths for the condition
+		 * @param roles The template roles for the condition
 		 * @return This builder
 		 */
-		public Builder<T> withRolePaths(ObservableSet<List<AttachPoint<?>>> rolePaths) {
-			theRolePaths = rolePaths;
+		public Builder<T> withRoles(ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles) {
+			theRoles = roles;
 			return this;
 		}
 
 		/** @return A new condition instance with this builder's data */
 		public StyleConditionInstance<T> build() {
-			return new DefaultStyleConditionInstance<>(theType, theState, theGroups, theRolePaths);
+			return new DefaultStyleConditionInstance<>(theType, theState, theGroups, theRoles);
 		}
 
 		private static class DefaultStyleConditionInstance<T extends QuickElement> implements StyleConditionInstance<T> {
 			private final Class<T> theType;
 			private final ObservableSet<QuickState> theState;
 			private final ObservableSet<String> theGroups;
-			private final ObservableSet<List<AttachPoint<?>>> theRolePaths;
+			private final ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> theRoles;
 
 			DefaultStyleConditionInstance(Class<T> type, ObservableSet<QuickState> state, ObservableSet<String> groups,
-				ObservableSet<List<AttachPoint<?>>> rolePaths) {
-				super();
+				ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> rolePaths) {
 				theType = type;
 				theState = state;
 				theGroups = groups;
-				theRolePaths = rolePaths;
+				theRoles = rolePaths;
 			}
 
 			@Override
@@ -195,23 +202,22 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			}
 
 			@Override
-			public ObservableSet<List<AttachPoint<?>>> getRolePaths() {
-				return theRolePaths;
+			public ObservableValue<StyleConditionInstance<?>> getRoleParent(AttachPoint<?> role) {
+				return theRoles.observe(role);
 			}
 
 			@Override
 			public String toString() {
 				StringBuilder str = new StringBuilder(theType.getSimpleName());
 
-				if (!theRolePaths.isEmpty()) {
+				if (!theRoles.isEmpty()) {
 					str.append('{');
 					boolean first = true;
-					for (List<AttachPoint<?>> rolePath : theRolePaths) {
+					for (Map.Entry<AttachPoint<?>, StyleConditionInstance<?>> roleEntry : theRoles.entrySet()) {
 						if (!first)
 							str.append("  ");
 						first = false;
-						for (AttachPoint<?> role : rolePath)
-							str.append('.').append(role.name);
+						str.append(roleEntry.getValue()).append('.').append(roleEntry.getKey().name);
 					}
 					str.append('}');
 				}

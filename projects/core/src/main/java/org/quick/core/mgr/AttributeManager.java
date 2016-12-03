@@ -351,6 +351,17 @@ public class AttributeManager {
 
 	/**
 	 * @param <T> The type of the attribute
+	 * @param attr The attribute to watch
+	 * @return An observable value for the given attribute in this manager, even if the attribute is not accepted
+	 */
+	public <T> ObservableValue<T> observe(QuickAttribute<T> attr) {
+		return ObservableValue.flatten(theAcceptedAttrs.observe(attr).mapV(
+			new TypeToken<AttributeHolder<T>>() {}.where(new TypeParameter<T>() {}, attr.getType().getType()),
+			h -> (AttributeHolder<T>) h));
+	}
+
+	/**
+	 * @param <T> The type of the attribute
 	 * @param attr The attribute to get the holder for
 	 * @return The attribute holder for the given attribute, or null if the given attribute is not accepted in this manager
 	 */

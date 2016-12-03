@@ -130,7 +130,7 @@ public abstract class QuickTemplate extends QuickElement {
 
 		@Override
 		public String toString() {
-			return name;
+			return template.getDefiner().getSimpleName() + "." + name;
 		}
 	}
 

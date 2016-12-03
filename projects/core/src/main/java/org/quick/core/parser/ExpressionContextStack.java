@@ -35,6 +35,21 @@ public class ExpressionContextStack {
 		public QuickClassView getClassView() {
 			return theClassView;
 		}
+
+		@Override
+		public String toString() {
+			StringBuilder str = new StringBuilder();
+			if (theType != null)
+				str.append(theType.getSimpleName());
+			if (!theGroups.isEmpty()) {
+				str.append(theGroups);
+			}
+			if (theState != null)
+				str.append('[').append(theState.toString()).append(']');
+			if (theTemplateRole != null)
+				str.append('(').append(theTemplateRole).append(')');
+			return str.toString();
+		}
 	}
 
 	private final QuickEnvironment theEnv;
@@ -138,8 +153,12 @@ public class ExpressionContextStack {
 		return getType(theStack);
 	}
 
-	private Class<? extends QuickElement> getType(Collection<ExpressionContext> stack) {
-		for (ExpressionContext ctx : stack) {
+	private <T> Iterable<T> descend(LinkedList<T> list) {
+		return () -> list.descendingIterator();
+	}
+
+	private Class<? extends QuickElement> getType(LinkedList<ExpressionContext> stack) {
+		for (ExpressionContext ctx : descend(stack)) {
 			if (ctx.theType != null)
 				return ctx.theType;
 			else if (ctx.theTemplateRole != null)
@@ -153,11 +172,11 @@ public class ExpressionContextStack {
 		return getState(theStack);
 	}
 
-	private StateCondition getState(Collection<ExpressionContext> stack) {
+	private StateCondition getState(LinkedList<ExpressionContext> stack) {
 		StateCondition state = null;
 		for (ExpressionContext ctx : stack) {
 			if (ctx.theTemplateRole != null)
-				break;
+				state = null; // Only return the state after the last template
 			if (ctx.theState != null) {
 				if (state == null)
 					state = ctx.theState;
@@ -173,11 +192,11 @@ public class ExpressionContextStack {
 		return getGroups(theStack);
 	}
 
-	private Set<String> getGroups(Collection<ExpressionContext> stack) {
+	private Set<String> getGroups(LinkedList<ExpressionContext> stack) {
 		Set<String> groups = new LinkedHashSet<>();
 		for (ExpressionContext ctx : stack) {
 			if (ctx.theTemplateRole != null)
-				break;
+				groups.clear(); // Only return the groups after the last template
 			groups.addAll(ctx.theGroups);
 		}
 		return groups;
@@ -188,7 +207,7 @@ public class ExpressionContextStack {
 		return getRole(theStack);
 	}
 
-	private AttachPoint<?> getRole(Collection<ExpressionContext> stack) {
+	private AttachPoint<?> getRole(LinkedList<ExpressionContext> stack) {
 		for (ExpressionContext ctx : stack)
 			if (ctx.theTemplateRole != null)
 				return ctx.theTemplateRole;
@@ -200,8 +219,8 @@ public class ExpressionContextStack {
 		return getParentCondition(theStack);
 	}
 
-	private StyleCondition getParentCondition(Collection<ExpressionContext> stack) {
-		Iterator<ExpressionContext> iter = stack.iterator();
+	private StyleCondition getParentCondition(LinkedList<ExpressionContext> stack) {
+		Iterator<ExpressionContext> iter = stack.descendingIterator();
 		while (iter.hasNext()) {
 			ExpressionContext ctx = iter.next();
 			if (ctx.theTemplateRole != null) {
@@ -209,10 +228,11 @@ public class ExpressionContextStack {
 			}
 		}
 		if (iter.hasNext()) {
-			List<ExpressionContext> subStack = new ArrayList<>();
+			LinkedList<ExpressionContext> subStack = new LinkedList<>();
 			do {
 				subStack.add(iter.next());
 			} while (iter.hasNext());
+			Collections.reverse(subStack);
 			return asCondition(subStack);
 		} else
 			return null;
@@ -223,7 +243,7 @@ public class ExpressionContextStack {
 		return asCondition(theStack);
 	}
 
-	private StyleCondition asCondition(Collection<ExpressionContext> stack) {
+	private StyleCondition asCondition(LinkedList<ExpressionContext> stack) {
 		return StyleCondition.build(getType(stack)).setState(getState(stack)).forGroups(getGroups(stack))
 			.forRole(getRole(stack), getParentCondition(stack)).build();
 	}

@@ -9,14 +9,12 @@ import org.observe.assoc.ObservableMap;
 import org.observe.collect.CollectionSession;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
-import org.qommons.BiTuple;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.prop.QuickAttribute;
 
 import com.google.common.reflect.TypeToken;
 
@@ -86,7 +84,6 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	/** Internal functions for use by this interface's static methods */
 	static class StyleConditionInstanceFunctions {
 		private static ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> getTemplateRoles(QuickElement element) {
-			TypeToken<AttachPoint<?>> apType = new TypeToken<AttachPoint<?>>() {};
 			ObservableSet<RoleAttribute> roles = element.atts().getAllAttributes()
 				.filter(RoleAttribute.class).immutable();
 			return new ObservableMap<AttachPoint<?>, StyleConditionInstance<?>>(){
@@ -125,7 +122,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 					if (!(key instanceof AttachPoint))
 						return ObservableValue.constant(getValueType(), null);
 					AttachPoint<?> attachPoint = (AttachPoint<?>) key;
-					return element.atts().getHolder(attachPoint.template.role)
+					return element.atts().observe(attachPoint.template.role)
 						.mapV(ap -> StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap)));
 				}
 
@@ -133,20 +130,12 @@ public interface StyleConditionInstance<T extends QuickElement> {
 				public ObservableSet<? extends org.observe.assoc.ObservableMap.ObservableEntry<AttachPoint<?>, StyleConditionInstance<?>>> observeEntries() {
 					return ObservableMap.defaultObserveEntries(this);
 				}
-			};
-		}
 
-		private static ObservableSet<BiTuple<QuickElement, AttachPoint<?>>> rolesFor(QuickElement element) {
-			if (element == null)
-				return ObservableSet.constant(new TypeToken<BiTuple<QuickElement, AttachPoint<?>>>() {});
-			ObservableMap<QuickAttribute<?>, ?> attMap = element.atts().getAllValues()
-				.filterKeysStatic(attr -> attr instanceof QuickTemplate.TemplateStructure.RoleAttribute);
-			ObservableMap<QuickAttribute<?>, BiTuple<QuickElement, AttachPoint<?>>> roleMap = attMap.map(v -> {
-				AttachPoint<?> ap = (AttachPoint<?>) v;
-				QuickTemplate template = QuickTemplate.getTemplateFor(element, ap);
-				return new BiTuple<>(template, ap);
-			});
-			return roleMap.entrySet().mapEquivalent(entry -> entry.getValue(), null);
+				@Override
+				public String toString() {
+					return entrySet().toString();
+				}
+			};
 		}
 	}
 
@@ -263,7 +252,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 					str.append(']');
 				}
 
-				if (theState != null) {
+				if (!theState.isEmpty()) {
 					str.append('(').append(theState).append(')');
 				}
 

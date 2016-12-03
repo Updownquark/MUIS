@@ -70,6 +70,11 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 		return super.hashCode();
 	}
 
+	@Override
+	public String toString() {
+		return theDomain.getName() + "." + getName();
+	}
+
 	/**
 	 * @param <T> The type of the attribute to build
 	 * @param domain The domain for the attribute
@@ -107,7 +112,7 @@ public final class StyleAttribute<T> extends QuickProperty<T> {
 		/**
 		 * Marks the style created by this builder as inherited, meaning element styles can inherit values for this attribute from their
 		 * parent or ancestors
-		 * 
+		 *
 		 * @return This builder
 		 */
 		public Builder<T> inherited() {

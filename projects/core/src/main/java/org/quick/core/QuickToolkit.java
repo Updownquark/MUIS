@@ -4,6 +4,7 @@ import java.net.URL;
 import java.util.*;
 
 import org.observe.collect.ObservableList;
+import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.parser.Version;
 import org.quick.core.style.*;
 
@@ -448,14 +449,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 					for (StyleConditionValue<?> sev : styleSheet.getStyleExpressions(attr)) {
 						if (sev.getCondition().getType().getClassLoader() == theBuiltToolkit)
 							continue;
-						boolean roleInTK = false;
-						for (QuickTemplate.AttachPoint<?> role : sev.getCondition().getRolePath()) {
-							if (role.template.getDefiner().getClassLoader() == theBuiltToolkit) {
-								roleInTK = true;
-								break;
-							}
-						}
-						if (roleInTK)
+						if (checkRole(sev.getCondition().getRole(), sev.getCondition().getParent()))
 							continue;
 						String msg = "Toolkit " + theLocation + ": Style sheet";
 						msg += " assigns styles for non-toolkit attributes to non-toolkit element types";
@@ -470,6 +464,14 @@ public class QuickToolkit extends java.net.URLClassLoader {
 			}
 			theBuiltToolkit.theStyleDependencyController.add(styleSheet);
 			return this;
+		}
+
+		private boolean checkRole(AttachPoint<?> role, StyleCondition parent) {
+			if(role==null)
+				return true;
+			if (role.template.getDefiner().getClassLoader() != theBuiltToolkit)
+				return false;
+			return checkRole(parent.getRole(), parent.getParent());
 		}
 	}
 }

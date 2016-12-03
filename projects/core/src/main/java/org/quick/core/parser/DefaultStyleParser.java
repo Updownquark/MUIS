@@ -232,7 +232,7 @@ public class DefaultStyleParser implements QuickStyleParser {
 	}
 
 	private QuickState findState(String name, ExpressionContextStack stack) throws QuickParseException {
-		Class<? extends QuickElement> type = stack.getTopType();
+		Class<? extends QuickElement> type = stack.getType();
 		QuickState ret = null;
 		boolean found = false;
 		for (QuickState state : org.quick.core.tags.QuickTagUtils.getStatesFor(type))

@@ -229,14 +229,17 @@ public class StylesTest {
 		QuickTextElement text = (QuickTextElement) template2.getLogicalChildren().last();
 
 		StyleCondition shallowCondition = StyleCondition.build(QuickElement.class)//
-			.forPath(attach1)//
+			.forRole(attach1, StyleCondition.build(template1Struct.getDefiner()).build())//
 			.build();
 		StyleConditionInstance<?> temp2CI = StyleConditionInstance.of(template2);
 		assertEquals(setOf(asList(attach1)), temp2CI.getRolePaths());
 		assertTrue(shallowCondition.matches(temp2CI).get());
 
 		StyleCondition deepCondition = StyleCondition.build(QuickElement.class)//
-			.forPath(attach1, attach2)//
+			.forRole(attach2, //
+				StyleCondition.build(template2Struct.getDefiner()).forRole(attach1, //
+						StyleCondition.build(template1Struct.getDefiner()).build())
+					.build())//
 			.build();
 		StyleConditionInstance<?> textCI = StyleConditionInstance.of(text);
 		assertEquals(setOf(asList(attach2), asList(attach1, attach2)), textCI.getRolePaths());

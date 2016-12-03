@@ -17,19 +17,26 @@ import com.google.common.reflect.TypeToken;
  * {@link StyleSheet} applies to the element
  */
 public class StyleCondition implements Comparable<StyleCondition> {
-	private final StateCondition theState;
-	private final List<AttachPoint<?>> theRolePath;
-	private final NavigableSet<String> theGroups;
 	private final Class<? extends QuickElement> theType;
+	private final StateCondition theState;
+	private final NavigableSet<String> theGroups;
+	private final AttachPoint<?> theRole;
+	private final StyleCondition theParent;
 
-	private StyleCondition(StateCondition state, List<AttachPoint<?>> rolePath, Set<String> groups,
-		Class<? extends QuickElement> type) {
-		theState = state;
-		theRolePath = rolePath == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(rolePath));
-		theGroups = Collections.unmodifiableNavigableSet(new TreeSet<>(groups));
+	private StyleCondition(Class<? extends QuickElement> type, StateCondition state, Set<String> groups, AttachPoint<?> role,
+		StyleCondition parent) {
 		if (!QuickElement.class.isAssignableFrom(type))
 			throw new IllegalArgumentException("The type of a condition must extend " + QuickElement.class.getName());
 		theType = type;
+		theState = state;
+		theGroups = Collections.unmodifiableNavigableSet(new TreeSet<>(groups));
+		theRole = role;
+		theParent = parent;
+	}
+
+	/** @return The sub-type of QuickElement that this condition applies to */
+	public Class<? extends QuickElement> getType() {
+		return theType;
 	}
 
 	/** @return The condition on the element's {@link QuickElement#state() state} that must be met for this condition to apply */
@@ -37,22 +44,22 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return theState;
 	}
 
-	/**
-	 * @return The condition on the element's template {@link org.quick.core.QuickTemplate.TemplateStructure#role role} that must be met for
-	 *         this condition to apply
-	 */
-	public List<AttachPoint<?>> getRolePath() {
-		return theRolePath;
-	}
-
 	/** @return The groups that the element must belong to for this condition to apply */
 	public Set<String> getGroups() {
 		return theGroups;
 	}
 
-	/** @return The sub-type of QuickElement that this condition applies to */
-	public Class<? extends QuickElement> getType() {
-		return theType;
+	/** @return The template role that the element must satisfy for this condition to apply */
+	public AttachPoint<?> getRole() {
+		return theRole;
+	}
+
+	/**
+	 * @return The style condition that must apply to the templated element that defines this condition's role for this condition to apply.
+	 *         Will be non-null IFF {@link #getRole()} is non-null.
+	 */
+	public StyleCondition getParent() {
+		return theParent;
 	}
 
 	@Override
@@ -69,15 +76,17 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		} else if(o.theState!=null)
 			return 1;
 
-		if (theRolePath.size() != o.theRolePath.size())
-			return o.theRolePath.size() - theRolePath.size();
-		Iterator<AttachPoint<?>> apIter1 = theRolePath.iterator();
-		Iterator<AttachPoint<?>> apIter2 = o.theRolePath.iterator();
-		while (apIter1.hasNext()) {
-			int comp = compare(apIter1.next(), apIter2.next());
+		if (theRole != null) {
+			if (o.theRole == null)
+				return -1;
+			int comp = theParent.compareTo(o.theParent);
 			if (comp != 0)
 				return comp;
-		}
+			comp = compare(theRole, o.theRole);
+			if (comp != 0)
+				return comp;
+		} else if (o.theRole != null)
+			return 1;
 
 		if (theGroups.size() != o.theGroups.size())
 			return o.theGroups.size() - theGroups.size();
@@ -161,14 +170,14 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		else
 			groupMatches = value.getGroups().observeContainsAll(ObservableCollection.constant(TypeToken.of(String.class), theGroups));
 
-		ObservableValue<Boolean> rolePathMatches;
-		if (theRolePath.isEmpty())
-			rolePathMatches = ObservableValue.constant(true);
+		ObservableValue<Boolean> roleMatches;
+		if (theRole == null)
+			roleMatches = ObservableValue.constant(true);
 		else
-			rolePathMatches = value.getRolePaths().observeContainsAll(
+			roleMatches = value.getRolePaths().observeContainsAll(
 				ObservableCollection.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {}, Arrays.asList(theRolePath)));
 
-		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, rolePathMatches);
+		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, roleMatches);
 	}
 
 	/**
@@ -190,7 +199,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(theState, theRolePath, theGroups, theType);
+		return Objects.hash(theState, theRole, theParent, theGroups, theType);
 	}
 
 	@Override
@@ -198,21 +207,19 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		if (!(obj instanceof StyleCondition))
 			return false;
 		StyleCondition c = (StyleCondition) obj;
-		return Objects.equals(theState, c.theState) && theRolePath.equals(c.theRolePath) && theGroups.equals(c.theGroups)
-			&& theType == c.theType;
+		return Objects.equals(theState, c.theState) && Objects.equals(theRole, c.theRole) && Objects.equals(theParent, c.theParent)
+			&& theGroups.equals(c.theGroups) && theType == c.theType;
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
 
-		if (theRolePath.isEmpty())
+		if (theParent != null) {
+			str.append(theParent.toString());
+			str.append('.').append(theRole.name);
+		} else
 			str.append(theType.getSimpleName());
-		else {
-			str.append(theRolePath.get(0).template.getDefiner().getSimpleName());
-			for (QuickTemplate.AttachPoint<?> role : theRolePath)
-				str.append('.').append(role.name);
-		}
 
 		if (!theGroups.isEmpty()) {
 			str.append('[');
@@ -246,7 +253,8 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	public static class Builder {
 		private final Class<? extends QuickElement> theType;
 		private StateCondition theState;
-		private List<QuickTemplate.AttachPoint<?>> theRolePath;
+		private AttachPoint<?> theRole;
+		private StyleCondition theParent;
 		private Set<String> theGroups;
 
 		private Builder(Class<? extends QuickElement> type) {
@@ -266,20 +274,14 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		}
 
 		/**
-		 * @param rolePath The role path for the condition
+		 * @param role The role for the condition
+		 * @param parent the style condition for the templated element that this condition applies to the given role of
 		 * @return This builder
 		 */
-		public Builder forPath(List<QuickTemplate.AttachPoint<?>> rolePath) {
-			theRolePath = rolePath;
+		public Builder forRole(AttachPoint<?> role, StyleCondition parent) {
+			theRole = role;
+			theParent = parent;
 			return this;
-		}
-
-		/**
-		 * @param rolePath The role path for the condition
-		 * @return This builder
-		 */
-		public Builder forPath(QuickTemplate.AttachPoint<?>... rolePath) {
-			return forPath(Arrays.asList(rolePath));
 		}
 
 		/**
@@ -303,7 +305,7 @@ public class StyleCondition implements Comparable<StyleCondition> {
 
 		/** @return The new style condition */
 		public StyleCondition build() {
-			return new StyleCondition(theState, theRolePath, theGroups, theType);
+			return new StyleCondition(theType, theState, theGroups, theRole, theParent);
 		}
 	}
 }

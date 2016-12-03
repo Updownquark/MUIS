@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.quick.core.*;
 import org.quick.core.QuickCache.CacheException;
+import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.style.StateCondition;
 import org.quick.core.style.StyleCondition;
 
@@ -79,7 +80,7 @@ public class ExpressionContextStack {
 	 * @throws QuickParseException If the given type is not valid for this point in the context stack
 	 */
 	public void setType(Class<? extends QuickElement> type) throws QuickParseException {
-		Class<? extends QuickElement> topType = getTopType();
+		Class<? extends QuickElement> topType = getType();
 		if (!topType.isAssignableFrom(topType))
 			throw new QuickParseException("Type " + type.getName() + " is not a sub type of a " + type.getName());
 		if (topType != type)
@@ -111,7 +112,7 @@ public class ExpressionContextStack {
 	 * @throws QuickParseException If the given attach point is not valid for this point in the context stack
 	 */
 	public void addAttachPoint(String attachPoint) throws QuickParseException {
-		Class<? extends QuickElement> type = getTopType();
+		Class<? extends QuickElement> type = getType();
 		if(type == null)
 			type = QuickElement.class;
 		if(!(QuickTemplate.class.isAssignableFrom(type)))
@@ -133,18 +134,30 @@ public class ExpressionContextStack {
 	}
 
 	/** @return The element type for the top of the context stack */
-	public Class<? extends QuickElement> getTopType() {
-		for(int i = theStack.size() - 1; i >= 0; i--) {
-			if (theStack.get(i).theType != null)
-				return theStack.get(i).theType;
+	public Class<? extends QuickElement> getType() {
+		return getType(theStack);
+	}
+
+	private Class<? extends QuickElement> getType(Collection<ExpressionContext> stack) {
+		for (ExpressionContext ctx : stack) {
+			if (ctx.theType != null)
+				return ctx.theType;
+			else if (ctx.theTemplateRole != null)
+				return ctx.theTemplateRole.type;
 		}
 		return QuickElement.class;
 	}
 
 	/** @return The state condition for the top of the context stack */
 	public StateCondition getState() {
+		return getState(theStack);
+	}
+
+	private StateCondition getState(Collection<ExpressionContext> stack) {
 		StateCondition state = null;
-		for (ExpressionContext ctx : theStack) {
+		for (ExpressionContext ctx : stack) {
+			if (ctx.theTemplateRole != null)
+				break;
 			if (ctx.theState != null) {
 				if (state == null)
 					state = ctx.theState;
@@ -157,23 +170,61 @@ public class ExpressionContextStack {
 
 	/** @return The set of groups for the top of the context stack */
 	public Set<String> getGroups() {
+		return getGroups(theStack);
+	}
+
+	private Set<String> getGroups(Collection<ExpressionContext> stack) {
 		Set<String> groups = new LinkedHashSet<>();
-		for (ExpressionContext ctx : theStack)
+		for (ExpressionContext ctx : stack) {
+			if (ctx.theTemplateRole != null)
+				break;
 			groups.addAll(ctx.theGroups);
+		}
 		return groups;
 	}
 
-	/** @return The template path for the top of the context stack */
-	public List<QuickTemplate.AttachPoint<?>> getTemplatePath() {
-		List<QuickTemplate.AttachPoint<?>> templatePath = new ArrayList<>();
-		for (ExpressionContext ctx : theStack)
+	/** @return The template role for the top of the context stack */
+	public QuickTemplate.AttachPoint<?> getRole() {
+		return getRole(theStack);
+	}
+
+	private AttachPoint<?> getRole(Collection<ExpressionContext> stack) {
+		for (ExpressionContext ctx : stack)
 			if (ctx.theTemplateRole != null)
-				templatePath.add(ctx.theTemplateRole);
-		return templatePath;
+				return ctx.theTemplateRole;
+		return null;
+	}
+
+	/** @return The parent condition for the template role on the top of the context stack */
+	public StyleCondition getParentCondition() {
+		return getParentCondition(theStack);
+	}
+
+	private StyleCondition getParentCondition(Collection<ExpressionContext> stack) {
+		Iterator<ExpressionContext> iter = stack.iterator();
+		while (iter.hasNext()) {
+			ExpressionContext ctx = iter.next();
+			if (ctx.theTemplateRole != null) {
+				break;
+			}
+		}
+		if (iter.hasNext()) {
+			List<ExpressionContext> subStack = new ArrayList<>();
+			do {
+				subStack.add(iter.next());
+			} while (iter.hasNext());
+			return asCondition(subStack);
+		} else
+			return null;
 	}
 
 	/** @return The style condition representing the current context */
 	public StyleCondition asCondition() {
-		return StyleCondition.build(getTopType()).setState(getState()).forGroups(getGroups()).forPath(getTemplatePath()).build();
+		return asCondition(theStack);
+	}
+
+	private StyleCondition asCondition(Collection<ExpressionContext> stack) {
+		return StyleCondition.build(getType(stack)).setState(getState(stack)).forGroups(getGroups(stack))
+			.forRole(getRole(stack), getParentCondition(stack)).build();
 	}
 }

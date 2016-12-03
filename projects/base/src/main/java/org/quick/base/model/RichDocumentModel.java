@@ -11,6 +11,7 @@ import org.observe.collect.impl.ObservableHashSet;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.core.mgr.QuickState;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.MutableSelectableDocumentModel;
 import org.quick.core.style.*;
@@ -84,6 +85,11 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 				else
 					return ObservableValue.constant(attr.getType().getType(), withDefault ? attr.getDefault() : null);
 			}
+		}
+
+		@Override
+		public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+			return this; // Not state-dependent
 		}
 	}
 
@@ -451,6 +457,11 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 				pos = nextPos;
 			}
 			return ret;
+		}
+
+		@Override
+		public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+			return this; // Not state-dependent
 		}
 	}
 }

@@ -5,8 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.observe.ObservableValue;
+import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.core.mgr.QuickState;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
@@ -35,6 +37,11 @@ public class ImmutableStyle implements QuickStyle {
 			return (StyleValue<T>) theValues.get(attr);
 		else
 			return ObservableValue.constant(attr.getType().getType(), withDefault ? attr.getDefault() : null);
+	}
+
+	@Override
+	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+		return this;
 	}
 
 	@Override

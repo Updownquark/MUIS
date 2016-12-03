@@ -1,5 +1,7 @@
 package org.quick.core.style;
 
+import java.util.HashSet;
+
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
@@ -17,6 +19,15 @@ public class QuickElementStyle implements QuickStyle {
 		this(element, null);
 	}
 
+	/**
+	 * @param element The element that this style is for
+	 * @param extraStates Extra states, if any to use for determining style from style sheets
+	 */
+	public QuickElementStyle(QuickElement element, ObservableSet<QuickState> extraStates) {
+		theElement = element;
+		theExtraStates = extraStates;
+	}
+
 	/** @return The condition instance representing this style */
 	public StyleConditionInstance<?> getCondition() {
 		if (theCondition == null) {
@@ -26,13 +37,19 @@ public class QuickElementStyle implements QuickStyle {
 		return theCondition;
 	}
 
-	/**
-	 * @param element The element that this style is for
-	 * @param extraStates Extra states, if any to use for determining style from style sheets
-	 */
-	public QuickElementStyle(QuickElement element, ObservableSet<QuickState> extraStates) {
-		theElement = element;
-		theExtraStates = extraStates;
+	@Override
+	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+		ObservableSet<QuickState> allExtraStates;
+		if (theExtraStates == null) {
+			if (extraStates instanceof ObservableSet)
+				allExtraStates = (ObservableSet<QuickState>) extraStates;
+			else
+				allExtraStates = ObservableSet.unique(extraStates, Object::equals);
+		} else
+			allExtraStates = ObservableSet.unique(ObservableCollection.flattenCollections(theExtraStates, extraStates), Object::equals);
+		if (theExtraStates != null && new HashSet<>(allExtraStates).equals(new HashSet<>(theExtraStates)))
+			return this;
+		return new QuickElementStyle(theElement, allExtraStates);
 	}
 
 	/** @return The element that this style is for */

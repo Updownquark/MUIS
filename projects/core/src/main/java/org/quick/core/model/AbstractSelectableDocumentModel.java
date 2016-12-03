@@ -1,5 +1,7 @@
 package org.quick.core.model;
 
+import static org.quick.core.QuickConstants.States.TEXT_SELECTION;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -11,21 +13,16 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.qommons.IterableUtils;
 import org.qommons.Transaction;
-import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
-import org.quick.core.style.QuickElementStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleChangeObservable;
 
-import com.google.common.reflect.TypeToken;
-
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocumentModel implements SelectableDocumentModel {
-	private final QuickStyle theNormalStyle;
-	private final QuickStyle theSelectedStyle;
-
+	private QuickStyle theNormalStyle;
+	private QuickStyle theSelectedStyle;
 	private int theSelectionAnchor;
 	private int theCursor;
 
@@ -39,8 +36,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	/** @param element The element that this document is for */
 	public AbstractSelectableDocumentModel(QuickElement element) {
 		theNormalStyle = element.getStyle();
-		theSelectedStyle = new QuickElementStyle(element,
-			ObservableSet.constant(TypeToken.of(QuickState.class), QuickConstants.States.TEXT_SELECTION));
+		theSelectedStyle = element.getStyle().forExtraState(TEXT_SELECTION);
 		theContentChanges = new SimpleObservable<>();
 		theStyleChanges = new SimpleObservable<>();
 		theSelectionChanges = new SimpleObservable<>();
@@ -204,7 +200,10 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 				}
 
 				private StyledSequence wrap(StyledSequence toWrap, boolean selected, int start, int end) {
-					return new StyledSequenceWrapper(toWrap, selected ? theSelectedStyle : theNormalStyle, start, end);
+					StyledSequenceWrapper wrapper = new StyledSequenceWrapper(toWrap, theNormalStyle, start, end);
+					if (selected)
+						wrapper = wrapper.forExtraState(TEXT_SELECTION);
+					return wrapper;
 				}
 
 				@Override
@@ -803,13 +802,19 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 	private static class StyledSequenceWrapper implements StyledSequence {
 		private final StyledSequence theWrapped;
+		private final QuickStyle theWrappedStyle;
 		private final QuickStyle theBackup;
 		private final int theStart;
 		private final int theEnd;
 		private final QuickStyle theStyle;
 
 		StyledSequenceWrapper(StyledSequence toWrap, QuickStyle backup, int start, int end) {
+			this(toWrap, toWrap.getStyle(), backup, start, end);
+		}
+
+		private StyledSequenceWrapper(StyledSequence toWrap, QuickStyle wrappedStyle, QuickStyle backup, int start, int end) {
 			theWrapped = toWrap;
+			theWrappedStyle = wrappedStyle;
 			theBackup = backup;
 			theStart = start;
 			theEnd = end;
@@ -822,19 +827,25 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 				@Override
 				public ObservableSet<StyleAttribute<?>> attributes() {
 					return ObservableSet.unique(
-						ObservableCollection.flattenCollections(theWrapped.getStyle().attributes(), theBackup.attributes()),
+						ObservableCollection.flattenCollections(theWrappedStyle.attributes(), theBackup.attributes()),
 						Object::equals);
 				}
 
 				@Override
 				public boolean isSet(StyleAttribute<?> attr) {
-					return (theWrapped.getStyle() != null && theWrapped.getStyle().isSet(attr)) || theBackup.isSet(attr);
+					return (theWrappedStyle != null && theWrappedStyle.isSet(attr)) || theBackup.isSet(attr);
 				}
 
 				@Override
 				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-					return ObservableValue.firstValue(attr.getType().getType(), null, null, theWrapped.getStyle().get(attr, false),
+					return ObservableValue.firstValue(attr.getType().getType(), null, null, theWrappedStyle.get(attr, false),
 						theBackup.get(attr, true));
+				}
+
+				@Override
+				public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+					return new StyledSequenceWrapper(theWrapped, theWrappedStyle.forExtraStates(extraStates),
+						theBackup.forExtraStates(extraStates), start, end).getStyle();
 				}
 			};
 		}
@@ -862,6 +873,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		@Override
 		public QuickStyle getStyle() {
 			return theStyle;
+		}
+
+		public StyledSequenceWrapper forExtraState(QuickState state) {
+			return new StyledSequenceWrapper(theWrapped, theWrapped.getStyle().forExtraState(state), theBackup.forExtraState(state),
+				theStart, theEnd);
 		}
 	}
 }

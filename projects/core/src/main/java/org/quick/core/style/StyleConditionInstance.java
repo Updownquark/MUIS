@@ -1,13 +1,16 @@
 package org.quick.core.style;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 import org.observe.ObservableValue;
 import org.observe.assoc.ObservableMap;
-import org.observe.assoc.ObservableSetTree;
+import org.observe.collect.CollectionSession;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.qommons.BiTuple;
+import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
@@ -84,28 +87,53 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	static class StyleConditionInstanceFunctions {
 		private static ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> getTemplateRoles(QuickElement element) {
 			TypeToken<AttachPoint<?>> apType = new TypeToken<AttachPoint<?>>() {};
-			ObservableSet<AttachPoint<?>> attachPoints = element.atts().getAllValues()
-				.filterKeysStatic(attr -> attr instanceof RoleAttribute).entrySet()
-				.mapEquivalent(entry -> (AttachPoint<?>) entry.getValue(), //
-					null); // The reverse function is unimportant since Objects.equals doesn't care
-			java.util.function.Function<AttachPoint<?>, StyleConditionInstance<?>> groupFn = ap -> StyleConditionInstance
-				.of(QuickTemplate.getTemplateFor(element, ap));
-			return attachPoints.groupBy(groupFn).unique();
-			ObservableSetTree<BiTuple<QuickElement, AttachPoint<?>>, AttachPoint<?>> tree = ObservableSetTree.of(//
-				ObservableValue.constant(new BiTuple<>(element, null)), //
-				apType, tuple -> ObservableValue.constant(apType, tuple.getValue2()), //
-				tuple -> rolesFor(tuple == null ? null : tuple.getValue1())//
-			);
-			ObservableSet<List<AttachPoint<?>>> rawPaths = ObservableSetTree.valuePathsOf(tree, false);
-			ObservableSet<List<AttachPoint<?>>> filteredPaths = rawPaths//
-				.filter(path -> path.size() > 1) // Filter out the root path
-				.mapEquivalent(path -> { // Remove the first element, which is null, and reverse the path
-					ArrayList<AttachPoint<?>> newPath = new ArrayList<>(path.size() - 1);
-					for (int i = 0; i < path.size() - 1; i++)
-						newPath.add(path.get(path.size() - i - 1));
-					return Collections.unmodifiableList(newPath);
-				}, null); // The reverse function is unimportant since Objects.equals doesn't care
-			return filteredPaths;
+			ObservableSet<RoleAttribute> roles = element.atts().getAllAttributes()
+				.filter(RoleAttribute.class).immutable();
+			return new ObservableMap<AttachPoint<?>, StyleConditionInstance<?>>(){
+				@Override
+				public boolean isSafe() {
+					return roles.isSafe();
+				}
+
+				@Override
+				public Transaction lock(boolean write, Object cause) {
+					return roles.lock(write, cause);
+				}
+
+				@Override
+				public ObservableValue<CollectionSession> getSession() {
+					return roles.getSession();
+				}
+
+				@Override
+				public TypeToken<AttachPoint<?>> getKeyType() {
+					return new TypeToken<AttachPoint<?>>(){};
+				}
+
+				@Override
+				public TypeToken<StyleConditionInstance<?>> getValueType() {
+					return new TypeToken<StyleConditionInstance<?>>(){};
+				}
+
+				@Override
+				public ObservableSet<AttachPoint<?>> keySet() {
+					return roles.mapEquivalent(att->element.atts().get(att), null);
+				}
+
+				@Override
+				public ObservableValue<StyleConditionInstance<?>> observe(Object key) {
+					if (!(key instanceof AttachPoint))
+						return ObservableValue.constant(getValueType(), null);
+					AttachPoint<?> attachPoint = (AttachPoint<?>) key;
+					return element.atts().getHolder(attachPoint.template.role)
+						.mapV(ap -> StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap)));
+				}
+
+				@Override
+				public ObservableSet<? extends org.observe.assoc.ObservableMap.ObservableEntry<AttachPoint<?>, StyleConditionInstance<?>>> observeEntries() {
+					return ObservableMap.defaultObserveEntries(this);
+				}
+			};
 		}
 
 		private static ObservableSet<BiTuple<QuickElement, AttachPoint<?>>> rolesFor(QuickElement element) {

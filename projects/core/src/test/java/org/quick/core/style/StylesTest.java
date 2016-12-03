@@ -6,12 +6,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
 import org.observe.ObservableValueTester;
 import org.observe.SimpleSettableValue;
+import org.observe.assoc.ObservableMap;
+import org.observe.assoc.impl.ObservableMapImpl;
 import org.observe.collect.impl.ObservableHashSet;
 import org.quick.core.*;
 import org.quick.core.QuickConstants.States;
@@ -25,12 +26,12 @@ public class StylesTest {
 	class StyleConditionInstanceBacking {
 		final ObservableHashSet<QuickState> state;
 		final ObservableHashSet<String> groups;
-		final ObservableHashSet<List<AttachPoint<?>>> rolePaths;
+		final ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles;
 
 		StyleConditionInstanceBacking() {
 			state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
 			groups = new ObservableHashSet<>(TypeToken.of(String.class));
-			rolePaths = new ObservableHashSet<>(new TypeToken<List<AttachPoint<?>>>() {});
+			roles = new ObservableMapImpl<>(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
 		}
 	}
 
@@ -64,11 +65,11 @@ public class StylesTest {
 		StyleConditionInstance<QuickElement> baseCondition = StyleConditionInstance.build(QuickElement.class)//
 			.withState(baseBacking.state)//
 			.withGroups(baseBacking.groups)//
-			.withRolePaths(baseBacking.rolePaths).build();
+			.withRoles(baseBacking.roles).build();
 		StyleConditionInstance<DeepElement> deepCondition = StyleConditionInstance.build(DeepElement.class)//
 			.withState(deepBacking.state)//
 			.withGroups(deepBacking.groups)//
-			.withRolePaths(deepBacking.rolePaths).build();
+			.withRoles(deepBacking.roles).build();
 
 		ObservableValueTester<Double> baseTester = new ObservableValueTester<>(
 			sheet.get(baseCondition, BackgroundStyle.transparency, false), 0.0000001);
@@ -232,7 +233,6 @@ public class StylesTest {
 			.forRole(attach1, StyleCondition.build(template1Struct.getDefiner()).build())//
 			.build();
 		StyleConditionInstance<?> temp2CI = StyleConditionInstance.of(template2);
-		assertEquals(setOf(asList(attach1)), temp2CI.getRolePaths());
 		assertTrue(shallowCondition.matches(temp2CI).get());
 
 		StyleCondition deepCondition = StyleCondition.build(QuickElement.class)//
@@ -242,7 +242,6 @@ public class StylesTest {
 					.build())//
 			.build();
 		StyleConditionInstance<?> textCI = StyleConditionInstance.of(text);
-		assertEquals(setOf(asList(attach2), asList(attach1, attach2)), textCI.getRolePaths());
 		assertTrue(deepCondition.matches(textCI).get());
 		assertFalse(deepCondition.matches(temp2CI).get());
 		assertFalse(shallowCondition.matches(textCI).get());

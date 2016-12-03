@@ -6,7 +6,6 @@ import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
-import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.mgr.QuickState;
 
@@ -174,8 +173,12 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		if (theRole == null)
 			roleMatches = ObservableValue.constant(true);
 		else
-			roleMatches = value.getRolePaths().observeContainsAll(
-				ObservableCollection.constant(new TypeToken<List<QuickTemplate.AttachPoint<?>>>() {}, Arrays.asList(theRolePath)));
+			roleMatches = ObservableValue.flatten(value.getRoleParent(theRole).mapV(parent -> {
+				if (parent != null)
+					return theParent.matches(parent);
+				else
+					return ObservableValue.constant(TypeToken.of(Boolean.class), false);
+			}, true));
 
 		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, roleMatches);
 	}

@@ -19,7 +19,8 @@ public class BorderTexture extends org.quick.core.style.BaseTexture {
 		org.quick.core.style.Size radius = element.getStyle().get(org.quick.core.style.BackgroundStyle.cornerRadius).get();
 		int wRad = radius.evaluate(w);
 		int hRad = radius.evaluate(h);
-		Color color = element.getStyle().get(BorderStyle.color).get();
+		Color color = org.quick.util.QuickUtils.getColor(element.getStyle().get(BorderStyle.color).get(),
+			element.getStyle().get(BorderStyle.transparency).get());
 		float dashLength = element.getStyle().get(BorderStyle.dashLength).get().floatValue();
 		float dashInterim = element.getStyle().get(BorderStyle.dashInterim).get().floatValue();
 		BasicStroke stroke;

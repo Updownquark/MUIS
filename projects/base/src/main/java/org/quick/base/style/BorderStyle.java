@@ -28,6 +28,9 @@ public class BorderStyle implements StyleDomain {
 	/** The color of a widget's border */
 	public static final StyleAttribute<java.awt.Color> color;
 
+	/** The transparency of a widget's border */
+	public static final StyleAttribute<Double> transparency;
+
 	/** The length of the dashes in a border */
 	public static final StyleAttribute<Double> dashLength;
 
@@ -44,6 +47,9 @@ public class BorderStyle implements StyleDomain {
 		instance.register(inset);
 		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, new java.awt.Color(0, 0, 0)).build();
 		instance.register(color);
+		transparency = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 0d)
+			.validate(new QuickProperty.ComparableValidator<>(0d, 1d)).build();
+		instance.register(transparency);
 		dashLength = StyleAttribute.build(instance, "dash-length", QuickPropertyType.floating, 3d)
 			.validate(new QuickProperty.ComparableValidator<>(1d, 1000d)).build();
 		instance.register(dashLength);

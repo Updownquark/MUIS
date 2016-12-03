@@ -1,6 +1,8 @@
 package org.quick.base.style;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
 import org.quick.core.QuickCache.CacheException;
@@ -127,11 +129,11 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 			return;
 		graphics.setColor(bg);
 		if(area == null || (area.y <= h - hRad && area.y + area.height >= hRad))
-			graphics.fillRect(0, hRad, w, h - hRad * 2);
+			fill(graphics, 0, hRad, w, h-hRad-hRad, area);
 		if(area == null || (area.x <= w - wRad && area.x + area.width >= w && area.y <= hRad && area.y + area.height >= hRad))
-			graphics.fillRect(wRad, 0, w - wRad * 2, hRad);
+			fill(graphics, wRad, 0, w - wRad * 2, hRad, area);
 		if(area == null || (area.x <= w - wRad && area.x + area.width >= w && area.y <= h && area.y + area.height >= h - hRad))
-			graphics.fillRect(wRad, h - hRad, w - wRad * 2, hRad);
+			fill(graphics, wRad, h - hRad, w - wRad * 2, hRad, area);
 		if(wRad * 2 > w)
 			wRad = w / 2;
 		if(hRad * 2 > h)
@@ -250,7 +252,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				for(int y = 0; y < hRad; y++)
 				{
 					tbEdgeImg.setRGB(0, y, 0);
-					int crY = Math.round(y * cr.getRadius() * 1.0f / hRad);
+					int crY = (int)(y * cr.getRadius() * 1.0f / hRad);
 					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						tbEdgeImg.setRGB(0, y, lightRGB | (alpha << 24));
@@ -265,7 +267,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				for(int x = 0; x < wRad; x++)
 				{
 					lrEdgeImg.setRGB(x, 0, 0);
-					int crY = Math.round((wRad - x - 1) * cr.getRadius() * 1.0f / wRad);
+					int crY = (int) ((wRad - x - 1) * cr.getRadius() * 1.0f / wRad) + 1;
 					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						lrEdgeImg.setRGB(x, 0, lightRGB | (alpha << 24));
@@ -280,7 +282,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				for(int y = 0; y < hRad; y++)
 				{
 					tbEdgeImg.setRGB(0, y, 0);
-					int crY = Math.round((hRad - y - 1) * cr.getRadius() * 1.0f / hRad);
+					int crY = (int) ((hRad - y - 1) * cr.getRadius() * 1.0f / hRad) + 1;
 					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						tbEdgeImg.setRGB(0, y, lightRGB | (alpha << 24));
@@ -295,7 +297,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				for(int x = 0; x < wRad; x++)
 				{
 					lrEdgeImg.setRGB(x, 0, 0);
-					int crY = Math.round(x * cr.getRadius() * 1.0f / wRad);
+					int crY = (int)(x * cr.getRadius() * 1.0f / wRad);
 					int alpha = cr.getShadeAmount(cr.getRadius(), crY);
 					if(alpha > 0)
 						lrEdgeImg.setRGB(x, 0, lightRGB | (alpha << 24));
@@ -306,5 +308,19 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				break;
 			}
 		}
+	}
+
+	private void fill(Graphics2D graphics, int x, int y, int w, int h, Rectangle area) {
+		if(area!=null){
+			x=Math.max(x, area.x);
+			y=Math.max(y, area.y);
+			int x2=Math.min(x+w, area.x+area.width);
+			int y2=Math.min(y+h, area.y+area.height);
+			w=x2-x;
+			h=y2-y;
+			if(w<=0 || h<=0)
+				return;
+		}
+		graphics.fillRect(x, y, w, h);
 	}
 }

@@ -11,6 +11,8 @@ import org.quick.core.mgr.QuickMessage;
 
 /** A browser that renders Quick documents */
 public class QuickBrowser extends javax.swing.JPanel {
+	private static final boolean RENDER_DEBUG = false;
+
 	javax.swing.JTextField theAddressBar;
 
 	private QuickContentPane theContentPane;
@@ -157,8 +159,6 @@ public class QuickBrowser extends javax.swing.JPanel {
 		return (java.awt.Window) parent;
 	}
 
-	private static final boolean DEBUG = false;
-
 	/**
 	 * Starts up a QuickBrowser
 	 *
@@ -173,7 +173,7 @@ public class QuickBrowser extends javax.swing.JPanel {
 		frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 
-		if (DEBUG) {
+		if (RENDER_DEBUG) {
 			final javax.swing.JFrame debugFrame = new javax.swing.JFrame("Quick Graphics Debug");
 			javax.swing.JPanel debugContent = new javax.swing.JPanel();
 			debugFrame.setContentPane(debugContent);

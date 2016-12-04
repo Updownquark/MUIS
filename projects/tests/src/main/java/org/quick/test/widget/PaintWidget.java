@@ -4,7 +4,6 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 
-import org.quick.core.event.BoundsChangedEvent;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
 
@@ -18,9 +17,7 @@ public class PaintWidget extends org.quick.base.widget.Block {
 	/** Creates a PaintWidget */
 	public PaintWidget() {
 		setFocusable(true);
-		events().filterMap(BoundsChangedEvent.bounds).act(event -> {
-			resized();
-		});
+		bounds().noInit().act(rect -> resized());
 		events().filterMap(MouseEvent.mouse).act(new org.observe.Action<MouseEvent>() {
 			private boolean isMouseDown;
 
@@ -44,6 +41,9 @@ public class PaintWidget extends org.quick.base.widget.Block {
 						drawPoint(event);
 						isMouseDown = false;
 					}
+					break;
+				case moved:
+					drawPoint(event);
 					break;
 				default:
 				}

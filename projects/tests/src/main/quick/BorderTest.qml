@@ -8,7 +8,7 @@
     	<block layout="base:simple" width="100%" top="0" height="100%">
     		<label layout="base:simple" left="3" right="100%" top="0" height="25%">This is a Quick Document</label>
     		<border left="0" right="100%" top="25%" height="75%">
-    			<border style="border-style={color=red;thickness=5}">
+    			<border style="border-style.color=red;border-style.thickness=5">
 	    			<label>This should have a thick little red border and a thin big black border around it</label>
 	    		</border>
 	    		<block style="bg.transparency=0;bg.color=orange" width="200" height="100">

@@ -137,8 +137,8 @@ public class FontStyle implements StyleDomain {
 		weights.put("demi-bold", demiBold);
 		weights.put("bold", bold);
 		weights.put("heavy", heavy);
-		weights.put("extra-bold", extraBold);
-		weights.put("ultra-bold", ultraBold);
+		weights.put("extrabold", extraBold);
+		weights.put("ultrabold", ultraBold);
 		weight = StyleAttribute
 			.build(instance, "weight",
 				QuickPropertyType.build("weight", TypeToken.of(Double.class)).buildContext(ctx -> {

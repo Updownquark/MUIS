@@ -11,7 +11,7 @@
    			<label style="font.size=8">small</label>
    			<label style="font.weight=light">Light</label>
    			<label style="font.color=yellow;font.weight=bold">Bold (and yellow)</label>
-   			<label style="font.color=red;font.weight=ultra-bold">Ultra Bold (and red)</label>
+   			<label style="font.color=red;font.weight=ultrabold">Ultra Bold (and red)</label>
    			<label style="font.slant=italic">Italic</label>
    			<label style="font.strike=true">Strikethrough!</label>
    			<label style="font.underline=dashed">Dashed Underline!</label>

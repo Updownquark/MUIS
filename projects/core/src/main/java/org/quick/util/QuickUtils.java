@@ -258,6 +258,7 @@ public class QuickUtils {
 	public static ObservableValue<java.awt.Font> getFont(QuickStyle style) {
 		java.util.Map<java.text.AttributedCharacterIterator.Attribute, Object> attribs = new java.util.HashMap<>();
 		ObservableValue<String> family = style.get(FontStyle.family);
+		ObservableValue<Double> size = style.get(FontStyle.size);
 		ObservableValue<Color> color = getFontColor(style);
 		ObservableValue<Boolean> kerning = style.get(FontStyle.kerning);
 		ObservableValue<Boolean> ligs = style.get(FontStyle.ligatures);
@@ -267,13 +268,13 @@ public class QuickUtils {
 		ObservableValue<Double> slant = style.get(FontStyle.slant);
 		return ObservableValue.assemble(TypeToken.of(java.awt.Font.class), () -> {
 			attribs.put(TextAttribute.FAMILY, family.get());
+			attribs.put(TextAttribute.SIZE, size.get());
 			attribs.put(TextAttribute.BACKGROUND, org.quick.core.style.Colors.transparent);
 			attribs.put(TextAttribute.FOREGROUND, color.get());
 			if(kerning.get())
 				attribs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);
 			if(ligs.get())
 				attribs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
-			attribs.put(TextAttribute.SIZE, style.get(FontStyle.size));
 			switch (underline.get()) {
 			case none:
 				break;

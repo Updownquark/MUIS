@@ -197,13 +197,16 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		try (Transaction t = holdForWrite(null)) {
 			if (style != null) {
 				RichStyleSequence newSeq = new RichStyleSequence();
-				RichStyleSequence last = theSequences.get(theSequences.size() - 1);
-				newSeq.theStyles.putAll(last.theStyles);
+				if (!theSequences.isEmpty()) {
+					RichStyleSequence last = theSequences.get(theSequences.size() - 1);
+					newSeq.theStyles.putAll(last.theStyles);
+				}
 				for (StyleAttribute<?> att : style.attributes())
 					newSeq.theStyles.put(att, new StyleValue<>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
 				newSeq.theContent.append(csq);
 				theSequences.add(newSeq);
-			}
+			} else if (theSequences.isEmpty())
+				theSequences.add(new RichStyleSequence());
 			theSequences.get(theSequences.size() - 1).theContent.append(csq, start, end);
 		}
 	}

@@ -7,9 +7,7 @@ import static org.quick.base.BaseAttributes.rich;
 import org.observe.ObservableValue;
 import org.qommons.Transaction;
 import org.quick.base.BaseAttributes;
-import org.quick.base.model.Formats;
-import org.quick.base.model.QuickFormatter;
-import org.quick.base.model.RichDocumentModel;
+import org.quick.base.model.*;
 import org.quick.core.QuickConstants;
 import org.quick.core.QuickException;
 import org.quick.core.QuickTextElement;
@@ -47,8 +45,14 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 						docModel = textEl.getDocumentModel().get();
 						if (docModel == null)
 							docModel = new RichDocumentModel(textEl);
-						else if (!(docModel instanceof RichDocumentModel))
-							docModel = new RichDocumentModel(textEl).setText(textEl.getText());
+						else if (!(docModel instanceof RichDocumentModel)) {
+							try {
+								docModel = new QuickRichTextParser().parse(new RichDocumentModel(textEl), textEl.getText(),
+									getDocument().getEnvironment().getPropertyParser(), this);
+							} catch (QuickException e) {
+								msg().error("Could not parse rich text", e);
+							}
+						}
 					} else {
 						docModel = textEl.getDocumentModel().get();
 						if (docModel == null)

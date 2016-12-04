@@ -64,9 +64,11 @@ public class QuickRichTextParser {
 	 * @param richText The text to parse
 	 * @param parser The property parser to parse style attribute values
 	 * @param env The parsing environment to use to parse styles
+	 * @return The model
 	 * @throws QuickException If the text cannot be parsed
 	 */
-	public void parse(RichDocumentModel model, String richText, QuickPropertyParser parser, QuickParseEnv env) throws QuickException {
+	public RichDocumentModel parse(RichDocumentModel model, String richText, QuickPropertyParser parser, QuickParseEnv env)
+		throws QuickException {
 		env = new NoMVParseEnv(env);
 		boolean isEscaped = false;
 		for(int i = 0; i < richText.length(); i++) {
@@ -85,6 +87,7 @@ public class QuickRichTextParser {
 			else
 				model.append(ch);
 		}
+		return model;
 	}
 
 	private static boolean isEscapable(char ch) {

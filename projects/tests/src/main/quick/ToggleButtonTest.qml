@@ -3,14 +3,13 @@
 <quick xmlns:base="../../../../base/QuickRegistry.xml" xmlns:test="../../../QuickRegistry.xml">
     <head>
         <title>Testing Buttons</title>
-        <model name="model" builder="org.quick.test.model.ButtonTestModel$Builder" />
-        <model name="model">
+        <model name="model" builder="default-model">
         	<variable name="value">0</variable>
         	<switch name="colorGroup" value="this.value%4">
-        		<case from="0">#bg-red</case>
-        		<case from="1">#bg-blue</case>
-        		<case from="2">#bg-green</case>
-        		<case from="3">#bg-purple</case>
+        		<case value="0">&quot;bg-red&quot;</case>
+        		<case value="1">&quot;bg-blue&quot;</case>
+        		<case value="2">&quot;bg-green&quot;</case>
+        		<case value="3">&quot;bg-purple&quot;</case>
         	</switch>
         	<value name="red">this.value==0</value>
         	<value name="blue">this.value==1</value>
@@ -25,7 +24,7 @@
     		<toggle-button left="10" top="50px" height="30px" value="model.blue">Blue</toggle-button>
     		<toggle-button left="10" top="80px" height="30px" value="model.green">Green</toggle-button>
     		<toggle-button left="10" top="110px" height="30px" value="model.purple">Purple</toggle-button>
-    		<label value="model.colorGroup" style="font.size=18;font.weight=bold" right="10xp" top="60" />
+    		<label group="${model.colorGroup}" value="model.colorGroup" style="font.size=18;font.weight=bold" right="10xp" top="60" />
     	</block>
     </body>
 </quick>

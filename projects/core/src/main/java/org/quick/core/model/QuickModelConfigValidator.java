@@ -80,7 +80,8 @@ public class QuickModelConfigValidator {
 				if (acceptUnmatched)
 					continue;
 				else
-					throw new QuickParseException("Unexpected config point: " + cfg.getKey());
+					throw new QuickParseException(
+						"Unexpected config point: " + cfg.getKey() + ". Expected one of " + constraints.keySet());
 			}
 			int count = counts.get(cfg.getKey());
 			for (Constraint c : constraint)
@@ -232,7 +233,7 @@ public class QuickModelConfigValidator {
 
 		/**
 		 * Specifies that this child may be present any number of times
-		 * 
+		 *
 		 * @return This builder
 		 */
 		public ConstraintBuilder anyTimes() {

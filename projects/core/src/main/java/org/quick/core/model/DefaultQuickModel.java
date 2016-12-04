@@ -197,7 +197,7 @@ public class DefaultQuickModel implements QuickAppModel {
 				DefaultExpressionContext.build().withParent(parseEnv.getContext())
 					.withValue("this", ObservableValue.constant(TypeToken.of(QuickAppModel.class), tempModel)).build());
 			for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs()) {
-				String name = cfg.getKey();
+				String name = cfg.getValue().getString("name");
 				if (name == null)
 					throw new QuickParseException(cfg.getKey() + " exepects a name attribute");
 				if (theFields.containsKey(name))

@@ -47,7 +47,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			// acquire parse result
 			ParseTreeWalker walker = new ParseTreeWalker();
 			QPPCompiler compiler = new QPPCompiler();
-			walker.walk(compiler, parser.expression());
+			walker.walk(compiler, parser.root());
 			return compiler.getExpression();
 		} catch (RecognitionException e) {
 			throw new QuickParseException("Parsing failed for " + expression, e);
@@ -154,6 +154,14 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitEveryRule(ParserRuleContext ctx) {
 			// Don't think there's anything to do here, but might be useful to have it for debugging sometime
+		}
+
+		@Override
+		public void exitRoot(RootContext ctx) {
+			if (ctx.expression() != null)
+				ascend(ctx.expression(), ctx);
+			else
+				ascend(ctx.primary(), ctx);
 		}
 
 		@Override
@@ -425,8 +433,12 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			QPPExpression operand;
 			if (ctx.primary() != null)
 				operand = pop(ctx.primary());
-			else
+			else if (ctx.expressionName() != null)
 				operand = pop(ctx.expressionName());
+			else if (ctx.fieldAccess() != null)
+				operand = pop(ctx.fieldAccess());
+			else
+				throw new IllegalStateException("Unrecognized primary piece of postfix expression");
 			QPPExpression result = operand;
 			int inc = 0, dec = 0, u = 0;
 			for (int i = 1; i < ctx.getChildCount(); i++) {
@@ -511,46 +523,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 					parseArguments(mod.methodInvocation_lf_primary().argumentList()));
 			else
 				throw new IllegalStateException("Unrecognized type of " + mod.getClass().getSimpleName() + " modifier");
-		}
-
-		@Override
-		public void exitPrimaryNoNewArray(PrimaryNoNewArrayContext ctx) {
-			if (ctx.literal() != null)
-				ascend(ctx.literal(), ctx);
-			else if (ctx.placeholder() != null)
-				ascend(ctx.placeholder(), ctx);
-			else if (ctx.expression() != null)
-				push(new ExpressionTypes.Parenthetic(ctx, pop(ctx.expression())));
-			else if (ctx.classInstanceCreationExpression() != null)
-				ascend(ctx.classInstanceCreationExpression(), ctx);
-			else if (ctx.fieldAccess() != null)
-				ascend(ctx.fieldAccess(), ctx);
-			else if (ctx.arrayAccess() != null)
-				ascend(ctx.arrayAccess(), ctx);
-			else if (ctx.methodInvocation() != null)
-				ascend(ctx.methodInvocation(), ctx);
-			else {
-				// typeName ('[' ']')* '.' 'class'
-				// 'void' '.' 'class'
-				// 'this'
-				// typeName '.' 'this'
-				boolean clazz = false;
-				int dims = 0;
-				for (int i = 0; i < ctx.getChildCount(); i++) {
-					if (ctx.getChild(i).getText().equals("class"))
-						clazz = true;
-					else if (ctx.getChild(i).getText().equals("["))
-						dims++;
-				}
-				if (dims > 0)
-					push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
-				else if (clazz)
-					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
-				else if (ctx.typeName() == null)
-					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
-				else
-					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
-			}
 		}
 
 		private ExpressionTypes.Type typeFor(QPPExpression expr) {

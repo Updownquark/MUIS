@@ -183,20 +183,6 @@ primary
 		)*
 	;
 
-primaryNoNewArray
-	:	literal
-	|	placeholder
-	|	typeName ('[' ']')* '.' 'class'
-	|	'void' '.' 'class'
-	|	'this'
-	|	typeName '.' 'this'
-	|	'(' expression ')'
-	|	classInstanceCreationExpression
-	|	fieldAccess
-	|	arrayAccess
-	|	methodInvocation
-	;
-
 primaryNoNewArray_lf_arrayAccess
 	:
 	;
@@ -348,6 +334,11 @@ constantExpression
 	:	expression
 	;
 
+root
+	:	expression
+	|	primary
+	;
+
 expression
 	:	assignmentExpression
 	;
@@ -473,6 +464,7 @@ unaryExpressionNotPlusMinus
 postfixExpression
 	:	(	primary
 		|	expressionName
+		|	fieldAccess
 		)
 		(	postIncrementExpression_lf_postfixExpression
 		|	postDecrementExpression_lf_postfixExpression

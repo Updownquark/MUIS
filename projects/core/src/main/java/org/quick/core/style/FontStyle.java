@@ -152,7 +152,7 @@ public class FontStyle implements StyleDomain {
 			.buildContext(ctx -> {
 				ctx.withValue("normal", ObservableValue.constant(TypeToken.of(Double.TYPE), normalSlant));
 				ctx.withValue("italic", ObservableValue.constant(TypeToken.of(Double.TYPE), italic));
-			}).build(), 0d).validate(new QuickProperty.ComparableValidator<>(-1d, 1d)).inherited().build();
+			}).build(), 0d).validate(new QuickProperty.ComparableValidator<>(0d, 1d)).inherited().build();
 		instance.register(slant);
 		underline = StyleAttribute.build(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none).inherited()
 			.build();

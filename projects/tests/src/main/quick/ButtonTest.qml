@@ -5,9 +5,7 @@
         <title>Testing Buttons</title>
         <model name="model" builder="default-model">
         	<variable name="counter" min="0" max="10">10</variable>
-        	<!--<value name="counterMod">counter%3</value>-->
         	<action name="incCounter">this.counter--</action>
-        	<!--<value name="color">new java.awt.Color(this.counterMod==0 ? 255 : 0, this.counterMod==1 ? 255 : 0, this.counterMod==2 ? 255 : 0)</value>-->
         	<switch name="counterColor" value="this.counter">
         		<case value="10">org.quick.core.style.Colors.blue</case>
         		<case value="9">org.quick.core.style.Colors.purple</case>

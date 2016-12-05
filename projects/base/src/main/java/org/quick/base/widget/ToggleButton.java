@@ -34,7 +34,7 @@ public class ToggleButton extends Button {
 		life().runWhen(() -> {
 			if (atts().getHolder(ModelAttributes.action).get() == null) {
 				try {
-					atts().set(ModelAttributes.action, ObservableAction.and(TypeToken.of(Object.class)));
+					atts().set(ModelAttributes.action, ObservableAction.nullAction(TypeToken.of(Object.class), null));
 				} catch (QuickException e) {
 					msg().error("Could not set default value for action", e);
 				}

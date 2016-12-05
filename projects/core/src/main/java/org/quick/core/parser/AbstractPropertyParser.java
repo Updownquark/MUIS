@@ -73,14 +73,33 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 		if (property == null)
 			return (ObservableValue<T>) parsedValue;
-		if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
+		else if (property.getType().getType().isAssignableFrom(parsedValue.getType()))
 			return (ObservableValue<T>) parsedValue;
-		else if (QuickUtils.isAssignableFrom(property.getType().getType(), parsedValue.getType()))
+		else if (property.getType().getType().wrap().isAssignableFrom(parsedValue.getType().wrap())) {
+			if (property.getType().getType().isPrimitive())
+				return (ObservableValue<T>) unwrap(parsedValue);
+			else
+				return (ObservableValue<T>) wrap(parsedValue);
+		} else if (QuickUtils.isAssignableFrom(property.getType().getType(), parsedValue.getType()))
 			return convert(parsedValue, property.getType().getType());
 		else if (property.getType().canAccept(parsedValue.getType()))
 			return convert(parsedValue, property, parseEnv);
 		else
 			throw new QuickParseException("Property " + property + " cannot accept type " + parsedValue.getType() + " of value " + value);
+	}
+
+	private <X> ObservableValue<X> unwrap(ObservableValue<X> parsedValue) {
+		if (parsedValue instanceof SettableValue)
+			return ((SettableValue<X>) parsedValue).mapV(parsedValue.getType().unwrap(), v -> v, v -> v, true);
+		else
+			return parsedValue.mapV(parsedValue.getType().unwrap(), v -> v, true);
+	}
+
+	private <X> ObservableValue<X> wrap(ObservableValue<X> parsedValue) {
+		if (parsedValue instanceof SettableValue)
+			return ((SettableValue<X>) parsedValue).mapV(parsedValue.getType().unwrap(), v -> v, v -> v, true);
+		else
+			return parsedValue.mapV(parsedValue.getType().wrap(), v -> v, true);
 	}
 
 	private <T, X> ObservableValue<T> convert(ObservableValue<X> parsedValue, TypeToken<T> type) {

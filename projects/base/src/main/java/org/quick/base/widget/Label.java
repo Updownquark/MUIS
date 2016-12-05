@@ -73,9 +73,13 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 					MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
 					try (Transaction trans = mutableDoc.holdForWrite(event)) {
 						QuickFormatter<Object> formatter = (QuickFormatter<Object>) event.getValue().getValue2();
-						if (formatter == null)
-							mutableDoc.append(String.valueOf(event.getValue().getValue1()));
-						else
+						if (formatter == null) {
+							String text = String.valueOf(event.getValue().getValue1());
+							if (!mutableDoc.toString().equals(text)) {
+								mutableDoc.clear();
+								mutableDoc.append(text);
+							}
+						} else
 							formatter.adjust(mutableDoc, event.getValue().getValue1());
 					} catch (ClassCastException e) {
 						msg().error("Formatter instance " + event.getValue().getValue2() + " is incompatible with model value "

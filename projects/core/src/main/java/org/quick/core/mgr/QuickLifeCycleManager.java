@@ -1,5 +1,7 @@
 package org.quick.core.mgr;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.qommons.ArrayUtils;
 import org.quick.core.QuickElement;
 
@@ -23,9 +25,7 @@ public class QuickLifeCycleManager {
 
 	private int theCurrentStage;
 
-	private volatile LifeCycleListener [] theLifeCycleListeners;
-
-	private final Object theListenerLock;
+	private final ConcurrentLinkedQueue<LifeCycleListener> theLifeCycleListeners;
 
 	/**
 	 * Creates a new life cycle manager. This should only be called from {@link QuickElement#QuickElement()}.
@@ -41,8 +41,7 @@ public class QuickLifeCycleManager {
 				+ " to the life cycle manager constructor");
 		theQuickElement = quickElement;
 		theStages = initStages;
-		theLifeCycleListeners = new LifeCycleListener[0];
-		theListenerLock = new Object();
+		theLifeCycleListeners = new ConcurrentLinkedQueue<>();
 		acceptor.setController(toStage -> {
 			advanceLifeCycle(toStage);
 		});
@@ -72,20 +71,12 @@ public class QuickLifeCycleManager {
 
 	/** @param listener The listener to be notified when the life cycle stage changes */
 	public void addListener(LifeCycleListener listener) {
-		synchronized(theListenerLock) {
-			int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
-			if(idx < 0)
-				theLifeCycleListeners = ArrayUtils.add(theLifeCycleListeners, listener);
-		}
+		theLifeCycleListeners.add(listener);
 	}
 
 	/** @param listener The listener to remove from notification */
 	public void removeListener(LifeCycleListener listener) {
-		synchronized(theListenerLock) {
-			int idx = ArrayUtils.indexOf(theLifeCycleListeners, listener);
-			if(idx >= 0)
-				theLifeCycleListeners = ArrayUtils.remove(theLifeCycleListeners, idx);
-		}
+		theLifeCycleListeners.remove(listener);
 	}
 
 	/**
@@ -166,7 +157,7 @@ public class QuickLifeCycleManager {
 	/** Advances the life cycle stage of the element to the given stage. Called from QuickElement. */
 	private void advanceLifeCycle(String toStage) {
 		String [] stages = theStages;
-		LifeCycleListener [] listeners = theLifeCycleListeners;
+		LifeCycleListener[] listeners = theLifeCycleListeners.toArray(new LifeCycleListener[0]);
 		int goal = ArrayUtils.indexOf(stages, toStage);
 		if(goal <= theCurrentStage) {
 			theQuickElement.msg().error("Stage " + toStage + " has already been transitioned", "stage", toStage);
@@ -180,15 +171,15 @@ public class QuickLifeCycleManager {
 			 * Call listeners for the pre-transition in reverse order so that the first listener added gets notified just before the
 			 * transition actually occurs so nobody has a chance to override its actions
 			 */
-			for(int L = listeners.length - 1; L >= 0; L--)
-				listeners[L].preTransition(oldStage, newStage);
+			for (LifeCycleListener listener : listeners)
+				listener.preTransition(oldStage, newStage);
 			theCurrentStage++;
 			for(LifeCycleListener listener : listeners)
 				listener.postTransition(oldStage, newStage);
 		}
 		if(theCurrentStage == theStages.length - 1) {
 			// Can dispose of resources, since this instance is now effectively immutable
-			theLifeCycleListeners = null;
+			theLifeCycleListeners.clear();
 		}
 	}
 }

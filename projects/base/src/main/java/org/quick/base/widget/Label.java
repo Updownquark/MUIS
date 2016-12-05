@@ -74,7 +74,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 					try (Transaction trans = mutableDoc.holdForWrite(event)) {
 						QuickFormatter<Object> formatter = (QuickFormatter<Object>) event.getValue().getValue2();
 						if (formatter == null)
-							msg().error("No formatter set for model value" + event.getValue().getValue1());
+							mutableDoc.append(String.valueOf(event.getValue().getValue1()));
 						else
 							formatter.adjust(mutableDoc, event.getValue().getValue1());
 					} catch (ClassCastException e) {

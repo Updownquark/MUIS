@@ -96,9 +96,9 @@ public class MathUtils {
 		case ">>>":
 			return rightShiftUnsigned(value1, value2);
 		case "==":
-			return value1.combineV(BOOLEAN, (v1, v2) -> Objects.equals(v1, v2), value2, true);
+			return testEquals(value1, value2, false);
 		case "!=":
-			return value1.combineV(BOOLEAN, (v1, v2) -> Objects.equals(v1, v2), value2, true);
+			return testEquals(value1, value2, true);
 		case ">":
 		case ">=":
 		case "<":
@@ -116,6 +116,24 @@ public class MathUtils {
 			return or(value1, value2);
 		}
 		throw new IllegalArgumentException("Unrecognized operator: " + op);
+	}
+
+	public static <T, U> ObservableValue<Boolean> testEquals(ObservableValue<T> v1, ObservableValue<U> v2, boolean not) {
+		// TODO Could check here to see if the two values are possibly compatible
+		BiFunction<Object, Object, Boolean> test = (val1, val2) -> Objects.equals(val1, val2);
+		if (v1 instanceof SettableValue && QuickUtils.isAssignableFrom(v1.getType(), v2.getType())) {
+			SettableValue<T> s = (SettableValue<T>) v1;
+			BiFunction<Boolean, U, String> accept = (b, val2) -> (b ^ not) ? s.isAcceptable(QuickUtils.convert(v1.getType(), val2))
+				: "Cannot unset an equality";
+			BiFunction<Boolean, U, T> reverse = (b, val2) -> {
+				if (b ^ not)
+					return QuickUtils.convert(v1.getType(), val2);
+				else
+					throw new IllegalArgumentException("Cannot unset an equality");
+			};
+			return ((SettableValue<T>) v1).combineV(BOOLEAN, test, v2, accept, reverse, true);
+		} else
+			return v1.combineV(BOOLEAN, test, v2, true);
 	}
 
 	/**

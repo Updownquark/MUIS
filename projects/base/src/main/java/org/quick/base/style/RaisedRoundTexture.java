@@ -165,7 +165,8 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 			float tempSource = source - 90 * i;
 			while(tempSource < 0)
 				tempSource += 360;
-			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f)); // If we need to generate, step it up
+			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f) + 1); // If we need to generate, step it
+																											// up
 			org.quick.core.QuickEnvironment env = element.getDocument().getEnvironment();
 			CornerRender cr;
 			try {

@@ -118,6 +118,12 @@ public class MathUtils {
 		throw new IllegalArgumentException("Unrecognized operator: " + op);
 	}
 
+	/**
+	 * @param v1 The first value
+	 * @param v2 The second value
+	 * @param not Whether the equality operation is a !=
+	 * @return An observable value for the equality relation between the two values
+	 */
 	public static <T, U> ObservableValue<Boolean> testEquals(ObservableValue<T> v1, ObservableValue<U> v2, boolean not) {
 		// TODO Could check here to see if the two values are possibly compatible
 		BiFunction<Object, Object, Boolean> test = (val1, val2) -> Objects.equals(val1, val2);

@@ -67,9 +67,9 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 		ObservableValue<?> parsedValue;
 		if (property != null && property.getType().isSelfParsingByDefault())
-			parsedValue = parseByType(property, parseEnv, value, SELF_PARSE_DIRECTIVE);
+			parsedValue = parseByType(property, parseEnv, value, SELF_PARSE_DIRECTIVE, false);
 		else
-			parsedValue = parseByType(property, parseEnv, value, DEFAULT_PARSE_DIRECTIVE);
+			parsedValue = parseByType(property, parseEnv, value, DEFAULT_PARSE_DIRECTIVE, false);
 
 		if (property == null)
 			return (ObservableValue<T>) parsedValue;
@@ -134,7 +134,8 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			return parsedValue.mapV(property.getType().getType(), forwardMap, true);
 	}
 
-	private <T> ObservableValue<?> parseByType(QuickProperty<T> property, QuickParseEnv parseEnv, String value, String type)
+	private <T> ObservableValue<?> parseByType(QuickProperty<T> property, QuickParseEnv parseEnv, String value, String type,
+		boolean isDirective)
 		throws QuickParseException {
 		List<String> text = new ArrayList<>();
 		List<ObservableValue<?>> inserts = new ArrayList<>();
@@ -142,13 +143,13 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		Directive directive = parseNextDirective(value, start);
 		while (directive != null) {
 			text.add(value.substring(start, directive.start));
-			ObservableValue<?> contentValue = parseByType(property, parseEnv, directive.contents, directive.type);
+			ObservableValue<?> contentValue = parseByType(property, parseEnv, directive.contents, directive.type, true);
 			inserts.add(contentValue);
 			start = directive.start + directive.length;
 			directive = parseNextDirective(value, start);
 		}
 		ObservableValue<?> parsedValue;
-		if (inserts.size() == 1 && text.get(0).length() == 0 && start == value.length()) {
+		if (inserts.size() == 1 && text.get(0).length() == 0 && start == value.length() && !isDirective) {
 			// Just one directive which contains the whole expression. No need to do all the replacement. Just return the value.
 			parsedValue = inserts.get(0);
 		} else {

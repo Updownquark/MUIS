@@ -192,8 +192,6 @@ primaryNoNewArray_lfno_arrayAccess
 	|	placeholder
 	|	typeName ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
-	|	'this'
-	|	typeName '.' 'this'
 	|	'(' expression ')'
 	|	classInstanceCreationExpression
 	|	fieldAccess
@@ -221,8 +219,6 @@ primaryNoNewArray_lfno_primary
 	|	typeName ('[' ']')* '.' 'class'
 	|	unannPrimitiveType ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
-	|	'this'
-	|	typeName '.' 'this'
 	|	'(' expression ')'
 	|	classInstanceCreationExpression
 	|	arrayAccess_lfno_primary
@@ -239,8 +235,6 @@ primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary
 	|	typeName ('[' ']')* '.' 'class'
 	|	unannPrimitiveType ('[' ']')* '.' 'class'
 	|	'void' '.' 'class'
-	|	'this'
-	|	typeName '.' 'this'
 	|	'(' expression ')'
 	|	classInstanceCreationExpression
 	|	methodInvocation_lfno_primary
@@ -332,11 +326,6 @@ dimExpr
 
 constantExpression
 	:	expression
-	;
-
-root
-	:	expression
-	|	primary
 	;
 
 expression
@@ -464,7 +453,6 @@ unaryExpressionNotPlusMinus
 postfixExpression
 	:	(	primary
 		|	expressionName
-		|	fieldAccess
 		)
 		(	postIncrementExpression_lf_postfixExpression
 		|	postDecrementExpression_lf_postfixExpression
@@ -847,6 +835,7 @@ Identifier
 
 UnitName
 	:	UnitLetter UnitLetter*
+	|	Identifier
 	;
 
 fragment
@@ -873,12 +862,7 @@ JavaLetterOrDigit
 
 fragment
 UnitLetter
-	//Same as java letters, plus %, !, @, and ~
-	:	[a-zA-Z$_%!@~]
-	|	~[\u0000-\u007F\uD800-\uDBFF]
-		{Character.isJavaIdentifierStart(_input.LA(-1))}?
-	|	[\uD800-\uDBFF] [\uDC00-\uDFFF]
-		{Character.isJavaIdentifierStart(Character.toCodePoint((char)_input.LA(-2), (char)_input.LA(-1)))}?
+	:	[$%!@~]
 	;
 
 //

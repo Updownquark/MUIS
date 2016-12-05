@@ -71,7 +71,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			// acquire parse result
 			ParseTreeWalker walker = new ParseTreeWalker();
 			QPPCompiler compiler = new QPPCompiler();
-			walker.walk(compiler, parser.root());
+			walker.walk(compiler, parser.expression());
 			return compiler.getExpression();
 		} catch (RecognitionException e) {
 			throw new QuickParseException("Parsing failed for " + expression, e);
@@ -178,14 +178,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void exitEveryRule(ParserRuleContext ctx) {
 			// Don't think there's anything to do here, but might be useful to have it for debugging sometime
-		}
-
-		@Override
-		public void exitRoot(RootContext ctx) {
-			if (ctx.expression() != null)
-				ascend(ctx.expression(), ctx);
-			else
-				ascend(ctx.primary(), ctx);
 		}
 
 		@Override
@@ -457,12 +449,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			QPPExpression operand;
 			if (ctx.primary() != null)
 				operand = pop(ctx.primary());
-			else if (ctx.expressionName() != null)
-				operand = pop(ctx.expressionName());
-			else if (ctx.fieldAccess() != null)
-				operand = pop(ctx.fieldAccess());
 			else
-				throw new IllegalStateException("Unrecognized primary piece of postfix expression");
+				operand = pop(ctx.expressionName());
 			QPPExpression result = operand;
 			int inc = 0, dec = 0, u = 0;
 			for (int i = 1; i < ctx.getChildCount(); i++) {
@@ -572,14 +560,9 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				// typeName ('[' ']')* '.' 'class'
 				// unannPrimitiveType ('[' ']')* '.' 'class'
 				// 'void' '.' 'class'
-				// 'this'
-				// typeName '.' 'this'
-				boolean clazz = false;
 				int dims = 0;
 				for (int i = 0; i < ctx.getChildCount(); i++) {
-					if (ctx.getChild(i).getText().equals("class"))
-						clazz = true;
-					else if (ctx.getChild(i).getText().equals("["))
+					if (ctx.getChild(i).getText().equals("["))
 						dims++;
 				}
 				if (dims > 0) {
@@ -587,12 +570,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 						push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
 					else
 						push(new ExpressionTypes.ArrayType(ctx, (ExpressionTypes.Type) pop(ctx.unannPrimitiveType()), dims));
-				} else if (clazz)
+				} else
 					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
-				else if (ctx.typeName() == null)
-					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
-				else
-					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
 			}
 		}
 
@@ -613,24 +592,15 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			else {
 				// typeName ('[' ']')* '.' 'class'
 				// 'void' '.' 'class'
-				// 'this'
-				// typeName '.' 'this'
-				boolean clazz = false;
 				int dims = 0;
 				for (int i = 0; i < ctx.getChildCount(); i++) {
-					if (ctx.getChild(i).getText().equals("class"))
-						clazz = true;
-					else if (ctx.getChild(i).getText().equals("["))
+					if (ctx.getChild(i).getText().equals("["))
 						dims++;
 				}
 				if (dims > 0)
 					push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
-				else if (clazz)
-					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
-				else if (ctx.typeName() == null)
-					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
 				else
-					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
+					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
 			}
 		}
 
@@ -649,14 +619,9 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				// typeName ('[' ']')* '.' 'class'
 				// unannPrimitiveType ('[' ']')* '.' 'class'
 				// 'void' '.' 'class'
-				// 'this'
-				// typeName '.' 'this'
-				boolean clazz = false;
 				int dims = 0;
 				for (int i = 0; i < ctx.getChildCount(); i++) {
-					if (ctx.getChild(i).getText().equals("class"))
-						clazz = true;
-					else if (ctx.getChild(i).getText().equals("["))
+					if (ctx.getChild(i).getText().equals("["))
 						dims++;
 				}
 				if (dims > 0) {
@@ -664,12 +629,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 						push(new ExpressionTypes.ArrayType(ctx, typeFor(pop(ctx.typeName())), dims));
 					else
 						push(new ExpressionTypes.ArrayType(ctx, (ExpressionTypes.Type) pop(ctx.unannPrimitiveType()), dims));
-				} else if (clazz)
+				}
 					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
-				else if (ctx.typeName() == null)
-					push(new ExpressionTypes.FieldAccess(ctx, null, "this"));
-				else
-					push(new ExpressionTypes.FieldAccess(ctx, pop(ctx.typeName()), "this"));
 			}
 		}
 

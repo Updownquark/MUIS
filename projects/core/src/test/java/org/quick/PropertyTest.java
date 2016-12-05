@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -158,21 +160,32 @@ public class PropertyTest {
 	public void testDirectives() {
 		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
 		QuickPropertyParser propParser = env.getPropertyParser();
+
+		SimpleSettableValue<String> groupProp = new SimpleSettableValue<>(TypeToken.of(String.class), false);
+		groupProp.set("group-name", null);
+		QuickParseEnv parseEnv = new SimpleParseEnv(env.cv(), env.msg(),
+			DefaultExpressionContext.build().withParent(env.getContext())//
+				.withValue("groupProp", groupProp)//
+				.build());
 		try {
 			Assert.assertEquals(Duration.of(10, ChronoUnit.DAYS).plus(Duration.of(5, ChronoUnit.HOURS)), //
-				propParser.parseProperty(durationAtt, env, "${ #{10d} + #{5h} }")//
+				propParser.parseProperty(durationAtt, parseEnv, "${ #{10d} + #{5h} }")//
 					.get());
 
 			Assert.assertEquals(new Color(128, 196, 255), //
-				propParser.parseProperty(BackgroundStyle.color, env, "${rgb(128, 196, 255)}")//
+				propParser.parseProperty(BackgroundStyle.color, parseEnv, "${rgb(128, 196, 255)}")//
 					.get());
 
 			Assert.assertEquals(new Color(128, 196, 255), //
-				propParser.parseProperty(BackgroundStyle.color, env, "rgb(${100+28}, ${200-4}, ${256-1})")//
+				propParser.parseProperty(BackgroundStyle.color, parseEnv, "rgb(${100+28}, ${200-4}, ${256-1})")//
 					.get());
 
 			Assert.assertEquals(Integer.valueOf(5), //
-				propParser.parseProperty(intAtt, env, "13%8")//
+				propParser.parseProperty(intAtt, parseEnv, "13%8")//
+					.get());
+
+			Assert.assertEquals(new LinkedHashSet<>(Arrays.asList("group-name")), //
+				propParser.parseProperty(StyleAttributes.group, parseEnv, "#{${groupProp}}")//
 					.get());
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
@@ -248,12 +261,19 @@ public class PropertyTest {
 		var1.set(1d, null);
 		SimpleSettableValue<Double> var2 = new SimpleSettableValue<>(dType, false);
 		var2.set(5d, null);
+		SimpleSettableValue<Integer> var3 = new SimpleSettableValue<>(TypeToken.of(Integer.class), false);
+		var3.set(25, null);
 		ObservableAction<Double> incVar1 = var1.assignmentTo(var1.mapV(v -> v + 1));
 		DefaultQuickModel nested = DefaultQuickModel.build()//
 			.with("var2", var2)//
+			.with("var3", var3)//
+			.build();
+		DefaultQuickModel thisModel = DefaultQuickModel.build()//
+			.with("value", var3)//
 			.build();
 		DefaultQuickModel model = DefaultQuickModel.build()//
 			.with("var1", var1)//
+			.with("var3", var3)//
 			.with("incVar1", incVar1)//
 			.with("nested", nested)//
 			.build();
@@ -261,9 +281,16 @@ public class PropertyTest {
 		QuickParseEnv parseEnv = new SimpleParseEnv(env.cv(), env.msg(),
 			DefaultExpressionContext.build().withParent(env.getContext())//
 				.withValue("model", ObservableValue.constant(model))//
+				.withValue("this", ObservableValue.constant(thisModel))//
 				.build());
 
 		try {
+			ObservableValue<Integer> modTest = (ObservableValue<Integer>) propParser.parseProperty(intAtt, parseEnv, "this.value%4");
+			Assert.assertEquals((long) var3.get() % 4, (long) modTest.get());
+			for (var3.set(0, null); var3.get() < 25; var3.set(var3.get() + 1, null)) {
+				Assert.assertEquals((long) var3.get() % 4, (long) modTest.get());
+			}
+
 			ObservableAction<Double> action = (ObservableAction<Double>) propParser
 				.parseProperty(ModelAttributes.action, parseEnv, "model.incVar1()").get();
 			double pre = var1.get();

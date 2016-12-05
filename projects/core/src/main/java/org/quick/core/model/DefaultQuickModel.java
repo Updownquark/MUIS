@@ -13,6 +13,8 @@ import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.SimpleParseEnv;
 import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
@@ -114,10 +116,14 @@ public class DefaultQuickModel implements QuickAppModel {
 			VALIDATOR = QuickModelConfigValidator.build().forConfig("value", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
+				}).forConfig("type", b2 -> {
+					b2.withText(true);
 				}).withText(false);
 			}).forConfig("variable", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
+				}).forConfig("type", b2 -> {
+					b2.withText(true);
 				}).forConfig("min", b2 -> {
 					b2.withText(true).required();
 				}).forConfig("max", b2 -> {
@@ -126,6 +132,8 @@ public class DefaultQuickModel implements QuickAppModel {
 			}).forConfig("action", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
+				}).forConfig("type", b2 -> {
+					b2.withText(true);
 				}).withText(false);
 			}).forConfig("model", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
@@ -134,6 +142,8 @@ public class DefaultQuickModel implements QuickAppModel {
 			}).forConfig("switch", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
+				}).forConfig("type", b2 -> {
+					b2.withText(true);
 				})//
 					.forConfig("value", b2 -> {
 						b2.withText(true).required();
@@ -213,9 +223,6 @@ public class DefaultQuickModel implements QuickAppModel {
 					if (cfg.getValue().getText() == null)
 						throw new QuickParseException(cfg.getKey() + " expects text");
 					value = parseModelVariable(cfg.getValue(), parser, innerEnv);
-					if (cfg.getValue().get("min") != null | cfg.getValue().get("max") != null)
-						value = constrainValue((ObservableValue<?>) value, cfg.getValue().get("min"), cfg.getValue().get("max"), parser,
-							innerEnv);
 					break;
 				case "action":
 					if (cfg.getValue().getText() == null)
@@ -231,21 +238,56 @@ public class DefaultQuickModel implements QuickAppModel {
 				default:
 					throw new QuickParseException("Unrecognized config item: " + cfg.getKey()); // Unnecessary except for compilation
 				}
+				if (value instanceof ObservableValue.ConstantObservableValue)
+					value = ((ObservableValue.ConstantObservableValue<?>) value).get();
 				theFields.put(cfg.getValue().getString("name"), value);
 			}
 			return new DefaultQuickModel(theFields);
 		}
 
-		private ObservableValue<?> parseValue(Object config, QuickPropertyParser parser, QuickParseEnv parseEnv)
-			throws QuickParseException {
-			if (config instanceof String)
-				return parser.parseProperty(null, parseEnv, (String) config);
-			QuickModelConfig cfg = (QuickModelConfig) config;
-			return parser.parseProperty(null, parseEnv, cfg.getText());
+		private QuickPropertyType<?> parseType(QuickPropertyParser parser, QuickParseEnv parseEnv, String typeStr) {
+			if (typeStr == null)
+				return null;
+			switch (typeStr) {
+			case "boolean":
+				return QuickPropertyType.boole;
+			case "int":
+			case "integer":
+				return QuickPropertyType.integer;
+			case "floating":
+			case "double":
+				return QuickPropertyType.floating;
+			case "string":
+			case "java.lang.String":
+				return QuickPropertyType.string;
+			case "color":
+				return QuickPropertyType.color;
+			case "instant":
+			case "java.time.Instant":
+				return QuickPropertyType.instant;
+			case "duration":
+			case "java.time.Duration":
+				return QuickPropertyType.duration;
+			}
+			TypeToken<?> type;
+			try {
+				type = parser.parseType(parseEnv, typeStr);
+			} catch (QuickParseException e) {
+				parseEnv.msg().error("Could not parse model value type " + typeStr, e);
+				return null;
+			}
+			return QuickPropertyType.build(typeStr, type).build();
 		}
 
-		private <T, V> ObservableValue<V> constrainValue(ObservableValue<T> value, Object minConfig, Object maxConfig,
-			QuickPropertyParser parser, QuickParseEnv parseEnv) {
+		private <T> ObservableValue<T> parseValue(QuickPropertyType<T> type, String text, QuickPropertyParser parser,
+			QuickParseEnv parseEnv)
+			throws QuickParseException {
+			QuickAttribute<T> prop = type == null ? null : QuickAttribute.build("model-value", type).build();
+			return (ObservableValue<T>) parser.parseProperty(prop, parseEnv, text);
+		}
+
+		private <T, V> ObservableValue<V> constrainValue(QuickPropertyType<T> type, ObservableValue<T> value, String minConfig,
+			String maxConfig, QuickPropertyParser parser, QuickParseEnv parseEnv) {
 			if (!(value instanceof SettableValue)) {
 				parseEnv.msg().warn("Attempting to constrain unsettable value", "value", value, "min", minConfig, "max", maxConfig);
 				return (ObservableValue<V>) value;
@@ -257,7 +299,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			ObservableValue<?> maxValue = null;
 			if (minConfig != null) {
 				try {
-					minValue = parseValue(minConfig, parser, parseEnv);
+					minValue = parseValue(type, minConfig, parser, parseEnv);
 				} catch (QuickParseException e) {
 					parseEnv.msg().warn("Could not parse min constraint for value", "value", value, "min", minConfig);
 				}
@@ -268,7 +310,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			}
 			if (maxConfig != null) {
 				try {
-					maxValue = parseValue(maxConfig, parser, parseEnv);
+					maxValue = parseValue(type, maxConfig, parser, parseEnv);
 				} catch (QuickParseException e) {
 					parseEnv.msg().warn("Could not parse max constraint for value", "value", value, "max", maxConfig);
 				}
@@ -332,20 +374,21 @@ public class DefaultQuickModel implements QuickAppModel {
 			return settableValue;
 		}
 
-		private Object parseModelValue(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private <T> ObservableValue<T> parseModelValue(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
-			ObservableValue<?> obsValue = parseValue(config, parser, parseEnv);
-			if (obsValue instanceof ObservableValue.ConstantObservableValue)
-				return ((ObservableValue.ConstantObservableValue<?>) obsValue).get();
-			else
-				return obsValue;
+			QuickPropertyType<T> type = (QuickPropertyType<T>) parseType(parser, parseEnv, config.getString("type"));
+			return parseValue(type, config.getText(), parser, parseEnv);
 		}
 
-		private SimpleSettableValue<?> parseModelVariable(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private <T> SettableValue<T> parseModelVariable(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
-			ObservableValue<?> obsValue = parseValue(config, parser, parseEnv);
-			SimpleSettableValue<?> modelVariable = new SimpleSettableValue<>(obsValue.getType(), true);
+			QuickPropertyType<T> type = (QuickPropertyType<T>) parseType(parser, parseEnv, config.getString("type"));
+			ObservableValue<T> obsValue = parseValue(type, config.getText(), parser, parseEnv);
+			SettableValue<T> modelVariable = new SimpleSettableValue<>(obsValue.getType(), true);
 			((SimpleSettableValue<Object>) modelVariable).set(obsValue.get(), null);
+			if (config.get("min") != null | config.get("max") != null)
+				modelVariable = (SettableValue<T>) constrainValue(type, modelVariable, config.getString("min"), config.getString("max"),
+					parser, parseEnv);
 			return modelVariable;
 		}
 
@@ -362,45 +405,48 @@ public class DefaultQuickModel implements QuickAppModel {
 				return buildModel(config, parser, parseEnv);
 		}
 
-		private ObservableValue<?> parseModelSwitch(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private <T> ObservableValue<T> parseModelSwitch(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
-			ObservableValue<?> value = parseValue(config.get("value"), parser, parseEnv);
+			QuickPropertyType<T> type = (QuickPropertyType<T>) parseType(parser, parseEnv, config.getString("type"));
+			ObservableValue<?> value = parseValue(null, config.getString("value"), parser, parseEnv);
 			Map<Object, ObservableValue<?>> mappings = new HashMap<>();
-			Map<Object, Object> valueMappings = new HashMap<>();
+			Map<Object, T> valueMappings = new HashMap<>();
 			for (QuickModelConfig caseConfig : (List<QuickModelConfig>) (List<?>) config.getValues("case")) {
-				Object from = parseValue(caseConfig.get("value"), parser, parseEnv).get();
-				ObservableValue<?> to = parseValue(caseConfig, parser, parseEnv);
+				Object from = parseValue(null, ((QuickModelConfig) caseConfig.get("value")).getText(), parser, parseEnv).get();
+				ObservableValue<T> to = parseValue(type, caseConfig.getText(), parser, parseEnv);
 				mappings.put(from, to);
-				Object toVal = to.get();
+				T toVal = to.get();
 				valueMappings.put(from, toVal);
 			}
 			boolean allCommon = true;
-			TypeToken<?> common = null;
-			for (ObservableValue<?> v : mappings.values()) {
-				if (common == null)
-					common = v.getType();
-				else if (!common.equals(v.getType())) {
-					allCommon = false;
-					break;
+			TypeToken<?> common = type == null ? null : type.getType();
+			if (type == null) {
+				for (ObservableValue<?> v : mappings.values()) {
+					if (common == null)
+						common = v.getType();
+					else if (!common.equals(v.getType())) {
+						allCommon = false;
+						break;
+					}
 				}
 			}
-			Object def;
+			T def;
 			if (config.getString("default") != null && !config.getString("default").equals("null")) {
-				ObservableValue<?> defValue = parseValue(config.get("default"), parser, parseEnv);
-				if (allCommon && !common.equals(defValue.getType()))
+				ObservableValue<T> defValue = parseValue(type, config.getString("default"), parser, parseEnv);
+				if (type == null && allCommon && !common.equals(defValue.getType()))
 					allCommon = false;
 				def = defValue.get();
 			} else
 				def = null;
 			if (!allCommon)
 				common = TypeToken.of(Object.class);
-			Function<Object, Object> mapFn = v -> {
-				Object to = valueMappings.get(v);
+			Function<Object, T> mapFn = v -> {
+				T to = valueMappings.get(v);
 				if (to == null)
 					to = def;
 				return to;
 			};
-			return value.<Object> mapV((TypeToken<Object>) common, mapFn, true);
+			return value.<T> mapV((TypeToken<T>) common, mapFn, true);
 		}
 	}
 }

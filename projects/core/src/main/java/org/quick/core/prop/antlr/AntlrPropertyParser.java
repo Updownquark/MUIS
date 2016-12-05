@@ -35,6 +35,30 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		return AntlrPropertyEvaluator.evaluateTypeless(parseEnv, type, parsed, action, action);
 	}
 
+	@Override
+	public TypeToken<?> parseType(QuickParseEnv parseEnv, String expression) throws QuickParseException {
+		ExpressionTypes.Type typeExpr;
+		try {
+			// lexer splits input into tokens
+			ANTLRInputStream input = new ANTLRInputStream(expression);
+			TokenStream tokens = new CommonTokenStream(new QPPLexer(input));
+
+			// parser generates abstract syntax tree
+			QPPParser parser = new QPPParser(tokens);
+
+			// acquire parse result
+			ParseTreeWalker walker = new ParseTreeWalker();
+			QPPCompiler compiler = new QPPCompiler();
+			walker.walk(compiler, parser.type());
+			typeExpr = (ExpressionTypes.Type) compiler.getExpression();
+		} catch (RecognitionException e) {
+			throw new QuickParseException("Parsing failed for " + expression, e);
+		} catch (IllegalStateException e) {
+			throw new QuickParseException("Parsing failed for " + expression, e);
+		}
+		return AntlrPropertyEvaluator.evaluateType(parseEnv, typeExpr);
+	}
+
 	private <T> QPPExpression compile(String expression) throws QuickParseException {
 		try {
 			// lexer splits input into tokens

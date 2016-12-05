@@ -5,6 +5,8 @@ import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.prop.QuickProperty;
 
+import com.google.common.reflect.TypeToken;
+
 /** Parses property values in models, style sheets, attributes, etc. */
 public interface QuickPropertyParser {
 	/** @return The environment that this parser parses values in */
@@ -20,4 +22,6 @@ public interface QuickPropertyParser {
 	 */
 	<T> ObservableValue<? extends T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
 		throws QuickParseException;
+
+	TypeToken<?> parseType(QuickParseEnv parseEnv, String value) throws QuickParseException;
 }

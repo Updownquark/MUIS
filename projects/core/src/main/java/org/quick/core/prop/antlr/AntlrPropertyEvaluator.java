@@ -35,6 +35,10 @@ public class AntlrPropertyEvaluator {
 		return (ObservableValue<? extends T>) result;
 	}
 
+	public static TypeToken<?> evaluateType(QuickParseEnv parseEnv, ExpressionTypes.Type parsedType) throws QuickParseException {
+		return evaluateType(parseEnv, parsedType, TypeToken.of(Object.class));
+	}
+
 	public static <T> ObservableValue<?> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression parsedItem,
 		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		// Sort from easiest to hardest

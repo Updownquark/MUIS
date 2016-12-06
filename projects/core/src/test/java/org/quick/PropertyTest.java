@@ -4,12 +4,15 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.observe.*;
+import org.observe.collect.ObservableCollectionTester;
+import org.observe.collect.ObservableSet;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.DefaultQuickModel;
@@ -184,12 +187,35 @@ public class PropertyTest {
 				propParser.parseProperty(intAtt, parseEnv, "13%8")//
 					.get());
 
-			Assert.assertEquals(new LinkedHashSet<>(Arrays.asList("group-name")), //
-				propParser.parseProperty(StyleAttributes.group, parseEnv, "#{${groupProp}}")//
-					.get());
+			ObservableValue<? extends Set<String>> parsedGroups = propParser.parseProperty(StyleAttributes.group, parseEnv,
+				"#{${groupProp}}");
+			ObservableValueTester<Set<String>> groupsTester = new ObservableValueTester<>(parsedGroups);
+
+			// The ObservableSet stuff here isn't technically part of the parsing, just throwing it in here to see if I can find a bug
+			ObservableValue<ObservableSet<String>> groupValue = parsedGroups.mapV((Set<String> g) -> {
+				return ObservableSet.<String> constant(TypeToken.of(String.class), g == null ? Collections.<String> emptySet() : g);
+			});
+			ObservableSet<String> flatGroups = ObservableSet.flattenValue(groupValue);
+			ObservableCollectionTester<String> flatGroupsTester = new ObservableCollectionTester<>(flatGroups);
+
+			flatGroupsTester.set("group-name");
+			groupsTester.check(setOf("group-name"));
+			flatGroupsTester.check();
+
+			groupProp.set("group-name-2", null);
+			flatGroupsTester.set("group-name-2");
+			groupsTester.check(setOf("group-name-2"), 1);
+			flatGroupsTester.check();
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+
+	private static <T> Set<T> setOf(T... values) {
+		LinkedHashSet<T> set = new LinkedHashSet<>();
+		for (T value : values)
+			set.add(value);
+		return set;
 	}
 
 	/** Property parsing with injected variables and actions */

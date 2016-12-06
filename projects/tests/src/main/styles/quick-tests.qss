@@ -23,4 +23,8 @@
 		<attr domain="bg" name="transparency" value="0" />
 		<attr domain="bg" name="color" value="green" />
 	</group>
+	<group name="bg-purple">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="purple" />
+	</group>
 </style>

@@ -3,6 +3,7 @@
 <quick xmlns:base="../../../../base/QuickRegistry.xml" xmlns:test="../../../QuickRegistry.xml">
     <head>
         <title>Testing Buttons</title>
+		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
         <model name="model" builder="default-model">
         	<variable name="value">0</variable>
         	<switch name="colorGroup" value="this.value%4">

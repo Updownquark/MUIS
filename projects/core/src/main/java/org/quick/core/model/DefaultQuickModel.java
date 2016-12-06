@@ -144,6 +144,8 @@ public class DefaultQuickModel implements QuickAppModel {
 					b2.withText(true).required();
 				}).forConfig("type", b2 -> {
 					b2.withText(true);
+				}).forConfig("value-type", b2 -> {
+					b2.withText(true);
 				})//
 					.forConfig("value", b2 -> {
 						b2.withText(true).required();
@@ -407,18 +409,32 @@ public class DefaultQuickModel implements QuickAppModel {
 				return buildModel(config, parser, parseEnv);
 		}
 
-		private <T> ObservableValue<T> parseModelSwitch(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private <F, T> ObservableValue<T> parseModelSwitch(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			QuickPropertyType<T> type = (QuickPropertyType<T>) parseType(parser, parseEnv, config.getString("type"));
-			ObservableValue<?> value = parseValue(null, config.getString("value"), parser, parseEnv);
-			Map<Object, ObservableValue<?>> mappings = new HashMap<>();
-			Map<Object, T> valueMappings = new HashMap<>();
+			QuickPropertyType<F> valueType = (QuickPropertyType<F>) parseType(parser, parseEnv, config.getString("value-type"));
+			ObservableValue<F> value = parseValue(valueType, config.getString("value"), parser, parseEnv);
+			Map<F, ObservableValue<?>> mappings = new HashMap<>();
+			class Holder<X> {
+				final X val;
+
+				Holder(X v) {
+					val = v;
+				}
+			}
+			Map<F, Holder<T>> valueMappings = new HashMap<>();
+			Map<T, Holder<F>> reverseMappings = new HashMap<>();
+			boolean allConstant = true;
 			for (QuickModelConfig caseConfig : (List<QuickModelConfig>) (List<?>) config.getValues("case")) {
-				Object from = parseValue(null, ((QuickModelConfig) caseConfig.get("value")).getText(), parser, parseEnv).get();
+				ObservableValue<F> from = parseValue(valueType, ((QuickModelConfig) caseConfig.get("value")).getText(), parser, parseEnv);
 				ObservableValue<T> to = parseValue(type, caseConfig.getText(), parser, parseEnv);
-				mappings.put(from, to);
+				allConstant &= from instanceof ObservableValue.ConstantObservableValue;
+				F fromVal = from.get();
+				mappings.put(fromVal, to);
 				T toVal = to.get();
-				valueMappings.put(from, toVal);
+				valueMappings.put(fromVal, new Holder<>(toVal));
+				if (allConstant)
+					reverseMappings.put(toVal, new Holder<>(fromVal));
 			}
 			boolean allCommon = true;
 			TypeToken<?> common = type == null ? null : type.getType();
@@ -435,6 +451,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			T def;
 			if (config.getString("default") != null && !config.getString("default").equals("null")) {
 				ObservableValue<T> defValue = parseValue(type, config.getString("default"), parser, parseEnv);
+				allConstant &= defValue instanceof ObservableValue.ConstantObservableValue;
 				if (type == null && allCommon && !common.equals(defValue.getType()))
 					allCommon = false;
 				def = defValue.get();
@@ -442,13 +459,28 @@ public class DefaultQuickModel implements QuickAppModel {
 				def = null;
 			if (!allCommon)
 				common = TypeToken.of(Object.class);
-			Function<Object, T> mapFn = v -> {
-				T to = valueMappings.get(v);
-				if (to == null)
-					to = def;
-				return to;
+			Function<F, T> mapFn = v -> {
+				Holder<T> to = valueMappings.get(v);
+				if (to != null)
+					return to.val;
+				else
+					return def;
 			};
-			return value.<T> mapV((TypeToken<T>) common, mapFn, true);
+			if (value instanceof SettableValue && allConstant) {
+				SettableValue<F> settable = (SettableValue<F>) value;
+				Function<T, String> allowedFn = v -> {
+					Holder<F> from = reverseMappings.get(v);
+					if (from == null)
+						return "No such case value: " + v;
+					return settable.isAcceptable(from.val);
+				};
+				Function<T, F> reverseMapFn = v -> {
+					Holder<F> from = reverseMappings.get(v);
+					return from == null ? null : from.val;
+				};
+				return settable.mapV((TypeToken<T>) common, mapFn, reverseMapFn, true).filterAccept(allowedFn);
+			} else
+				return value.<T> mapV((TypeToken<T>) common, mapFn, true);
 		}
 	}
 }

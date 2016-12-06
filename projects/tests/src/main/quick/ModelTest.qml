@@ -6,27 +6,22 @@
 		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
         <model name="model" builder="default-model">
         	<variable name="colorIndex">0</variable>
-        	<switch name="bg" type="color" value="this.colorIndex%3">
+        	<switch name="bg" type="color" value="this.colorIndex">
         		<case value="0">red</case>
         		<case value="1">blue</case>
         		<case value="2">green</case>
         	</switch>
-        	<switch name="fg" type="color" value="this.colorIndex%3">
+        	<switch name="fg" type="color" value="this.colorIndex">
         		<case value="0">black</case>
         		<case value="1">white</case>
         		<case value="2">black</case>
         	</switch>
-        	<switch name="text" type="string" value="this.colorIndex%3">
-        		<case value="0">red</case>
-        		<case value="1">blue</case>
-        		<case value="2">green</case>
-        	</switch>
-        	<switch name="bgImage" type="resource" value="this.colorIndex%3">
+        	<switch name="bgImage" type="resource" value="this.colorIndex">
         		<case value="0">test:fire</case>
         		<case value="1">test:waterfall</case>
         		<case value="2">test:plant</case>
         	</switch>
-        	<switch name="group" type="string" value="this.colorIndex%3">
+        	<switch name="group" type="string" value="this.colorIndex">
         		<case value="0">bg-red</case>
         		<case value="1">bg-blue</case>
         		<case value="2">bg-green</case>
@@ -44,7 +39,7 @@
 	    		<image src="${model.bgImage}" prop-locked="true" resize="resize" width="100%"/>
    			</block>
    			<block region="right" width="200" layout="box" direction="down">
-	   			<text-field value="model.text" length="30"></text-field>
+	   			<text-field value="model.bg" format="${formats.color}" length="30"></text-field>
    			</block>
    			<border region="center" group="model.group" style="font.color=${model.fg}">
    				This text's background should match the selected button at left.

@@ -44,6 +44,23 @@ public class StyleAttributes {
 				groups.add(s.trim());
 			return ObservableValue.constant(new TypeToken<Set<String>>() {}, Collections.unmodifiableSet(groups));
 		}, true)//
+		.map(TypeToken.of(String.class), str -> {
+			String[] split = str.split(",");
+			LinkedHashSet<String> groups = new LinkedHashSet<>();
+			for (String s : split)
+				groups.add(s.trim());
+			return Collections.unmodifiableSet(groups);
+		}, set -> {
+			StringBuilder str = new StringBuilder();
+			boolean first = true;
+			for (String g : set) {
+				if (!first)
+					str.append(',');
+				first = false;
+				str.append(g);
+			}
+			return str.toString();
+		})
 		.build();
 
 	/** The style attribute on Quick elements */

@@ -41,7 +41,7 @@
    			<block region="right" width="200" layout="box" direction="down">
 	   			<text-field value="model.bg" format="${formats.color}" length="30"></text-field>
    			</block>
-   			<border region="center" group="model.group" style="font.color=${model.fg}">
+   			<border region="center" group="model.group" style="bg.transparency=0;bg.color=${model.bg};font.color=${model.fg}">
    				This text's background should match the selected button at left.
    				Its font color should match the value at right.
    			</border>

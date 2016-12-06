@@ -431,7 +431,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 				throw new IllegalStateException("No version set");
 
 			theBuiltToolkit = new QuickToolkit(theEnvironment, theLocation, theName, theDescription, theVersion, theClassPaths,
-				theClassMappings, theClassMappings, theDependencies, thePermissions);
+				theClassMappings, theResourceLocations, theDependencies, thePermissions);
 			return theBuiltToolkit;
 		}
 

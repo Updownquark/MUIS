@@ -268,8 +268,10 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		try (Transaction t = editModel.holdForWrite(textEdit)) {
 			if(formatter != null)
 				((QuickFormatter<Object>) formatter).adjust(editModel, mv.get());
-			else
+			else {
+				editModel.clear();
 				editModel.append("" + mv.get());
+			}
 		}
 		theErrorController.set(false, null);
 		isDocDirty = false;

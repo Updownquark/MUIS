@@ -4,19 +4,33 @@
     <head>
         <title>Model Test</title>
 		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
-        <model name="model" builder="default-builder">
+        <model name="model" builder="default-model">
         	<variable name="colorIndex">0</variable>
-        	<model name="bg">
-        		<value name="red">this.colorIndex==0</value>
-        		<value name="blue">this.colorIndex==1</value>
-        		<value name="green">this.colorIndex==2</value>
-        		<value name="image">org.quick.test.model.ModelTestModel.getBgImage(this.colorIndex)</value>
-        		<value name="groupName">org.quick.test.model.ModelTestModel.getGroupName(this.colorIndex)</value>
-        	</model>
-        	<model name="fg">
-        		<value name="value">org.quick.test.model.ModelTestModel.getFgColor(this.colorIndex)</value>
-        		<value name="text">org.quick.test.model.ModelTestModel.getText(this.colorIndex)</value>
-        	</model>
+        	<switch name="bg" type="color" value="this.colorIndex%3">
+        		<case value="0">red</case>
+        		<case value="1">blue</case>
+        		<case value="2">green</case>
+        	</switch>
+        	<switch name="fg" type="color" value="this.colorIndex%3">
+        		<case value="0">black</case>
+        		<case value="1">white</case>
+        		<case value="2">black</case>
+        	</switch>
+        	<switch name="text" type="string" value="this.colorIndex%3">
+        		<case value="0">red</case>
+        		<case value="1">blue</case>
+        		<case value="2">green</case>
+        	</switch>
+        	<switch name="bgImage" type="resource" value="this.colorIndex%3">
+        		<case value="0">test:fire</case>
+        		<case value="1">test:waterfall</case>
+        		<case value="2">test:plant</case>
+        	</switch>
+        	<switch name="group" type="string" value="this.colorIndex%3">
+        		<case value="0">bg-red</case>
+        		<case value="1">bg-blue</case>
+        		<case value="2">bg-green</case>
+        	</switch>
         </model>
     </head>
     <body xmlns:base="../../../../base/QuickRegistry.xml">
@@ -24,15 +38,15 @@
    			<label region="top" height="30" style="font.size=24">Model Test</label>
    			<block region="left" width="120" layout="box" direction="down" cross-align="justify">
    				<label style="font.size=16">Choose Background</label>
-	    		<toggle-button value="model.bg.red">Red</toggle-button>
-	    		<toggle-button value="model.bg.blue">Blue</toggle-button>
-	    		<toggle-button value="model.bg.green">Green</toggle-button>
-	    		<image src="test:model.bg.image" prop-locked="true" resize="resize" width="100%"/>
+	    		<toggle-button selected="model.colorIndex==0">Red</toggle-button>
+	    		<toggle-button selected="model.colorIndex==1">Blue</toggle-button>
+	    		<toggle-button selected="model.colorIndex==2">Green</toggle-button>
+	    		<image src="${model.bgImage}" prop-locked="true" resize="resize" width="100%"/>
    			</block>
    			<block region="right" width="200" layout="box" direction="down">
-	   			<text-field value="model.fg.text" length="30"></text-field>
+	   			<text-field value="model.text" length="30"></text-field>
    			</block>
-   			<border region="center" group="model.bg.groupName" style="font.color=model.fg.value">
+   			<border region="center" group="model.group" style="font.color=${model.fg}">
    				This text's background should match the selected button at left.
    				Its font color should match the value at right.
    			</border>

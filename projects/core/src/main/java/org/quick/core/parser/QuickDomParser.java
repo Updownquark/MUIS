@@ -71,9 +71,6 @@ public class QuickDomParser implements QuickDocumentParser {
 				try {
 					ImmutableStyleSheet styleSheet = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, null,
 						theEnvironment.getPropertyParser(), classView, msg);
-					// TODO It might be better to not call this until the entire document is parsed and ready to render--maybe add this to
-					// the EventQueue somehow
-					// styleSheet.startAnimation();
 					styleSheets.add(styleSheet);
 				} catch (Exception e) {
 					msg.error("Could not read or parse style sheet at " + ref, e, "element", styleSheetEl);
@@ -94,7 +91,7 @@ public class QuickDomParser implements QuickDocumentParser {
 					modelConfigs.put(name, modelConfig);
 			}
 		}
-		QuickHeadStructure head = new QuickHeadStructure(title, styleSheets, modelConfigs);
+		QuickHeadStructure head = new QuickHeadStructure(title, classView, styleSheets, modelConfigs);
 		Element[] body = rootEl.getChildren("body").toArray(new Element[0]);
 		if (body.length > 1)
 			msg.error("Multiple body elements in document XML");

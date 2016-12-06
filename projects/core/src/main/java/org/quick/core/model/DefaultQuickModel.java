@@ -268,6 +268,8 @@ public class DefaultQuickModel implements QuickAppModel {
 			case "duration":
 			case "java.time.Duration":
 				return QuickPropertyType.duration;
+			case "resource":
+				return QuickPropertyType.resource;
 			}
 			TypeToken<?> type;
 			try {

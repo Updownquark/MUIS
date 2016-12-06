@@ -8,6 +8,7 @@ import org.quick.core.QuickDocument;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickHeadSection;
 import org.quick.core.mgr.QuickMessage;
+import org.quick.core.parser.SimpleParseEnv;
 
 /** A browser that renders Quick documents */
 public class QuickBrowser extends javax.swing.JPanel {
@@ -77,7 +78,8 @@ public class QuickBrowser extends javax.swing.JPanel {
 		try {
 			org.quick.core.parser.QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(url,
 				new java.io.InputStreamReader(url.openStream()));
-			QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(), env);
+			QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(),
+				new SimpleParseEnv(docStruct.getHead().getClassView(), env.msg(), env.getContext()));
 			quickDoc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
 			quickDoc.setGraphics(new QuickDocument.GraphicsGetter() {
 				@Override

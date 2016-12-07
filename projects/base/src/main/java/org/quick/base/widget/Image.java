@@ -84,6 +84,6 @@ public class Image extends GenericImage {
 				Boolean locked = event.getValue();
 				setProportionLocked(locked == null ? false : locked.booleanValue());
 			});
-		} , QuickConstants.CoreStage.INIT_SELF.toString(), 1);
+		}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 }

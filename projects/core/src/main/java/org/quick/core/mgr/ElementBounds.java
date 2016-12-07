@@ -261,7 +261,7 @@ public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle>
 
 	/** A BoundsDimension for an element along one axis */
 	public class ElementBoundsDimension implements org.quick.core.layout.BoundsDimension {
-		private boolean isVertical;
+		private final boolean isVertical;
 
 		ElementBoundsDimension(boolean vertical) {
 			isVertical = vertical;

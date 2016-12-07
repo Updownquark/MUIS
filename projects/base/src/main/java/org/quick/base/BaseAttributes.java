@@ -29,7 +29,7 @@ public class BaseAttributes {
 
 	/** Allows the user to specify the model whose content is displayed in this text field */
 	public static final QuickAttribute<QuickDocumentModel> document = QuickAttribute
-		.build("doc", QuickPropertyType.forTypeInstance(QuickDocumentModel.class, null)).build();
+		.build("document", QuickPropertyType.forTypeInstance(QuickDocumentModel.class, null)).build();
 
 	/** Allows specification of the format used by the text field */
 	public static final QuickAttribute<Validator<?>> validator = QuickAttribute

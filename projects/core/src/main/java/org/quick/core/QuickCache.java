@@ -84,6 +84,8 @@ public class QuickCache {
 		final ArrayList<ItemReceiver<K, V>> theReceivers;
 
 		CacheKey(CacheItemType<K, V, E> type, K key) {
+			if (type == null || key == null)
+				throw new NullPointerException();
 			theType = type;
 			theKey = key;
 			theReceivers = new ArrayList<>();

@@ -366,9 +366,6 @@ public class AntlrPropertyEvaluator {
 
 	private static <T> ObservableValue<?> evaluateMember(ExpressionTypes.MemberAccess member, QuickParseEnv parseEnv, TypeToken<T> type,
 		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
-		if (actionRequired && member instanceof ExpressionTypes.FieldAccess)
-			throw new QuickParseException("Field access cannot be an action");
-
 		if (member.getMemberContext() == null) {
 			if (member instanceof ExpressionTypes.MethodInvocation) {
 				// A function
@@ -378,6 +375,8 @@ public class AntlrPropertyEvaluator {
 				ObservableValue<?> result = parseEnv.getContext().getVariable(member.getName());
 				if (result == null)
 					throw new QuickParseException(member.getName() + " cannot be resolved");
+				if (actionRequired && !TypeToken.of(ObservableAction.class).isAssignableFrom(result.getType()))
+					throw new QuickParseException("Variable " + member.getName() + " is not an action");
 				return result;
 			}
 		} else {
@@ -392,14 +391,20 @@ public class AntlrPropertyEvaluator {
 					// We'll throw a different exception later if we can't resolve it
 				}
 			}
+			ObservableValue<?> result;
 			if (contextType != null) {
-				return evaluateStatic(member, contextType, parseEnv, type, actionAccepted);
+				result = evaluateStatic(member, contextType, parseEnv, type, actionAccepted);
 			} else {
 				// Not a static invocation. Evaluate the context. Let that evaluation throw the exception if needed.
 				ObservableValue<?> context = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), member.getMemberContext(),
 					actionAccepted, false);
-				return evaluateMemberAccess(member, context, parseEnv, type, actionAccepted);
+				result = evaluateMemberAccess(member, context, parseEnv, type, actionAccepted);
 			}
+			if (actionRequired && !(member instanceof ExpressionTypes.MethodInvocation)/*field*/
+				&& !TypeToken.of(ObservableAction.class).isAssignableFrom(result.getType()))
+				throw new QuickParseException(
+					"Field " + member.getMemberContext().toString() + "." + member.getName() + " is not an action");
+			return result;
 		}
 	}
 

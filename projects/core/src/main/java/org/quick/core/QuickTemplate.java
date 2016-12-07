@@ -673,7 +673,7 @@ public abstract class QuickTemplate extends QuickElement {
 						throw new QuickException("Template attribute " + attName + " not recognized");
 				}
 
-				boolean external = getBoolean(child, EXTERNAL, true, name); // Externally-specifiable by default
+				boolean external = getBoolean(child, EXTERNAL, false, name); // Not externally-specifiable by default
 				boolean implementation = getBoolean(child, IMPLEMENTATION, !external, name);
 				boolean multiple = getBoolean(child, MULTIPLE, false, name);
 				boolean required = getBoolean(child, REQUIRED, !implementation && !multiple, name);
@@ -1277,7 +1277,7 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	private boolean verifyAttachPoint(TemplateStructure struct, AttachPoint<?> ap) {
-		if (ap.required && theAttachmentMappings.get(ap).isEmpty()) {
+		if (ap.required && !ap.implementation && theAttachmentMappings.get(ap).isEmpty()) {
 			msg().error("No widget specified for role " + ap.name + " for template " + struct.getDefiner().getName());
 			return false;
 		}

@@ -350,12 +350,17 @@ public class DefaultQuickModel implements QuickAppModel {
 				return (ObservableValue<V>) value;
 			}
 
+			// Gonna do some monkeying with the generics here
 			TypeToken<V> fType = (TypeToken<V>) superType;
 			SettableValue<V> settableValue = (SettableValue<V>) value;
-			if (!settableValue.getType().equals(superType)) {
-				settableValue = ((SettableValue<T>) settableValue).<V> mapV(fType, (T v) -> QuickUtils.convert(fType, v),
-					(V v) -> QuickUtils.convert(value.getType(), v), true);
+			if (!fType.wrap().isAssignableFrom(value.getType().wrap())) {
+				settableValue = settableValue.mapV(fType, v -> QuickUtils.convert(fType, v),
+					v -> QuickUtils.convert(((ObservableValue<V>) value).getType(), v), true);
 			}
+			if (minValue != null && !fType.wrap().isAssignableFrom(minValue.getType().wrap()))
+				minValue = minValue.mapV(fType, v -> QuickUtils.convert(fType, v), true);
+			if (maxValue != null && !fType.wrap().isAssignableFrom(maxValue.getType().wrap()))
+				maxValue = maxValue.mapV(fType, v -> QuickUtils.convert(fType, v), true);
 			ObservableValue<?> fMin = minValue;
 			ObservableValue<?> fMax = maxValue;
 			settableValue = settableValue.filterAccept(v -> {

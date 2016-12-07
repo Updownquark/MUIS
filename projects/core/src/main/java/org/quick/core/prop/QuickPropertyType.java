@@ -719,7 +719,8 @@ public final class QuickPropertyType<T> {
 			int sepIdx = s.indexOf(':');
 			String namespace = sepIdx < 0 ? null : s.substring(0, sepIdx);
 			String content = sepIdx < 0 ? s : s.substring(sepIdx + 1);
-			QuickToolkit toolkit = env.cv().getToolkit(namespace);
+			@SuppressWarnings("resource")
+			QuickToolkit toolkit = namespace == null ? null : env.cv().getToolkit(namespace);
 			if (toolkit == null && sepIdx >= 0)
 				try {
 					return ObservableValue.constant(TypeToken.of(URL.class), new URL(s));
@@ -730,6 +731,12 @@ public final class QuickPropertyType<T> {
 			if (mapped == null)
 				throw new QuickParseException("resource: Resource property must map to a declared resource: \"" + content + "\" in toolkit "
 					+ toolkit.getName() + " or one of its dependencies");
+			if (toolkit == null) {
+				for (QuickToolkit tk : env.cv().getScopedToolkits()) {
+					if (tk.getMappedResource(s) != null)
+						toolkit = tk;
+				}
+			}
 			if (mapped.contains(":"))
 				try {
 					return ObservableValue.constant(TypeToken.of(URL.class), new URL(mapped));

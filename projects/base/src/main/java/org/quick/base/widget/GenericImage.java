@@ -6,8 +6,8 @@ import java.awt.Rectangle;
 import java.net.URL;
 
 import org.quick.base.data.ImageData;
-import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
+import org.quick.core.event.SizeNeedsChangedEvent;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 
@@ -232,6 +232,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 				public void errorOccurred(URL key, Throwable exception, boolean firstReport) {
 					if (!key.equals(theLocation))
 						return;
+					msg().error("Could not load image from " + key, exception);
 					theLoadError = exception;
 					isLoading = false;
 					imageChanged();
@@ -291,9 +292,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 				theAnimator = new ImageAnimator();
 				org.quick.motion.AnimationManager.get().start(theAnimator);
 			}
-			QuickElement parent = getParent().get();
-			if (parent != null)
-				parent.relayout(false);
+			events().fire(new SizeNeedsChangedEvent(this, null));
 			repaint(null, false);
 		}
 	}
@@ -310,9 +309,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(theHResizePolicy == policy)
 			return;
 		theHResizePolicy = policy;
-		QuickElement parent = getParent().get();
-		if (parent != null)
-			parent.relayout(false);
+		events().fire(new SizeNeedsChangedEvent(this, null));
 		repaint(null, false);
 	}
 
@@ -328,9 +325,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(theVResizePolicy == policy)
 			return;
 		theVResizePolicy = policy;
-		QuickElement parent = getParent().get();
-		if (parent != null)
-			parent.relayout(false);
+		events().fire(new SizeNeedsChangedEvent(this, null));
 		repaint(null, false);
 	}
 
@@ -349,9 +344,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(locked == isProportionLocked)
 			return;
 		isProportionLocked = locked;
-		QuickElement parent = getParent().get();
-		if (parent != null)
-			parent.relayout(false);
+		events().fire(new SizeNeedsChangedEvent(this, null));
 		repaint(null, false);
 	}
 

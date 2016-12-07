@@ -177,7 +177,10 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 					cr = env.getCache().getAndWait(env, cornerRendering, key, true);
 				}
 			} catch (CacheException e) {
-				throw (RuntimeException) e.getCause();
+				if (e.getCause() instanceof RuntimeException)
+					throw (RuntimeException) e.getCause();
+				else
+					throw (Error) e.getCause();
 			}
 
 			// Draw the corner

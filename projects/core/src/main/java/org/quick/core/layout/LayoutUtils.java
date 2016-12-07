@@ -10,7 +10,7 @@ import org.quick.core.style.Size;
 public class LayoutUtils {
 	/**
 	 * The result of an {@link LayoutUtils#interpolate(LayoutChecker, int, LayoutGuideType, LayoutGuideType) interpolate} operation
-	 * 
+	 *
 	 * @param <T> The type of value used in the operation
 	 */
 	public static class LayoutInterpolation<T> {
@@ -42,7 +42,7 @@ public class LayoutUtils {
 
 	/**
 	 * Calling-code feedback to {@link LayoutUtils#interpolate(LayoutChecker, int, LayoutGuideType, LayoutGuideType) interpolate}
-	 * 
+	 *
 	 * @param <T> The type of the value to use in the interpolation
 	 */
 	public static interface LayoutChecker<T> {
@@ -96,7 +96,8 @@ public class LayoutUtils {
 		} else if(type == null)
 			return -1;
 		else {
-			int size = element.bounds().get(orientation).getGuide().get(type, crossSize, csMax);
+			int size = element.bounds().get(orientation).getGuide()//
+				.get(type, crossSize, csMax);
 			if(addTo != null)
 				addTo.add(size);
 			return size;
@@ -293,5 +294,41 @@ public class LayoutUtils {
 			}
 		} else
 			return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);
+	}
+
+	/**
+	 * Adds 2 sizes, accounting for overflow (capping at {@link Integer#MAX_VALUE})
+	 *
+	 * @param size1 The first size to add
+	 * @param size2 The second size to add
+	 * @return The sum of the two sizes, capped at {@link Integer#MAX_VALUE}
+	 */
+	public static int add(int size1, int size2) {
+		if (size1 == Integer.MAX_VALUE || size2 == Integer.MAX_VALUE)
+			return Integer.MAX_VALUE;
+		int res = size1 + size2;
+		if (res < size1)
+			return Integer.MAX_VALUE;
+		return res;
+	}
+
+	public static int addRadius(int size, Size radius) {
+		switch (radius.getUnit()) {
+		case pixels:
+		case lexips:
+			size = add(size, Math.round(radius.getValue() * 2));
+			break;
+		case percent:
+			float radPercent = radius.getValue() * 2;
+			if (radPercent >= 100)
+				radPercent = 90;
+			size = Math.round(size * 100f / (100f - radPercent));
+			break;
+		}
+		return size;
+	}
+
+	public static int removeRadius(int size, Size radius) {
+		return size - radius.evaluate(size) * 2;
 	}
 }

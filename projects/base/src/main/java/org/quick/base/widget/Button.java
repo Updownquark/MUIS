@@ -1,6 +1,8 @@
 package org.quick.base.widget;
 
 import static org.quick.core.QuickConstants.States.CLICK;
+import static org.quick.core.layout.LayoutUtils.addRadius;
+import static org.quick.core.layout.LayoutUtils.removeRadius;
 
 import java.awt.Point;
 
@@ -12,10 +14,12 @@ import org.quick.core.QuickConstants;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
 import org.quick.core.event.QuickEvent;
+import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.style.BackgroundStyle;
+import org.quick.core.style.Size;
 import org.quick.core.tags.AcceptAttribute;
 import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.State;
@@ -133,24 +137,27 @@ public class Button extends SimpleContainer {
 
 	@Override
 	public void doLayout() {
-		org.quick.core.style.Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
+		Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
-		int lOff = radius.evaluate(w);
-		int tOff = radius.evaluate(h);
-		getContentPane().bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
+		int contentW = removeRadius(w, radius);
+		int contentH = removeRadius(h, radius);
+		Block content = getContentPane();
+		int lOff = (w - contentW) / 2;
+		int tOff = (h - contentH) / 2;
+		content.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
 	}
 
 	@Override
 	public SizeGuide getWSizer() {
-		final org.quick.core.style.Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
-		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
+		final Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
+		return new RadiusAddSizePolicy(getContentPane().getWSizer(), Orientation.horizontal, radius);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
-		final org.quick.core.style.Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
-		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
+		final Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
+		return new RadiusAddSizePolicy(getContentPane().getHSizer(), Orientation.vertical, radius);
 	}
 
 	private void checkDepressed(QuickEvent cause) {
@@ -168,66 +175,51 @@ public class Button extends SimpleContainer {
 
 	private static class RadiusAddSizePolicy extends org.quick.core.layout.AbstractSizeGuide {
 		private final SizeGuide theWrapped;
+		private final Orientation theOrient;
 
-		private org.quick.core.style.Size theRadius;
+		private Size theRadius;
 
-		RadiusAddSizePolicy(SizeGuide wrap, org.quick.core.style.Size rad) {
+		RadiusAddSizePolicy(SizeGuide wrap, Orientation orient, Size rad) {
 			theWrapped = wrap;
+			theOrient = orient;
 			theRadius = rad;
 		}
 
 		@Override
 		public int getMinPreferred(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMinPreferred(crossSize, csMax));
+			int ret = addRadius(theWrapped.getMinPreferred(removeRadius(crossSize, theRadius), csMax), theRadius);
+			return ret;
 		}
 
 		@Override
 		public int getMaxPreferred(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMaxPreferred(crossSize, csMax));
+			int ret = addRadius(theWrapped.getMaxPreferred(removeRadius(crossSize, theRadius), csMax), theRadius);
+			return ret;
 		}
 
 		@Override
 		public int getMin(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMin(removeRadius(crossSize), csMax));
+			int ret = addRadius(theWrapped.getMin(removeRadius(crossSize, theRadius), csMax), theRadius);
+			return ret;
 		}
 
 		@Override
 		public int getPreferred(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getPreferred(removeRadius(crossSize), csMax));
+			int ret = addRadius(theWrapped.getPreferred(removeRadius(crossSize, theRadius), csMax), theRadius);
+			return ret;
 		}
 
 		@Override
 		public int getMax(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMax(removeRadius(crossSize), csMax));
+			int ret = addRadius(theWrapped.getMax(removeRadius(crossSize, theRadius), csMax), theRadius);
+			return ret;
 		}
 
 		@Override
 		public int getBaseline(int size) {
-			int remove = size - removeRadius(size);
+			int remove = size - removeRadius(size, theRadius);
 			int ret = theWrapped.getBaseline(size - remove * 2);
 			return ret + remove;
-		}
-
-		int addRadius(int size) {
-			switch (theRadius.getUnit()) {
-			case pixels:
-			case lexips:
-				size += theRadius.getValue() * 2;
-				break;
-			case percent:
-				float radPercent = theRadius.getValue() * 2;
-				if(radPercent >= 100)
-					radPercent = 90;
-				size = Math.round(size * 100 / (100f - radPercent));
-				break;
-			}
-			if(size < 0)
-				return Integer.MAX_VALUE;
-			return size;
-		}
-
-		int removeRadius(int size) {
-			return size - theRadius.evaluate(size);
 		}
 	}
 }

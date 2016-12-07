@@ -31,7 +31,7 @@ import com.google.common.reflect.TypeToken;
  * {@link KeyBoardEvent#isControlPressed() ctrl}+{@link KeyCode#ENTER enter} for {@link QuickTextElement#multiLine multi-line} text fields)
  * or focus is lost after changes.
  */
-@Template(location = "../../../../text-field.qml")
+@Template(location = "../../../../text-field.qts")
 @QuickElementType(
 	attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value", required = true),
 		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"),

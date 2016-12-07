@@ -823,31 +823,33 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			if(end < start || end > toWrap.length())
 				throw new IllegalArgumentException(theWrapped + " (" + theWrapped.length() + "): " + start + " to " + end);
 
-			theStyle = new QuickStyle() {
-				@Override
-				public ObservableSet<StyleAttribute<?>> attributes() {
-					return ObservableSet.unique(
-						ObservableCollection.flattenCollections(theWrappedStyle.attributes(), theBackup.attributes()),
-						Object::equals);
-				}
+			if (toWrap.getStyle() == wrappedStyle)
+				theStyle = wrappedStyle;
+			else
+				theStyle = new QuickStyle() {
+					@Override
+					public ObservableSet<StyleAttribute<?>> attributes() {
+						return ObservableSet.unique(
+							ObservableCollection.flattenCollections(theWrappedStyle.attributes(), theBackup.attributes()), Object::equals);
+					}
 
-				@Override
-				public boolean isSet(StyleAttribute<?> attr) {
-					return (theWrappedStyle != null && theWrappedStyle.isSet(attr)) || theBackup.isSet(attr);
-				}
+					@Override
+					public boolean isSet(StyleAttribute<?> attr) {
+						return (theWrappedStyle != null && theWrappedStyle.isSet(attr)) || theBackup.isSet(attr);
+					}
 
-				@Override
-				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-					return ObservableValue.firstValue(attr.getType().getType(), null, null, theWrappedStyle.get(attr, false),
-						theBackup.get(attr, true));
-				}
+					@Override
+					public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+						return ObservableValue.firstValue(attr.getType().getType(), null, null, theWrappedStyle.get(attr, false),
+							theBackup.get(attr, true));
+					}
 
-				@Override
-				public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
-					return new StyledSequenceWrapper(theWrapped, theWrappedStyle.forExtraStates(extraStates),
-						theBackup.forExtraStates(extraStates), start, end).getStyle();
-				}
-			};
+					@Override
+					public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+						return new StyledSequenceWrapper(theWrapped, theWrappedStyle.forExtraStates(extraStates),
+							theBackup.forExtraStates(extraStates), start, end).getStyle();
+					}
+				};
 		}
 
 		@Override

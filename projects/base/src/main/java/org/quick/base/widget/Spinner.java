@@ -12,7 +12,7 @@ import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.Template;
 
 /** A text box with up and down arrows to increment or decrement the value */
-@Template(location = "../../../../spinner.qml")
+@Template(location = "../../../../spinner.qts")
 @QuickElementType(
 	attributes = { //
 		@AcceptAttribute(declaringClass = Spinner.class, field = "increment", required = true), //

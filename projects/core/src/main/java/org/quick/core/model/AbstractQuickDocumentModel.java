@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import org.qommons.IterableUtils;
 import org.quick.core.style.QuickStyle;
+import org.quick.util.QuickUtils;
 
 /**
  * Provides most of the implementation needed for a {@link QuickDocumentModel}, requiring the concrete subclass only to define
@@ -333,8 +334,10 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 				firstMetric = false;
 				if(window == null
 					|| (lineW < window.getMaxX() && lineW + metric.getWidth() > window.getMinX() && totalH + lineH - metric.getHeight() < window
-						.getMaxY()))
+							.getMaxY())) {
+					graphics.setFont(QuickUtils.getFont(metric.getStyle()).get());
 					metric.draw(graphics, lineW, totalH + lineH - metric.getHeight());
+				}
 				lineW += metric.getWidth();
 			}
 		} finally {

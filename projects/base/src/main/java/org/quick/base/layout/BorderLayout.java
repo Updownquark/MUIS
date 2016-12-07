@@ -1,6 +1,7 @@
 package org.quick.base.layout;
 
 import static org.quick.core.layout.LayoutAttributes.*;
+import static org.quick.core.layout.LayoutUtils.add;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 
@@ -174,8 +175,8 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			@Override
 			public int getSize(int [] layoutValue) {
 				int ret = 0;
-				ret += margin.evaluate(parentWidth) * 2;
-				ret += getSize(layoutValue, 0, -1);
+				ret = add(ret, margin.evaluate(parentWidth) * 2);
+				ret = add(ret, getSize(layoutValue, 0, -1));
 				return ret;
 			}
 
@@ -193,17 +194,17 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 				} else if(childRegion.getOrientation() == horizontal) {
 					int ret = 0;
 					while(childRegion.getOrientation() == horizontal) {
-						ret += layoutValue[startIndex];
-						ret += padding.evaluate(parentWidth);
+						ret = add(ret, layoutValue[startIndex]);
+						ret = add(ret, padding.evaluate(parentWidth));
 						startIndex++;
 						if(startIndex == children.length)
 							break;
 						childRegion = children[startIndex].atts().get(region, Region.center);
 					}
 					if(startIndex < children.length)
-						ret += getSize(layoutValue, startIndex, centerIndex);
+						ret = add(ret, getSize(layoutValue, startIndex, centerIndex));
 					else if(centerIndex >= 0)
-						ret += layoutValue[centerIndex];
+						ret = add(ret, layoutValue[centerIndex]);
 					return ret;
 				} else {
 					int ret = 0;
@@ -220,7 +221,7 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 						if(restRet > ret)
 							ret = restRet;
 					} else if(centerIndex >= 0)
-						ret += layoutValue[centerIndex];
+						ret = add(ret, layoutValue[centerIndex]);
 					return ret;
 				}
 			}
@@ -231,7 +232,8 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			bounds[c] = new Rectangle();
 			bounds[c].width = wResult.lowerValue[c];
 			if(wResult.proportion > 0)
-				bounds[c].width += Math.round(wResult.proportion * (wResult.upperValue[c] - wResult.lowerValue[c]));
+				bounds[c].width = add(bounds[c].width,
+					(int) Math.round(wResult.proportion * (wResult.upperValue[c] - wResult.lowerValue[c])));
 		}
 
 		LayoutUtils.LayoutInterpolation<int []> hResult = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<int []>() {
@@ -246,8 +248,8 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			@Override
 			public int getSize(int [] layoutValue) {
 				int ret = 0;
-				ret += margin.evaluate(parentHeight) * 2;
-				ret += getSize(layoutValue, 0, -1);
+				ret = add(ret, margin.evaluate(parentHeight) * 2);
+				ret = add(ret, getSize(layoutValue, 0, -1));
 				return ret;
 			}
 
@@ -265,17 +267,17 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 				} else if(childRegion.getOrientation() == vertical) {
 					int ret = 0;
 					while(childRegion.getOrientation() == vertical) {
-						ret += layoutValue[startIndex];
-						ret += padding.evaluate(parentHeight);
+						ret = add(ret, layoutValue[startIndex]);
+						ret = add(ret, padding.evaluate(parentHeight));
 						startIndex++;
 						if(startIndex == children.length)
 							break;
 						childRegion = children[startIndex].atts().get(region, Region.center);
 					}
 					if(startIndex < children.length)
-						ret += getSize(layoutValue, startIndex, centerIndex);
+						ret = add(ret, getSize(layoutValue, startIndex, centerIndex));
 					else if(centerIndex >= 0)
-						ret += layoutValue[centerIndex];
+						ret = add(ret, layoutValue[centerIndex]);
 					return ret;
 				} else {
 					int ret = 0;
@@ -292,7 +294,7 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 						if(restRet > ret)
 							ret = restRet;
 					} else if(centerIndex >= 0)
-						ret += layoutValue[centerIndex];
+						ret = add(ret, layoutValue[centerIndex]);
 					return ret;
 				}
 			}
@@ -301,7 +303,8 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 		for(int c = 0; c < bounds.length; c++) {
 			bounds[c].height = hResult.lowerValue[c];
 			if(hResult.proportion > 0)
-				bounds[c].height += Math.round(hResult.proportion * (hResult.upperValue[c] - hResult.lowerValue[c]));
+				bounds[c].height = add(bounds[c].height,
+					(int) Math.round(hResult.proportion * (hResult.upperValue[c] - hResult.lowerValue[c])));
 		}
 
 		// Got the sizes. Now put them in place.
@@ -313,7 +316,11 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 		for(int c = 0; c < bounds.length; c++) {
 			Region childRegion = children[c].atts().get(region, Region.center);
 			if(childRegion == Region.center) {
-				centerIndex = c;
+				if(centerIndex >= 0)
+					parent.msg().error("Only one element may be in the center region in a border layout."//
+						+ "  Only first center will be layed out.", "element", children[c]);
+				else
+					centerIndex = c;
 				continue; // Lay out center last
 			}
 			switch (childRegion) {
@@ -321,33 +328,28 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 				bounds[c].x = leftEdge;
 				bounds[c].y = topEdge;
 				bounds[c].height = bottomEdge - topEdge;
-				leftEdge += bounds[c].width + padding.evaluate(parentWidth);
+				leftEdge = add(leftEdge, add(bounds[c].width, padding.evaluate(parentWidth)));
 				break;
 			case right:
 				bounds[c].x = rightEdge - bounds[c].width;
 				bounds[c].y = topEdge;
 				bounds[c].height = bottomEdge - topEdge;
-				rightEdge -= bounds[c].width + padding.evaluate(parentWidth);
+				rightEdge -= add(bounds[c].width, padding.evaluate(parentWidth));
 				break;
 			case top:
 				bounds[c].x = leftEdge;
 				bounds[c].y = topEdge;
 				bounds[c].width = rightEdge - leftEdge;
-				topEdge += bounds[c].height + padding.evaluate(parentHeight);
+				topEdge = add(leftEdge, add(bounds[c].height, padding.evaluate(parentHeight)));
 				break;
 			case bottom:
 				bounds[c].x = leftEdge;
 				bounds[c].y = bottomEdge - bounds[c].height;
 				bounds[c].width = rightEdge - leftEdge;
-				bottomEdge -= bounds[c].height + padding.evaluate(parentHeight);
+				bottomEdge -= add(bounds[c].height, padding.evaluate(parentHeight));
 				break;
 			case center:
-				if(centerIndex >= 0) {
-					parent.msg().error(
-						"Only one element may be in the center region in a border layout.  Only first center will be layed out.",
-						"element", children[c]);
-				} else
-					centerIndex = c;
+				// Already handled
 			}
 		}
 
@@ -360,5 +362,10 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 
 		for(int c = 0; c < children.length; c++)
 			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
+	}
+
+	@Override
+	public String toString() {
+		return "border-layout";
 	}
 }

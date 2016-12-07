@@ -7,7 +7,7 @@ import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.Template;
 
 /** The base class for several widgets that are at their core simple containers with additional functionality */
-@Template(location = "../../../../simple-container.qml")
+@Template(location = "../../../../simple-container.qts")
 @QuickElementType(//
 	attributes = { //
 		@AcceptAttribute(declaringClass = LayoutAttributes.class, field = "direction", defaultValue = "down"), //

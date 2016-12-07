@@ -1,6 +1,10 @@
 package org.quick.base.widget;
 
+import static org.quick.core.layout.LayoutUtils.addRadius;
+import static org.quick.core.layout.LayoutUtils.removeRadius;
+
 import org.quick.base.style.BorderStyle;
+import org.quick.core.layout.LayoutUtils;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.QuickStyle;
@@ -25,15 +29,17 @@ public class BorderPane extends SimpleContainer {
 
 	@Override
 	public void doLayout() {
-		QuickStyle selfStyle = getStyle();
-		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
-		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
-		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
+		Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
+		int thickness = getStyle().get(BorderStyle.thickness).get().intValue();
+		thickness += getStyle().get(BorderStyle.inset).get().intValue();
 		int w = bounds().getWidth();
 		int h = bounds().getHeight();
-		int lOff = radius.evaluate(w) + thickness;
-		int tOff = radius.evaluate(h) + thickness;
-		getContentPane().bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
+		int contentW = removeRadius(w, radius) - thickness * 2;
+		int contentH = removeRadius(h, radius) - thickness * 2;
+		Block content = getContentPane();
+		int lOff = (w - contentW) / 2;
+		int tOff = (h - contentH) / 2;
+		content.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
 	}
 
 	@Override
@@ -69,57 +75,42 @@ public class BorderPane extends SimpleContainer {
 
 		@Override
 		public int getMinPreferred(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMinPreferred(crossSize, csMax));
+			return _addRadius(theWrapped.getMinPreferred(_removeRadius(crossSize), csMax));
 		}
 
 		@Override
 		public int getMaxPreferred(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMaxPreferred(crossSize, csMax));
+			return _addRadius(theWrapped.getMaxPreferred(_removeRadius(crossSize), csMax));
 		}
 
 		@Override
 		public int getMin(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMin(removeRadius(crossSize), csMax));
+			return _addRadius(theWrapped.getMin(_removeRadius(crossSize), csMax));
 		}
 
 		@Override
 		public int getPreferred(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getPreferred(removeRadius(crossSize), csMax));
+			return _addRadius(theWrapped.getPreferred(_removeRadius(crossSize), csMax));
 		}
 
 		@Override
 		public int getMax(int crossSize, boolean csMax) {
-			return addRadius(theWrapped.getMax(removeRadius(crossSize), csMax));
+			return _addRadius(theWrapped.getMax(_removeRadius(crossSize), csMax));
 		}
 
 		@Override
 		public int getBaseline(int size) {
-			int remove = size - removeRadius(size) - theBorderThickness;
-			int ret = theWrapped.getBaseline(size - remove * 2);
+			int remove = size - removeRadius(size, theRadius) - theBorderThickness * 2;
+			int ret = theWrapped.getBaseline(size - remove);
 			return ret + remove;
 		}
 
-		int addRadius(int size) {
-			size += theBorderThickness * 2;
-			switch (theRadius.getUnit()) {
-			case pixels:
-			case lexips:
-				size += theRadius.getValue() * 2;
-				break;
-			case percent:
-				float radPercent = theRadius.getValue() * 2;
-				if(radPercent >= 100)
-					radPercent = 90;
-				size = Math.round(size * 100 / (100f - radPercent));
-				break;
-			}
-			if(size < 0)
-				return Integer.MAX_VALUE;
-			return size;
+		int _addRadius(int size) {
+			return LayoutUtils.add(addRadius(size, theRadius), theBorderThickness * 2);
 		}
 
-		int removeRadius(int size) {
-			return size - theRadius.evaluate(size) - theBorderThickness;
+		int _removeRadius(int size) {
+			return removeRadius(size, theRadius) - theBorderThickness * 2;
 		}
 	}
 }

@@ -46,7 +46,7 @@ public class LayoutSize {
 				thePixels = pixels;
 			return thePixels;
 		} else {
-			int total = thePixels + pixels;
+			int total = LayoutUtils.add(thePixels, pixels);
 			if(total < 0)
 				total = Integer.MAX_VALUE;
 			thePixels = total;
@@ -151,7 +151,7 @@ public class LayoutSize {
 		if(isMax)
 			return percentPix > thePixels ? percentPix : thePixels;
 		else
-			return thePixels + percentPix;
+			return LayoutUtils.add(thePixels, percentPix);
 	}
 
 	@Override

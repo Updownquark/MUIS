@@ -20,7 +20,7 @@ import org.quick.core.tags.Template;
  * A label is a container intended for text-only, but this is not enforced. It differs from block only in that its default layout may be
  * different and its style sheet attributes may be different (margin and padding are typically 0)
  */
-@Template(location = "../../../../label.qml")
+@Template(location = "../../../../label.qts")
 @QuickElementType(//
 	attributes = { //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //

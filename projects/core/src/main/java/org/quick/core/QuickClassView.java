@@ -164,6 +164,39 @@ public class QuickClassView {
 	}
 
 	/**
+	 * @param qName The qualified name of the resource
+	 * @return The mapped location of the resource, or null if no such resource is mapped
+	 */
+	public String getMappedResource(String qName) {
+		int idx = qName.indexOf(':');
+		if (idx < 0)
+			return getMappedResource(null, qName);
+		else
+			return getMappedResource(qName.substring(0, idx), qName.substring(idx + 1));
+	}
+
+	/**
+	 * @param namespace The namespace mapping the resource
+	 * @param name The name of the mapped resource
+	 * @return The mapped location of the resource, or null if no such resource is mapped
+	 */
+	public String getMappedResource(String namespace, String name) {
+		if (namespace == null) {
+			for (QuickToolkit toolkit : getScopedToolkits()) {
+				String res = toolkit.getMappedResource(name);
+				if (res != null)
+					return res;
+			}
+			return null;
+		} else {
+			QuickToolkit toolkit = getToolkit(namespace);
+			if (toolkit == null)
+				return null;
+			return toolkit.getMappedResource(name);
+		}
+	}
+
+	/**
 	 * Like {@link #loadIfMapped(String, Class)}, but throws an exception for unmapped tags
 	 *
 	 * @param <T> The type of interface or superclass to return the class as

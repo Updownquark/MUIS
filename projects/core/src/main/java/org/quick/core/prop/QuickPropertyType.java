@@ -720,13 +720,13 @@ public final class QuickPropertyType<T> {
 			String namespace = sepIdx < 0 ? null : s.substring(0, sepIdx);
 			String content = sepIdx < 0 ? s : s.substring(sepIdx + 1);
 			QuickToolkit toolkit = env.cv().getToolkit(namespace);
-			if (toolkit == null)
+			if (toolkit == null && sepIdx >= 0)
 				try {
 					return ObservableValue.constant(TypeToken.of(URL.class), new URL(s));
 				} catch (java.net.MalformedURLException e) {
 					throw new QuickParseException("resource: Resource property is not a valid URL: \"" + s + "\"", e);
 				}
-			String mapped = toolkit.getMappedResource(content);
+			String mapped = env.cv().getMappedResource(s);
 			if (mapped == null)
 				throw new QuickParseException("resource: Resource property must map to a declared resource: \"" + content + "\" in toolkit "
 					+ toolkit.getName() + " or one of its dependencies");
@@ -734,14 +734,15 @@ public final class QuickPropertyType<T> {
 				try {
 					return ObservableValue.constant(TypeToken.of(URL.class), new URL(mapped));
 				} catch (java.net.MalformedURLException e) {
-					throw new QuickParseException("resource: Resource property maps to an invalid URL \"" + mapped + "\" in toolkit "
-						+ toolkit.getName() + ": \"" + content + "\"");
+					throw new QuickParseException("resource: Resource property maps to an invalid URL \"" + mapped + "\" in "
+						+ (toolkit == null ? "mapped namespaces" : ("toolkit " + toolkit.getName())) + ": \"" + content + "\"");
 				}
 			try {
 				return ObservableValue.constant(TypeToken.of(URL.class), QuickUtils.resolveURL(toolkit.getURI(), mapped));
 			} catch (QuickException e) {
 				throw new QuickParseException("resource: Resource property maps to a resource (" + mapped
-					+ ") that cannot be resolved with respect to toolkit \"" + toolkit.getName() + "\"'s URL: \"" + content + "\"");
+					+ ") that cannot be resolved with respect to "
+					+ (toolkit == null ? "mapped namespaces" : ("toolkit \"" + toolkit.getName())) + "\"'s URL: \"" + content + "\"");
 			}
 		}, true)//
 		.build();

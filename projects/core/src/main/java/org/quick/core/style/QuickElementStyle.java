@@ -6,7 +6,9 @@ import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
+import org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute;
 import org.quick.core.mgr.QuickState;
+import org.quick.core.prop.QuickAttribute;
 
 /** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {
@@ -91,17 +93,7 @@ public class QuickElementStyle implements QuickStyle {
 
 	@Override
 	public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
-		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
-		if (attr.isInherited()) {
-			ObservableValue<T> parentLocalValue = ObservableValue.flatten(theElement.getParent().mapV(p -> {
-				if (p == null)
-					return null;
-				ObservableValue<QuickStyle> parentStyle = p.atts().getHolder(StyleAttributes.style);
-				return ObservableValue.flatten(parentStyle.mapV(s -> s.get(attr, false)));
-			}));
-			localValue = ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, parentLocalValue);
-		}
+		ObservableValue<T> localValue = getLocalValue(theElement, theElement, attr);
 		if (theElement.getDocument() == null)
 			return localValue;
 		StyleSheet sheet = theElement.getDocument().getStyle();
@@ -134,5 +126,29 @@ public class QuickElementStyle implements QuickStyle {
 		else
 			ssValue = ObservableValue.flatten(ssMatch);
 		return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, ssValue);
+	}
+
+	private static <T> ObservableValue<T> getLocalValue(QuickElement bottom, QuickElement element, StyleAttribute<T> attr) {
+		ObservableValue<QuickStyle> localStyle = element.atts().getHolder(StyleAttributes.style);
+		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
+		if (attr.isInherited() && !isTemplateParent(element, bottom)) {
+			ObservableValue<T> parentLocalValue = ObservableValue.flatten(element.getParent().mapV(p -> {
+				if (p == null)
+					return null;
+				return getLocalValue(bottom, p, attr);
+			}));
+			localValue = ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, parentLocalValue);
+		}
+		return localValue;
+	}
+
+	private static boolean isTemplateParent(QuickElement parent, QuickElement child) {
+		if (parent == null)
+			return false;
+		for (QuickAttribute<?> attr : child.atts().getAllAttributes()) {
+			if (attr instanceof RoleAttribute && ((RoleAttribute) attr).getTemplate().getDefiner().isInstance(parent))
+				return true;
+		}
+		return false;
 	}
 }

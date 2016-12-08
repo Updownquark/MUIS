@@ -76,7 +76,7 @@ public class LayoutUtils {
 		att = LayoutAttributes.getSizeAtt(orientation, null);
 		ret = element.atts().get(att);
 		if(ret == null && type != null) {
-			att = LayoutAttributes.getSizeAtt(orientation, type);
+			att = LayoutAttributes.getSizeAtt(orientation, type.toExtreme());
 			if(att != null)
 				ret = element.atts().get(att);
 		}

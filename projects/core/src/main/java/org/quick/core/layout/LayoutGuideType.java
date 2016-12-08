@@ -56,4 +56,31 @@ public enum LayoutGuideType {
 		}
 		throw new IllegalStateException("Unrecognized layout guide type: " + this);
 	}
+
+	/**
+	 * @return {@link #min} for {@link #min} or {@link #minPref}; {@link #pref} for {@link #pref}; {@link #max} for {@link #maxPref} or
+	 *         {@link #max}
+	 */
+	public LayoutGuideType toExtreme() {
+		switch (this) {
+		case min:
+		case pref:
+		case max:
+			return this;
+		case minPref:
+			return min;
+		case maxPref:
+			return max;
+		}
+		throw new IllegalStateException("Unrecognized layout guide type: " + this);
+	}
+
+	public static LayoutGuideType valueOf(int lean, boolean isPref) {
+		if(lean==0)
+			return pref;
+		else if(lean<0)
+			return isPref ? minPref : min;
+		else
+			return isPref ? maxPref : max;
+	}
 }

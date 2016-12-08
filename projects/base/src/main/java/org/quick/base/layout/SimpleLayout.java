@@ -1,12 +1,16 @@
 package org.quick.base.layout;
 
 import static org.quick.core.layout.LayoutAttributes.*;
+import static org.quick.core.layout.LayoutUtils.add;
+
+import java.util.Arrays;
 
 import org.observe.Observable;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.*;
 import org.quick.core.style.Position;
+import org.quick.core.style.Size;
 import org.quick.util.CompoundListener;
 
 /**
@@ -80,37 +84,101 @@ public class SimpleLayout implements QuickLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				if((type == LayoutGuideType.max || type == LayoutGuideType.maxPref))
-					return Integer.MAX_VALUE; // Don't try to limit the container size due to the contents
-				int maximum = 0;
-				boolean maxChange = true;
-				int iterations = 5;
-				while(maxChange && iterations > 0) {
-					maxChange = false;
-					iterations--;
-					for(QuickElement child : children) {
-						int size = LayoutUtils.getSize(child, orient, type, maximum, crossSize, csMax, null);
-						Position pos = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
-						if(pos != null) {
-							if(pos.getUnit() == org.quick.core.style.LengthUnit.lexips)
-								size += Math.round(pos.getValue());
-							else
-								size += pos.evaluate(maximum);
-						}
-						pos = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
-						if(pos != null) {
-							if(pos.getUnit() == org.quick.core.style.LengthUnit.lexips)
-								size += Math.round(pos.getValue());
-							else
-								size += pos.evaluate(maximum);
-						}
-						if(size > maximum) {
-							maximum = size;
-							maxChange = true;
-						}
+				if (children.length == 0) {
+					if ((type == LayoutGuideType.max || type == LayoutGuideType.maxPref))
+						return Integer.MAX_VALUE;
+					return 0;
+				}
+				QuickElement parent = children[0].getParent().get();
+				if (parent == null && !csMax) {
+					if ((type == LayoutGuideType.max || type == LayoutGuideType.maxPref))
+						return Integer.MAX_VALUE;
+					return 0;
+				}
+				int parallelSize = csMax ? Integer.MAX_VALUE : parent.bounds().get(orient).getSize();
+				int[] res = new int[children.length];
+				for (int i = 0; i < res.length; i++)
+					res[i] = getSize(children[i], type, parallelSize, crossSize, csMax);
+				switch (type) {
+				case min:
+				case minPref:
+					return Arrays.stream(res).max().getAsInt();
+				case pref:
+					return (int) Math.round(Arrays.stream(res).average().getAsDouble());
+				case maxPref:
+				case max:
+					return Arrays.stream(res).min().getAsInt();
+				}
+				throw new IllegalStateException("Unrecognized layout guide type: " + type);
+			}
+
+			private int getSize(QuickElement child, LayoutGuideType type, int parallelSize, int crossSize, boolean csMax) {
+				Integer totalPix = null;
+				Integer totalLex = null;
+				Float totalPercent = null;
+				Integer min = null;
+				Integer max = null;
+				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
+				if (lead != null){
+					switch(lead.getUnit()){
+					case pixels:
+						totalPix=(int) lead.getValue();
+						break;
+					case lexips:
+						totalLex=(int) lead.getValue();
+						break;
+					case percent:
+						totalPercent=lead.getValue();
 					}
 				}
-				return maximum;
+				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+				if(trail!=null){
+					switch(trail.getUnit()){
+					case pixels:
+						if (lead == null || totalPercent != null || totalPix != null)
+							totalPix=(int) trail.getValue();
+						else {
+							min=Math.max(totalLex, (int) trail.getValue());
+							int childMin=LayoutUtils.getSize(child, orient, LayoutGuideType.valueOf(-1, type.isPref()), parallelSize, crossSize, csMax, null);
+							max=add(totalLex, (int) trail.getValue())-childMin*2;
+							if(max<min)
+								max=min;
+						}
+						break;
+					case lexips:
+						if (lead == null || totalPercent != null)
+							totalLex=(int) trail.getValue();
+						else if (totalPix != null) {
+							min=Math.max(totalPix, (int) trail.getValue());
+							int childMin = LayoutUtils.getSize(child, orient, LayoutGuideType.valueOf(-1, type.isPref()), parallelSize,
+								crossSize, csMax, null);
+							max = add(totalPix, (int) trail.getValue()) - childMin * 2;
+							if (max < min)
+								max = min;
+						} else {
+						}
+						break;
+					case percent:
+						totalPercent = totalPercent == null ? lead.getValue() : totalPercent + lead.getValue();
+						break;
+					}
+				}
+				Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient, null));
+				if (size != null) {
+					switch (size.getUnit()) {
+					case pixels:
+					case lexips:
+						if (type.isMax() && max != null)
+							return Math.min(max, (int) size.getValue());
+						else if (type.isMin() && min != null)
+							return Math.max(min, (int) size.getValue());
+						else if (totalPix != null)
+							return totalPix + (int) size.getValue();
+						else if (totalLex != null)
+							return totalLex + (int) size.getValue();
+						else if(totalPercent!=null)
+					}
+				}
 			}
 
 			@Override

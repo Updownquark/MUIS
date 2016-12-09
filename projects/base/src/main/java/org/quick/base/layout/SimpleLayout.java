@@ -1,14 +1,16 @@
 package org.quick.base.layout;
 
 import static org.quick.core.layout.LayoutAttributes.*;
-import static org.quick.core.layout.LayoutUtils.add;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.observe.Observable;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.*;
+import org.quick.core.style.LengthUnit;
 import org.quick.core.style.Position;
 import org.quick.core.style.Size;
 import org.quick.util.CompoundListener;
@@ -37,12 +39,12 @@ public class SimpleLayout implements QuickLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
+	public SizeGuide getWSizer(QuickElement parent, QuickElement[] children) {
 		return getSizer(children, Orientation.horizontal);
 	}
 
 	@Override
-	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
+	public SizeGuide getHSizer(QuickElement parent, QuickElement[] children) {
 		return getSizer(children, Orientation.vertical);
 	}
 
@@ -53,7 +55,7 @@ public class SimpleLayout implements QuickLayout {
 	 * @param orient The orientation to get the sizer for
 	 * @return The size policy for the container of the given children in the given dimension
 	 */
-	protected SizeGuide getSizer(final QuickElement [] children, final Orientation orient) {
+	protected SizeGuide getSizer(final QuickElement[] children, final Orientation orient) {
 		return new SizeGuide() {
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -72,8 +74,7 @@ public class SimpleLayout implements QuickLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return Integer.MAX_VALUE; // Don't try to limit the container size due to the contents
-				// return get(LayoutGuideType.maxPref, crossSize, csMax);
+				return get(LayoutGuideType.maxPref, crossSize, csMax);
 			}
 
 			@Override
@@ -85,20 +86,13 @@ public class SimpleLayout implements QuickLayout {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if (children.length == 0) {
-					if ((type == LayoutGuideType.max || type == LayoutGuideType.maxPref))
+					if (type == LayoutGuideType.max)
 						return Integer.MAX_VALUE;
 					return 0;
 				}
-				QuickElement parent = children[0].getParent().get();
-				if (parent == null && !csMax) {
-					if ((type == LayoutGuideType.max || type == LayoutGuideType.maxPref))
-						return Integer.MAX_VALUE;
-					return 0;
-				}
-				int parallelSize = csMax ? Integer.MAX_VALUE : parent.bounds().get(orient).getSize();
 				int[] res = new int[children.length];
 				for (int i = 0; i < res.length; i++)
-					res[i] = getSize(children[i], type, parallelSize, crossSize, csMax);
+					res[i] = getSize(children[i], type, crossSize, csMax);
 				switch (type) {
 				case min:
 				case minPref:
@@ -112,90 +106,72 @@ public class SimpleLayout implements QuickLayout {
 				throw new IllegalStateException("Unrecognized layout guide type: " + type);
 			}
 
-			private int getSize(QuickElement child, LayoutGuideType type, int parallelSize, int crossSize, boolean csMax) {
-				Integer totalPix = null;
-				Integer totalLex = null;
-				Float totalPercent = null;
-				Integer min = null;
-				Integer max = null;
+			private int getSize(QuickElement child, LayoutGuideType type, int crossSize, boolean csMax) {
+				if (!LayoutUtils.checkLayoutChild(child))
+					return 0;
+				Sandbox sandbox = new Sandbox();
 				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
-				if (lead != null){
-					switch(lead.getUnit()){
-					case pixels:
-						totalPix=(int) lead.getValue();
-						break;
-					case lexips:
-						totalLex=(int) lead.getValue();
-						break;
-					case percent:
-						totalPercent=lead.getValue();
-					}
-				}
 				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
-				if(trail!=null){
-					switch(trail.getUnit()){
+				Sandbox.Edge front = sandbox.createEdge();
+				Sandbox.Edge end = sandbox.createEdge();
+				if (lead != null) {
+					switch (lead.getUnit()) {
 					case pixels:
-						if (lead == null || totalPercent != null || totalPix != null)
-							totalPix=(int) trail.getValue();
-						else {
-							min=Math.max(totalLex, (int) trail.getValue());
-							int childMin=LayoutUtils.getSize(child, orient, LayoutGuideType.valueOf(-1, type.isPref()), parallelSize, crossSize, csMax, null);
-							max=add(totalLex, (int) trail.getValue())-childMin*2;
-							if(max<min)
-								max=min;
-						}
-						break;
-					case lexips:
-						if (lead == null || totalPercent != null)
-							totalLex=(int) trail.getValue();
-						else if (totalPix != null) {
-							min=Math.max(totalPix, (int) trail.getValue());
-							int childMin = LayoutUtils.getSize(child, orient, LayoutGuideType.valueOf(-1, type.isPref()), parallelSize,
-								crossSize, csMax, null);
-							max = add(totalPix, (int) trail.getValue()) - childMin * 2;
-							if (max < min)
-								max = min;
-						} else {
-						}
-						break;
 					case percent:
-						totalPercent = totalPercent == null ? lead.getValue() : totalPercent + lead.getValue();
+						sandbox.createSpace(sandbox.getLeft(), front, new Size(lead.getValue(), lead.getUnit()));
+						break;
+					case lexips:
+						sandbox.createSpace(front, sandbox.getRight(), new Size(lead.getValue(), LengthUnit.pixels));
 						break;
 					}
-				}
-				Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient, null));
-				if (size != null) {
-					switch (size.getUnit()) {
+				} else
+					sandbox.createSpace(sandbox.getLeft(), front, new Size(0, LengthUnit.pixels));
+				if (trail != null) {
+					switch (trail.getUnit()) {
 					case pixels:
+					case percent:
+						sandbox.createSpace(sandbox.getLeft(), end, new Size(trail.getValue(), trail.getUnit()));
+						break;
 					case lexips:
-						if (type.isMax() && max != null)
-							return Math.min(max, (int) size.getValue());
-						else if (type.isMin() && min != null)
-							return Math.max(min, (int) size.getValue());
-						else if (totalPix != null)
-							return totalPix + (int) size.getValue();
-						else if (totalLex != null)
-							return totalLex + (int) size.getValue();
-						else if(totalPercent!=null)
+						sandbox.createSpace(end, sandbox.getRight(), new Size(trail.getValue(), LengthUnit.pixels));
+						break;
 					}
-				}
+				} else
+					sandbox.createSpace(sandbox.getLeft(), end, new Size(0, LengthUnit.pixels));
+				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
+					sandbox.createSpace(front, end, LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize, csMax));
+				else
+					sandbox.createSpace(front, end, LayoutUtils.getLayoutSize(child, orient, type, crossSize, csMax));
+
+				sandbox.resolve();
+				if (type == LayoutGuideType.max && sandbox.getRight().getConstraints().isEmpty())
+					return Integer.MAX_VALUE;
+				LayoutSize endPos = sandbox.getEnd().getPosition();
+				if (endPos.getPercent() == 0)
+					return endPos.getPixels();
+				else if (endPos.getPixels() == 0)
+					return 0;
+				else if (endPos.getPercent() >= 100)
+					throw new IllegalStateException("Total length>100%");
+				else
+					return (int) (endPos.getPixels() / (100 - endPos.getPercent()));
 			}
 
 			@Override
 			public int getBaseline(int size) {
-				if(children.length == 0)
+				if (children.length == 0)
 					return 0;
-				for(QuickElement child : children) {
+				for (QuickElement child : children) {
 					int childSize = LayoutUtils.getSize(child, orient, LayoutGuideType.pref, size, Integer.MAX_VALUE, true, null);
 					int ret = child.bounds().get(orient).getGuide().getBaseline(childSize);
-					if(ret < 0)
+					if (ret < 0)
 						continue;
 					Position pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
-					if(pos != null) {
+					if (pos != null) {
 						return ret + pos.evaluate(size);
 					}
 					pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
-					if(pos != null) {
+					if (pos != null) {
 						return size - pos.evaluate(size) - childSize + ret;
 					}
 					return ret;
@@ -206,8 +182,8 @@ public class SimpleLayout implements QuickLayout {
 	}
 
 	@Override
-	public void layout(QuickElement parent, QuickElement [] children) {
-		for(QuickElement child : children)
+	public void layout(QuickElement parent, QuickElement[] children) {
+		for (QuickElement child : children)
 			layout(parent, child);
 	}
 
@@ -215,41 +191,41 @@ public class SimpleLayout implements QuickLayout {
 		Position pos1 = child.atts().get(LayoutAttributes.left);
 		Position pos2 = child.atts().get(LayoutAttributes.right);
 		int x, w;
-		if(pos1 != null) {
+		if (pos1 != null) {
 			x = pos1.evaluate(parent.bounds().getWidth());
-			if(pos2 != null)
+			if (pos2 != null)
 				w = pos2.evaluate(parent.bounds().getWidth()) - x;
 			else
-				w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(), parent.bounds()
-					.getHeight(), false, null);
-		} else if(pos2 != null) {
-			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(), parent.bounds()
-				.getHeight(), false, null);
+				w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(),
+					parent.bounds().getHeight(), false, null);
+		} else if (pos2 != null) {
+			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(),
+				parent.bounds().getHeight(), false, null);
 			x = pos2.evaluate(parent.bounds().getWidth()) - w;
 		} else {
 			x = 0;
-			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(), parent.bounds()
-				.getHeight(), false, null);
+			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(),
+				parent.bounds().getHeight(), false, null);
 		}
 
 		pos1 = child.atts().get(LayoutAttributes.top);
 		pos2 = child.atts().get(LayoutAttributes.bottom);
 		int y, h;
-		if(pos1 != null) {
+		if (pos1 != null) {
 			y = pos1.evaluate(parent.bounds().getHeight());
-			if(pos2 != null) {
+			if (pos2 != null) {
 				h = pos2.evaluate(parent.bounds().getHeight()) - y;
 			} else
-				h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(), parent.bounds()
-					.getWidth(), false, null);
-		} else if(pos2 != null) {
-			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(), parent.bounds()
-				.getWidth(), false, null);
+				h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(),
+					parent.bounds().getWidth(), false, null);
+		} else if (pos2 != null) {
+			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(),
+				parent.bounds().getWidth(), false, null);
 			y = pos2.evaluate(parent.bounds().getHeight()) - h;
 		} else {
 			y = 0;
-			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(), parent.bounds()
-				.getWidth(), false, null);
+			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(),
+				parent.bounds().getWidth(), false, null);
 		}
 		child.bounds().setBounds(x, y, w, h);
 	}
@@ -257,5 +233,132 @@ public class SimpleLayout implements QuickLayout {
 	@Override
 	public String toString() {
 		return "simple";
+	}
+
+	private static class Sandbox {
+		static class Edge {
+			private final boolean isLeftAllowed;
+			private final boolean isRightAllowed;
+			private final List<Space> theConstraints;
+			private boolean isCached;
+			private LayoutSize thePosition;
+
+			Edge(boolean allowsLeft, boolean allowsRight) {
+				isLeftAllowed = allowsLeft;
+				isRightAllowed = allowsRight;
+				theConstraints = new LinkedList<>();
+			}
+
+			List<Space> getConstraints() {
+				return theConstraints;
+			}
+
+			void add(Space space) {
+				if (!isLeftAllowed && space.right == this)
+					throw new IllegalArgumentException("Cannot add spaces to the left of the left edge of the sandbox");
+				if ((!isLeftAllowed || !isRightAllowed) && !theConstraints.isEmpty())
+					throw new IllegalArgumentException("The sides of the sandbox can have more than 1 constraint each");
+				uncache();
+				theConstraints.add(space);
+			}
+
+			private void uncache() {
+				if (!isCached)
+					return;
+				isCached = false;
+				for (Space constraint : theConstraints) {
+					if (constraint.left != this)
+						constraint.left.uncache();
+					if (constraint.right != this)
+						constraint.right.uncache();
+				}
+			}
+
+			public LayoutSize getPosition() {
+				return thePosition;
+			}
+
+			void resolve(Space calling) {
+				if (!isCached) {
+					for (Space constraint : theConstraints) {
+						if (constraint == calling)
+							continue;
+						if (constraint.left != null && constraint.left != this) {
+							constraint.left.resolve(constraint);
+							thePosition = new LayoutSize(constraint.left.thePosition).add(constraint.size);
+						} else {
+							constraint.right.resolve(constraint);
+							thePosition = new LayoutSize(constraint.right.thePosition).minus(constraint.size);
+						}
+					}
+					if (thePosition == null)
+						thePosition = new LayoutSize();
+					isCached = true;
+				}
+			}
+
+			Edge getEnd(Space calling) {
+				for (Space constraint : theConstraints) {
+					if (constraint == calling)
+						continue;
+					if (constraint.left != null && constraint.left != this) {
+						return constraint.left.getEnd(constraint);
+					} else {
+						return constraint.right.getEnd(constraint);
+					}
+				}
+				return this;
+			}
+		}
+
+		static class Space {
+			public final Edge left;
+			public final Edge right;
+			public final Size size;
+
+			Space(Edge left, Edge right, Size size) {
+				this.left = left;
+				this.right = right;
+				this.size = size;
+				left.add(this);
+				right.add(this);
+			}
+		}
+
+		private final Edge theLeft;
+		private final Edge theRight;
+
+		Sandbox() {
+			theLeft = new Edge(false, true);
+			theRight = new Edge(true, false);
+		}
+
+		public Edge getLeft() {
+			return theLeft;
+		}
+
+		public Edge getRight() {
+			return theRight;
+		}
+
+		public Edge createEdge() {
+			return new Edge(true, true);
+		}
+
+		public Space createSpace(Edge left, Edge right, Size size) {
+			return new Space(left, right, size);
+		}
+
+		public void resolve() {
+			theRight.resolve(null);
+			theLeft.resolve(null);
+		}
+
+		public Edge getEnd() {
+			if (!theRight.theConstraints.isEmpty())
+				return theRight;
+			else
+				return theLeft.getEnd(null);
+		}
 	}
 }

@@ -225,12 +225,12 @@ public class LayoutAttributes {
 				return width;
 			switch (type) {
 			case min:
+			case minPref:
 				return minWidth;
 			case max:
-				return maxWidth;
-			case minPref:
-			case pref:
 			case maxPref:
+				return maxWidth;
+			case pref:
 				return null;
 			}
 			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
@@ -239,12 +239,12 @@ public class LayoutAttributes {
 				return height;
 			switch (type) {
 			case min:
+			case minPref:
 				return minHeight;
 			case max:
-				return maxHeight;
-			case minPref:
-			case pref:
 			case maxPref:
+				return maxHeight;
+			case pref:
 				return null;
 			}
 			throw new IllegalArgumentException("Unrecognized layout guide type: " + type);

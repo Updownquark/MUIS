@@ -83,4 +83,20 @@ public enum LayoutGuideType {
 		else
 			return isPref ? maxPref : max;
 	}
+
+	public LayoutGuideType opposite() {
+		switch (this) {
+		case min:
+			return max;
+		case minPref:
+			return maxPref;
+		case pref:
+			return pref;
+		case maxPref:
+			return minPref;
+		case max:
+			return min;
+		}
+		throw new IllegalStateException("Unrecognized layout guide type: " + this);
+	}
 }

@@ -4,6 +4,8 @@ import java.awt.Dimension;
 import java.awt.Rectangle;
 
 import org.quick.core.QuickElement;
+import org.quick.core.layout.LayoutAttributes.SizeAttribute;
+import org.quick.core.style.LengthUnit;
 import org.quick.core.style.Size;
 
 /** A set of utilities for layouts */
@@ -59,6 +61,24 @@ public class LayoutUtils {
 		int getSize(T layoutValue);
 	}
 
+	public static boolean checkLayoutChild(QuickElement child) {
+		for (Orientation orient : Orientation.values()) {
+			SizeAttribute sizeAttr = LayoutAttributes.getSizeAtt(orient, null);
+			SizeAttribute minAttr = LayoutAttributes.getSizeAtt(orient, LayoutGuideType.min);
+			SizeAttribute maxAttr = LayoutAttributes.getSizeAtt(orient, LayoutGuideType.max);
+			Size size = child.atts().get(sizeAttr);
+			Size minSize = child.atts().get(minAttr);
+			Size maxSize = child.atts().get(maxAttr);
+			if (size != null && (minSize != null || maxSize != null))
+				child.msg().warn(minAttr + " and/or " + maxAttr + " attributes are set at the same time as " + sizeAttr);
+			if (minSize != null && maxSize != null && minSize.getUnit() != maxSize.getUnit()) {
+				child.msg().error(minAttr + " and " + maxAttr + " must have the same unit");
+				return false;
+			}
+		}
+		return true;
+	}
+
 	/**
 	 * @param element The element to get the intended size of
 	 * @param orientation The orientation along which to get the element's intended size
@@ -74,12 +94,11 @@ public class LayoutUtils {
 		LayoutAttributes.SizeAttribute att;
 		Size ret;
 		att = LayoutAttributes.getSizeAtt(orientation, null);
+		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min));
+		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max));
 		ret = element.atts().get(att);
-		if(ret == null && type != null) {
-			att = LayoutAttributes.getSizeAtt(orientation, type.toExtreme());
-			if(att != null)
-				ret = element.atts().get(att);
-		}
+		if (ret == null && type != null && !type.isPref())
+			ret = type.isMin() ? minSize : maxSize;
 		if(ret != null) {
 			if(addTo != null) {
 				switch (ret.getUnit()) {
@@ -92,7 +111,7 @@ public class LayoutUtils {
 					break;
 				}
 			}
-			return ret.evaluate(parallelSize);
+			return constrain(ret.evaluate(parallelSize), minSize, maxSize, parallelSize);
 		} else if(type == null)
 			return -1;
 		else {
@@ -102,6 +121,38 @@ public class LayoutUtils {
 				addTo.add(size);
 			return size;
 		}
+	}
+
+	private static int constrain(int size, Size minSize, Size maxSize, int parallelSize) {
+		int minSz = minSize == null ? -1 : minSize.evaluate(parallelSize);
+		if (minSize != null && size < minSz)
+			return minSz;
+		int maxSz = maxSize == null ? -1 : maxSize.evaluate(parallelSize);
+		if (maxSize != null && size > maxSz) {
+			if (minSz >= 0 && maxSz < minSz)
+				return minSz;
+			else
+				return maxSz;
+		}
+		return size;
+	}
+
+	public static Size getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
+		LayoutAttributes.SizeAttribute att;
+		Size ret = element.atts().get(LayoutAttributes.getSizeAtt(orientation, null));
+		if (ret != null)
+			return ret;
+		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min));
+		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max));
+		if (minSize != null && maxSize != null && minSize.compareTo(maxSize) >= 0)
+			return minSize;
+		Size layoutSize = new Size(element.bounds().get(orientation).getGuide()//
+			.get(type, crossSize, csMax), LengthUnit.pixels);
+		if (minSize != null && layoutSize.compareTo(minSize) < 0)
+			return minSize;
+		if (maxSize != null && layoutSize.compareTo(maxSize) > 0)
+			return maxSize;
+		return layoutSize;
 	}
 
 	/**

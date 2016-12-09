@@ -78,8 +78,11 @@ public class LayoutSize {
 		thePercent = percent;
 	}
 
-	/** @param size The size to add to this value */
-	public void add(Size size) {
+	/**
+	 * @param size The size to add to this value
+	 * @return This size
+	 */
+	public LayoutSize add(Size size) {
 		switch (size.getUnit()) {
 		case pixels:
 		case lexips:
@@ -88,22 +91,55 @@ public class LayoutSize {
 		case percent:
 			addPercent(size.getValue());
 		}
+		return this;
 	}
 
-	/** @param size The size to add to this value */
-	public void add(LayoutSize size) {
+	/**
+	 * @param size The size to subtract from this size
+	 * @return This size
+	 */
+	public LayoutSize minus(Size size) {
+		switch (size.getUnit()) {
+		case pixels:
+		case lexips:
+			thePixels -= (int) size.getValue();
+			break;
+		case percent:
+			thePercent -= size.getValue();
+		}
+		return this;
+	}
+
+	/**
+	 * @param size The size to add to this value
+	 * @return This size
+	 */
+	public LayoutSize add(LayoutSize size) {
 		add(size.thePixels);
 		addPercent(size.thePercent);
+		return this;
+	}
+
+	/**
+	 * @param size The size to subtract from this size
+	 * @return This size
+	 */
+	public LayoutSize minus(LayoutSize size) {
+		thePixels -= size.thePixels;
+		thePercent -= size.thePercent;
+		return this;
 	}
 
 	/**
 	 * Replaces this value with the given value
 	 *
 	 * @param size The value to set for this size
+	 * @return This size
 	 */
-	public void set(LayoutSize size) {
+	public LayoutSize set(LayoutSize size) {
 		thePixels = size.thePixels;
 		thePercent = size.thePercent;
+		return this;
 	}
 
 	/** Clears this size to 0 */

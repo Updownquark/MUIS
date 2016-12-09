@@ -724,9 +724,11 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/**
 	 * Causes this element to adjust the position and size of its children in a way defined in this element type's implementation. By
-	 * default this does nothing.
+	 * default this only calls the doLayout() method of its physical children and {@link #repaint(Rectangle, boolean, Runnable...)}.
 	 */
 	protected void doLayout() {
+		if (theBounds.isEmpty())
+			return;
 		theLayoutDirtyTime = 0;
 		for(QuickElement child : getPhysicalChildren())
 			child.doLayout();

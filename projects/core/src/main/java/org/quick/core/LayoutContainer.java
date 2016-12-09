@@ -59,6 +59,8 @@ public class LayoutContainer extends QuickElement {
 
 	@Override
 	public void doLayout() {
+		if (bounds().isEmpty())
+			return;
 		QuickLayout layout = getLayout();
 		if (layout != null)
 			layout.layout(this, getPhysicalChildren().toArray());

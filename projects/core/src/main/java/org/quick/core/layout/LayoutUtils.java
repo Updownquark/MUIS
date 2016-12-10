@@ -137,22 +137,31 @@ public class LayoutUtils {
 		return size;
 	}
 
-	public static Size getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
+	public static Size[] getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
 		LayoutAttributes.SizeAttribute att;
 		Size ret = element.atts().get(LayoutAttributes.getSizeAtt(orientation, null));
 		if (ret != null)
-			return ret;
+			return new Size[] { ret };
 		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min));
 		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max));
 		if (minSize != null && maxSize != null && minSize.compareTo(maxSize) >= 0)
-			return minSize;
+			return new Size[] { minSize };
 		Size layoutSize = new Size(element.bounds().get(orientation).getGuide()//
 			.get(type, crossSize, csMax), LengthUnit.pixels);
-		if (minSize != null && layoutSize.compareTo(minSize) < 0)
-			return minSize;
-		if (maxSize != null && layoutSize.compareTo(maxSize) > 0)
-			return maxSize;
-		return layoutSize;
+		if (minSize != null && minSize.getUnit() == layoutSize.getUnit()) {
+			if (layoutSize.compareTo(minSize) < 0)
+				layoutSize = minSize;
+			minSize = null;
+		}
+		if (maxSize != null && maxSize.getUnit() == layoutSize.getUnit()) {
+			if (layoutSize.compareTo(maxSize) > 0)
+				layoutSize = maxSize;
+			maxSize = null;
+		}
+		if (minSize == null && maxSize == null)
+			return new Size[] { layoutSize };
+		else
+			return new Size[] { minSize, layoutSize, maxSize };
 	}
 
 	/**

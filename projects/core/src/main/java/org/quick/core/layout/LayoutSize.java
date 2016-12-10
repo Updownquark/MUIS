@@ -214,6 +214,6 @@ public class LayoutSize {
 		else if(thePixels == 0)
 			return thePercent + "%";
 		else
-			return thePixels + "px" + (isMax ? " or " : "-") + thePercent + "%";
+			return thePixels + "px" + (isMax ? " or " : "+") + thePercent + "%";
 	}
 }

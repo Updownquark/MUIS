@@ -172,7 +172,7 @@ public class AttributeManager {
 		 * @throws QuickException If the value cannot be set for the attribute
 		 */
 		public final void set(T value) throws QuickException {
-			setContainedObservable(ObservableValue.constant(value));
+			setContainedObservable(ObservableValue.constant(theAttr.getType().getType(), value));
 		}
 
 		/**

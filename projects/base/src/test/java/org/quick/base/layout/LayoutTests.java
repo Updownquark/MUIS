@@ -1,9 +1,9 @@
 package org.quick.base.layout;
 
 import static org.junit.Assert.assertEquals;
-import static org.quick.core.layout.LayoutAttributes.left;
-import static org.quick.core.layout.LayoutAttributes.right;
+import static org.quick.core.layout.LayoutAttributes.*;
 import static org.quick.core.style.LengthUnit.lexips;
+import static org.quick.core.style.LengthUnit.percent;
 import static org.quick.core.style.LengthUnit.pixels;
 
 import java.util.Arrays;
@@ -15,6 +15,7 @@ import org.quick.core.*;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.style.Position;
+import org.quick.core.style.Size;
 
 public class LayoutTests {
 	static class TestLayout implements QuickLayout {
@@ -91,5 +92,50 @@ public class LayoutTests {
 		assertEquals(80, parent.getWSizer().getPreferred(100, false));
 		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
 		assertEquals(100, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(minWidth, new Size(30, pixels));
+		assertEquals(80, parent.getWSizer().getMin(100, false));
+		assertEquals(80, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(80, parent.getWSizer().getPreferred(100, false));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(maxWidth, new Size(40, pixels));
+		assertEquals(80, parent.getWSizer().getMin(100, false));
+		assertEquals(80, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(80, parent.getWSizer().getPreferred(100, false));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(90, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(minWidth, null)//
+			.set(maxWidth, null)//
+			.set(width, new Size(50, percent));
+		assertEquals(100, parent.getWSizer().getMin(100, false));
+		assertEquals(100, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(minWidth, new Size(25, percent))//
+			.set(maxWidth, null)//
+			.set(width, null);
+		assertEquals(66, parent.getWSizer().getMin(100, false));
+		assertEquals(70, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(80, parent.getWSizer().getPreferred(100, false));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(maxWidth, new Size(40, percent))//
+			.set(width, null);
+		assertEquals(66, parent.getWSizer().getMin(100, false));
+		assertEquals(70, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(80, parent.getWSizer().getPreferred(100, false));
+		assertEquals(83, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(83, parent.getWSizer().getMax(100, false));
 	}
 }

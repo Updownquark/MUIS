@@ -108,9 +108,35 @@ public class SimpleLayout implements QuickLayout {
 			private int getSize(QuickElement child, LayoutGuideType type, int crossSize, boolean csMax) {
 				if (!LayoutUtils.checkLayoutChild(child))
 					return 0;
-				Sandbox sandbox = new Sandbox();
+
 				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
 				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+
+				Size[] layoutSizes;
+				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
+					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize, csMax);
+				else
+					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type, crossSize, csMax);
+				if (layoutSizes.length == 1)
+					return getSize(type, lead, trail, layoutSizes[0]);
+				else {
+					int prefSize = getSize(type, lead, trail, layoutSizes[1]);
+					if (layoutSizes[2] != null) {
+						int maxSize = getSize(type, lead, trail, layoutSizes[2]);
+						if (prefSize > maxSize)
+							prefSize = maxSize;
+					}
+					if (layoutSizes[0] != null) {
+						int minSize = getSize(type, lead, trail, layoutSizes[0]);
+						if (prefSize < minSize)
+							prefSize = minSize;
+					}
+					return prefSize;
+				}
+			}
+
+			private int getSize(LayoutGuideType type, Position lead, Position trail, Size layoutWidth) {
+				Sandbox sandbox = new Sandbox();
 				Sandbox.Edge front = sandbox.createEdge();
 				Sandbox.Edge end = sandbox.createEdge();
 				if (lead != null) {
@@ -136,10 +162,8 @@ public class SimpleLayout implements QuickLayout {
 						break;
 					}
 				}
-				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
-					sandbox.createSpace(front, end, LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize, csMax));
-				else
-					sandbox.createSpace(front, end, LayoutUtils.getLayoutSize(child, orient, type, crossSize, csMax));
+
+				sandbox.createSpace(front, end, layoutWidth);
 
 				sandbox.resolve();
 				if (type == LayoutGuideType.max && sandbox.getRight().getConstraints().isEmpty())
@@ -152,7 +176,7 @@ public class SimpleLayout implements QuickLayout {
 				else if (endPos.getPercent() >= 100)
 					throw new IllegalStateException("Total length>100%");
 				else
-					return (int) (endPos.getPixels() / (100 - endPos.getPercent()));
+					return (int) (endPos.getPixels() / (100 - endPos.getPercent()) * 100);
 			}
 
 			@Override

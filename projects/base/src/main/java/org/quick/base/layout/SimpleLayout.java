@@ -2,6 +2,7 @@ package org.quick.base.layout;
 
 import static org.quick.core.layout.LayoutAttributes.*;
 
+import java.awt.Rectangle;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -205,51 +206,54 @@ public class SimpleLayout implements QuickLayout {
 
 	@Override
 	public void layout(QuickElement parent, QuickElement[] children) {
-		for (QuickElement child : children)
-			layout(parent, child);
+		Rectangle bounds = new Rectangle();
+		for (QuickElement child : children) {
+			layout(parent, child, Orientation.horizontal, bounds);
+			layout(parent, child, Orientation.vertical, bounds);
+		}
 	}
 
-	private void layout(QuickElement parent, QuickElement child) {
-		Position pos1 = child.atts().get(LayoutAttributes.left);
-		Position pos2 = child.atts().get(LayoutAttributes.right);
-		int x, w;
-		if (pos1 != null) {
-			x = pos1.evaluate(parent.bounds().getWidth());
-			if (pos2 != null)
-				w = pos2.evaluate(parent.bounds().getWidth()) - x;
+	private void layout(QuickElement parent, QuickElement child, Orientation orientation, Rectangle bounds) {
+		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.leading, null), new Position(0, LengthUnit.pixels));
+		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.trailing, null));
+		int parentLength = parent.bounds().get(orientation).getSize();
+		int pos = lead.evaluate(parentLength);
+		int length;
+		if (trail != null) {
+			int pos2 = trail.evaluate(parentLength);
+			if (pos2 < pos)
+				length = 0;
 			else
-				w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(),
-					parent.bounds().getHeight(), false, null);
-		} else if (pos2 != null) {
-			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(),
-				parent.bounds().getHeight(), false, null);
-			x = pos2.evaluate(parent.bounds().getWidth()) - w;
+				length = pos2 - pos;
 		} else {
-			x = 0;
-			w = LayoutUtils.getSize(child, Orientation.horizontal, LayoutGuideType.pref, parent.bounds().getWidth(),
-				parent.bounds().getHeight(), false, null);
+			Size[] sizes = LayoutUtils.getLayoutSize(child, orientation, LayoutGuideType.pref,
+				parent.bounds().get(orientation.opposite()).getSize(), false);
+			if (sizes.length == 1)
+				length = sizes[0].evaluate(parentLength);
+			else {
+				length = sizes[1].evaluate(parentLength);
+				if (sizes[2] != null) {
+					int maxLength = sizes[2].evaluate(parentLength);
+					if (length < maxLength)
+						length = maxLength;
+				}
+				if (sizes[0] != null) {
+					int minLength = sizes[0].evaluate(parentLength);
+					if (length < minLength)
+						length = minLength;
+				}
+			}
 		}
-
-		pos1 = child.atts().get(LayoutAttributes.top);
-		pos2 = child.atts().get(LayoutAttributes.bottom);
-		int y, h;
-		if (pos1 != null) {
-			y = pos1.evaluate(parent.bounds().getHeight());
-			if (pos2 != null) {
-				h = pos2.evaluate(parent.bounds().getHeight()) - y;
-			} else
-				h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(),
-					parent.bounds().getWidth(), false, null);
-		} else if (pos2 != null) {
-			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(),
-				parent.bounds().getWidth(), false, null);
-			y = pos2.evaluate(parent.bounds().getHeight()) - h;
-		} else {
-			y = 0;
-			h = LayoutUtils.getSize(child, Orientation.vertical, LayoutGuideType.pref, parent.bounds().getHeight(),
-				parent.bounds().getWidth(), false, null);
+		switch (orientation) {
+		case horizontal:
+			bounds.x = pos;
+			bounds.width = length;
+			break;
+		case vertical:
+			bounds.y = pos;
+			bounds.height = length;
+			break;
 		}
-		child.bounds().setBounds(x, y, w, h);
 	}
 
 	@Override
@@ -303,6 +307,7 @@ public class SimpleLayout implements QuickLayout {
 			void resolve(Space calling) {
 				if (!isLeftAllowed && calling != null) {
 					thePosition = new LayoutSize();
+					isCached = true;
 					return;
 				}
 				if (!isCached) {
@@ -358,6 +363,11 @@ public class SimpleLayout implements QuickLayout {
 				}
 				return size;
 			}
+
+			@Override
+			public String toString() {
+				return String.valueOf(thePosition);
+			}
 		}
 
 		static class Space {
@@ -404,10 +414,10 @@ public class SimpleLayout implements QuickLayout {
 		}
 
 		public LayoutSize getEnd() {
-			if (!theRight.theConstraints.isEmpty())
-				return theRight.getPosition();
-			else
-				return theLeft.getEnd(null, new LayoutSize(true));
+			LayoutSize size = new LayoutSize(true);
+			theLeft.getEnd(null, size);
+			theRight.getEnd(null, size);
+			return size;
 		}
 	}
 }

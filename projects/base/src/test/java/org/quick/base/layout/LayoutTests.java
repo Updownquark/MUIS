@@ -137,5 +137,25 @@ public class LayoutTests {
 		assertEquals(80, parent.getWSizer().getPreferred(100, false));
 		assertEquals(83, parent.getWSizer().getMaxPreferred(100, false));
 		assertEquals(83, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(minWidth, null)//
+			.set(maxWidth, null)//
+			.set(left, new Position(50, lexips))//
+			.set(right, new Position(80, pixels));
+		assertEquals(80, parent.getWSizer().getMin(100, false));
+		assertEquals(90, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getPreferred(100, false));
+		assertEquals(110, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(120, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(left, new Position(40, lexips))//
+			.set(right, new Position(80, pixels));
+		assertEquals(80, parent.getWSizer().getMin(100, false));
+		assertEquals(80, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(90, parent.getWSizer().getPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(110, parent.getWSizer().getMax(100, false));
 	}
 }

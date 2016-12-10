@@ -8,10 +8,10 @@
 					value="attributes.value" format="${attributes.format}" length="attributes.length" rows="attributes.rows"
 					document="${attributes.document}" rich="attributes.rich" multi-line="attributes.multiLine" />
 				<block region="right" layout="simple">
-					<button template-attach-point="up" left="0" top="0" width="100%" height="50%" action="attributes.increment">
+					<button template-attach-point="up" left="0" top="0" height="50%" action="attributes.increment">
 						<image src="up-arrow" width="16" prop-locked="true" />
 					</button>
-					<button template-attach-point="down" left="0" top="50%" width="100%" height="50%" action="attributes.decrement">
+					<button template-attach-point="down" left="0" top="50%" height="50%" action="attributes.decrement">
 						<image src="down-arrow" width="16" prop-locked="true" />
 					</button>
 				</block>

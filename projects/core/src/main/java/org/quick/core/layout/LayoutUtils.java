@@ -389,6 +389,6 @@ public class LayoutUtils {
 	}
 
 	public static int removeRadius(int size, Size radius) {
-		return size - radius.evaluate(size) * 2;
+		return Math.max(0, size - radius.evaluate(size) * 2);
 	}
 }

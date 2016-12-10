@@ -436,14 +436,16 @@ public class AttributeManager {
 	 * @param <T> The type of the attribute to set
 	 * @param attr The attribute to set
 	 * @param value The value to set for the attribute in this element
+	 * @return This attribute manager
 	 * @throws QuickException If the attribute is not accepted in this element or the value is not valid
 	 */
-	public final <T> void set(QuickAttribute<T> attr, T value) throws QuickException {
+	public final <T> AttributeManager set(QuickAttribute<T> attr, T value) throws QuickException {
 		AttributeHolder<T> holder = getHolder(attr, false);
 		if (holder != null)
 			holder.set(value);
 		else
 			throw new QuickException("Attribute " + attr.getName() + " not accepted");
+		return this;
 	}
 
 	/**

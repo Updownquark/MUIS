@@ -68,14 +68,22 @@ public class LayoutSize {
 			thePercent += percent;
 	}
 
-	/** @param pixels The pixels to set for this size */
-	public void setPixels(int pixels) {
+	/**
+	 * @param pixels The pixels to set for this size
+	 * @return This size
+	 */
+	public LayoutSize setPixels(int pixels) {
 		thePixels = pixels;
+		return this;
 	}
 
-	/** @param percent The percent to set for this size */
-	public void setPercent(float percent) {
+	/**
+	 * @param percent The percent to set for this size
+	 * @return This size
+	 */
+	public LayoutSize setPercent(float percent) {
 		thePercent = percent;
+		return this;
 	}
 
 	/**
@@ -156,6 +164,15 @@ public class LayoutSize {
 	/** @return This size's percent value */
 	public float getPercent() {
 		return thePercent;
+	}
+
+	public boolean isZero() {
+		return thePixels == 0 && thePercent == 0;
+	}
+
+	public LayoutSize negate(){
+		return new LayoutSize().setPixels(-thePixels).setPercent(-thePercent);
+
 	}
 
 	/**

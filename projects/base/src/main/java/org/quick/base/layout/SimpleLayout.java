@@ -79,8 +79,7 @@ public class SimpleLayout implements QuickLayout {
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
-				return Integer.MAX_VALUE; // Don't try to limit the container size due to the contents
-				// return get(LayoutGuideType.max, crossSize, csMax);
+				return get(LayoutGuideType.max, crossSize, csMax);
 			}
 
 			@Override
@@ -136,8 +135,7 @@ public class SimpleLayout implements QuickLayout {
 						sandbox.createSpace(end, sandbox.getRight(), new Size(trail.getValue(), LengthUnit.pixels));
 						break;
 					}
-				} else
-					sandbox.createSpace(sandbox.getLeft(), end, new Size(0, LengthUnit.pixels));
+				}
 				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
 					sandbox.createSpace(front, end, LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize, csMax));
 				else
@@ -146,7 +144,7 @@ public class SimpleLayout implements QuickLayout {
 				sandbox.resolve();
 				if (type == LayoutGuideType.max && sandbox.getRight().getConstraints().isEmpty())
 					return Integer.MAX_VALUE;
-				LayoutSize endPos = sandbox.getEnd().getPosition();
+				LayoutSize endPos = sandbox.getEnd();
 				if (endPos.getPercent() == 0)
 					return endPos.getPixels();
 				else if (endPos.getPixels() == 0)
@@ -256,8 +254,8 @@ public class SimpleLayout implements QuickLayout {
 			void add(Space space) {
 				if (!isLeftAllowed && space.right == this)
 					throw new IllegalArgumentException("Cannot add spaces to the left of the left edge of the sandbox");
-				if ((!isLeftAllowed || !isRightAllowed) && !theConstraints.isEmpty())
-					throw new IllegalArgumentException("The sides of the sandbox can have more than 1 constraint each");
+				if (!isRightAllowed && space.left == this)
+					throw new IllegalArgumentException("Cannot add spaces to the right of the right edge of the sandbox");
 				uncache();
 				theConstraints.add(space);
 			}
@@ -279,6 +277,10 @@ public class SimpleLayout implements QuickLayout {
 			}
 
 			void resolve(Space calling) {
+				if (!isLeftAllowed && calling != null) {
+					thePosition = new LayoutSize();
+					return;
+				}
 				if (!isCached) {
 					for (Space constraint : theConstraints) {
 						if (constraint == calling)
@@ -293,21 +295,44 @@ public class SimpleLayout implements QuickLayout {
 					}
 					if (thePosition == null)
 						thePosition = new LayoutSize();
+					if (!isLeftAllowed) {
+						if (!thePosition.isZero()) {
+							for (Space constraint : theConstraints)
+								constraint.right.add(thePosition.negate(), constraint);
+						}
+						thePosition = new LayoutSize();
+					}
 					isCached = true;
 				}
 			}
 
-			Edge getEnd(Space calling) {
+			private void add(LayoutSize size, Space calling) {
+				thePosition.add(size);
 				for (Space constraint : theConstraints) {
 					if (constraint == calling)
 						continue;
 					if (constraint.left != null && constraint.left != this) {
-						return constraint.left.getEnd(constraint);
+						constraint.left.add(size, constraint);
 					} else {
-						return constraint.right.getEnd(constraint);
+						constraint.right.add(size, constraint);
 					}
 				}
-				return this;
+			}
+
+			LayoutSize getEnd(Space calling, LayoutSize size) {
+				if (!isLeftAllowed && calling != null)
+					return size;
+				size.add(thePosition);
+				for (Space constraint : theConstraints) {
+					if (constraint == calling)
+						continue;
+					if (constraint.left != null && constraint.left != this) {
+						return constraint.left.getEnd(constraint, size);
+					} else {
+						return constraint.right.getEnd(constraint, size);
+					}
+				}
+				return size;
 			}
 		}
 
@@ -354,11 +379,11 @@ public class SimpleLayout implements QuickLayout {
 			theLeft.resolve(null);
 		}
 
-		public Edge getEnd() {
+		public LayoutSize getEnd() {
 			if (!theRight.theConstraints.isEmpty())
-				return theRight;
+				return theRight.getPosition();
 			else
-				return theLeft.getEnd(null);
+				return theLeft.getEnd(null, new LayoutSize(true));
 		}
 	}
 }

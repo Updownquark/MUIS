@@ -44,7 +44,7 @@ public class QuickTestUtils {
 
 	public static QuickDocument createDocument() {
 		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
-		QuickClassView cv = new QuickClassView(env, null, null);
+		QuickClassView cv = new QuickClassView(env, env.cv(), null);
 		QuickHeadSection head = QuickHeadSection.build().build();
 		return new QuickDocument(env, null, head, cv);
 	}

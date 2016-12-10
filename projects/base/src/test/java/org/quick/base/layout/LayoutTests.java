@@ -1,19 +1,95 @@
 package org.quick.base.layout;
 
+import static org.junit.Assert.assertEquals;
+import static org.quick.core.layout.LayoutAttributes.left;
+import static org.quick.core.layout.LayoutAttributes.right;
+import static org.quick.core.style.LengthUnit.lexips;
+import static org.quick.core.style.LengthUnit.pixels;
+
+import java.util.Arrays;
+import java.util.Collections;
+
 import org.junit.Test;
-import org.quick.core.LayoutContainer;
-import org.quick.core.QuickElement;
-import org.quick.core.QuickLayout;
+import org.observe.Observable;
+import org.quick.core.*;
+import org.quick.core.layout.SimpleSizeGuide;
+import org.quick.core.layout.SizeGuide;
+import org.quick.core.style.Position;
 
 public class LayoutTests {
+	static class TestLayout implements QuickLayout {
+		private SizeGuide theWSizer;
+		private SizeGuide theHSizer;
+
+		public TestLayout setW(SizeGuide wSizer) {
+			theWSizer = wSizer;
+			return this;
+		}
+
+		public TestLayout setH(SizeGuide hSizer) {
+			theHSizer = hSizer;
+			return this;
+		}
+
+		@Override
+		public void install(QuickElement parent, Observable<?> until) {}
+
+		@Override
+		public SizeGuide getWSizer(QuickElement parent, QuickElement[] children) {
+			return theWSizer;
+		}
+
+		@Override
+		public SizeGuide getHSizer(QuickElement parent, QuickElement[] children) {
+			return theHSizer;
+		}
+
+		@Override
+		public void layout(QuickElement parent, QuickElement[] children) {}
+	}
+
 	@Test
-	public void testSimpleLayout() {
+	public void testSimpleLayout() throws QuickException {
+		QuickDocument doc = org.quick.QuickTestUtils.createDocument();
 		LayoutContainer parent = new LayoutContainer() {
 			@Override
 			protected QuickLayout getDefaultLayout() {
 				return new SimpleLayout();
 			}
 		};
-		QuickElement child1 = new QuickElement() {};
+		parent.init(doc, null, doc.cv(), null, null, null);
+		TestLayout child1Layout = new TestLayout().setW(new SimpleSizeGuide(10, 20, 30, 40, 50));
+		LayoutContainer child1 = new LayoutContainer() {
+			@Override
+			protected QuickLayout getDefaultLayout() {
+				return child1Layout;
+			}
+		};
+		child1.init(doc, null, doc.cv(), parent, null, null);
+		child1.initChildren(Collections.emptyList());
+		parent.initChildren(Arrays.asList(child1));
+		parent.postCreate();
+		assertEquals(10, parent.getWSizer().getMin(100, false));
+		assertEquals(20, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(30, parent.getWSizer().getPreferred(100, false));
+		assertEquals(40, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(Integer.MAX_VALUE, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(left, new Position(20, pixels))//
+			.set(right, new Position(30, pixels));
+		assertEquals(30, parent.getWSizer().getMin(100, false));
+		assertEquals(30, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(30, parent.getWSizer().getPreferred(100, false));
+		assertEquals(30, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(Integer.MAX_VALUE, parent.getWSizer().getMax(100, false));
+
+		child1.atts()//
+			.set(right, new Position(30, lexips));
+		assertEquals(60, parent.getWSizer().getMin(100, false));
+		assertEquals(70, parent.getWSizer().getMinPreferred(100, false));
+		assertEquals(80, parent.getWSizer().getPreferred(100, false));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
+		assertEquals(100, parent.getWSizer().getMax(100, false));
 	}
 }

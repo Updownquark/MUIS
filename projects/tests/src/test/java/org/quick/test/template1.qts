@@ -1,7 +1,7 @@
 <quick-template>
 	<body>
 		<block>
-			<template-element template-attach-point="attach1" />
+			<template-element template-attach-point="attach1" template-external="true" />
 		</block>
 	</body>
 </quick-template>

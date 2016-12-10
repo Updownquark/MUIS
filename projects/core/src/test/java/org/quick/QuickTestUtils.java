@@ -3,6 +3,7 @@ package org.quick;
 import java.io.IOException;
 import java.net.URL;
 
+import org.quick.core.QuickClassView;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickHeadSection;
@@ -39,5 +40,12 @@ public class QuickTestUtils {
 		QuickDocument doc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
 		env.getContentCreator().fillDocument(doc, docStruct.getContent());
 		return doc;
+	}
+
+	public static QuickDocument createDocument() {
+		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
+		QuickClassView cv = new QuickClassView(env, null, null);
+		QuickHeadSection head = QuickHeadSection.build().build();
+		return new QuickDocument(env, null, head, cv);
 	}
 }

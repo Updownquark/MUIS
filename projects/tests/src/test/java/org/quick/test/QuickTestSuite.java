@@ -4,6 +4,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.observe.ObservableTest;
 import org.quick.PropertyTest;
+import org.quick.base.layout.LayoutTests;
+import org.quick.core.model.QuickDocumentTest;
 import org.quick.core.style.StylesTest;
 import org.quick.core.util.CompoundListenerTest;
 
@@ -13,7 +15,9 @@ import org.quick.core.util.CompoundListenerTest;
 	ObservableTest.class, //
 	PropertyTest.class, //
 	StylesTest.class, //
-	CompoundListenerTest.class//
+	CompoundListenerTest.class, //
+	QuickDocumentTest.class, //
+	LayoutTests.class//
 })
 public class QuickTestSuite {
 }

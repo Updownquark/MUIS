@@ -10,6 +10,8 @@ import static org.quick.core.style.BackgroundStyle.color;
 import org.junit.Test;
 import org.observe.SimpleObservable;
 import org.observe.collect.ObservableList;
+import org.quick.QuickTestUtils;
+import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.layout.Region;
@@ -29,7 +31,9 @@ public class CompoundListenerTest {
 			})//
 			.build();
 
+		org.quick.core.QuickDocument doc = org.quick.QuickTestUtils.createDocument();
 		QuickElement testEl = new QuickElement() {};
+		testEl.init(doc, null, doc.cv(), testEl, null, null);
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
 
@@ -83,14 +87,17 @@ public class CompoundListenerTest {
 			})//
 			.build();
 
+		org.quick.core.QuickDocument doc = org.quick.QuickTestUtils.createDocument();
 		QuickElement testEl = new QuickElement() {
 			@Override
 			public ElementList<? extends QuickElement> getPhysicalChildren() {
 				return getChildManager();
 			}
 		};
+		testEl.init(doc, null, doc.cv(), testEl, null, null);
 		ObservableList<QuickElement> ch = (ObservableList<QuickElement>) testEl.ch();
 		QuickElement firstChild = new QuickElement() {};
+		firstChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(firstChild);
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
@@ -106,6 +113,7 @@ public class CompoundListenerTest {
 		assertEquals(1, events[0]);
 
 		QuickElement secondChild = new QuickElement() {};
+		secondChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(secondChild);
 		assertNotNull(secondChild.atts().getHolder(region));
 		assertEquals(1, events[0]);
@@ -184,14 +192,17 @@ public class CompoundListenerTest {
 			})//
 			.build();
 
+		QuickDocument doc = QuickTestUtils.createDocument();
 		QuickElement testEl = new QuickElement() {
 			@Override
 			public ElementList<? extends QuickElement> getPhysicalChildren() {
 				return getChildManager();
 			}
 		};
+		testEl.init(doc, null, doc.cv(), testEl, null, null);
 		ObservableList<QuickElement> ch = (ObservableList<QuickElement>) testEl.ch();
 		QuickElement firstChild = new QuickElement() {};
+		firstChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(firstChild);
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
@@ -228,6 +239,7 @@ public class CompoundListenerTest {
 		assertEquals(correctEvents, events[0]);
 
 		QuickElement secondChild = new QuickElement() {};
+		secondChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(secondChild);
 		assertNotNull(secondChild.atts().getHolder(region));
 		assertEquals(correctEvents, events[0]);

@@ -673,11 +673,12 @@ public abstract class QuickTemplate extends QuickElement {
 						throw new QuickException("Template attribute " + attName + " not recognized");
 				}
 
-				boolean external = getBoolean(child, EXTERNAL, false, name); // Not externally-specifiable by default
-				boolean implementation = getBoolean(child, IMPLEMENTATION, !external, name);
-				boolean multiple = getBoolean(child, MULTIPLE, false, name);
-				boolean required = getBoolean(child, REQUIRED, !implementation && !multiple, name);
 				boolean def = getBoolean(child, DEFAULT, false, name);
+				boolean multiple = getBoolean(child, MULTIPLE, false, name);
+				// Not externally-specifiable by default
+				boolean external = getBoolean(child, EXTERNAL, def || multiple || getBoolean(child, REQUIRED, false, name), name);
+				boolean implementation = getBoolean(child, IMPLEMENTATION, !external, name);
+				boolean required = getBoolean(child, REQUIRED, !implementation && !multiple, name);
 				boolean mutable = getBoolean(child, MUTABLE, true, name);
 				if (!external && (required || multiple || def || !implementation)) {
 					throw new QuickException(

@@ -26,4 +26,19 @@ public class QuickText extends QuickContent {
 	public boolean isCData() {
 		return isCData;
 	}
+
+	@Override
+	public String toString() {
+		return new StringBuilder()//
+			.append("<!TEXT")//
+			.append(attrString()).append('>')//
+			.append(org.jdom2.output.Format.escapeText(ch -> {
+				if (org.jdom2.Verifier.isHighSurrogate(ch)) {
+					return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
+				}
+				return false;
+			}, "\n", theContent))//
+			.append("</TEXT\u00a1>")//
+			.toString();
+	}
 }

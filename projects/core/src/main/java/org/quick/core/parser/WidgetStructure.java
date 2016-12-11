@@ -1,7 +1,6 @@
 package org.quick.core.parser;
 
 import java.util.List;
-import java.util.Map;
 
 import org.quick.core.QuickClassView;
 
@@ -13,11 +12,7 @@ public class WidgetStructure extends QuickContent implements org.qommons.Sealabl
 
 	private final QuickClassView theClassView;
 
-	private Map<String, String> theAttributes;
-
 	private List<QuickContent> theChildren;
-
-	private boolean isSealed;
 
 	/**
 	 * @param parent This structure's parent
@@ -30,7 +25,6 @@ public class WidgetStructure extends QuickContent implements org.qommons.Sealabl
 		theNamespace = ns;
 		theTagName = tag;
 		theClassView = classView;
-		theAttributes = new java.util.LinkedHashMap<>();
 		theChildren = new java.util.ArrayList<>();
 	}
 
@@ -49,42 +43,21 @@ public class WidgetStructure extends QuickContent implements org.qommons.Sealabl
 		return theClassView;
 	}
 
-	/** @return The attribute map for this widget */
-	public Map<String, String> getAttributes() {
-		return theAttributes;
-	}
-
 	/** @return This widget's children */
 	public List<QuickContent> getChildren() {
 		return theChildren;
 	}
 
-	/**
-	 * @param attName The name of the attribute to set in this widget
-	 * @param attValue The value to set for the attribute
-	 */
-	public void addAttribute(String attName, String attValue) {
-		if(isSealed)
-			throw new SealedException(this);
-		theAttributes.put(attName, attValue);
-	}
-
 	/** @param widget The content to add as a child of this widget */
 	public void addChild(QuickContent widget) {
-		if(isSealed)
+		if (isSealed())
 			throw new SealedException(this);
 		theChildren.add(widget);
 	}
 
 	@Override
-	public boolean isSealed() {
-		return isSealed;
-	}
-
-	@Override
 	public void seal() {
-		isSealed = true;
-		theAttributes = java.util.Collections.unmodifiableMap(theAttributes);
+		super.seal();
 		theChildren = java.util.Collections.unmodifiableList(theChildren);
 	}
 
@@ -95,8 +68,7 @@ public class WidgetStructure extends QuickContent implements org.qommons.Sealabl
 		if(theNamespace != null)
 			ret.append(theNamespace).append(':');
 		ret.append(theTagName);
-		for(Map.Entry<String, String> attr : theAttributes.entrySet())
-			ret.append(' ').append(attr.getKey()).append("=\"").append(attr.getValue()).append('"');
+		ret.append(attrString());
 		ret.append('>');
 		return ret.toString();
 	}

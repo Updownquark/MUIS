@@ -338,10 +338,10 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		else
 			ret.append("<!TEXT>");
 		ret.append(org.jdom2.output.Format.escapeText(ch -> {
-			if(org.jdom2.Verifier.isHighSurrogate(ch)) {
+			if (org.jdom2.Verifier.isHighSurrogate(ch)) {
 				return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
 			}
-		return false;
+			return false;
 		}, "\n", theDocument.get().toString()));
 		if(getTagName() != null)
 			ret.append('<').append('/').append(getTagName()).append('>');

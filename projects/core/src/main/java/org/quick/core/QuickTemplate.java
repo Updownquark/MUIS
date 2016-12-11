@@ -17,10 +17,7 @@ import org.quick.core.mgr.ElementList;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickBehavior;
 import org.quick.core.model.QuickModelConfig;
-import org.quick.core.parser.QuickContent;
-import org.quick.core.parser.QuickParseException;
-import org.quick.core.parser.SimpleParseEnv;
-import org.quick.core.parser.WidgetStructure;
+import org.quick.core.parser.*;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.prop.QuickAttribute;
@@ -1142,35 +1139,39 @@ public abstract class QuickTemplate extends QuickElement {
 				theAttachmentMappings.put(ap, mappings);
 			}
 		}
+		if (ap != null && !ap.implementation)
+			return null;
+
+		QuickContent copy;
 		if (child instanceof WidgetStructure) {
 			WidgetStructure cw = (WidgetStructure) child;
 			if (cw.getNamespace() == null && cw.getTagName().equals(TemplateStructure.GENERIC_ELEMENT))
 				return null;
-			if (ap != null) {
-				if (!ap.implementation)
-					return null;
-				WidgetStructure apStruct = (WidgetStructure) child;
-				WidgetStructure implStruct = new WidgetStructure(apStruct.getParent(), apStruct.getClassView(), apStruct.getNamespace(),
-					apStruct.getTagName());
-				for (Map.Entry<String, String> att : apStruct.getAttributes().entrySet()) {
-					if (!att.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
-						implStruct.addAttribute(att.getKey(), att.getValue());
-				}
-				for (QuickContent content : apStruct.getChildren())
-					implStruct.addChild(content);
-				implStruct.seal();
-				ret = creator.getChild(parent, theTemplateContext, implStruct, false);
-				ret.atts().accept(theRoleWanter, template.role);
-				try {
-					ret.atts().set(template.role, ap);
-					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateParseEnv);
-				} catch (QuickException e) {
-					throw new IllegalStateException("Should not have thrown exception here", e);
-				}
-			} else
-				ret = creator.getChild(parent, theTemplateContext, child, false);
-		} else
-			ret = creator.getChild(parent, theTemplateContext, child, false);
+			WidgetStructure implStruct = new WidgetStructure(cw.getParent(), cw.getClassView(), cw.getNamespace(), cw.getTagName());
+			for (QuickContent content : cw.getChildren())
+				implStruct.addChild(content);
+			copy = implStruct;
+		} else {
+			QuickText text = (QuickText) child;
+			copy = new QuickText(child.getParent(), text.getContent(), text.isCData());
+		}
+
+		for (Map.Entry<String, String> att : child.getAttributes().entrySet()) {
+			if (!att.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
+				copy.addAttribute(att.getKey(), att.getValue());
+		}
+		copy.seal();
+
+		ret = creator.getChild(parent, theTemplateContext, copy, false);
+		ret.atts().accept(theRoleWanter, template.role);
+		ret.atts().accept(theRoleWanter, template.role);
+		try {
+			ret.atts().set(template.role, ap);
+			// ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateParseEnv);
+		} catch (QuickException e) {
+			throw new IllegalStateException("Should not have thrown exception here", e);
+		}
+
 		if (ap != null)
 			mappings.add(ret);
 		else if (!theStaticContent.containsKey(child))

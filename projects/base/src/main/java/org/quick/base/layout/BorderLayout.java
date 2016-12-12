@@ -24,6 +24,7 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 	/** Creates a border layout */
 	public BorderLayout() {
 		theListener = CompoundListener.build()//
+			.watchAll(LayoutStyle.margin, LayoutStyle.padding).onEvent(CompoundListener.sizeNeedsChanged)//
 			.child(builder -> {
 				builder.accept(region).onEvent(CompoundListener.sizeNeedsChanged);
 				builder.when(el -> el.getAttribute(region) == Region.left, builder2 -> {

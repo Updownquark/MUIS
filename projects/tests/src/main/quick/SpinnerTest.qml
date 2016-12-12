@@ -10,21 +10,21 @@
 		</model>
 	</head>
 	<body xmlns:base="../../../../base/QuickRegistry.xml" layout="box" direction="down">
-		<!--<block layout="box" direction="right">
-			This spinner increments an integer by 1.-->
+		<block layout="box" direction="right">
 			<spinner value="model.simpleInt" increment="model.simpleInt++" decrement="model.simpleInt--" />
-		<!--</block>-->
-		<!--<block layout="box" direction="right">
-			This spinner increments the same integer by 10.
+			This spinner increments an integer by 1.
+		</block>
+		<block layout="box" direction="right">
 			<spinner value="model.simpleInt" increment="model.simpleInt+=10" decrement="model.simpleInt-=10" />
+			This spinner increments the same integer by 10.
 		</block>
 		<block layout="box" direction="right">
+			<spinner value="model.simpleFloat" increment="model.simpleFloat++" decrement="model.simpleFloat--" />
 			This spinner increments a floating-point value by 1.
-			<spinner value="model.simpleFloat" increment="model.simpleFloat++" decrement="model.simpleFloat- -" />
 		</block>
 		<block layout="box" direction="right">
-			This spinner increments the same floating-point value by 100.
 			<spinner value="model.simpleFloat" increment="model.simpleFloat+=100" decrement="model.simpleFloat-=100" />
-		</block>-->
+			This spinner increments the same floating-point value by 100.
+		</block>
 	</body>
 </quick>

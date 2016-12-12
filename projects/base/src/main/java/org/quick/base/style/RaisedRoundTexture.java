@@ -1,8 +1,6 @@
 package org.quick.base.style;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 
 import org.quick.core.QuickCache.CacheException;
@@ -165,8 +163,8 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 			float tempSource = source - 90 * i;
 			while(tempSource < 0)
 				tempSource += 360;
-			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, (int) (maxRad * 1.5f) + 1); // If we need to generate, step it
-																											// up
+			int keyRadius = maxRad * 3 + 3; // Scale up the key to make the buttons prettier
+			CornerRenderKey key = new CornerRenderKey(tempSource, maxShading, keyRadius);
 			org.quick.core.QuickEnvironment env = element.getDocument().getEnvironment();
 			CornerRender cr;
 			try {
@@ -204,6 +202,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 				renderY = h - hRad - 1;
 				break;
 			}
+			graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 			if(area == null
 				|| (area.x <= renderX + wRad && area.x + area.width >= renderX && area.y <= renderY + hRad && area.y + area.height >= renderY))
 			{

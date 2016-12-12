@@ -3,11 +3,11 @@
 <template>
 	<body layout="layer">
 		<border template-attach-point="border" template-external="false" template-mutable="false">
-			<block  layout="border-layout">
+			<block layout="border-layout">
 				<text-field template-attach-point="text" region="center"
 					value="attributes.value" format="${attributes.format}" length="attributes.length" rows="attributes.rows"
 					document="${attributes.document}" rich="attributes.rich" multi-line="attributes.multiLine" />
-				<block region="right" layout="simple">
+				<block region="right" layout="simple" template-attach-point="buttons">
 					<button template-attach-point="up" left="0" top="0" height="50%" action="attributes.increment">
 						<image src="up-arrow" width="16" resize="resize" prop-locked="true" />
 					</button>

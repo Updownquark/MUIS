@@ -69,10 +69,8 @@ public class Button extends SimpleContainer {
 						Point click = theClickLocation;
 						theClickLocation = null;
 						checkDepressed(cause);
-						if(click == null || !(cause instanceof MouseEvent)
-							|| cause.getType() != MouseEvent.MouseEventType.released) {
+						if (cause.getType() != MouseEvent.MouseEventType.released)
 							return;
-						}
 						if(state().is(BaseConstants.States.DEPRESSED))
 							return;
 						Point unclick = cause.getPosition(Button.this);

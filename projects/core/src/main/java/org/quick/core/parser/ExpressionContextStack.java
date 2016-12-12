@@ -208,7 +208,7 @@ public class ExpressionContextStack {
 	}
 
 	private AttachPoint<?> getRole(LinkedList<ExpressionContext> stack) {
-		for (ExpressionContext ctx : stack)
+		for (ExpressionContext ctx : descend(stack))
 			if (ctx.theTemplateRole != null)
 				return ctx.theTemplateRole;
 		return null;
@@ -246,5 +246,10 @@ public class ExpressionContextStack {
 	private StyleCondition asCondition(LinkedList<ExpressionContext> stack) {
 		return StyleCondition.build(getType(stack)).setState(getState(stack)).forGroups(getGroups(stack))
 			.forRole(getRole(stack), getParentCondition(stack)).build();
+	}
+
+	@Override
+	public String toString(){
+		return theStack.toString();
 	}
 }

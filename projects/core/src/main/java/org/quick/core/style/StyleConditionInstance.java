@@ -123,7 +123,7 @@ public interface StyleConditionInstance<T extends QuickElement> {
 						return ObservableValue.constant(getValueType(), null);
 					AttachPoint<?> attachPoint = (AttachPoint<?>) key;
 					return element.atts().observe(attachPoint.template.role)
-						.mapV(ap -> StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap)));
+						.mapV(ap -> ap.equals(key) ? StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap)) : null);
 				}
 
 				@Override

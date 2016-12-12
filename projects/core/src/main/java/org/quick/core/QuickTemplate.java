@@ -1146,29 +1146,24 @@ public abstract class QuickTemplate extends QuickElement {
 			WidgetStructure cw = (WidgetStructure) child;
 			if (cw.getNamespace() == null && cw.getTagName().equals(TemplateStructure.GENERIC_ELEMENT))
 				return null;
-			if (ap != null) {
-				if (!ap.implementation)
-					return null;
-				WidgetStructure apStruct = (WidgetStructure) child;
-				WidgetStructure implStruct = new WidgetStructure(apStruct.getParent(), apStruct.getClassView(), apStruct.getNamespace(),
-					apStruct.getTagName());
-				for (Map.Entry<String, String> att : apStruct.getAttributes().entrySet()) {
-					if (!att.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
-						implStruct.addAttribute(att.getKey(), att.getValue());
-				}
-				for (QuickContent content : apStruct.getChildren())
-					implStruct.addChild(content);
-				implStruct.seal();
-				ret = creator.getChild(parent, theTemplateContext, implStruct, false);
-				ret.atts().accept(theRoleWanter, template.role);
-				try {
-					ret.atts().set(template.role, ap);
-					ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateParseEnv);
-				} catch (QuickException e) {
-					throw new IllegalStateException("Should not have thrown exception here", e);
-				}
-			} else
-				ret = creator.getChild(parent, theTemplateContext, child, false);
+			if (ap != null && !ap.implementation)
+				return null;
+			WidgetStructure implStruct = new WidgetStructure(cw.getParent(), cw.getClassView(), cw.getNamespace(), cw.getTagName());
+			for (Map.Entry<String, String> att : cw.getAttributes().entrySet()) {
+				if (!att.getKey().startsWith(TemplateStructure.TEMPLATE_PREFIX))
+					implStruct.addAttribute(att.getKey(), att.getValue());
+			}
+			for (QuickContent content : cw.getChildren())
+				implStruct.addChild(content);
+			implStruct.seal();
+			ret = creator.getChild(parent, theTemplateContext, implStruct, false);
+			ret.atts().accept(theRoleWanter, template.role);
+			try {
+				ret.atts().set(template.role, ap);
+				ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateParseEnv);
+			} catch (QuickException e) {
+				throw new IllegalStateException("Should not have thrown exception here", e);
+			}
 		} else
 			ret = creator.getChild(parent, theTemplateContext, child, false);
 		if (ap != null)

@@ -70,6 +70,12 @@
 		<attr domain="text-edit-style" name="cursor-blink" value="1000" />
 	</type>
 	<type name="spinner">
+		<attach-point name="border">
+			<domain name="layout">
+				<attr name="margin" value="0" />
+				<attr name="padding" value="0" />
+			</domain>
+		</attach-point>
 		<attach-point name="buttons">
 			<domain name="layout">
 				<attr name="margin" value="0" />

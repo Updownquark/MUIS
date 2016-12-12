@@ -210,13 +210,14 @@ public class SimpleLayout implements QuickLayout {
 		for (QuickElement child : children) {
 			layout(parent, child, Orientation.horizontal, bounds);
 			layout(parent, child, Orientation.vertical, bounds);
+			child.bounds().setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 		}
 	}
 
-	private void layout(QuickElement parent, QuickElement child, Orientation orientation, Rectangle bounds) {
-		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.leading, null), new Position(0, LengthUnit.pixels));
-		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.trailing, null));
-		int parentLength = parent.bounds().get(orientation).getSize();
+	private void layout(QuickElement parent, QuickElement child, Orientation orient, Rectangle bounds) {
+		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null), new Position(0, LengthUnit.pixels));
+		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+		int parentLength = parent.bounds().get(orient).getSize();
 		int pos = lead.evaluate(parentLength);
 		int length;
 		if (trail != null) {
@@ -226,8 +227,8 @@ public class SimpleLayout implements QuickLayout {
 			else
 				length = pos2 - pos;
 		} else {
-			Size[] sizes = LayoutUtils.getLayoutSize(child, orientation, LayoutGuideType.pref,
-				parent.bounds().get(orientation.opposite()).getSize(), false);
+			Size[] sizes = LayoutUtils.getLayoutSize(child, orient, LayoutGuideType.pref,
+				parent.bounds().get(orient.opposite()).getSize(), false);
 			if (sizes.length == 1)
 				length = sizes[0].evaluate(parentLength);
 			else {
@@ -244,7 +245,7 @@ public class SimpleLayout implements QuickLayout {
 				}
 			}
 		}
-		switch (orientation) {
+		switch (orient) {
 		case horizontal:
 			bounds.x = pos;
 			bounds.width = length;

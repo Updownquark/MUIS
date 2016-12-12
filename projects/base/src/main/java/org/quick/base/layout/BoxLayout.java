@@ -196,7 +196,7 @@ public class BoxLayout implements QuickLayout {
 				LayoutSize [] ret = new LayoutSize[children.length];
 				for(int i = 0; i < ret.length; i++) {
 					ret[i] = new LayoutSize();
-					LayoutUtils.getSize(children[i], dir.getOrientation(), type, parallelSize, crossSizeWOMargin, true, ret[i]);
+					LayoutUtils.getSize(children[i], dir.getOrientation(), type, parallelSize, crossSizeWOMargin, false, ret[i]);
 				}
 				return ret;
 			}

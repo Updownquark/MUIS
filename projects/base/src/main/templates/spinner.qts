@@ -9,10 +9,10 @@
 					document="${attributes.document}" rich="attributes.rich" multi-line="attributes.multiLine" />
 				<block region="right" layout="simple">
 					<button template-attach-point="up" left="0" top="0" height="50%" action="attributes.increment">
-						<image src="up-arrow" width="16" prop-locked="true" />
+						<image src="up-arrow" width="16" resize="resize" prop-locked="true" />
 					</button>
 					<button template-attach-point="down" left="0" top="50%" height="50%" action="attributes.decrement">
-						<image src="down-arrow" width="16" prop-locked="true" />
+						<image src="down-arrow" width="16" resize="resize" prop-locked="true" />
 					</button>
 				</block>
 			</block>

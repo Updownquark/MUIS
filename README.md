@@ -1,4 +1,4 @@
-MUIS
+Quick
 ====
 
-The Modern User Interface Script project
+The Quality User Interface Creation Kit

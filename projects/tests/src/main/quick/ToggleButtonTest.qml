@@ -19,13 +19,11 @@
         </model>
     </head>
     <body layout="simple">
-    	<block layout="simple" width="100%" top="0" height="100%">
-    		Choose a background color:
-    		<toggle-button left="10" top="20px" height="30px" selected="model.red">Red</toggle-button>
-    		<toggle-button left="10" top="50px" height="30px" selected="model.blue">Blue</toggle-button>
-    		<toggle-button left="10" top="80px" height="30px" selected="model.green">Green</toggle-button>
-    		<toggle-button left="10" top="110px" height="30px" selected="model.purple">Purple</toggle-button>
-    		<label group="#{${model.colorGroup}}" value="model.colorGroup" style="font.size=18;font.weight=bold" right="10xp" top="60" />
-    	</block>
+   		Choose a background color:
+   		<toggle-button left="10" top="20px" height="30px" selected="model.red">Red</toggle-button>
+   		<toggle-button left="10" top="50px" height="30px" selected="model.blue">Blue</toggle-button>
+   		<toggle-button left="10" top="80px" height="30px" selected="model.green">Green</toggle-button>
+   		<toggle-button left="10" top="110px" height="30px" selected="model.purple">Purple</toggle-button>
+   		<label group="#{${model.colorGroup}}" value="model.colorGroup" style="font.size=18;font.weight=bold" right="10xp" top="60" />
     </body>
 </quick>

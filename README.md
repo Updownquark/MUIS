@@ -1,9 +1,11 @@
 Quick
 ====
 
+Quality User Interface Creation Kit
+
 My user inteface architecture
 
-(Copied from the old repository description at https://code.google.com/p/webapplicationmarkup/, so may not be up-to-date and may call itself WAM occasionally)
+(Copied from the old repository description at https://code.google.com/p/webapplicationmarkup/, so may not be up-to-date and may call itself WAM or MUIS occasionally)
 
 The goal of the Quick project is to replace HTML as the most practical means of creating and distributing full-featured web applications. It aims to be a DOM-based, java-based language that allows developers to easily write applications viewable in a browser without the headache of the inherent language deficiencies of HTML/CSS/javascript and without browser dependencies.
 

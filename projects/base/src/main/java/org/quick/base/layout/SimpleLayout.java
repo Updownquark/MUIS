@@ -215,12 +215,13 @@ public class SimpleLayout implements QuickLayout {
 	}
 
 	private void layout(QuickElement parent, QuickElement child, Orientation orient, Rectangle bounds) {
-		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null), new Position(0, LengthUnit.pixels));
+		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
 		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
 		int parentLength = parent.bounds().get(orient).getSize();
-		int pos = lead.evaluate(parentLength);
+		int pos;
 		int length;
-		if (trail != null) {
+		if (lead != null && trail != null) {
+			pos = lead.evaluate(parentLength);
 			int pos2 = trail.evaluate(parentLength);
 			if (pos2 < pos)
 				length = 0;
@@ -244,6 +245,12 @@ public class SimpleLayout implements QuickLayout {
 						length = minLength;
 				}
 			}
+			if (lead != null)
+				pos = lead.evaluate(parentLength);
+			else if (trail != null)
+				pos = trail.evaluate(parentLength) - length;
+			else
+				pos = 0;
 		}
 		switch (orient) {
 		case horizontal:

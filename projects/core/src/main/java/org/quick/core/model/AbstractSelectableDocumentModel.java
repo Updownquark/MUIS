@@ -76,6 +76,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		});
 	}
 
+	/** @return The lock that this document uses to manage read/writes */
+	protected ReentrantReadWriteLock getLock() {
+		return theLock;
+	}
+
 	@Override
 	public Observable<QuickDocumentChangeEvent> changes() {
 		return Observable.or(theContentChanges, theStyleChanges, theSelectionChanges);

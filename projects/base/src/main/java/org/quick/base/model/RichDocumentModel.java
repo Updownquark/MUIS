@@ -5,9 +5,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.observe.ObservableValue;
+import org.observe.assoc.ObservableMap;
+import org.observe.assoc.impl.ObservableMapImpl;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.impl.ObservableHashSet;
+import org.observe.util.DefaultTransactable;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickMessageCenter;
@@ -23,11 +26,13 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	private class RichStyleSequence implements StyledSequence, QuickStyle {
 		private final StringBuilder theContent;
 
-		private final java.util.HashMap<StyleAttribute<?>, StyleValue<?>> theStyles;
+		private final ObservableMap<StyleAttribute<?>, StyleValue<?>> theStyles;
 
 		RichStyleSequence() {
 			theContent = new StringBuilder();
-			theStyles = new java.util.HashMap<>();
+			DefaultTransactable transactable = new DefaultTransactable(getLock());
+			theStyles = new ObservableMapImpl<>(new TypeToken<StyleAttribute<?>>() {}, new TypeToken<StyleValue<?>>() {},
+				ObservableHashSet::new, getLock(), transactable.getSession(), transactable);
 		}
 
 		@Override
@@ -63,33 +68,54 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> attributes() {
-			try (Transaction t = holdForRead()) {
-				return ObservableSet.constant(new TypeToken<StyleAttribute<?>>() {},
-					java.util.Arrays.asList((StyleAttribute<?>[]) theStyles.keySet().toArray(new StyleAttribute[theStyles.size()])));
-			}
+			return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), getNormalStyle().attributes()),
+				Object::equals);
 		}
 
 
 		@Override
 		public boolean isSet(StyleAttribute<?> attr) {
-			try (Transaction t = holdForRead()) {
-				return theStyles.containsKey(attr);
-			}
+			return theStyles.containsKey(attr) || getNormalStyle().isSet(attr);
 		}
 
 		@Override
 		public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-			try (Transaction t = holdForRead()) {
-				if(theStyles.containsKey(attr))
-					return (ObservableValue<T>) theStyles.get(attr);
-				else
-					return ObservableValue.constant(attr.getType().getType(), withDefault ? attr.getDefault() : null);
-			}
+			ObservableValue<T> localValue = (ObservableValue<T>) theStyles.observe(attr);
+			return ObservableValue.firstValue(localValue.getType(), v -> v != null, localValue, getNormalStyle().get(attr, withDefault));
 		}
 
 		@Override
 		public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
-			return this; // Not state-dependent
+			class RichStyleWithExtraStates implements QuickStyle {
+				private final QuickStyle theBacking;
+
+				RichStyleWithExtraStates(QuickStyle backing) {
+					theBacking = backing;
+				}
+
+				@Override
+				public boolean isSet(StyleAttribute<?> attr) {
+					return theStyles.containsKey(attr) || theBacking.isSet(attr);
+				}
+
+				@Override
+				public ObservableSet<StyleAttribute<?>> attributes() {
+					return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), theBacking.attributes()),
+						Object::equals);
+				}
+
+				@Override
+				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+					ObservableValue<T> localValue = (ObservableValue<T>) theStyles.observe(attr);
+					return ObservableValue.firstValue(localValue.getType(), v -> v != null, localValue, theBacking.get(attr, withDefault));
+				}
+
+				@Override
+				public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+					return new RichStyleWithExtraStates(theBacking.forExtraStates(extraStates));
+				}
+			}
+			return new RichStyleWithExtraStates(getNormalStyle().forExtraStates(extraStates));
 		}
 	}
 

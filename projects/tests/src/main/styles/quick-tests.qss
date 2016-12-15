@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<style xmlns:base="../../../../base/QuickRegistry.xml">
+	<group name="opaque">
+		<attr domain="bg" name="transparency" value="0" />
+	</group>
+	<type name="base:text-field">
+		<group name="tfredborder">
+			<attach-point name="border">
+				<attr domain="border-style" name="color" value="red" />
+			</attach-point>
+		</group>
+	</type>
+	<group name="bg-red">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="red" />
+	</group>
+	<group name="bg-blue">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="blue" />
+	</group>
+	<group name="bg-green">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="green" />
+	</group>
+	<group name="bg-purple">
+		<attr domain="bg" name="transparency" value="0" />
+		<attr domain="bg" name="color" value="purple" />
+	</group>
+</style>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<style>
+	<type name="block">
+	</type>
+	<type name="button">
+		<domain name="bg">
+			<attr name="transparency" value="0" />
+			<attr name="color" value="blue" />
+			<attr name="texture" value="raised-round" />
+			<attr name="corner-radius" value="10%" />
+			<attr name="cursor" value="hand" />
+		</domain>
+		<domain name="light">
+			<attr name="color" value="white" />
+			<attr name="shadow" value="black" />
+		</domain>
+		<state name="hover">
+			<attr domain="bg" name="color" value="rgb(192, 64, 192)" />
+		</state>
+		<state name="depressed">
+			<attr domain="bg" name="color" value="rgb(128, 32, 128)" />
+			<domain name="light">
+				<attr name="color" value="black" />
+				<attr name="shadow" value="white" />
+			</domain>
+		</state>
+		<state name="!enabled">
+			<attr domain="bg" name="color" value="light-gray" />
+		</state>
+	</type>
+	<type name="toggle-button">
+		<state name="selected">
+			<attr domain="bg" name="color" value="cyan" />
+			<state name="hover">
+			</state>
+			<state name="depressed">
+			</state>
+		</state>
+	</type>
+	<type name="label">
+		<attr domain="layout" name="margin" value="0" />
+		<attr domain="layout" name="padding" value="0" />
+	</type>
+	<type name="border">
+		<attr domain="bg" name="texture" value="border-texture" />
+		<attr domain="bg" name="corner-radius" value="5" />
+	</type>
+	<type name="text-field">
+		<attr domain="bg" name="cursor" value="text" />
+		<attach-point name="border">
+			<domain name="bg">
+				<attr name="corner-radius" value="0" />
+				<attr name="color" value="white" />
+				<attr name="transparency" value="0" />
+			</domain>
+			<attr domain="border-style" name="inset" value="0" />
+		</attach-point>
+		<attach-point name="value">
+			<attr domain="font" name="word-wrap" value="false" />
+		</attach-point>
+		<state name="error">
+			<attach-point name="value">
+				<attr domain="font" name="color" value="red" />
+			</attach-point>
+			<attach-point name="border">
+				<attr domain="bg" name="color" value="rgb(255, 192, 192)" />
+			</attach-point>
+		</state>
+		<attr domain="text-edit-style" name="cursor-blink" value="1000" />
+	</type>
+	<type name="spinner">
+		<attach-point name="border">
+			<domain name="layout">
+				<attr name="margin" value="0" />
+				<attr name="padding" value="0" />
+			</domain>
+		</attach-point>
+		<attach-point name="buttons">
+			<domain name="layout">
+				<attr name="margin" value="0" />
+				<attr name="padding" value="0" />
+			</domain>
+		</attach-point>
+		<attach-point name="up">
+			<attach-point name="contents">
+				<domain name="layout">
+					<attr name="margin" value="0" />
+					<attr name="padding" value="0" />
+				</domain>
+			</attach-point>
+		</attach-point>
+		<attach-point name="down">
+			<attach-point name="contents">
+				<domain name="layout">
+					<attr name="margin" value="0" />
+					<attr name="padding" value="0" />
+				</domain>
+			</attach-point>
+		</attach-point>
+	</type>
+</style>

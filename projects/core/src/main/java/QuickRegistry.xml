@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>Quick Core</name>
+	<description>
+		This required toolkit provides core functionality to run other Quick toolkits
+	</description>
+	<version>0.0.1</version>
+	<dependencies />
+	<style-sheet ref="../src/main/styles/core-styles.qss" />
+	<types>
+	    <!-- Element types -->
+		<type tag="body">org.quick.core.BodyElement</type>
+		<!-- The text type is mapped so as to be accessible for styles. The tag should not be used in Quick files. -->
+		<type tag="text">org.quick.core.QuickTextElement</type>
+		<!-- Layouts -->
+		<type tag="layer">org.quick.core.LayerLayout</type>
+		<!-- Style related types -->
+		<type tag="bg">org.quick.core.style.BackgroundStyle</type>
+		<type tag="font">org.quick.core.style.FontStyle</type>
+		<type tag="light">org.quick.core.style.LightedStyle</type>
+		<type tag="layout">org.quick.core.style.LayoutStyle</type>
+		<type tag="no-texture">org.quick.core.style.BaseTexture</type>
+		<type tag="doc-texture">org.quick.core.style.DocumentTexture</type>
+		<!-- Model types -->
+		<type tag="default-model">org.quick.core.model.DefaultQuickModel$Builder</type>
+		<!-- Utilities -->
+		<type tag="colors">org.quick.core.style.Colors</type>
+	</types>
+	<security />
+</registry>

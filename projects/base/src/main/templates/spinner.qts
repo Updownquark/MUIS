@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<template>
+	<body layout="layer">
+		<block layout="border-layout" template-attach-point="border">
+			<text-field template-attach-point="text" region="center"
+				value="attributes.value" format="${attributes.format}" length="attributes.length" rows="attributes.rows"
+				document="${attributes.document}" rich="attributes.rich" multi-line="attributes.multiLine" />
+			<block region="right" layout="simple" template-attach-point="buttons">
+				<button template-attach-point="up" left="0" top="0" height="50%" action="attributes.increment">
+					<image src="up-arrow" width="16" resize="resize" prop-locked="true" />
+				</button>
+				<button template-attach-point="down" left="0" top="50%" height="50%" action="attributes.decrement">
+					<image src="down-arrow" width="16" resize="resize" prop-locked="true" />
+				</button>
+			</block>
+		</block>
+	</body>
+</template>

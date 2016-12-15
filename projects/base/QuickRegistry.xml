@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<registry>
+	<name>Quick Base</name>
+	<description>
+		This toolkit provides basic Quick functionality
+	</description>
+	<version>0.0.1</version>
+	<dependencies>
+		<classpath>classes</classpath>
+	</dependencies>
+	<style-sheet ref="src/main/styles/base-styles.qss" />
+	<types>
+		<!-- Widgets -->
+        <type tag="block">org.quick.base.widget.Block</type>
+        <type tag="image">org.quick.base.widget.Image</type>
+        <type tag="button">org.quick.base.widget.Button</type>
+        <type tag="toggle-button">org.quick.base.widget.ToggleButton</type>
+        <type tag="label">org.quick.base.widget.Label</type>
+        <type tag="border">org.quick.base.widget.BorderPane</type>
+        <type tag="text-cursor-overlay">org.quick.base.widget.DocumentCursorOverlay</type>
+        <type tag="text-field">org.quick.base.widget.TextField</type>
+        <type tag="spinner">org.quick.base.widget.Spinner</type>
+        <type tag="tree">org.quick.base.widget.Tree</type>
+        <type tag="value-renderer">org.quick.base.widget.ValueRenderer</type>
+        
+		<!-- Layouts -->
+        <type tag="simple">org.quick.base.layout.SimpleLayout</type>
+        <type tag="flow">org.quick.base.layout.FlowLayout</type>
+        <type tag="box">org.quick.base.layout.BoxLayout</type>
+        <type tag="border-layout">org.quick.base.layout.BorderLayout</type>
+        <type tag="text-edit-layout">org.quick.base.layout.TextEditLayout</type>
+        
+		<!-- Textures -->
+        <type tag="raised-round">org.quick.base.style.RaisedRoundTexture</type>
+        <type tag="raised-square">org.quick.base.style.RaisedSquareTexture</type>
+        <type tag="border-texture">org.quick.base.style.BorderTexture</type>
+        <type tag="grooved">org.quick.base.style.GrooveTexture</type>
+        
+		<!-- Style Domains -->
+        <type tag="btn">org.quick.base.style.ButtonStyle</type>
+        <type tag="border-style">org.quick.base.style.BorderStyle</type>
+        <type tag="text-edit-style">org.quick.base.style.TextEditStyle</type>
+
+        <!-- Utilities -->
+        <type tag="formats">org.quick.base.model.Formats</type>
+	</types>
+	<resources>
+		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>
+		<resource tag="img-load-failed-icon">src/main/resources/imageLoadFailed.png</resource>
+		<resource tag="tree-expand-icon">src/main/resources/treeExpandIcon.png</resource>
+		<resource tag="tree-collapse-icon">src/main/resources/treeCollapseIcon.png</resource>
+		<resource tag="up-arrow">src/main/resources/upArrow.png</resource>
+		<resource tag="down-arrow">src/main/resources/downArrow.png</resource>
+	</resources>
+	<security />
+</registry>

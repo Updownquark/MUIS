@@ -2,7 +2,7 @@ package org.quick.test;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-import org.observe.ObservableTest;
+import org.observe.ObserveTests;
 import org.quick.PropertyTest;
 import org.quick.base.layout.LayoutTests;
 import org.quick.core.model.QuickDocumentTest;
@@ -12,7 +12,7 @@ import org.quick.core.util.CompoundListenerTest;
 /** Runs all Quick unit tests */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({ //
-	ObservableTest.class, //
+	ObserveTests.class, //
 	PropertyTest.class, //
 	StylesTest.class, //
 	CompoundListenerTest.class, //

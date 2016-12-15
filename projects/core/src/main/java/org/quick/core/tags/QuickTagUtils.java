@@ -16,17 +16,37 @@ import org.quick.core.prop.QuickAttribute;
 
 import com.google.common.reflect.TypeToken;
 
+/** A utility to help interpret the meanings of Quick annotations */
 public class QuickTagUtils {
+	/**
+	 * Describes the acceptance of an attribute
+	 * 
+	 * @param <T> The type of the attribute
+	 */
 	public static class AcceptedAttributeStruct<T> {
+		/** The annotation describing the attribute acceptance */
 		public final AcceptAttribute annotation;
+		/** The attribute */
 		public final QuickAttribute<T> attribute;
 
+		/**
+		 * @param annotation The annotation describing the attribute acceptance
+		 * @param attribute The attribute
+		 */
 		public AcceptedAttributeStruct(AcceptAttribute annotation, QuickAttribute<T> attribute) {
 			this.annotation = annotation;
 			this.attribute = attribute;
 		}
 	}
 
+	/**
+	 * @param <T> The target annotation type
+	 * @param <A> The root annotation type
+	 * @param targetType The type to search for annotations on
+	 * @param annotationType The target annotation type
+	 * @param subAnnotations A function getting all sub-annotations in the super annotation
+	 * @return All sub-annotations found in all super-annotations found on the type
+	 */
 	public static <T, A extends Annotation> List<T> getTags(Class<?> targetType, Class<A> annotationType, Function<A, T[]> subAnnotations) {
 		List<T> tags = new ArrayList<>();
 		while (targetType != null) {
@@ -40,7 +60,7 @@ public class QuickTagUtils {
 
 	/**
 	 * @param type The type of element
-	 * @return All states supported by the given element type (as annotated by {@link StateSupport})
+	 * @return All states supported by the given element type
 	 */
 	public static List<QuickState> getStatesFor(Class<? extends QuickElement> type) {
 		List<QuickState> states = new ArrayList<>();
@@ -53,6 +73,10 @@ public class QuickTagUtils {
 		return states;
 	}
 
+	/**
+	 * @param elementType The element type
+	 * @return All attributes declared by the element
+	 */
 	public static List<AcceptedAttributeStruct<?>> getAcceptedAttributes(Class<? extends QuickElement> elementType) {
 		List<AcceptedAttributeStruct<?>> attributes = new ArrayList<>();
 		for (AcceptAttribute attAnn : getTags(elementType, QuickElementType.class, elType -> elType.attributes())) {
@@ -61,6 +85,10 @@ public class QuickTagUtils {
 		return attributes;
 	}
 
+	/**
+	 * @param attAnn The attribute-acceptance annotation
+	 * @return The attribute referred to by the annotation
+	 */
 	public static QuickAttribute<?> getAttribute(AcceptAttribute attAnn) {
 		Class<?> declaring = attAnn.declaringClass();
 		if (attAnn.field().length() > 0) {

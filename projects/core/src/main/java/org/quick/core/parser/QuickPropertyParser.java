@@ -23,5 +23,11 @@ public interface QuickPropertyParser {
 	<T> ObservableValue<? extends T> parseProperty(QuickProperty<T> property, QuickParseEnv parseEnv, String value)
 		throws QuickParseException;
 
+	/**
+	 * @param parseEnv The environment in which to parse and resolve the type
+	 * @param value The value to parse
+	 * @return The parsed type
+	 * @throws QuickParseException If the type could not be parsed or resolved
+	 */
 	TypeToken<?> parseType(QuickParseEnv parseEnv, String value) throws QuickParseException;
 }

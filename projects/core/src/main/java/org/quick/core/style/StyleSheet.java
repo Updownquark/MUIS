@@ -46,6 +46,12 @@ public interface StyleSheet {
 		return false;
 	}
 
+	/**
+	 * @param <T> The type of the attribute
+	 * @param condition The condition instance to get the best match
+	 * @param attr The attribute to get the best condition value for
+	 * @return The condition value whose condition most closely matches the given condition instance
+	 */
 	default <T> ObservableValue<StyleConditionValue<T>> getBestMatch(StyleConditionInstance<?> condition, StyleAttribute<T> attr) {
 		return getStyleExpressions(condition, attr).getFirst();
 	}
@@ -89,6 +95,12 @@ public interface StyleSheet {
 		return isSet(StyleConditionInstance.of(element, extraStates), attr);
 	}
 
+	/**
+	 * @param <T> The type of the attribute
+	 * @param element The element to get the best match
+	 * @param attr The attribute to get the best condition value for
+	 * @return The condition value whose condition most closely matches the given element's state
+	 */
 	default <T> ObservableValue<StyleConditionValue<T>> getBestMatch(QuickElement element, StyleAttribute<T> attr) {
 		return getBestMatch(StyleConditionInstance.of(element), attr);
 	}

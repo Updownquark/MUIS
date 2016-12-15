@@ -75,15 +75,7 @@ public enum LayoutGuideType {
 		throw new IllegalStateException("Unrecognized layout guide type: " + this);
 	}
 
-	public static LayoutGuideType valueOf(int lean, boolean isPref) {
-		if(lean==0)
-			return pref;
-		else if(lean<0)
-			return isPref ? minPref : min;
-		else
-			return isPref ? maxPref : max;
-	}
-
+	/** @return The opposite of this layout type */
 	public LayoutGuideType opposite() {
 		switch (this) {
 		case min:

@@ -14,7 +14,6 @@ import org.quick.core.QuickConstants;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
 import org.quick.core.event.QuickEvent;
-import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.ModelAttributes;
@@ -149,13 +148,13 @@ public class Button extends SimpleContainer {
 	@Override
 	public SizeGuide getWSizer() {
 		final Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
-		return new RadiusAddSizePolicy(getContentPane().getWSizer(), Orientation.horizontal, radius);
+		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius);
 	}
 
 	@Override
 	public SizeGuide getHSizer() {
 		final Size radius = getStyle().get(BackgroundStyle.cornerRadius).get();
-		return new RadiusAddSizePolicy(getContentPane().getHSizer(), Orientation.vertical, radius);
+		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius);
 	}
 
 	private void checkDepressed(QuickEvent cause) {
@@ -173,13 +172,11 @@ public class Button extends SimpleContainer {
 
 	private static class RadiusAddSizePolicy extends org.quick.core.layout.AbstractSizeGuide {
 		private final SizeGuide theWrapped;
-		private final Orientation theOrient;
 
 		private Size theRadius;
 
-		RadiusAddSizePolicy(SizeGuide wrap, Orientation orient, Size rad) {
+		RadiusAddSizePolicy(SizeGuide wrap, Size rad) {
 			theWrapped = wrap;
-			theOrient = orient;
 			theRadius = rad;
 		}
 

@@ -166,13 +166,14 @@ public class LayoutSize {
 		return thePercent;
 	}
 
+	/** @return Whether this layout size is empty */
 	public boolean isZero() {
 		return thePixels == 0 && thePercent == 0;
 	}
 
+	/** @return The negative of this layout size */
 	public LayoutSize negate(){
 		return new LayoutSize().setPixels(-thePixels).setPercent(-thePercent);
-
 	}
 
 	/**

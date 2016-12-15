@@ -308,6 +308,7 @@ public class SimpleLayout implements QuickLayout {
 				}
 			}
 
+			@SuppressWarnings("unused")
 			public LayoutSize getPosition() {
 				return thePosition;
 			}
@@ -379,7 +380,9 @@ public class SimpleLayout implements QuickLayout {
 		}
 
 		static class Space {
+			@SuppressWarnings("hiding")
 			public final Edge left;
+			@SuppressWarnings("hiding")
 			public final Edge right;
 			public final Size size;
 
@@ -412,6 +415,7 @@ public class SimpleLayout implements QuickLayout {
 			return new Edge(true, true);
 		}
 
+		@SuppressWarnings("hiding")
 		public Space createSpace(Edge left, Edge right, Size size) {
 			return new Space(left, right, size);
 		}

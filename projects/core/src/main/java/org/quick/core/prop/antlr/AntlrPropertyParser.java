@@ -22,7 +22,9 @@ import org.quick.core.prop.antlr.QPPParser.*;
 
 import com.google.common.reflect.TypeToken;
 
+/** Uses ANTLR to parse Quick properties */
 public class AntlrPropertyParser extends AbstractPropertyParser {
+	/** @param env The Quick environment to parse in */
 	public AntlrPropertyParser(QuickEnvironment env) {
 		super(env);
 	}
@@ -82,43 +84,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 	private void searchForErrors(QPPExpression expr) throws QuickParseException {
 		// TODO
-	}
-
-	public static void main(String[] args) {
-		AntlrPropertyParser parser = new AntlrPropertyParser(null);
-
-		try {
-			parser.compile("0");
-			System.err.println();
-			// Literals
-			System.out.println(parser.compile("0").print());
-			System.out.println(parser.compile("1").print());
-			System.out.println(parser.compile("0xff1l").print());
-			System.out.println(parser.compile("0.5").print());
-			System.out.println(parser.compile("0x1.ffp-1f").print());
-			System.out.println(parser.compile("true").print());
-			System.out.println(parser.compile("0x1.ffp-1f").print());
-			System.out.println(parser.compile("\"\"").print());
-			System.out.println(parser.compile("\"A string\\u00b0\\t8 4\"").print());
-			System.out.println(parser.compile("'\"'").print());
-			System.out.println(parser.compile("'\\u00b0'").print());
-
-			System.out.println(parser.compile("method(0)").print());
-			System.out.println(parser.compile("method(0, 1)").print());
-			System.out.println(parser.compile("ctx.method(0, 1)").print());
-			System.out.println(parser.compile("type.super.method(0, 1)").print());
-			System.out.println(parser.compile("type.<X, T>method(0, 1)").print());
-
-			System.out.println(parser.compile("c++").print());
-			System.out.println(parser.compile("c=10").print());
-			System.out.println(parser.compile("c+=10").print());
-			System.out.println(parser.compile("a.b.c+=10").print());
-
-			System.out.println(parser.compile("10px"));
-			System.out.println(parser.compile("10%"));
-		} catch (QuickParseException e) {
-			e.printStackTrace();
-		}
 	}
 
 	private static class QPPCompiler extends QPPBaseListener {

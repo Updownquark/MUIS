@@ -47,6 +47,7 @@ public class QuickContentCreator {
 	 *
 	 * @param doc The document that the element is for
 	 * @param parent The parent for the new element
+	 * @param parentCtx May be null. Allows additional context data to be inserted into the element.
 	 * @param structure The widget structure for the element
 	 * @param withChildren Whether to also populate the element's descendants
 	 * @return The new element
@@ -136,6 +137,7 @@ public class QuickContentCreator {
 	 * Creates an element from content
 	 *
 	 * @param parent The parent of the child to create
+	 * @param parentCtx May be null. Allows additional context data to be inserted into the element.
 	 * @param child The structure of the child
 	 * @param withChildren Whether to populate the child's descendants, if any
 	 * @return The new element

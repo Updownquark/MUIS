@@ -119,6 +119,8 @@ public class MathUtils {
 	}
 
 	/**
+	 * @param <T> The type of the first observable
+	 * @param <U> The type of the second observable
 	 * @param v1 The first value
 	 * @param v2 The second value
 	 * @param not Whether the equality operation is a !=

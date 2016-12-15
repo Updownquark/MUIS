@@ -61,6 +61,12 @@ public class LayoutUtils {
 		int getSize(T layoutValue);
 	}
 
+	/**
+	 * Checks a child in a traditional layout for compatibility of attributes, logging errors if any
+	 *
+	 * @param child The child to check
+	 * @return Whether the child passed the check
+	 */
 	public static boolean checkLayoutChild(QuickElement child) {
 		for (Orientation orient : Orientation.values()) {
 			SizeAttribute sizeAttr = LayoutAttributes.getSizeAtt(orient, null);
@@ -137,8 +143,18 @@ public class LayoutUtils {
 		return size;
 	}
 
+	/**
+	 * @param element The element to get the size for
+	 * @param orientation The orientation along which to get the size
+	 * @param type The type of the size
+	 * @param crossSize The cross size
+	 * @param csMax Whether the cross size is a maximum or an absolute value
+	 * @return Either a 1- or a 3-length array of sizes. If 1-length, it is the size for the element. If 3-length, it is the min, pref, and
+	 *         max sizes for the element, where min and max are determined by attributes set on the element. The 3-length array is only
+	 *         returned when the units for the min and max attributes are incompatible with the unit for the preferred value, which may be
+	 *         determined by an attribute or the child's own layout manager.
+	 */
 	public static Size[] getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
-		LayoutAttributes.SizeAttribute att;
 		Size ret = element.atts().get(LayoutAttributes.getSizeAtt(orientation, null));
 		if (ret != null)
 			return new Size[] { ret };
@@ -372,6 +388,13 @@ public class LayoutUtils {
 		return res;
 	}
 
+	/**
+	 * Adds a corner radius to a size
+	 * 
+	 * @param size The size
+	 * @param radius The corner radius
+	 * @return The new size
+	 */
 	public static int addRadius(int size, Size radius) {
 		switch (radius.getUnit()) {
 		case pixels:
@@ -388,6 +411,13 @@ public class LayoutUtils {
 		return size;
 	}
 
+	/**
+	 * Subtracts a corner radius from a size
+	 * 
+	 * @param size The size
+	 * @param radius The corner radius
+	 * @return The new size
+	 */
 	public static int removeRadius(int size, Size radius) {
 		return Math.max(0, size - radius.evaluate(size) * 2);
 	}

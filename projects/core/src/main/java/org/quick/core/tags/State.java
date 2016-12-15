@@ -1,6 +1,6 @@
 package org.quick.core.tags;
 
-/** Tags a QuickElement as supporting a particular state (as an element in {@link StateSupport}) */
+/** Tags a QuickElement as supporting a particular state */
 public @interface State {
 	/** @return The name of the state */
 	String name();

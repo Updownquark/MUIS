@@ -21,7 +21,8 @@ import org.quick.util.QuickUtils;
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
-public class AntlrPropertyEvaluator {
+/** Evaluates structures parsed by {@link AntlrPropertyParser} into observable values, actions, etc. */
+class AntlrPropertyEvaluator {
 	private static final Set<String> ASSIGN_BIOPS = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(//
 		"=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "++", "--")));
 
@@ -35,10 +36,30 @@ public class AntlrPropertyEvaluator {
 		return (ObservableValue<? extends T>) result;
 	}
 
+	/**
+	 * Evaluates a type
+	 *
+	 * @param parseEnv The environment in which to resolve the type
+	 * @param parsedType The type structure
+	 * @return The resolved type
+	 * @throws QuickParseException If the type could not be evaluated
+	 */
 	public static TypeToken<?> evaluateType(QuickParseEnv parseEnv, ExpressionTypes.Type parsedType) throws QuickParseException {
 		return evaluateType(parseEnv, parsedType, TypeToken.of(Object.class));
 	}
 
+	/**
+	 * Evaluates a value
+	 *
+	 * @param <T> A placeholder to make some of the internal generics easier
+	 * @param parseEnv The environment in which to evaluate the value
+	 * @param type The expected type of the value
+	 * @param parsedItem The parsed value
+	 * @param actionAccepted Whether an action is acceptable for the evaluated value
+	 * @param actionRequired Whether the evaluated value <b>must</b> be an action
+	 * @return The evaluated value
+	 * @throws QuickParseException If the value cannot be evaluated
+	 */
 	public static <T> ObservableValue<?> evaluateTypeless(QuickParseEnv parseEnv, TypeToken<T> type, QPPExpression parsedItem,
 		boolean actionAccepted, boolean actionRequired) throws QuickParseException {
 		// Sort from easiest to hardest

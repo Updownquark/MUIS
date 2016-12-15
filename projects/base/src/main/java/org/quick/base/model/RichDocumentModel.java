@@ -80,8 +80,10 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 
 		@Override
 		public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-			ObservableValue<T> localValue = (ObservableValue<T>) theStyles.observe(attr);
-			return ObservableValue.firstValue(localValue.getType(), v -> v != null, localValue, getNormalStyle().get(attr, withDefault));
+			ObservableValue<T> localValue = ObservableValue
+				.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
+			return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
+				getNormalStyle().get(attr, withDefault));
 		}
 
 		@Override
@@ -106,13 +108,15 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 
 				@Override
 				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-					ObservableValue<T> localValue = (ObservableValue<T>) theStyles.observe(attr);
-					return ObservableValue.firstValue(localValue.getType(), v -> v != null, localValue, theBacking.get(attr, withDefault));
+					ObservableValue<T> localValue = ObservableValue
+						.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
+					return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
+						theBacking.get(attr, withDefault));
 				}
 
 				@Override
-				public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
-					return new RichStyleWithExtraStates(theBacking.forExtraStates(extraStates));
+				public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates2) {
+					return new RichStyleWithExtraStates(theBacking.forExtraStates(extraStates2));
 				}
 			}
 			return new RichStyleWithExtraStates(getNormalStyle().forExtraStates(extraStates));
@@ -338,11 +342,6 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 	 */
 	public MutableStyle getSegmentStyle(int start, int end) {
 		return new RichSegmentStyle(start, end);
-	}
-
-	@Override
-	public Transaction holdForWrite(Object cause) {
-		return super.holdForWrite(cause);
 	}
 
 	@Override

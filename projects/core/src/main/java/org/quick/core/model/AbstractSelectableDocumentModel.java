@@ -180,9 +180,10 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 					int start = theCurrentSubReturned == 0 ? 0 : theDivisions.get(theCurrentSubReturned - 1);
 					int end = theCurrentSubReturned == theDivisions.size() ? theCurrent.length() : theDivisions.get(theCurrentSubReturned);
-					boolean selected = start >= min && start < max;
+					boolean selected = thePosition + start >= min && thePosition + start < max;
 					StyledSequence ret = wrap(theCurrent, selected, start, end);
 					if(theCurrentSubReturned == theDivisions.size()) {
+						thePosition += theCurrent.length();
 						theCurrent = null;
 						theCurrentSubReturned = 0;
 						theDivisions.clear();

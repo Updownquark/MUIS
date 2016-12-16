@@ -1,12 +1,8 @@
 package org.quick.core.style;
 
-import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import java.util.HashSet;
-import java.util.Set;
 
 import org.junit.Test;
 import org.observe.ObservableValueTester;
@@ -245,9 +241,5 @@ public class StylesTest {
 		assertTrue(deepCondition.matches(textCI).get());
 		assertFalse(deepCondition.matches(temp2CI).get());
 		assertFalse(shallowCondition.matches(textCI).get());
-	}
-
-	private static <T> Set<T> setOf(T... values) {
-		return new HashSet<>(asList(values));
 	}
 }

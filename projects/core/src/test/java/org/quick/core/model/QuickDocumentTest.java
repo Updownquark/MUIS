@@ -1,15 +1,25 @@
 package org.quick.core.model;
 
+import java.io.IOException;
+
 import org.junit.Test;
 import org.qommons.Transaction;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickTextElement;
+import org.quick.core.parser.QuickParseException;
 
 import com.google.common.reflect.TypeToken;
 
+/** Tests for {@link QuickDocumentModel} */
 public class QuickDocumentTest {
+	/**
+	 * Tests {@link QuickDocumentModel#flatten(org.observe.ObservableValue)}
+	 * 
+	 * @throws IOException If the Quick document needed by the test cannot be found or read
+	 * @throws QuickParseException If the Quick document needed by the test cannot be parsed
+	 */
 	@Test
-	public void testSimpleDocModel() throws Exception {
+	public void testFlattenedDoc() throws QuickParseException, IOException {
 		org.observe.SimpleSettableValue<QuickDocumentModel> docModelObs = new org.observe.SimpleSettableValue<>(
 			TypeToken.of(QuickDocumentModel.class), true);
 		QuickDocumentModel flatDoc=QuickDocumentModel.flatten(docModelObs);

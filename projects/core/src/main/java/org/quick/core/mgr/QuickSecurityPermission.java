@@ -1,4 +1,4 @@
-package org.quick.core.mgr;
+/*package org.quick.core.mgr;
 
 import java.security.Permission;
 
@@ -52,4 +52,4 @@ public class QuickSecurityPermission extends java.security.Permission {
 	public boolean implies(Permission permission) {
 		return false;
 	}
-}
+}*/

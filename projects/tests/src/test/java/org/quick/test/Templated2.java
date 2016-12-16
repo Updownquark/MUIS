@@ -4,11 +4,17 @@ import org.observe.SettableValue;
 import org.quick.core.QuickContainer;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
-import org.quick.core.QuickTemplate.AttachPoint;
+import org.quick.core.style.StylesTest;
 import org.quick.core.tags.Template;
 
+/**
+ * For testing.
+ *
+ * @see StylesTest
+ */
 @Template(location = "template2.qts")
 public class Templated2 extends QuickTemplate {
+	/** Creates the element */
 	public Templated2() {}
 
 	@Override

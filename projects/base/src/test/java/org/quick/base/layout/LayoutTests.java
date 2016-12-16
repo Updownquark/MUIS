@@ -17,6 +17,7 @@ import org.quick.core.layout.SizeGuide;
 import org.quick.core.style.Position;
 import org.quick.core.style.Size;
 
+/** Tests the layout implementations in base */
 public class LayoutTests {
 	static class TestLayout implements QuickLayout {
 		private SizeGuide theWSizer;
@@ -49,6 +50,11 @@ public class LayoutTests {
 		public void layout(QuickElement parent, QuickElement[] children) {}
 	}
 
+	/**
+	 * Tests {@link SimpleLayout}
+	 * 
+	 * @throws QuickException If an error occurs setting attributes
+	 */
 	@Test
 	public void testSimpleLayout() throws QuickException {
 		QuickDocument doc = org.quick.QuickTestUtils.createDocument();

@@ -42,6 +42,11 @@ public class QuickTestUtils {
 		return doc;
 	}
 
+	/**
+	 * Creates an empty document from scratch
+	 * 
+	 * @return The new document
+	 */
 	public static QuickDocument createDocument() {
 		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
 		QuickClassView cv = new QuickClassView(env, env.cv(), null);

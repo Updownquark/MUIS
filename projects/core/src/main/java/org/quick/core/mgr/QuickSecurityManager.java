@@ -1,4 +1,4 @@
-package org.quick.core.mgr;
+/*package org.quick.core.mgr;
 
 import java.io.FilePermission;
 import java.security.AllPermission;
@@ -41,4 +41,4 @@ public class QuickSecurityManager extends SecurityManager {
 		} else
 			throw new SecurityException("Unrecognized permission type: " + perm.getClass().getName());
 	}
-}
+}*/

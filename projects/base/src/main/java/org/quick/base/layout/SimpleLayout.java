@@ -380,9 +380,7 @@ public class SimpleLayout implements QuickLayout {
 		}
 
 		static class Space {
-			@SuppressWarnings("hiding")
 			public final Edge left;
-			@SuppressWarnings("hiding")
 			public final Edge right;
 			public final Size size;
 

@@ -138,7 +138,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			}).forConfig("model", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
-				});
+				}).withUnmatched();
 			}).forConfig("switch", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();

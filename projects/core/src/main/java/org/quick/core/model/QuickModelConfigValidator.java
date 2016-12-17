@@ -182,7 +182,7 @@ public class QuickModelConfigValidator {
 		private final String thePath;
 		private int theMin;
 		private int theMax = 1;
-		private Boolean isWithText = Boolean.FALSE;
+		private Boolean isWithText;
 		private final Map<String, List<ConstraintBuilder>> childConstraints = new LinkedHashMap<>();
 		private boolean acceptUnmatched;
 

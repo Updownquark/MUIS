@@ -67,7 +67,7 @@ public class CounterModel implements QuickAppModel {
 			else if (v > theMax.get() - theRate.get())
 				return "init must be at most max - step";
 			else if ((theMax.get() - v) / theRate.get() <= theMaxFrequency)
-				return "init must be at most max - " + theMaxFrequency + "*rate";
+				return "init must be at most max - " + (theMaxFrequency / 1000f) + "*rate";
 			else
 				return null;
 		}).refresh(theStep).refresh(theMax));
@@ -91,7 +91,7 @@ public class CounterModel implements QuickAppModel {
 			else if (v < theInit.get() + theStep.get())
 				return "max must be at least init + step";
 			else if ((v - theInit.get()) / theRate.get() <= theMaxFrequency)
-				return "max must be at least init+" + theMaxFrequency + "*rate";
+				return "max must be at least init+" + (theMaxFrequency / 1000f) + "*rate";
 			else
 				return null;
 		}).refresh(theInit).refresh(theStep));
@@ -103,7 +103,7 @@ public class CounterModel implements QuickAppModel {
 			else if (Float.isInfinite(v))
 				return "rate must not be infinite";
 			else if ((theMax.get() - theInit.get()) / v <= theMaxFrequency)
-				return "rate must be at most (max - init)/" + theMaxFrequency;
+				return "rate must be at most (max - init)/" + (theMaxFrequency / 1000f);
 			else
 				return null;
 		}));
@@ -266,11 +266,11 @@ public class CounterModel implements QuickAppModel {
 				throw new QuickParseException("step must not be negative");
 			if (max <= init)
 				throw new QuickParseException("max must be greater than init");
-			if (init + step < max)
+			if (init + step > max)
 				throw new QuickParseException("max must be at least init+step");
 			if (maxFrequency < 10)
 				throw new QuickParseException("max-frequency must be at least 10 milliseconds");
-			if (max - init < maxFrequency * rate)
+			if (max - init < maxFrequency * rate / 1000)
 				throw new QuickParseException("max - init must be at least max-frequency*rate");
 			return new CounterModel(init, max, rate, step, maxFrequency);
 		}

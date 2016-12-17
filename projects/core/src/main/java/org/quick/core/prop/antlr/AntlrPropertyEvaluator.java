@@ -4,6 +4,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.observe.*;
 import org.observe.collect.ObservableList;
@@ -313,13 +314,15 @@ class AntlrPropertyEvaluator {
 					continue;
 				InvokableMatch match = getMatch(new TypeToken[] { u.getFromType() }, false, Arrays.asList(unitValue.getValue()),
 					parseEnv, type, actionAccepted);
-				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+				if (match != null && match.compareTo(bestMatch) < 0) {
 					bestUnit = u;
 					bestMatch = match;
 				}
 			}
 			if (bestUnit == null)
 				throw new QuickParseException("Unit " + unitName + " cannot convert from " + unitValue.getValue() + " to type " + type);
+			if (!bestMatch.matches)
+				throw new QuickParseException("Unit " + unitName + " cannot be applied to " + bestMatch.getArgumentTypes());
 			ObservableValue<?> value = bestMatch.parameters[0];
 			Unit<?, ?> unit = bestUnit;
 			Function<Object, T> forwardMap = v -> {
@@ -358,13 +361,15 @@ class AntlrPropertyEvaluator {
 					continue;
 				InvokableMatch match = getMatch(c.getGenericParameterTypes(), c.isVarArgs(), constructor.getArguments(), parseEnv, type,
 					actionAccepted);
-				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+				if (match != null && match.compareTo(bestMatch) < 0) {
 					bestMatch = match;
 					bestConstructor = c;
 				}
 			}
 			if (bestConstructor == null)
 				throw new QuickParseException("No such constructor found: " + parsedItem);
+			if (!bestMatch.matches)
+				throw new QuickParseException("Constructor " + bestConstructor + " cannot be applied to " + bestMatch.getArgumentTypes());
 			Constructor<?> toInvoke = bestConstructor;
 			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) typeToCreate, args -> {
 				try {
@@ -501,8 +506,19 @@ class AntlrPropertyEvaluator {
 			Class<?> quickType;
 			try {
 				quickType = parseEnv.cv().loadIfMapped(name, Object.class);
+				if (quickType == null) {
+					try {
+						quickType = parseEnv.cv().loadClass(name);
+					} catch (ClassNotFoundException e) {
+						try {
+							quickType = parseEnv.cv().loadClass("java.lang." + name);
+						} catch (ClassNotFoundException e2) {
+							throw new QuickParseException("Could not load type " + name);
+						}
+					}
+				}
 			} catch (QuickException e) {
-				throw new QuickParseException(e.getMessage(), e);
+				throw new QuickParseException("Could not load type " + name, e);
 			}
 			if (quickType != null)
 				return quickType;
@@ -536,13 +552,31 @@ class AntlrPropertyEvaluator {
 		return new ArrayType();
 	}
 
-	static class InvokableMatch {
+	static class InvokableMatch implements Comparable<InvokableMatch> {
 		final ObservableValue<?>[] parameters;
 		final double distance;
+		final boolean matches;
 
-		InvokableMatch(ObservableValue<?>[] parameters, double distance) {
+		InvokableMatch(ObservableValue<?>[] parameters, double distance, boolean matches) {
 			this.parameters = parameters;
 			this.distance = distance;
+			this.matches = matches;
+		}
+
+		public List<TypeToken<?>> getArgumentTypes() {
+			return Arrays.stream(parameters).map(v -> v.getType()).collect(Collectors.toList());
+		}
+
+		@Override
+		public int compareTo(InvokableMatch o) {
+			if (o == null)
+				return -1;
+			if (matches && !o.matches)
+				return -1;
+			if (!matches && o.matches)
+				return 1;
+			double distDiff = distance - o.distance;
+			return distDiff < 0 ? -1 : (distDiff > 0 ? 1 : 0);
 		}
 	}
 
@@ -593,12 +627,12 @@ class AntlrPropertyEvaluator {
 		for (int i = 0; i < args.length; i++) {
 			args[i] = evaluateTypeless(parseEnv, argTargetTypes[i], arguments.get(i), actionAccepted, false);
 			if (!QuickUtils.isAssignableFrom(argTargetTypes[i], args[i].getType()))
-				return null;
+				return new InvokableMatch(args, 0, false);
 		}
 		double distance = 0;
 		for (int i = 0; i < paramTypes.length && i < args.length; i++)
 			distance += getDistance(paramTypes[i].wrap(), args[i].getType().wrap());
-		return new InvokableMatch(args, distance);
+		return new InvokableMatch(args, distance, true);
 	}
 
 	private static double getDistance(TypeToken<?> paramType, TypeToken<?> argType) {
@@ -672,18 +706,21 @@ class AntlrPropertyEvaluator {
 		if (member instanceof ExpressionTypes.MethodInvocation) {
 			Method bestMethod = null;
 			InvokableMatch bestMatch = null;
+			int publicStatic = Modifier.STATIC | Modifier.PUBLIC;
 			for (Method m : targetType.getMethods()) {
-				if ((m.getModifiers() & Modifier.STATIC) == 0 || !m.getName().equals(member.getName()) || !m.isAccessible())
+				if ((m.getModifiers() & publicStatic) != publicStatic || !m.getName().equals(member.getName()))
 					continue;
 				InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(),
 					((ExpressionTypes.MethodInvocation) member).getArguments(), parseEnv, type, actionAccepted);
-				if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+				if (match != null && match.compareTo(bestMatch) < 0) {
 					bestMatch = match;
 					bestMethod = m;
 				}
 			}
 			if (bestMethod == null)
-				throw new QuickParseException("No such method found: " + member);
+				throw new QuickParseException("No such method found: " + targetType.getName() + "." + member.getName());
+			if (!bestMatch.matches)
+				throw new QuickParseException("Method " + bestMethod + " cannot be applied to " + bestMatch.getArgumentTypes());
 			Method toInvoke = bestMethod;
 			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) type.resolveType(toInvoke.getGenericReturnType()),
 				args -> {
@@ -803,13 +840,15 @@ class AntlrPropertyEvaluator {
 						continue;
 					InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(), method.getArguments(), parseEnv, type,
 						actionAccepted);
-					if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+					if (match != null && match.compareTo(bestMatch) < 0) {
 						bestMatch = match;
 						bestMethod = m;
 					}
 				}
 				if (bestMethod == null)
 					throw new QuickParseException("No such method found: " + method);
+				if (!bestMatch.matches)
+					throw new QuickParseException("Method " + bestMethod + " cannot be applied to " + bestMatch.getArgumentTypes());
 				ObservableValue<?>[] composed = new ObservableValue[bestMatch.parameters.length + 1];
 				composed[0] = context;
 				System.arraycopy(bestMatch.parameters, 0, composed, 1, bestMatch.parameters.length);
@@ -843,13 +882,15 @@ class AntlrPropertyEvaluator {
 		for (ExpressionFunction<?> fn : functions) {
 			InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
 				parseEnv, type, actionAccepted);
-			if (match != null && (bestMatch == null || match.distance < bestMatch.distance)) {
+			if (match != null && match.compareTo(bestMatch) < 0) {
 				bestMatch = match;
 				bestFunction = fn;
 			}
 		}
 		if (bestFunction == null)
 			throw new QuickParseException("No such function found: " + method);
+		else if (!bestMatch.matches)
+			throw new QuickParseException("Function " + bestFunction + " cannot be applied to " + bestMatch.getArgumentTypes());
 		ExpressionFunction<?> toInvoke = bestFunction;
 		return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) toInvoke.getReturnType(), args -> {
 			try {

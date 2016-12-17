@@ -770,7 +770,6 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.numericType(), ctx);
 			else
 				push(new ExpressionTypes.PrimitiveType(ctx, Boolean.TYPE));
-			push(new ExpressionTypes.QualifiedName(ctx, null, ctx.getText()));
 		}
 
 		@Override

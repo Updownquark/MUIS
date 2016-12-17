@@ -287,14 +287,14 @@ public class QuickClassView {
 			String className = toolkit.getMappedClass(tag);
 			if (className != null)
 				return toolkit.loadClass(className, superClass);
-			throw new QuickException("No class mapped to " + namespace + ":" + tag + " in scoped namespaces " + getMappedNamespaces());
+			return null;
 		} else {
 			for(QuickToolkit toolkit : getScopedToolkits()) {
 				String className = toolkit.getMappedClass(tag);
 				if (className != null)
 					return toolkit.loadClass(className, superClass);
 			}
-			throw new QuickException("No class mapped to " + tag + " in scoped namespaces " + getMappedNamespaces());
+			return null;
 		}
 	}
 

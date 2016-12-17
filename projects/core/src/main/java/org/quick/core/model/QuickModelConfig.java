@@ -40,8 +40,17 @@ public class QuickModelConfig {
 	 * @return The sub-configuration point with the given name in this config as a string, or null if none exists
 	 */
 	public String getString(String configPoint) {
+		return getString(configPoint, null);
+	}
+
+	/**
+	 * @param configPoint The name of the sub-config to get
+	 * @param defValue The default value to return if the config point does not exist
+	 * @return The sub-configuration point with the given name in this config as a string, or null if none exists
+	 */
+	public String getString(String configPoint, String defValue) {
 		Optional<ConfigPoint> cfg = theConfigPoints.stream().filter(cp -> cp.name.equals(configPoint)).findFirst();
-		return cfg.map(cp -> cp.value.getText()).orElse(null);
+		return cfg.map(cp -> cp.value.getText()).orElse(defValue);
 	}
 
 	/**

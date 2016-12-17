@@ -9,6 +9,6 @@ public interface Animation
 	 */
 	boolean update(long time);
 
-	/** @return The minimum number of milliseconds that should pass between calls to {@link #update(long)} */
+	/** @return The minimum number of milliseconds that should pass between calls to {@link #update(long)}. This is only called once. */
 	long getMaxFrequency();
 }

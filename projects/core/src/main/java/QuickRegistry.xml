@@ -24,6 +24,7 @@
 		<type tag="doc-texture">org.quick.core.style.DocumentTexture</type>
 		<!-- Model types -->
 		<type tag="default-model">org.quick.core.model.DefaultQuickModel$Builder</type>
+		<type tag="counter-model">org.quick.core.model.CounterModel$Builder</type>
 		<!-- Utilities -->
 		<type tag="colors">org.quick.core.style.Colors</type>
 	</types>

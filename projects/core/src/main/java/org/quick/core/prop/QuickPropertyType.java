@@ -60,18 +60,20 @@ public final class QuickPropertyType<T> {
 	private final TypeToken<T> theType;
 	private final PropertySelfParser<T> theParser;
 	private final boolean isSelfParsingByDefault;
+	private final boolean allowsDirectives;
 	private final Function<Integer, String> theReferenceReplacementGenerator;
 	private final List<TypeMapping<?, ?>> theMappings;
 	private final ExpressionContext theContext;
 	private final Function<? super T, String> thePrinter;
 
 	private QuickPropertyType(String name, TypeToken<T> type, PropertySelfParser<T> parser, boolean parseSelfByDefault,
-		Function<Integer, String> replacementGen, List<TypeMapping<?, ?>> mappings, Function<? super T, String> printer,
-		ExpressionContext ctx) {
+		boolean directivesAllowed, Function<Integer, String> replacementGen, List<TypeMapping<?, ?>> mappings,
+		Function<? super T, String> printer, ExpressionContext ctx) {
 		theName = name;
 		theType = type;
 		theParser = parser;
 		isSelfParsingByDefault = parseSelfByDefault;
+		allowsDirectives = directivesAllowed;
 		theReferenceReplacementGenerator = replacementGen;
 		theMappings = Collections.unmodifiableList(new ArrayList<>(mappings));
 		theContext = ctx;
@@ -96,6 +98,15 @@ public final class QuickPropertyType<T> {
 	/** @return Whether this property type parses its own values by default */
 	public boolean isSelfParsingByDefault() {
 		return isSelfParsingByDefault;
+	}
+
+	/**
+	 * @return Whether this property type allows parser directives to be used in its values. This will typically only be false if the
+	 *         property type is composite, i.e. its values are composed of other properties and will call the parser with those composed
+	 *         values allowing directives.
+	 */
+	public boolean allowsDirectives() {
+		return allowsDirectives;
 	}
 
 	/** @return A function that generates reference names for values to be injected into a parsed value */
@@ -258,6 +269,7 @@ public final class QuickPropertyType<T> {
 		private final TypeToken<T> theType;
 		private PropertySelfParser<T> theParser;
 		private boolean isSelfParsingByDefault;
+		private boolean allowsDirectives;
 		private Function<Integer, String> theReferenceReplacementGenerator;
 		private final List<TypeMapping<?, ?>> theMappings;
 		private DefaultExpressionContext.Builder theCtxBuilder;
@@ -266,6 +278,7 @@ public final class QuickPropertyType<T> {
 		private Builder(String name, TypeToken<T> type) {
 			theName = name;
 			theType = type;
+			allowsDirectives = true; // Allow directives by default
 			theMappings = new ArrayList<>();
 			theCtxBuilder = DefaultExpressionContext.build();
 		}
@@ -276,8 +289,25 @@ public final class QuickPropertyType<T> {
 		 * @return This builder
 		 */
 		public Builder<T> withParser(PropertySelfParser<T> parser, boolean parseSelfByDefault) {
+			if (parser == null)
+				throw new NullPointerException();
 			theParser = parser;
 			isSelfParsingByDefault = parseSelfByDefault;
+			return this;
+		}
+
+		/**
+		 * Marks a property type as not allowing directives. This will typically only be used for properties whose values are always
+		 * composed of other values (e.g. style), so that the self-parser for the property will call the parser for the composed values that
+		 * allow directives
+		 *
+		 * @return This builder
+		 */
+		public Builder<T> noDirectives() {
+			if (theParser != null && !isSelfParsingByDefault)
+				System.err.println(
+					"Property type " + theName + "(" + theType + "): No self-parsing by default and no directives, why specify a parser?");
+			allowsDirectives = false;
 			return this;
 		}
 
@@ -353,7 +383,8 @@ public final class QuickPropertyType<T> {
 		public QuickPropertyType<T> build() {
 			if (isSelfParsingByDefault && theParser == null)
 				throw new IllegalArgumentException("Cannot parse self by default with no parser");
-			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, theReferenceReplacementGenerator,
+			return new QuickPropertyType<>(theName, theType, theParser, isSelfParsingByDefault, allowsDirectives,
+				theReferenceReplacementGenerator,
 				theMappings, thePrinter, theCtxBuilder.build());
 		}
 	}

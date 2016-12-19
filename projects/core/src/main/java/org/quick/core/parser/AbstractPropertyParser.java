@@ -140,13 +140,15 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		List<String> text = new ArrayList<>();
 		List<ObservableValue<?>> inserts = new ArrayList<>();
 		int start = 0;
-		Directive directive = parseNextDirective(value, start);
-		while (directive != null) {
-			text.add(value.substring(start, directive.start));
-			ObservableValue<?> contentValue = parseByType(property, parseEnv, directive.contents, directive.type, true);
-			inserts.add(contentValue);
-			start = directive.start + directive.length;
-			directive = parseNextDirective(value, start);
+		if (property == null || property.getType().allowsDirectives()) {
+			Directive directive = parseNextDirective(value, start);
+			while (directive != null) {
+				text.add(value.substring(start, directive.start));
+				ObservableValue<?> contentValue = parseByType(property, parseEnv, directive.contents, directive.type, true);
+				inserts.add(contentValue);
+				start = directive.start + directive.length;
+				directive = parseNextDirective(value, start);
+			}
 		}
 		ObservableValue<?> parsedValue;
 		if (inserts.size() == 1 && text.get(0).length() == 0 && start == value.length() && !isDirective) {

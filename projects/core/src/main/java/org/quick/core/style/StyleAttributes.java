@@ -20,7 +20,7 @@ public class StyleAttributes {
 	public static final QuickPropertyType<QuickStyle> STYLE_TYPE = QuickPropertyType.build("style", TypeToken.of(QuickStyle.class))//
 		.withParser((parser, env, str) -> {
 			return ObservableValue.constant(TypeToken.of(QuickStyle.class), parseStyle(parser, env, str));
-		}, true)//
+		}, true).noDirectives()//
 		.withRefReplaceGenerator(idx -> new StringBuilder("^{").append(idx).append('}').toString())//
 		.withToString(style2 -> {
 			StringBuilder ret = new StringBuilder();

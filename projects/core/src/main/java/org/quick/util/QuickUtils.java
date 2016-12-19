@@ -366,6 +366,16 @@ public class QuickUtils {
 	}
 
 	/**
+	 * @param left The type of the variable to assign
+	 * @param right Type type of the value being assigned
+	 * @return Whether the assignment is allowable with an explicit cast
+	 */
+	public static boolean canConvert(TypeToken<?> left, TypeToken<?> right) {
+		TypeToken<Number> numType = TypeToken.of(Number.class);
+		return left.isAssignableFrom(right) || (numType.isAssignableFrom(left.wrap()) && numType.isAssignableFrom(right.wrap()));
+	}
+
+	/**
 	 * @param <T> The compile-time type to make an array type of
 	 * @param type The type to make an array type of
 	 * @return An array type whose component type is <code>type</code>

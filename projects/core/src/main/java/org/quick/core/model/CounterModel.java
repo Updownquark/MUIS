@@ -20,13 +20,12 @@ import org.quick.motion.AnimationManager;
 import com.google.common.reflect.TypeToken;
 
 public class CounterModel implements QuickAppModel {
-	private final SimpleSettableValue<Float> theInit;
+	private final SimpleSettableValue<Integer> theInit;
 	private final SimpleSettableValue<Float> theRate;
-	private final SimpleSettableValue<Float> theMax;
-	private final SimpleSettableValue<Float> theStep;
+	private final SimpleSettableValue<Integer> theMax;
 	private final long theMaxFrequency;
 
-	private final SimpleSettableValue<Float> theValue;
+	private final SimpleSettableValue<Integer> theValue;
 	private final SimpleSettableValue<Boolean> isRunning;
 	private final SimpleSettableValue<Boolean> isPaused;
 
@@ -35,18 +34,16 @@ public class CounterModel implements QuickAppModel {
 
 	private final Map<String, Object> theModelValues;
 
-	public CounterModel(float init, float max, float rate, float step, long maxFrequency) {
-		theInit = new SimpleSettableValue<>(float.class, false);
+	public CounterModel(int init, int max, float rate, long maxFrequency) {
+		theInit = new SimpleSettableValue<>(int.class, false);
 		theInit.set(init, null);
-		theMax = new SimpleSettableValue<>(float.class, false);
+		theMax = new SimpleSettableValue<>(int.class, false);
 		theMax.set(max, null);
 		theRate = new SimpleSettableValue<>(float.class, false);
 		theRate.set(rate, null);
-		theStep = new SimpleSettableValue<>(float.class, false);
-		theStep.set(step, null);
 		theMaxFrequency = maxFrequency;
 
-		theValue = new SimpleSettableValue<>(TypeToken.of(float.class), false);
+		theValue = new SimpleSettableValue<>(TypeToken.of(int.class), false);
 		theValue.set(init, null);
 		isRunning = new SimpleSettableValue<>(boolean.class, false);
 		isRunning.set(false, null);
@@ -58,43 +55,21 @@ public class CounterModel implements QuickAppModel {
 		Map<String, Object> modelValues = new LinkedHashMap<>();
 		modelValues.put("value", theValue.unsettable());
 		modelValues.put("init", theInit.filterAccept(v -> {
-			if (Float.isNaN(v))
-				return "init must be a number";
-			else if (Float.isInfinite(v))
-				return "init must not be infinite";
-			else if (v >= theMax.get())
+			if (v >= theMax.get())
 				return "init must be less than max";
-			else if (v > theMax.get() - theRate.get())
-				return "init must be at most max - step";
 			else if ((theMax.get() - v) / theRate.get() <= theMaxFrequency)
 				return "init must be at most max - " + (theMaxFrequency / 1000f) + "*rate";
 			else
 				return null;
-		}).refresh(theStep).refresh(theMax));
-		modelValues.put("step", theStep.filterAccept(v -> {
-			if (Float.isNaN(v))
-				return "step must be a number";
-			else if (v < 0)
-				return "step must not be negative";
-			else if (Float.isInfinite(v))
-				return "step must not be infinite";
-			else if (v > theMax.get() - theInit.get())
-				return "step must be at most max - init";
-			else
-				return null;
-		}).refresh(theInit).refresh(theMax));
+		}).refresh(theMax));
 		modelValues.put("max", theMax.filterAccept(v -> {
-			if (Float.isNaN(v))
-				return "max must be a number";
-			else if (v < theInit.get())
+			if (v <= theInit.get())
 				return "max must be greater than init";
-			else if (v < theInit.get() + theStep.get())
-				return "max must be at least init + step";
 			else if ((v - theInit.get()) / theRate.get() <= theMaxFrequency)
 				return "max must be at least init+" + (theMaxFrequency / 1000f) + "*rate";
 			else
 				return null;
-		}).refresh(theInit).refresh(theStep));
+		}).refresh(theInit));
 		modelValues.put("rate", theRate.filterAccept(v -> {
 			if (Float.isNaN(v))
 				return "rate must be a number";
@@ -160,21 +135,15 @@ public class CounterModel implements QuickAppModel {
 
 	void update(long time) {
 		long diff = time - theLastUpdateTime;
-
-		if (theStep.get() > 0) {
-			float step = theStep.get();
-			int steps = (int) (diff * theRate.get() / step);
-			if (steps > 0) {
-				theLastUpdateTime = time;
-				theValue.set(theValue.get() + steps * step, null);
+		int steps = (int) (diff * theRate.get() / 1000);
+		if (steps > 0) {
+			int newValue = theValue.get() + steps;
+			int max = theMax.get();
+			if (newValue > max) {
+				int init = theInit.get();
+				newValue = init + (newValue - init) % (max - init);
 			}
-		} else {
-			float valueDiff = (diff * theRate.get() / 1000);
 			theLastUpdateTime = time;
-			float newValue = theValue.get() + valueDiff;
-			float range = theMax.get() - theInit.get();
-			if (newValue > theMax.get())
-				newValue -= range * (int) ((newValue - theMax.get()) / range);
 			theValue.set(newValue, null);
 		}
 	}
@@ -233,8 +202,6 @@ public class CounterModel implements QuickAppModel {
 					b.withText(true).atMost(1);
 				}).forConfig("rate", b -> {
 					b.withText(true).required();
-				}).forConfig("step", b -> {
-					b.withText(true).atMost(1);
 				}).forConfig("max-frequency", b -> {
 					b.withText(true).atMost(1);
 				}).forConfig("start", b -> {
@@ -246,33 +213,32 @@ public class CounterModel implements QuickAppModel {
 		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
-			float init = Float.parseFloat(config.getString("init", "0"));
-			float max = Float.parseFloat(config.getString("max", "Infinity"));
+			int init = Integer.parseInt(config.getString("init", "0"));
+			int max = Integer.parseInt(config.getString("max", "" + Integer.MAX_VALUE));
 			float rate = 1000f
 				/ QuickPropertyType.duration.getSelfParser().parse(parser, parseEnv, config.getString("rate")).get().toMillis();
-			float step = Float.parseFloat(config.getString("step", "0"));
 			long maxFrequency = QuickPropertyType.duration.getSelfParser()
 				.parse(parser, parseEnv, config.getString("max-frequency", "10mi")).get().toMillis();
 			String startStr = config.getString("start", "true");
 			if (!"true".equals(startStr) && !"false".equals(startStr))
 				throw new QuickParseException("Invalid value for start: " + startStr);
-			if (Float.isNaN(init) || Float.isNaN(max) || Float.isNaN(rate) || Float.isNaN(step))
-				throw new QuickParseException("NaN values not accepted for init, max, rate, or step");
-			if (Float.isInfinite(init) || Float.isInfinite(rate) || Float.isInfinite(step))
-				throw new QuickParseException("init, rate, and step must not be infinite");
+			boolean start = "true".equals(startStr);
+			if (Float.isNaN(rate))
+				throw new QuickParseException("NaN not accepted for rate");
+			if (Float.isInfinite(rate))
+				throw new QuickParseException("rate must not be infinite");
 			if (rate <= 0)
 				throw new QuickParseException("rate must be positive");
-			if (step < 0)
-				throw new QuickParseException("step must not be negative");
 			if (max <= init)
 				throw new QuickParseException("max must be greater than init");
-			if (init + step > max)
-				throw new QuickParseException("max must be at least init+step");
 			if (maxFrequency < 10)
 				throw new QuickParseException("max-frequency must be at least 10 milliseconds");
 			if (max - init < maxFrequency * rate / 1000)
 				throw new QuickParseException("max - init must be at least max-frequency*rate");
-			return new CounterModel(init, max, rate, step, maxFrequency);
+			CounterModel counter = new CounterModel(init, max, rate, maxFrequency);
+			if (start)
+				counter.start();
+			return counter;
 		}
 	}
 

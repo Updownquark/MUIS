@@ -17,6 +17,7 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.util.QuickUtils;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** The default (typically XML-specified) implementation for QuickAppModel */
@@ -419,7 +420,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			QuickPropertyType<T> type = (QuickPropertyType<T>) parseType(parser, parseEnv, config.getString("type"));
 			QuickPropertyType<F> valueType = (QuickPropertyType<F>) parseType(parser, parseEnv, config.getString("value-type"));
 			ObservableValue<F> value = parseValue(valueType, config.getString("value"), parser, parseEnv);
-			Map<F, ObservableValue<?>> mappings = new HashMap<>();
+			Map<F, ObservableValue<T>> mappings = new HashMap<>();
 			class Holder<X> {
 				final X val;
 
@@ -427,19 +428,16 @@ public class DefaultQuickModel implements QuickAppModel {
 					val = v;
 				}
 			}
-			Map<F, Holder<T>> valueMappings = new HashMap<>();
 			Map<T, Holder<F>> reverseMappings = new HashMap<>();
 			boolean allConstant = true;
 			for (QuickModelConfig caseConfig : (List<QuickModelConfig>) (List<?>) config.getValues("case")) {
 				ObservableValue<F> from = parseValue(valueType, ((QuickModelConfig) caseConfig.get("value")).getText(), parser, parseEnv);
 				ObservableValue<T> to = parseValue(type, caseConfig.getText(), parser, parseEnv);
-				allConstant &= from instanceof ObservableValue.ConstantObservableValue;
+				allConstant &= to instanceof ObservableValue.ConstantObservableValue;
 				F fromVal = from.get();
 				mappings.put(fromVal, to);
-				T toVal = to.get();
-				valueMappings.put(fromVal, new Holder<>(toVal));
 				if (allConstant)
-					reverseMappings.put(toVal, new Holder<>(fromVal));
+					reverseMappings.put(to.get(), new Holder<>(fromVal));
 			}
 			boolean allCommon = true;
 			TypeToken<?> common = type == null ? null : type.getType();
@@ -453,24 +451,16 @@ public class DefaultQuickModel implements QuickAppModel {
 					}
 				}
 			}
-			T def;
+			ObservableValue<T> def;
 			if (config.getString("default") != null && !config.getString("default").equals("null")) {
-				ObservableValue<T> defValue = parseValue(type, config.getString("default"), parser, parseEnv);
-				allConstant &= defValue instanceof ObservableValue.ConstantObservableValue;
-				if (type == null && allCommon && !common.equals(defValue.getType()))
+				def = parseValue(type, config.getString("default"), parser, parseEnv);
+				allConstant &= def instanceof ObservableValue.ConstantObservableValue;
+				if (type == null && allCommon && !common.equals(def.getType()))
 					allCommon = false;
-				def = defValue.get();
 			} else
 				def = null;
 			if (!allCommon)
 				common = TypeToken.of(Object.class);
-			Function<F, T> mapFn = v -> {
-				Holder<T> to = valueMappings.get(v);
-				if (to != null)
-					return to.val;
-				else
-					return def;
-			};
 			if (value instanceof SettableValue && allConstant) {
 				SettableValue<F> settable = (SettableValue<F>) value;
 				Function<T, String> allowedFn = v -> {
@@ -483,9 +473,22 @@ public class DefaultQuickModel implements QuickAppModel {
 					Holder<F> from = reverseMappings.get(v);
 					return from == null ? null : from.val;
 				};
-				return settable.mapV((TypeToken<T>) common, mapFn, reverseMapFn, true).filterAccept(allowedFn);
-			} else
-				return value.<T> mapV((TypeToken<T>) common, mapFn, true);
+				return settable.mapV((TypeToken<T>) common, from -> {
+					ObservableValue<T> to = mappings.get(from);
+					if (to != null)
+						return to.get();
+					else if (def != null)
+						return def.get();
+					else
+						return null;
+				}, reverseMapFn, true).filterAccept(allowedFn);
+			} else {
+				TypeToken<ObservableValue<T>> tObs = new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {},
+					(TypeToken<T>) common);
+				return ObservableValue.flatten(value.mapV(tObs, from -> {
+					return mappings.getOrDefault(from, def);
+				}, true));
+			}
 		}
 	}
 }

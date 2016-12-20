@@ -749,7 +749,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.LayoutEvent(this, now, postActions), now);
 	}
 
-	/** @return The last time a layout event was scheduled for this element */
+	/** @return The time since which this element has needed a layout operation */
 	public final long getLayoutDirtyTime() {
 		return theLayoutDirtyTime;
 	}
@@ -884,7 +884,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		return childBounds;
 	}
 
-	/** @return The last time a paint event was scheduled for this element */
+	/** @return The time since which this element has needed a paint operation */
 	public final long getPaintDirtyTime() {
 		return thePaintDirtyTime;
 	}

@@ -134,8 +134,6 @@ public class QuickContentPane extends java.awt.Component {
 	public void paint(java.awt.Graphics g) {
 		if (theGraphics != null)
 			g.drawImage(theBuffer, 0, 0, null);
-		if (theContent != null)
-			theContent.paint((java.awt.Graphics2D) g);
 	}
 
 	/*@Override

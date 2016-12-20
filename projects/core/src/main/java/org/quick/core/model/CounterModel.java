@@ -31,6 +31,8 @@ public class CounterModel implements QuickAppModel {
 	private final SimpleSettableValue<Boolean> isPaused;
 
 	private long theLastUpdateTime;
+	private long thePauseTime;
+	private long thePauseAmount;
 	private AtomicReference<CounterMotion> theMotion;
 
 	private final Map<String, Object> theModelValues;
@@ -56,6 +58,14 @@ public class CounterModel implements QuickAppModel {
 		isRunning.set(false, null);
 		isPaused = new SimpleSettableValue<>(boolean.class, false);
 		isPaused.set(false, null);
+		isPaused.value().act(paused -> {
+			if (paused) {
+				thePauseTime = System.currentTimeMillis();
+			} else {
+				thePauseAmount = System.currentTimeMillis() - thePauseTime;
+				thePauseTime = 0;
+			}
+		});
 
 		theMotion = new AtomicReference<>();
 
@@ -107,6 +117,23 @@ public class CounterModel implements QuickAppModel {
 				return isRunning.mapV(running -> running ? "Already started" : null);
 			}
 		});
+		modelValues.put("reset", new org.observe.ObservableAction<Boolean>() {
+			@Override
+			public TypeToken<Boolean> getType() {
+				return TypeToken.of(boolean.class);
+			}
+
+			@Override
+			public Boolean act(Object cause) throws IllegalStateException {
+				reset();
+				return true;
+			}
+
+			@Override
+			public ObservableValue<String> isEnabled() {
+				return theValue.combineV((v, initial) -> v.equals(initial) ? "Value is reset" : null, theInit);
+			}
+		});
 		modelValues.put("stop", new org.observe.ObservableAction<Boolean>() {
 			@Override
 			public TypeToken<Boolean> getType() {
@@ -141,7 +168,8 @@ public class CounterModel implements QuickAppModel {
 	}
 
 	void update(long time) {
-		long diff = time - theLastUpdateTime;
+		long diff = time - theLastUpdateTime - thePauseAmount;
+		thePauseAmount = 0;
 		int steps = (int) (diff * theRate.get() / 1000);
 		if (steps > 0) {
 			int newValue = theValue.get() + steps;
@@ -193,7 +221,7 @@ public class CounterModel implements QuickAppModel {
 
 	/**
 	 * Sets this counter to its initial value
-	 * 
+	 *
 	 * @return This counter
 	 */
 	public CounterModel reset() {
@@ -203,7 +231,7 @@ public class CounterModel implements QuickAppModel {
 
 	/**
 	 * Pauses this counter, preserving its current value
-	 * 
+	 *
 	 * @return This counter
 	 */
 	public CounterModel pause() {
@@ -213,7 +241,7 @@ public class CounterModel implements QuickAppModel {
 
 	/**
 	 * Resumes this counter after {@link #pause()}
-	 * 
+	 *
 	 * @return This counter
 	 */
 	public CounterModel resume() {

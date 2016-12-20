@@ -30,6 +30,14 @@
 	    	Green: <label value="model.green" />
 	    	Blue: <label value="model.blue" />
     	</block>
+    	<block layout="box" height="40">
+    		<button action="model.counter.paused=!model.counter.paused">
+    			<label value="model.counter.paused ? &quot;Resume&quot; : &quot;Pause&quot;" />
+    		</button>
+    		<button action="model.counter.reset()">Reset</button>
+    		<button action="model.counter.start()">Start</button>
+    		<button action="model.counter.stop()">Stop</button>
+    	</block>
     	<block style="bg.transparency=0;bg.color=${rgb(model.red, model.green, model.blue)}" />
     </body>
 </quick>

@@ -339,6 +339,20 @@ public class MathUtils {
 	}
 
 	/**
+	 * Applies the boolean not operation
+	 * 
+	 * @param value The operand
+	 * @return The result
+	 * @throws IllegalArgumentException If the operator cannot be applied to the given operand
+	 */
+	public static ObservableValue<Boolean> not(ObservableValue<?> value) throws IllegalArgumentException {
+		if (!value.getType().unwrap().equals(BOOLEAN))
+			throw new IllegalArgumentException("! cannot be applied to operand type " + value.getType());
+		ObservableValue<Boolean> b = (ObservableValue<Boolean>) value;
+		return b.mapV(BOOLEAN, v -> !v, true);
+	}
+
+	/**
 	 * Applies the addition operation
 	 *
 	 * @param v1 The first operand

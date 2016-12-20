@@ -956,7 +956,8 @@ class AntlrPropertyEvaluator {
 	}
 
 	private static <T> ObservableValue<ObservableAction<T>> valueOf(ObservableAction<T> action) {
-		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, action.getType()), action);
+		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, action.getType().wrap()),
+			action);
 	}
 
 	private static ObservableValue<?> evaluateFunction(ExpressionTypes.MethodInvocation method, QuickParseEnv parseEnv, TypeToken<?> type,
@@ -1002,6 +1003,12 @@ class AntlrPropertyEvaluator {
 			case "~":
 				try {
 					return MathUtils.unaryOp(op.getName(), arg1);
+				} catch (IllegalArgumentException e) {
+					throw new QuickParseException(e.getMessage(), e);
+				}
+			case "!":
+				try {
+					return MathUtils.not(arg1);
 				} catch (IllegalArgumentException e) {
 					throw new QuickParseException(e.getMessage(), e);
 				}

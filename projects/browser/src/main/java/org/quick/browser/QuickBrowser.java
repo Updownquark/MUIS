@@ -81,22 +81,16 @@ public class QuickBrowser extends javax.swing.JPanel {
 			QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(),
 				new SimpleParseEnv(docStruct.getHead().getClassView(), env.msg(), env.getContext()));
 			quickDoc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
-			quickDoc.setGraphics(new QuickDocument.GraphicsGetter() {
-				@Override
-				public Graphics2D getGraphics() {
-					return (Graphics2D) theContentPane.getGraphics();
-				}
-
-				@Override
-				public void setCursor(Cursor cursor) {
-					theContentPane.setCursor(cursor);
-				}
-			});
 			if (theDebugPanel != null)
 				quickDoc.setDebugGraphics(new QuickDocument.GraphicsGetter() {
 					@Override
 					public Graphics2D getGraphics() {
 						return theDebugPanel == null ? null : (Graphics2D) theDebugPanel.getGraphics();
+					}
+
+					@Override
+					public void updated() {
+						theDebugPanel.repaint();
 					}
 
 					@Override

@@ -1,110 +1,121 @@
 /* Created Mar 23, 2009 by Andrew */
 package org.quick.browser;
 
+import java.awt.Cursor;
+import java.awt.Graphics2D;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 
+import org.quick.core.QuickDocument.GraphicsGetter;
 import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.event.MouseEvent.MouseEventType;
 
 /** An AWT component that renders a Quick document */
-public class QuickContentPane extends java.awt.Component
-{
+public class QuickContentPane extends java.awt.Component {
 	private org.quick.core.QuickDocument theContent;
+	private BufferedImage theBuffer;
+	private GraphicsGetter theGraphics;
 
 	/** Creates a QuickContentPane */
-	public QuickContentPane()
-	{
+	public QuickContentPane() {
 		super();
 		setFocusable(true);
+		theGraphics = new GraphicsGetter() {
+			@Override
+			public Graphics2D getGraphics() {
+				return (Graphics2D) theBuffer.getGraphics();
+			}
+
+			@Override
+			public void updated() {
+				repaint();
+			}
+
+			@Override
+			public void setCursor(Cursor cursor) {
+				QuickContentPane.this.setCursor(cursor);
+			}
+		};
 		addComponentListener(new ComponentAdapter() {
 			@Override
-			public void componentResized(ComponentEvent e)
-			{
+			public void componentResized(ComponentEvent e) {
 				super.componentResized(e);
-				if(getContent() != null)
+				BufferedImage newBuffer = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+				if (theBuffer != null)
+					newBuffer.getGraphics().drawImage(theBuffer, 0, 0, null);
+				theBuffer = newBuffer;
+				if (getContent() != null)
 					getContent().setSize(getWidth(), getHeight());
 			}
 		});
 		addMouseListener(new java.awt.event.MouseListener() {
 			@Override
-			public void mousePressed(MouseEvent e)
-			{
+			public void mousePressed(MouseEvent e) {
 				requestFocusInWindow();
 				moused(MouseEventType.pressed, e);
 			}
 
 			@Override
-			public void mouseReleased(MouseEvent e)
-			{
+			public void mouseReleased(MouseEvent e) {
 				moused(MouseEventType.released, e);
 			}
 
 			@Override
-			public void mouseClicked(MouseEvent e)
-			{
+			public void mouseClicked(MouseEvent e) {
 				moused(MouseEventType.clicked, e);
 			}
 
 			@Override
-			public void mouseEntered(MouseEvent e)
-			{
+			public void mouseEntered(MouseEvent e) {
 				moused(MouseEventType.entered, e);
 			}
 
 			@Override
-			public void mouseExited(MouseEvent e)
-			{
+			public void mouseExited(MouseEvent e) {
 				moused(MouseEventType.exited, e);
 			}
 		});
 		addMouseMotionListener(new java.awt.event.MouseMotionListener() {
 			@Override
-			public void mouseDragged(MouseEvent e)
-			{
+			public void mouseDragged(MouseEvent e) {
 				moused(MouseEventType.moved, e);
 			}
 
 			@Override
-			public void mouseMoved(MouseEvent e)
-			{
+			public void mouseMoved(MouseEvent e) {
 				moused(MouseEventType.moved, e);
 			}
 		});
 		addMouseWheelListener(new java.awt.event.MouseWheelListener() {
 			@Override
-			public void mouseWheelMoved(java.awt.event.MouseWheelEvent e)
-			{
+			public void mouseWheelMoved(java.awt.event.MouseWheelEvent e) {
 				scrolled(e);
 			}
 		});
 		addKeyListener(new java.awt.event.KeyListener() {
 
 			@Override
-			public void keyPressed(KeyEvent e)
-			{
+			public void keyPressed(KeyEvent e) {
 				keyed(Boolean.TRUE, e);
 			}
 
 			@Override
-			public void keyReleased(KeyEvent e)
-			{
+			public void keyReleased(KeyEvent e) {
 				keyed(Boolean.FALSE, e);
 			}
 
 			@Override
-			public void keyTyped(KeyEvent e)
-			{
+			public void keyTyped(KeyEvent e) {
 				keyed(null, e);
 			}
 		});
 	}
 
 	/** @return The document that is currently being rendered by this content pane */
-	public org.quick.core.QuickDocument getContent()
-	{
+	public org.quick.core.QuickDocument getContent() {
 		return theContent;
 	}
 
@@ -113,22 +124,22 @@ public class QuickContentPane extends java.awt.Component
 	 *
 	 * @param doc The document to render
 	 */
-	public void setContent(org.quick.core.QuickDocument doc)
-	{
+	public void setContent(org.quick.core.QuickDocument doc) {
 		theContent = doc;
 		theContent.setSize(getWidth(), getHeight());
+		theContent.setGraphics(theGraphics);
 	}
 
 	@Override
-	public void paint(java.awt.Graphics g)
-	{
-		if(theContent != null)
+	public void paint(java.awt.Graphics g) {
+		if (theGraphics != null)
+			g.drawImage(theBuffer, 0, 0, null);
+		if (theContent != null)
 			theContent.paint((java.awt.Graphics2D) g);
 	}
 
 	/*@Override
-	public Dimension getPreferredSize()
-	{
+	public Dimension getPreferredSize() {
 		if(theContent == null)
 			return super.getPreferredSize();
 		QuickElement root = theContent.getRoot();
@@ -136,8 +147,7 @@ public class QuickContentPane extends java.awt.Component
 	}
 
 	@Override
-	public Dimension getMinimumSize()
-	{
+	public Dimension getMinimumSize() {
 		if(theContent == null)
 			return super.getPreferredSize();
 		QuickElement root = theContent.getRoot();
@@ -145,21 +155,18 @@ public class QuickContentPane extends java.awt.Component
 	}
 
 	@Override
-	public Dimension getMaximumSize()
-	{
+	public Dimension getMaximumSize() {
 		if(theContent == null)
 			return super.getPreferredSize();
 		QuickElement root = theContent.getRoot();
 		return new Dimension(root.getWSizer(getHeight()).getMax(), root.getHSizer(getWidth()).getMax());
 	}*/
 
-	void moused(org.quick.core.event.MouseEvent.MouseEventType type, MouseEvent evt)
-	{
-		if(theContent == null)
+	void moused(org.quick.core.event.MouseEvent.MouseEventType type, MouseEvent evt) {
+		if (theContent == null)
 			return;
 		org.quick.core.event.MouseEvent.ButtonType buttonType;
-		switch (evt.getButton())
-		{
+		switch (evt.getButton()) {
 		case MouseEvent.NOBUTTON:
 			buttonType = org.quick.core.event.MouseEvent.ButtonType.none;
 			break;
@@ -179,18 +186,16 @@ public class QuickContentPane extends java.awt.Component
 		theContent.mouse(evt.getX(), evt.getY(), type, buttonType, evt.getClickCount());
 	}
 
-	void scrolled(java.awt.event.MouseWheelEvent evt)
-	{
-		if(theContent == null)
+	void scrolled(java.awt.event.MouseWheelEvent evt) {
+		if (theContent == null)
 			return;
 		theContent.scroll(evt.getX(), evt.getY(), evt.getWheelRotation());
 	}
 
-	void keyed(Boolean pressed, KeyEvent evt)
-	{
-		if(theContent == null)
+	void keyed(Boolean pressed, KeyEvent evt) {
+		if (theContent == null)
 			return;
-		if(pressed != null)
+		if (pressed != null)
 			theContent.keyed(getKeyCodeFromAWT(evt.getKeyCode(), evt.getKeyLocation()), pressed.booleanValue());
 		else
 			theContent.character(evt.getKeyChar());
@@ -201,10 +206,8 @@ public class QuickContentPane extends java.awt.Component
 	 * @param keyLocation The key's location (see java.awt.KeyEvent.KEY_LOCATION_*, {@link KeyEvent#getKeyLocation()}
 	 * @return The Quick key code for the AWT codes
 	 */
-	public static KeyCode getKeyCodeFromAWT(int keyCode, int keyLocation)
-	{
-		switch (keyCode)
-		{
+	public static KeyCode getKeyCodeFromAWT(int keyCode, int keyLocation) {
+		switch (keyCode) {
 		case KeyEvent.VK_ENTER:
 			return KeyCode.ENTER;
 		case KeyEvent.VK_BACK_SPACE:
@@ -216,17 +219,17 @@ public class QuickContentPane extends java.awt.Component
 		case KeyEvent.VK_CLEAR:
 			return KeyCode.CLEAR;
 		case KeyEvent.VK_SHIFT:
-			if(keyLocation == KeyEvent.KEY_LOCATION_LEFT)
+			if (keyLocation == KeyEvent.KEY_LOCATION_LEFT)
 				return KeyCode.SHIFT_LEFT;
 			else
 				return KeyCode.SHIFT_RIGHT;
 		case KeyEvent.VK_CONTROL:
-			if(keyLocation == KeyEvent.KEY_LOCATION_LEFT)
+			if (keyLocation == KeyEvent.KEY_LOCATION_LEFT)
 				return KeyCode.CTRL_LEFT;
 			else
 				return KeyCode.CTRL_RIGHT;
 		case KeyEvent.VK_ALT:
-			if(keyLocation == KeyEvent.KEY_LOCATION_LEFT)
+			if (keyLocation == KeyEvent.KEY_LOCATION_LEFT)
 				return KeyCode.ALT_LEFT;
 			else
 				return KeyCode.ALT_RIGHT;
@@ -258,21 +261,21 @@ public class QuickContentPane extends java.awt.Component
 		case KeyEvent.VK_LESS:
 			return KeyCode.COMMA;
 		case KeyEvent.VK_MINUS:
-			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			if (keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
 				return KeyCode.PAD_MINUS;
 			else
 				return KeyCode.MINUS;
 		case KeyEvent.VK_UNDERSCORE:
 			return KeyCode.MINUS;
 		case KeyEvent.VK_PERIOD:
-			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			if (keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
 				return KeyCode.PAD_DOT;
 			else
 				return KeyCode.DOT;
 		case KeyEvent.VK_GREATER:
 			return KeyCode.DOT;
 		case KeyEvent.VK_SLASH:
-			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			if (keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
 				return KeyCode.PAD_SLASH;
 			else
 				return KeyCode.FORWARD_SLASH;
@@ -309,7 +312,7 @@ public class QuickContentPane extends java.awt.Component
 		case KeyEvent.VK_COLON:
 			return KeyCode.SEMICOLON;
 		case KeyEvent.VK_EQUALS:
-			if(keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
+			if (keyLocation == KeyEvent.KEY_LOCATION_NUMPAD)
 				return KeyCode.PAD_EQUAL;
 			else
 				return KeyCode.EQUAL;

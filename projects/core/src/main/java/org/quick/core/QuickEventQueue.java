@@ -221,8 +221,10 @@ public class QuickEventQueue {
 				render.setRoot(element.paint(graphics, area));
 				doc.setRender(render);
 				Graphics2D docGraphics = doc.getGraphics();
-				if(docGraphics != null)
+				if (docGraphics != null) {
 					docGraphics.drawImage(render.getImage(), 0, 0, null);
+					doc.graphicsUpdated();
+				}
 				return;
 			}
 			QuickRendering render = element.getDocument().getRender();
@@ -262,6 +264,7 @@ public class QuickEventQueue {
 				if(y + h > newRender.getImage().getHeight())
 					h = newRender.getImage().getHeight() - trans.y;
 				docGraphics.drawImage(newRender.getImage().getSubimage(x, y, w, h), x, y, null);
+				doc.graphicsUpdated();
 			}
 			if(bound.getParent() != null)
 				((java.util.List<QuickElementCapture>) bound.getParent().getChildren()).set(bound.getParent().getChildren().indexOf(bound),

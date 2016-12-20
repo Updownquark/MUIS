@@ -45,6 +45,9 @@ public class QuickDocument implements QuickParseEnv {
 		/** @return The graphics object that this document should use at the moment */
 		java.awt.Graphics2D getGraphics();
 
+		/** Informs this getter that its graphics have been updated */
+		void updated();
+
 		/** @param cursor The cursor to set over the document */
 		void setCursor(Cursor cursor);
 	}
@@ -184,6 +187,12 @@ public class QuickDocument implements QuickParseEnv {
 		return theGraphics == null ? null : theGraphics.getGraphics();
 	}
 
+	/** Informs the provider of this document's graphics that it has been updated */
+	public void graphicsUpdated() {
+		if (theGraphics != null)
+			theGraphics.updated();
+	}
+
 	/** @param graphics The getter for graphics to be used in debugging (drawn piece-wise instead of in batches) */
 	public void setDebugGraphics(GraphicsGetter graphics) {
 		theDebugGraphics = graphics;
@@ -192,6 +201,12 @@ public class QuickDocument implements QuickParseEnv {
 	/** @return The graphics to be used in debugging */
 	public java.awt.Graphics2D getDebugGraphics() {
 		return theDebugGraphics == null ? null : theDebugGraphics.getGraphics();
+	}
+
+	/** Informs the provider of this document's debug graphics that it has been updated */
+	public void debugGraphicsUpdated() {
+		if (theDebugGraphics != null)
+			theDebugGraphics.updated();
 	}
 
 	/** @param listener The listener to be notified when the rendering of this document changes */

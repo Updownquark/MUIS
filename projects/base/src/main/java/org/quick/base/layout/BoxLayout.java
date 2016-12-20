@@ -281,8 +281,8 @@ public class BoxLayout implements QuickLayout {
 					childPos += margin.evaluate(parallelSize);
 				else
 					childPos += padding.evaluate(parallelSize);
-				LayoutUtils.setPos(bounds[c], dir.getOrientation(), align == Alignment.begin ? childPos : parallelSize - childPos
-					- LayoutUtils.getSize(bounds[c], dir.getOrientation()));
+				LayoutUtils.setPos(bounds[c], dir.getOrientation(), dir.getStartEnd() == End.leading ? childPos
+					: parallelSize - childPos - LayoutUtils.getSize(bounds[c], dir.getOrientation()));
 				pos = childPos + LayoutUtils.getSize(bounds[c], dir.getOrientation());
 				usedSpace += extraSpace;
 			}

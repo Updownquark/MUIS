@@ -355,7 +355,7 @@ public class MathUtils {
 		TypeToken<? extends Number> resultType;
 		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
 			resultType = DOUBLE;
-		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+		else if (FLOAT.isAssignableFrom(n1.getType().unwrap()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
 			resultType = FLOAT;
 		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
 			resultType = LONG;
@@ -413,7 +413,7 @@ public class MathUtils {
 		TypeToken<? extends Number> resultType;
 		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
 			resultType = DOUBLE;
-		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+		else if (FLOAT.isAssignableFrom(n1.getType().unwrap()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
 			resultType = FLOAT;
 		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
 			resultType = LONG;
@@ -463,7 +463,7 @@ public class MathUtils {
 		TypeToken<? extends Number> resultType;
 		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
 			resultType = DOUBLE;
-		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+		else if (FLOAT.isAssignableFrom(n1.getType().unwrap()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
 			resultType = FLOAT;
 		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
 			resultType = LONG;
@@ -513,7 +513,7 @@ public class MathUtils {
 		TypeToken<? extends Number> resultType;
 		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
 			resultType = DOUBLE;
-		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+		else if (FLOAT.isAssignableFrom(n1.getType().unwrap()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
 			resultType = FLOAT;
 		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
 			resultType = LONG;
@@ -561,7 +561,7 @@ public class MathUtils {
 		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
 			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() % num2.doubleValue()), n2, true);
-		else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
+		else if (FLOAT.isAssignableFrom(n1.getType().unwrap()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
 			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() % num2.floatValue()), n2, true);
 		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
 			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() % num2.longValue()), n2, true);

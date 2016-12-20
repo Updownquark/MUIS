@@ -163,14 +163,22 @@ class AntlrPropertyEvaluator {
 				} else if (!QuickUtils.isAssignableFrom(var.getType(), testType)) {
 					parseEnv.msg().error(cast.getValue() + " is never an instance of " + cast.getType());
 					return var.mapV((TypeToken<Object>) testType, v -> {
-						if (v == null)
-							return null;
-						else
+						if (v == null) {
+							if (testType.isPrimitive())
+								throw new NullPointerException("null cannot be cast to " + testType);
+							else
+								return null;
+						} else
 							throw new ClassCastException(v + " is not an instance of " + testType);
 					}, true);
 				} else {
 					return var.mapV((TypeToken<Object>) testType, v -> {
-						if (testType.getRawType().isInstance(v))
+						if (v == null) {
+							if (testType.isPrimitive())
+								throw new NullPointerException("null cannot be cast to " + testType);
+							else
+								return null;
+						} else if (testType.getRawType().isInstance(v))
 							return v;
 						else if (QuickUtils.isAssignableFrom(testType, TypeToken.of(v.getClass())))
 							return QuickUtils.convert(testType, v);
@@ -182,7 +190,12 @@ class AntlrPropertyEvaluator {
 				}
 			} else {
 				return var.mapV((TypeToken<Object>) testType, v -> {
-					if (testType.getRawType().isInstance(v))
+					if (v == null) {
+						if (testType.isPrimitive())
+							throw new NullPointerException("null cannot be cast to " + testType);
+						else
+							return null;
+					} else if (testType.getRawType().isInstance(v))
 						return v;
 					else if (QuickUtils.isAssignableFrom(testType, TypeToken.of(v.getClass())))
 						return QuickUtils.convert(testType, v);

@@ -744,7 +744,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	public final void relayout(boolean now, Runnable... postActions) {
 		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point laying out if there's nothing to show
-		theLayoutDirtyTime = System.currentTimeMillis();
+		if (theLayoutDirtyTime == 0)
+			theLayoutDirtyTime = System.currentTimeMillis();
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.LayoutEvent(this, now, postActions), now);
 	}
 
@@ -826,7 +827,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	public final void repaint(Rectangle area, boolean now, Runnable... postActions) {
 		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point painting if there's nothing to show
-		thePaintDirtyTime = System.currentTimeMillis();
+		if (thePaintDirtyTime == 0)
+			thePaintDirtyTime = System.currentTimeMillis();
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.PaintEvent(this, area, now, postActions), now);
 	}
 

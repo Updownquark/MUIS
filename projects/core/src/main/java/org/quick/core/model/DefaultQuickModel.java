@@ -484,7 +484,7 @@ public class DefaultQuickModel implements QuickAppModel {
 				}, reverseMapFn, true).filterAccept(allowedFn);
 			} else {
 				TypeToken<ObservableValue<T>> tObs = new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {},
-					(TypeToken<T>) common);
+					(TypeToken<T>) common.wrap());
 				return ObservableValue.flatten(value.mapV(tObs, from -> {
 					return mappings.getOrDefault(from, def);
 				}, true));

@@ -2,6 +2,7 @@ package org.quick.core;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.function.Consumer;
 
 import org.observe.collect.ObservableList;
 import org.quick.core.mgr.QuickMessageCenter;
@@ -35,8 +36,8 @@ public class QuickEnvironment implements QuickParseEnv {
 	private QuickContentCreator theContentCreator;
 	private QuickStyleParser theStyleParser;
 	private QuickPropertyParser thePropertyParser;
+	private ExpressionContext theContext;
 
-	private final DefaultExpressionContext theContext;
 	private final QuickMessageCenter theMessageCenter;
 	private final java.util.Map<String, QuickToolkit> theToolkits;
 	private final QuickCache theCache;
@@ -46,7 +47,6 @@ public class QuickEnvironment implements QuickParseEnv {
 	private ObservableList<StyleSheet> theStyleDependencyController;
 
 	private QuickEnvironment() {
-		theContext = DefaultExpressionContext.build().build();
 		theMessageCenter = new QuickMessageCenter(this, null, null);
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
@@ -173,11 +173,37 @@ public class QuickEnvironment implements QuickParseEnv {
 		public Builder withDefaults() {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.theContext = DefaultExpressionContext.build()//
+				.build();
 			theEnv.theToolkitParser = new org.quick.core.parser.DefaultToolkitParser(theEnv);
 			theEnv.theDocumentParser = new org.quick.core.parser.QuickDomParser(theEnv);
 			theEnv.theContentCreator = new QuickContentCreator();
 			theEnv.theStyleParser = new DefaultStyleParser(theEnv);
 			theEnv.thePropertyParser = new AntlrPropertyParser(theEnv);
+			return this;
+		}
+
+		/**
+		 * @param ctx The context for the environment
+		 * @return This builder
+		 */
+		public Builder setContext(ExpressionContext ctx) {
+			if (isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			theEnv.theContext = ctx;
+			return this;
+		}
+
+		/**
+		 * @param builder A function to build out a default expression context for the environment
+		 * @return This builder This builder
+		 */
+		public Builder buildContext(Consumer<? super DefaultExpressionContext.Builder> builder) {
+			if (isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build();
+			builder.accept(ctxBuilder);
+			theEnv.theContext = ctxBuilder.build();
 			return this;
 		}
 

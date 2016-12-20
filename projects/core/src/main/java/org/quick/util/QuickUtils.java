@@ -418,6 +418,11 @@ public class QuickUtils {
 			throw new IllegalArgumentException(value.getClass() + " cannot be converted to " + type);
 	}
 
+	/**
+	 * @param type1 The first type
+	 * @param type2 The second type
+	 * @return The most specific type that is assignable from both argument types
+	 */
 	public static TypeToken<?> getCommonType(TypeToken<?> type1, TypeToken<?> type2) {
 		if (type1.equals(type2) || QuickUtils.isAssignableFrom(type1, type2))
 			return type1;

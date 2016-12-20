@@ -19,6 +19,7 @@ import org.quick.motion.AnimationManager;
 
 import com.google.common.reflect.TypeToken;
 
+/** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
 	private final SimpleSettableValue<Integer> theInit;
 	private final SimpleSettableValue<Float> theRate;
@@ -34,6 +35,12 @@ public class CounterModel implements QuickAppModel {
 
 	private final Map<String, Object> theModelValues;
 
+	/**
+	 * @param init The initial value for the counter
+	 * @param max The maximum value for the counter. The counter will loop back to its initial value if this value is reached.
+	 * @param rate The rate of increase, in counts/second
+	 * @param maxFrequency The maximum frequency with which the counter will be incremented, in ms
+	 */
 	public CounterModel(int init, int max, float rate, long maxFrequency) {
 		theInit = new SimpleSettableValue<>(int.class, false);
 		theInit.set(init, null);
@@ -148,6 +155,11 @@ public class CounterModel implements QuickAppModel {
 		}
 	}
 
+	/**
+	 * Starts the counter
+	 *
+	 * @return Whether the counter was stopped
+	 */
 	public boolean start() {
 		CounterMotion motion = new CounterMotion(this);
 		if (theMotion.compareAndSet(null, motion)) {
@@ -158,6 +170,11 @@ public class CounterModel implements QuickAppModel {
 		return false;
 	}
 
+	/**
+	 * Stops the counter
+	 *
+	 * @return Whether the counter was running
+	 */
 	public boolean stop() {
 		CounterMotion motion = theMotion.getAndSet(null);
 		if (motion != null) {
@@ -169,29 +186,47 @@ public class CounterModel implements QuickAppModel {
 		return false;
 	}
 
+	/** @return Whether this counter is currently running (may still be {@link #isPaused() paused} */
 	public boolean isRunning() {
 		return theMotion.get() != null;
 	}
 
+	/**
+	 * Sets this counter to its initial value
+	 * 
+	 * @return This counter
+	 */
 	public CounterModel reset() {
 		theValue.set(theInit.get(), null);
 		return this;
 	}
 
+	/**
+	 * Pauses this counter, preserving its current value
+	 * 
+	 * @return This counter
+	 */
 	public CounterModel pause() {
 		isPaused.set(true, null);
 		return this;
 	}
 
+	/**
+	 * Resumes this counter after {@link #pause()}
+	 * 
+	 * @return This counter
+	 */
 	public CounterModel resume() {
 		isPaused.set(false, null);
 		return this;
 	}
 
+	/** @return Whether this counter is paused */
 	public boolean isPaused() {
 		return isPaused.get();
 	}
 
+	/** Builds a CounterModel */
 	public static class Builder implements QuickModelBuilder {
 		private static QuickModelConfigValidator VALIDATOR;
 		static {

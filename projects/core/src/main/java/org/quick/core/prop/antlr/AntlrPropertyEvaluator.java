@@ -157,8 +157,7 @@ class AntlrPropertyEvaluator {
 			ObservableValue<?> var = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), cast.getValue(), actionAccepted, false);
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
-					parseEnv.msg().warn(
-						cast.getValue() + " is always an instance of " + cast.getType() + " (if non-null)");
+					parseEnv.msg().warn(cast.getValue() + " is always an instance of " + cast.getType());
 					return var.mapV((TypeToken<Object>) testType, v -> v, true);
 				} else if (!QuickUtils.isAssignableFrom(var.getType(), testType)) {
 					parseEnv.msg().error(cast.getValue() + " is never an instance of " + cast.getType());
@@ -333,8 +332,8 @@ class AntlrPropertyEvaluator {
 			for (Unit<?, ?> u : units) {
 				if (!QuickUtils.isAssignableFrom(type, u.getToType()))
 					continue;
-				InvokableMatch match = getMatch(new TypeToken[] { u.getFromType() }, false, Arrays.asList(unitValue.getValue()),
-					parseEnv, type, actionAccepted);
+				InvokableMatch match = getMatch(new TypeToken[] { u.getFromType() }, u.getToType(), false,
+					Arrays.asList(unitValue.getValue()), parseEnv, type, actionAccepted);
 				if (match != null && match.compareTo(bestMatch) < 0) {
 					bestUnit = u;
 					bestMatch = match;
@@ -365,9 +364,9 @@ class AntlrPropertyEvaluator {
 				}
 			};
 			if (value instanceof SettableValue && unit.getReverseMap() != null) {
-				return ((SettableValue<Object>) value).mapV(type, forwardMap, reverseMap, true);
+				return ((SettableValue<Object>) value).mapV((TypeToken<T>) bestMatch.returnType, forwardMap, reverseMap, true);
 			} else {
-				return value.mapV(type, forwardMap);
+				return value.mapV((TypeToken<T>) bestMatch.returnType, forwardMap);
 			}
 			// Now harder operations
 		} else if (parsedItem instanceof ExpressionTypes.Constructor) {
@@ -380,8 +379,8 @@ class AntlrPropertyEvaluator {
 			for (Constructor<?> c : typeToCreate.getRawType().getConstructors()) {
 				if (!c.isAccessible())
 					continue;
-				InvokableMatch match = getMatch(c.getGenericParameterTypes(), c.isVarArgs(), constructor.getArguments(), parseEnv, type,
-					actionAccepted);
+				InvokableMatch match = getMatch(c.getGenericParameterTypes(), typeToCreate.getType(), c.isVarArgs(),
+					constructor.getArguments(), parseEnv, type, actionAccepted);
 				if (match != null && match.compareTo(bestMatch) < 0) {
 					bestMatch = match;
 					bestConstructor = c;
@@ -392,7 +391,7 @@ class AntlrPropertyEvaluator {
 			if (!bestMatch.matches)
 				throw new QuickParseException("Constructor " + bestConstructor + " cannot be applied to " + bestMatch.getArgumentTypes());
 			Constructor<?> toInvoke = bestConstructor;
-			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) typeToCreate, args -> {
+			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) bestMatch.returnType, args -> {
 				try {
 					return toInvoke.newInstance(args);
 				} catch (Exception e) {
@@ -501,24 +500,32 @@ class AntlrPropertyEvaluator {
 			for (int i = 0; i < typeArgs.length; i++)
 				typeArgs[i] = getReflectType(parameterTypes.get(i), expected.resolveType(raw.getTypeParameters()[i]), parseEnv);
 		}
+		return new ParameterizedType(raw, typeArgs);
+	}
 
-		class ParameterizedType implements java.lang.reflect.ParameterizedType {
-			@Override
-			public Type getRawType() {
-				return raw;
-			}
+	static class ParameterizedType implements java.lang.reflect.ParameterizedType {
+		private final Type theRawType;
+		private final Type[] theTypeArgs;
 
-			@Override
-			public Type[] getActualTypeArguments() {
-				return typeArgs;
-			}
-
-			@Override
-			public Type getOwnerType() {
-				return null;
-			}
+		ParameterizedType(Type raw, Type[] args) {
+			theRawType = raw;
+			theTypeArgs = args;
 		}
-		return new ParameterizedType();
+
+		@Override
+		public Type getRawType() {
+			return theRawType;
+		}
+
+		@Override
+		public Type[] getActualTypeArguments() {
+			return theTypeArgs;
+		}
+
+		@Override
+		public Type getOwnerType() {
+			return null;
+		}
 	}
 
 	private static Class<?> rawType(String name, QuickParseEnv parseEnv) throws QuickParseException {
@@ -575,11 +582,13 @@ class AntlrPropertyEvaluator {
 
 	static class InvokableMatch implements Comparable<InvokableMatch> {
 		final ObservableValue<?>[] parameters;
+		final TypeToken<?> returnType;
 		final double distance;
 		final boolean matches;
 
-		InvokableMatch(ObservableValue<?>[] parameters, double distance, boolean matches) {
+		InvokableMatch(ObservableValue<?>[] parameters, TypeToken<?> returnType, double distance, boolean matches) {
 			this.parameters = parameters;
+			this.returnType = returnType;
 			this.distance = distance;
 			this.matches = matches;
 		}
@@ -620,15 +629,17 @@ class AntlrPropertyEvaluator {
 			return null;
 	}
 
-	private static InvokableMatch getMatch(Type[] paramTypes, boolean varArgs, List<QPPExpression> arguments, QuickParseEnv env,
+	private static InvokableMatch getMatch(Type[] paramTypes, Type returnType, boolean varArgs, List<QPPExpression> arguments,
+		QuickParseEnv env,
 		TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		TypeToken<?>[] typeTokenParams = new TypeToken[paramTypes.length];
 		for (int i = 0; i < paramTypes.length; i++)
 			typeTokenParams[i] = type.resolveType(paramTypes[i]);
-		return getMatch(typeTokenParams, varArgs, arguments, env, type, actionAccepted);
+		return getMatch(typeTokenParams, type.resolveType(returnType), varArgs, arguments, env, type, actionAccepted);
 	}
 
-	private static InvokableMatch getMatch(TypeToken<?>[] paramTypes, boolean varArgs, List<QPPExpression> arguments,
+	private static InvokableMatch getMatch(TypeToken<?>[] paramTypes, TypeToken<?> returnType, boolean varArgs,
+		List<QPPExpression> arguments,
 		QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		TypeToken<?>[] argTargetTypes = new TypeToken[arguments.size()];
 		if (paramTypes.length == arguments.size()) {
@@ -645,15 +656,70 @@ class AntlrPropertyEvaluator {
 			return null;
 
 		ObservableValue<?>[] args = new ObservableValue[arguments.size()];
-		for (int i = 0; i < args.length; i++) {
+		for (int i = 0; i < args.length; i++)
 			args[i] = evaluateTypeless(parseEnv, argTargetTypes[i], arguments.get(i), actionAccepted, false);
+
+		Map<TypeToken<?>, TypeToken<?>> typeVariables = new HashMap<>();
+		for (int i = 0; i < argTargetTypes.length; i++)
+			resolveTypeVariables(argTargetTypes[i], args[i].getType(), typeVariables);
+		for (int i = 0; i < argTargetTypes.length; i++)
+			argTargetTypes[i] = resolveParams(argTargetTypes[i], typeVariables);
+
+		for (int i = 0; i < args.length; i++) {
 			if (!QuickUtils.isAssignableFrom(argTargetTypes[i], args[i].getType()))
-				return new InvokableMatch(args, 0, false);
+				return new InvokableMatch(args, resolveParams(returnType, typeVariables), 0, false);
 		}
 		double distance = 0;
 		for (int i = 0; i < paramTypes.length && i < args.length; i++)
-			distance += getDistance(paramTypes[i].wrap(), args[i].getType().wrap());
-		return new InvokableMatch(args, distance, true);
+			distance += getDistance(argTargetTypes[i].wrap(), args[i].getType().wrap());
+		return new InvokableMatch(args, resolveParams(returnType, typeVariables), distance, true);
+	}
+
+	private static void resolveTypeVariables(TypeToken<?> paramType, TypeToken<?> argType,
+		Map<TypeToken<?>, TypeToken<?>> typeVariables) {
+		if (paramType.getType() instanceof TypeVariable) {
+			TypeToken<?> type = typeVariables.get(paramType);
+			if (type == null)
+				type = argType;
+			else
+				type = QuickUtils.getCommonType(type, argType);
+			typeVariables.put(paramType, type.wrap());
+		} else if (paramType.getType() instanceof ParameterizedType) {
+			ParameterizedType pt = (ParameterizedType) paramType.getType();
+			for (Type subPT : pt.getActualTypeArguments())
+				resolveTypeVariables(TypeToken.of(subPT), argType.resolveType(subPT), typeVariables);
+		} else if (paramType.isArray()) {
+			TypeToken<?> compType = paramType.getComponentType();
+			resolveTypeVariables(compType, argType.resolveType(compType.getType()), typeVariables);
+		}
+	}
+
+	private static TypeToken<?> resolveParams(TypeToken<?> type, Map<TypeToken<?>, TypeToken<?>> typeVariables) {
+		if (type.getType() instanceof TypeVariable)
+			return typeVariables.get(type);
+		else if (type.getType() instanceof ParameterizedType) {
+			ParameterizedType pt = (ParameterizedType) type.getType();
+			boolean changed = false;
+			Type[] typeParams = new Type[pt.getActualTypeArguments().length];
+			for (int i = 0; i < typeParams.length; i++) {
+				TypeToken<?> typeParam = type.resolveType(pt.getActualTypeArguments()[i]);
+				TypeToken<?> resolved = resolveParams(typeParam, typeVariables);
+				typeParams[i] = resolved.getType();
+				changed |= resolved != typeParam;
+			}
+			if (changed)
+				return TypeToken.of(new ParameterizedType(type.getRawType(), typeParams));
+			else
+				return type;
+		} else if (type.isArray()) {
+			TypeToken<?> typeParam = type.getComponentType();
+			TypeToken<?> resolved = resolveParams(typeParam, typeVariables);
+			if (typeParam != resolved)
+				return QuickUtils.arrayTypeOf(resolved);
+			else
+				return type;
+		} else
+			return type;
 	}
 
 	private static double getDistance(TypeToken<?> paramType, TypeToken<?> argType) {
@@ -731,7 +797,7 @@ class AntlrPropertyEvaluator {
 			for (Method m : targetType.getMethods()) {
 				if ((m.getModifiers() & publicStatic) != publicStatic || !m.getName().equals(member.getName()))
 					continue;
-				InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(),
+				InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.getGenericReturnType(), m.isVarArgs(),
 					((ExpressionTypes.MethodInvocation) member).getArguments(), parseEnv, type, actionAccepted);
 				if (match != null && match.compareTo(bestMatch) < 0) {
 					bestMatch = match;
@@ -743,7 +809,7 @@ class AntlrPropertyEvaluator {
 			if (!bestMatch.matches)
 				throw new QuickParseException("Method " + bestMethod + " cannot be applied to " + bestMatch.getArgumentTypes());
 			Method toInvoke = bestMethod;
-			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) type.resolveType(toInvoke.getGenericReturnType()),
+			return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) bestMatch.returnType,
 				args -> {
 					try {
 						return toInvoke.invoke(null, args);
@@ -813,9 +879,9 @@ class AntlrPropertyEvaluator {
 				ExpressionTypes.MethodInvocation method = (ExpressionTypes.MethodInvocation) member;
 				if (fieldVal instanceof ExpressionFunction) {
 					ExpressionFunction<?> fn = (ExpressionFunction<?>) fieldVal;
-					InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
-						parseEnv, type, actionAccepted);
-					return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) fn.getReturnType(), args -> {
+					InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.getReturnType(), fn.isVarArgs(),
+						method.getArguments(), parseEnv, type, actionAccepted);
+					return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) match.returnType, args -> {
 						try {
 							return fn.apply(Arrays.asList(args));
 						} catch (RuntimeException e) {
@@ -859,8 +925,8 @@ class AntlrPropertyEvaluator {
 				for (Method m : context.getType().getRawType().getMethods()) {
 					if (!m.getName().equals(method.getName()) || !m.isAccessible())
 						continue;
-					InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.isVarArgs(), method.getArguments(), parseEnv, type,
-						actionAccepted);
+					InvokableMatch match = getMatch(m.getGenericParameterTypes(), m.getGenericReturnType(), m.isVarArgs(),
+						method.getArguments(), parseEnv, type, actionAccepted);
 					if (match != null && match.compareTo(bestMatch) < 0) {
 						bestMatch = match;
 						bestMethod = m;
@@ -874,8 +940,7 @@ class AntlrPropertyEvaluator {
 				composed[0] = context;
 				System.arraycopy(bestMatch.parameters, 0, composed, 1, bestMatch.parameters.length);
 				Method toInvoke = bestMethod;
-				TypeToken<?> resultType = context.getType().resolveType(toInvoke.getGenericReturnType());
-				return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) resultType, args -> {
+				return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) bestMatch.returnType, args -> {
 					Object ctx = args[0];
 					Object[] params = new Object[args.length - 1];
 					System.arraycopy(args, 1, params, 0, params.length);
@@ -901,8 +966,8 @@ class AntlrPropertyEvaluator {
 		ExpressionFunction<?> bestFunction = null;
 		InvokableMatch bestMatch = null;
 		for (ExpressionFunction<?> fn : functions) {
-			InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.isVarArgs(), method.getArguments(),
-				parseEnv, type, actionAccepted);
+			InvokableMatch match = getMatch(fn.getArgumentTypes().toArray(new TypeToken[0]), fn.getReturnType(), fn.isVarArgs(),
+				method.getArguments(), parseEnv, type, actionAccepted);
 			if (match != null && match.compareTo(bestMatch) < 0) {
 				bestMatch = match;
 				bestFunction = fn;
@@ -913,7 +978,7 @@ class AntlrPropertyEvaluator {
 		else if (!bestMatch.matches)
 			throw new QuickParseException("Function " + bestFunction + " cannot be applied to " + bestMatch.getArgumentTypes());
 		ExpressionFunction<?> toInvoke = bestFunction;
-		return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) toInvoke.getReturnType(), args -> {
+		return new ObservableValue.ComposedObservableValue<>((TypeToken<Object>) bestMatch.returnType, args -> {
 			try {
 				return toInvoke.apply(Arrays.asList(args));
 			} catch (RuntimeException e) {

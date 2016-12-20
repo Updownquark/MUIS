@@ -27,6 +27,7 @@
 		<type tag="counter-model">org.quick.core.model.CounterModel$Builder</type>
 		<!-- Utilities -->
 		<type tag="colors">org.quick.core.style.Colors</type>
+		<type tag="QuickUtil">org.quick.util.QuickExpressionUtils</type>
 	</types>
 	<security />
 </registry>

@@ -6,6 +6,7 @@ import java.awt.Rectangle;
 import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
@@ -415,5 +416,26 @@ public class QuickUtils {
 			return (T) Byte.valueOf(((Number) value).byteValue());
 		else
 			throw new IllegalArgumentException(value.getClass() + " cannot be converted to " + type);
+	}
+
+	public static TypeToken<?> getCommonType(TypeToken<?> type1, TypeToken<?> type2) {
+		if (type1.equals(type2) || QuickUtils.isAssignableFrom(type1, type2))
+			return type1;
+		if (QuickUtils.isAssignableFrom(type2, type1))
+			return type2;
+		// TODO could be smarter about this, looking at interfaces, etc.
+		LinkedHashSet<TypeToken<?>> type1Path = new LinkedHashSet<>();
+		TypeToken<?> copy = type1;
+		while (copy != null) {
+			type1Path.add(copy);
+			copy = copy.getSupertype((Class<Object>) copy.getRawType().getSuperclass());
+		}
+		copy = type2;
+		while (copy != null) {
+			if (type1Path.contains(copy))
+				return copy;
+			copy = copy.getSupertype((Class<Object>) copy.getRawType().getSuperclass());
+		}
+		return TypeToken.of(Object.class);
 	}
 }

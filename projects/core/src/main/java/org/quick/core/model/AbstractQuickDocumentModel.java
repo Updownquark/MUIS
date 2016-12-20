@@ -9,6 +9,7 @@ import java.awt.geom.Point2D;
 import java.util.Iterator;
 
 import org.qommons.IterableUtils;
+import org.qommons.Transaction;
 import org.quick.core.style.QuickStyle;
 import org.quick.util.QuickUtils;
 
@@ -34,19 +35,23 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 	@Override
 	public int length() {
 		int ret = 0;
-		for(StyledSequence seq : this)
-			ret += seq.length();
+		try (Transaction t = holdForRead()) {
+			for (StyledSequence seq : this)
+				ret += seq.length();
+		}
 		return ret;
 	}
 
 	@Override
 	public char charAt(int index) {
 		int pos = 0;
-		for(StyledSequence seq : this) {
-			int seqLen = seq.length();
-			if(pos + seqLen > index)
-				return seq.charAt(index - pos);
-			pos += seqLen;
+		try (Transaction t = holdForRead()) {
+			for (StyledSequence seq : this) {
+				int seqLen = seq.length();
+				if (pos + seqLen > index)
+					return seq.charAt(index - pos);
+				pos += seqLen;
+			}
 		}
 		throw new IndexOutOfBoundsException(index + ">" + pos);
 	}
@@ -57,29 +62,31 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 			throw new IndexOutOfBoundsException(start + ">" + end);
 		StringBuilder ret = null;
 		int pos = 0;
-		for(StyledSequence seq : this) {
-			int seqLen = seq.length();
-			if(ret == null) {
-				if(pos + seqLen >= start) {
-					ret = new StringBuilder();
+		try (Transaction t = holdForRead()) {
+			for (StyledSequence seq : this) {
+				int seqLen = seq.length();
+				if (ret == null) {
+					if (pos + seqLen >= start) {
+						ret = new StringBuilder();
+					}
 				}
-			}
-			if(ret != null) {
-				if(start > pos) {
-					if(end > 0 && pos + seqLen > end)
-						ret.append(seq.subSequence(start - pos, end - pos));
-					else
-						ret.append(seq.subSequence(start - pos, seqLen));
-				} else {
-					if(end > 0 && pos + seqLen > end)
-						ret.append(seq.subSequence(0, end - pos));
-					else
-						ret.append(seq.toString());
+				if (ret != null) {
+					if (start > pos) {
+						if (end > 0 && pos + seqLen > end)
+							ret.append(seq.subSequence(start - pos, end - pos));
+						else
+							ret.append(seq.subSequence(start - pos, seqLen));
+					} else {
+						if (end > 0 && pos + seqLen > end)
+							ret.append(seq.subSequence(0, end - pos));
+						else
+							ret.append(seq.toString());
+					}
 				}
+				pos += seqLen;
+				if (end <= pos)
+					break;
 			}
-			pos += seqLen;
-			if(end <= pos)
-				break;
 		}
 		if(ret == null)
 			throw new IndexOutOfBoundsException(start + ">" + pos);
@@ -155,17 +162,19 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 
 	@Override
 	public QuickStyle getStyleAt(int position) {
-		int pos = 0;
-		QuickStyle last = null;
-		for(StyledSequence seq : this) {
-			last = seq.getStyle();
-			pos += seq.length();
-			if(pos > position)
-				break;
+		try (Transaction t = holdForRead()) {
+			int pos = 0;
+			QuickStyle last = null;
+			for (StyledSequence seq : this) {
+				last = seq.getStyle();
+				pos += seq.length();
+				if (pos > position)
+					break;
+			}
+			if (position > pos)
+				throw new IndexOutOfBoundsException(position + ">" + pos);
+			return last;
 		}
-		if(position > pos)
-			throw new IndexOutOfBoundsException(position + ">" + pos);
-		return last;
 	}
 
 	@Override
@@ -187,13 +196,65 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 
 	@Override
 	public float getPositionAt(float x, float y, int breakWidth) {
-		int pos = 0;
-		float totalH = 0;
-		float lineW = 0, lineH = 0;
-		int linePos = 0;
-		if(y > 0) {
+		try (Transaction t = holdForRead()) {
+			int pos = 0;
+			float totalH = 0;
+			float lineW = 0, lineH = 0;
+			int linePos = 0;
+			if (y > 0) {
+				for (StyledSequenceMetric metric : metrics(0, breakWidth)) {
+					if (metric.isNewLine()) {
+						totalH += lineH;
+						lineH = 0;
+						lineW = 0;
+						linePos = pos;
+					}
+					lineW += metric.getWidth();
+					float h = metric.getHeight();
+					if (h > lineH)
+						lineH = h;
+					if (totalH + lineH > y)
+						break;
+					pos += metric.length();
+				}
+				lineW = 0;
+				pos = linePos;
+			}
+			if (x <= 0)
+				return pos;
+			boolean firstMetric = true;
+			for (StyledSequenceMetric metric : metrics(linePos, breakWidth)) {
+				if (!firstMetric && metric.isNewLine())
+					return pos;
+				firstMetric = false;
+				if (lineW + metric.getWidth() > x) {
+					return pos + metric.getHitPosition(x - lineW);
+				}
+				lineW += metric.getWidth();
+				pos += metric.length();
+			}
+			return pos;
+		}
+	}
+
+	@Override
+	public Point2D getLocationAt(float position, int breakWidth) {
+		if (position < 0)
+			throw new IndexOutOfBoundsException("" + position);
+		if (position == 0)
+			return new Point(0, 0);
+		try (Transaction t = holdForRead()) {
+			if (position > length())
+				throw new IndexOutOfBoundsException(position + ">" + length());
+			float totalH = 0;
+			float lineH = 0;
+			float lineW = 0;
+			int pos = 0;
+			int linePos = 0;
 			for(StyledSequenceMetric metric : metrics(0, breakWidth)) {
 				if(metric.isNewLine()) {
+					if (pos >= position)
+						break;
 					totalH += lineH;
 					lineH = 0;
 					lineW = 0;
@@ -203,67 +264,19 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 				float h = metric.getHeight();
 				if(h > lineH)
 					lineH = h;
-				if(totalH + lineH > y)
-					break;
 				pos += metric.length();
 			}
+			if (position == length())
+				return new Point2D.Float(lineW, totalH);
 			lineW = 0;
 			pos = linePos;
-		}
-		if(x <= 0)
-			return pos;
-		boolean firstMetric = true;
-		for(StyledSequenceMetric metric : metrics(linePos, breakWidth)) {
-			if(!firstMetric && metric.isNewLine())
-				return pos;
-			firstMetric = false;
-			if(lineW + metric.getWidth() > x) {
-				return pos + metric.getHitPosition(x - lineW);
+			for (StyledSequenceMetric metric : metrics(linePos, breakWidth)) {
+				if (pos + metric.length() > position) {
+					return new Point2D.Float(lineW + metric.getLocation(position - pos), totalH);
+				}
+				lineW += metric.getWidth();
+				pos += metric.length();
 			}
-			lineW += metric.getWidth();
-			pos += metric.length();
-		}
-		return pos;
-	}
-
-	@Override
-	public Point2D getLocationAt(float position, int breakWidth) {
-		if(position < 0)
-			throw new IndexOutOfBoundsException("" + position);
-		if(position == 0)
-			return new Point(0, 0);
-		else if(position > length())
-			throw new IndexOutOfBoundsException(position + ">" + length());
-		float totalH = 0;
-		float lineH = 0;
-		float lineW = 0;
-		int pos = 0;
-		int linePos = 0;
-		for(StyledSequenceMetric metric : metrics(0, breakWidth)) {
-			if(metric.isNewLine()) {
-				if(pos >= position)
-					break;
-				totalH += lineH;
-				lineH = 0;
-				lineW = 0;
-				linePos = pos;
-			}
-			lineW += metric.getWidth();
-			float h = metric.getHeight();
-			if(h > lineH)
-				lineH = h;
-			pos += metric.length();
-		}
-		if(position == length())
-			return new Point2D.Float(lineW, totalH);
-		lineW = 0;
-		pos = linePos;
-		for(StyledSequenceMetric metric : metrics(linePos, breakWidth)) {
-			if(pos + metric.length() > position) {
-				return new Point2D.Float(lineW + metric.getLocation(position - pos), totalH);
-			}
-			lineW += metric.getWidth();
-			pos += metric.length();
 		}
 		throw new IllegalStateException("Metrics calculation failed");
 	}
@@ -273,76 +286,77 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 		float totalH = 0;
 		float lineH = 0;
 		org.qommons.FloatList lineHeights = new org.qommons.FloatList();
-		int linePos = 0;
-		int pos = 0;
-		int startLine = -1;
-		int startLinePos = -1;
-		for(StyledSequenceMetric metric : metrics(0, breakWidth)) {
-			if(metric.isNewLine()) {
-				lineHeights.add(lineH);
-				totalH += lineH;
-				if(window != null && startLine < 0 && totalH > window.getMinY()) {
-					startLine = lineHeights.size() - 1;
-					startLinePos = linePos;
-				}
-				if(window != null && totalH > window.getMaxY())
-					break;
-				lineH = 0;
-				linePos = pos;
-			}
-			float h = metric.getHeight();
-			if(h > lineH)
-				lineH = h;
-			pos += metric.length();
-		}
-		lineHeights.add(lineH);
-		totalH += lineH;
-		if(window != null && startLine < 0 && totalH > window.getMinY()) {
-			startLine = lineHeights.size() - 1;
-			startLinePos = linePos;
-		}
-		if(window != null && startLine < 0)
-			return; // No content to draw within window
-		else {
-			startLine = 0;
-			startLinePos = 0;
-		}
-
-		totalH = 0;
-		lineH = 0;
-		float lineW = 0;
-		float startHeight = 0;
-		for(int i = 0; i < startLine - 1; i++)
-			startHeight += lineHeights.get(i);
-		int lineNumber = startLine;
-		totalH = startHeight;
-		lineH = lineHeights.get(startLine);
-		Rectangle oldClip = graphics.getClipBounds();
-		if(window != null)
-			graphics.setClip(window.x, window.y, window.width, window.height);
-		try {
-			boolean firstMetric = true;
-			for(StyledSequenceMetric metric : metrics(startLinePos, breakWidth)) {
-				if(!firstMetric && metric.isNewLine()) {
+		try (Transaction t = holdForRead()) {
+			int linePos = 0;
+			int pos = 0;
+			int startLine = -1;
+			int startLinePos = -1;
+			for (StyledSequenceMetric metric : metrics(0, breakWidth)) {
+				if (metric.isNewLine()) {
+					lineHeights.add(lineH);
 					totalH += lineH;
+					if (window != null && startLine < 0 && totalH > window.getMinY()) {
+						startLine = lineHeights.size() - 1;
+						startLinePos = linePos;
+					}
 					if(window != null && totalH > window.getMaxY())
 						break;
-					lineNumber++;
-					lineH = lineHeights.get(lineNumber);
-					lineW = 0;
+					lineH = 0;
+					linePos = pos;
 				}
-				firstMetric = false;
-				if(window == null
-					|| (lineW < window.getMaxX() && lineW + metric.getWidth() > window.getMinX() && totalH + lineH - metric.getHeight() < window
-							.getMaxY())) {
-					graphics.setFont(QuickUtils.getFont(metric.getStyle()).get());
-					metric.draw(graphics, lineW, totalH + lineH - metric.getHeight());
-				}
-				lineW += metric.getWidth();
+				float h = metric.getHeight();
+				if (h > lineH)
+					lineH = h;
+				pos += metric.length();
 			}
-		} finally {
-			if(window != null)
-				graphics.setClip(oldClip);
+			lineHeights.add(lineH);
+			totalH += lineH;
+			if (window != null && startLine < 0 && totalH > window.getMinY()) {
+				startLine = lineHeights.size() - 1;
+				startLinePos = linePos;
+			}
+			if (window != null && startLine < 0)
+				return; // No content to draw within window
+			else {
+				startLine = 0;
+				startLinePos = 0;
+			}
+
+			totalH = 0;
+			lineH = 0;
+			float lineW = 0;
+			float startHeight = 0;
+			for (int i = 0; i < startLine - 1; i++)
+				startHeight += lineHeights.get(i);
+			int lineNumber = startLine;
+			totalH = startHeight;
+			lineH = lineHeights.get(startLine);
+			Rectangle oldClip = graphics.getClipBounds();
+			if (window != null)
+				graphics.setClip(window.x, window.y, window.width, window.height);
+			try {
+				boolean firstMetric = true;
+				for (StyledSequenceMetric metric : metrics(startLinePos, breakWidth)) {
+					if (!firstMetric && metric.isNewLine()) {
+						totalH += lineH;
+						if (window != null && totalH > window.getMaxY())
+							break;
+						lineNumber++;
+						lineH = lineHeights.get(lineNumber);
+						lineW = 0;
+					}
+					firstMetric = false;
+					if (window == null || (lineW < window.getMaxX() && lineW + metric.getWidth() > window.getMinX()
+						&& totalH + lineH - metric.getHeight() < window.getMaxY())) {
+						graphics.setFont(QuickUtils.getFont(metric.getStyle()).get());
+						metric.draw(graphics, lineW, totalH + lineH - metric.getHeight());
+					}
+					lineW += metric.getWidth();
+				}
+			} finally {
+				if (window != null)
+					graphics.setClip(oldClip);
+			}
 		}
 	}
 

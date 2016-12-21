@@ -312,13 +312,13 @@ public class MathUtils {
 			throw new IllegalArgumentException("Negate cannot be applied to operand type " + value.getType());
 		ObservableValue<? extends Number> n = mathableToNumber(value);
 		if (DOUBLE.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Double>) n).mapV(v -> -v);
+			return ((ObservableValue<Double>) n).mapV(DOUBLE, v -> -v, true);
 		else if (FLOAT.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Float>) n).mapV(v -> -v);
+			return ((ObservableValue<Float>) n).mapV(FLOAT, v -> -v, true);
 		else if (LONG.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Long>) n).mapV(v -> -v);
+			return ((ObservableValue<Long>) n).mapV(LONG, v -> -v, true);
 		else
-			return ((ObservableValue<? extends Number>) n).mapV(INT, v -> -v.intValue());
+			return ((ObservableValue<? extends Number>) n).mapV(INT, v -> -v.intValue(), true);
 	}
 
 	/**
@@ -333,14 +333,14 @@ public class MathUtils {
 			throw new IllegalArgumentException("Complement cannot be applied to operand type " + value.getType());
 		ObservableValue<? extends Number> n = mathableToNumber(value);
 		if (LONG.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Long>) n).mapV(LONG, v -> ~v);
+			return ((ObservableValue<Long>) n).mapV(LONG, v -> ~v, true);
 		else
-			return ((ObservableValue<? extends Number>) n).mapV(INT, v -> ~v.intValue());
+			return ((ObservableValue<? extends Number>) n).mapV(INT, v -> ~v.intValue(), true);
 	}
 
 	/**
 	 * Applies the boolean not operation
-	 * 
+	 *
 	 * @param value The operand
 	 * @return The result
 	 * @throws IllegalArgumentException If the operator cannot be applied to the given operand

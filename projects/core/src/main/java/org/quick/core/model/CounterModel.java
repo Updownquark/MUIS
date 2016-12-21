@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.observe.ObservableValue;
+import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
@@ -27,12 +27,16 @@ public class CounterModel implements QuickAppModel {
 	private final long theMaxFrequency;
 
 	private final SimpleSettableValue<Integer> theValue;
+	private final SettableValue<Boolean> isLooping;
 	private final SimpleSettableValue<Boolean> isRunning;
-	private final SimpleSettableValue<Boolean> isPaused;
+
+	private final SettableValue<Integer> theExposedInit;
+	private final SettableValue<Float> theExposedRate;
+	private final SettableValue<Integer> theExposedMax;
+	private final SettableValue<Integer> theExposedValue;
+	private final SettableValue<Boolean> theExposedRunning;
 
 	private long theLastUpdateTime;
-	private long thePauseTime;
-	private long thePauseAmount;
 	private AtomicReference<CounterMotion> theMotion;
 
 	private final Map<String, Object> theModelValues;
@@ -54,102 +58,72 @@ public class CounterModel implements QuickAppModel {
 
 		theValue = new SimpleSettableValue<>(TypeToken.of(int.class), false);
 		theValue.set(init, null);
+		isLooping = new SimpleSettableValue<>(TypeToken.of(boolean.class), false);
+		isLooping.set(true, null);
 		isRunning = new SimpleSettableValue<>(boolean.class, false);
 		isRunning.set(false, null);
-		isPaused = new SimpleSettableValue<>(boolean.class, false);
-		isPaused.set(false, null);
-		isPaused.value().act(paused -> {
-			if (paused) {
-				thePauseTime = System.currentTimeMillis();
-			} else {
-				thePauseAmount = System.currentTimeMillis() - thePauseTime;
-				thePauseTime = 0;
-			}
-		});
 
 		theMotion = new AtomicReference<>();
 
-		Map<String, Object> modelValues = new LinkedHashMap<>();
-		modelValues.put("value", theValue.unsettable());
-		modelValues.put("init", theInit.filterAccept(v -> {
+		theInit.act(evt -> {
+			if (theValue.get() < evt.getValue())
+				theValue.set(evt.getValue(), evt);
+		});
+		theMax.act(evt -> {
+			if (theValue.get() > evt.getValue())
+				theValue.set(theInit.get(), evt);
+		});
+		isRunning.value().act(running -> {
+			if (running)
+				start();
+			else
+				stop();
+		});
+
+		theExposedInit = theInit.filterAccept(v -> {
 			if (v >= theMax.get())
 				return "init must be less than max";
-			else if ((theMax.get() - v) / theRate.get() <= theMaxFrequency)
-				return "init must be at most max - " + (theMaxFrequency / 1000f) + "*rate";
 			else
 				return null;
-		}).refresh(theMax));
-		modelValues.put("max", theMax.filterAccept(v -> {
+		}).refresh(theMax);
+		theExposedMax = theMax.filterAccept(v -> {
 			if (v <= theInit.get())
 				return "max must be greater than init";
-			else if ((v - theInit.get()) / theRate.get() <= theMaxFrequency)
-				return "max must be at least init+" + (theMaxFrequency / 1000f) + "*rate";
 			else
 				return null;
-		}).refresh(theInit));
-		modelValues.put("rate", theRate.filterAccept(v -> {
+		}).refresh(theInit);
+		theExposedRate = theRate.filterAccept(v -> {
 			if (Float.isNaN(v))
 				return "rate must be a number";
-			else if (v <= 0)
-				return "rate must be a positive number";
+			else if (v == 0)
+				return "rate must be non-zero";
 			else if (Float.isInfinite(v))
 				return "rate must not be infinite";
-			else if ((theMax.get() - theInit.get()) / v <= theMaxFrequency)
-				return "rate must be at most (max - init)/" + (theMaxFrequency / 1000f);
 			else
 				return null;
-		}));
-		modelValues.put("running", isRunning.unsettable());
-		modelValues.put("paused", isPaused);
-		modelValues.put("start", new org.observe.ObservableAction<Boolean>() {
-			@Override
-			public TypeToken<Boolean> getType() {
-				return isRunning.getType();
-			}
-
-			@Override
-			public Boolean act(Object cause) throws IllegalStateException {
-				return start();
-			}
-
-			@Override
-			public ObservableValue<String> isEnabled() {
-				return isRunning.mapV(running -> running ? "Already started" : null);
-			}
 		});
-		modelValues.put("reset", new org.observe.ObservableAction<Boolean>() {
-			@Override
-			public TypeToken<Boolean> getType() {
-				return TypeToken.of(boolean.class);
-			}
-
-			@Override
-			public Boolean act(Object cause) throws IllegalStateException {
-				reset();
-				return true;
-			}
-
-			@Override
-			public ObservableValue<String> isEnabled() {
-				return theValue.combineV((v, initial) -> v.equals(initial) ? "Value is reset" : null, theInit);
-			}
+		theExposedValue = theValue.filterAccept(v -> {
+			if (v < theInit.get())
+				return "value may not be less than init";
+			else if (v > theMax.get())
+				return "value may not be greater than max";
+			else
+				return null;
+		}).refresh(theInit).refresh(theMax);
+		theExposedRunning = isRunning.filterAccept(running -> {
+			if (running == isRunning.get())
+				return "Already " + (running ? "running" : "stopped");
+			else
+				return null;
 		});
-		modelValues.put("stop", new org.observe.ObservableAction<Boolean>() {
-			@Override
-			public TypeToken<Boolean> getType() {
-				return isRunning.getType();
-			}
 
-			@Override
-			public Boolean act(Object cause) throws IllegalStateException {
-				return stop();
-			}
-
-			@Override
-			public ObservableValue<String> isEnabled() {
-				return isRunning.mapV(running -> running ? null : "Already stopped");
-			}
-		});
+		Map<String, Object> modelValues = new LinkedHashMap<>();
+		modelValues.put("init", theExposedInit);
+		modelValues.put("max", theExposedMax);
+		modelValues.put("rate", theExposedRate);
+		modelValues.put("value", theExposedValue);
+		modelValues.put("looping", isLooping);
+		modelValues.put("running", theExposedRunning);
 		theModelValues = Collections.unmodifiableMap(modelValues);
 	}
 
@@ -163,20 +137,61 @@ public class CounterModel implements QuickAppModel {
 		return theModelValues.get(name);
 	}
 
+	/** @return A settable value that exposes and controls the initial value (and lower bound) of this counter's value */
+	public SettableValue<Integer> getInit() {
+		return theExposedInit;
+	}
+
+	/** @return A settable value that exposes and controls the maximum for this counter's value */
+	public SettableValue<Integer> getMax() {
+		return theExposedMax;
+	}
+
+	/** @return A settable value that exposes and controls the rate of increase for this counter's value */
+	public SettableValue<Float> getRate() {
+		return theExposedRate;
+	}
+
+	/** @return A settable value that exposes and controls this counter's value directly */
+	public SettableValue<Integer> getValue() {
+		return theExposedValue;
+	}
+
+	/**
+	 * @return A settable value that exposes and controls whether this counter loops back around and keeps running or stops at its bounds
+	 */
+	public SettableValue<Boolean> isLooping() {
+		return isLooping;
+	}
+
+	/** @return A settable value that exposes and controls whether this counter is currently increasing its value */
+	public SettableValue<Boolean> isRunning() {
+		return theExposedRunning;
+	}
+
 	long getMaxFrequency() {
 		return theMaxFrequency;
 	}
 
 	void update(long time) {
-		long diff = time - theLastUpdateTime - thePauseAmount;
-		thePauseAmount = 0;
+		long diff = time - theLastUpdateTime;
 		int steps = (int) (diff * theRate.get() / 1000);
-		if (steps > 0) {
+		if (steps != 0) {
 			int newValue = theValue.get() + steps;
 			int max = theMax.get();
+			int init = theInit.get();
 			if (newValue > max) {
-				int init = theInit.get();
-				newValue = init + (newValue - init) % (max - init);
+				if (!isLooping.get()) {
+					stop();
+					newValue = max;
+				} else
+					newValue = init + (newValue - init) % (max - init);
+			} else if (newValue < init) {
+				if (!isLooping.get()) {
+					stop();
+					newValue = init;
+				} else
+					newValue = max - (init - newValue) % (max - init);
 			}
 			theLastUpdateTime = time;
 			theValue.set(newValue, null);
@@ -188,7 +203,7 @@ public class CounterModel implements QuickAppModel {
 	 *
 	 * @return Whether the counter was stopped
 	 */
-	public boolean start() {
+	private boolean start() {
 		CounterMotion motion = new CounterMotion(this);
 		if (theMotion.compareAndSet(null, motion)) {
 			isRunning.set(true, null);
@@ -203,7 +218,7 @@ public class CounterModel implements QuickAppModel {
 	 *
 	 * @return Whether the counter was running
 	 */
-	public boolean stop() {
+	private boolean stop() {
 		CounterMotion motion = theMotion.getAndSet(null);
 		if (motion != null) {
 			theLastUpdateTime = 0;
@@ -212,46 +227,6 @@ public class CounterModel implements QuickAppModel {
 			return true;
 		}
 		return false;
-	}
-
-	/** @return Whether this counter is currently running (may still be {@link #isPaused() paused} */
-	public boolean isRunning() {
-		return theMotion.get() != null;
-	}
-
-	/**
-	 * Sets this counter to its initial value
-	 *
-	 * @return This counter
-	 */
-	public CounterModel reset() {
-		theValue.set(theInit.get(), null);
-		return this;
-	}
-
-	/**
-	 * Pauses this counter, preserving its current value
-	 *
-	 * @return This counter
-	 */
-	public CounterModel pause() {
-		isPaused.set(true, null);
-		return this;
-	}
-
-	/**
-	 * Resumes this counter after {@link #pause()}
-	 *
-	 * @return This counter
-	 */
-	public CounterModel resume() {
-		isPaused.set(false, null);
-		return this;
-	}
-
-	/** @return Whether this counter is paused */
-	public boolean isPaused() {
-		return isPaused.get();
 	}
 
 	/** Builds a CounterModel */
@@ -324,8 +299,7 @@ public class CounterModel implements QuickAppModel {
 			CounterModel model = theModel.get();
 			if (model == null)
 				return true;
-			if (!model.isPaused())
-				model.update(time);
+			model.update(time);
 			return false;
 		}
 

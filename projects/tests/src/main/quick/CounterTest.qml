@@ -31,12 +31,12 @@
 	    	Blue: <label value="model.blue" />
     	</block>
     	<block layout="box" height="40">
-    		<button action="model.counter.paused=!model.counter.paused">
-    			<label value="model.counter.paused ? &quot;Resume&quot; : &quot;Pause&quot;" />
-    		</button>
-    		<button action="model.counter.reset()">Reset</button>
-    		<button action="model.counter.start()">Start</button>
-    		<button action="model.counter.stop()">Stop</button>
+    		<toggle-button selected="model.counter.running">
+    			<label value="model.counter.running ? &quot;Pause&quot; : &quot;Resume&quot;" />
+    		</toggle-button>
+    		<toggle-button selected="model.counter.looping">Looping</toggle-button>
+    		<button action="model.counter.rate=-model.counter.rate">Reverse</button>
+    		<button action="model.counter.value=model.counter.init">Reset</button>
     	</block>
     	<block style="bg.transparency=0;bg.color=${rgb(model.red, model.green, model.blue)}" />
     </body>

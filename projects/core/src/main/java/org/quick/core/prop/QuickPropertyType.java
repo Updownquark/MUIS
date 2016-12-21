@@ -538,24 +538,34 @@ public final class QuickPropertyType<T> {
 					.withFunction("rgb", ExpressionFunction.build(new TriFunction<Integer, Integer, Integer, Color>() {
 						@Override
 						public Color apply(Integer r, Integer g, Integer b) {
+							if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255)
+								throw new IllegalArgumentException(
+									"Invalid color: all values must be 0<=v<=255: rgb(" + r + ", " + g + ", " + b + ")");
 							return new Color(r, g, b);
 						}
 					}))//
 					.withFunction("hsb", ExpressionFunction.build(new TriFunction<Float, Float, Float, Color>() {
 						@Override
 						public Color apply(Float h, Float s, Float b) {
+							if (h < 0 || h >= 1 || s < 0 || s > 1 || b < 0 || b > 1)
+								throw new IllegalArgumentException(
+									"Invalid color: all values must be 0<=v<1: hsb(" + h + ", " + s + ", " + b + ")");
 							return Color.getHSBColor(h, s, b);
 						}
 					}))//
 					.withFunction("brighten", ExpressionFunction.build(new BiFunction<Color, Float, Color>() {
 						@Override
 						public Color apply(Color c, Float b) {
+							if (b < 0 || b > 1)
+								throw new IllegalArgumentException("Invalid brightening: value must be 0<=v<1: " + b);
 							return ColorUtils.bleach(c, b);
 						}
 					}))//
 					.withFunction("darken", ExpressionFunction.build(new BiFunction<Color, Float, Color>() {
 						@Override
 						public Color apply(Color c, Float d) {
+							if (d < 0 || d > 1)
+								throw new IllegalArgumentException("Invalid darkening: value must be 0<=v<1: " + d);
 							return ColorUtils.stain(c, d);
 						}
 					}));

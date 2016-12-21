@@ -158,17 +158,17 @@ public class MathUtils {
 		ObservableValue<Integer> comp = compare(v1, v2);
 		switch (op) {
 		case ">":
-			return comp.mapV(c -> c > 0);
+			return comp.mapV(BOOLEAN, c -> c > 0, true);
 		case ">=":
-			return comp.mapV(c -> c >= 0);
+			return comp.mapV(BOOLEAN, c -> c >= 0, true);
 		case "<":
-			return comp.mapV(c -> c < 0);
+			return comp.mapV(BOOLEAN, c -> c < 0, true);
 		case "<=":
-			return comp.mapV(c -> c <= 0);
+			return comp.mapV(BOOLEAN, c -> c <= 0, true);
 		case "==":
-			return comp.mapV(c -> c == 0);
+			return comp.mapV(BOOLEAN, c -> c == 0, true);
 		case "!=":
-			return comp.mapV(c -> c != 0);
+			return comp.mapV(BOOLEAN, c -> c != 0, true);
 		}
 		throw new IllegalArgumentException("Unrecognized comparison operatior: " + op);
 	}
@@ -189,7 +189,7 @@ public class MathUtils {
 				return ((SettableValue<Character>) v).mapV(INT, c -> Integer.valueOf(c.charValue()),
 					i -> Character.valueOf((char) i.intValue()), false);
 			else
-				return ((ObservableValue<Character>) v).mapV(c -> Integer.valueOf(c.charValue()));
+				return ((ObservableValue<Character>) v).mapV(INT, c -> Integer.valueOf(c.charValue()), true);
 		} else
 			throw new IllegalArgumentException("Type " + v.getClass().getName() + " is not mathable");
 	}

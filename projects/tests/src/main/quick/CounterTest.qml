@@ -4,7 +4,7 @@
     <head>
         <title>Counter Test</title>
         <model name="model" builder="default-model">
-	        <model name="counter" builder="counter-model" init="0" max="299" rate="100mi" max-frequency="100mi" />
+	        <model name="counter" builder="counter-model" min="0" max="299" rate="100mi" max-frequency="100mi" />
 	        <value name="value">this.counter.value/100f</value>
         	<switch name="red" value="(int)Math.floor(this.value)">
         		<case value="0">(int) (this.value*255)</case>
@@ -35,8 +35,10 @@
     			<label value="model.counter.running ? &quot;Pause&quot; : &quot;Resume&quot;" />
     		</toggle-button>
     		<toggle-button selected="model.counter.looping">Looping</toggle-button>
-    		<button action="model.counter.rate=-model.counter.rate">Reverse</button>
-    		<button action="model.counter.value=model.counter.init">Reset</button>
+    		<button action="model.counter.rate=-model.counter.rate">
+    			<label value="model.counter.rate&lt;0 ? &quot;Forward&quot; : &quot;Reverse&quot;" />
+   			</button>
+    		<button action="model.counter.value=model.counter.min">Reset</button>
     	</block>
     	<block style="bg.transparency=0;bg.color=${rgb(model.red, model.green, model.blue)}" />
     </body>

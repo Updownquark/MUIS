@@ -21,7 +21,7 @@ import com.google.common.reflect.TypeToken;
 
 /** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
-	private final SimpleSettableValue<Integer> theInit;
+	private final SimpleSettableValue<Integer> theMin;
 	private final SimpleSettableValue<Float> theRate;
 	private final SimpleSettableValue<Integer> theMax;
 	private final long theMaxFrequency;
@@ -38,18 +38,19 @@ public class CounterModel implements QuickAppModel {
 
 	private long theLastUpdateTime;
 	private AtomicReference<CounterMotion> theMotion;
+	private volatile boolean skipLoopStop;
 
 	private final Map<String, Object> theModelValues;
 
 	/**
-	 * @param init The initial value for the counter
+	 * @param min The minimum (and initial) value for the counter
 	 * @param max The maximum value for the counter. The counter will loop back to its initial value if this value is reached.
 	 * @param rate The rate of increase, in counts/second
 	 * @param maxFrequency The maximum frequency with which the counter will be incremented, in ms
 	 */
-	public CounterModel(int init, int max, float rate, long maxFrequency) {
-		theInit = new SimpleSettableValue<>(int.class, false);
-		theInit.set(init, null);
+	public CounterModel(int min, int max, float rate, long maxFrequency) {
+		theMin = new SimpleSettableValue<>(int.class, false);
+		theMin.set(min, null);
 		theMax = new SimpleSettableValue<>(int.class, false);
 		theMax.set(max, null);
 		theRate = new SimpleSettableValue<>(float.class, false);
@@ -57,7 +58,7 @@ public class CounterModel implements QuickAppModel {
 		theMaxFrequency = maxFrequency;
 
 		theValue = new SimpleSettableValue<>(TypeToken.of(int.class), false);
-		theValue.set(init, null);
+		theValue.set(min, null);
 		isLooping = new SimpleSettableValue<>(TypeToken.of(boolean.class), false);
 		isLooping.set(true, null);
 		isRunning = new SimpleSettableValue<>(boolean.class, false);
@@ -65,33 +66,34 @@ public class CounterModel implements QuickAppModel {
 
 		theMotion = new AtomicReference<>();
 
-		theInit.act(evt -> {
+		theMin.act(evt -> {
 			if (theValue.get() < evt.getValue())
 				theValue.set(evt.getValue(), evt);
 		});
 		theMax.act(evt -> {
 			if (theValue.get() > evt.getValue())
-				theValue.set(theInit.get(), evt);
+				theValue.set(theMin.get(), evt);
 		});
 		isRunning.value().act(running -> {
-			if (running)
+			if (running) {
+				skipLoopStop = true;
 				start();
-			else
+			} else
 				stop();
 		});
 
-		theExposedInit = theInit.filterAccept(v -> {
+		theExposedInit = theMin.filterAccept(v -> {
 			if (v >= theMax.get())
-				return "init must be less than max";
+				return "min must be less than max";
 			else
 				return null;
 		}).refresh(theMax);
 		theExposedMax = theMax.filterAccept(v -> {
-			if (v <= theInit.get())
-				return "max must be greater than init";
+			if (v <= theMin.get())
+				return "max must be greater than min";
 			else
 				return null;
-		}).refresh(theInit);
+		}).refresh(theMin);
 		theExposedRate = theRate.filterAccept(v -> {
 			if (Float.isNaN(v))
 				return "rate must be a number";
@@ -103,13 +105,17 @@ public class CounterModel implements QuickAppModel {
 				return null;
 		});
 		theExposedValue = theValue.filterAccept(v -> {
-			if (v < theInit.get())
-				return "value may not be less than init";
+			if (v < theMin.get())
+				return "value may not be less than min";
 			else if (v > theMax.get())
 				return "value may not be greater than max";
 			else
 				return null;
-		}).refresh(theInit).refresh(theMax);
+		}).refresh(theMin).refresh(theMax).onSet(v -> {
+			// Allow the counter to keep counting backwards from min if the value is reset to min externally while going backward
+			if (isRunning.get() && v == theMin.get())
+				skipLoopStop = true;
+		});
 		theExposedRunning = isRunning.filterAccept(running -> {
 			if (running == isRunning.get())
 				return "Already " + (running ? "running" : "stopped");
@@ -118,7 +124,7 @@ public class CounterModel implements QuickAppModel {
 		});
 
 		Map<String, Object> modelValues = new LinkedHashMap<>();
-		modelValues.put("init", theExposedInit);
+		modelValues.put("min", theExposedInit);
 		modelValues.put("max", theExposedMax);
 		modelValues.put("rate", theExposedRate);
 		modelValues.put("value", theExposedValue);
@@ -174,24 +180,28 @@ public class CounterModel implements QuickAppModel {
 	}
 
 	void update(long time) {
+		if (!isRunning.get())
+			return;
 		long diff = time - theLastUpdateTime;
 		int steps = (int) (diff * theRate.get() / 1000);
 		if (steps != 0) {
+			boolean doSkipLoopStop = skipLoopStop;
+			skipLoopStop = false;
 			int newValue = theValue.get() + steps;
 			int max = theMax.get();
-			int init = theInit.get();
+			int min = theMin.get();
 			if (newValue > max) {
-				if (!isLooping.get()) {
+				if (!doSkipLoopStop && !isLooping.get()) {
 					stop();
 					newValue = max;
 				} else
-					newValue = init + (newValue - init) % (max - init);
-			} else if (newValue < init) {
-				if (!isLooping.get()) {
+					newValue = min + (newValue - min) % (max - min);
+			} else if (newValue < min) {
+				if (!doSkipLoopStop && !isLooping.get()) {
 					stop();
-					newValue = init;
+					newValue = min;
 				} else
-					newValue = max - (init - newValue) % (max - init);
+					newValue = max - (min - newValue - 1) % (max - min);
 			}
 			theLastUpdateTime = time;
 			theValue.set(newValue, null);
@@ -206,7 +216,9 @@ public class CounterModel implements QuickAppModel {
 	private boolean start() {
 		CounterMotion motion = new CounterMotion(this);
 		if (theMotion.compareAndSet(null, motion)) {
-			isRunning.set(true, null);
+			theLastUpdateTime = 0;
+			if (!isRunning.get())
+				isRunning.set(true, null);
 			AnimationManager.get().start(motion);
 			return true;
 		}
@@ -221,9 +233,10 @@ public class CounterModel implements QuickAppModel {
 	private boolean stop() {
 		CounterMotion motion = theMotion.getAndSet(null);
 		if (motion != null) {
+			if (isRunning.get())
+				isRunning.set(false, null);
 			theLastUpdateTime = 0;
 			motion.stop();
-			isRunning.set(false, null);
 			return true;
 		}
 		return false;
@@ -234,7 +247,7 @@ public class CounterModel implements QuickAppModel {
 		private static QuickModelConfigValidator VALIDATOR;
 		static {
 			VALIDATOR = QuickModelConfigValidator.build()//
-				.forConfig("init", b -> {
+				.forConfig("min", b -> {
 					b.withText(true).atMost(1);
 				}).forConfig("max", b -> {
 					b.withText(true).atMost(1);
@@ -251,7 +264,7 @@ public class CounterModel implements QuickAppModel {
 		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
-			int init = Integer.parseInt(config.getString("init", "0"));
+			int min = Integer.parseInt(config.getString("min", "0"));
 			int max = Integer.parseInt(config.getString("max", "" + Integer.MAX_VALUE));
 			float rate = 1000f
 				/ QuickPropertyType.duration.getSelfParser().parse(parser, parseEnv, config.getString("rate")).get().toMillis();
@@ -267,15 +280,13 @@ public class CounterModel implements QuickAppModel {
 				throw new QuickParseException("rate must not be infinite");
 			if (rate <= 0)
 				throw new QuickParseException("rate must be positive");
-			if (max <= init)
-				throw new QuickParseException("max must be greater than init");
+			if (max <= min)
+				throw new QuickParseException("max must be greater than min");
 			if (maxFrequency < 10)
 				throw new QuickParseException("max-frequency must be at least 10 milliseconds");
-			if (max - init < maxFrequency * rate / 1000)
-				throw new QuickParseException("max - init must be at least max-frequency*rate");
-			CounterModel counter = new CounterModel(init, max, rate, maxFrequency);
+			CounterModel counter = new CounterModel(min, max, rate, maxFrequency);
 			if (start)
-				counter.start();
+				counter.isRunning().set(true, null);
 			return counter;
 		}
 	}

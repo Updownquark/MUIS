@@ -413,7 +413,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 
 			@Override
 			public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
-				Subscription sub = states.simpleChanges().act(v -> new Action<Object>() {
+				Subscription sub = states.simpleChanges().act(new Action<Object>() {
 					private final AtomicBoolean preMatches = new AtomicBoolean(get());
 
 					{

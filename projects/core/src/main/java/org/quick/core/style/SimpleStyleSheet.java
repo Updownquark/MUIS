@@ -6,7 +6,6 @@ import org.observe.ObservableValue;
 import org.observe.assoc.ObservableMultiMap.ObservableMultiEntry;
 import org.observe.assoc.impl.ObservableMultiMapImpl;
 import org.observe.collect.CollectionSession;
-import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
 import org.observe.collect.impl.ObservableHashSet;
@@ -49,7 +48,9 @@ public class SimpleStyleSheet implements MutableStyleSheet {
 
 	@Override
 	public <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr) {
-		return (ObservableSortedSet<StyleConditionValue<T>>) (ObservableCollection<?>) theValues.get(attr);
+		return ((ObservableSortedSet<StyleConditionValue<?>>) theValues.get(attr)).mapEquivalent(
+			new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {}, attr.getType().getType()),
+			v -> (StyleConditionValue<T>) v, v -> v);
 	}
 
 	@Override

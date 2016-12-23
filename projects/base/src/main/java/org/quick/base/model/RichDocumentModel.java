@@ -399,15 +399,6 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		return (RichDocumentModel) super.insert(c);
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		for (StyledSequence seq : this) {
-			sb.append(seq);
-		}
-		return sb.toString();
-	}
-
 	private class RichSegmentStyle implements MutableStyle {
 		private final int theStart;
 

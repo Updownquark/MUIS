@@ -1,15 +1,22 @@
 package org.quick.core.model;
 
+import static org.quick.core.model.QuickDocumentModel.flatten;
+
+import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.font.TextLayout;
 import java.awt.geom.Point2D;
 import java.util.Collections;
 import java.util.Iterator;
 
 import org.observe.*;
+import org.qommons.IterableUtils;
 import org.qommons.Transaction;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.style.QuickStyle;
+import org.quick.util.QuickUtils;
 
 /** Stores and displays text in Quick */
 public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequence> {
@@ -22,7 +29,9 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		QuickStyle getStyle();
 	}
 
-	/** A piece of text with style attributes and metrics information. The content of a StyledSequenceMetrics never contains a line break. */
+	/**
+	 * A piece of text with style attributes and metrics information. The content of a StyledSequenceMetrics never contains a line break.
+	 */
 	public static interface StyledSequenceMetric extends StyledSequence {
 		/** @return The width of this piece of text */
 		float getWidth();
@@ -118,20 +127,92 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 * @param position The position to get the style for
 	 * @return The style at the given position
 	 */
-	QuickStyle getStyleAt(int position);
+	default QuickStyle getStyleAt(int position) {
+		try (Transaction t = holdForRead()) {
+			int pos = 0;
+			QuickStyle last = null;
+			for (StyledSequence seq : this) {
+				last = seq.getStyle();
+				pos += seq.length();
+				if (pos > position)
+					break;
+			}
+			if (position > pos)
+				throw new IndexOutOfBoundsException(position + ">" + pos);
+			return last;
+		}
+	}
 
 	/**
 	 * @param position The position to begin iteration from
 	 * @return This document's content starting from the given position
 	 */
-	Iterable<StyledSequence> iterateFrom(int position);
+	default Iterable<StyledSequence> iterateFrom(final int position) {
+		return iterateFrom(position, Integer.MAX_VALUE);
+	}
 
 	/**
 	 * @param start The position to begin iteration from
 	 * @param end The position to end iteration at
 	 * @return This document's content starting from the given position
 	 */
-	Iterable<StyledSequence> iterateFrom(int start, int end);
+	default Iterable<StyledSequence> iterateFrom(final int start, final int end) {
+		final Iterator<StyledSequence> iterator = iterator();
+		int pos = 0;
+		while (iterator.hasNext()) {
+			final StyledSequence seq = iterator.next();
+			int seqLen = seq.length();
+			if (pos + seqLen > start) {
+				final int fPos = pos;
+				return new Iterable<StyledSequence>() {
+					@Override
+					public Iterator<StyledSequence> iterator() {
+						return new Iterator<StyledSequence>() {
+							private boolean hasReturnedBegin;
+
+							private int thePos = fPos;
+
+							private Iterator<StyledSequence> theBackingIterator = iterator;
+
+							@Override
+							public boolean hasNext() {
+								if (!hasReturnedBegin)
+									return true;
+								else if (thePos >= end)
+									return false;
+								else
+									return theBackingIterator.hasNext();
+							}
+
+							@Override
+							public StyledSequence next() {
+								StyledSequence ret;
+								if (!hasReturnedBegin) {
+									hasReturnedBegin = true;
+									ret = new StyledSubSequence(seq, start - thePos, end - thePos);
+								} else
+									ret = theBackingIterator.next();
+								if (thePos + ret.length() > end)
+									ret = new StyledSubSequence(ret, 0, end - thePos);
+								thePos += ret.length();
+								return ret;
+							}
+
+							@Override
+							public void remove() {
+								throw new UnsupportedOperationException();
+							}
+						};
+					}
+				};
+			}
+			pos += seqLen;
+		}
+		if (pos == start)
+			return java.util.Collections.EMPTY_SET;
+		else
+			throw new IndexOutOfBoundsException(start + ">" + pos);
+	}
 
 	/**
 	 * @param start The starting position within the document
@@ -139,7 +220,11 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 * @return The metrics for this document. The first metric's {@link StyledSequenceMetric#isNewLine() newLine} attribute may be false
 	 *         even if a new line occurred at position start-1.
 	 */
-	Iterable<StyledSequenceMetric> metrics(int start, float breakWidth);
+	default Iterable<StyledSequenceMetric> metrics(final int start, final float breakWidth) {
+		return () -> {
+			return new MetricsIterator(iterateFrom(start).iterator(), breakWidth);
+		};
+	}
 
 	/**
 	 * @param x The x-coordinate, in pixels, relative to this document's top left corner
@@ -147,14 +232,95 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 * @param breakWidth The width, in pixels, to break lines off at in the document
 	 * @return The character position at the given point in the document
 	 */
-	float getPositionAt(float x, float y, int breakWidth);
+	default float getPositionAt(float x, float y, int breakWidth) {
+		try (Transaction t = holdForRead()) {
+			int pos = 0;
+			float totalH = 0;
+			float lineW = 0, lineH = 0;
+			int linePos = 0;
+			if (y > 0) {
+				for (StyledSequenceMetric metric : metrics(0, breakWidth)) {
+					if (metric.isNewLine()) {
+						totalH += lineH;
+						lineH = 0;
+						lineW = 0;
+						linePos = pos;
+					}
+					lineW += metric.getWidth();
+					float h = metric.getHeight();
+					if (h > lineH)
+						lineH = h;
+					if (totalH + lineH > y)
+						break;
+					pos += metric.length();
+				}
+				lineW = 0;
+				pos = linePos;
+			}
+			if (x <= 0)
+				return pos;
+			boolean firstMetric = true;
+			for (StyledSequenceMetric metric : metrics(linePos, breakWidth)) {
+				if (!firstMetric && metric.isNewLine())
+					return pos;
+				firstMetric = false;
+				if (lineW + metric.getWidth() > x) {
+					return pos + metric.getHitPosition(x - lineW);
+				}
+				lineW += metric.getWidth();
+				pos += metric.length();
+			}
+			return pos;
+		}
+	}
 
 	/**
 	 * @param position The character position in the document
 	 * @param breakWidth The width, in pixels, to break lines off at in the document
 	 * @return The position in the document at the given character at the top of the line
 	 */
-	Point2D getLocationAt(float position, int breakWidth);
+	default Point2D getLocationAt(float position, int breakWidth) {
+		if (position < 0)
+			throw new IndexOutOfBoundsException("" + position);
+		if (position == 0)
+			return new Point(0, 0);
+		try (Transaction t = holdForRead()) {
+			if (position > length())
+				throw new IndexOutOfBoundsException(position + ">" + length());
+			float totalH = 0;
+			float lineH = 0;
+			float lineW = 0;
+			int pos = 0;
+			int linePos = 0;
+			for (StyledSequenceMetric metric : metrics(0, breakWidth)) {
+				if (metric.isNewLine()) {
+					if (pos >= position)
+						break;
+					totalH += lineH;
+					lineH = 0;
+					lineW = 0;
+					linePos = pos;
+				}
+				lineW += metric.getWidth();
+				float h = metric.getHeight();
+				if (h > lineH)
+					lineH = h;
+				pos += metric.length();
+			}
+			if (position == length())
+				return new Point2D.Float(lineW, totalH);
+			lineW = 0;
+			pos = linePos;
+			for (StyledSequenceMetric metric : metrics(linePos, breakWidth)) {
+				if (pos + metric.length() > position) {
+					return new Point2D.Float(lineW + metric.getLocation(position - pos), totalH);
+				}
+				lineW += metric.getWidth();
+				pos += metric.length();
+			}
+		}
+		throw new IllegalStateException("Metrics calculation failed");
+	}
 
 	/**
 	 * Draws a portion of this document
@@ -163,10 +329,127 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 * @param window The window within this document to draw
 	 * @param breakWidth The width, in pixels, to break lines off at in the document
 	 */
-	void draw(Graphics2D graphics, Rectangle window, int breakWidth);
+	default void draw(Graphics2D graphics, Rectangle window, int breakWidth) {
+		float totalH = 0;
+		float lineH = 0;
+		org.qommons.FloatList lineHeights = new org.qommons.FloatList();
+		try (Transaction t = holdForRead()) {
+			int linePos = 0;
+			int pos = 0;
+			int startLine = -1;
+			int startLinePos = -1;
+			for (StyledSequenceMetric metric : metrics(0, breakWidth)) {
+				if (metric.isNewLine()) {
+					lineHeights.add(lineH);
+					totalH += lineH;
+					if (window != null && startLine < 0 && totalH > window.getMinY()) {
+						startLine = lineHeights.size() - 1;
+						startLinePos = linePos;
+					}
+					if (window != null && totalH > window.getMaxY())
+						break;
+					lineH = 0;
+					linePos = pos;
+				}
+				float h = metric.getHeight();
+				if (h > lineH)
+					lineH = h;
+				pos += metric.length();
+			}
+			lineHeights.add(lineH);
+			totalH += lineH;
+			if (window != null && startLine < 0 && totalH > window.getMinY()) {
+				startLine = lineHeights.size() - 1;
+				startLinePos = linePos;
+			}
+			if (window != null && startLine < 0)
+				return; // No content to draw within window
+			else {
+				startLine = 0;
+				startLinePos = 0;
+			}
+
+			totalH = 0;
+			lineH = 0;
+			float lineW = 0;
+			float startHeight = 0;
+			for (int i = 0; i < startLine - 1; i++)
+				startHeight += lineHeights.get(i);
+			int lineNumber = startLine;
+			totalH = startHeight;
+			lineH = lineHeights.get(startLine);
+			Rectangle oldClip = graphics.getClipBounds();
+			if (window != null)
+				graphics.setClip(window.x, window.y, window.width, window.height);
+			try {
+				boolean firstMetric = true;
+				for (StyledSequenceMetric metric : metrics(startLinePos, breakWidth)) {
+					if (!firstMetric && metric.isNewLine()) {
+						totalH += lineH;
+						if (window != null && totalH > window.getMaxY())
+							break;
+						lineNumber++;
+						lineH = lineHeights.get(lineNumber);
+						lineW = 0;
+					}
+					firstMetric = false;
+					if (window == null || (lineW < window.getMaxX() && lineW + metric.getWidth() > window.getMinX()
+						&& totalH + lineH - metric.getHeight() < window.getMaxY())) {
+						graphics.setFont(QuickUtils.getFont(metric.getStyle()).get());
+						metric.draw(graphics, lineW, totalH + lineH - metric.getHeight());
+					}
+					lineW += metric.getWidth();
+				}
+			} finally {
+				if (window != null)
+					graphics.setClip(oldClip);
+			}
+		}
+	}
 
 	/** @return A transaction that prevents any other threads from modifying this document model until the transaction is closed */
 	Transaction holdForRead();
+
+	/**
+	 * Creates a sub-document consisting of this document's content after the given position
+	 *
+	 * @param start The starting position for the sub-document
+	 * @return The sub-document
+	 */
+	default QuickDocumentModel subSequence(int start) {
+		return subSequence(start, Integer.MAX_VALUE);
+	}
+
+	@Override
+	default int length() {
+		int ret = 0;
+		try (Transaction t = holdForRead()) {
+			for (StyledSequence seq : this)
+				ret += seq.length();
+		}
+		return ret;
+	}
+
+	@Override
+	default char charAt(int index) {
+		int pos = 0;
+		try (Transaction t = holdForRead()) {
+			for (StyledSequence seq : this) {
+				int seqLen = seq.length();
+				if (pos + seqLen > index)
+					return seq.charAt(index - pos);
+				pos += seqLen;
+			}
+		}
+		throw new IndexOutOfBoundsException(index + ">" + pos);
+	}
+
+	@Override
+	default QuickDocumentModel subSequence(int start, int end) {
+		if (start > end)
+			throw new IndexOutOfBoundsException(start + ">" + end);
+		return new SubDocument(this, start, end);
+	}
 
 	/**
 	 * @param modelWrapper An observable value that supplies documents
@@ -174,6 +457,396 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 */
 	public static QuickDocumentModel flatten(ObservableValue<? extends QuickDocumentModel> modelWrapper) {
 		return new FlattenedDocumentModel(modelWrapper);
+	}
+
+	/**
+	 * Implements {@link QuickDocumentModel#iterateFrom(int, int)}
+	 */
+	class StyledSubSequence implements StyledSequence {
+		private final StyledSequence theBacking;
+		private final int theStart;
+		private final int theEnd;
+
+		StyledSubSequence(StyledSequence backing, int start, int end) {
+			theBacking = backing;
+			theStart = start;
+			theEnd = end;
+		}
+
+		@Override
+		public int length() {
+			int end = theEnd;
+			if (theBacking.length() < end)
+				end = theBacking.length();
+			return end - theStart;
+		}
+
+		@Override
+		public char charAt(int index) {
+			return theBacking.charAt(index + theStart);
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			return theBacking.subSequence(start + theStart, end + theStart);
+		}
+
+		@Override
+		public QuickStyle getStyle() {
+			return theBacking.getStyle();
+		}
+
+		@Override
+		public String toString() {
+			int end = theEnd;
+			boolean unlimitedEnd = false;
+			if (theBacking.length() < end) {
+				unlimitedEnd = true;
+				end = theBacking.length();
+			}
+			if (theStart == 0 && unlimitedEnd)
+				return theBacking.toString();
+			else
+				return theBacking.subSequence(theStart, end).toString();
+		}
+	}
+
+	/**
+	 * Implements {@link QuickDocumentModel#metrics(int, float)}
+	 */
+	class MetricsIterator implements Iterator<StyledSequenceMetric> {
+		private final Iterator<StyledSequence> theBackingIterator;
+
+		private final float theBreakWidth;
+
+		private StyledSequence theCurrentSequence;
+		private java.awt.font.LineBreakMeasurer theCurrentMeasurer;
+
+		private Font theFont;
+
+		private java.awt.font.FontRenderContext theContext;
+		private TextLayout theCurrentLayout;
+		private TextLayout theOldLayout;
+
+		private float theLineOffset;
+		private float theTop;
+		private int theSequenceOffset;
+		private boolean oldSequenceWasLineBreak;
+		private boolean wasLineBreak;
+		private boolean newMeasurer;
+
+		MetricsIterator(Iterator<StyledSequence> backing, float breakWidth) {
+			theBackingIterator = backing;
+			theBreakWidth = breakWidth;
+		}
+
+		@Override
+		public boolean hasNext() {
+			while (theCurrentLayout == null) {
+				if (theCurrentMeasurer != null && theCurrentSequence != null
+					&& theCurrentMeasurer.getPosition() == theCurrentSequence.length()) {
+					oldSequenceWasLineBreak = theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n';
+					theCurrentSequence = null;
+					theCurrentMeasurer = null;
+					theSequenceOffset = 0;
+				}
+				if (theCurrentSequence == null) {
+					do {
+						theCurrentSequence = null;
+						if (theBackingIterator.hasNext())
+							theCurrentSequence = theBackingIterator.next();
+					} while (theCurrentSequence != null && theCurrentSequence.length() == 0);
+					if (theCurrentSequence == null)
+						return false;
+					setMeasurer(theCurrentSequence);
+					newMeasurer = true;
+				}
+				// Determine whether the next sequence should be on a new line
+				if (newMeasurer) {
+					wasLineBreak = oldSequenceWasLineBreak;
+					newMeasurer = false;
+				} else {
+					wasLineBreak = true;
+				}
+
+				if (wasLineBreak) {
+					if (theOldLayout != null)
+						theTop += theOldLayout.getAscent() + theOldLayout.getDescent() + theOldLayout.getLeading();
+					theLineOffset = 0;
+				} else if (theOldLayout != null) {
+					theLineOffset += theOldLayout.getAdvance();
+				}
+				theOldLayout = null;
+
+				float width = theBreakWidth - theLineOffset;
+				if (width <= 0)
+					width = 1;
+				if (theCurrentMeasurer == null)
+					theCurrentLayout = null;
+				else
+					theCurrentLayout = theCurrentMeasurer.nextLayout(width);
+			}
+			return theCurrentLayout != null;
+		}
+
+		@Override
+		public StyledSequenceMetric next() {
+			if (!hasNext())
+				throw new java.util.NoSuchElementException();
+			TextLayout layout = theCurrentLayout;
+			theCurrentLayout = null;
+			theOldLayout = layout;
+			int seqOffset = theSequenceOffset;
+			theSequenceOffset += layout.getCharacterCount();
+			return new StyledSequenceMetricsImpl(theCurrentSequence, layout, theFont, theContext, theTop, theLineOffset, seqOffset,
+				wasLineBreak);
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+
+		private void setMeasurer(StyledSequence seq) {
+			theFont = org.quick.util.QuickUtils.getFont(seq.getStyle()).get();
+			theContext = new java.awt.font.FontRenderContext(theFont.getTransform(),
+				seq.getStyle().get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
+			java.text.AttributedString attrStr = new java.text.AttributedString(seq.toString());
+			attrStr.addAttributes(theFont.getAttributes(), 0, seq.length());
+			theCurrentMeasurer = new java.awt.font.LineBreakMeasurer(attrStr.getIterator(), java.text.BreakIterator.getWordInstance(),
+				theContext);
+		}
+
+		private static class StyledSequenceMetricsImpl implements StyledSequenceMetric {
+			private final StyledSequence theSequence;
+			private final TextLayout theLayout;
+
+			private final Font theFont;
+
+			private final java.awt.font.FontRenderContext theContext;
+			private final float theTop;
+			private final float theLeft;
+			private final int theOffset;
+			private final boolean isNewLine;
+
+			StyledSequenceMetricsImpl(StyledSequence sequence, TextLayout layout, Font font, java.awt.font.FontRenderContext ctx, float top,
+				float left, int offset, boolean newLine) {
+				theSequence = sequence;
+				theLayout = layout;
+				theFont = font;
+				theContext = ctx;
+				theTop = top;
+				theLeft = left;
+				theOffset = offset;
+				isNewLine = newLine;
+			}
+
+			@Override
+			public QuickStyle getStyle() {
+				return theSequence.getStyle();
+			}
+
+			@Override
+			public int length() {
+				return theLayout.getCharacterCount();
+			}
+
+			@Override
+			public char charAt(int index) {
+				return theSequence.charAt(theOffset + index);
+			}
+
+			@Override
+			public StyledSequenceMetric subSequence(int start, int end) {
+				if (start > theOffset + theLayout.getCharacterCount())
+					throw new IndexOutOfBoundsException(start + ">" + (theOffset + theLayout.getCharacterCount()));
+				if (end > theOffset + theLayout.getCharacterCount())
+					throw new IndexOutOfBoundsException(end + ">" + (theOffset + theLayout.getCharacterCount()));
+				String content = theSequence.subSequence(theOffset + start, theOffset + end).toString();
+				TextLayout layout = new TextLayout(content, theFont, theContext);
+				return new StyledSequenceMetricsImpl(theSequence, layout, theFont, theContext, theTop, theLeft + getLocation(start),
+					theOffset + start, isNewLine && start == 0);
+			}
+
+			@Override
+			public float getTop() {
+				return theTop;
+			}
+
+			@Override
+			public float getLeft() {
+				return theLeft;
+			}
+
+			@Override
+			public float getWidth() {
+				return theLayout.getAdvance();
+			}
+
+			@Override
+			public float getHeight() {
+				return theLayout.getAscent() + theLayout.getDescent();
+			}
+
+			@Override
+			public float getBaseline() {
+				return theLayout.getBaseline();
+			}
+
+			@Override
+			public boolean isNewLine() {
+				return isNewLine;
+			}
+
+			@Override
+			public float getHitPosition(float advance) {
+				int left = theLayout.hitTestChar(advance, 0).getCharIndex();
+				if (left == theSequence.length())
+					return left;
+				float leftW = left == 0 ? 0 : subSequence(0, left).getWidth();
+				float rightW = subSequence(0, left + 1).getWidth();
+				return left + ((advance - leftW) / (rightW - leftW));
+			}
+
+			@Override
+			public float getLocation(float position) {
+				int pos = (int) position;
+				float left = pos == 0 ? 0 : subSequence(0, pos).getWidth();
+				if (position - (int) position == 0) {
+					return left;
+				}
+				float right = subSequence(0, (int) position + 1).getWidth();
+				return left + (position - (int) position) * (right - left);
+			}
+
+			@Override
+			public void draw(Graphics2D graphics, float x, float y) {
+				theLayout.draw(graphics, x, y + theLayout.getAscent());
+			}
+
+			@Override
+			public String toString() {
+				return theSequence.subSequence(theOffset, theOffset + theLayout.getCharacterCount()).toString();
+			}
+		}
+	}
+
+	/** Implements {@link QuickDocumentModel#subSequence(int, int)} */
+	class SubDocument implements QuickDocumentModel {
+		private final QuickDocumentModel theOuter;
+		private int theStart;
+		private int theEnd;
+
+		protected SubDocument(QuickDocumentModel outer, int start, int end) {
+			theOuter = outer;
+			theStart = start;
+			theEnd = end;
+		}
+
+		protected QuickDocumentModel getWrapped() {
+			return theOuter;
+		}
+
+		protected int getStart() {
+			return theStart;
+		}
+
+		protected int getEnd() {
+			return theEnd;
+		}
+
+		@Override
+		public Iterator<StyledSequence> iterator() {
+			return theOuter.iterateFrom(theStart, theEnd).iterator();
+		}
+
+		@Override
+		public int length() {
+			int len = theOuter.length();
+			if (len > theEnd)
+				len = theEnd;
+			len -= theStart;
+			return len;
+		}
+
+		@Override
+		public char charAt(int index) {
+			return theOuter.charAt(index + theStart);
+		}
+
+		@Override
+		public Observable<QuickDocumentChangeEvent> changes() {
+			return theOuter.changes().filterMap(this::filterMap);
+		}
+
+		protected QuickDocumentChangeEvent filterMap(QuickDocumentChangeEvent change) {
+			if (change.getEndIndex() <= theStart || change.getStartIndex() >= theEnd)
+				return null; // Outside the bounds of this sub-document
+			int changeStart = transform(change.getStartIndex());
+			int changeEnd = transform(change.getEndIndex());
+			if (change instanceof ContentChangeEvent) {
+				ContentChangeEvent contentChange = (ContentChangeEvent) change;
+				return new ContentChangeEventImpl(this, toString(), filter(contentChange.getChange(), change.getStartIndex()), changeStart,
+					changeEnd, contentChange.isRemove(), change);
+			} else if (change instanceof StyleChangeEvent) {
+				StyleChangeEvent styleChange = (StyleChangeEvent) change;
+				return new StyleChangeEventImpl(this, changeStart, changeEnd, styleChange.styleBefore(), styleChange.styleAfter(), change);
+			} else {
+				System.err.println("Unrecognized change event type: " + change.getClass().getName() + " in sub-document of "
+					+ theOuter.getClass().getName());
+				return null;
+			}
+		}
+
+		protected int transform(int index) {
+			index -= theStart;
+			if (index < 0)
+				index = 0;
+			else if (index > length())
+				index = length();
+			return index;
+		}
+
+		/**
+		 * TODO
+		 *
+		 * @param subSeq
+		 * @param start
+		 * @return
+		 */
+		protected String filter(String subSeq, int start) {
+			int end = start + subSeq.length();
+			if (start >= theStart && end <= theEnd)
+				return subSeq;
+			else if (end <= theEnd)
+				return subSeq.substring(theStart - start);
+			else if (start >= theStart)
+				return subSeq.substring(0, theEnd - start);
+			else
+				return subSeq.substring(theStart - start, theEnd - start);
+		}
+
+		@Override
+		public QuickStyle getStyleAt(int position) {
+			return theOuter.getStyleAt(position + theStart);
+		}
+
+		@Override
+		public Iterable<StyledSequence> iterateFrom(int position) {
+			return theOuter.iterateFrom(position + theStart, theEnd);
+		}
+
+		@Override
+		public Iterable<StyledSequence> iterateFrom(int start, int end) {
+			if (theStart + end > theEnd)
+				end = theStart + theEnd;
+			return theOuter.iterateFrom(theStart + start, end);
+		}
+
+		@Override
+		public Transaction holdForRead() {
+			return theOuter.holdForRead();
+		}
 	}
 
 	/** Implements {@link QuickDocumentModel#flatten(ObservableValue)} */
@@ -207,8 +880,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 							int skip = 1;
 							if (!event.isInitial())
 								skip++;
-							current.changes().takeUntil(theWrapper.skip(skip))
-								.subscribe(new Observer<QuickDocumentChangeEvent>() {
+							current.changes().takeUntil(theWrapper.skip(skip)).subscribe(new Observer<QuickDocumentChangeEvent>() {
 								@Override
 								public <V extends QuickDocumentChangeEvent> void onNext(V value) {
 									observer.onNext(value);
@@ -334,11 +1006,8 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		}
 
 		@Override
-		public CharSequence subSequence(int start, int end) {
-			QuickDocumentModel wrapped = theWrapper.get();
-			if (wrapped == null)
-				throw new IndexOutOfBoundsException(start + " of 0");
-			return wrapped.subSequence(start, end);
+		public QuickDocumentModel subSequence(int start, int end) {
+			return flatten(theWrapper.mapV(doc -> doc.subSequence(start, end)));
 		}
 
 		@Override
@@ -421,6 +1090,142 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 				};
 			}
 			return wrapped.holdForRead();
+		}
+	}
+
+	/** A default implementation of ContentChangeEvent */
+	class ContentChangeEventImpl implements ContentChangeEvent {
+		private final QuickDocumentModel theModel;
+
+		private final String theValue;
+
+		private final String theChange;
+
+		private final int theStartIndex;
+		private final int theEndIndex;
+
+		private final boolean isRemove;
+
+		private final Object theCause;
+
+		/**
+		 * @param model The document model whose content changed
+		 * @param value The document model's content after the change
+		 * @param change The section of content that was added or removed
+		 * @param startIndex The start index of the addition or removal
+		 * @param endIndex The end index of the text removed, or the end index of the added text after being added
+		 * @param remove Whether this change represents a removal or an addition
+		 * @param cause This event's cause
+		 */
+		public ContentChangeEventImpl(QuickDocumentModel model, String value, String change, int startIndex, int endIndex, boolean remove,
+			Object cause) {
+			theModel = model;
+			theValue = value;
+			theChange = change;
+			theStartIndex = startIndex;
+			theEndIndex = endIndex;
+			isRemove = remove;
+			theCause = cause;
+		}
+
+		@Override
+		public QuickDocumentModel getModel() {
+			return theModel;
+		}
+
+		@Override
+		public String getValue() {
+			return theValue;
+		}
+
+		@Override
+		public String getChange() {
+			return theChange;
+		}
+
+		@Override
+		public int getStartIndex() {
+			return theStartIndex;
+		}
+
+		@Override
+		public int getEndIndex() {
+			return theEndIndex;
+		}
+
+		@Override
+		public boolean isRemove() {
+			return isRemove;
+		}
+
+		@Override
+		public Object getCause() {
+			return theCause;
+		}
+
+		@Override
+		public String toString() {
+			return theChange + " chars " + (isRemove ? "removed" : "added") + " at index " + theStartIndex;
+		}
+	}
+
+	/** A default implementation of StyleChangeEvent */
+	class StyleChangeEventImpl implements StyleChangeEvent {
+		private final QuickDocumentModel theDocument;
+
+		private final int theStart;
+
+		private final int theEnd;
+
+		private final Iterable<StyledSequence> theBeforeStyles;
+
+		private final Iterable<StyledSequence> theAfterStyles;
+
+		private final Object theCause;
+
+		public StyleChangeEventImpl(QuickDocumentModel document, int start, int end, Iterable<StyledSequence> beforeStyles,
+			Iterable<StyledSequence> afterStyles, Object cause) {
+			theDocument = document;
+			theStart = start;
+			theEnd = end;
+			theBeforeStyles = beforeStyles == null ? null : IterableUtils.immutableIterable(beforeStyles);
+			theAfterStyles = afterStyles == null ? null : IterableUtils.immutableIterable(afterStyles);
+			theCause = cause;
+		}
+
+		@Override
+		public QuickDocumentModel getModel() {
+			return theDocument;
+		}
+
+		@Override
+		public int getStartIndex() {
+			return theStart;
+		}
+
+		@Override
+		public int getEndIndex() {
+			return theEnd;
+		}
+
+		@Override
+		public Iterable<StyledSequence> styleBefore() {
+			return theBeforeStyles;
+		}
+
+		@Override
+		public Iterable<StyledSequence> styleAfter() {
+			return theAfterStyles;
+		}
+
+		@Override
+		public Object getCause() {
+			return theCause;
+		}
+
+		@Override
+		public String toString() {
+			return "Style change from " + theStart + " to " + theEnd;
 		}
 	}
 }

@@ -70,13 +70,6 @@ public class SimpleDocumentModel extends AbstractSelectableDocumentModel impleme
 	}
 
 	@Override
-	public CharSequence subSequence(int start, int end) {
-		try (Transaction t = holdForRead()) {
-			return theContent.subSequence(start, end);
-		}
-	}
-
-	@Override
 	public String toString() {
 		try (Transaction t = holdForRead()) {
 			return theContent.toString();

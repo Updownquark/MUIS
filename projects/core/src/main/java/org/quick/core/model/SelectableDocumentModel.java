@@ -33,6 +33,11 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 		}
 	}
 
+	@Override
+	default QuickDocumentModel subSequence(int start, int end) {
+		return new SelectableSubDoc(this, start, end);
+	}
+
 	/**
 	 * @param cause The event or thing that is causing the changes in the transaction
 	 * @return A transaction to close when the caller finishes its operation
@@ -77,6 +82,69 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 	 */
 	public static SelectableDocumentModel flatten(ObservableValue<? extends SelectableDocumentModel> modelWrapper) {
 		return new FlattenedSelectableDocumentModel(modelWrapper);
+	}
+
+	/** Implements {@link SelectableDocumentModel#subSequence(int, int)} */
+	class SelectableSubDoc extends SubDocument implements SelectableDocumentModel {
+		protected SelectableSubDoc(SelectableDocumentModel outer, int start, int end) {
+			super(outer, start, end);
+		}
+
+		@Override
+		protected SelectableDocumentModel getWrapped() {
+			return (SelectableDocumentModel) super.getWrapped();
+		}
+
+		@Override
+		public Transaction holdForWrite(Object cause) {
+			return getWrapped().holdForWrite(cause);
+		}
+
+		@Override
+		public int getCursor() {
+			int cursor = getWrapped().getCursor() - getStart();
+			if (cursor < 0 || cursor > length())
+				return -1;
+			return cursor;
+		}
+
+		@Override
+		public int getSelectionAnchor() {
+			int anchor = getWrapped().getSelectionAnchor() - getStart();
+			if (anchor < 0 || anchor > length())
+				return -1;
+			return anchor;
+		}
+
+		@Override
+		public SelectableDocumentModel setCursor(int cursor) {
+			getWrapped().setCursor(cursor + getStart());
+			return this;
+		}
+
+		@Override
+		public SelectableDocumentModel setSelection(int anchor, int cursor) {
+			getWrapped().setSelection(anchor + getStart(), cursor + getStart());
+			return this;
+		}
+
+		@Override
+		public String getSelectedText() {
+			return filter(getWrapped().getSelectedText(), Math.min(getWrapped().getSelectionAnchor(), getWrapped().getCursor()));
+		}
+
+		@Override
+		protected QuickDocumentChangeEvent filterMap(QuickDocumentChangeEvent change) {
+			if (!(change instanceof SelectionChangeEvent))
+				return super.filterMap(change);
+			if (change instanceof ContentChangeEvent) {
+				ContentChangeEvent contentChange = (ContentChangeEvent) change;
+				return new ContentAndSelectionChangeEventImpl(this, toString(), filter(contentChange.getChange(), change.getStartIndex()),
+					transform(change.getStartIndex()), transform(change.getEndIndex()), contentChange.isRemove(), getCursor(),
+					getSelectionAnchor(), change);
+			} else
+				return new SelectionChangeEventImpl(this, getSelectionAnchor(), getCursor(), change);
+		}
 	}
 
 	/** Implements {@link SelectableDocumentModel#flatten(ObservableValue)} */
@@ -247,6 +315,103 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 			if (wrapped == null)
 				return "";
 			return wrapped.getSelectedText();
+		}
+	}
+
+	/** A default implementation of SelectionChangeEvent */
+	class SelectionChangeEventImpl implements SelectionChangeEvent {
+		private final SelectableDocumentModel theModel;
+
+		private final int theSelectionAnchor;
+
+		private final int theCursor;
+
+		private final Object theCause;
+
+		/**
+		 * @param model The document model whose selection changed
+		 * @param anchor The location of the model's selection anchor
+		 * @param cursor The location of the model's cursor
+		 * @param cause The cause of the change
+		 */
+		public SelectionChangeEventImpl(SelectableDocumentModel model, int anchor, int cursor, Object cause) {
+			theModel = model;
+			theSelectionAnchor = anchor;
+			theCursor = cursor;
+			theCause = cause;
+		}
+
+		/** @return The document model whose selection changed */
+		@Override
+		public SelectableDocumentModel getModel() {
+			return theModel;
+		}
+
+		/** @return The location of the model's selection anchor */
+		@Override
+		public int getSelectionAnchor() {
+			return theSelectionAnchor;
+		}
+
+		/** @return The location of the model's cursor */
+		@Override
+		public int getCursor() {
+			return theCursor;
+		}
+
+		@Override
+		public Object getCause() {
+			return theCause;
+		}
+
+		@Override
+		public String toString() {
+			return "Selection=" + (theCursor == theSelectionAnchor ? "" + theCursor : theSelectionAnchor + "->" + theCursor);
+		}
+	}
+
+	/** A default implementation of both ContentChangeEvent and SelectionChangeEvent */
+	class ContentAndSelectionChangeEventImpl extends ContentChangeEventImpl implements SelectionChangeEvent {
+		private final int theAnchor;
+
+		private final int theCursor;
+
+		/**
+		 * @param model The document model whose content changed
+		 * @param value The document model's content after the change
+		 * @param change The section of content that was added or removed
+		 * @param startIndex The index of the addition or removal
+		 * @param endIndex The end index of the addition or removal
+		 * @param remove Whether this change represents a removal or an addition
+		 * @param cursor The cursor location after the change
+		 * @param anchor The anchor location after the change
+		 * @param cause The cause of this event
+		 */
+		public ContentAndSelectionChangeEventImpl(SelectableDocumentModel model, String value, String change, int startIndex, int endIndex,
+			boolean remove, int cursor, int anchor, Object cause) {
+			super(model, value, change, startIndex, endIndex, remove, cause);
+			theCursor = cursor;
+			theAnchor = anchor;
+		}
+
+		@Override
+		public SelectableDocumentModel getModel() {
+			return (SelectableDocumentModel) super.getModel();
+		}
+
+		@Override
+		public int getSelectionAnchor() {
+			return theAnchor;
+		}
+
+		@Override
+		public int getCursor() {
+			return theCursor;
+		}
+
+		@Override
+		public String toString() {
+			return super.toString() + " and Selection=" + (theCursor == theAnchor ? "" + theCursor : theAnchor + "->" + theCursor);
 		}
 	}
 }

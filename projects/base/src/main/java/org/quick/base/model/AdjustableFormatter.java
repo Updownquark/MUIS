@@ -5,6 +5,11 @@ import org.quick.core.model.QuickDocumentModel;
 
 public interface AdjustableFormatter<T> {
 	QuickFormatter<T> getFormat();
-	ObservableAction<T> incrementFor(QuickDocumentModel doc);
-	ObservableAction<T> decrementFor(QuickDocumentModel doc);
+
+	ObservableAction<T> getIncrement();
+	ObservableAction<T> getDecrement();
+
+	public interface Factory<T> {
+		AdjustableFormatter<T> create(QuickDocumentModel doc);
+	}
 }

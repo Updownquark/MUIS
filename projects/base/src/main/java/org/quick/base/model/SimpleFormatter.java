@@ -5,7 +5,7 @@ import org.quick.core.model.QuickDocumentModel;
 
 /**
  * A simple version of {@link QuickFormatter} that just operates on pure text
- * 
+ *
  * @param <T> The type of value that this formatter understands
  */
 public interface SimpleFormatter<T> extends QuickFormatter<T> {
@@ -22,15 +22,15 @@ public interface SimpleFormatter<T> extends QuickFormatter<T> {
 	T parse(String text) throws QuickParseException;
 
 	@Override
-	default void append(MutableDocumentModel doc, T value) {
-		doc.append(format(value));
+	default void insert(MutableDocumentModel doc, int start, T value) {
+		doc.insert(start, format(value));
 	}
 
 	@Override
-	default void adjust(MutableDocumentModel doc, T value) {
+	default void adjust(MutableDocumentModel doc, int start, int end, T value) {
 		String text = format(value);
 		if (!doc.toString().equals(text))
-			QuickFormatter.super.adjust(doc, value);
+			QuickFormatter.super.adjust(doc, start, end, value);
 	}
 
 	@Override

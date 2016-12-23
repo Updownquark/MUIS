@@ -210,13 +210,15 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 
 					@Override
 					public Subscription subscribe(Observer<? super ObservableValueEvent<String>> observer) {
-						return doc.changes().act(evt -> {
+						Subscription sub = doc.changes().act(evt -> {
 							String newError = get();
 							if (newError != theLastError) {
 								observer.onNext(createChangeEvent(theLastError, newError, evt));
 								theLastError = newError;
 							}
 						});
+						observer.onNext(createInitialEvent(get()));
+						return sub;
 					}
 
 					@Override
@@ -267,7 +269,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		TextEditEvent textEdit = cause instanceof TextEditEvent ? (TextEditEvent) cause : new TextEditEvent(this, cause);
 		try (Transaction t = editModel.holdForWrite(textEdit)) {
 			if(formatter != null)
-				((QuickFormatter<Object>) formatter).adjust(editModel, mv.get());
+				((QuickFormatter<Object>) formatter).adjust(editModel, 0, editModel.length(), mv.get());
 			else {
 				editModel.clear();
 				editModel.append("" + mv.get());

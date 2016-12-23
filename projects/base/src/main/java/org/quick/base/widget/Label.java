@@ -80,7 +80,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 								mutableDoc.append(text);
 							}
 						} else
-							formatter.adjust(mutableDoc, event.getValue().getValue1());
+							formatter.adjust(mutableDoc, 0, mutableDoc.length(), event.getValue().getValue1());
 					} catch (ClassCastException e) {
 						msg().error("Formatter instance " + event.getValue().getValue2() + " is incompatible with model value "
 							+ event.getValue().getValue1(), e);

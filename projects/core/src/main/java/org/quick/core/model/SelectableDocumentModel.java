@@ -35,7 +35,7 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 	@Override
 	default QuickDocumentModel subSequence(int start, int end) {
-		return new SelectableSubDoc(this, start, end);
+		return new SelectableSubDoc(this, start, end - start);
 	}
 
 	/**
@@ -86,8 +86,8 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 	/** Implements {@link SelectableDocumentModel#subSequence(int, int)} */
 	class SelectableSubDoc extends SubDocument implements SelectableDocumentModel {
-		protected SelectableSubDoc(SelectableDocumentModel outer, int start, int end) {
-			super(outer, start, end);
+		protected SelectableSubDoc(SelectableDocumentModel outer, int start, int length) {
+			super(outer, start, length);
 		}
 
 		@Override
@@ -102,18 +102,12 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 		@Override
 		public int getCursor() {
-			int cursor = getWrapped().getCursor() - getStart();
-			if (cursor < 0 || cursor > length())
-				return -1;
-			return cursor;
+			return transform(getWrapped().getCursor());
 		}
 
 		@Override
 		public int getSelectionAnchor() {
-			int anchor = getWrapped().getSelectionAnchor() - getStart();
-			if (anchor < 0 || anchor > length())
-				return -1;
-			return anchor;
+			return transform(getWrapped().getSelectionAnchor());
 		}
 
 		@Override

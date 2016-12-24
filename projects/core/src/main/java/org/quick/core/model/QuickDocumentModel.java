@@ -1,7 +1,5 @@
 package org.quick.core.model;
 
-import static org.quick.core.model.QuickDocumentModel.flatten;
-
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -448,7 +446,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	default QuickDocumentModel subSequence(int start, int end) {
 		if (start > end)
 			throw new IndexOutOfBoundsException(start + ">" + end);
-		return new SubDocument(this, start, end);
+		return new SubDocument(this, start, end - start);
 	}
 
 	/**
@@ -735,12 +733,14 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	class SubDocument implements QuickDocumentModel {
 		private final QuickDocumentModel theOuter;
 		private int theStart;
-		private int theEnd;
+		private int theLength;
 
-		protected SubDocument(QuickDocumentModel outer, int start, int end) {
+		protected SubDocument(QuickDocumentModel outer, int start, int length) {
 			theOuter = outer;
 			theStart = start;
-			theEnd = end;
+			if (length > outer.length() - start)
+				length = outer.length() - start;
+			theLength = length;
 		}
 
 		protected QuickDocumentModel getWrapped() {
@@ -751,22 +751,26 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 			return theStart;
 		}
 
+		@Override
+		public int length() {
+			return theLength;
+		}
+
+		protected void adjustPosition(int startDiff, int lenDiff) {
+			theStart += startDiff;
+			theLength += lenDiff;
+		}
+
 		protected int getEnd() {
-			return theEnd;
+			int end = theStart + theLength;
+			if (end > theOuter.length())
+				end = theOuter.length();
+			return end;
 		}
 
 		@Override
 		public Iterator<StyledSequence> iterator() {
-			return theOuter.iterateFrom(theStart, theEnd).iterator();
-		}
-
-		@Override
-		public int length() {
-			int len = theOuter.length();
-			if (len > theEnd)
-				len = theEnd;
-			len -= theStart;
-			return len;
+			return theOuter.iterateFrom(theStart, getEnd()).iterator();
 		}
 
 		@Override
@@ -780,7 +784,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		}
 
 		protected QuickDocumentChangeEvent filterMap(QuickDocumentChangeEvent change) {
-			if (change.getEndIndex() <= theStart || change.getStartIndex() >= theEnd)
+			if (change.getEndIndex() <= theStart || change.getStartIndex() >= getEnd())
 				return null; // Outside the bounds of this sub-document
 			int changeStart = transform(change.getStartIndex());
 			int changeEnd = transform(change.getEndIndex());
@@ -798,6 +802,10 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 			}
 		}
 
+		/**
+		 * @param index The index in the super-sequence
+		 * @return The corresponding index in this sub-document
+		 */
 		protected int transform(int index) {
 			index -= theStart;
 			if (index < 0)
@@ -808,22 +816,21 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		}
 
 		/**
-		 * TODO
-		 *
-		 * @param subSeq
-		 * @param start
-		 * @return
+		 * @param subSeq The sub-sequence in this sub-document's super-document to filter
+		 * @param start The location of the sequence in the super-document
+		 * @return The filtered sub-sequence relative to this sub-document
 		 */
 		protected String filter(String subSeq, int start) {
-			int end = start + subSeq.length();
-			if (start >= theStart && end <= theEnd)
+			int end = getEnd();
+			int subEnd = start + subSeq.length();
+			if (start >= theStart && subEnd <= end)
 				return subSeq;
-			else if (end <= theEnd)
+			else if (subEnd <= end)
 				return subSeq.substring(theStart - start);
 			else if (start >= theStart)
-				return subSeq.substring(0, theEnd - start);
+				return subSeq.substring(0, end - start);
 			else
-				return subSeq.substring(theStart - start, theEnd - start);
+				return subSeq.substring(theStart - start, end - start);
 		}
 
 		@Override
@@ -833,13 +840,13 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 		@Override
 		public Iterable<StyledSequence> iterateFrom(int position) {
-			return theOuter.iterateFrom(position + theStart, theEnd);
+			return theOuter.iterateFrom(position + theStart, getEnd());
 		}
 
 		@Override
 		public Iterable<StyledSequence> iterateFrom(int start, int end) {
-			if (theStart + end > theEnd)
-				end = theStart + theEnd;
+			if (theStart + end > getEnd())
+				end = getEnd();
 			return theOuter.iterateFrom(theStart + start, end);
 		}
 
@@ -1007,7 +1014,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 		@Override
 		public QuickDocumentModel subSequence(int start, int end) {
-			return flatten(theWrapper.mapV(doc -> doc.subSequence(start, end)));
+			return QuickDocumentModel.flatten(theWrapper.mapV(doc -> doc.subSequence(start, end)));
 		}
 
 		@Override

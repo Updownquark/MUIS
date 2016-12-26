@@ -34,6 +34,11 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 	}
 
 	@Override
+	default SelectableDocumentModel subSequence(int start) {
+		return (SelectableDocumentModel) QuickDocumentModel.super.subSequence(start);
+	}
+
+	@Override
 	default QuickDocumentModel subSequence(int start, int end) {
 		return new SelectableSubDoc(this, start, end - start);
 	}

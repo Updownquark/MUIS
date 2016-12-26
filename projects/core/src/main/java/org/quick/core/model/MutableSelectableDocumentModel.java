@@ -5,6 +5,11 @@ import org.observe.Observable;
 /** A mutable, selectable document model which provides some extra utility methods */
 public interface MutableSelectableDocumentModel extends MutableDocumentModel, SelectableDocumentModel {
 	@Override
+	default MutableSelectableDocumentModel subSequence(int start) {
+		return (MutableSelectableDocumentModel) SelectableDocumentModel.super.subSequence(start);
+	}
+
+	@Override
 	default MutableSelectableDocumentModel subSequence(int start, int end) {
 		return (MutableSelectableDocumentModel) MutableDocumentModel.super.subSequence(start, end);
 	}
@@ -83,12 +88,6 @@ public interface MutableSelectableDocumentModel extends MutableDocumentModel, Se
 					getSelectionAnchor(), change);
 			} else
 				return new SelectionChangeEventImpl(this, getSelectionAnchor(), getCursor(), change);
-		}
-
-		@Override
-		public MutableSelectableDocumentModel insert(CharSequence csq) {
-			// TODO Auto-generated method stub
-			return null;
 		}
 
 		@Override

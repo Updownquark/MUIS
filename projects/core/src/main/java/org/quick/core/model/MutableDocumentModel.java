@@ -8,6 +8,11 @@ import org.qommons.Transaction;
 /** A modifiable document model */
 public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
 	@Override
+	default MutableDocumentModel subSequence(int start) {
+		return (MutableDocumentModel) QuickDocumentModel.super.subSequence(start);
+	}
+
+	@Override
 	default MutableDocumentModel subSequence(int start, int end) {
 		return subSequence(start, end, null);
 	}

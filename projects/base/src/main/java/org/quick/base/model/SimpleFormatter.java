@@ -22,15 +22,15 @@ public interface SimpleFormatter<T> extends QuickFormatter<T> {
 	T parse(String text) throws QuickParseException;
 
 	@Override
-	default void insert(MutableDocumentModel doc, int start, T value) {
-		doc.insert(start, format(value));
+	default void append(MutableDocumentModel doc, T value) {
+		doc.append(format(value));
 	}
 
 	@Override
-	default void adjust(MutableDocumentModel doc, int start, int end, T value) {
+	default void adjust(MutableDocumentModel doc, T value) {
 		String text = format(value);
 		if (!doc.toString().equals(text))
-			QuickFormatter.super.adjust(doc, start, end, value);
+			QuickFormatter.super.adjust(doc, value);
 	}
 
 	@Override

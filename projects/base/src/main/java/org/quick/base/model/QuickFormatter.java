@@ -18,22 +18,19 @@ public interface QuickFormatter<T> {
 	 * Formats a value onto the end of a Quick document
 	 *
 	 * @param doc The document to write the value into
-	 * @param index The location in the document at which to insert the formatted value
 	 * @param value The value to write
 	 */
-	void insert(MutableDocumentModel doc, int index, T value);
+	void append(MutableDocumentModel doc, T value);
 
 	/**
 	 * Formats a value into of a Quick document, replacing its current contents
 	 *
 	 * @param doc The document to write the value into
-	 * @param start
-	 * @param end
 	 * @param value The value to write
 	 */
-	default void adjust(MutableDocumentModel doc, int start, int end, T value) {
-		doc.delete(start, end);
-		insert(doc, start, value);
+	default void adjust(MutableDocumentModel doc, T value) {
+		doc.clear();
+		append(doc, value);
 	}
 
 	/** @return The type of values that this formatter can produce, or null if parsing is not supported */

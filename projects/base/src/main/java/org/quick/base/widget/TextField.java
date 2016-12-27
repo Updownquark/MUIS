@@ -17,6 +17,8 @@ import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
+import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.ExpressionContext;
 import org.quick.core.tags.*;
 import org.quick.util.QuickUtils;
 
@@ -32,16 +34,15 @@ import com.google.common.reflect.TypeToken;
  * or focus is lost after changes.
  */
 @Template(location = "../../../../text-field.qts")
-@QuickElementType(
-	attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value", required = true),
-		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"),
-		@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"),
-		@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"),
-		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"),
-		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "validator"),
-		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"),
-		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich") },
-	states = { //
+@QuickElementType(attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value", required = true),
+	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"),
+	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"),
+	@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"),
+	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"),
+	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "validator"),
+	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"),
+	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich")//
+}, states = { //
 	@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY), //
 	@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)//
 })
@@ -121,17 +122,17 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					atts().getHolder(BaseAttributes.format), atts().getHolder(BaseAttributes.validator));
 			ObservableValue<String> enabled = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
-				String disabled=null;
+				String disabled = null;
 				if (tuple.getValue1() == null)
 					return ObservableValue.constant(TypeToken.of(String.class), null); // No value to worry about
 				if (!(tuple.getValue1() instanceof SettableValue))
 					disabled = "Value is not settable"; // Value is not settable
 				else if (tuple.getValue2() == null) {
-					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
+					if (!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
 						configError = "No formatter"; // No formatter
 					else if (tuple.getValue3() != null && !tuple.getValue3().getType().isAssignableFrom(TypeToken.of(String.class)))
 						configError = "Validator not valid for Strings";
-				} else{
+				} else {
 					if (tuple.getValue2().getParseType() == null)
 						disabled = "Formatter does not support parsing";
 					else if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), tuple.getValue1().getType()))
@@ -146,7 +147,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				if (configError != null) {
 					msg().error(configError);
 					return ObservableValue.constant(configError);
-				} else if(disabled!=null)
+				} else if (disabled != null)
 					return ObservableValue.constant(disabled);
 				return ((SettableValue<?>) tuple.getValue1()).isEnabled();
 			}));
@@ -154,10 +155,12 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			// Set up the error state as a function of value, formatter, validator, and the document itself
 			ObservableValue<String> error = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
-				if (tuple.getValue2() == null) {
-					if(!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
+				if (tuple.getValue1()==null)
+					configError = "No value";
+				else if (tuple.getValue2() == null) {
+					if (!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
 						configError = "No formatter";
-				} else{
+				} else {
 					if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), tuple.getValue1().getType()))
 						configError = "Formatter for " + tuple.getValue2().getFormatType() + " is not compatible with value "
 							+ tuple.getValue1() + "'s type " + tuple.getValue1().getType();
@@ -170,7 +173,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					msg().error(configError);
 					return ObservableValue.constant(configError);
 				}
-				if(!(tuple.getValue1() instanceof SettableValue))
+				if (!(tuple.getValue1() instanceof SettableValue))
 					return ObservableValue.constant(TypeToken.of(String.class), null);
 				ObservableValue<String> contentError = new ObservableValue<String>() {
 					private String theLastError;
@@ -195,13 +198,13 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 						}
 						if (tuple.getValue3() != null) {
 							String error2 = ((Validator<Object>) tuple.getValue3()).validate(theLastParsedValue);
-							if (error2 != null){
+							if (error2 != null) {
 								msg().debug(error2);
 								theLastParsedValue = null;
 								return error2;
 							}
 						}
-						SettableValue<?> sv=(SettableValue<?>) tuple.getValue1();
+						SettableValue<?> sv = (SettableValue<?>) tuple.getValue1();
 						String error2 = ((SettableValue<Object>) sv).isAcceptable(theLastParsedValue);
 						if (error2 != null)
 							theLastParsedValue = null;
@@ -233,6 +236,70 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		}, org.quick.core.QuickConstants.CoreStage.STARTUP.toString(), 1);
 	}
 
+	/** @return This text field's model value, acceptance-filtered by its validator */
+	public SettableValue<Object> getValue() {
+		return new SettableValue<Object>() {
+			@Override
+			public TypeToken<Object> getType() {
+				// Not real kosher that the type of this value could technically change, but the value attribute shouldn't change
+				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
+				if (internal == null)
+					return TypeToken.of(Object.class);
+				return (TypeToken<Object>) internal.getType();
+			}
+
+			@Override
+			public Object get() {
+				return atts().get(ModelAttributes.value);
+			}
+
+			@Override
+			public boolean isSafe() {
+				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
+				return internal == null ? false : internal.isSafe();
+			}
+
+			@Override
+			public Subscription subscribe(Observer<? super ObservableValueEvent<Object>> observer) {
+				return atts().observe(ModelAttributes.value).subscribe(observer);
+			}
+
+			@Override
+			public <V> String isAcceptable(V value) {
+				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
+				if (internal == null)
+					throw new IllegalArgumentException("No value");
+				else if (!(internal instanceof SettableValue))
+					throw new IllegalArgumentException("Value is not settable");
+				else
+					return ((SettableValue<Object>) internal).isAcceptable(value);
+			}
+
+			@Override
+			public <V> Object set(V value, Object cause) throws IllegalArgumentException {
+				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
+				if (internal == null)
+					throw new IllegalArgumentException("No value");
+				else if (!(internal instanceof SettableValue))
+					throw new IllegalArgumentException("Value is not settable");
+				else
+					return ((SettableValue<Object>) internal).set(value, cause);
+			}
+
+			@Override
+			public ObservableValue<String> isEnabled() {
+				return ObservableValue.flatten(atts().getHolder(ModelAttributes.value).mapV(v -> {
+					if (v == null)
+						return ObservableValue.constant("No value");
+					else if (!(v instanceof SettableValue))
+						return ObservableValue.constant("Value is not settable");
+					else
+						return ((SettableValue<?>) v).isEnabled();
+				}));
+			}
+		};
+	}
+
 	/** @return The text element containing the text that is the value of this text field */
 	protected org.quick.core.QuickTextElement getValueElement() {
 		return (org.quick.core.QuickTextElement) getElement(getTemplate().getAttachPoint("value")).get();
@@ -262,13 +329,13 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			return;
 		ObservableValue<?> mv = atts().getHolder(ModelAttributes.value);
 		QuickDocumentModel docModel = getDocumentModel().get();
-		if(!(docModel instanceof MutableDocumentModel))
+		if (!(docModel instanceof MutableDocumentModel))
 			return;
 		MutableDocumentModel editModel = (MutableDocumentModel) docModel;
 		QuickFormatter<?> formatter = atts().get(BaseAttributes.format);
 		TextEditEvent textEdit = cause instanceof TextEditEvent ? (TextEditEvent) cause : new TextEditEvent(this, cause);
 		try (Transaction t = editModel.holdForWrite(textEdit)) {
-			if(formatter != null)
+			if (formatter != null)
 				((QuickFormatter<Object>) formatter).adjust(editModel, mv.get());
 			else {
 				editModel.clear();

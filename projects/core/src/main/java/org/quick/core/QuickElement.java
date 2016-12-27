@@ -18,6 +18,7 @@ import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.*;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
+import org.quick.core.model.QuickAppModel;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.*;
@@ -58,6 +59,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	private QuickClassView theClassView;
 
 	private ExpressionContext theContext;
+
+	private QuickAppModel theSelfModel;
 
 	private String theNamespace;
 
@@ -114,6 +117,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theExposedChildren = theChildren.immutable();
 		theAttributeManager = new AttributeManager(this);
 		theStyle = new QuickElementStyle(this);
+		theSelfModel = QuickAppModel.empty();
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
 		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {
@@ -377,8 +381,12 @@ public abstract class QuickElement implements QuickParseEnv {
 		theNamespace = namespace;
 		theTagName = tagName;
 		theClassView = classView;
+		QuickAppModel selfModel = getSelfModel();
+		if (selfModel == null)
+			throw new NullPointerException("Self model is not initialized yet");
 		DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build()//
-			.withParent(theDocument.getContext());
+			.withParent(theDocument.getContext())//
+			.withValue("this", ObservableValue.constant(selfModel));
 		theContext = ctxBuilder.build();
 		setParent(parent);
 		addAnnotatedAttributes();
@@ -536,6 +544,11 @@ public abstract class QuickElement implements QuickParseEnv {
 	@Override
 	public ExpressionContext getContext() {
 		return theContext;
+	}
+
+	/** @return The "this" model for this element */
+	public QuickAppModel getSelfModel() {
+		return theSelfModel;
 	}
 
 	// Hierarchy methods

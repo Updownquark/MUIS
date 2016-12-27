@@ -1,5 +1,6 @@
 package org.quick.core.model;
 
+import java.util.Collections;
 import java.util.Set;
 
 /** Contains values backing Quick widgets */
@@ -12,4 +13,19 @@ public interface QuickAppModel {
 	 * @return The value of the field
 	 */
 	Object getField(String name);
+
+	/** @return A model with no fields */
+	static QuickAppModel empty() {
+		return new QuickAppModel() {
+			@Override
+			public Set<String> getFields() {
+				return Collections.emptySet();
+			}
+
+			@Override
+			public Object getField(String name) {
+				return null;
+			}
+		};
+	}
 }

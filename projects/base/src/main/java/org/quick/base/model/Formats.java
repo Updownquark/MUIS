@@ -107,7 +107,7 @@ public class Formats {
 	};
 
 	/** Formats integers */
-	public static final QuickFormatter<Integer> integer = new SimpleFormatter<Integer>() {
+	public static final AdjustableFormatter<Integer> integer = new SimpleFormatter.SimpleAdjustableFormatter<Integer>() {
 		@Override
 		public TypeToken<Integer> getFormatType() {
 			return TypeToken.of(Integer.class);
@@ -130,6 +130,38 @@ public class Formats {
 			} catch (NumberFormatException e) {
 				throw new QuickParseException(e, -1, -1);
 			}
+		}
+
+		@Override
+		public Integer increment(Integer value) {
+			if (value.intValue() == Integer.MAX_VALUE)
+				throw new IllegalStateException(isIncrementEnabled(value));
+			else
+				return value + 1;
+		}
+
+		@Override
+		public String isIncrementEnabled(Integer value) {
+			if (value.intValue() == Integer.MAX_VALUE)
+				return value + " is the maximum integer value";
+			else
+				return null;
+		}
+
+		@Override
+		public Integer decrement(Integer value) {
+			if (value.intValue() == Integer.MIN_VALUE)
+				throw new IllegalStateException(isDecrementEnabled(value));
+			else
+				return value + 1;
+		}
+
+		@Override
+		public String isDecrementEnabled(Integer value) {
+			if (value.intValue() == Integer.MIN_VALUE)
+				return value + " is the minimum integer value";
+			else
+				return null;
 		}
 
 		@Override

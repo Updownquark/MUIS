@@ -20,8 +20,8 @@ import com.google.common.reflect.TypeToken;
 @Template(location = "../../../../spinner.qts")
 @QuickElementType(
 	attributes = { //
-		@AcceptAttribute(declaringClass = Spinner.class, field = "increment", required = true), //
-		@AcceptAttribute(declaringClass = Spinner.class, field = "decrement", required = true), //
+		@AcceptAttribute(declaringClass = Spinner.class, field = "increment"), //
+		@AcceptAttribute(declaringClass = Spinner.class, field = "decrement"), //
 		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //

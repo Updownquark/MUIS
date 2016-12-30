@@ -37,4 +37,6 @@ public interface SimpleFormatter<T> extends QuickFormatter<T> {
 	default T parse(QuickDocumentModel doc) throws QuickParseException {
 		return parse(doc.toString());
 	}
+
+	interface SimpleAdjustableFormatter<T> extends SimpleFormatter<T>, AdjustableFormatter<T> {}
 }

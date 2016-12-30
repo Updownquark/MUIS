@@ -73,7 +73,7 @@ public class QuickContentCreator {
 		}
 		for (java.util.Map.Entry<String, String> att : structure.getAttributes().entrySet()) {
 			try {
-				ret.atts().set(att.getKey(), att.getValue(), ret);
+				ret.atts().set(att.getKey(), att.getValue(), parseEnv);
 			} catch (QuickException e) {
 				ret.msg().error("Could not set attribute \"" + att.getKey() + "\"", e, "attribute", att.getKey(), "value", att.getValue());
 			}

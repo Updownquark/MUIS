@@ -33,18 +33,18 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 	protected abstract T assemble(List<?> components) throws IllegalArgumentException;
 
 	@Override
-	public AdjustableFormatter<T> create(SelectableDocumentModel doc, Observable<?> until) {
+	public AdjustableFormatter<T> create(QuickDocumentModel doc, Observable<?> until) {
 		return new ComposedFormatter(doc, until);
 	}
 
 	public class ComposedFormatter implements AdjustableFormatter<T> {
-		private final SelectableDocumentModel theDoc;
+		private final QuickDocumentModel theDoc;
 		private final Observable<?> theUntil;
 		private List<SubFormat<?>> theSubFormats;
 		private QuickParseException theCurrentError;
 		private T theCurrentValue;
 
-		ComposedFormatter(SelectableDocumentModel doc, Observable<?> until) {
+		ComposedFormatter(QuickDocumentModel doc, Observable<?> until) {
 			theDoc = doc;
 			theUntil = until;
 			reset();
@@ -171,7 +171,9 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 		private BiTuple<T, String> attempt(boolean inc, boolean enact) {
 			if (theSubFormats == null)
 				return new BiTuple<>(null, "Content error");
-			int cursor = theDoc.getCursor();
+			if (!(theDoc instanceof SelectableDocumentModel))
+				return new BiTuple<>(null, "Document is not selectable");
+			int cursor = ((SelectableDocumentModel) theDoc).getCursor();
 			List<Object> subValues = new ArrayList<>(theSubFormats.size());
 			for (int i = 0; i < theSubFormats.size(); i++)
 				subValues.add(theSubFormats.get(i).value);

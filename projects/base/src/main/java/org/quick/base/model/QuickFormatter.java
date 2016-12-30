@@ -1,5 +1,6 @@
 package org.quick.base.model;
 
+import org.observe.Observable;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.QuickDocumentModel;
 
@@ -44,4 +45,8 @@ public interface QuickFormatter<T> {
 	 * @throws QuickParseException If a value could not be parsed from the document
 	 */
 	T parse(QuickDocumentModel doc) throws QuickParseException;
+
+	interface Factory<T> {
+		QuickFormatter<T> create(QuickDocumentModel doc, Observable<?> until);
+	}
 }

@@ -11,7 +11,7 @@
 	</head>
 	<body xmlns:base="../../../../base/QuickRegistry.xml" layout="box" direction="down">
 		<block layout="box" direction="right">
-			<spinner value="model.simpleInt" increment="model.simpleInt++" decrement="model.simpleInt--" />
+			<spinner value="model.simpleInt" format="${formats.integer}" />
 			This spinner increments an integer by 1.
 		</block>
 		<block layout="box" direction="right">

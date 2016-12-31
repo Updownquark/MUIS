@@ -353,8 +353,8 @@ public class QuickUtils {
 		if (primTypeLeft == primTypeRight)
 			return true;
 		if (primTypeLeft == Double.TYPE)
-			return primTypeRight == Float.TYPE || primTypeRight == Long.TYPE || primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE
-				|| primTypeRight == Byte.TYPE;
+			return primTypeRight == Number.class || primTypeRight == Float.TYPE || primTypeRight == Long.TYPE
+				|| primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE || primTypeRight == Byte.TYPE;
 		else if (primTypeLeft == Float.TYPE)
 			return primTypeRight == Long.TYPE || primTypeRight == Integer.TYPE || primTypeRight == Short.TYPE || primTypeRight == Byte.TYPE;
 		else if (primTypeLeft == Long.TYPE)

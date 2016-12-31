@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -13,8 +13,8 @@ public abstract class UserEvent implements QuickEvent {
 
 	private final QuickElement theElement;
 
-	private final List<MouseEvent.ButtonType> thePressedButtons;
-	private final List<KeyBoardEvent.KeyCode> thePressedKeys;
+	private final Set<MouseEvent.ButtonType> thePressedButtons;
+	private final Set<KeyBoardEvent.KeyCode> thePressedKeys;
 
 	private final long theTime;
 
@@ -30,13 +30,13 @@ public abstract class UserEvent implements QuickEvent {
 	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param time The time at which user performed this action
 	 */
-	public UserEvent(QuickDocument doc, QuickElement target, QuickElement element, List<MouseEvent.ButtonType> pressedButtons,
-		List<KeyBoardEvent.KeyCode> pressedKeys, long time) {
+	public UserEvent(QuickDocument doc, QuickElement target, QuickElement element, Set<MouseEvent.ButtonType> pressedButtons,
+		Set<KeyBoardEvent.KeyCode> pressedKeys, long time) {
 		theDocument = doc;
 		theTarget = element;
 		theElement = element;
-		thePressedButtons = java.util.Collections.unmodifiableList(new java.util.ArrayList<>(pressedButtons));
-		thePressedKeys = java.util.Collections.unmodifiableList(new java.util.ArrayList<>(pressedKeys));
+		thePressedButtons = java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(pressedButtons));
+		thePressedKeys = java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(pressedKeys));
 		theTime = time;
 	}
 
@@ -71,12 +71,12 @@ public abstract class UserEvent implements QuickEvent {
 	}
 
 	/** @return The mouse buttons which were pressed when this event was generated */
-	public List<MouseEvent.ButtonType> getPressedButtons() {
+	public Set<MouseEvent.ButtonType> getPressedButtons() {
 		return thePressedButtons;
 	}
 
 	/** @return The keyboard key which were pressed when this event was generated */
-	public List<KeyBoardEvent.KeyCode> getPressedKeys() {
+	public Set<KeyBoardEvent.KeyCode> getPressedKeys() {
 		return thePressedKeys;
 	}
 

@@ -1,5 +1,7 @@
 package org.quick.base.style;
 
+import java.time.Duration;
+
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.StyleAttribute;
@@ -21,11 +23,19 @@ public class ButtonStyle implements StyleDomain {
 
 	/** The number of pixels that a "click" can move between its start and end and still be an actionable event */
 	public static final StyleAttribute<Double> clickTolerance;
+	/** The amount of time after a button press action before which repeated actions will begin */
+	public static final StyleAttribute<Duration> actionRepeatDelay;
+	/** The amount of time between repeated actions during a prolonged button press action */
+	public static final StyleAttribute<Duration> actionRepeatFrequency;
 
 	static {
 		instance = new ButtonStyle();
-		clickTolerance = StyleAttribute.build(instance, "transparency", QuickPropertyType.floating, 5d)
+		clickTolerance = StyleAttribute.build(instance, "click-tolerance", QuickPropertyType.floating, 5d)
 			.validate(new QuickProperty.ComparableValidator<>(0d, Double.MAX_VALUE)).build();
+		actionRepeatDelay = StyleAttribute.build(instance, "action-repeat-delay", QuickPropertyType.duration, Duration.ofMillis(500))
+			.build();
+		actionRepeatFrequency = StyleAttribute
+			.build(instance, "action-repeat-frequency", QuickPropertyType.duration, Duration.ofMillis(100)).build();
 		instance.register(clickTolerance);
 	}
 

@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -21,8 +21,8 @@ public abstract class PositionedUserEvent extends UserEvent {
 	 * @param time The time at which user performed this action
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
-	public PositionedUserEvent(QuickDocument doc, QuickElement target, QuickElement element, List<MouseEvent.ButtonType> pressedButtons,
-		List<KeyBoardEvent.KeyCode> pressedKeys, long time, QuickEventPositionCapture capture) {
+	public PositionedUserEvent(QuickDocument doc, QuickElement target, QuickElement element, Set<MouseEvent.ButtonType> pressedButtons,
+		Set<KeyBoardEvent.KeyCode> pressedKeys, long time, QuickEventPositionCapture capture) {
 		super(doc, target, element, pressedButtons, pressedKeys, time);
 		theCapture = capture;
 		if(theCapture != null)

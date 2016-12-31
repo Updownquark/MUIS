@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -31,8 +31,8 @@ public class FocusEvent extends UserEvent {
 	 * @param gained Whether the element gained the focus (true) or lost the focus (false)
 	 * @param cause The event that caused this event
 	 */
-	public FocusEvent(QuickDocument doc, QuickElement target, List<MouseEvent.ButtonType> pressedButtons,
-		List<KeyBoardEvent.KeyCode> pressedKeys, boolean gained, UserEvent cause) {
+	public FocusEvent(QuickDocument doc, QuickElement target, Set<MouseEvent.ButtonType> pressedButtons,
+		Set<KeyBoardEvent.KeyCode> pressedKeys, boolean gained, UserEvent cause) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis());
 		theCause = cause;
 		theBacking = null;

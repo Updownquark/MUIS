@@ -4,7 +4,7 @@ package org.quick.core;
 import java.awt.Cursor;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.Set;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
@@ -92,9 +92,9 @@ public class QuickDocument implements QuickParseEnv {
 
 	private int theMouseY;
 
-	private List<MouseEvent.ButtonType> thePressedButtons;
+	private Set<MouseEvent.ButtonType> thePressedButtons;
 
-	private List<KeyBoardEvent.KeyCode> thePressedKeys;
+	private Set<KeyBoardEvent.KeyCode> thePressedKeys;
 
 	private final Object theButtonsLock;
 
@@ -137,8 +137,8 @@ public class QuickDocument implements QuickParseEnv {
 		theMessageCenter = new QuickMessageCenter(env, this, null);
 		theDocumentStyle = DocumentStyleSheet.build(this);
 		theScrollPolicy = ScrollPolicy.MOUSE;
-		thePressedButtons = new java.util.concurrent.CopyOnWriteArrayList<>();
-		thePressedKeys = new java.util.concurrent.CopyOnWriteArrayList<>();
+		thePressedButtons = new org.qommons.ConcurrentHashSet<>();
+		thePressedKeys = new org.qommons.ConcurrentHashSet<>();
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		theRoot = new BodyElement();
@@ -357,8 +357,8 @@ public class QuickDocument implements QuickParseEnv {
 	}
 
 	/** @return All mouse buttons that are currently pressed */
-	public List<MouseEvent.ButtonType> getPressedButtons() {
-		return java.util.Collections.unmodifiableList(thePressedButtons);
+	public Set<MouseEvent.ButtonType> getPressedButtons() {
+		return java.util.Collections.unmodifiableSet(thePressedButtons);
 	}
 
 	/**
@@ -370,8 +370,8 @@ public class QuickDocument implements QuickParseEnv {
 	}
 
 	/** @return All key codes whose keys are currently pressed */
-	public List<KeyBoardEvent.KeyCode> getPressedKeys() {
-		return java.util.Collections.unmodifiableList(thePressedKeys);
+	public Set<KeyBoardEvent.KeyCode> getPressedKeys() {
+		return java.util.Collections.unmodifiableSet(thePressedKeys);
 	}
 
 	/** @return Whether a shift button is currently pressed */
@@ -663,20 +663,22 @@ public class QuickDocument implements QuickParseEnv {
 	 * @param pressed Whether the key was pressed or released
 	 */
 	public void keyed(KeyBoardEvent.KeyCode code, boolean pressed) {
+		final QuickRendering rendering = theRendering;
+
+		synchronized (theKeysLock) {
+			if (pressed) {
+				if (!thePressedKeys.add(code))
+					return;
+			} else {
+				if (!thePressedKeys.remove(code))
+					return;
+			}
+		}
 		final KeyBoardEvent evt;
 		if(theFocus != null)
 			evt = new KeyBoardEvent(this, theFocus, code, thePressedButtons, thePressedKeys, pressed);
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, thePressedButtons, thePressedKeys, pressed);
-		final QuickRendering rendering = theRendering;
-
-		synchronized(theKeysLock) {
-			if(pressed) {
-				if(!thePressedKeys.contains(code))
-					thePressedKeys.add(code);
-			} else if(ArrayUtils.contains(thePressedKeys, code))
-				thePressedKeys.remove(code);
-		}
 		if(theFocus != null)
 			QuickEventQueue.get().scheduleEvent(new QuickEventQueue.UserQueueEvent(evt, false, () -> {
 				if(!evt.isUsed())

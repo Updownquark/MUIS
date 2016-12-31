@@ -3,12 +3,14 @@ package org.quick.base.widget;
 import static org.quick.core.QuickTextElement.multiLine;
 
 import org.observe.*;
+import org.qommons.BiTuple;
 import org.qommons.Transaction;
 import org.qommons.TriTuple;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
 import org.quick.base.layout.TextEditLayout;
 import org.quick.base.model.*;
+import org.quick.core.QuickException;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.KeyBoardEvent;
@@ -37,6 +39,7 @@ import com.google.common.reflect.TypeToken;
 	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"),
 	@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"),
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"),
+	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "formatFactory"),
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "validator"),
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"),
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich")//
@@ -74,6 +77,18 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				} else
 					return false;
 			}).act(evt -> setDocDirty());
+			// Instantiate the format from the format factory
+			ObservableValue<BiTuple<QuickFormatter.Factory<?>, QuickDocumentModel>> formatDocObs = atts()
+				.observe(BaseAttributes.formatFactory).tupleV(getDocumentModel());
+			formatDocObs.act(event -> {
+				if (event.getValue().getValue1() == null)
+					return; // Don't do anything if the factory is unset
+				try {
+					atts().set(BaseAttributes.format, event.getValue().getValue1().create(doc, formatDocObs));
+				} catch (QuickException e) {
+					msg().error("Could not set format from factory", e);
+				}
+			});
 			// When the value changes outside of this widget, update the document
 			atts().getHolder(ModelAttributes.value).noInit().act(event -> {
 				if (!isDocDirty)

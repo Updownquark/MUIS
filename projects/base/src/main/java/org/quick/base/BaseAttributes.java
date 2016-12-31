@@ -14,7 +14,7 @@ import com.google.common.reflect.TypeToken;
 
 /** Constant class containing attributes used in the base project */
 public class BaseAttributes {
-	/** Allows specification of the format used by the text field */
+	/** Allows specification of the format used by a text field */
 	public static final QuickAttribute<QuickFormatter<?>> format = QuickAttribute.build("format", QuickPropertyType
 		.forTypeInstance((Class<QuickFormatter<?>>) (Class<?>) QuickFormatter.class, builder -> builder.buildContext(ctx -> {
 			ctx.withValue("string", ObservableValue.constant(new TypeToken<QuickFormatter<String>>() {}, Formats.string))
@@ -24,14 +24,18 @@ public class BaseAttributes {
 				.withValue("default", ObservableValue.constant(new TypeToken<QuickFormatter<Object>>() {}, Formats.def));
 		}))).build();
 
+	/** Allows specification of the factory to create the format used by a text field */
+	public static final QuickAttribute<QuickFormatter.Factory<?>> formatFactory = QuickAttribute.build("format-factory",
+		QuickPropertyType.forTypeInstance((Class<QuickFormatter.Factory<?>>) (Class<?>) QuickFormatter.Factory.class, null)).build();
+
 	/** The attribute allowing the user to specify a label that parses rich text */
 	public static final QuickAttribute<Boolean> rich = QuickAttribute.build("rich", QuickPropertyType.boole).build();
 
-	/** Allows the user to specify the model whose content is displayed in this text field */
+	/** Allows the user to specify the model whose content is displayed in a text field */
 	public static final QuickAttribute<QuickDocumentModel> document = QuickAttribute
 		.build("document", QuickPropertyType.forTypeInstance(QuickDocumentModel.class, null)).build();
 
-	/** Allows specification of the format used by the text field */
+	/** Allows specification of the format used by a text field */
 	public static final QuickAttribute<Validator<?>> validator = QuickAttribute
 		.build("validator", QuickPropertyType.forTypeInstance((Class<Validator<?>>) (Class<?>) Validator.class, null)).build();
 }

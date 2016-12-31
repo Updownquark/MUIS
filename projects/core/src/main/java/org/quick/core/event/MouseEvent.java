@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -62,7 +62,7 @@ public class MouseEvent extends PositionedUserEvent {
 	 * @param capture The capture of the event's location on each element relevant to it
 	 */
 	public MouseEvent(QuickDocument doc, QuickElement target, MouseEventType type, ButtonType button, int clickCount,
-		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys, QuickEventPositionCapture capture) {
+		Set<MouseEvent.ButtonType> pressedButtons, Set<KeyBoardEvent.KeyCode> pressedKeys, QuickEventPositionCapture capture) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
 		if(capture == null)
 			throw new IllegalStateException("MouseEvent cannot be instantiated without a capture");

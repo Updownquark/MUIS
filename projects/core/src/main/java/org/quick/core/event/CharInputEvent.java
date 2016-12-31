@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -28,8 +28,8 @@ public class CharInputEvent extends UserEvent {
 	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param character The character that was input
 	 */
-	public CharInputEvent(QuickDocument doc, QuickElement target, List<MouseEvent.ButtonType> pressedButtons,
-		List<KeyBoardEvent.KeyCode> pressedKeys, char character) {
+	public CharInputEvent(QuickDocument doc, QuickElement target, Set<MouseEvent.ButtonType> pressedButtons,
+		Set<KeyBoardEvent.KeyCode> pressedKeys, char character) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis());
 		theBacking = null;
 		theChar = character;

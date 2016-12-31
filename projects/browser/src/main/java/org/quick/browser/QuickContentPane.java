@@ -96,7 +96,6 @@ public class QuickContentPane extends java.awt.Component {
 			}
 		});
 		addKeyListener(new java.awt.event.KeyListener() {
-
 			@Override
 			public void keyPressed(KeyEvent e) {
 				keyed(Boolean.TRUE, e);

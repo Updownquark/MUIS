@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -50,7 +50,7 @@ public class ScrollEvent extends PositionedUserEvent {
 	 * @param cause The user event that may have triggered this scroll event
 	 */
 	public ScrollEvent(QuickDocument doc, QuickElement target, ScrollType scrollType, boolean vertical, int amount, KeyBoardEvent keyEvent,
-		List<MouseEvent.ButtonType> pressedButtons, List<KeyBoardEvent.KeyCode> pressedKeys, QuickEventPositionCapture capture,
+		Set<MouseEvent.ButtonType> pressedButtons, Set<KeyBoardEvent.KeyCode> pressedKeys, QuickEventPositionCapture capture,
 		UserEvent cause) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis(), capture);
 		theCause = cause;

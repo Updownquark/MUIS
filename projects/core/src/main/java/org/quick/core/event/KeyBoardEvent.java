@@ -1,6 +1,6 @@
 package org.quick.core.event;
 
-import java.util.List;
+import java.util.Set;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -279,8 +279,8 @@ public class KeyBoardEvent extends UserEvent {
 	 * @param pressedKeys The keyboard keys which were pressed when this event was generated
 	 * @param pressed Whether the key was pressed or released
 	 */
-	public KeyBoardEvent(QuickDocument doc, QuickElement target, KeyCode keyCode, List<MouseEvent.ButtonType> pressedButtons,
-		List<KeyBoardEvent.KeyCode> pressedKeys, boolean pressed) {
+	public KeyBoardEvent(QuickDocument doc, QuickElement target, KeyCode keyCode, Set<MouseEvent.ButtonType> pressedButtons,
+		Set<KeyBoardEvent.KeyCode> pressedKeys, boolean pressed) {
 		super(doc, target, target, pressedButtons, pressedKeys, System.currentTimeMillis());
 		theBacking = null;
 		theKeyCode = keyCode;

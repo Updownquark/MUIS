@@ -38,5 +38,10 @@ public interface SimpleFormatter<T> extends QuickFormatter<T> {
 		return parse(doc.toString());
 	}
 
+	/**
+	 * A simple version of {@link AdjustableFormatter} that just operates on pure text
+	 *
+	 * @param <T> The type of value that this formatter understands
+	 */
 	interface SimpleAdjustableFormatter<T> extends SimpleFormatter<T>, AdjustableFormatter<T> {}
 }

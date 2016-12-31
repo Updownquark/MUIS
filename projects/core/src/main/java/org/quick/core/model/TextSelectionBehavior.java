@@ -28,13 +28,12 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			SelectableDocumentModel selectableDoc = (SelectableDocumentModel) element.getDocumentModel().get();
 			switch (event.getType()) {
 			case pressed:
-				if(event.getButton() == MouseEvent.ButtonType.left) {
+				if (event.getButton() == MouseEvent.ButtonType.left) {
 					SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 					switch ((event.getClickCount() - 1) % 3) {
 					case 0: // Single-click
-						int position = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(),
-							element.bounds().getWidth()));
-						if(event.isShiftPressed()) {
+						int position = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), element.bounds().getWidth()));
+						if (event.isShiftPressed()) {
 							theAnchor = doc.getSelectionAnchor();
 						} else
 							theAnchor = position;
@@ -61,13 +60,13 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 				}
 				break;
 			case released:
-				if(event.getButton() == MouseEvent.ButtonType.left)
+				if (event.getButton() == MouseEvent.ButtonType.left)
 					theAnchor = -1;
 				break;
 			case moved:
-				if(theAnchor < 0)
+				if (theAnchor < 0)
 					return;
-				if(!element.getDocument().isButtonPressed(MouseEvent.ButtonType.left)) {
+				if (!element.getDocument().isButtonPressed(MouseEvent.ButtonType.left)) {
 					theAnchor = -1;
 					return;
 				}
@@ -92,41 +91,42 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 				switch (event.getKeyCode()) {
 				case C:
 				case X:
-					if (event.isControlPressed())
-						copyToClipboard(text, event.getKeyCode() == KeyBoardEvent.KeyCode.X);
-					event.use();
+					if (event.isControlPressed()) {
+						if (copyToClipboard(text, event.getKeyCode() == KeyBoardEvent.KeyCode.X))
+							event.use();
+					}
 					break;
 				case LEFT_ARROW:
-					left(text, event.isShiftPressed());
-					event.use();
+					if (left(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case RIGHT_ARROW:
-					right(text, event.isShiftPressed());
-					event.use();
+					if (right(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case UP_ARROW:
-					up(text, event.isShiftPressed());
-					event.use();
+					if (up(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case DOWN_ARROW:
-					down(text, event.isShiftPressed());
-					event.use();
+					if (down(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case HOME:
-					home(text, event.isShiftPressed());
-					event.use();
+					if (home(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case END:
-					end(text, event.isShiftPressed());
-					event.use();
+					if (end(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case PAGE_UP:
-					pageUp(text, event.isShiftPressed());
-					event.use();
+					if (pageUp(text, event.isShiftPressed()))
+						event.use();
 					break;
 				case PAGE_DOWN:
-					pageDown(text, event.isShiftPressed());
-					event.use();
+					if (pageDown(text, event.isShiftPressed()))
+						event.use();
 					break;
 				default:
 				}
@@ -145,7 +145,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 
 	@Override
 	public void install(QuickTextElement element) {
-		if(theElement != null)
+		if (theElement != null)
 			throw new IllegalStateException(getClass().getSimpleName() + " may only be used with a single element");
 		theElement = element;
 		element.events().filterMap(MouseEvent.mouse).takeUntil(theUnsubscribeObservable.filter(el -> {
@@ -163,101 +163,110 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	@Override
 	public void uninstall(QuickTextElement element) {
 		theUnsubscribeController.onNext(element);
-		if(theElement == element)
+		if (theElement == element)
 			theElement = null;
 	}
 
-	private void copyToClipboard(QuickTextElement element, boolean cut) {
+	private boolean copyToClipboard(QuickTextElement element, boolean cut) {
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
+		if (doc.getCursor() == doc.getSelectionAnchor())
+			return false;
 		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
 			.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
 		if (cut && doc instanceof MutableDocumentModel)
 			((MutableDocumentModel) doc).delete(doc.getSelectionAnchor(), doc.getCursor());
+		return true;
 	}
 
-	private void left(QuickTextElement element, boolean shift) {
+	private boolean left(QuickTextElement element, boolean shift) {
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int cursor = doc.getCursor() - 1;
-		if(cursor < 0)
-			cursor = 0;
-		if(shift)
+		if (cursor < 0) {
+			return false;
+		}
+		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), cursor);
 		else
 			doc.setCursor(cursor);
+		return true;
 	}
 
-	private void right(QuickTextElement element, boolean shift) {
+	private boolean right(QuickTextElement element, boolean shift) {
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int cursor = doc.getCursor() + 1;
-		if(cursor > doc.length())
-			cursor = doc.length();
-		if(shift)
+		if (cursor > doc.length()) {
+			return false;
+		}
+		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), cursor);
 		else
 			doc.setCursor(cursor);
+		return true;
 	}
 
-	private void up(QuickTextElement element, boolean shift) {
+	private boolean up(QuickTextElement element, boolean shift) {
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
-			return;
+			return false;
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
-		if(loc.getY() == 0)
-			return; // Can't go up from here.
+		if (loc.getY() == 0)
+			return false; // Can't go up from here.
 		int cursorXLoc = theCursorXLoc;
-		if(cursorXLoc < 0)
+		if (cursorXLoc < 0)
 			cursorXLoc = (int) loc.getX();
 		int newCursor = Math.round(doc.getPositionAt(cursorXLoc, (float) loc.getY() - 1, element.bounds().getWidth()));
 
-		if(shift)
+		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
 			doc.setCursor(newCursor);
 		theCursorXLoc = cursorXLoc;
+		return true;
 	}
 
-	private void down(QuickTextElement element, boolean shift) {
+	private boolean down(QuickTextElement element, boolean shift) {
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
-			return;
+			return false;
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int cursor = doc.getCursor();
 		int cursorXLoc = theCursorXLoc;
-		if(cursorXLoc < 0) {
+		if (cursorXLoc < 0) {
 			Point2D loc = doc.getLocationAt(cursor, element.bounds().getWidth());
 			cursorXLoc = (int) loc.getX();
 		}
 		int y = -1;
-		for(QuickDocumentModel.StyledSequenceMetric metric : doc.metrics(cursor, element.bounds().getWidth())) {
-			if(metric.isNewLine()) {
+		for (QuickDocumentModel.StyledSequenceMetric metric : doc.metrics(cursor, element.bounds().getWidth())) {
+			if (metric.isNewLine()) {
 				y = (int) metric.getTop();
 				break;
 			}
 		}
-		if(y < 0)
-			return; // No newline after cursor. Can't go down.
+		if (y < 0)
+			return false; // No newline after cursor. Can't go down.
 
 		int newCursor = Math.round(doc.getPositionAt(cursorXLoc, y, element.bounds().getWidth()));
 
-		if(shift)
+		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
 			doc.setCursor(newCursor);
 		theCursorXLoc = cursorXLoc;
+		return true;
 	}
 
-	private void home(QuickTextElement element, boolean shift) {
+	private boolean home(QuickTextElement element, boolean shift) {
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
 		int newCursor;
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
@@ -266,16 +275,21 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
 			newCursor = (int) doc.getPositionAt(0, (float) loc.getY(), element.bounds().getWidth());
 		}
-		if(shift)
+		if (doc.getSelectionAnchor() == newCursor && doc.getCursor() == newCursor)
+			return false;
+		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
 			doc.setCursor(newCursor);
+		return true;
 	}
 
-	private void end(QuickTextElement element, boolean shift) {
+	private boolean end(QuickTextElement element, boolean shift) {
 		if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
-			return;
+			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) element.getDocumentModel().get();
+		if (doc.getCursor() == doc.length() && doc.getSelectionAnchor() == doc.length())
+			return false;
 		int newCursor;
 		if (!element.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = doc.length();
@@ -283,30 +297,37 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 			Point2D loc = doc.getLocationAt(doc.getCursor(), element.bounds().getWidth());
 			newCursor = (int) doc.getPositionAt(element.bounds().getWidth(), (float) loc.getY(), element.bounds().getWidth());
 		}
-		if(shift)
+		if (doc.getSelectionAnchor() == newCursor && doc.getCursor() == newCursor)
+			return false;
+		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);
 		else
 			doc.setCursor(newCursor);
+		return true;
 	}
 
-	private void pageUp(QuickTextElement element, boolean shift) {
+	private boolean pageUp(QuickTextElement element, boolean shift) {
 		// TODO Auto-generated method stub
+		return false;
 	}
 
-	private void pageDown(QuickTextElement element, boolean shift) {
+	private boolean pageDown(QuickTextElement element, boolean shift) {
 		// TODO Auto-generated method stub
+		return false;
 	}
 
 	private int selectWord(SelectableDocumentModel doc, int position, Object cause) {
 		int anchor;
 		int cursor;
-		if(position == doc.length())
+		if (position == doc.length())
 			anchor = cursor = position;
 		else {
-			for(anchor = position; anchor > 0 && isWordChar(doc.charAt(anchor)); anchor--);
-			if(anchor < position && !isWordChar(doc.charAt(anchor)))
+			for (anchor = position; anchor > 0 && isWordChar(doc.charAt(anchor)); anchor--)
+				;
+			if (anchor < position && !isWordChar(doc.charAt(anchor)))
 				anchor++;
-			for(cursor = position; cursor < doc.length() && isWordChar(doc.charAt(cursor)); cursor++);
+			for (cursor = position; cursor < doc.length() && isWordChar(doc.charAt(cursor)); cursor++)
+				;
 		}
 		doc.setSelection(anchor, cursor);
 		return anchor;
@@ -319,16 +340,18 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 	private int selectLine(SelectableDocumentModel doc, int position, Object cause) {
 		int anchor = position;
 		int cursor;
-		if(doc.length() == 0)
+		if (doc.length() == 0)
 			anchor = cursor = 0;
 		else {
-			if(position == doc.length())
+			if (position == doc.length())
 				anchor--;
-			for(; anchor > 0 && !isLineBreakChar(doc.charAt(anchor)); anchor--);
-			if(anchor < position && isLineBreakChar(doc.charAt(anchor)))
+			for (; anchor > 0 && !isLineBreakChar(doc.charAt(anchor)); anchor--)
+				;
+			if (anchor < position && isLineBreakChar(doc.charAt(anchor)))
 				anchor++;
-			for(cursor = position; cursor < doc.length() && !isLineBreakChar(doc.charAt(cursor)); cursor++);
-			while(cursor < doc.length() && isLineBreakChar(doc.charAt(cursor + 1)))
+			for (cursor = position; cursor < doc.length() && !isLineBreakChar(doc.charAt(cursor)); cursor++)
+				;
+			while (cursor < doc.length() && isLineBreakChar(doc.charAt(cursor + 1)))
 				cursor++;
 		}
 		doc.setSelection(anchor, cursor);

@@ -17,8 +17,6 @@ import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
-import org.quick.core.prop.DefaultExpressionContext;
-import org.quick.core.prop.ExpressionContext;
 import org.quick.core.tags.*;
 import org.quick.util.QuickUtils;
 
@@ -135,9 +133,9 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				} else {
 					if (tuple.getValue2().getParseType() == null)
 						disabled = "Formatter does not support parsing";
-					else if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), tuple.getValue1().getType()))
+					else if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), deepType(tuple.getValue1())))
 						configError = "Formatter is not compatible with value";
-					else if (!QuickUtils.isAssignableFrom(tuple.getValue1().getType(), tuple.getValue2().getParseType()))
+					else if (!QuickUtils.isAssignableFrom(deepType(tuple.getValue1()), tuple.getValue2().getParseType()))
 						configError = "Formatter cannot parse value's type";
 					else if (tuple.getValue3() != null
 						&& !QuickUtils.isAssignableFrom(tuple.getValue3().getType(), tuple.getValue2().getParseType()))
@@ -161,11 +159,11 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					if (!tuple.getValue1().getType().isAssignableFrom(TypeToken.of(String.class)))
 						configError = "No formatter";
 				} else {
-					if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), tuple.getValue1().getType()))
+					if (!QuickUtils.isAssignableFrom(tuple.getValue2().getFormatType(), deepType(tuple.getValue1())))
 						configError = "Formatter for " + tuple.getValue2().getFormatType() + " is not compatible with value "
 							+ tuple.getValue1() + "'s type " + tuple.getValue1().getType();
 					else if (tuple.getValue2().getParseType() != null
-						&& !QuickUtils.isAssignableFrom(tuple.getValue1().getType(), tuple.getValue2().getParseType()))
+						&& !QuickUtils.isAssignableFrom(deepType(tuple.getValue1()), tuple.getValue2().getParseType()))
 						configError = "Formatter parseable for " + tuple.getValue2().getParseType() + " cannot parse value "
 							+ tuple.getValue1() + "'s type " + tuple.getValue1().getType();
 				}
@@ -215,6 +213,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					public Subscription subscribe(Observer<? super ObservableValueEvent<String>> observer) {
 						Subscription sub = doc.changes().act(evt -> {
 							String newError = get();
+							System.out.println("Error: " + newError);
 							if (newError != theLastError) {
 								observer.onNext(createChangeEvent(theLastError, newError, evt));
 								theLastError = newError;
@@ -236,68 +235,16 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		}, org.quick.core.QuickConstants.CoreStage.STARTUP.toString(), 1);
 	}
 
+	private static <T> TypeToken<? extends T> deepType(ObservableValue<? extends T> value) {
+		if (value instanceof ObservableValue.FlattenedObservableValue)
+			return ((ObservableValue.FlattenedObservableValue<? extends T>) value).getDeepType();
+		else
+			return value.getType();
+	}
+
 	/** @return This text field's model value, acceptance-filtered by its validator */
 	public SettableValue<Object> getValue() {
-		return new SettableValue<Object>() {
-			@Override
-			public TypeToken<Object> getType() {
-				// Not real kosher that the type of this value could technically change, but the value attribute shouldn't change
-				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
-				if (internal == null)
-					return TypeToken.of(Object.class);
-				return (TypeToken<Object>) internal.getType();
-			}
-
-			@Override
-			public Object get() {
-				return atts().get(ModelAttributes.value);
-			}
-
-			@Override
-			public boolean isSafe() {
-				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
-				return internal == null ? false : internal.isSafe();
-			}
-
-			@Override
-			public Subscription subscribe(Observer<? super ObservableValueEvent<Object>> observer) {
-				return atts().observe(ModelAttributes.value).subscribe(observer);
-			}
-
-			@Override
-			public <V> String isAcceptable(V value) {
-				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
-				if (internal == null)
-					throw new IllegalArgumentException("No value");
-				else if (!(internal instanceof SettableValue))
-					throw new IllegalArgumentException("Value is not settable");
-				else
-					return ((SettableValue<Object>) internal).isAcceptable(value);
-			}
-
-			@Override
-			public <V> Object set(V value, Object cause) throws IllegalArgumentException {
-				ObservableValue<?> internal = atts().getHolder(ModelAttributes.value).getContainedObservable();
-				if (internal == null)
-					throw new IllegalArgumentException("No value");
-				else if (!(internal instanceof SettableValue))
-					throw new IllegalArgumentException("Value is not settable");
-				else
-					return ((SettableValue<Object>) internal).set(value, cause);
-			}
-
-			@Override
-			public ObservableValue<String> isEnabled() {
-				return ObservableValue.flatten(atts().getHolder(ModelAttributes.value).mapV(v -> {
-					if (v == null)
-						return ObservableValue.constant("No value");
-					else if (!(v instanceof SettableValue))
-						return ObservableValue.constant("Value is not settable");
-					else
-						return ((SettableValue<?>) v).isEnabled();
-				}));
-			}
-		};
+		return atts().getHolder(ModelAttributes.value).asSettable();
 	}
 
 	/** @return The text element containing the text that is the value of this text field */
@@ -340,11 +287,10 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			else {
 				editModel.clear();
 				editModel.append("" + mv.get());
+				// TODO Think of a way to preserve selection?
 			}
 		}
-		theErrorController.set(false, null);
 		isDocDirty = false;
-		// TODO Think of a way to preserve selection?
 	}
 
 	private static class TextEditEvent implements Causable {

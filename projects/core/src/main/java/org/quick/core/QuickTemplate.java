@@ -1410,7 +1410,7 @@ public abstract class QuickTemplate extends QuickElement {
 		@Override
 		public Object getField(String name) {
 			if (theAttributes.containsKey(name))
-				return atts().getHolder(theAttributes.get(name));
+				return atts().getHolder(theAttributes.get(name)).asSettable();
 			return null;
 		}
 	}

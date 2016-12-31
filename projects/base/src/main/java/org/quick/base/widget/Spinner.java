@@ -2,6 +2,7 @@ package org.quick.base.widget;
 
 import org.observe.ObservableAction;
 import org.observe.ObservableValue;
+import org.observe.SettableValue;
 import org.quick.base.BaseAttributes;
 import org.quick.base.layout.TextEditLayout;
 import org.quick.base.model.AdjustableFormatter;
@@ -22,7 +23,7 @@ import com.google.common.reflect.TypeToken;
 	attributes = { //
 		@AcceptAttribute(declaringClass = Spinner.class, field = "increment"), //
 		@AcceptAttribute(declaringClass = Spinner.class, field = "decrement"), //
-		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"), //
+		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value", required = true), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich"), //
@@ -48,19 +49,15 @@ public class Spinner extends QuickTemplate {
 
 	private void setButtonAction(String attach, QuickAttribute<ObservableAction<?>> incOrDec) {
 		TextField textField = (TextField) getElement(getTemplate().getAttachPoint("text")).get();
+		SettableValue<Object> value = textField.getValue();
 		try {
-			ObservableValue<ObservableAction<?>> iodA = atts().observe(incOrDec);
-			ObservableAction<?>[] a = new ObservableAction[1];
-			iodA.value().act(action -> //
-			a[0] = action//
-			);
 			ObservableValue<ObservableAction<?>> actionObs = atts().observe(incOrDec).combineV(new TypeToken<ObservableAction<?>>() {},
-				(action, format, value) -> {
+				(action, format, val) -> {
 					if (action != null)
 						return action;
 					else if (format instanceof AdjustableFormatter) {
 						AdjustableFormatter<Object> adjFormat = (AdjustableFormatter<Object>) format;
-						if (value != null) {
+						if (val != null) {
 							return new ObservableAction<Object>() {
 								@Override
 								public TypeToken<Object> getType() {
@@ -69,25 +66,31 @@ public class Spinner extends QuickTemplate {
 
 								@Override
 								public Object act(Object cause) {
+									Object newValue;
 									if (incOrDec == increment)
-										return adjFormat.increment(value);
+										newValue = adjFormat.increment(val);
 									else
-										return adjFormat.decrement(value);
+										newValue = adjFormat.decrement(val);
+									value.set(newValue, cause);
+									return newValue;
 								}
 
 								@Override
 								public ObservableValue<String> isEnabled() {
+									ObservableValue<String> opEnabled;
 									if (incOrDec == increment)
-										return ObservableValue.constant(TypeToken.of(String.class), adjFormat.isIncrementEnabled(value));
+										opEnabled = ObservableValue.constant(TypeToken.of(String.class), adjFormat.isIncrementEnabled(val));
 									else
-										return ObservableValue.constant(TypeToken.of(String.class), adjFormat.isDecrementEnabled(value));
+										opEnabled = ObservableValue.constant(TypeToken.of(String.class), adjFormat.isDecrementEnabled(val));
+									return ObservableValue.firstValue(TypeToken.of(String.class), v -> v != null, value.isEnabled(),
+										opEnabled);
 								}
 							};
 						} else
 							return ObservableAction.disabled(TypeToken.of(Object.class), "No value");
 					} else
 						return ObservableAction.disabled(TypeToken.of(Object.class), "No " + incOrDec.getName() + " action set");
-				}, atts().observe(BaseAttributes.format), textField.getValue(), true);
+				}, atts().observe(BaseAttributes.format), value, true);
 			getElement(getTemplate().getAttachPoint(attach)).get().atts().set(ModelAttributes.action, ObservableAction.flatten(actionObs));
 		} catch (QuickException e) {
 			msg().error("Could not set action for " + attach + " button", e);

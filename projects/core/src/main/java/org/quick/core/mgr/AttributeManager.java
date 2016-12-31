@@ -102,7 +102,7 @@ public class AttributeManager {
 
 		/**
 		 * Creates a {@link SettableValue} that reflect's this attribute's model value. The {@link SettableValue#isEnabled()} field will
-		 * only be true if the content of this this attribute is an enabled settable value. Calling
+		 * only be null if the content of this this attribute is an enabled settable value. Calling
 		 * {@link SettableValue#set(Object, Object)} on the value will call the set method on that contained value. The set method will
 		 * never change the actual content of the attribute and will be disabled if the content is a constant value or a non-settable
 		 * observable.

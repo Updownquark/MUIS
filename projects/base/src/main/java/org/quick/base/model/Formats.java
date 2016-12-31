@@ -153,7 +153,7 @@ public class Formats {
 			if (value.intValue() == Integer.MIN_VALUE)
 				throw new IllegalStateException(isDecrementEnabled(value));
 			else
-				return value + 1;
+				return value - 1;
 		}
 
 		@Override

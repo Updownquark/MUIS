@@ -213,7 +213,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					public Subscription subscribe(Observer<? super ObservableValueEvent<String>> observer) {
 						Subscription sub = doc.changes().act(evt -> {
 							String newError = get();
-							System.out.println("Error: " + newError);
 							if (newError != theLastError) {
 								observer.onNext(createChangeEvent(theLastError, newError, evt));
 								theLastError = newError;

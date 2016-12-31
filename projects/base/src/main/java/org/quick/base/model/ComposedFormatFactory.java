@@ -39,14 +39,12 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 
 	public class ComposedFormatter implements AdjustableFormatter<T> {
 		private final QuickDocumentModel theDoc;
-		private final Observable<?> theUntil;
 		private List<SubFormat<?>> theSubFormats;
 		private QuickParseException theCurrentError;
 		private T theCurrentValue;
 
 		ComposedFormatter(QuickDocumentModel doc, Observable<?> until) {
 			theDoc = doc;
-			theUntil = until;
 			reset();
 			theDoc.changes().takeUntil(until).act(change -> {
 				if (theSubFormats == null)

@@ -46,7 +46,17 @@ public interface QuickFormatter<T> {
 	 */
 	T parse(QuickDocumentModel doc) throws QuickParseException;
 
+	/**
+	 * A factory that produces QuickFormatters that may keep state for their document
+	 * 
+	 * @param <T> The type of values that formatters produced by this factory understand
+	 */
 	interface Factory<T> {
+		/**
+		 * @param doc The document to create the formatter for
+		 * @param until An observable that will fire when the formatter is no longer needed and should release its state
+		 * @return The formatter
+		 */
 		QuickFormatter<T> create(QuickDocumentModel doc, Observable<?> until);
 	}
 }

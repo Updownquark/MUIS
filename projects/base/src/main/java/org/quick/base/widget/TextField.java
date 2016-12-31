@@ -18,7 +18,6 @@ import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
-import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.tags.*;
 import org.quick.util.QuickUtils;
 
@@ -66,7 +65,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			theTextEditing.install(this); // Installs the text editing behavior
 			// Mark the document dirty when the user edits it
 			doc.changes().filter(evt -> {
-				if (evt instanceof ContentChangeEvent || evt instanceof SelectionChangeEvent) {
+				if (evt instanceof ContentChangeEvent) {
 					TextEditEvent textEdit = evt.getCauseLike(c -> {
 						if (c instanceof TextEditEvent && ((TextEditEvent) c).getTextField() == TextField.this)
 							return (TextEditEvent) c;
@@ -84,7 +83,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				if (event.getValue().getValue1() == null)
 					return; // Don't do anything if the factory is unset
 				try {
-					atts().set(BaseAttributes.format, event.getValue().getValue1().create(doc, formatDocObs));
+					atts().set(BaseAttributes.format,
+						event.getValue().getValue1().create(event.getValue().getValue2(), formatDocObs.noInit()));
 				} catch (QuickException e) {
 					msg().error("Could not set format from factory", e);
 				}
@@ -132,7 +132,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			// Set up the enabled state as a function of the value, format and validator
 			ObservableValue<TriTuple<ObservableValue<? extends Object>, QuickFormatter<?>, Validator<?>>> trioObs = //
 				atts().getHolder(ModelAttributes.value).getContainer().tupleV(//
-					atts().getHolder(BaseAttributes.format), atts().getHolder(BaseAttributes.validator));
+					atts().observe(BaseAttributes.format), atts().observe(BaseAttributes.validator));
 			ObservableValue<String> enabled = ObservableValue.flatten(trioObs.mapV(tuple -> {
 				String configError = null;
 				String disabled = null;

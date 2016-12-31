@@ -3,7 +3,10 @@ package org.quick.base.model;
 import java.awt.Color;
 import java.util.function.Function;
 
+import org.observe.Observable;
 import org.quick.core.QuickException;
+import org.quick.core.model.QuickDocumentModel;
+import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.style.Colors;
 
 import com.google.common.reflect.TypeToken;
@@ -169,6 +172,129 @@ public class Formats {
 			return "formats.integer";
 		}
 	};
+
+	/** Formats integers, allowing them to be incremented variably depending on the location of the cursor */
+	public static final AdjustableFormatter.Factory<Integer> advancedInteger = new AdjustableFormatter.Factory<Integer>() {
+		@Override
+		public AdjustableFormatter<Integer> create(QuickDocumentModel doc, Observable<?> until) {
+			return new AdvancedIntFormatter(doc);
+		}
+
+	};
+
+	private static class AdvancedIntFormatter implements SimpleFormatter.SimpleAdjustableFormatter<Integer> {
+		private final QuickDocumentModel theDoc;
+
+		AdvancedIntFormatter(QuickDocumentModel doc) {
+			theDoc = doc;
+		}
+
+		@Override
+		public TypeToken<Integer> getFormatType() {
+			return TypeToken.of(Integer.class);
+		}
+
+		@Override
+		public TypeToken<Integer> getParseType() {
+			return TypeToken.of(Integer.class);
+		}
+
+		@Override
+		public String format(Integer value) {
+			return value.toString();
+		}
+
+		@Override
+		public Integer parse(String text) throws QuickParseException {
+			try {
+				return Integer.valueOf(text);
+			} catch (NumberFormatException e) {
+				throw new QuickParseException(e, -1, -1);
+			}
+		}
+
+		@Override
+		public Integer increment(Integer value) {
+			String enabled = isIncrementEnabled(value);
+			if (enabled != null)
+				throw new IllegalStateException(enabled);
+			return value.intValue() + getAdjustment();
+		}
+
+		int getAdjustment() {
+			int cursor = theDoc instanceof SelectableDocumentModel ? ((SelectableDocumentModel) theDoc).getCursor() : theDoc.length();
+			int add = 1;
+			for (int i = 0; i < theDoc.length() - cursor - 1; i++) {
+				add *= 10;
+				if (add < 0)
+					return -1;
+			}
+			return add;
+		}
+
+		@Override
+		public String isIncrementEnabled(Integer value) {
+			int adjust = getAdjustment();
+			int cursor = theDoc instanceof SelectableDocumentModel ? ((SelectableDocumentModel) theDoc).getCursor() : theDoc.length();
+			int place = theDoc.length() - cursor - 1;
+			String suffix;
+			switch (place % 10) {
+			case 1:
+				suffix = "st";
+				break;
+			case 2:
+				suffix = "nd";
+				break;
+			default:
+				suffix = "th";
+			}
+			if (adjust < 0) {
+				return "Integer values cannot be increased in the " + place + suffix + " place";
+			}
+			if (value.intValue() > 0 && value.intValue() + adjust < 0)
+				return "This value is too great to be increased in the " + place + suffix + " place";
+			else
+				return null;
+		}
+
+		@Override
+		public Integer decrement(Integer value) {
+			String enabled = isDecrementEnabled(value);
+			if (enabled != null)
+				throw new IllegalStateException(enabled);
+			return value.intValue() - getAdjustment();
+		}
+
+		@Override
+		public String isDecrementEnabled(Integer value) {
+			int adjust = getAdjustment();
+			int cursor = theDoc instanceof SelectableDocumentModel ? ((SelectableDocumentModel) theDoc).getCursor() : theDoc.length();
+			int place = theDoc.length() - cursor - 1;
+			String suffix;
+			switch (place % 10) {
+			case 1:
+				suffix = "st";
+				break;
+			case 2:
+				suffix = "nd";
+				break;
+			default:
+				suffix = "th";
+			}
+			if (adjust < 0) {
+				return "Integer values cannot be decreased in the " + place + suffix + " place";
+			}
+			if (value.intValue() > 0 && value.intValue() + adjust < 0)
+				return "This value is too low to be decreased in the " + place + suffix + " place";
+			else
+				return null;
+		}
+
+		@Override
+		public String toString() {
+			return "formats.advanced-integer";
+		}
+	}
 
 	/** Formats and parses colors using the {@link Colors} class */
 	public static final QuickFormatter<Color> color = new SimpleFormatter<Color>() {

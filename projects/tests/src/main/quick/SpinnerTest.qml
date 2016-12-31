@@ -5,13 +5,13 @@
         <title>Spinner Test</title>
 		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
 		<model name="model" builder="default-model">
-			<variable name="simpleInt" min="0" max="100">0</variable>
+			<variable name="simpleInt" min="0" max="100000">0</variable>
 			<variable name="simpleFloat" min="-1000" max="1000">0.0</variable>
 		</model>
 	</head>
 	<body xmlns:base="../../../../base/QuickRegistry.xml" layout="box" direction="down">
 		<block layout="box" direction="right">
-			<spinner value="model.simpleInt" format="${formats.integer}" />
+			<spinner value="model.simpleInt" format-factory="${formats.advancedInteger}" />
 			This spinner increments an integer by 1.
 		</block>
 		<block layout="box" direction="right">

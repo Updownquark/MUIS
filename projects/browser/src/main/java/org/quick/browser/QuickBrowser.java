@@ -13,6 +13,7 @@ import org.quick.core.parser.SimpleParseEnv;
 /** A browser that renders Quick documents */
 public class QuickBrowser extends javax.swing.JPanel {
 	private static final boolean RENDER_DEBUG = false;
+	private static final QuickMessage.Type LOG_LEVEL = QuickMessage.Type.INFO;
 
 	javax.swing.JTextField theAddressBar;
 
@@ -127,6 +128,8 @@ public class QuickBrowser extends javax.swing.JPanel {
 	}
 
 	private void printMessage(QuickMessage msg) {
+		if (msg.type.compareTo(LOG_LEVEL) < 0)
+			return;
 		switch (msg.type) {
 		case FATAL:
 		case ERROR:

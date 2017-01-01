@@ -15,14 +15,15 @@ import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
+import org.quick.core.model.AbstractSelectableDocumentModel;
 import org.quick.core.model.MutableDocumentModel;
-import org.quick.core.model.MutableSelectableDocumentModel;
+import org.quick.core.model.StyleableSelectableDocumentModel;
 import org.quick.core.style.*;
 
 import com.google.common.reflect.TypeToken;
 
 /** A {@link MutableDocumentModel} that allows different styles for different sections of text */
-public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDocumentModel implements MutableSelectableDocumentModel {
+public class RichDocumentModel extends AbstractSelectableDocumentModel implements StyleableSelectableDocumentModel {
 	private class RichStyleSequence implements StyledSequence, QuickStyle {
 		private final StringBuilder theContent;
 
@@ -321,25 +322,7 @@ public class RichDocumentModel extends org.quick.core.model.AbstractSelectableDo
 		theSequences.add(i + 1, newSeq);
 	}
 
-	/**
-	 * <p>
-	 * Creates a setter for styles on a subsequence in this model. The returned style does attempt to return intelligent values from the
-	 * style getter methods, nor does it support listening, since complete consistency is impossible because the given subsequence may
-	 * overlap sequences with differing styles. This method is really intended for setting styles in this model. For accessing style
-	 * information, use the {@link #iterator() iterator}.
-	 * </p>
-	 * <p>
-	 * The returned style will reflect its sequences directly--"local" values from the sequences will become the style's local attributes.
-	 * </p>
-	 * <p>
-	 * Note that using the setter methods of the returned style may give inconsistent or unexpected results or exceptions if this document
-	 * is modified by another thread while the returned style is still in use. Use {@link #holdForWrite(Object)} to prevent this.
-	 * </p>
-	 *
-	 * @param start The start of the sequence to the style-setter for
-	 * @param end The end of the sequence to get the style-setter for
-	 * @return A style that represents and allows setting of styles for the given subsequence in this document.
-	 */
+	@Override
 	public MutableStyle getSegmentStyle(int start, int end) {
 		return new RichSegmentStyle(start, end);
 	}

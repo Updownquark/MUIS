@@ -42,7 +42,8 @@ public class StyleParsingUtils {
 			else
 				domainClass = classView.loadMappedClass(ns, domainName, StyleDomain.class);
 		} catch (QuickException e) {
-			throw new QuickException("Could not load domain class " + domainClassName + " from toolkit " + toolkit.getName(), e);
+			throw new QuickException("Could not load domain class " + domainClassName
+				+ (toolkit != null ? (" from toolkit " + toolkit.getName()) : " from scoped toolkits"), e);
 		}
 		org.quick.core.style.StyleDomain domain;
 		try {

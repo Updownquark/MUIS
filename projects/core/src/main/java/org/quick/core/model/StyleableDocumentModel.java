@@ -1,7 +1,7 @@
 package org.quick.core.model;
 
 import org.observe.Observable;
-import org.quick.core.style.MutableStyle;
+import org.quick.core.style.GroupableStyle;
 
 /** A document model whose content can be styled */
 public interface StyleableDocumentModel extends MutableDocumentModel {
@@ -24,7 +24,7 @@ public interface StyleableDocumentModel extends MutableDocumentModel {
 	 * @param end The end of the sequence to get the style-setter for
 	 * @return A style that represents and allows setting of styles for the given subsequence in this document.
 	 */
-	MutableStyle getSegmentStyle(int start, int end);
+	GroupableStyle getSegmentStyle(int start, int end);
 
 	@Override
 	default StyleableDocumentModel subSequence(int start) {
@@ -53,7 +53,7 @@ public interface StyleableDocumentModel extends MutableDocumentModel {
 		}
 
 		@Override
-		public MutableStyle getSegmentStyle(int start, int end) {
+		public GroupableStyle getSegmentStyle(int start, int end) {
 			return getWrapped().getSegmentStyle(transform(start), transform(end));
 		}
 	}

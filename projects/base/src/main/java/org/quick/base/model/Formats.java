@@ -364,7 +364,49 @@ public class Formats {
 				}
 
 				private void setStyles(StyleableDocumentModel doc, int pos) {
-					// TODO Auto-generated method stub
+					doc.getSegmentStyle(pos, doc.length()).removeGroup("hours").removeGroup("minutes").removeGroup("seconds");
+					int hours = 0;
+					int c = pos;
+					int lastC = c;
+					for (; c < doc.length(); c++) {
+						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
+							hours = hours * 10 + (doc.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == 0)
+						return;
+					if (c == doc.length() || doc.charAt(c++) != ':')
+						return;
+					doc.getSegmentStyle(lastC, c).addGroup("hours");
+
+					lastC = c;
+					int minutes = 0;
+					for (; c < doc.length(); c++) {
+						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
+							minutes = minutes * 10 + (doc.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == lastC)
+						return;
+					if (c == doc.length() || doc.charAt(c++) != ':')
+						return;
+					doc.getSegmentStyle(lastC, c).addGroup("minutes");
+
+					lastC = c;
+					int seconds = 0;
+					for (; c < doc.length(); c++) {
+						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
+							seconds = seconds * 10 + (doc.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == lastC)
+						return;
+					if (c != doc.length())
+						return;
+					doc.getSegmentStyle(lastC, c).addGroup("seconds");
 				}
 
 				@Override

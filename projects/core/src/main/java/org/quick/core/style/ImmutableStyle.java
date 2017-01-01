@@ -45,6 +45,11 @@ public class ImmutableStyle implements QuickStyle {
 	}
 
 	@Override
+	public QuickStyle forExtraGroups(ObservableCollection<String> extraStates) {
+		return this;
+	}
+
+	@Override
 	public int hashCode() {
 		return theValues.hashCode();
 	}

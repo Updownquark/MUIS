@@ -28,7 +28,7 @@
 			This spinner increments the same floating-point value by 100.
 		</block>
 		<block layout="box" direction="right">
-			<spinner value="model.simpleDuration" format-factory="${formats.durationHHMMss}" />
+			<spinner value="model.simpleDuration" format-factory="${formats.durationHHMMss}" rich="true" />
 			This spinner operates on a duration, incrementing by hours, minutes, or seconds depending on the location of the cursor.
 		</block>
 	</body>

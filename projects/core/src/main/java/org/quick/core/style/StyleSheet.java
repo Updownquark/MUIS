@@ -87,12 +87,14 @@ public interface StyleSheet {
 	/**
 	 * @param element The element to use for checking conditions
 	 * @param extraStates The extra states to consider for the condition
+	 * @param extraGroups The extra groups to consider for the condition
 	 * @param attr The style attribute to check
 	 * @return Whether this style sheet has any values for the given attribute for which the condition is met for the given element with the
 	 *         given extra states
 	 */
-	default boolean isSet(QuickElement element, ObservableSet<QuickState> extraStates, StyleAttribute<?> attr) {
-		return isSet(StyleConditionInstance.of(element, extraStates), attr);
+	default boolean isSet(QuickElement element, ObservableSet<QuickState> extraStates, ObservableSet<String> extraGroups,
+		StyleAttribute<?> attr) {
+		return isSet(StyleConditionInstance.of(element, extraStates, extraGroups), attr);
 	}
 
 	/**
@@ -121,13 +123,14 @@ public interface StyleSheet {
 	 * @param <T> The type of the attribute
 	 * @param element The element to use for checking conditions
 	 * @param extraStates The extra states to consider for the condition
+	 * @param extraGroups The extra groups to consider for the condition
 	 * @param attr The style attribute to get the value for
 	 * @param withDefault Whether to use the attribute's default value if this style sheet does not have a value whose condition matches the
 	 *        element and extra states instead of null
 	 * @return The value of the given attribute in this style sheet whose condition matches the given element and extra states
 	 */
-	default <T> ObservableValue<T> get(QuickElement element, ObservableSet<QuickState> extraStates, StyleAttribute<T> attr,
-		boolean withDefault) {
-		return get(StyleConditionInstance.of(element, extraStates), attr, withDefault);
+	default <T> ObservableValue<T> get(QuickElement element, ObservableSet<QuickState> extraStates, ObservableSet<String> extraGroups,
+		StyleAttribute<T> attr, boolean withDefault) {
+		return get(StyleConditionInstance.of(element, extraStates, extraGroups), attr, withDefault);
 	}
 }

@@ -26,14 +26,25 @@ import com.google.common.reflect.TypeToken;
 public class RichDocumentModel extends AbstractSelectableDocumentModel implements StyleableSelectableDocumentModel {
 	private class RichStyleSequence implements StyledSequence, QuickStyle {
 		private final StringBuilder theContent;
-
 		private final ObservableMap<StyleAttribute<?>, StyleValue<?>> theStyles;
+		private final ObservableSet<String> theExtraGroups;
+		private final QuickStyle theBacking;
 
 		RichStyleSequence() {
 			theContent = new StringBuilder();
 			DefaultTransactable transactable = new DefaultTransactable(getLock());
 			theStyles = new ObservableMapImpl<>(new TypeToken<StyleAttribute<?>>() {}, new TypeToken<StyleValue<?>>() {},
 				ObservableHashSet::new, getLock(), transactable.getSession(), transactable);
+			theExtraGroups = new ObservableHashSet<>(TypeToken.of(String.class), getLock(), transactable.getSession(), transactable);
+			theBacking = getNormalStyle().forExtraGroups(theExtraGroups);
+		}
+
+		void addGroup(String group) {
+			theExtraGroups.add(group);
+		}
+
+		void removeGroup(String group) {
+			theExtraGroups.remove(group);
 		}
 
 		@Override
@@ -69,14 +80,13 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> attributes() {
-			return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), getNormalStyle().attributes()),
+			return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), theBacking.attributes()),
 				Object::equals);
 		}
 
-
 		@Override
 		public boolean isSet(StyleAttribute<?> attr) {
-			return theStyles.containsKey(attr) || getNormalStyle().isSet(attr);
+			return theStyles.containsKey(attr) || theBacking.isSet(attr);
 		}
 
 		@Override
@@ -84,43 +94,54 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 			ObservableValue<T> localValue = ObservableValue
 				.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
 			return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
-				getNormalStyle().get(attr, withDefault));
+				theBacking.get(attr, withDefault));
 		}
 
 		@Override
 		public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
-			class RichStyleWithExtraStates implements QuickStyle {
-				private final QuickStyle theBacking;
-
-				RichStyleWithExtraStates(QuickStyle backing) {
-					theBacking = backing;
-				}
-
-				@Override
-				public boolean isSet(StyleAttribute<?> attr) {
-					return theStyles.containsKey(attr) || theBacking.isSet(attr);
-				}
-
-				@Override
-				public ObservableSet<StyleAttribute<?>> attributes() {
-					return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), theBacking.attributes()),
-						Object::equals);
-				}
-
-				@Override
-				public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-					ObservableValue<T> localValue = ObservableValue
-						.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
-					return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
-						theBacking.get(attr, withDefault));
-				}
-
-				@Override
-				public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates2) {
-					return new RichStyleWithExtraStates(theBacking.forExtraStates(extraStates2));
-				}
-			}
 			return new RichStyleWithExtraStates(getNormalStyle().forExtraStates(extraStates));
+		}
+
+		@Override
+		public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups) {
+			return new RichStyleWithExtraStates(getNormalStyle().forExtraGroups(extraGroups));
+		}
+
+		class RichStyleWithExtraStates implements QuickStyle {
+			private final QuickStyle theBacking2;
+
+			RichStyleWithExtraStates(QuickStyle backing) {
+				theBacking2 = backing;
+			}
+
+			@Override
+			public boolean isSet(StyleAttribute<?> attr) {
+				return theStyles.containsKey(attr) || theBacking2.isSet(attr);
+			}
+
+			@Override
+			public ObservableSet<StyleAttribute<?>> attributes() {
+				return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), theBacking2.attributes()),
+					Object::equals);
+			}
+
+			@Override
+			public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
+				ObservableValue<T> localValue = ObservableValue
+					.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
+				return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
+					theBacking2.get(attr, withDefault));
+			}
+
+			@Override
+			public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates2) {
+				return new RichStyleWithExtraStates(theBacking2.forExtraStates(extraStates2));
+			}
+
+			@Override
+			public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups2) {
+				return new RichStyleWithExtraStates(theBacking2.forExtraGroups(extraGroups2));
+			}
 		}
 	}
 
@@ -323,7 +344,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 	}
 
 	@Override
-	public MutableStyle getSegmentStyle(int start, int end) {
+	public GroupableStyle getSegmentStyle(int start, int end) {
 		return new RichSegmentStyle(start, end);
 	}
 
@@ -382,14 +403,35 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		return (RichDocumentModel) super.insert(c);
 	}
 
-	private class RichSegmentStyle implements MutableStyle {
+	private class RichSegmentStyle implements GroupableStyle {
 		private final int theStart;
-
 		private final int theEnd;
 
 		RichSegmentStyle(int start, int end) {
 			theStart = start;
 			theEnd = end;
+		}
+
+		@Override
+		public GroupableStyle addGroup(String group) {
+			try (Transaction t = holdForWrite(getWriteLockCause())) {
+				for (RichStyleSequence seq : getSeqsForMod())
+					seq.addGroup(group);
+			}
+
+			fireStyleEvent(theStart, theEnd, getWriteLockCause());
+			return this;
+		}
+
+		@Override
+		public GroupableStyle removeGroup(String group) {
+			try (Transaction t = holdForWrite(getWriteLockCause())) {
+				for (RichStyleSequence seq : getSeqsForMod())
+					seq.removeGroup(group);
+			}
+
+			fireStyleEvent(theStart, theEnd, getWriteLockCause());
+			return this;
 		}
 
 		@Override
@@ -427,7 +469,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		public <T> MutableStyle set(StyleAttribute<T> attr, ObservableValue<? extends T> value) throws IllegalArgumentException {
 			StyleValue<T> safe = new StyleValue<>(attr, value, theMessageCenter);
 			try (Transaction t = holdForWrite(getWriteLockCause())) {
-				for(RichStyleSequence seq : getSeqsForMod(attr, value))
+				for (RichStyleSequence seq : getSeqsForMod())
 					seq.theStyles.put(attr, safe);
 			}
 
@@ -438,7 +480,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		@Override
 		public MutableStyle clear(StyleAttribute<?> attr) {
 			try (Transaction t = holdForWrite(getWriteLockCause())) {
-				for(RichStyleSequence seq : getSeqsForMod(attr, null)) {
+				for (RichStyleSequence seq : getSeqsForMod()) {
 					seq.theStyles.remove(attr);
 				}
 			}
@@ -447,7 +489,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 			return this;
 		}
 
-		List<RichStyleSequence> getSeqsForMod(StyleAttribute<?> attr, ObservableValue<?> value) {
+		List<RichStyleSequence> getSeqsForMod() {
 			ArrayList<RichStyleSequence> ret = new ArrayList<>();
 			int pos = 0;
 			for(int i = 0; i < theSequences.size(); i++) {
@@ -473,6 +515,11 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		@Override
 		public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
 			return this; // Not state-dependent
+		}
+
+		@Override
+		public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups) {
+			return this; // Not group-dependent
 		}
 	}
 }

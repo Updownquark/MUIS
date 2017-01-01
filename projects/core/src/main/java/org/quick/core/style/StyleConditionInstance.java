@@ -56,27 +56,32 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	 * @return A condition instance whose data reflects the element's
 	 */
 	public static <T extends QuickElement> StyleConditionInstance<T> of(T element) {
-		return of(element, null);
+		return of(element, null, null);
 	}
 
 	/**
 	 * @param <T> The type of the element
 	 * @param element The element
 	 * @param extraStates Extra states for the condition that may or may not be present in the element's active states
+	 * @param extraGroups Extra groups for the condition that may or may not be present in the element's groups
 	 * @return A condition instance whose data reflects the element's, with the addition of the extra states
 	 */
-	public static <T extends QuickElement> StyleConditionInstance<T> of(T element, ObservableSet<QuickState> extraStates) {
+	public static <T extends QuickElement> StyleConditionInstance<T> of(T element, ObservableSet<QuickState> extraStates,
+		ObservableSet<String> extraGroups) {
 		ObservableSet<QuickState> states = element.getStateEngine().activeStates();
 		if (extraStates != null)
 			states = ObservableSet.unique(ObservableCollection.flattenCollections(states, extraStates), Object::equals);
 		ObservableValue<ObservableSet<String>> groupValue = element.atts().getHolder(StyleAttributes.group).mapV((Set<String> g) -> {
 			return ObservableSet.<String> constant(TypeToken.of(String.class), g == null ? Collections.<String> emptySet() : g);
 		});
+		ObservableSet<String> groups = ObservableSet.flattenValue(groupValue);
+		if (extraGroups != null)
+			groups = ObservableSet.unique(ObservableCollection.flattenCollections(groups, extraGroups), Object::equals);
 		ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles = StyleConditionInstanceFunctions.getTemplateRoles(element);
 
 		return new Builder<>((Class<T>) element.getClass())//
 			.withState(states)//
-			.withGroups(ObservableSet.flattenValue(groupValue))//
+			.withGroups(groups)//
 			.withRoles(roles)//
 			.build();
 	}

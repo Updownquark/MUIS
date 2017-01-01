@@ -1,7 +1,7 @@
 package org.quick.core.model;
 
 import org.observe.Observable;
-import org.quick.core.style.MutableStyle;
+import org.quick.core.style.GroupableStyle;
 
 /** A document that is mutable, selectable, and styleable */
 public interface StyleableSelectableDocumentModel extends MutableSelectableDocumentModel, StyleableDocumentModel {
@@ -32,7 +32,7 @@ public interface StyleableSelectableDocumentModel extends MutableSelectableDocum
 		}
 
 		@Override
-		public MutableStyle getSegmentStyle(int start, int end) {
+		public GroupableStyle getSegmentStyle(int start, int end) {
 			return getWrapped().getSegmentStyle(transform(start), transform(end));
 		}
 

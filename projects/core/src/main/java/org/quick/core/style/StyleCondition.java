@@ -194,10 +194,12 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	/**
 	 * @param element The element to test
 	 * @param extraStates The extra states to test against
+	 * @param extraGroups The extra groups to test against
 	 * @return An observable boolean reflecting whether this condition currently applies to the given element with the extra states
 	 */
-	public ObservableValue<Boolean> matches(QuickElement element, ObservableSet<QuickState> extraStates) {
-		return matches(StyleConditionInstance.of(element, extraStates));
+	public ObservableValue<Boolean> matches(QuickElement element, ObservableSet<QuickState> extraStates,
+		ObservableSet<String> extraGroups) {
+		return matches(StyleConditionInstance.of(element, extraStates, extraGroups));
 	}
 
 	@Override

@@ -53,4 +53,11 @@ public interface QuickStyle {
 	default QuickStyle forExtraState(QuickState state){
 		return forExtraStates(ObservableCollection.constant(TypeToken.of(QuickState.class), state));
 	}
+
+	/**
+	 * @param extraGroups The extra groups to create a new style for
+	 * @return A style that reflects what this style would look like if the given extra groups were used in evaluating any conditional
+	 *         values
+	 */
+	QuickStyle forExtraGroups(ObservableCollection<String> extraGroups);
 }

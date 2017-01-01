@@ -27,4 +27,13 @@
 		<attr domain="bg" name="transparency" value="0" />
 		<attr domain="bg" name="color" value="purple" />
 	</group>
+	<group name="hours">
+		<attr domain="font" name="color" value="purple" />
+	</group>
+	<group name="minutes">
+		<attr domain="font" name="color" value="dark-green" />
+	</group>
+	<group name="seconds">
+		<attr domain="font" name="color" value="dark-orange" />
+	</group>
 </style>

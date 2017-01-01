@@ -634,6 +634,12 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 						return new StyledSequenceWrapper(theWrapped, theWrappedStyle.forExtraStates(extraStates),
 							theBackup.forExtraStates(extraStates), start, end).getStyle();
 					}
+
+					@Override
+					public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups) {
+						return new StyledSequenceWrapper(theWrapped, theWrappedStyle.forExtraGroups(extraGroups),
+							theBackup.forExtraGroups(extraGroups), start, end).getStyle();
+					}
 				};
 		}
 

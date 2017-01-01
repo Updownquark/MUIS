@@ -1,12 +1,13 @@
 package org.quick.base.model;
 
 import java.awt.Color;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.function.Function;
 
 import org.observe.Observable;
 import org.quick.core.QuickException;
-import org.quick.core.model.QuickDocumentModel;
-import org.quick.core.model.SelectableDocumentModel;
+import org.quick.core.model.*;
 import org.quick.core.style.Colors;
 
 import com.google.common.reflect.TypeToken;
@@ -327,6 +328,202 @@ public class Formats {
 		@Override
 		public String toString() {
 			return "formats.color";
+		}
+	};
+
+	/**
+	 * Creates formatters for a duration in the form HH:MM:ss, with each piece (hours, minutes, seconds) adjustable when the cursor is on it
+	 */
+	public static final AdjustableFormatter.Factory<Duration> durationHHMMss = new AdjustableFormatter.Factory<Duration>() {
+		@Override
+		public AdjustableFormatter<Duration> create(QuickDocumentModel document, Observable<?> until) {
+			return new SimpleFormatter.SimpleAdjustableFormatter<Duration>() {
+				@Override
+				public TypeToken<Duration> getFormatType() {
+					return TypeToken.of(Duration.class);
+				}
+
+				@Override
+				public TypeToken<? extends Duration> getParseType() {
+					return TypeToken.of(Duration.class);
+				}
+
+				@Override
+				public void append(MutableDocumentModel doc, Duration value) {
+					int pos = doc.length();
+					SimpleAdjustableFormatter.super.append(doc, value);
+					if (doc instanceof StyleableDocumentModel)
+						setStyles((StyleableDocumentModel) doc, pos);
+				}
+
+				@Override
+				public void adjust(MutableDocumentModel doc, Duration value) {
+					SimpleAdjustableFormatter.super.adjust(doc, value);
+					if (doc instanceof StyleableDocumentModel)
+						setStyles((StyleableDocumentModel) doc, 0);
+				}
+
+				private void setStyles(StyleableDocumentModel doc, int pos) {
+					// TODO Auto-generated method stub
+				}
+
+				@Override
+				public String format(Duration value) {
+					long seconds = value.getSeconds();
+					long hours = seconds / 60 / 60;
+					seconds -= hours * 60 * 60;
+					long minutes = seconds / 60;
+					seconds -= minutes * 60;
+					StringBuilder builder = new StringBuilder();
+					if (hours < 10)
+						builder.append('0');
+					builder.append(hours);
+					builder.append(':');
+					if (minutes < 10)
+						builder.append('0');
+					builder.append(minutes);
+					builder.append(':');
+					if (seconds < 10)
+						builder.append('0');
+					builder.append(seconds);
+					return builder.toString();
+				}
+
+				@Override
+				public Duration parse(String text) throws QuickParseException {
+					int hours = 0;
+					int c = 0;
+					for (; c < text.length(); c++) {
+						if (text.charAt(c) >= '0' && text.charAt(c) <= '9')
+							hours = hours * 10 + (text.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == 0)
+						throw new QuickParseException("Number of hours expected", c, c);
+					if (c == text.length() || text.charAt(c++) != ':')
+						throw new QuickParseException("':' expected", c, c + 1);
+
+					int lastC = c;
+					int minutes = 0;
+					for (; c < text.length(); c++) {
+						if (text.charAt(c) >= '0' && text.charAt(c) <= '9')
+							minutes = minutes * 10 + (text.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == lastC)
+						throw new QuickParseException("Number of minutes expected", c, c);
+					if (c == text.length() || text.charAt(c++) != ':')
+						throw new QuickParseException("':' expected", c, c + 1);
+
+					lastC = c;
+					int seconds = 0;
+					for (; c < text.length(); c++) {
+						if (text.charAt(c) >= '0' && text.charAt(c) <= '9')
+							seconds = seconds * 10 + (text.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == lastC)
+						throw new QuickParseException("Number of seconds expected", c, c);
+					if (c != text.length())
+						throw new QuickParseException("End of input expected", c, c);
+					return Duration.of(hours, ChronoUnit.HOURS).plus(minutes, ChronoUnit.MINUTES).plus(seconds, ChronoUnit.SECONDS);
+				}
+
+				@Override
+				public Duration increment(Duration value) {
+					String disabled = isIncrementEnabled(value);
+					if (disabled != null)
+						return Duration.ZERO;
+					ChronoUnit unit = getUnitAtCursor((SelectableDocumentModel) document);
+					return value.plus(1, unit);
+				}
+
+				@Override
+				public String isIncrementEnabled(Duration value) {
+					if (!(document instanceof SelectableDocumentModel))
+						return "Document is not selectable";
+					ChronoUnit unit = getUnitAtCursor((SelectableDocumentModel) document);
+					if (unit == null)
+						return "Malformatted duration";
+					return null;
+				}
+
+				@Override
+				public Duration decrement(Duration value) {
+					String disabled = isDecrementEnabled(value);
+					if (disabled != null)
+						return Duration.ZERO;
+					ChronoUnit unit = getUnitAtCursor((SelectableDocumentModel) document);
+					return value.minus(1, unit);
+				}
+
+				@Override
+				public String isDecrementEnabled(Duration value) {
+					if (!(document instanceof SelectableDocumentModel))
+						return "Document is not selectable";
+					ChronoUnit unit = getUnitAtCursor((SelectableDocumentModel) document);
+					if (unit == null)
+						return "Malformatted duration";
+					Duration diff = Duration.of(1, unit);
+					if (diff.compareTo(value) > 0)
+						return "Cannot subtract 1 " + unit + " from " + value;
+					return null;
+				}
+
+				private ChronoUnit getUnitAtCursor(SelectableDocumentModel doc) {
+					int cursor = doc.getCursor();
+					if (cursor == 0)
+						return ChronoUnit.HOURS;
+					int hours = 0;
+					int c = 0;
+					for (; c < cursor; c++) {
+						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
+							hours = hours * 10 + (doc.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == 0)
+						return null;
+					if (c == cursor)
+						return ChronoUnit.HOURS;
+					if (c == doc.length() || doc.charAt(c++) != ':')
+						return null;
+
+					int lastC = c;
+					int minutes = 0;
+					for (; c < doc.length(); c++) {
+						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
+							minutes = minutes * 10 + (doc.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == lastC)
+						return null;
+					if (c == cursor)
+						return ChronoUnit.MINUTES;
+					if (c == doc.length() || doc.charAt(c++) != ':')
+						return null;
+
+					lastC = c;
+					int seconds = 0;
+					for (; c < doc.length(); c++) {
+						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
+							seconds = seconds * 10 + (doc.charAt(c) - '0');
+						else
+							break;
+					}
+					if (c == lastC)
+						return null;
+					if (c == cursor)
+						return ChronoUnit.SECONDS;
+					if (c != doc.length())
+						return null;
+					return ChronoUnit.SECONDS;
+				}
+			};
 		}
 	};
 }

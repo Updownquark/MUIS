@@ -28,8 +28,12 @@ public class QuickEventQueue {
 		/** Executes this event's action */
 		void handle();
 
-		/** Called when the event queue discards this event because it has been {@link #isSupersededBy(Event) superseded} */
-		void discard();
+		/**
+		 * Called when the event queue discards this event because it has been {@link #isSupersededBy(Event) superseded}
+		 *
+		 * @return Whether this event was discarded. A false value indicates that this event is already being or has been handled
+		 */
+		boolean discard();
 
 		/** @return Whether this event's {@link #handle()} method is currently executing */
 		boolean isHandling();
@@ -51,6 +55,13 @@ public class QuickEventQueue {
 		 *         acted on
 		 */
 		boolean isSupersededBy(Event evt);
+
+		/**
+		 * @param evt The event to supersede
+		 * @return Whether the event was superseded by this event. This may be false even if {@link #isSupersededBy(Event)} returns true if
+		 *         this event is already being or has been handled.
+		 */
+		boolean supersede(Event evt);
 
 		/** @return This event's priority. This value must not change for the event. */
 		int getPriority();
@@ -118,8 +129,11 @@ public class QuickEventQueue {
 		protected abstract void doHandleAction();
 
 		@Override
-		public void discard() {
+		public boolean discard() {
+			if (isHandling || isHandled || isDiscarded)
+				return false;
 			isDiscarded = true;
+			return true;
 		}
 
 		@Override
@@ -140,6 +154,11 @@ public class QuickEventQueue {
 		@Override
 		public boolean isSupersededBy(Event evt) {
 			return false;
+		}
+
+		@Override
+		public boolean supersede(Event evt) {
+			return !(isHandling || isHandled || isDiscarded);
 		}
 
 		@Override
@@ -632,13 +651,14 @@ public class QuickEventQueue {
 			if(evt.isHandling() || evt.isFinished())
 				continue;
 			if(event.isSupersededBy(evt)) {
-				event.discard();
+				if (evt.supersede(event))
+					event.discard();
 				if(schedule != null)
 					theTracker.end(schedule);
 				return;
 			} else if(evt.isSupersededBy(event)) {
-				evt.discard();
-				remove(evt, schedule != null);
+				if (evt.discard())
+					remove(evt, schedule != null);
 			}
 		}
 		addEvent(event, now);

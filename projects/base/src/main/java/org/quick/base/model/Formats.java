@@ -364,7 +364,6 @@ public class Formats {
 				}
 
 				private void setStyles(StyleableDocumentModel doc, int pos) {
-					doc.getSegmentStyle(pos, doc.length()).removeGroup("hours").removeGroup("minutes").removeGroup("seconds");
 					int hours = 0;
 					int c = pos;
 					int lastC = c;
@@ -376,9 +375,10 @@ public class Formats {
 					}
 					if (c == 0)
 						return;
+					doc.getSegmentStyle(lastC, c).removeGroup("minutes").removeGroup("seconds").addGroup("hours");
 					if (c == doc.length() || doc.charAt(c++) != ':')
 						return;
-					doc.getSegmentStyle(lastC, c).addGroup("hours");
+					doc.getSegmentStyle(c - 1, c).removeGroup("hours").removeGroup("minutes").removeGroup("seconds");
 
 					lastC = c;
 					int minutes = 0;
@@ -390,9 +390,10 @@ public class Formats {
 					}
 					if (c == lastC)
 						return;
+					doc.getSegmentStyle(lastC, c).removeGroup("hours").removeGroup("seconds").addGroup("minutes");
 					if (c == doc.length() || doc.charAt(c++) != ':')
 						return;
-					doc.getSegmentStyle(lastC, c).addGroup("minutes");
+					doc.getSegmentStyle(c - 1, c).removeGroup("hours").removeGroup("minutes").removeGroup("seconds");
 
 					lastC = c;
 					int seconds = 0;
@@ -406,7 +407,7 @@ public class Formats {
 						return;
 					if (c != doc.length())
 						return;
-					doc.getSegmentStyle(lastC, c).addGroup("seconds");
+					doc.getSegmentStyle(lastC, c).removeGroup("hours").removeGroup("minutes").addGroup("seconds");
 				}
 
 				@Override
@@ -531,12 +532,12 @@ public class Formats {
 						return null;
 					if (c == cursor)
 						return ChronoUnit.HOURS;
+					int lastC = c;
 					if (c == doc.length() || doc.charAt(c++) != ':')
 						return null;
 
-					int lastC = c;
 					int minutes = 0;
-					for (; c < doc.length(); c++) {
+					for (; c < cursor; c++) {
 						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
 							minutes = minutes * 10 + (doc.charAt(c) - '0');
 						else
@@ -546,12 +547,12 @@ public class Formats {
 						return null;
 					if (c == cursor)
 						return ChronoUnit.MINUTES;
+					lastC = c;
 					if (c == doc.length() || doc.charAt(c++) != ':')
 						return null;
 
-					lastC = c;
 					int seconds = 0;
-					for (; c < doc.length(); c++) {
+					for (; c < cursor; c++) {
 						if (doc.charAt(c) >= '0' && doc.charAt(c) <= '9')
 							seconds = seconds * 10 + (doc.charAt(c) - '0');
 						else

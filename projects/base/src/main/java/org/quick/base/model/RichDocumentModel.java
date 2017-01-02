@@ -333,14 +333,14 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		theSequences.get(0).theContent.append(text);
 	}
 
-	private void splitSequence(int i, int pos) {
-		RichStyleSequence seq = theSequences.get(i);
-		String postSplit = seq.theContent.substring(pos);
-		seq.theContent.delete(pos, seq.theContent.length());
+	private void splitSequence(int seqIndex, int seqPos) {
+		RichStyleSequence seq = theSequences.get(seqIndex);
+		String postSplit = seq.theContent.substring(seqPos);
+		seq.theContent.delete(seqPos, seq.theContent.length());
 		RichStyleSequence newSeq = new RichStyleSequence();
 		newSeq.theStyles.putAll(seq.theStyles);
 		newSeq.theContent.append(postSplit);
-		theSequences.add(i + 1, newSeq);
+		theSequences.add(seqIndex + 1, newSeq);
 	}
 
 	@Override
@@ -492,20 +492,20 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		List<RichStyleSequence> getSeqsForMod() {
 			ArrayList<RichStyleSequence> ret = new ArrayList<>();
 			int pos = 0;
-			for(int i = 0; i < theSequences.size(); i++) {
-				if(pos >= theEnd)
-					break;
+			for (int i = 0; i < theSequences.size() && pos < theEnd; i++) {
 				RichStyleSequence seq = theSequences.get(i);
 				int nextPos = pos + seq.length();
-				if(nextPos < theStart) {
-				} else if(pos >= theStart && nextPos <= theEnd) {
+				if (nextPos <= theStart) {
+				} else if (pos >= theStart && nextPos < theEnd) {
 					ret.add(seq);
-				} else if(pos >= theStart) {
-					splitSequence(i, pos - theStart);
-					ret.add(seq);
-				} else if(nextPos <= theEnd) {
+				} else if (pos < theStart) {
+					splitSequence(i, theStart - pos);
+					i++;
+					ret.add(theSequences.get(i));
+				} else {
 					splitSequence(i, theEnd - pos);
-					ret.add(theSequences.get(i + 1));
+					ret.add(seq);
+					i++;
 				}
 				pos = nextPos;
 			}

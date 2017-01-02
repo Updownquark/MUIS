@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
@@ -64,6 +65,8 @@ public class QuickDocument implements QuickParseEnv {
 
 	private final ExpressionContext theContext;
 
+	private final Observable<?> theDispose;
+
 	private QuickClassView theClassView;
 
 	private java.awt.Toolkit theAwtToolkit;
@@ -115,12 +118,15 @@ public class QuickDocument implements QuickParseEnv {
 	 * @param location The location of the file that this document was generated from
 	 * @param head The head section for this document
 	 * @param classView The class view for the document
+	 * @param dispose The observable that will fire to dispose of this document
 	 */
-	public QuickDocument(QuickEnvironment env, java.net.URL location, QuickHeadSection head, QuickClassView classView) {
+	public QuickDocument(QuickEnvironment env, java.net.URL location, QuickHeadSection head, QuickClassView classView,
+		Observable<?> dispose) {
 		theEnvironment = env;
 		theLocation = location;
 		theHead = head;
 		theClassView = classView;
+		theDispose = dispose;
 
 		theContext = DefaultExpressionContext.build().withParent(env.getContext())//
 			.withValueGetter(name -> {
@@ -175,6 +181,11 @@ public class QuickDocument implements QuickParseEnv {
 				if (event.getValue() != null && theGraphics != null)
 					theGraphics.setCursor(event.getValue());
 			});
+	}
+
+	/** @return An observable that will fire when this document is disposed */
+	public Observable<?> getDispose() {
+		return theDispose;
 	}
 
 	/** @param graphics The getter for graphics to be redrawn when the rendering is updated */

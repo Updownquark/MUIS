@@ -20,13 +20,14 @@ public class DocumentStyleSheet extends CompoundStyleSheet {
 
 	private DocumentStyleSheet(QuickDocument doc, ObservableList<StyleSheet> externalStyleSheets) {
 		super(ObservableList.flattenLists(TypeToken.of(StyleSheet.class), //
-			ObservableList.constant(TypeToken.of(StyleSheet.class), doc.getEnvironment().getStyle()), //
+			externalStyleSheets, //
 			ObservableList.constant(TypeToken.of(StyleSheet.class), doc.getHead().getStyleSheets()), //
-			externalStyleSheets));
-		theDocument=doc;
+			ObservableList.constant(TypeToken.of(StyleSheet.class), doc.getEnvironment().getStyle())));
+		theDocument = doc;
 		theExternalStyleSheets = externalStyleSheets;
 		// Cache these for performance
 		theCachedAttributes = new CachingHashSet<>(super.attributes());
+		doc.getDispose().take(1).act(v -> theCachedAttributes.unsubscribe());
 		theCachedValues = new ConcurrentHashMap<>();
 	}
 
@@ -56,6 +57,10 @@ public class DocumentStyleSheet extends CompoundStyleSheet {
 	@Override
 	public <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr) {
 		return (ObservableSortedSet<StyleConditionValue<T>>) theCachedValues.computeIfAbsent(attr,
-			att -> new CachingTreeSet<>(super.getStyleExpressions(attr)));
+			att -> {
+				CachingTreeSet<StyleConditionValue<T>> treeSet = new CachingTreeSet<>(super.getStyleExpressions(attr));
+				theDocument.getDispose().take(1).act(v -> treeSet.unsubscribe());
+				return treeSet;
+			});
 	}
 }

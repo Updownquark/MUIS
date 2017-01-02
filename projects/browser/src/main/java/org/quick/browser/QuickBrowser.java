@@ -5,10 +5,7 @@ import java.awt.Cursor;
 import java.awt.Graphics2D;
 
 import org.quick.core.QuickDocument;
-import org.quick.core.QuickEnvironment;
-import org.quick.core.QuickHeadSection;
 import org.quick.core.mgr.QuickMessage;
-import org.quick.core.parser.SimpleParseEnv;
 
 /** A browser that renders Quick documents */
 public class QuickBrowser extends javax.swing.JPanel {
@@ -51,11 +48,30 @@ public class QuickBrowser extends javax.swing.JPanel {
 		theMessageListener = msg -> {
 			printMessage(msg);
 		};
+		for (QuickMessage msg : theContentPane.getEnvironment().msg())
+			printMessage(msg);
 	}
 
 	/** @param debug The component to draw debug graphics on */
 	public void setDebugPanel(java.awt.Component debug) {
 		theDebugPanel = debug;
+		theContentPane.setDebugGraphics(new QuickDocument.GraphicsGetter() {
+			@Override
+			public Graphics2D getGraphics() {
+				return theDebugPanel == null ? null : (Graphics2D) theDebugPanel.getGraphics();
+			}
+
+			@Override
+			public void updated() {
+				theDebugPanel.repaint();
+			}
+
+			@Override
+			public void setCursor(Cursor cursor) {
+				if (theDebugPanel == null)
+					theDebugPanel.setCursor(cursor);
+			}
+		});
 	}
 
 	/** @param address The address of the document to get */
@@ -74,33 +90,9 @@ public class QuickBrowser extends javax.swing.JPanel {
 		} catch (java.net.MalformedURLException e) {
 			throw new IllegalArgumentException(address + " is not a valid URL", e);
 		}
-		org.quick.core.QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
 		QuickDocument quickDoc;
 		try {
-			org.quick.core.parser.QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(url,
-				new java.io.InputStreamReader(url.openStream()));
-			QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(),
-				new SimpleParseEnv(docStruct.getHead().getClassView(), env.msg(), env.getContext()));
-			quickDoc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
-			if (theDebugPanel != null)
-				quickDoc.setDebugGraphics(new QuickDocument.GraphicsGetter() {
-					@Override
-					public Graphics2D getGraphics() {
-						return theDebugPanel == null ? null : (Graphics2D) theDebugPanel.getGraphics();
-					}
-
-					@Override
-					public void updated() {
-						theDebugPanel.repaint();
-					}
-
-					@Override
-					public void setCursor(Cursor cursor) {
-						if (theDebugPanel == null)
-							theDebugPanel.setCursor(cursor);
-					}
-				});
-			env.getContentCreator().fillDocument(quickDoc, docStruct.getContent());
+			quickDoc = theContentPane.open(url);
 		} catch (java.io.IOException e) {
 			throw new IllegalArgumentException("Could not access address " + address, e);
 		} catch (org.quick.core.parser.QuickParseException e) {
@@ -108,8 +100,6 @@ public class QuickBrowser extends javax.swing.JPanel {
 		}
 
 		try {
-			quickDoc.postCreate();
-			theContentPane.setContent(quickDoc);
 			quickDoc.getRoot().bounds().act(event -> {
 				System.out.println("Bounds " + event.getValue());
 			});
@@ -121,8 +111,6 @@ public class QuickBrowser extends javax.swing.JPanel {
 			e.printStackTrace();
 		}
 		quickDoc.msg().addListener(theMessageListener);
-		for (QuickMessage msg : env.msg())
-			printMessage(msg);
 		for (QuickMessage msg : quickDoc.msg().allMessages())
 			printMessage(msg);
 	}

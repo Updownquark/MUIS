@@ -3,6 +3,7 @@ package org.quick;
 import java.io.IOException;
 import java.net.URL;
 
+import org.observe.Observable;
 import org.quick.core.QuickClassView;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickEnvironment;
@@ -37,20 +38,20 @@ public class QuickTestUtils {
 		QuickDocumentStructure docStruct = env.getDocumentParser().parseDocument(url, new java.io.InputStreamReader(url.openStream()),
 			env.cv(), env.msg());
 		QuickHeadSection head = env.getContentCreator().createHeadFromStructure(docStruct.getHead(), env.getPropertyParser(), env);
-		QuickDocument doc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView());
+		QuickDocument doc = new QuickDocument(env, docStruct.getLocation(), head, docStruct.getContent().getClassView(), Observable.empty);
 		env.getContentCreator().fillDocument(doc, docStruct.getContent());
 		return doc;
 	}
 
 	/**
 	 * Creates an empty document from scratch
-	 * 
+	 *
 	 * @return The new document
 	 */
 	public static QuickDocument createDocument() {
 		QuickEnvironment env = QuickEnvironment.build().withDefaults().build();
 		QuickClassView cv = new QuickClassView(env, env.cv(), null);
 		QuickHeadSection head = QuickHeadSection.build().build();
-		return new QuickDocument(env, null, head, cv);
+		return new QuickDocument(env, null, head, cv, Observable.empty);
 	}
 }

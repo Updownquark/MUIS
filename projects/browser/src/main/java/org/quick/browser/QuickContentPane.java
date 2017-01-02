@@ -8,20 +8,32 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
+import org.observe.SimpleObservable;
+import org.quick.core.QuickDocument;
 import org.quick.core.QuickDocument.GraphicsGetter;
+import org.quick.core.QuickEnvironment;
+import org.quick.core.QuickHeadSection;
 import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.event.MouseEvent.MouseEventType;
+import org.quick.core.parser.QuickParseException;
+import org.quick.core.parser.SimpleParseEnv;
 
 /** An AWT component that renders a Quick document */
 public class QuickContentPane extends java.awt.Component {
-	private org.quick.core.QuickDocument theContent;
+	private QuickEnvironment theEnvironment;
+	private QuickDocument theContent;
 	private BufferedImage theBuffer;
 	private GraphicsGetter theGraphics;
+	private GraphicsGetter theDebugGraphics;
+	private final SimpleObservable<Object> theDispose;
 
 	/** Creates a QuickContentPane */
 	public QuickContentPane() {
 		super();
+		theDispose = new SimpleObservable<>();
+		refreshEnvironment();
 		setFocusable(true);
 		theGraphics = new GraphicsGetter() {
 			@Override
@@ -113,9 +125,49 @@ public class QuickContentPane extends java.awt.Component {
 		});
 	}
 
+	/** @param graphics The graphics that this content pane is to use for debugging */
+	public void setDebugGraphics(GraphicsGetter graphics) {
+		theDebugGraphics = graphics;
+	}
+
+	/** @return The environment that this content creator uses */
+	public QuickEnvironment getEnvironment() {
+		return theEnvironment;
+	}
+
+	/** Rebuilds this content pane's environment */
+	public void refreshEnvironment() {
+		destroyCurrent();
+		theEnvironment = QuickEnvironment.build().withDefaults().build();
+	}
+
 	/** @return The document that is currently being rendered by this content pane */
 	public org.quick.core.QuickDocument getContent() {
 		return theContent;
+	}
+
+	/**
+	 * @param url The location of the document to render
+	 * @return The rendered document
+	 * @throws IOException If the location could not be read
+	 * @throws QuickParseException If the document or one of its linked resources could not be parsed
+	 */
+	public QuickDocument open(java.net.URL url) throws IOException, QuickParseException {
+		destroyCurrent();
+		QuickDocument quickDoc;
+		org.quick.core.parser.QuickDocumentStructure docStruct = theEnvironment.getDocumentParser().parseDocument(url,
+			new java.io.InputStreamReader(url.openStream()));
+		QuickHeadSection head = theEnvironment.getContentCreator().createHeadFromStructure(docStruct.getHead(),
+			theEnvironment.getPropertyParser(),
+			new SimpleParseEnv(docStruct.getHead().getClassView(), theEnvironment.msg(), theEnvironment.getContext()));
+		quickDoc = new QuickDocument(theEnvironment, docStruct.getLocation(), head, docStruct.getContent().getClassView(),
+			theDispose.readOnly());
+		if (theDebugGraphics != null)
+			quickDoc.setDebugGraphics(theDebugGraphics);
+		theEnvironment.getContentCreator().fillDocument(quickDoc, docStruct.getContent());
+		quickDoc.postCreate();
+		setContent(quickDoc);
+		return quickDoc;
 	}
 
 	/**
@@ -123,10 +175,14 @@ public class QuickContentPane extends java.awt.Component {
 	 *
 	 * @param doc The document to render
 	 */
-	public void setContent(org.quick.core.QuickDocument doc) {
+	private void setContent(org.quick.core.QuickDocument doc) {
 		theContent = doc;
 		theContent.setSize(getWidth(), getHeight());
 		theContent.setGraphics(theGraphics);
+	}
+
+	private void destroyCurrent() {
+		theDispose.onNext(null);
 	}
 
 	@Override

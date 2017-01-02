@@ -301,7 +301,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			else {
 				editModel.clear();
 				editModel.append("" + mv.get());
-				// TODO Think of a way to preserve selection?
 			}
 		}
 		isDocDirty = false;

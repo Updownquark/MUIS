@@ -10,18 +10,23 @@ import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 
 import com.google.common.reflect.TypeToken;
 
 /** The attribute type to parse styles */
 public class StyleAttributes {
+	private static final QuickProperty<QuickStyle> directiveStyle = QuickAttribute.build("directive-style", //
+		QuickPropertyType.build("directive-style", TypeToken.of(QuickStyle.class)).build()).build();
+
 	/** The instance to use for the element style */
 	public static final QuickPropertyType<QuickStyle> STYLE_TYPE = QuickPropertyType.build("style", TypeToken.of(QuickStyle.class))//
 		.withParser((parser, env, str) -> {
+			if (str.startsWith("${"))
+				return (ObservableValue<QuickStyle>) parser.parseProperty(directiveStyle, env, str);
 			return ObservableValue.constant(TypeToken.of(QuickStyle.class), parseStyle(parser, env, str));
 		}, true).noDirectives()//
-		.withRefReplaceGenerator(idx -> new StringBuilder("^{").append(idx).append('}').toString())//
 		.withToString(style2 -> {
 			StringBuilder ret = new StringBuilder();
 			for (StyleAttribute<?> attr : style2.attributes()) {

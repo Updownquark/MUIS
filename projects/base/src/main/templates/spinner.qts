@@ -3,7 +3,7 @@
 <template>
 	<body layout="layer">
 		<block layout="border-layout" template-attach-point="border">
-			<text-field template-attach-point="text" region="center"
+			<text-field template-attach-point="text" region="center" style="${attributes.style}"
 				value="attributes.value" format="${attributes.format}" format-factory="${attributes.formatFactory}"
 				length="attributes.length" rows="attributes.rows" document="${attributes.document}" rich="attributes.rich"
 				multi-line="attributes.multiLine" />

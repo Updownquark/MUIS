@@ -81,6 +81,9 @@ public interface SimpleFormatter<T> extends QuickFormatter<T> {
 			} else {
 				doc.clear();
 				doc.append(text);
+				cursor = Math.min(cursor, text.length());
+				anchor = Math.min(anchor, text.length());
+				selDoc.setSelection(anchor, cursor);
 			}
 		}
 	}

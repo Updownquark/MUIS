@@ -5,6 +5,7 @@ import static org.quick.base.BaseAttributes.format;
 import static org.quick.base.BaseAttributes.rich;
 
 import org.observe.ObservableValue;
+import org.qommons.BiTuple;
 import org.qommons.Transaction;
 import org.quick.base.BaseAttributes;
 import org.quick.base.model.*;
@@ -26,6 +27,7 @@ import org.quick.core.tags.Template;
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich"), //
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"), //
+		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "formatFactory"),
 		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"),//
 	})
 public class Label extends org.quick.core.QuickTemplate implements org.quick.core.model.DocumentedElement {
@@ -33,6 +35,19 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 	public Label() {
 		life().runWhen(
 			() -> {
+				// Instantiate the format from the format factory
+				ObservableValue<BiTuple<QuickFormatter.Factory<?>, QuickDocumentModel>> formatDocObs = atts()
+					.observe(BaseAttributes.formatFactory).tupleV(getDocumentModel());
+				formatDocObs.act(event -> {
+					if (event.getValue().getValue1() == null)
+						return; // Don't do anything if the factory is unset
+					try {
+						atts().set(BaseAttributes.format,
+							event.getValue().getValue1().create(event.getValue().getValue2(), formatDocObs.noInit()));
+					} catch (QuickException e) {
+						msg().error("Could not set format from factory", e);
+					}
+				});
 				atts().getHolder(document).tupleV(atts().getHolder(rich)).value().act(tuple -> {
 					QuickTextElement textEl = getValue();
 					QuickDocumentModel docModel;

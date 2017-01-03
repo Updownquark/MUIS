@@ -22,16 +22,16 @@ import com.google.common.reflect.TypeToken;
 /** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
 	private final SimpleSettableValue<Integer> theMin;
-	private final SimpleSettableValue<Float> theRate;
+	private final SimpleSettableValue<Double> theRate;
 	private final SimpleSettableValue<Integer> theMax;
 	private final long theMaxFrequency;
 
 	private final SimpleSettableValue<Integer> theValue;
-	private final SettableValue<Boolean> isLooping;
+	private final SimpleSettableValue<Boolean> isLooping;
 	private final SimpleSettableValue<Boolean> isRunning;
 
 	private final SettableValue<Integer> theExposedInit;
-	private final SettableValue<Float> theExposedRate;
+	private final SettableValue<Double> theExposedRate;
 	private final SettableValue<Integer> theExposedMax;
 	private final SettableValue<Integer> theExposedValue;
 	private final SettableValue<Boolean> theExposedRunning;
@@ -48,12 +48,12 @@ public class CounterModel implements QuickAppModel {
 	 * @param rate The rate of increase, in counts/second
 	 * @param maxFrequency The maximum frequency with which the counter will be incremented, in ms
 	 */
-	public CounterModel(int min, int max, float rate, long maxFrequency) {
+	public CounterModel(int min, int max, double rate, long maxFrequency) {
 		theMin = new SimpleSettableValue<>(int.class, false);
 		theMin.set(min, null);
 		theMax = new SimpleSettableValue<>(int.class, false);
 		theMax.set(max, null);
-		theRate = new SimpleSettableValue<>(float.class, false);
+		theRate = new SimpleSettableValue<>(double.class, false);
 		theRate.set(rate, null);
 		theMaxFrequency = maxFrequency;
 
@@ -95,11 +95,11 @@ public class CounterModel implements QuickAppModel {
 				return null;
 		}).refresh(theMin);
 		theExposedRate = theRate.filterAccept(v -> {
-			if (Float.isNaN(v))
+			if (Double.isNaN(v))
 				return "rate must be a number";
 			else if (v == 0)
 				return "rate must be non-zero";
-			else if (Float.isInfinite(v))
+			else if (Double.isInfinite(v))
 				return "rate must not be infinite";
 			else
 				return null;
@@ -153,8 +153,8 @@ public class CounterModel implements QuickAppModel {
 		return theExposedMax;
 	}
 
-	/** @return A settable value that exposes and controls the rate of increase for this counter's value */
-	public SettableValue<Float> getRate() {
+	/** @return A settable value that exposes and controls the rate of increase for this counter's value, in counts per second */
+	public SettableValue<Double> getRate() {
 		return theExposedRate;
 	}
 

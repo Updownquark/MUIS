@@ -5,7 +5,7 @@
         <title>Counter Test</title>
         <model name="model" builder="default-model">
 	        <model name="counter" builder="counter-model" min="0" max="299" rate="100mi" max-frequency="100mi" />
-	        <value name="value">this.counter.value/100f</value>
+	        <value name="value">this.counter.value/100.0</value>
         	<switch name="red" value="(int)Math.floor(this.value)">
         		<case value="0">(int) (this.value*255)</case>
         		<case value="1">(int) (255*(2-this.value))</case>

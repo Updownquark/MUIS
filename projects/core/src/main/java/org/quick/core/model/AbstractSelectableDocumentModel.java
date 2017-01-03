@@ -559,6 +559,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @param cause The event or thing that caused this event
 	 */
 	protected void fireStyleEvent(int start, int end, Object cause) {
+		clearCache();
 		theStyleChanges.onNext(new StyleChangeEventImpl(this, start, end, null, null, cause));
 	}
 
@@ -660,7 +661,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 		@Override
 		public String toString() {
-			return theWrapped.toString().substring(theStart, theEnd);
+			String str = theWrapped.toString();
+			if (theStart >= str.length())
+				return "";
+			else if (theEnd <= str.length())
+				return str.substring(theStart, theEnd);
+			else
+				return str.substring(theStart);
 		}
 
 		@Override

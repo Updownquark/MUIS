@@ -99,12 +99,12 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 
 		@Override
 		public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
-			return new RichStyleWithExtraStates(getNormalStyle().forExtraStates(extraStates));
+			return new RichStyleWithExtraStates(theBacking.forExtraStates(extraStates));
 		}
 
 		@Override
 		public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups) {
-			return new RichStyleWithExtraStates(getNormalStyle().forExtraGroups(extraGroups));
+			return new RichStyleWithExtraStates(theBacking.forExtraGroups(extraGroups));
 		}
 
 		class RichStyleWithExtraStates implements QuickStyle {
@@ -403,6 +403,22 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		return (RichDocumentModel) super.insert(c);
 	}
 
+	private void cleanupSequences() {
+		for (int i = 0; i < theSequences.size(); i++) {
+			RichStyleSequence seq = theSequences.get(i);
+			// Don't remove the last sequence if it's empty--its style will affect text appended to the document
+			if (i < theSequences.size() - 1 && seq.length() == 0) {
+				theSequences.remove(i);
+				i--;
+				continue;
+			}
+			// if(i==0)
+			// continue;
+			// RichStyleSequence prev=theSequences.get(i-1);
+			// TODO Merge sequences with the same style
+		}
+	}
+
 	private class RichSegmentStyle implements GroupableStyle {
 		private final int theStart;
 		private final int theEnd;
@@ -490,13 +506,14 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		}
 
 		List<RichStyleSequence> getSeqsForMod() {
+			cleanupSequences();
 			ArrayList<RichStyleSequence> ret = new ArrayList<>();
 			int pos = 0;
 			for (int i = 0; i < theSequences.size() && pos < theEnd; i++) {
 				RichStyleSequence seq = theSequences.get(i);
 				int nextPos = pos + seq.length();
 				if (nextPos <= theStart) {
-				} else if (pos >= theStart && nextPos < theEnd) {
+				} else if (pos >= theStart && nextPos <= theEnd) {
 					ret.add(seq);
 				} else if (pos < theStart) {
 					splitSequence(i, theStart - pos);

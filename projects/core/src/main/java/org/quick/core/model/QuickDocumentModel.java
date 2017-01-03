@@ -724,7 +724,14 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 			@Override
 			public String toString() {
-				return theSequence.subSequence(theOffset, theOffset + theLayout.getCharacterCount()).toString();
+				String str = theSequence.toString();
+				if (theOffset >= str.length())
+					return "";
+				int end = theOffset + theLayout.getCharacterCount();
+				if (end <= str.length())
+					return str.substring(theOffset, end);
+				else
+					return str.substring(theOffset);
 			}
 		}
 	}

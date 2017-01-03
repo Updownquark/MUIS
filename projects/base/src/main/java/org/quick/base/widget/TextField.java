@@ -2,6 +2,8 @@ package org.quick.base.widget;
 
 import static org.quick.core.QuickTextElement.multiLine;
 
+import java.util.Objects;
+
 import org.observe.*;
 import org.qommons.BiTuple;
 import org.qommons.Transaction;
@@ -228,7 +230,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 					public Subscription subscribe(Observer<? super ObservableValueEvent<String>> observer) {
 						Subscription sub = doc.changes().act(evt -> {
 							String newError = get();
-							if (newError != theLastError) {
+							if (!Objects.equals(newError, theLastError)) {
 								observer.onNext(createChangeEvent(theLastError, newError, evt));
 								theLastError = newError;
 							}

@@ -121,6 +121,9 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	 */
 	Observable<QuickDocumentChangeEvent> changes();
 
+	/** @return An observable that fires a single change at the end of every group of transactions */
+	Observable<?> simpleChanges();
+
 	/**
 	 * @param position The position to get the style for
 	 * @return The style at the given position
@@ -790,6 +793,11 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 			return theOuter.changes().filterMap(this::filterMap);
 		}
 
+		@Override
+		public Observable<?> simpleChanges() {
+			return theOuter.simpleChanges();
+		}
+
 		protected QuickDocumentChangeEvent filterMap(QuickDocumentChangeEvent change) {
 			if (change.getEndIndex() <= theStart || change.getStartIndex() >= getEnd())
 				return null; // Outside the bounds of this sub-document
@@ -915,6 +923,11 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 					return theWrapper.isSafe(); // Assume the document model itself will be safe
 				}
 			};
+		}
+
+		@Override
+		public Observable<?> simpleChanges() {
+			return Observable.flatten(theWrapper.value().map(doc -> doc == null ? null : doc.simpleChanges()));
 		}
 
 		protected ContentChangeEvent createClearEvent(QuickDocumentModel oldModel, Object cause) {

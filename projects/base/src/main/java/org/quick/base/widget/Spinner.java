@@ -133,7 +133,7 @@ public class Spinner extends QuickTemplate {
 					} else
 						return ObservableAction.disabled(TypeToken.of(Object.class), "No " + incOrDec.getName() + " action set");
 				}, textField.atts().observe(BaseAttributes.format), value, true);
-			actionObs = actionObs.refresh(Observable.flatten(textField.getDocumentModel().value().map(doc -> doc.changes())));
+			actionObs = actionObs.refresh(Observable.flatten(textField.getDocumentModel().value().map(doc -> doc.simpleChanges())));
 			getAdjust(up).atts().set(ModelAttributes.action, ObservableAction.flatten(actionObs));
 		} catch (QuickException e) {
 			msg().error("Could not set action for " + (up ? "up" : "down") + " button", e);

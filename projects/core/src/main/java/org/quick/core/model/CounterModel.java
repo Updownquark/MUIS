@@ -257,6 +257,8 @@ public class CounterModel implements QuickAppModel {
 					b.withText(true).atMost(1);
 				}).forConfig("start", b -> {
 					b.withText(true).atMost(1);
+				}).forConfig("loop", b -> {
+					b.withText(true).atMost(1);
 				}).build();
 		}
 
@@ -285,6 +287,14 @@ public class CounterModel implements QuickAppModel {
 			if (maxFrequency < 10)
 				throw new QuickParseException("max-frequency must be at least 10 milliseconds");
 			CounterModel counter = new CounterModel(min, max, rate, maxFrequency);
+			if (config.getString("loop") != null) {
+				if ("true".equals(config.getString("loop")))
+					counter.isLooping().set(true, null);
+				else if ("false".equals(config.getString("loop")))
+					counter.isLooping().set(false, null);
+				else
+					throw new QuickParseException("Invalid value for loop: " + config.getString("loop"));
+			}
 			if (start)
 				counter.isRunning().set(true, null);
 			return counter;

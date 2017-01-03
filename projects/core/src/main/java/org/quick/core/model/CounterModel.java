@@ -21,19 +21,19 @@ import com.google.common.reflect.TypeToken;
 
 /** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
-	private final SimpleSettableValue<Integer> theMin;
+	private final SimpleSettableValue<Long> theMin;
 	private final SimpleSettableValue<Double> theRate;
-	private final SimpleSettableValue<Integer> theMax;
+	private final SimpleSettableValue<Long> theMax;
 	private final long theMaxFrequency;
 
-	private final SimpleSettableValue<Integer> theValue;
+	private final SimpleSettableValue<Long> theValue;
 	private final SimpleSettableValue<Boolean> isLooping;
 	private final SimpleSettableValue<Boolean> isRunning;
 
-	private final SettableValue<Integer> theExposedInit;
+	private final SettableValue<Long> theExposedMin;
 	private final SettableValue<Double> theExposedRate;
-	private final SettableValue<Integer> theExposedMax;
-	private final SettableValue<Integer> theExposedValue;
+	private final SettableValue<Long> theExposedMax;
+	private final SettableValue<Long> theExposedValue;
 	private final SettableValue<Boolean> theExposedRunning;
 
 	private long theLastUpdateTime;
@@ -48,16 +48,16 @@ public class CounterModel implements QuickAppModel {
 	 * @param rate The rate of increase, in counts/second
 	 * @param maxFrequency The maximum frequency with which the counter will be incremented, in ms
 	 */
-	public CounterModel(int min, int max, double rate, long maxFrequency) {
-		theMin = new SimpleSettableValue<>(int.class, false);
+	public CounterModel(long min, long max, double rate, long maxFrequency) {
+		theMin = new SimpleSettableValue<>(long.class, false);
 		theMin.set(min, null);
-		theMax = new SimpleSettableValue<>(int.class, false);
+		theMax = new SimpleSettableValue<>(long.class, false);
 		theMax.set(max, null);
 		theRate = new SimpleSettableValue<>(double.class, false);
 		theRate.set(rate, null);
 		theMaxFrequency = maxFrequency;
 
-		theValue = new SimpleSettableValue<>(TypeToken.of(int.class), false);
+		theValue = new SimpleSettableValue<>(TypeToken.of(long.class), false);
 		theValue.set(min, null);
 		isLooping = new SimpleSettableValue<>(TypeToken.of(boolean.class), false);
 		isLooping.set(true, null);
@@ -82,7 +82,7 @@ public class CounterModel implements QuickAppModel {
 				stop();
 		});
 
-		theExposedInit = theMin.filterAccept(v -> {
+		theExposedMin = theMin.filterAccept(v -> {
 			if (v >= theMax.get())
 				return "min must be less than max";
 			else
@@ -124,7 +124,7 @@ public class CounterModel implements QuickAppModel {
 		});
 
 		Map<String, Object> modelValues = new LinkedHashMap<>();
-		modelValues.put("min", theExposedInit);
+		modelValues.put("min", theExposedMin);
 		modelValues.put("max", theExposedMax);
 		modelValues.put("rate", theExposedRate);
 		modelValues.put("value", theExposedValue);
@@ -144,12 +144,12 @@ public class CounterModel implements QuickAppModel {
 	}
 
 	/** @return A settable value that exposes and controls the initial value (and lower bound) of this counter's value */
-	public SettableValue<Integer> getInit() {
-		return theExposedInit;
+	public SettableValue<Long> getMin() {
+		return theExposedMin;
 	}
 
 	/** @return A settable value that exposes and controls the maximum for this counter's value */
-	public SettableValue<Integer> getMax() {
+	public SettableValue<Long> getMax() {
 		return theExposedMax;
 	}
 
@@ -159,7 +159,7 @@ public class CounterModel implements QuickAppModel {
 	}
 
 	/** @return A settable value that exposes and controls this counter's value directly */
-	public SettableValue<Integer> getValue() {
+	public SettableValue<Long> getValue() {
 		return theExposedValue;
 	}
 
@@ -183,13 +183,13 @@ public class CounterModel implements QuickAppModel {
 		if (!isRunning.get())
 			return;
 		long diff = time - theLastUpdateTime;
-		int steps = (int) (diff * theRate.get() / 1000);
+		long steps = (long) (diff * theRate.get() / 1000);
 		if (steps != 0) {
 			boolean doSkipLoopStop = skipLoopStop;
 			skipLoopStop = false;
-			int newValue = theValue.get() + steps;
-			int max = theMax.get();
-			int min = theMin.get();
+			long newValue = theValue.get() + steps;
+			long max = theMax.get();
+			long min = theMin.get();
 			if (newValue > max) {
 				if (!doSkipLoopStop && !isLooping.get()) {
 					stop();
@@ -266,9 +266,9 @@ public class CounterModel implements QuickAppModel {
 		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
-			int min = Integer.parseInt(config.getString("min", "0"));
-			int max = Integer.parseInt(config.getString("max", "" + Integer.MAX_VALUE));
-			float rate = 1000f
+			long min = Long.parseLong(config.getString("min", "0"));
+			long max = Long.parseLong(config.getString("max", "1000000000000"));
+			double rate = 1000.0
 				/ QuickPropertyType.duration.getSelfParser().parse(parser, parseEnv, config.getString("rate")).get().toMillis();
 			long maxFrequency = QuickPropertyType.duration.getSelfParser()
 				.parse(parser, parseEnv, config.getString("max-frequency", "10mi")).get().toMillis();
@@ -276,9 +276,9 @@ public class CounterModel implements QuickAppModel {
 			if (!"true".equals(startStr) && !"false".equals(startStr))
 				throw new QuickParseException("Invalid value for start: " + startStr);
 			boolean start = "true".equals(startStr);
-			if (Float.isNaN(rate))
+			if (Double.isNaN(rate))
 				throw new QuickParseException("NaN not accepted for rate");
-			if (Float.isInfinite(rate))
+			if (Double.isInfinite(rate))
 				throw new QuickParseException("rate must not be infinite");
 			if (rate <= 0)
 				throw new QuickParseException("rate must be positive");

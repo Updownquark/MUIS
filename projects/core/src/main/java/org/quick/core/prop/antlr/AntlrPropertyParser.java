@@ -73,7 +73,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 			// acquire parse result
 			ParseTreeWalker walker = new ParseTreeWalker();
 			QPPCompiler compiler = new QPPCompiler();
-			walker.walk(compiler, parser.expression());
+			walker.walk(compiler, parser.compoundExpression());
 			return compiler.getExpression();
 		} catch (RecognitionException e) {
 			throw new QuickParseException("Parsing failed for " + expression, e);
@@ -167,6 +167,15 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				throw new IllegalStateException("Unrecognized literal type: " + QPPParser.VOCABULARY.getDisplayName(ctx.start.getType())
 					+ " (" + ctx.start.getType() + ") at position " + ctx.start.getStartIndex());
 			}
+		}
+
+		@Override
+		public void exitCompoundExpression(CompoundExpressionContext ctx) {
+			if (ctx.expression().size() == 1)
+				ascend(ctx.expression().get(0), ctx);
+			else
+				push(new ExpressionTypes.CompoundExpression(ctx,
+					ctx.expression().stream().map(exp -> pop(exp)).collect(Collectors.toList())));
 		}
 
 		@Override

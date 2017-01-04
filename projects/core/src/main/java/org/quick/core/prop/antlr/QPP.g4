@@ -328,6 +328,10 @@ constantExpression
 	:	expression
 	;
 
+compoundExpression
+	:	expression (';' expression)*
+	;
+
 expression
 	:	assignmentExpression
 	;

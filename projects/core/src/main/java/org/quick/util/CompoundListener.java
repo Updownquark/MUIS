@@ -60,10 +60,8 @@ public interface CompoundListener {
 		evented.relayout(false);
 	};
 
-	/** A utility change listener to fire a {@link org.quick.core.event.SizeNeedsChangedEvent} on the element or parent element */
-	public static final EventListener sizeNeedsChanged = (evented, root, event) -> {
-		evented.events().fire(new org.quick.core.event.SizeNeedsChangedEvent(evented, null));
-	};
+	/** A utility change listener to call {@link QuickElement#sizeNeedsChanged()} on the element or parent element */
+	public static final EventListener sizeNeedsChanged = (evented, root, event) -> evented.sizeNeedsChanged();
 
 	/** Builds a compound listener */
 	public interface CompoundListenerBuilder {

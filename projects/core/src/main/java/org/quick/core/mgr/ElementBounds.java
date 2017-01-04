@@ -242,8 +242,7 @@ public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle>
 	@Override
 	public String toString() {
 		return new StringBuilder(theElement.getTagName()).append(" bounds=(").append(theX).append(',').append(theY).append("){")
-			.append(theW).append(',').append(theH).append('}')
-			.toString();
+			.append(theW).append(',').append(theH).append('}').toString();
 	}
 
 	private final void fire(Rectangle preBounds, Rectangle newBounds) {

@@ -45,7 +45,7 @@ public class Transform extends SimpleContainer {
 	public Transform() {
 		life().runWhen(() -> {
 			atts().getHolder(flip).act(event -> {
-				events().fire(new org.quick.core.event.SizeNeedsChangedEvent(Transform.this, null));
+				sizeNeedsChanged();
 				relayout(false);
 			});
 			atts().getHolder(rotate).act(event -> {
@@ -58,7 +58,7 @@ public class Transform extends SimpleContainer {
 					}
 					return;
 				}
-				events().fire(new org.quick.core.event.SizeNeedsChangedEvent(Transform.this, null));
+				sizeNeedsChanged();
 				relayout(false);
 			});
 		}, org.quick.core.QuickConstants.CoreStage.INIT_SELF.toString(), 1);

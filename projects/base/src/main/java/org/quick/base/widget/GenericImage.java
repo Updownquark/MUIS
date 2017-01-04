@@ -7,7 +7,6 @@ import java.net.URL;
 
 import org.quick.base.data.ImageData;
 import org.quick.core.QuickLayout;
-import org.quick.core.event.SizeNeedsChangedEvent;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 
@@ -292,7 +291,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 				theAnimator = new ImageAnimator();
 				org.quick.motion.AnimationManager.get().start(theAnimator);
 			}
-			events().fire(new SizeNeedsChangedEvent(this, null));
+			sizeNeedsChanged();
 			repaint(null, false);
 		}
 	}
@@ -309,7 +308,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(theHResizePolicy == policy)
 			return;
 		theHResizePolicy = policy;
-		events().fire(new SizeNeedsChangedEvent(this, null));
+		sizeNeedsChanged();
 		repaint(null, false);
 	}
 
@@ -325,7 +324,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(theVResizePolicy == policy)
 			return;
 		theVResizePolicy = policy;
-		events().fire(new SizeNeedsChangedEvent(this, null));
+		sizeNeedsChanged();
 		repaint(null, false);
 	}
 
@@ -344,7 +343,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		if(locked == isProportionLocked)
 			return;
 		isProportionLocked = locked;
-		events().fire(new SizeNeedsChangedEvent(this, null));
+		sizeNeedsChanged();
 		repaint(null, false);
 	}
 

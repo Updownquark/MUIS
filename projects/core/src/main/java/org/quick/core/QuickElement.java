@@ -13,7 +13,6 @@ import org.quick.core.QuickConstants.States;
 import org.quick.core.event.BoundsChangedEvent;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.MouseEvent;
-import org.quick.core.event.SizeNeedsChangedEvent;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.*;
@@ -138,7 +137,7 @@ public abstract class QuickElement implements QuickParseEnv {
 				}
 			});
 		});
-		theChildren.simpleChanges().act(cause -> events().fire(new SizeNeedsChangedEvent(QuickElement.this, null)));
+		theChildren.simpleChanges().act(cause -> sizeNeedsChanged());
 		theChildren.changes().act(event -> {
 			Rectangle bounds = null;
 			for (QuickElement child : event.values) {
@@ -464,41 +463,6 @@ public abstract class QuickElement implements QuickParseEnv {
 			Rectangle paintRect = event.getValue().union(event.getOldValue());
 			repaint(paintRect, false);
 		});
-		child.events().filterMap(SizeNeedsChangedEvent.sizeNeeds).act(new Action<SizeNeedsChangedEvent>() {
-			@Override
-			public void act(SizeNeedsChangedEvent event) {
-				if (!isInPreferred(org.quick.core.layout.Orientation.horizontal)
-					|| !isInPreferred(org.quick.core.layout.Orientation.vertical)) {
-					SizeNeedsChangedEvent newEvent = new SizeNeedsChangedEvent(QuickElement.this, event);
-					events().fire(newEvent);
-					if (!newEvent.isHandled()) {
-						newEvent.handle();
-						relayout(false);
-					}
-				} else {
-					event.handle();
-					relayout(false);
-				}
-			}
-
-			private boolean isInPreferred(org.quick.core.layout.Orientation orient) {
-				QuickElement parent = getParent().get();
-				if (parent == null)
-					return true;
-				org.quick.core.mgr.ElementBounds.ElementBoundsDimension dim = bounds().get(orient);
-				int size = dim.getSize();
-				int cross = bounds().get(orient.opposite()).getSize();
-				int minPref = org.quick.core.layout.LayoutUtils.getSize(QuickElement.this, orient,
-					org.quick.core.layout.LayoutGuideType.minPref, parent.bounds().get(orient).getSize(), cross, false, null);
-				if (size < minPref)
-					return false;
-				int maxPref = org.quick.core.layout.LayoutUtils.getSize(QuickElement.this, orient,
-					org.quick.core.layout.LayoutGuideType.maxPref, parent.bounds().get(orient).getSize(), cross, false, null);
-				if (size > maxPref)
-					return false;
-				return true;
-			}
-		});
 	}
 
 	/**
@@ -746,6 +710,11 @@ public abstract class QuickElement implements QuickParseEnv {
 		for(QuickElement child : getPhysicalChildren())
 			child.doLayout();
 		repaint(null, false);
+	}
+
+	/** Alerts the system that this element's size needs may have changed */
+	public final void sizeNeedsChanged() {
+		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.SizeNeedsChangedEvent(this), false);
 	}
 
 	/**

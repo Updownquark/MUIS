@@ -175,7 +175,8 @@ public class QuickContentCreator {
 		for (ImmutableStyleSheet ss : structure.getStyleSheets())
 			builder.addStyleSheet(ss);
 		for (Map.Entry<String, QuickModelConfig> mc : structure.getModelConfigs().entrySet())
-			builder.addModel(mc.getKey(), DefaultQuickModel.buildQuickModel(mc.getValue().without("name"), parser, parseEnv));
+			builder.addModel(mc.getKey(),
+				DefaultQuickModel.buildQuickModel(mc.getValue().getString("name"), mc.getValue().without("name"), parser, parseEnv));
 		return builder.build();
 	}
 }

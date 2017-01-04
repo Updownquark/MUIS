@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.observe.SettableValue;
-import org.observe.SimpleSettableValue;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
@@ -21,14 +20,15 @@ import com.google.common.reflect.TypeToken;
 
 /** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
-	private final SimpleSettableValue<Long> theMin;
-	private final SimpleSettableValue<Double> theRate;
-	private final SimpleSettableValue<Long> theMax;
+	private final String theName;
+	private final SimpleModelValue<Long> theMin;
+	private final SimpleModelValue<Double> theRate;
+	private final SimpleModelValue<Long> theMax;
 	private final long theMaxFrequency;
 
-	private final SimpleSettableValue<Long> theValue;
-	private final SimpleSettableValue<Boolean> isLooping;
-	private final SimpleSettableValue<Boolean> isRunning;
+	private final SimpleModelValue<Long> theValue;
+	private final SimpleModelValue<Boolean> isLooping;
+	private final SimpleModelValue<Boolean> isRunning;
 
 	private final SettableValue<Long> theExposedMin;
 	private final SettableValue<Double> theExposedRate;
@@ -47,21 +47,23 @@ public class CounterModel implements QuickAppModel {
 	 * @param max The maximum value for the counter. The counter will loop back to its initial value if this value is reached.
 	 * @param rate The rate of increase, in counts/second
 	 * @param maxFrequency The maximum frequency with which the counter will be incremented, in ms
+	 * @param name The name of this model
 	 */
-	public CounterModel(long min, long max, double rate, long maxFrequency) {
-		theMin = new SimpleSettableValue<>(long.class, false);
+	public CounterModel(long min, long max, double rate, long maxFrequency, String name) {
+		theName = name;
+		theMin = new SimpleModelValue<>(long.class, false, name + ".min");
 		theMin.set(min, null);
-		theMax = new SimpleSettableValue<>(long.class, false);
+		theMax = new SimpleModelValue<>(long.class, false, name + ".max");
 		theMax.set(max, null);
-		theRate = new SimpleSettableValue<>(double.class, false);
+		theRate = new SimpleModelValue<>(double.class, false, name + ".rate");
 		theRate.set(rate, null);
 		theMaxFrequency = maxFrequency;
 
-		theValue = new SimpleSettableValue<>(TypeToken.of(long.class), false);
+		theValue = new SimpleModelValue<>(TypeToken.of(long.class), false, name + ".value");
 		theValue.set(min, null);
-		isLooping = new SimpleSettableValue<>(TypeToken.of(boolean.class), false);
+		isLooping = new SimpleModelValue<>(TypeToken.of(boolean.class), false, name + ".looping");
 		isLooping.set(true, null);
-		isRunning = new SimpleSettableValue<>(boolean.class, false);
+		isRunning = new SimpleModelValue<>(boolean.class, false, name + ".running");
 		isRunning.set(false, null);
 
 		theMotion = new AtomicReference<>();
@@ -242,6 +244,11 @@ public class CounterModel implements QuickAppModel {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return theName;
+	}
+
 	/** Builds a CounterModel */
 	public static class Builder implements QuickModelBuilder {
 		private static QuickModelConfigValidator VALIDATOR;
@@ -263,7 +270,7 @@ public class CounterModel implements QuickAppModel {
 		}
 
 		@Override
-		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		public QuickAppModel buildModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
 			long min = Long.parseLong(config.getString("min", "0"));
@@ -286,7 +293,7 @@ public class CounterModel implements QuickAppModel {
 				throw new QuickParseException("max must be greater than min");
 			if (maxFrequency < 10)
 				throw new QuickParseException("max-frequency must be at least 10 milliseconds");
-			CounterModel counter = new CounterModel(min, max, rate, maxFrequency);
+			CounterModel counter = new CounterModel(min, max, rate, maxFrequency, name);
 			if (config.getString("loop") != null) {
 				if ("true".equals(config.getString("loop")))
 					counter.isLooping().set(true, null);

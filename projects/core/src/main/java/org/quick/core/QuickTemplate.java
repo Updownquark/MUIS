@@ -987,7 +987,7 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 		for (String modelName : template.getModels()) {
 			QuickModelConfig modelConfig = template.getModel(modelName);
-			QuickAppModel model = org.quick.core.model.DefaultQuickModel.buildQuickModel(modelConfig,
+			QuickAppModel model = org.quick.core.model.DefaultQuickModel.buildQuickModel(modelName, modelConfig,
 				getDocument().getEnvironment().getPropertyParser(),
 				new SimpleParseEnv(theTemplateStructure.getWidgetStructure().getClassView(), msg(), ctxBuilder.copy().build()));
 			theModels.put(modelName, model);

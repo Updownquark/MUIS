@@ -885,6 +885,11 @@ class AntlrPropertyEvaluator {
 						return null; // TODO What to do with this?
 					}
 				}
+
+				@Override
+				public String toString() {
+					return member.toString();
+				}
 			};
 		}
 	}
@@ -1185,6 +1190,11 @@ class AntlrPropertyEvaluator {
 				@Override
 				public ObservableValue<String> isEnabled() {
 					return action.isEnabled();
+				}
+
+				@Override
+				public String toString() {
+					return action.toString();
 				}
 			});
 	}

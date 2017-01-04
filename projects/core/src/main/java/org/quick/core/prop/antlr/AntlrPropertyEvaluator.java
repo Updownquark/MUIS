@@ -78,6 +78,34 @@ class AntlrPropertyEvaluator {
 		} else if (parsedItem instanceof ExpressionTypes.Parenthetic) {
 			return evaluateTypeChecked(parseEnv, type, ((ExpressionTypes.Parenthetic) parsedItem).getContents(), actionAccepted,
 				actionRequired);
+		} else if (parsedItem instanceof ExpressionTypes.CompoundExpression) {
+			if(!actionAccepted || !TypeToken.of(ObservableAction.class).isAssignableFrom(type))
+				throw new QuickParseException("Semicolon-separated expressions may only be used with actions");
+			TypeToken<?> valueType = type.resolveType(ObservableAction.class.getTypeParameters()[0]);
+			if (!valueType.isArray() && !new TypeToken<ObservableAction<?>>() {}.isAssignableFrom(type))
+				throw new QuickParseException("Compound action cannot be assigned to non-array type " + valueType);
+			ExpressionTypes.CompoundExpression compound=(ExpressionTypes.CompoundExpression) parsedItem;
+			TypeToken<?> componentType;
+			if (valueType.isArray())
+				componentType = new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {},
+					(TypeToken<T>) valueType.getComponentType());
+			else
+				componentType = new TypeToken<ObservableAction<?>>() {};
+			List<ObservableAction<?>> actions = new ArrayList<>(compound.getChildren().size());
+			for(QPPExpression child : compound.getChildren()){
+				ObservableValue<?> eval=evaluateTypeless(parseEnv, componentType, child, true, true);
+				if (!TypeToken.of(ObservableAction.class).isAssignableFrom(eval.getType()))
+					throw new QuickParseException("Compound expressions may only be actions");
+				if (!componentType.isAssignableFrom(eval.getType()))
+					throw new QuickParseException(
+						child + "evaluates to type " + eval.getType() + " and cannot be assigned to type " + componentType);
+				if (eval instanceof ObservableValue.ConstantObservableValue)
+					actions.add((ObservableAction<?>) eval.get());
+				else
+					actions.add(ObservableAction.flatten((ObservableValue<ObservableAction<?>>) eval));
+			}
+			return ObservableValue.constant((TypeToken<ObservableAction<?>>) type, ObservableAction.and(ObservableList
+				.constant((TypeToken<ObservableAction<Object>>) componentType, (List<ObservableAction<Object>>) (List<?>) actions)));
 		} else if (parsedItem instanceof ExpressionTypes.Operation) {
 			ExpressionTypes.Operation op = (ExpressionTypes.Operation) parsedItem;
 			boolean actionOp = ASSIGN_BIOPS.contains(op.getName());

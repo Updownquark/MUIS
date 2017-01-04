@@ -11,6 +11,19 @@ import com.google.common.reflect.TypeToken;
 class ExpressionTypes {
 	private ExpressionTypes() {}
 
+	static class CompoundExpression extends QPPExpression {
+		private final List<QPPExpression> theChildren;
+
+		public CompoundExpression(ParserRuleContext ctx, List<QPPExpression> children) {
+			super(ctx);
+			theChildren = children;
+		}
+
+		public List<QPPExpression> getChildren() {
+			return theChildren;
+		}
+	}
+
 	static class QualifiedName extends QPPExpression {
 		private final ExpressionTypes.QualifiedName theQualifier;
 		private final String theName;

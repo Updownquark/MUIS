@@ -19,7 +19,7 @@
     		<toggle-button selected="model.counter.running">
     			<label value="model.counter.running ? &quot;Pause&quot; : (model.counter.value==model.counter.min ? &quot;Start&quot; : &quot;Resume&quot;)" />
     		</toggle-button>
-    		<button action="model.counter.value=model.counter.min">Stop</button>
+			<button action="model.counter.value=model.counter.min;model.counter.running=false">Stop</button>
 		</block>
 		<!-- TODO The Stop button should make the counter stop running -->
 	</body>

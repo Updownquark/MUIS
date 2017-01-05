@@ -1,5 +1,6 @@
 package org.quick.core.model;
 
+import org.observe.Observable;
 import org.observe.ObservableAction;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
@@ -18,6 +19,10 @@ public class ModelAttributes {
 	/** The type of attribute for whether an element is marked as selected or not */
 	public static final QuickPropertyType<Boolean> selectedType = QuickPropertyType.build("selected", TypeToken.of(Boolean.class)).build();
 
+	/** The type of attribute to set for the user to specify an event */
+	public static final QuickPropertyType<Observable<?>> eventType = QuickPropertyType.build("event", new TypeToken<Observable<?>>() {})
+		.build();
+
 	/** The "action" attribute on an actionable widget */
 	public static final QuickAttribute<ObservableAction<?>> action = QuickAttribute.build("action", actionType).build();
 
@@ -26,4 +31,7 @@ public class ModelAttributes {
 
 	/** The "selected" attribute on a selectable widget */
 	public static final QuickAttribute<Boolean> selected = QuickAttribute.build("selected", selectedType).build();
+
+	/** The "event" attribute on an eventing widget */
+	public static final QuickAttribute<Observable<?>> event = QuickAttribute.build("event", eventType).build();
 }

@@ -137,6 +137,10 @@ public class DefaultQuickModel implements QuickAppModel {
 				}).forConfig("type", b2 -> {
 					b2.withText(true);
 				}).withText(false);
+			}).forConfig("on-event", b -> {
+				b.anyTimes().forConfig("event", b2 -> {
+					b2.withText(true).required();
+				}).withText(true);
 			}).forConfig("model", b -> {
 				b.anyTimes().forConfig("name", b2 -> {
 					b2.withText(true).required();
@@ -219,20 +223,17 @@ public class DefaultQuickModel implements QuickAppModel {
 				Object value;
 				switch (cfg.getKey()) {
 				case "value":
-					if (cfg.getValue().getText() == null)
-						throw new QuickParseException(cfg.getKey() + " expects text");
 					value = parseModelValue(cfg.getValue(), parser, innerEnv);
 					break;
 				case "variable":
-					if (cfg.getValue().getText() == null)
-						throw new QuickParseException(cfg.getKey() + " expects text");
 					value = parseModelVariable(cfg.getValue(), parser, innerEnv);
 					break;
 				case "action":
-					if (cfg.getValue().getText() == null)
-						throw new QuickParseException(cfg.getKey() + " expects text");
 					value = parseModelAction(cfg.getValue().getText(), parser, innerEnv);
 					break;
+				case "on-event":
+					hookEvent(cfg.getValue().getString("event"), cfg.getValue().getText(), parser, innerEnv);
+					continue;
 				case "model":
 					value = parseChildModel(name + "." + childName, cfg.getValue().without("name"), parser, innerEnv);
 					break;
@@ -408,6 +409,13 @@ public class DefaultQuickModel implements QuickAppModel {
 		private ObservableAction<?> parseModelAction(String text, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			return parser.parseProperty(ModelAttributes.action, parseEnv, text).get();
+		}
+
+		private void hookEvent(String eventText, String actionText, QuickPropertyParser parser, QuickParseEnv parseEnv)
+			throws QuickParseException {
+			org.observe.Observable<?> event = parser.parseProperty(ModelAttributes.event, parseEnv, eventText).get();
+			ObservableAction<?> action = parser.parseProperty(ModelAttributes.action, parseEnv, actionText).get();
+			event.act(v -> action.act(v));
 		}
 
 		private QuickAppModel parseChildModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)

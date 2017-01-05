@@ -197,12 +197,12 @@ public class DefaultQuickModel implements QuickAppModel {
 				}
 
 				@Override
-				public Object getField(String name) {
-					Object value = theFields.get(name);
+				public Object getField(String fieldName) {
+					Object value = theFields.get(fieldName);
 					if (value == null && theSuper != null) {
 						QuickAppModel superModel = theSuper.get();
 						if (superModel != null)
-							value = superModel.getField(name);
+							value = superModel.getField(fieldName);
 					}
 					return value;
 				}
@@ -265,6 +265,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			case "java.lang.String":
 				return QuickPropertyType.string;
 			case "color":
+			case "java.awt.Color":
 				return QuickPropertyType.color;
 			case "instant":
 			case "java.time.Instant":
@@ -273,6 +274,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			case "java.time.Duration":
 				return QuickPropertyType.duration;
 			case "resource":
+			case "java.net.URL":
 				return QuickPropertyType.resource;
 			}
 			TypeToken<?> type;
@@ -429,39 +431,46 @@ public class DefaultQuickModel implements QuickAppModel {
 					val = v;
 				}
 			}
-			Map<T, Holder<F>> reverseMappings = new HashMap<>();
 			boolean allConstant = true;
+			TypeToken<?> tempCommon = null;
 			for (QuickModelConfig caseConfig : (List<QuickModelConfig>) (List<?>) config.getValues("case")) {
 				ObservableValue<F> from = parseValue(valueType, ((QuickModelConfig) caseConfig.get("value")).getText(), parser, parseEnv);
 				ObservableValue<T> to = parseValue(type, caseConfig.getText(), parser, parseEnv);
 				allConstant &= to instanceof ObservableValue.ConstantObservableValue;
 				F fromVal = from.get();
 				mappings.put(fromVal, to);
-				if (allConstant)
-					reverseMappings.put(to.get(), new Holder<>(fromVal));
-			}
-			boolean allCommon = true;
-			TypeToken<?> common = type == null ? null : type.getType();
-			if (type == null) {
-				for (ObservableValue<?> v : mappings.values()) {
-					if (common == null)
-						common = v.getType();
-					else if (!common.equals(v.getType())) {
-						allCommon = false;
-						break;
-					}
-				}
+				TypeToken<?> toType = to.getType();
+				if (tempCommon == null)
+					tempCommon = toType;
+				else
+					tempCommon = QuickUtils.getCommonType(tempCommon, toType);
 			}
 			ObservableValue<T> def;
 			if (config.getString("default") != null && !config.getString("default").equals("null")) {
 				def = parseValue(type, config.getString("default"), parser, parseEnv);
-				allConstant &= def instanceof ObservableValue.ConstantObservableValue;
-				if (type == null && allCommon && !common.equals(def.getType()))
-					allCommon = false;
+				TypeToken<?> toType = def.getType();
+				if (tempCommon == null)
+					tempCommon = toType;
+				else
+					tempCommon = QuickUtils.getCommonType(tempCommon, toType);
 			} else
 				def = null;
-			if (!allCommon)
-				common = TypeToken.of(Object.class);
+
+			TypeToken<T> common = (TypeToken<T>) tempCommon.wrap();
+			Map<T, Holder<F>> reverseMappings = new HashMap<>();
+			for (Map.Entry<F, ObservableValue<T>> mapping : mappings.entrySet()) {
+				ObservableValue<T> to = mapping.getValue();
+				if (!common.isAssignableFrom(to.getType())) {
+					to = to.mapV(common, v -> QuickUtils.convert(common, v), true);
+					mapping.setValue(to);
+				}
+				if (allConstant)
+					reverseMappings.put(to.get(), new Holder<>(mapping.getKey()));
+			}
+			if (def != null && !common.isAssignableFrom(def.getType()))
+				def = def.mapV(common, v -> QuickUtils.convert(common, v), true);
+
+			ObservableValue<T> fDef = def;
 			if (value instanceof SettableValue && allConstant) {
 				SettableValue<F> settable = (SettableValue<F>) value;
 				Function<T, String> allowedFn = v -> {
@@ -474,20 +483,19 @@ public class DefaultQuickModel implements QuickAppModel {
 					Holder<F> from = reverseMappings.get(v);
 					return from == null ? null : from.val;
 				};
-				return settable.mapV((TypeToken<T>) common, from -> {
+				return settable.mapV(common, from -> {
 					ObservableValue<T> to = mappings.get(from);
 					if (to != null)
 						return to.get();
-					else if (def != null)
-						return def.get();
+					else if (fDef != null)
+						return fDef.get();
 					else
 						return null;
 				}, reverseMapFn, true).filterAccept(allowedFn);
 			} else {
-				TypeToken<ObservableValue<T>> tObs = new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {},
-					(TypeToken<T>) common.wrap());
+				TypeToken<ObservableValue<T>> tObs = new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, common);
 				return ObservableValue.flatten(value.mapV(tObs, from -> {
-					return mappings.getOrDefault(from, def);
+					return mappings.getOrDefault(from, fDef);
 				}, true));
 			}
 		}

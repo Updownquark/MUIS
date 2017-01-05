@@ -40,6 +40,7 @@ public class BorderPane extends SimpleContainer {
 		int lOff = (w - contentW) / 2;
 		int tOff = (h - contentH) / 2;
 		content.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);
+		super.doLayout();
 	}
 
 	@Override

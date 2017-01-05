@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.observe.SettableValue;
+import org.observe.SimpleObservable;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
@@ -20,6 +21,17 @@ import com.google.common.reflect.TypeToken;
 
 /** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
+	/**
+	 * The types of actions that a counter model can execute when its value passes its min or max constraints as a result of normal running
+	 */
+	public static enum FinishAction {
+		/** The counter will stop running and its value will remain at the constraint it just passed */
+		stop,
+		/** The counter will stop running and its value will be reset to the opposite constraint of the one it just passed */
+		reset,
+		/** The counter's value will be reset to the opposite constraint of the one it just passed and the counter will resume running */
+		loop
+	};
 	private final String theName;
 	private final SimpleModelValue<Long> theMin;
 	private final SimpleModelValue<Double> theRate;
@@ -27,8 +39,9 @@ public class CounterModel implements QuickAppModel {
 	private final long theMaxFrequency;
 
 	private final SimpleModelValue<Long> theValue;
-	private final SimpleModelValue<Boolean> isLooping;
+	private final SimpleModelValue<FinishAction> onFinish;
 	private final SimpleModelValue<Boolean> isRunning;
+	private final SimpleObservable<Void> theLoop;
 
 	private final SettableValue<Long> theExposedMin;
 	private final SettableValue<Double> theExposedRate;
@@ -61,10 +74,11 @@ public class CounterModel implements QuickAppModel {
 
 		theValue = new SimpleModelValue<>(TypeToken.of(long.class), false, name + ".value");
 		theValue.set(min, null);
-		isLooping = new SimpleModelValue<>(TypeToken.of(boolean.class), false, name + ".looping");
-		isLooping.set(true, null);
+		onFinish = new SimpleModelValue<>(FinishAction.class, false, name + ".onFinish");
+		onFinish.set(FinishAction.loop, null);
 		isRunning = new SimpleModelValue<>(boolean.class, false, name + ".running");
 		isRunning.set(false, null);
+		theLoop=new SimpleObservable<>();
 
 		theMotion = new AtomicReference<>();
 
@@ -130,8 +144,9 @@ public class CounterModel implements QuickAppModel {
 		modelValues.put("max", theExposedMax);
 		modelValues.put("rate", theExposedRate);
 		modelValues.put("value", theExposedValue);
-		modelValues.put("looping", isLooping);
+		modelValues.put("onFinish", onFinish);
 		modelValues.put("running", theExposedRunning);
+		modelValues.put("loop", theLoop.readOnly());
 		theModelValues = Collections.unmodifiableMap(modelValues);
 	}
 
@@ -168,8 +183,8 @@ public class CounterModel implements QuickAppModel {
 	/**
 	 * @return A settable value that exposes and controls whether this counter loops back around and keeps running or stops at its bounds
 	 */
-	public SettableValue<Boolean> isLooping() {
-		return isLooping;
+	public SettableValue<FinishAction> onFinish() {
+		return onFinish;
 	}
 
 	/** @return A settable value that exposes and controls whether this counter is currently increasing its value */
@@ -186,6 +201,7 @@ public class CounterModel implements QuickAppModel {
 			return;
 		long diff = time - theLastUpdateTime;
 		long steps = (long) (diff * theRate.get() / 1000);
+		boolean looped = false;
 		if (steps != 0) {
 			boolean doSkipLoopStop = skipLoopStop;
 			skipLoopStop = false;
@@ -193,20 +209,48 @@ public class CounterModel implements QuickAppModel {
 			long max = theMax.get();
 			long min = theMin.get();
 			if (newValue > max) {
-				if (!doSkipLoopStop && !isLooping.get()) {
-					stop();
-					newValue = max;
-				} else
+				if (doSkipLoopStop)
 					newValue = min + (newValue - min) % (max - min);
+				else {
+					looped = true;
+					switch (onFinish.get()) {
+					case stop:
+						stop();
+						newValue = max;
+						break;
+					case reset:
+						stop();
+						newValue = min;
+						break;
+					case loop:
+						newValue = min + (newValue - min) % (max - min);
+						break;
+					}
+				}
 			} else if (newValue < min) {
-				if (!doSkipLoopStop && !isLooping.get()) {
-					stop();
-					newValue = min;
-				} else
+				if (doSkipLoopStop)
 					newValue = max - (min - newValue - 1) % (max - min);
+				else {
+					looped = true;
+					switch (onFinish.get()) {
+					case stop:
+						stop();
+						newValue = min;
+						break;
+					case reset:
+						stop();
+						newValue = max;
+						break;
+					case loop:
+						newValue = max - (min - newValue - 1) % (max - min);
+						break;
+					}
+				}
 			}
 			theLastUpdateTime = time;
 			theValue.set(newValue, null);
+			if (looped)
+				theLoop.onNext(null);
 		}
 	}
 
@@ -264,7 +308,7 @@ public class CounterModel implements QuickAppModel {
 					b.withText(true).atMost(1);
 				}).forConfig("start", b -> {
 					b.withText(true).atMost(1);
-				}).forConfig("loop", b -> {
+				}).forConfig("on-finish", b -> {
 					b.withText(true).atMost(1);
 				}).build();
 		}
@@ -294,13 +338,12 @@ public class CounterModel implements QuickAppModel {
 			if (maxFrequency < 10)
 				throw new QuickParseException("max-frequency must be at least 10 milliseconds");
 			CounterModel counter = new CounterModel(min, max, rate, maxFrequency, name);
-			if (config.getString("loop") != null) {
-				if ("true".equals(config.getString("loop")))
-					counter.isLooping().set(true, null);
-				else if ("false".equals(config.getString("loop")))
-					counter.isLooping().set(false, null);
-				else
-					throw new QuickParseException("Invalid value for loop: " + config.getString("loop"));
+			if (config.getString("on-finish") != null) {
+				try {
+					counter.onFinish().set(FinishAction.valueOf(config.getString("on-finish")), null);
+				} catch (IllegalArgumentException e) {
+					throw new QuickParseException("Invalid value for on-finish: " + config.getString("on-finish"));
+				}
 			}
 			if (start)
 				counter.isRunning().set(true, null);

@@ -5,7 +5,7 @@
 		<title>Kids Timer</title>
 		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
 		<model name="model" builder="default-model">
-			<model name="counter" builder="counter-model" min="0" max="3000" rate="100mi" loop="false" max-frequency="100mi" start="false" />
+			<model name="counter" builder="counter-model" min="0" max="3000" rate="100mi" on-finish="stop" max-frequency="100mi" start="false" />
 			<value name="start" type="java.time.Duration">${this.counter.max*100}</value>
 			<value name="remainValue">this.counter.max-this.counter.value</value>
 			<value name="remaining" type="java.time.Duration">${this.remainValue*100}</value>
@@ -54,7 +54,7 @@
 		</model>
 	</head>
 	<body xmlns:base="../../../../base/QuickRegistry.xml" layout="box" direction="down" cross-align="center">
-		<spinner value="model.start" format-factory="${formats.durationHHMMss}" rich="true" length="8" style="font.size=40" />
+		<spinner value="model.start" format-factory="${formats.durationHHMMss}" rich="true" length="8" style="font.size=40;font.weight=bold" />
 		<block layout="box" style="layout.padding=0">
 			<label group="timer-display" value="model.remaining" format-factory="${formats.durationHHMMss}" />
 			<label group="timer-display">.</label>

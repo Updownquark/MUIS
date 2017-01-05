@@ -22,12 +22,13 @@ import org.quick.core.prop.QuickPropertyType;
 import com.google.common.reflect.TypeToken;
 
 public class SoundModel implements QuickAppModel {
-	private final SimpleSettableValue<URL> theFile;
-	private final SimpleSettableValue<Duration> theLength;
+	private final String theName;
+	private final SimpleModelValue<URL> theFile;
+	private final SimpleModelValue<Duration> theLength;
 
-	private final SimpleSettableValue<Boolean> isPlaying;
-	private final SimpleSettableValue<Double> theRate;
-	private final SimpleSettableValue<Boolean> isLooping;
+	private final SimpleModelValue<Boolean> isPlaying;
+	private final SimpleModelValue<Double> theRate;
+	private final SimpleModelValue<Boolean> isLooping;
 	private final SettableValue<Duration> thePosition;
 	private final SimpleObservable<Object> theEnd;
 
@@ -37,17 +38,18 @@ public class SoundModel implements QuickAppModel {
 
 	private final AtomicReference<Clip> theClip;
 
-	public SoundModel() {
-		theFile = new SimpleSettableValue<>(URL.class, true);
-		theLength = new SimpleSettableValue<>(Duration.class, false);
+	public SoundModel(String name) {
+		theName = name;
+		theFile = new SimpleModelValue<>(URL.class, true, name + ".file");
+		theLength = new SimpleModelValue<>(Duration.class, false, name + ".length");
 		theLength.set(Duration.ZERO, null);
 		theClip = new AtomicReference<>();
 
-		theRate = new SimpleSettableValue<>(double.class, false);
+		theRate = new SimpleModelValue<>(double.class, false, name + ".rate");
 		theRate.set(1.0, null);
-		isLooping = new SimpleSettableValue<>(boolean.class, false);
+		isLooping = new SimpleModelValue<>(boolean.class, false, name + ".looping");
 		isLooping.set(false, null);
-		isPlaying = new SimpleSettableValue<Boolean>(boolean.class, false) {
+		isPlaying = new SimpleModelValue<Boolean>(boolean.class, false, name + ".playing") {
 			@Override
 			public String isAcceptable(Boolean value) {
 				String msg = super.isAcceptable(value);
@@ -215,6 +217,11 @@ public class SoundModel implements QuickAppModel {
 		return theFields.get(name);
 	}
 
+	@Override
+	public String toString() {
+		return theName;
+	}
+
 	/** Builds a SoundModel */
 	public static class Builder implements QuickModelBuilder {
 		private static QuickModelConfigValidator VALIDATOR;
@@ -230,10 +237,10 @@ public class SoundModel implements QuickAppModel {
 		}
 
 		@Override
-		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		public QuickAppModel buildModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
-			SoundModel model = new SoundModel();
+			SoundModel model = new SoundModel(name);
 			if (config.getString("file") != null) {
 				QuickAttribute<URL> fileProp = QuickAttribute.build("file", QuickPropertyType.resource).build();
 				model.getFile().link(parser.parseProperty(fileProp, parseEnv, config.getString("file")));

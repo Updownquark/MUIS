@@ -8,7 +8,6 @@ import java.util.Iterator;
 
 import org.observe.ObservableValue;
 import org.observe.SimpleSettableValue;
-import org.quick.core.event.SizeNeedsChangedEvent;
 import org.quick.core.layout.AbstractSizeGuide;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
@@ -62,7 +61,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 				needsRepaint = repaintImmediate = true;
 			}
 			if (needsResize)
-				events().fire(new SizeNeedsChangedEvent(QuickTextElement.this, null));
+				sizeNeedsChanged();
 			if (needsRepaint)
 				repaint(null, repaintImmediate);
 		});
@@ -75,8 +74,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			.runWhen(() -> {
 				new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
 			}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1)//
-			.runWhen(() -> atts().getHolder(multiLine).act(evt -> events().fire(new SizeNeedsChangedEvent(QuickTextElement.this, null))),
-				QuickConstants.CoreStage.INITIALIZED.toString(), 1);
+			.runWhen(() -> atts().getHolder(multiLine).act(evt -> sizeNeedsChanged()), QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	/**

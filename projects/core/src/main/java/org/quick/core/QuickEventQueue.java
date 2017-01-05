@@ -300,6 +300,8 @@ public class QuickEventQueue {
 					return true;
 				if(evt instanceof LayoutEvent && QuickUtils.isAncestor(((LayoutEvent) evt).getElement(), theElement))
 					return true;
+				if (evt instanceof SizeNeedsChangedEvent && QuickUtils.isAncestor(((SizeNeedsChangedEvent) evt).getElement(), theElement))
+					return true;
 			}
 			if(!(evt instanceof PaintEvent))
 				return false;
@@ -370,7 +372,13 @@ public class QuickEventQueue {
 
 		@Override
 		public boolean isSupersededBy(Event evt) {
-			return evt instanceof LayoutEvent && ((LayoutEvent) evt).theElement == theElement;
+			if (evt instanceof ReboundEvent && QuickUtils.isAncestor(((ReboundEvent) evt).getElement(), theElement))
+				return true;
+			if (evt instanceof LayoutEvent && QuickUtils.isAncestor(((LayoutEvent) evt).getElement(), theElement))
+				return true;
+			if (evt instanceof SizeNeedsChangedEvent && QuickUtils.isAncestor(((SizeNeedsChangedEvent) evt).getElement(), theElement))
+				return true;
+			return false;
 		}
 
 		@Override
@@ -392,6 +400,88 @@ public class QuickEventQueue {
 		@Override
 		public String toString() {
 			return "Layout event for " + theElement;
+		}
+	}
+
+	/**
+	 * An event communicating that an element's size needs may have changed and its parent or an ancestor may need to lay its contents out
+	 * again
+	 */
+	public static class SizeNeedsChangedEvent extends AbstractEvent {
+		/** The priority of layout events */
+		public static final int PRIORITY = 20;
+
+		private final QuickElement theElement;
+
+		/** @param element The element that this event is being fired in */
+		public SizeNeedsChangedEvent(QuickElement element) {
+			super(PRIORITY);
+			theElement = element;
+		}
+
+		/** @return The element whose size needs have changed */
+		public QuickElement getElement() {
+			return theElement;
+		}
+
+		@Override
+		protected void doHandleAction() {
+			QuickElement child = theElement;
+			QuickElement parent = theElement.getParent().get();
+			while (parent != null) {
+				if (!isInPreferred(org.quick.core.layout.Orientation.horizontal, parent, child)
+					|| !isInPreferred(org.quick.core.layout.Orientation.vertical, parent, child)) {
+					child = parent;
+					parent = parent.getParent().get();
+				} else
+					break;
+			}
+			child.relayout(false);
+		}
+
+		private static boolean isInPreferred(org.quick.core.layout.Orientation orient, QuickElement parent, QuickElement child) {
+			org.quick.core.mgr.ElementBounds.ElementBoundsDimension dim = child.bounds().get(orient);
+			int size = dim.getSize();
+			int cross = child.bounds().get(orient.opposite()).getSize();
+			int minPref = org.quick.core.layout.LayoutUtils.getSize(child, orient, org.quick.core.layout.LayoutGuideType.minPref,
+				parent.bounds().get(orient).getSize(), cross, false, null);
+			if (size < minPref)
+				return false;
+			int maxPref = org.quick.core.layout.LayoutUtils.getSize(child, orient, org.quick.core.layout.LayoutGuideType.maxPref,
+				parent.bounds().get(orient).getSize(), cross, false, null);
+			if (size > maxPref)
+				return false;
+			return true;
+		}
+
+		@Override
+		public boolean isSupersededBy(Event evt) {
+			if (evt instanceof ReboundEvent && QuickUtils.isAncestor(((ReboundEvent) evt).getElement(), theElement))
+				return true;
+			if (evt instanceof SizeNeedsChangedEvent && QuickUtils.isAncestor(((SizeNeedsChangedEvent) evt).getElement(), theElement))
+				return true;
+			return false;
+		}
+
+		@Override
+		public int comparePriority(Event evt) {
+			if (!(evt instanceof SizeNeedsChangedEvent))
+				return super.comparePriority(evt);
+			if (QuickUtils.isAncestor(theElement, ((SizeNeedsChangedEvent) evt).theElement))
+				return 1;
+			if (QuickUtils.isAncestor(((SizeNeedsChangedEvent) evt).theElement, theElement))
+				return -1;
+			return QuickUtils.getDepth(((SizeNeedsChangedEvent) evt).theElement) - QuickUtils.getDepth(theElement);
+		}
+
+		@Override
+		public void handleError(Throwable err) {
+			theElement.msg().error("Size change error", err);
+		}
+
+		@Override
+		public String toString() {
+			return "Size needs changed for " + theElement;
 		}
 	}
 

@@ -42,13 +42,14 @@ public class DefaultQuickModel implements QuickAppModel {
 	 * The default model-building method. Instantiates a builder from the "builder" attribute (for quick-style type string) or
 	 * "builder-class") attribute (for fully-qualified class name) and passes the rest of the config to it.
 	 *
+	 * @param name The name for the model
 	 * @param config The model config to use to build the model
 	 * @param parser The attribute parser to parse any specified values
 	 * @param parseEnv The parse environment for parsing any specified values
 	 * @return The fully-built Quick model
 	 * @throws QuickParseException If the model cannot be built
 	 */
-	public static QuickAppModel buildQuickModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+	public static QuickAppModel buildQuickModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 		throws QuickParseException {
 		Class<? extends QuickModelBuilder> builderClass;
 		String builderAtt = config.getString("builder");
@@ -79,7 +80,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			throw new QuickParseException("Error creating model", e);
 		}
 		try {
-			return builder.buildModel(config.without("builder", "builder-class"), parser, parseEnv);
+			return builder.buildModel(name, config.without("builder", "builder-class"), parser, parseEnv);
 		} catch (RuntimeException e) {
 			throw new QuickParseException("Error creating model", e);
 		}
@@ -170,7 +171,7 @@ public class DefaultQuickModel implements QuickAppModel {
 		}
 
 		@Override
-		public QuickAppModel buildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		public QuickAppModel buildModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			VALIDATOR.validate(config);
 			QuickAppModel tempModel = new QuickAppModel() {
@@ -210,11 +211,11 @@ public class DefaultQuickModel implements QuickAppModel {
 				DefaultExpressionContext.build().withParent(parseEnv.getContext())
 					.withValue("this", ObservableValue.constant(TypeToken.of(QuickAppModel.class), tempModel)).build());
 			for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs()) {
-				String name = cfg.getValue().getString("name");
-				if (name == null)
+				String childName = cfg.getValue().getString("name");
+				if (childName == null)
 					throw new QuickParseException(cfg.getKey() + " exepects a name attribute");
-				if (theFields.containsKey(name))
-					throw new QuickParseException("Duplicate field: " + name);
+				if (theFields.containsKey(childName))
+					throw new QuickParseException("Duplicate field: " + name + "." + childName);
 				Object value;
 				switch (cfg.getKey()) {
 				case "value":
@@ -233,7 +234,7 @@ public class DefaultQuickModel implements QuickAppModel {
 					value = parseModelAction(cfg.getValue().getText(), parser, innerEnv);
 					break;
 				case "model":
-					value = parseChildModel(cfg.getValue().without("name"), parser, innerEnv);
+					value = parseChildModel(name + "." + childName, cfg.getValue().without("name"), parser, innerEnv);
 					break;
 				case "switch":
 					value = parseModelSwitch(cfg.getValue().without("name"), parser, innerEnv);
@@ -407,12 +408,12 @@ public class DefaultQuickModel implements QuickAppModel {
 			return parser.parseProperty(ModelAttributes.action, parseEnv, text).get();
 		}
 
-		private QuickAppModel parseChildModel(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private QuickAppModel parseChildModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
 			if (config.getString("builder") != null || config.getString("builder-class") != null)
-				return buildQuickModel(config, parser, parseEnv);
+				return buildQuickModel(name, config, parser, parseEnv);
 			else
-				return buildModel(config, parser, parseEnv);
+				return buildModel(name, config, parser, parseEnv);
 		}
 
 		private <F, T> ObservableValue<T> parseModelSwitch(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)

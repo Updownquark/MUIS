@@ -36,4 +36,13 @@
 	<group name="seconds">
 		<attr domain="font" name="color" value="dark-orange" />
 	</group>
+	<group name="timer-display">
+		<type name="label">
+			<attr domain="font" name="size" value="30" />
+			<attach-point name="contents">
+				<attr domain="layout" name="padding" value="0" />
+				<attr domain="layout" name="margin" value="0" />
+			</attach-point>
+		</type>
+	</group>
 </style>

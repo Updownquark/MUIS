@@ -183,6 +183,7 @@ class AntlrPropertyEvaluator {
 			ExpressionTypes.Cast cast = (ExpressionTypes.Cast) parsedItem;
 			TypeToken<?> testType = evaluateType(parseEnv, cast.getType(), type);
 			ObservableValue<?> var = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), cast.getValue(), actionAccepted, false);
+			// TODO Can check better by checking for final types
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
 					parseEnv.msg().warn(cast.getValue() + " is always an instance of " + cast.getType());
@@ -1119,7 +1120,7 @@ class AntlrPropertyEvaluator {
 				throw new QuickParseException("Unrecognized binary operator: " + op.getName());
 			}
 		} catch (IllegalArgumentException e) {
-			throw new QuickParseException(e.getMessage(), e);
+			throw new QuickParseException(op + ": " + e.getMessage(), e);
 		}
 	}
 

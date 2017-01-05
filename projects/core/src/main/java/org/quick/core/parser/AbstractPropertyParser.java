@@ -66,10 +66,14 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 		checkValueDirectives(value);
 
 		ObservableValue<?> parsedValue;
-		if (property != null && property.getType().isSelfParsingByDefault())
-			parsedValue = parseByType(property, parseEnv, value, SELF_PARSE_DIRECTIVE, false);
-		else
-			parsedValue = parseByType(property, parseEnv, value, DEFAULT_PARSE_DIRECTIVE, false);
+		try {
+			if (property != null && property.getType().isSelfParsingByDefault())
+				parsedValue = parseByType(property, parseEnv, value, SELF_PARSE_DIRECTIVE, false);
+			else
+				parsedValue = parseByType(property, parseEnv, value, DEFAULT_PARSE_DIRECTIVE, false);
+		} catch (RuntimeException e) {
+			throw new QuickParseException("Could not parse " + value + " for property " + property, e);
+		}
 
 		if (property == null)
 			return (ObservableValue<T>) parsedValue;

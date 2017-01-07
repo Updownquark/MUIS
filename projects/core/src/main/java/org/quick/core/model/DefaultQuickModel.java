@@ -22,10 +22,17 @@ import com.google.common.reflect.TypeToken;
 
 /** The default (typically XML-specified) implementation for QuickAppModel */
 public class DefaultQuickModel implements QuickAppModel {
+	private final String theName;
 	private final Map<String, Object> theFields;
 
-	private DefaultQuickModel(Map<String, Object> fields) {
+	private DefaultQuickModel(String name, Map<String, Object> fields) {
+		theName = name;
 		theFields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
+	}
+
+	@Override
+	public String getName() {
+		return theName;
 	}
 
 	@Override
@@ -86,14 +93,23 @@ public class DefaultQuickModel implements QuickAppModel {
 		}
 	}
 
-	/** @return A builder to create a DefaultQuickModel */
-	public static BuilderApi build() {
-		return new BuilderApi();
+	/**
+	 * @param name The name for the model
+	 * @return A builder to create a DefaultQuickModel
+	 */
+	public static BuilderApi build(String name) {
+		return new BuilderApi(name);
 	}
 
 	/** A builder for building models from code (as opposed to from a Quick document) */
 	public static class BuilderApi {
+		private final String theName;
 		private final Map<String, Object> theFields = new LinkedHashMap<>();
+
+		/** @param name The name for the model */
+		public BuilderApi(String name) {
+			theName = name;
+		}
 
 		/**
 		 * @param name The name of the field to set
@@ -107,7 +123,7 @@ public class DefaultQuickModel implements QuickAppModel {
 
 		/** @return The new model */
 		public DefaultQuickModel build() {
-			return new DefaultQuickModel(theFields);
+			return new DefaultQuickModel(theName, theFields);
 		}
 	}
 
@@ -190,6 +206,11 @@ public class DefaultQuickModel implements QuickAppModel {
 				}
 
 				@Override
+				public String getName() {
+					return "this";
+				}
+
+				@Override
 				public Set<String> getFields() {
 					Set<String> fields = new LinkedHashSet<>(theFields.keySet());
 					if (theSuper != null) {
@@ -216,8 +237,6 @@ public class DefaultQuickModel implements QuickAppModel {
 					.withValue("this", ObservableValue.constant(TypeToken.of(QuickAppModel.class), tempModel)).build());
 			for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs()) {
 				String childName = cfg.getValue().getString("name");
-				if (childName == null)
-					throw new QuickParseException(cfg.getKey() + " exepects a name attribute");
 				if (theFields.containsKey(childName))
 					throw new QuickParseException("Duplicate field: " + name + "." + childName);
 				Object value;
@@ -247,7 +266,7 @@ public class DefaultQuickModel implements QuickAppModel {
 					value = ((ObservableValue.ConstantObservableValue<?>) value).get();
 				theFields.put(cfg.getValue().getString("name"), value);
 			}
-			return new DefaultQuickModel(theFields);
+			return new DefaultQuickModel(name, theFields);
 		}
 
 		private QuickPropertyType<?> parseType(QuickPropertyParser parser, QuickParseEnv parseEnv, String typeStr) {

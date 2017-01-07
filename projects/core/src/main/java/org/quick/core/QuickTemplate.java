@@ -1403,6 +1403,11 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		@Override
+		public String getName() {
+			return "attributes";
+		}
+
+		@Override
 		public Set<String> getFields() {
 			return Collections.unmodifiableSet(theAttributes.keySet());
 		}

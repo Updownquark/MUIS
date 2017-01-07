@@ -159,6 +159,21 @@ public class SoundModel implements QuickAppModel {
 		theFields = Collections.unmodifiableMap(fields);
 	}
 
+	@Override
+	public String getName() {
+		return theName;
+	}
+
+	@Override
+	public Set<String> getFields() {
+		return theFields.keySet();
+	}
+
+	@Override
+	public Object getField(String name) {
+		return theFields.get(name);
+	}
+
 	public SettableValue<URL> getFile() {
 		return theFile;
 	}
@@ -205,16 +220,6 @@ public class SoundModel implements QuickAppModel {
 		Clip clip = theClip.get();
 		if (clip != null)
 			clip.stop();
-	}
-
-	@Override
-	public Set<String> getFields() {
-		return theFields.keySet();
-	}
-
-	@Override
-	public Object getField(String name) {
-		return theFields.get(name);
 	}
 
 	@Override

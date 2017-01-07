@@ -290,14 +290,14 @@ public class PropertyTest {
 		SimpleSettableValue<Integer> var3 = new SimpleSettableValue<>(TypeToken.of(Integer.class), false);
 		var3.set(25, null);
 		ObservableAction<Double> incVar1 = var1.assignmentTo(var1.mapV(v -> v + 1));
-		DefaultQuickModel nested = DefaultQuickModel.build()//
+		DefaultQuickModel nested = DefaultQuickModel.build("nested")//
 			.with("var2", var2)//
 			.with("var3", var3)//
 			.build();
-		DefaultQuickModel thisModel = DefaultQuickModel.build()//
+		DefaultQuickModel thisModel = DefaultQuickModel.build("this")//
 			.with("value", var3)//
 			.build();
-		DefaultQuickModel model = DefaultQuickModel.build()//
+		DefaultQuickModel model = DefaultQuickModel.build("model")//
 			.with("var1", var1)//
 			.with("var3", var3)//
 			.with("incVar1", incVar1)//

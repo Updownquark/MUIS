@@ -6,12 +6,19 @@ import org.quick.core.model.QuickAppModel;
 
 /** A model that extends one or more other models and potentially adds its own fields */
 public class QuickAppModelExtension implements QuickAppModel {
+	private final String theName;
 	private final List<QuickAppModel> theParents;
 	private final Map<String, Object> theFields;
 
-	private QuickAppModelExtension(List<QuickAppModel> parents, Map<String, Object> fields) {
+	private QuickAppModelExtension(String name, List<QuickAppModel> parents, Map<String, Object> fields) {
+		theName = name;
 		theParents = parents;
 		theFields = fields;
+	}
+
+	@Override
+	public String getName() {
+		return theName;
 	}
 
 	@Override
@@ -33,19 +40,22 @@ public class QuickAppModelExtension implements QuickAppModel {
 	/**
 	 * Builds a new extended model
 	 * 
+	 * @param name The name for the model
 	 * @param parent The first parent for the model
 	 * @return The builder
 	 */
-	public static Builder build(QuickAppModel parent) {
-		return new Builder().withParent(parent);
+	public static Builder build(String name, QuickAppModel parent) {
+		return new Builder(name).withParent(parent);
 	}
 
 	/** Builds a {@link QuickAppModelExtension} */
 	public static class Builder {
+		private final String theName;
 		private final List<QuickAppModel> theParents;
 		private final Map<String, Object> theFields;
 
-		private Builder() {
+		private Builder(String name) {
+			theName = name;
 			theParents = new LinkedList<>();
 			theFields = new LinkedHashMap<>();
 		}
@@ -71,7 +81,7 @@ public class QuickAppModelExtension implements QuickAppModel {
 
 		/** @return The built model */
 		public QuickAppModelExtension build() {
-			return new QuickAppModelExtension(theParents, theFields);
+			return new QuickAppModelExtension(theName, theParents, theFields);
 		}
 	}
 }

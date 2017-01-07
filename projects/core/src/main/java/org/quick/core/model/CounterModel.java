@@ -50,6 +50,7 @@ public class CounterModel implements QuickAppModel {
 	private final SettableValue<Boolean> theExposedRunning;
 
 	private long theLastUpdateTime;
+	private double theReference;
 	private AtomicReference<CounterMotion> theMotion;
 	private volatile boolean skipLoopStop;
 
@@ -128,6 +129,7 @@ public class CounterModel implements QuickAppModel {
 			else
 				return null;
 		}).refresh(theMin).refresh(theMax).onSet(v -> {
+			theReference = v;
 			// Allow the counter to keep counting backwards from min if the value is reset to min externally while going backward
 			if (isRunning.get() && v == theMin.get())
 				skipLoopStop = true;
@@ -148,6 +150,11 @@ public class CounterModel implements QuickAppModel {
 		modelValues.put("running", theExposedRunning);
 		modelValues.put("loop", theLoop.readOnly());
 		theModelValues = Collections.unmodifiableMap(modelValues);
+	}
+
+	@Override
+	public String getName() {
+		return theName;
 	}
 
 	@Override
@@ -200,12 +207,13 @@ public class CounterModel implements QuickAppModel {
 		if (!isRunning.get())
 			return;
 		long diff = time - theLastUpdateTime;
-		long steps = (long) (diff * theRate.get() / 1000);
+		double newRef = theReference + (diff * theRate.get() / 1000);
+		long newValue = Math.round(newRef);
 		boolean looped = false;
-		if (steps != 0) {
+		long current = theValue.get();
+		if (newValue != current) {
 			boolean doSkipLoopStop = skipLoopStop;
 			skipLoopStop = false;
-			long newValue = theValue.get() + steps;
 			long max = theMax.get();
 			long min = theMin.get();
 			if (newValue > max) {
@@ -248,6 +256,7 @@ public class CounterModel implements QuickAppModel {
 				}
 			}
 			theLastUpdateTime = time;
+			theReference = newRef;
 			theValue.set(newValue, null);
 			if (looped)
 				theLoop.onNext(null);
@@ -263,6 +272,7 @@ public class CounterModel implements QuickAppModel {
 		CounterMotion motion = new CounterMotion(this);
 		if (theMotion.compareAndSet(null, motion)) {
 			theLastUpdateTime = 0;
+			theReference = theValue.get();
 			if (!isRunning.get())
 				isRunning.set(true, null);
 			AnimationManager.get().start(motion);

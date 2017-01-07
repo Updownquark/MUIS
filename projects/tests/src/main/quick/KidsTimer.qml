@@ -4,7 +4,7 @@
 	<head>
 		<title>Kids Timer</title>
 		<style-sheet ref="../styles/quick-tests.qss"></style-sheet>
-		<model name="timer" builder="counter-model" min="0" max="3000" rate="100mi" on-finish="stop" max-frequency="100mi" start="false" />
+		<model name="timer" builder="counter-model" min="0" max="3000" rate="100mi" on-finish="reset" max-frequency="100mi" start="false" />
 		<model name="model" builder="default-model">
 			<value name="start" type="java.time.Duration">${timer.max*100}</value>
 			<value name="remainValue">timer.max-timer.value</value>

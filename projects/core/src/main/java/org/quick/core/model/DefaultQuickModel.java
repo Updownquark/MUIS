@@ -432,8 +432,16 @@ public class DefaultQuickModel implements QuickAppModel {
 
 		private void hookEvent(String eventText, String actionText, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
-			org.observe.Observable<?> event = parser.parseProperty(ModelAttributes.event, parseEnv, eventText).get();
+			ObservableValue<?> eventValue = parser.parseProperty(ModelAttributes.value, parseEnv, eventText);
 			ObservableAction<?> action = parser.parseProperty(ModelAttributes.action, parseEnv, actionText).get();
+			org.observe.Observable<?> event;
+			if (TypeToken.of(boolean.class).isAssignableFrom(eventValue.getType().unwrap())) {
+				event = ((ObservableValue<Boolean>) eventValue).noInit().filter(v -> v.getValue());
+			} else if (new TypeToken<org.observe.Observable<?>>() {}.isAssignableFrom(eventValue.getType())) {
+				event = ObservableValue.flattenObservableValue((ObservableValue<? extends org.observe.Observable<?>>) eventValue);
+			} else
+				throw new QuickParseException(
+					"event property for on-event must be either boolean or observable, not " + eventValue.getType() + ": " + eventText);
 			event.act(v -> action.act(v));
 		}
 

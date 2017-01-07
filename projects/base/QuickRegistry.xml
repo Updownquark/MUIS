@@ -44,6 +44,7 @@
 
         <!-- Utilities -->
         <type tag="formats">org.quick.base.model.Formats</type>
+        <type tag="sound-model">org.quick.base.model.SoundModel$Builder</type>
 	</types>
 	<resources>
 		<resource tag="img-load-icon">src/main/resources/imageLoading.gif</resource>
@@ -52,6 +53,7 @@
 		<resource tag="tree-collapse-icon">src/main/resources/treeCollapseIcon.png</resource>
 		<resource tag="up-arrow">src/main/resources/upArrow.png</resource>
 		<resource tag="down-arrow">src/main/resources/downArrow.png</resource>
+		<resource tag="beep">src/main/resources/beep.wav</resource>
 	</resources>
 	<security />
 </registry>

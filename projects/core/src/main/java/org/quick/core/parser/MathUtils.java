@@ -128,7 +128,14 @@ public class MathUtils {
 	 */
 	public static <T, U> ObservableValue<Boolean> testEquals(ObservableValue<T> v1, ObservableValue<U> v2, boolean not) {
 		// TODO Could check here to see if the two values are possibly compatible
-		BiFunction<Object, Object, Boolean> test = (val1, val2) -> Objects.equals(val1, val2);
+		BiFunction<Object, Object, Boolean> test;
+		if (v1.getType().equals(v2.getType()) || !v1.getType().unwrap().isPrimitive() || !v2.getType().unwrap().isPrimitive())
+			test = (val1, val2) -> Objects.equals(val1, val2);
+		else {
+			// Can't just do a straight equals comparison here, e.g. 1L==1 should be true due to upcasting
+			TypeToken<?> common = QuickUtils.getCommonType(v1.getType(), v2.getType());
+			test = (val1, val2) -> Objects.equals(QuickUtils.convert(common, val1), QuickUtils.convert(common, val2));
+		}
 		if (v1 instanceof SettableValue && QuickUtils.isAssignableFrom(v1.getType(), v2.getType())) {
 			SettableValue<T> s = (SettableValue<T>) v1;
 			BiFunction<Boolean, U, String> accept = (b, val2) -> (b ^ not) ? s.isAcceptable(QuickUtils.convert(v1.getType(), val2))

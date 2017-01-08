@@ -38,7 +38,8 @@
 	</group>
 	<group name="timer-display">
 		<type name="label">
-			<attr domain="font" name="size" value="30" />
+			<attr domain="font" name="size" value="60" />
+			<attr domain="font" name="color" value="white" />
 		</type>
 	</group>
 </style>

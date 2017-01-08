@@ -11,46 +11,37 @@
 			<value name="remaining" type="java.time.Duration">${this.remainValue*100}</value>
 
 			<value name="hourLength">36000</value>
-			<switch name="hourColorValue" value="this.remainValue>this.hourLength">
+			<switch name="hourValue" value="this.remainValue>this.hourLength">
 				<case value="true">(this.remainValue-this.hourLength)*1.0/(timer.max-this.hourLength)</case>
 				<default>0</default>
 			</switch>
-			<value name="hourColor" type="java.awt.Color">${rgb((int)(this.hourColorValue*255), (int)((1-this.hourColorValue)*255), 0)}</value>
+			<value name="hourColor" type="java.awt.Color">${rgb((int)(this.hourValue*255), (int)((1-this.hourValue)*255), 0)}</value>
 
-			<value name="fifteenMinuteLength">15*600</value>
-			<switch name="fifteenMinuteMax" value="timer.max>=this.hourLength">
-				<case value="true">this.hourLength</case>
-				<default>timer.max</default>
-			</switch>
-			<switch name="fifteenMinuteColorValue" value="this.remainValue&lt;=this.fifteenMinuteLength ? -1 : (this.remainValue>this.fifteenMinuteMax ? 1 : 0)">
-				<case value="0">(this.remainValue-this.fifteenMinuteLength)*1.0/(this.fifteenMinuteMax-this.fifteenMinuteLength)</case>
+			<value name="fiveMinuteLength">5*600</value>
+			<value name="fiveMinuteMax">Math.min(this.hourLength, timer.max)</value>
+			<switch name="fiveMinuteValue" value="this.remainValue&lt;=this.fiveMinuteLength ? -1 : (this.remainValue>this.fiveMinuteMax ? 1 : 0)">
+				<case value="0">(this.remainValue-this.fiveMinuteLength)*1.0/(this.fiveMinuteMax-this.fiveMinuteLength)</case>
 				<case value="1">1</case>
 				<default>0</default>
 			</switch>
-			<value name="fifteenMinuteColor" type="java.awt.Color">${rgb((int)(this.fifteenMinuteColorValue*255), (int)((1-this.fifteenMinuteColorValue)*255), 0)}</value>
+			<value name="fiveMinuteColor" type="java.awt.Color">${rgb((int)(this.fiveMinuteValue*255), (int)((1-this.fiveMinuteValue)*255), 0)}</value>
 
 			<value name="minuteLength">600</value>
-			<switch name="minuteMax" value="timer.max>=this.fifteenMinuteLength">
-				<case value="true">this.fifteenMinuteLength</case>
-				<default>timer.max</default>
-			</switch>
-			<switch name="minuteColorValue" value="this.remainValue&lt;=this.minuteLength ? -1 : (this.remainValue>this.minuteMax ? 1 : 0)">
+			<value name="minuteMax">Math.min(this.fiveMinuteLength, timer.max)</value>
+			<switch name="minuteValue" value="this.remainValue&lt;=this.minuteLength ? -1 : (this.remainValue>this.minuteMax ? 1 : 0)">
 				<case value="0">(this.remainValue-this.minuteLength)*1.0/(this.minuteMax-this.minuteLength)</case>
 				<case value="1">1</case>
 				<default>0</default>
 			</switch>
-			<value name="minuteColor" type="java.awt.Color">${rgb((int) (this.minuteColorValue*255), (int) ((1-this.minuteColorValue)*255), 0)}</value>
+			<value name="minuteColor" type="java.awt.Color">${rgb((int) (this.minuteValue*255), (int) ((1-this.minuteValue)*255), 0)}</value>
 
 			<value name="secondLength">600</value>
-			<switch name="secondMax" value="timer.max>=this.minuteLength">
-				<case value="true">this.minuteLength</case>
-				<default>timer.max</default>
-			</switch>
-			<switch name="secondColorValue" value="this.remainValue&lt;=this.secondMax">
+			<value name="secondMax">Math.min(this.minuteLength, timer.max)</value>
+			<switch name="secondValue" value="this.remainValue&lt;=this.secondMax">
 				<case value="true">this.remainValue*1.0/this.secondMax</case>
 				<default>1</default>
 			</switch>
-			<value name="secondColor" type="java.awt.Color">${rgb((int) (this.secondColorValue*255), (int) ((1-this.secondColorValue)*255), 0)}</value>
+			<value name="secondColor" type="java.awt.Color">${rgb((int) (this.secondValue*255), (int) ((1-this.secondValue)*255), 0)}</value>
 			
 			<model name="flash" builder="counter-model" min="0" max="9" rate="250mi" max-frequency="50mi" on-finish="reset" start="false" />
 			<value name="flashColor" type="java.awt.Color">${this.flash.value%2==0 ? red : blue}</value>
@@ -82,10 +73,32 @@
 				<button action="timer.value=timer.min">Reset</button>
 			</block>
 			<block layout="box" align="justify" width="100%">
-				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.hourColor}" />
-				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.fifteenMinuteColor}" />
-				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.minuteColor}" />
-				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.secondColor}" />
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.hourColor}" layout="box" align="center" cross-align="center">
+					<label value="((int)(100*(1-model.hourValue)))+&quot;%&quot;" style="font.size=50" />
+				</block>
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.fiveMinuteColor}" layout="box" align="center" cross-align="center">
+					<label value="((int)(100*(1-model.fiveMinuteValue)))+&quot;%&quot;" style="font.size=50" />
+				</block>
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.minuteColor}" layout="box" align="center" cross-align="center">
+					<label value="((int)(100*(1-model.minuteValue)))+&quot;%&quot;" style="font.size=50" />
+				</block>
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=${model.secondColor}" layout="box" align="center" cross-align="center">
+					<label value="((int)(100*(1-model.secondValue)))+&quot;%&quot;" style="font.size=50" />
+				</block>
+			</block>
+			<block layout="box" align="justify" width="100%">
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
+					<block bottom="0xp" width="100%" height="(100*(1-model.hourValue))%" style="bg.transparency=0;bg.color=lime" />
+				</block>
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
+					<block bottom="0xp" width="100%" height="(100*(1-model.fiveMinuteValue))%" style="bg.transparency=0;bg.color=lime" />
+				</block>
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
+					<block bottom="0xp" width="100%" height="(100*(1-model.minuteValue))%" style="bg.transparency=0;bg.color=lime" />
+				</block>
+				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
+					<block bottom="0xp" width="100%" height="(100*(1-model.secondValue))%" style="bg.transparency=0;bg.color=lime" />
+				</block>
 			</block>
 		</block>
 	</body>

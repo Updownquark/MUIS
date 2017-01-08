@@ -24,7 +24,8 @@ public class LayoutAttributes {
 		.buildContext(ctx -> {
 			ctx.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.pixels), null)//
 				.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.lexips), null)//
-				.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Position.class), l -> new Position(l, LengthUnit.percent), null);
+				.withUnit("%", TypeToken.of(Double.class), TypeToken.of(Position.class),
+					d -> new Position(d.floatValue(), LengthUnit.percent), null);
 		})//
 		.withToString(v -> {
 			StringBuilder ret = new StringBuilder();
@@ -44,7 +45,8 @@ public class LayoutAttributes {
 		.buildContext(ctx -> {
 			ctx.withUnit("px", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.pixels), null)//
 				.withUnit("xp", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.lexips), null)//
-				.withUnit("%", TypeToken.of(Long.class), TypeToken.of(Size.class), l -> new Size(l, LengthUnit.percent), null);
+				.withUnit("%", TypeToken.of(Double.class), TypeToken.of(Size.class), d -> new Size(d.floatValue(), LengthUnit.percent),
+					null);
 		})//
 		.withToString(v -> {
 			StringBuilder ret = new StringBuilder();

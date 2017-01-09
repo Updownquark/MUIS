@@ -88,16 +88,16 @@
 			</block>
 			<block layout="box" align="justify" width="100%">
 				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
-					<block bottom="0xp" width="100%" height="(100*(1-model.hourValue))%" style="bg.transparency=0;bg.color=lime" />
+					<block width="(100*(1-model.hourValue))%" height="100%" style="bg.transparency=0;bg.color=lime" />
 				</block>
 				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
-					<block bottom="0xp" width="100%" height="(100*(1-model.fiveMinuteValue))%" style="bg.transparency=0;bg.color=lime" />
+					<block width="(100*(1-model.fiveMinuteValue))%" height="100%" style="bg.transparency=0;bg.color=lime" />
 				</block>
 				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
-					<block bottom="0xp" width="100%" height="(100*(1-model.minuteValue))%" style="bg.transparency=0;bg.color=lime" />
+					<block width="(100*(1-model.minuteValue))%" height="100%" style="bg.transparency=0;bg.color=lime" />
 				</block>
 				<block width="20%" height="150" style="bg.transparency=0;bg.color=red" layout="simple">
-					<block bottom="0xp" width="100%" height="(100*(1-model.secondValue))%" style="bg.transparency=0;bg.color=lime" />
+					<block width="(100*(1-model.secondValue))%" height="100%" style="bg.transparency=0;bg.color=lime" />
 				</block>
 			</block>
 		</block>

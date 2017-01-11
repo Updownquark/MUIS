@@ -13,6 +13,7 @@ import org.observe.*;
 import org.qommons.IterableUtils;
 import org.qommons.Transaction;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
+import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.util.QuickUtils;
 
@@ -533,6 +534,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		private float theTop;
 		private int theSequenceOffset;
 		private boolean oldSequenceWasLineBreak;
+		private boolean oldSequenceWasWordWrap;
 		private boolean wasLineBreak;
 		private boolean newMeasurer;
 
@@ -547,6 +549,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 				if (theCurrentMeasurer != null && theCurrentSequence != null
 					&& theCurrentMeasurer.getPosition() == theCurrentSequence.length()) {
 					oldSequenceWasLineBreak = theCurrentSequence.charAt(theCurrentSequence.length() - 1) == '\n';
+					oldSequenceWasWordWrap = theCurrentSequence.getStyle().get(FontStyle.wordWrap).get();
 					theCurrentSequence = null;
 					theCurrentMeasurer = null;
 					theSequenceOffset = 0;
@@ -567,7 +570,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 					wasLineBreak = oldSequenceWasLineBreak;
 					newMeasurer = false;
 				} else {
-					wasLineBreak = true;
+					wasLineBreak = oldSequenceWasWordWrap;
 				}
 
 				if (wasLineBreak) {

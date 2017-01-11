@@ -209,29 +209,26 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		int max = Math.round(maxW);
 
 		int min;
-		boolean isWordWrap = getStyle().get(wordWrap).get();
 		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine));
-		if(isWordWrap || isMultiLine) {
-			maxW = 0;
-			lineW = 0;
-			for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, 1)) {
-				boolean newLine = isWordWrap && metric.isNewLine();
-				if(!newLine)
-					newLine = isMultiLine && metric.charAt(metric.length() - 1) == '\n';
-				if(metric.isNewLine()) {
-					if(lineW > maxW)
-						maxW = lineW;
-					lineW = 0;
-				}
-				lineW += metric.getWidth();
+		maxW = 0;
+		lineW = 0;
+		for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, 1)) {
+			boolean newLine = metric.isNewLine();
+			if (!newLine)
+				newLine = isMultiLine && metric.charAt(metric.length() - 1) == '\n';
+			if (metric.isNewLine()) {
+				if (lineW > maxW)
+					maxW = lineW;
+				lineW = 0;
 			}
-			if(lineW > maxW)
-				maxW = lineW;
-			min = Math.round(maxW);
-		} else
-			min = max;
-		min += 3; // Not quite sure why these padding values need to be here, but the text wraps unnecessarily if they're not
-		max += 3;
+			lineW += metric.getWidth();
+		}
+		if (lineW > maxW)
+			maxW = lineW;
+		min = Math.round(maxW);
+		// Not quite sure why these padding values need to be here, but the text wraps unnecessarily if they're not
+		min += Math.round(min / 50f);
+		max += Math.round(max / 50f);
 		return new SimpleSizeGuide(min, min, max, max, max);
 	}
 

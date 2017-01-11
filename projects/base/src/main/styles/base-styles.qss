@@ -41,6 +41,9 @@
 	<type name="label">
 		<attr domain="layout" name="margin" value="0" />
 		<attr domain="layout" name="padding" value="0" />
+		<attach-point name="value">
+			<attr domain="font" name="word-wrap" value="0" />
+		</attach-point>
 	</type>
 	<type name="border">
 		<attr domain="bg" name="texture" value="border-texture" />

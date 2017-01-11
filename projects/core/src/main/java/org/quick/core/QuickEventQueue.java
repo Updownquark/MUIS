@@ -437,9 +437,9 @@ public class QuickEventQueue {
 					break;
 			}
 			if (parent != null)
-				parent.relayout(false);
+				parent.doLayout();
 			else
-				child.relayout(false);
+				child.doLayout();
 		}
 
 		private static boolean isInPreferred(org.quick.core.layout.Orientation orient, QuickElement parent, QuickElement child) {

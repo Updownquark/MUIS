@@ -55,7 +55,7 @@ public class SoundModel implements QuickAppModel {
 				String msg = super.isAcceptable(value);
 				if (msg != null)
 					return msg;
-				if (!value) {
+				if (value) {
 					Clip clip = theClip.get();
 					if (clip == null)
 						return "No file set";
@@ -159,6 +159,21 @@ public class SoundModel implements QuickAppModel {
 		theFields = Collections.unmodifiableMap(fields);
 	}
 
+	@Override
+	public String getName() {
+		return theName;
+	}
+
+	@Override
+	public Set<String> getFields() {
+		return theFields.keySet();
+	}
+
+	@Override
+	public Object getField(String name) {
+		return theFields.get(name);
+	}
+
 	public SettableValue<URL> getFile() {
 		return theFile;
 	}
@@ -178,17 +193,21 @@ public class SoundModel implements QuickAppModel {
 
 	private void loadFile(URL file, Object cause) {
 		Clip newClip;
-		try {
-			newClip = AudioSystem.getClip();
-			newClip.open(AudioSystem.getAudioInputStream(file));
-		} catch (Exception e) {
-			throw new IllegalStateException("Could not load audio file " + file, e);
+		if (file == null)
+			newClip = null;
+		else {
+			try {
+				newClip = AudioSystem.getClip();
+				newClip.open(AudioSystem.getAudioInputStream(file));
+			} catch (Exception e) {
+				throw new IllegalStateException("Could not load audio file " + file, e);
+			}
 		}
 		Clip old = theClip.getAndSet(newClip);
 		if (old != null)
 			old.close();
 
-		theLength.set(Duration.of(newClip.getMicrosecondLength(), ChronoUnit.MICROS), cause);
+		theLength.set(newClip == null ? Duration.ZERO : Duration.of(newClip.getMicrosecondLength(), ChronoUnit.MICROS), cause);
 		//TODO add a listener to be notified when the clip reaches the end
 		// newClip.addLineListener(lineEvent->{
 		// lineEvent.
@@ -197,6 +216,7 @@ public class SoundModel implements QuickAppModel {
 
 	private void start() {
 		Clip clip = theClip.get();
+		clip.setFramePosition(0);
 		if (clip != null)
 			clip.start();
 	}
@@ -205,16 +225,6 @@ public class SoundModel implements QuickAppModel {
 		Clip clip = theClip.get();
 		if (clip != null)
 			clip.stop();
-	}
-
-	@Override
-	public Set<String> getFields() {
-		return theFields.keySet();
-	}
-
-	@Override
-	public Object getField(String name) {
-		return theFields.get(name);
 	}
 
 	@Override

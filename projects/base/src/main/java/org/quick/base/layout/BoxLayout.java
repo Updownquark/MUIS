@@ -167,8 +167,10 @@ public class BoxLayout implements QuickLayout {
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				LayoutSize ret = new LayoutSize();
 				BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, ret);
-				ret.add(margin);
-				ret.add(margin);
+				if (type != LayoutGuideType.min) {
+					ret.add(margin);
+					ret.add(margin);
+				}
 				return ret.getTotal();
 			}
 
@@ -247,6 +249,18 @@ public class BoxLayout implements QuickLayout {
 		}
 
 		// Main alignment
+		// Lower the margin and padding if needed
+		int marginSz = margin.evaluate(parallelSize);
+		int paddingSz = padding.evaluate(parallelSize);
+		if (result.lowerType == LayoutGuideType.min && (marginSz != 0 || paddingSz != 0)) {
+			if (result.proportion == 0) {
+				marginSz = 0;
+				paddingSz = 0;
+			} else {
+				marginSz = (int) Math.round(marginSz * result.proportion);
+				paddingSz = (int) Math.round(paddingSz * result.proportion);
+			}
+		}
 		switch (align) {
 		case begin:
 		case end:
@@ -254,9 +268,9 @@ public class BoxLayout implements QuickLayout {
 			for(int c = 0; c < children.length; c++) {
 				int childPos = pos;
 				if(c == 0)
-					childPos += margin.evaluate(parallelSize);
+					childPos += marginSz;
 				else
-					childPos += padding.evaluate(parallelSize);
+					childPos += paddingSz;
 				LayoutUtils.setPos(bounds[c], dir.getOrientation(), align == Alignment.begin ? childPos : parallelSize - childPos
 					- LayoutUtils.getSize(bounds[c], dir.getOrientation()));
 				pos = childPos + LayoutUtils.getSize(bounds[c], dir.getOrientation());
@@ -265,10 +279,10 @@ public class BoxLayout implements QuickLayout {
 		case center:
 		case justify:
 			int freeSpace = parallelSize;
-			freeSpace -= margin.evaluate(parallelSize);
+			freeSpace -= marginSz * 2;
 			for(int c = 0; c < bounds.length; c++) {
 				if(c > 0)
-					freeSpace -= padding.evaluate(parallelSize);
+					freeSpace -= paddingSz;
 				freeSpace -= LayoutUtils.getSize(bounds[c], dir.getOrientation());
 			}
 
@@ -278,9 +292,9 @@ public class BoxLayout implements QuickLayout {
 				int extraSpace = (freeSpace - usedSpace) / (children.length + 1 - c);
 				int childPos = pos + extraSpace;
 				if(c == 0)
-					childPos += margin.evaluate(parallelSize);
+					childPos += marginSz;
 				else
-					childPos += padding.evaluate(parallelSize);
+					childPos += paddingSz;
 				LayoutUtils.setPos(bounds[c], dir.getOrientation(), dir.getStartEnd() == End.leading ? childPos
 					: parallelSize - childPos - LayoutUtils.getSize(bounds[c], dir.getOrientation()));
 				pos = childPos + LayoutUtils.getSize(bounds[c], dir.getOrientation());

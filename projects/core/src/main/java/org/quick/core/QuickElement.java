@@ -116,7 +116,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theExposedChildren = theChildren.immutable();
 		theAttributeManager = new AttributeManager(this);
 		theStyle = new QuickElementStyle(this);
-		theSelfModel = QuickAppModel.empty();
+		theSelfModel = QuickAppModel.empty("this");
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
 		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {
@@ -714,6 +714,8 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/** Alerts the system that this element's size needs may have changed */
 	public final void sizeNeedsChanged() {
+		if (life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) < 0)
+			return;
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.SizeNeedsChangedEvent(this), false);
 	}
 

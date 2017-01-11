@@ -24,12 +24,14 @@ public class BaseLayoutUtils {
 		Size marginX, Size marginY, Size paddingX, Size paddingY) {
 		LayoutSize temp = new LayoutSize();
 		for(int i = 0; i < children.length; i++) {
-			if(i == 0)
-				temp.add(orient == Orientation.horizontal ? marginX : marginY);
-			else
-				temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
-			if(i == children.length - 1)
-				temp.add(orient == Orientation.horizontal ? marginX : marginY);
+			if (type != LayoutGuideType.min) {
+				if (i == 0)
+					temp.add(orient == Orientation.horizontal ? marginX : marginY);
+				else
+					temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
+				if (i == children.length - 1)
+					temp.add(orient == Orientation.horizontal ? marginX : marginY);
+			}
 			LayoutUtils.getSize(children[i], orient, type, Integer.MAX_VALUE, crossSize, csMax, temp);
 		}
 		if(temp.getPixels() == 0) {

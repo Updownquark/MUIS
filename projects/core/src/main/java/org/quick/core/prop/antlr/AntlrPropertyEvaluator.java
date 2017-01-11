@@ -176,7 +176,11 @@ class AntlrPropertyEvaluator {
 					"Condition in " + cond + " evaluates to type " + condition.getType() + ", which is not boolean");
 			ObservableValue<? extends T> affirm = evaluateTypeChecked(parseEnv, type, cond.getAffirmative(), actionAccepted, false);
 			ObservableValue<? extends T> neg = evaluateTypeChecked(parseEnv, type, cond.getNegative(), actionAccepted, false);
-			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(v -> v ? affirm : neg));
+			TypeToken<T> resultType = (TypeToken<T>) QuickUtils.getCommonType(affirm.getType(), neg.getType());
+			TypeToken<ObservableValue<? extends T>> resultObsType = new TypeToken<ObservableValue<? extends T>>() {}
+				.where(new TypeParameter<T>() {}, resultType.wrap());
+			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(resultObsType, v -> v ? affirm : neg, true))
+				.mapV(resultType, v -> v, true);
 		} else if (parsedItem instanceof ExpressionTypes.Cast) {
 			if (actionRequired)
 				throw new QuickParseException("Cast cannot be an action");

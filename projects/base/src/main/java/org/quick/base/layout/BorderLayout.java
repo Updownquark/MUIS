@@ -96,6 +96,11 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 				Size padding = parent.getStyle().get(LayoutStyle.padding).get();
+				if (children.length == 0) {
+					if (type == LayoutGuideType.min)
+						return 0;
+					return margin.evaluate(0) * 2;
+				}
 				LayoutSize ret = get(type, crossSize, csMax, 0, padding, null);
 				ret.add(margin);
 				ret.add(margin);

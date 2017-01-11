@@ -2,10 +2,13 @@ package org.quick.core.parser;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
+import org.observe.ObservableValue;
 import org.quick.core.*;
 import org.quick.core.model.DefaultQuickModel;
+import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickModelConfig;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.ImmutableStyleSheet;
@@ -174,9 +177,20 @@ public class QuickContentCreator {
 		builder.setTitle(structure.getTitle());
 		for (ImmutableStyleSheet ss : structure.getStyleSheets())
 			builder.addStyleSheet(ss);
-		for (Map.Entry<String, QuickModelConfig> mc : structure.getModelConfigs().entrySet())
-			builder.addModel(mc.getKey(),
-				DefaultQuickModel.buildQuickModel(mc.getValue().getString("name"), mc.getValue().without("name"), parser, parseEnv));
+		Map<String, QuickAppModel> models = new HashMap<>();
+		QuickParseEnv modelEnv = new SimpleParseEnv(parseEnv.cv(), parseEnv.msg(), org.quick.core.prop.DefaultExpressionContext.build()//
+			.withParent(parseEnv.getContext()).withValueGetter(name -> {
+				if (models.containsKey(name))
+					return ObservableValue.constant(models.get(name));
+				else
+					return null;
+			}).build());
+		for (Map.Entry<String, QuickModelConfig> mc : structure.getModelConfigs().entrySet()) {
+			QuickAppModel model = DefaultQuickModel.buildQuickModel(mc.getValue().getString("name"), mc.getValue().without("name"), parser,
+				modelEnv);
+			models.put(mc.getKey(), model);
+			builder.addModel(mc.getKey(), model);
+		}
 		return builder.build();
 	}
 }

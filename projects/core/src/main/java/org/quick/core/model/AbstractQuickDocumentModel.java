@@ -1,13 +1,14 @@
 package org.quick.core.model;
 
-import org.qommons.IterableUtils;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Provides most of the implementation needed for a {@link QuickDocumentModel}, supplying some caching and requiring the concrete subclass
  * only to define {@link #iterator()}
  */
 public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
-	private org.qommons.DemandCache<Float, Iterable<StyledSequenceMetric>> theMetricsCache;
+	private org.qommons.DemandCache<Float, List<StyledSequenceMetric>> theMetricsCache;
 
 	/** Creates the document */
 	public AbstractQuickDocumentModel() {
@@ -24,15 +25,20 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 	@Override
 	public Iterable<StyledSequenceMetric> metrics(final int start, final float breakWidth) {
 		Iterable<StyledSequenceMetric> ret;
-		if(start == 0) {
-			ret = theMetricsCache.get(breakWidth);
-			if(ret == null) {
-				ret = IterableUtils.cachingIterable(QuickDocumentModel.super.metrics(start, breakWidth).iterator());
-				theMetricsCache.put(breakWidth, ret);
-			}
-			return ret;
-		} else
-			return QuickDocumentModel.super.metrics(start, breakWidth);
+		if (start == 0)
+			ret = theMetricsCache.computeIfAbsent(breakWidth, w -> //
+			toList(QuickDocumentModel.super.metrics(start, breakWidth)));
+		else
+			ret = QuickDocumentModel.super.metrics(start, breakWidth);
+		return ret;
+	}
+
+	private static List<StyledSequenceMetric> toList(Iterable<StyledSequenceMetric> metrics) {
+		ArrayList<StyledSequenceMetric> cached = new ArrayList<>();
+		for (StyledSequenceMetric metric : metrics)
+			cached.add(metric);
+		cached.trimToSize();
+		return java.util.Collections.unmodifiableList(cached);
 	}
 
 	@Override

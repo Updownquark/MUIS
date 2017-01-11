@@ -34,7 +34,7 @@
     		<toggle-button selected="model.counter.running">
     			<label value="model.counter.running ? &quot;Pause&quot; : &quot;Resume&quot;" />
     		</toggle-button>
-    		<toggle-button selected="model.counter.looping">Looping</toggle-button>
+    		<!--<toggle-button selected="model.counter.looping">Looping</toggle-button>-->
     		<button action="model.counter.rate=-model.counter.rate">
     			<label value="model.counter.rate&lt;0 ? &quot;Forward&quot; : &quot;Reverse&quot;" />
    			</button>

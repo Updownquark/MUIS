@@ -26,7 +26,7 @@
         
 		<!-- Layouts -->
         <type tag="simple">org.quick.base.layout.SimpleLayout</type>
-        <type tag="flow">org.quick.base.layout.FlowLayout</type>
+        <!--<type tag="flow">org.quick.base.layout.FlowLayout</type>-->
         <type tag="box">org.quick.base.layout.BoxLayout</type>
         <type tag="border-layout">org.quick.base.layout.BorderLayout</type>
         <type tag="text-edit-layout">org.quick.base.layout.TextEditLayout</type>

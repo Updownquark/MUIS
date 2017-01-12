@@ -86,7 +86,7 @@
 			</domain>
 		</attach-point>
 		<attach-point name="up">
-			<attach-point name="contents">
+			<attach-point name="content">
 				<domain name="layout">
 					<attr name="margin" value="0" />
 					<attr name="padding" value="0" />
@@ -94,7 +94,7 @@
 			</attach-point>
 		</attach-point>
 		<attach-point name="down">
-			<attach-point name="contents">
+			<attach-point name="content">
 				<domain name="layout">
 					<attr name="margin" value="0" />
 					<attr name="padding" value="0" />

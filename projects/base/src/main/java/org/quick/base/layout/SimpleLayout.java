@@ -91,10 +91,11 @@ public class SimpleLayout implements QuickLayout {
 					return 0;
 				}
 				int[] res = new int[children.length];
-				// The cross size being passed to getSize here is incorrect.
-				// It doesn't take into account constraints on the opposite orientation.
-				for (int i = 0; i < res.length; i++)
-					res[i] = getSize(children[i], type, crossSize, csMax);
+				for (int i = 0; i < res.length; i++) {
+					// Need to take into account constraints on the opposite orientation.
+					int childCrossSize = childCrossSize(crossSize, children[i], orient);
+					res[i] = getSize(children[i], type, childCrossSize, csMax);
+				}
 				switch (type) {
 				case min:
 				case minPref:
@@ -231,7 +232,7 @@ public class SimpleLayout implements QuickLayout {
 				length = pos2 - pos;
 		} else {
 			Size[] sizes = LayoutUtils.getLayoutSize(child, orient, LayoutGuideType.pref,
-				parent.bounds().get(orient.opposite()).getSize(), false);
+				childCrossSize(parent.bounds().get(orient.opposite()).getSize(), child, orient), false);
 			if (sizes.length == 1)
 				length = sizes[0].evaluate(parentLength);
 			else {
@@ -264,6 +265,30 @@ public class SimpleLayout implements QuickLayout {
 			bounds.height = length;
 			break;
 		}
+	}
+
+	private int childCrossSize(int crossSize, QuickElement child, Orientation orient) {
+		int childCrossSize;
+		Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), null));
+		Size maxSize = child.atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), LayoutGuideType.max));
+		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient.opposite(), End.leading, null));
+		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient.opposite(), End.trailing, null));
+		if (size != null)
+			childCrossSize = size.evaluate(crossSize);
+		else if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels) {
+			childCrossSize = lead.evaluate(crossSize) + trail.evaluate(crossSize) - crossSize;
+			if (childCrossSize < 0)
+				childCrossSize = 0;
+		} else if (maxSize != null)
+			childCrossSize = maxSize.evaluate(crossSize);
+		else {
+			childCrossSize = crossSize;
+			if (lead != null)
+				childCrossSize -= lead.evaluate(crossSize);
+			if (trail != null)
+				childCrossSize -= trail.evaluate(crossSize);
+		}
+		return childCrossSize;
 	}
 
 	@Override

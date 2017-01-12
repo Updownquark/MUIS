@@ -111,10 +111,25 @@ public class BoxLayout implements QuickLayout {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				Alignment align = parent.atts().get(alignment);
-				if ((type == LayoutGuideType.max || type == LayoutGuideType.maxPref)//
-					&& !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
+				if ((type == LayoutGuideType.max) && !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
 					return Integer.MAX_VALUE;
-				return BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, margin, margin, padding, padding);
+				LayoutSize ret;
+				if (type == LayoutGuideType.pref || margin.evaluate(crossSize) == 0) {
+					ret = new LayoutSize();
+					crossSize -= margin.evaluate(crossSize) * 2;
+					ret.setPixels(BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, padding, padding));
+				} else {
+					int withMargin = BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, padding, padding);
+					crossSize -= margin.evaluate(crossSize) * 2;
+					int withoutMargin = BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, padding, padding);
+					ret = new LayoutSize()
+						.setPixels(type.isMin() ? Math.min(withMargin, withoutMargin) : Math.max(withMargin, withoutMargin));
+				}
+				if (type != LayoutGuideType.min) {
+					ret.add(margin);
+					ret.add(margin);
+				}
+				return ret.getTotal();
 			}
 
 			@Override
@@ -166,8 +181,21 @@ public class BoxLayout implements QuickLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				LayoutSize ret = new LayoutSize();
-				BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, ret);
+				Alignment align = parent.atts().get(alignment);
+				if ((type == LayoutGuideType.max) && !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
+					return Integer.MAX_VALUE;
+				LayoutSize ret;
+				if (type == LayoutGuideType.pref || margin.evaluate(crossSize) == 0) {
+					ret = new LayoutSize();
+					crossSize -= margin.evaluate(crossSize) * 2;
+					BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, ret);
+				} else {
+					int withMargin = BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, null);
+					crossSize -= margin.evaluate(crossSize) * 2;
+					int withoutMargin = BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, null);
+					ret = new LayoutSize()
+						.setPixels(type.isMin() ? Math.min(withMargin, withoutMargin) : Math.max(withMargin, withoutMargin));
+				}
 				if (type != LayoutGuideType.min) {
 					ret.add(margin);
 					ret.add(margin);

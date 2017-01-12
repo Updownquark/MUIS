@@ -166,7 +166,7 @@ public class FontStyle implements StyleDomain {
 		instance.register(kerning);
 		ligatures = StyleAttribute.build(instance, "ligatures", QuickPropertyType.boole, true).inherited().build();
 		instance.register(ligatures);
-		antiAlias = StyleAttribute.build(instance, "anti-alias", QuickPropertyType.boole, false).inherited().build();
+		antiAlias = StyleAttribute.build(instance, "anti-alias", QuickPropertyType.boole, true).inherited().build();
 		instance.register(antiAlias);
 		wordWrap = StyleAttribute.build(instance, "word-wrap", QuickPropertyType.boole, true).inherited().build();
 		instance.register(wordWrap);

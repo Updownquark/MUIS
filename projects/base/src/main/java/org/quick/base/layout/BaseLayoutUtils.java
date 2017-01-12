@@ -14,23 +14,17 @@ public class BaseLayoutUtils {
 	 * @param type The type of size to get
 	 * @param crossSize The size of the container opposite to the layout's axis
 	 * @param csMax Whether the cross size is to be considered a maximum
-	 * @param marginX The margin size along the horizontal axis
-	 * @param marginY The margin size along the vertical axis
 	 * @param paddingX The padding size along the horizontal axis
 	 * @param paddingY The padding size along the vertical axis
 	 * @return The main size of the layout
 	 */
 	public static int getBoxLayoutSize(QuickElement [] children, Orientation orient, LayoutGuideType type, int crossSize, boolean csMax,
-		Size marginX, Size marginY, Size paddingX, Size paddingY) {
+		Size paddingX, Size paddingY) {
 		LayoutSize temp = new LayoutSize();
 		for(int i = 0; i < children.length; i++) {
 			if (type != LayoutGuideType.min) {
-				if (i == 0)
-					temp.add(orient == Orientation.horizontal ? marginX : marginY);
-				else
+				if (i > 0 && i < children.length - 1)
 					temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
-				if (i == children.length - 1)
-					temp.add(orient == Orientation.horizontal ? marginX : marginY);
 			}
 			LayoutUtils.getSize(children[i], orient, type, Integer.MAX_VALUE, crossSize, csMax, temp);
 		}

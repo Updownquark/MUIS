@@ -110,8 +110,9 @@ public class BoxLayout implements QuickLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				if((type == LayoutGuideType.max || type == LayoutGuideType.maxPref)
-					&& !Alignment.justify.equals(parent.atts().get(alignment)))
+				Alignment align = parent.atts().get(alignment);
+				if ((type == LayoutGuideType.max || type == LayoutGuideType.maxPref)//
+					&& !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
 					return Integer.MAX_VALUE;
 				return BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, margin, margin, padding, padding);
 			}

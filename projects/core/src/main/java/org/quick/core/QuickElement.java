@@ -714,7 +714,10 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/** Alerts the system that this element's size needs may have changed */
 	public final void sizeNeedsChanged() {
-		if (life().isAfter(QuickConstants.CoreStage.STARTUP.toString()) < 0)
+		QuickElement parent = getParent().get();
+		if (parent != null && parent.bounds().isEmpty())
+			return;
+		else if (bounds().isEmpty())
 			return;
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.SizeNeedsChangedEvent(this), false);
 	}

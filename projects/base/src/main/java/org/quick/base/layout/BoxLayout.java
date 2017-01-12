@@ -255,21 +255,21 @@ public class BoxLayout implements QuickLayout {
 					* (result.upperValue[c].getTotal(parallelSize) - result.lowerValue[c].getTotal(parallelSize)));
 			LayoutUtils.setSize(bounds[c], dir.getOrientation(), mainSize);
 
-			int prefCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.pref, crossSize,
+			int prefCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.pref, crossSizeWOMargin,
 				mainSize, false, null);
 			int oppSize;
-			if(crossSize < prefCrossSize) {
-				int minCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.min, crossSize,
+			if (crossSizeWOMargin < prefCrossSize) {
+				int minCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.min, crossSizeWOMargin,
 					mainSize, false, null);
 				if(crossSize < minCrossSize)
 					oppSize = minCrossSize;
 				else
-					oppSize = crossSize;
+					oppSize = crossSizeWOMargin;
 			} else if(align == Alignment.justify) {
-				int maxCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.max, crossSize,
+				int maxCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.max, crossSizeWOMargin,
 					mainSize, false, null);
-				if(crossSize < maxCrossSize)
-					oppSize = crossSize;
+				if (crossSizeWOMargin < maxCrossSize)
+					oppSize = crossSizeWOMargin;
 				else
 					oppSize = maxCrossSize;
 			} else
@@ -332,21 +332,30 @@ public class BoxLayout implements QuickLayout {
 		}
 
 		// Cross alignment
+		int crossMargin = margin.evaluate(crossSize);
+		int newCrossSizeWOMargin = crossSizeWOMargin;
+		if (result.lowerType == LayoutGuideType.min && crossMargin != 0) {
+			if (result.proportion == 0)
+				crossMargin = 0;
+			else
+				crossMargin = (int) Math.round(crossMargin * result.proportion);
+			newCrossSizeWOMargin = crossSize - crossMargin * 2;
+		}
 		switch (crossAlign) {
 		case begin:
 			for(Rectangle bound : bounds)
-				LayoutUtils.setPos(bound, dir.getOrientation().opposite(), margin.evaluate(crossSize));
+				LayoutUtils.setPos(bound, dir.getOrientation().opposite(), crossMargin);
 			break;
 		case end:
 			for(Rectangle bound : bounds)
 				LayoutUtils.setPos(bound, dir.getOrientation().opposite(),
-					crossSize - LayoutUtils.getSize(bound, dir.getOrientation().opposite()) - margin.evaluate(crossSize));
+					crossSize - LayoutUtils.getSize(bound, dir.getOrientation().opposite()) - crossMargin);
 			break;
 		case center:
 		case justify:
 			for(Rectangle bound : bounds)
 				LayoutUtils.setPos(bound, dir.getOrientation().opposite(),
-					margin.evaluate(crossSize) + (crossSizeWOMargin - LayoutUtils.getSize(bound, dir.getOrientation().opposite())) / 2);
+					crossMargin + (newCrossSizeWOMargin - LayoutUtils.getSize(bound, dir.getOrientation().opposite())) / 2);
 		}
 
 		for(int c = 0; c < children.length; c++)

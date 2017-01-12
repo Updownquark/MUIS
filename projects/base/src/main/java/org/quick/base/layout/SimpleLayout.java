@@ -91,6 +91,8 @@ public class SimpleLayout implements QuickLayout {
 					return 0;
 				}
 				int[] res = new int[children.length];
+				// The cross size being passed to getSize here is incorrect.
+				// It doesn't take into account constraints on the opposite orientation.
 				for (int i = 0; i < res.length; i++)
 					res[i] = getSize(children[i], type, crossSize, csMax);
 				switch (type) {

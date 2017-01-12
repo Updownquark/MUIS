@@ -10,12 +10,12 @@
 			<block region="right" layout="simple" template-attach-point="buttons">
 				<button template-attach-point="up" left="0" top="0" height="50%">
 					<block layout="box" direction="down" align="center" cross-align="center">
-						<image src="up-arrow" width="16" resize="resize" prop-locked="true" />
+						<image src="up-arrow" resize="resize" prop-locked="true" />
 					</block>
 				</button>
 				<button template-attach-point="down" left="0" top="50%" height="50%">
 					<block layout="box" direction="down" align="center" cross-align="center">
-						<image src="down-arrow" width="16" resize="resize" prop-locked="true" />
+						<image src="down-arrow" resize="resize" prop-locked="true" />
 					</block>
 				</button>
 			</block>

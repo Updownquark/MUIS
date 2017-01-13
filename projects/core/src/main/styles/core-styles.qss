@@ -3,7 +3,7 @@
 <style>
 	<type name="body">
 		<domain name="bg">
-			<attr name="color" value="green" />
+			<attr name="color" value="light-green" />
 			<attr name="transparency" value="0" />
 		</domain>
 	</type>

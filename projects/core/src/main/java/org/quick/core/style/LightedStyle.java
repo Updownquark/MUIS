@@ -56,6 +56,7 @@ public class LightedStyle implements StyleDomain {
 		instance.register(shadowColor);
 		maxShadingAmount = StyleAttribute.build(instance, "max-amount", QuickPropertyType.floating, .5)
 			.validate(new QuickProperty.ComparableValidator<>(0d, 1d)).build();
+		instance.register(maxShadingAmount);
 	}
 
 	/** @return The style domain for all lighting styles */

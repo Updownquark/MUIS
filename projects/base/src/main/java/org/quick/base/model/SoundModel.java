@@ -112,7 +112,7 @@ public class SoundModel implements QuickAppModel {
 			public Subscription subscribe(Observer<? super ObservableValueEvent<Duration>> observer) {
 				return Observable.or(theFile.noInit(), theLength.noInit(), isPlaying.noInit(), theEnd, internalPositionEvent).act(evt -> {
 					Duration newPos = get();
-					observer.onNext(createChangeEvent(newPos, newPos, evt));
+					Observer.onNextAndFinish(observer, createChangeEvent(newPos, newPos, evt));
 				});
 			}
 

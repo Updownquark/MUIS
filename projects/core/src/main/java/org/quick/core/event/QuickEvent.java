@@ -1,9 +1,10 @@
 package org.quick.core.event;
 
+import org.qommons.Causable;
 import org.quick.core.QuickElement;
 
 /** Represents the occurrence of an event in a Quick element */
-public interface QuickEvent {
+public interface QuickEvent extends Causable {
 	/** @return The element that this event is being fired on currently */
 	QuickElement getElement();
 
@@ -14,5 +15,6 @@ public interface QuickEvent {
 	boolean isOverridden();
 
 	/** @return The event that may have caused this event. May be null. */
+	@Override
 	QuickEvent getCause();
 }

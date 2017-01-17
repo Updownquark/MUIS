@@ -4,10 +4,8 @@ import java.util.*;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
-import org.observe.collect.ObservableSet;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate.AttachPoint;
-import org.quick.core.mgr.QuickState;
 
 import com.google.common.reflect.TypeToken;
 
@@ -181,25 +179,6 @@ public class StyleCondition implements Comparable<StyleCondition> {
 			}, true));
 
 		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, roleMatches);
-	}
-
-	/**
-	 * @param element The element to test
-	 * @return An observable boolean reflecting whether this condition currently applies to the given element
-	 */
-	public ObservableValue<Boolean> matches(QuickElement element) {
-		return matches(StyleConditionInstance.of(element));
-	}
-
-	/**
-	 * @param element The element to test
-	 * @param extraStates The extra states to test against
-	 * @param extraGroups The extra groups to test against
-	 * @return An observable boolean reflecting whether this condition currently applies to the given element with the extra states
-	 */
-	public ObservableValue<Boolean> matches(QuickElement element, ObservableSet<QuickState> extraStates,
-		ObservableSet<String> extraGroups) {
-		return matches(StyleConditionInstance.of(element, extraStates, extraGroups));
 	}
 
 	@Override

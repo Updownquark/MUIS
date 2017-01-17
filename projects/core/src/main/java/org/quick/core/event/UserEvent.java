@@ -2,11 +2,12 @@ package org.quick.core.event;
 
 import java.util.Set;
 
+import org.qommons.AbstractCausable;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 
 /** An event caused by user interaction */
-public abstract class UserEvent implements QuickEvent {
+public abstract class UserEvent extends AbstractCausable implements QuickEvent {
 	private final QuickDocument theDocument;
 
 	private final QuickElement theTarget;
@@ -32,6 +33,7 @@ public abstract class UserEvent implements QuickEvent {
 	 */
 	public UserEvent(QuickDocument doc, QuickElement target, QuickElement element, Set<MouseEvent.ButtonType> pressedButtons,
 		Set<KeyBoardEvent.KeyCode> pressedKeys, long time) {
+		super(null);
 		theDocument = doc;
 		theTarget = element;
 		theElement = element;
@@ -97,6 +99,11 @@ public abstract class UserEvent implements QuickEvent {
 	 */
 	public void use() {
 		isUsed = true;
+	}
+
+	@Override
+	public QuickEvent getCause() {
+		return (QuickEvent) super.getCause();
 	}
 
 	/**

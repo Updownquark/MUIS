@@ -867,7 +867,7 @@ class AntlrPropertyEvaluator {
 
 				@Override
 				public Subscription subscribe(org.observe.Observer<? super ObservableValueEvent<Object>> observer) {
-					observer.onNext(createInitialEvent(get()));
+					observer.onNext(createInitialEvent(get(), null));
 					return () -> {
 					}; // Can't get notifications on a field change
 				}

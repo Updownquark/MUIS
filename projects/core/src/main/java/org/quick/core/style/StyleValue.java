@@ -67,8 +67,8 @@ public class StyleValue<T> implements ObservableValue<T> {
 	}
 
 	@Override
-	public StyleAttributeEvent<T> createInitialEvent(T value) {
-		return new StyleAttributeEvent<>(this, true, null, value, null);
+	public StyleAttributeEvent<T> createInitialEvent(T value, Object cause) {
+		return new StyleAttributeEvent<>(this, true, null, value, cause);
 	}
 
 	@Override
@@ -82,12 +82,12 @@ public class StyleValue<T> implements ObservableValue<T> {
 			@Override
 			public <V extends ObservableValueEvent<? extends T>> void onNext(V event) {
 				if (theAttribute.canAccept(event.getValue()))
-					observer.onNext(wrap(event));
+					Observer.onNextAndFinish(observer, wrap(event));
 				else {
 					theMessageCenter.info("Value " + event.getValue() + " from observable " + theValue
 						+ " is unacceptable for style attribute " + theAttribute + ". Using default value.");
 					if (theAttribute.canAccept(event.getOldValue()))
-						observer.onNext(createChangeEvent(event.getOldValue(), theAttribute.getDefault(), event));
+						Observer.onNextAndFinish(observer, createChangeEvent(event.getOldValue(), theAttribute.getDefault(), event));
 					// else Nothing. Stay at default value.
 				}
 			}
@@ -96,17 +96,17 @@ public class StyleValue<T> implements ObservableValue<T> {
 			public <V extends ObservableValueEvent<? extends T>> void onCompleted(V event) {
 				// Not sure what this would mean, but I guess we'll propagate it
 				if (theAttribute.canAccept(event.getValue()))
-					observer.onCompleted(wrap(event));
+					Observer.onCompletedAndFinish(observer, wrap(event));
 				else {
 					theMessageCenter.info("Value " + event.getValue() + " from observable " + theValue
 						+ " is unacceptable for style attribute " + theAttribute + ". Using default value.");
-					observer.onCompleted(createChangeEvent(theAttribute.getDefault(), theAttribute.getDefault(), event));
+					Observer.onCompletedAndFinish(observer, createChangeEvent(theAttribute.getDefault(), theAttribute.getDefault(), event));
 				}
 			}
 
 			private ObservableValueEvent<T> wrap(ObservableValueEvent<? extends T> event) {
 				if (event.isInitial())
-					return createInitialEvent(QuickUtils.convert(getType(), event.getValue()));
+					return createInitialEvent(QuickUtils.convert(getType(), event.getValue()), event);
 				else
 					return createChangeEvent(QuickUtils.convert(getType(), event.getOldValue()),
 						QuickUtils.convert(getType(), event.getValue()), event.getCause());

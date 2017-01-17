@@ -9,7 +9,12 @@ import java.awt.geom.Point2D;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.observe.*;
+import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.observe.Observer;
+import org.observe.Subscription;
+import org.qommons.AbstractCausable;
+import org.qommons.Causable;
 import org.qommons.IterableUtils;
 import org.qommons.Transaction;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
@@ -893,13 +898,19 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 				public Subscription subscribe(Observer<? super QuickDocumentChangeEvent> observer) {
 					return theWrapper.act(event -> {
 						QuickDocumentModel old = event.getOldValue();
-						if (old != null && old.length() > 0 && !event.isInitial())
-							observer.onNext(createClearEvent(old, event));
+						if (old != null && old.length() > 0 && !event.isInitial()) {
+							ContentChangeEvent clear = createClearEvent(old, event);
+							observer.onNext(clear);
+							clear.finish();
+						}
 
 						QuickDocumentModel current = event.getValue();
 						if (current != null) {
-							if (!event.isInitial())
-								observer.onNext(createPopulateEvent(current, event));
+							if (!event.isInitial()) {
+								ContentChangeEvent pop = createPopulateEvent(current, event);
+								observer.onNext(pop);
+								pop.finish();
+							}
 							// Need to skip the initial event, and also the one that will be fired as a result of the same event that
 							// this listener is getting.
 							int skip = 1;
@@ -934,81 +945,13 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		}
 
 		protected ContentChangeEvent createClearEvent(QuickDocumentModel oldModel, Object cause) {
-			return new ContentChangeEvent() {
-				@Override
-				public QuickDocumentModel getModel() {
-					return FlattenedDocumentModel.this;
-				}
-
-				@Override
-				public int getStartIndex() {
-					return 0;
-				}
-
-				@Override
-				public int getEndIndex() {
-					return oldModel.length();
-				}
-
-				@Override
-				public boolean isRemove() {
-					return true;
-				}
-
-				@Override
-				public String getValue() {
-					return oldModel.toString();
-				}
-
-				@Override
-				public String getChange() {
-					return oldModel.toString();
-				}
-
-				@Override
-				public Object getCause() {
-					return cause;
-				}
-			};
+			return new ContentChangeEventImpl(FlattenedDocumentModel.this, oldModel.toString(), oldModel.toString(), 0, oldModel.length(),
+				true, cause);
 		}
 
 		protected ContentChangeEvent createPopulateEvent(QuickDocumentModel newModel, Object cause) {
-			return new ContentChangeEvent() {
-				@Override
-				public QuickDocumentModel getModel() {
-					return FlattenedDocumentModel.this;
-				}
-
-				@Override
-				public int getStartIndex() {
-					return 0;
-				}
-
-				@Override
-				public int getEndIndex() {
-					return newModel.length();
-				}
-
-				@Override
-				public boolean isRemove() {
-					return false;
-				}
-
-				@Override
-				public String getValue() {
-					return newModel.toString();
-				}
-
-				@Override
-				public String getChange() {
-					return newModel.toString();
-				}
-
-				@Override
-				public Object getCause() {
-					return cause;
-				}
-			};
+			return new ContentChangeEventImpl(FlattenedDocumentModel.this, newModel.toString(), newModel.toString(), 0, newModel.length(),
+				false, cause);
 		}
 
 		@Override
@@ -1124,7 +1067,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	}
 
 	/** A default implementation of ContentChangeEvent */
-	class ContentChangeEventImpl implements ContentChangeEvent {
+	static class ContentChangeEventImpl extends AbstractCausable implements ContentChangeEvent {
 		private final QuickDocumentModel theModel;
 
 		private final String theValue;
@@ -1135,8 +1078,6 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		private final int theEndIndex;
 
 		private final boolean isRemove;
-
-		private final Object theCause;
 
 		/**
 		 * @param model The document model whose content changed
@@ -1149,13 +1090,13 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		 */
 		public ContentChangeEventImpl(QuickDocumentModel model, String value, String change, int startIndex, int endIndex, boolean remove,
 			Object cause) {
+			super(cause);
 			theModel = model;
 			theValue = value;
 			theChange = change;
 			theStartIndex = startIndex;
 			theEndIndex = endIndex;
 			isRemove = remove;
-			theCause = cause;
 		}
 
 		@Override
@@ -1189,18 +1130,13 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		}
 
 		@Override
-		public Object getCause() {
-			return theCause;
-		}
-
-		@Override
 		public String toString() {
 			return theChange + " chars " + (isRemove ? "removed" : "added") + " at index " + theStartIndex;
 		}
 	}
 
 	/** A default implementation of StyleChangeEvent */
-	class StyleChangeEventImpl implements StyleChangeEvent {
+	static class StyleChangeEventImpl extends AbstractCausable implements StyleChangeEvent {
 		private final QuickDocumentModel theDocument;
 
 		private final int theStart;
@@ -1211,16 +1147,14 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 		private final Iterable<StyledSequence> theAfterStyles;
 
-		private final Object theCause;
-
 		public StyleChangeEventImpl(QuickDocumentModel document, int start, int end, Iterable<StyledSequence> beforeStyles,
 			Iterable<StyledSequence> afterStyles, Object cause) {
+			super(cause);
 			theDocument = document;
 			theStart = start;
 			theEnd = end;
 			theBeforeStyles = beforeStyles == null ? null : IterableUtils.immutableIterable(beforeStyles);
 			theAfterStyles = afterStyles == null ? null : IterableUtils.immutableIterable(afterStyles);
-			theCause = cause;
 		}
 
 		@Override
@@ -1246,11 +1180,6 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		@Override
 		public Iterable<StyledSequence> styleAfter() {
 			return theAfterStyles;
-		}
-
-		@Override
-		public Object getCause() {
-			return theCause;
 		}
 
 		@Override

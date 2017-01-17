@@ -440,7 +440,7 @@ public class QuickDocument implements QuickParseEnv {
 		QuickEventPositionCapture newCapture = rendering.capture(x, y);
 		QuickEventPositionCapture oldCapture = theMouseTarget;
 		theMouseTarget = newCapture;
-		theTargetController.onNext(theObservableTarget.createChangeEvent(oldCapture, newCapture, null));
+		Observer.onNextAndFinish(theTargetController, theObservableTarget.createChangeEvent(oldCapture, newCapture, null));
 		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, thePressedButtons,
 			thePressedKeys, newCapture);
 
@@ -561,7 +561,7 @@ public class QuickDocument implements QuickParseEnv {
 			if(theFocus != null)
 				events.add(new QuickEventQueue.UserQueueEvent(
 					new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true, cause), false));
-			theFocusController.onNext(theObservableFocus.createChangeEvent(oldFocus, theFocus, null));
+			Observer.onNextAndFinish(theFocusController, theObservableFocus.createChangeEvent(oldFocus, theFocus, null));
 		}
 	}
 

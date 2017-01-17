@@ -419,17 +419,17 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 					{
 						boolean initMatch = matches(states);
 						preMatches.set(initMatch);
-						observer.onNext(createInitialEvent(initMatch));
+						Observer.onNextAndFinish(observer, createInitialEvent(initMatch, null));
 					}
 
 					@Override
 					public void act(Object cause) {
 						boolean newMatch = matches(states);
 						boolean oldMatch = preMatches.getAndSet(newMatch);
-						observer.onNext(createChangeEvent(oldMatch, newMatch, cause));
+						Observer.onNextAndFinish(observer, createChangeEvent(oldMatch, newMatch, cause));
 					}
 				});
-				observer.onNext(createInitialEvent(get()));
+				Observer.onNextAndFinish(observer, createInitialEvent(get(), null));
 				return sub;
 			}
 

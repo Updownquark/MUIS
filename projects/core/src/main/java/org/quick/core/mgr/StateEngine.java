@@ -178,22 +178,22 @@ public class StateEngine implements StateSet {
 				switch (event.type) {
 				case add:
 					if (event.values.contains(theState))
-						observer.onNext(createChangeEvent(false, true, event));
+						Observer.onNextAndFinish(observer, createChangeEvent(false, true, event));
 					break;
 				case remove:
 					if (event.values.contains(theState))
-						observer.onNext(createChangeEvent(true, false, event));
+						Observer.onNextAndFinish(observer, createChangeEvent(true, false, event));
 					break;
 				case set:
 					if (event.values.contains(theState)) {
 						if (!event.oldValues.contains(theState))
-							observer.onNext(createChangeEvent(false, true, event));
+							Observer.onNextAndFinish(observer, createChangeEvent(false, true, event));
 					} else if (event.oldValues.contains(theState))
-						observer.onNext(createChangeEvent(true, false, event));
+						Observer.onNextAndFinish(observer, createChangeEvent(true, false, event));
 					break;
 				}
 			});
-			observer.onNext(createInitialEvent(theActiveStates.contains(theState)));
+			Observer.onNextAndFinish(observer, createInitialEvent(theActiveStates.contains(theState), null));
 			return sub;
 		}
 	}

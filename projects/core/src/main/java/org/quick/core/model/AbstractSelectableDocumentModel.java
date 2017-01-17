@@ -557,12 +557,14 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after, cause);
 			// System.out.println(styleEvt + ": " + oldAnchor + "->" + oldCursor + " to " + newAnchor + "->" + newCursor);
 			theStyleChanges.onNext(styleEvt);
+			styleEvt.finish();
 		}
 
 		SelectionChangeEventImpl change = new SelectionChangeEventImpl(this, newAnchor, newCursor, cause);
 		theSelectionChanges.onNext(change);
 		if (theCauseStack.isEmpty())
 			theSimpleChanges.onNext(change);
+		change.finish();
 	}
 
 	/**
@@ -578,6 +580,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		theStyleChanges.onNext(change);
 		if (theCauseStack.isEmpty())
 			theSimpleChanges.onNext(change);
+		change.finish();
 	}
 
 	/**
@@ -603,6 +606,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		theContentChanges.onNext(evt);
 		if (theCauseStack.isEmpty())
 			theSimpleChanges.onNext(evt);
+		evt.finish();
 	}
 
 	private static class StyledSequenceWrapper implements StyledSequence {

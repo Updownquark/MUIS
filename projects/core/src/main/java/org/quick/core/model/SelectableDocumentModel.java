@@ -1,6 +1,7 @@
 package org.quick.core.model;
 
 import org.observe.ObservableValue;
+import org.qommons.AbstractCausable;
 import org.qommons.Transaction;
 
 /**
@@ -159,7 +160,11 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 		@Override
 		protected ContentChangeEvent createClearEvent(QuickDocumentModel oldModel, Object cause) {
-			class ClearEvent implements ContentChangeEvent, SelectionChangeEvent {
+			class ClearEvent extends AbstractCausable implements ContentChangeEvent, SelectionChangeEvent {
+				ClearEvent() {
+					super(cause);
+				}
+
 				@Override
 				public QuickDocumentModel getModel() {
 					return FlattenedSelectableDocumentModel.this;
@@ -210,7 +215,11 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 
 		@Override
 		protected ContentChangeEvent createPopulateEvent(QuickDocumentModel newModel, Object cause) {
-			class PopulateEvent implements ContentChangeEvent, SelectionChangeEvent {
+			class PopulateEvent extends AbstractCausable implements ContentChangeEvent, SelectionChangeEvent {
+				PopulateEvent() {
+					super(cause);
+				}
+
 				@Override
 				public QuickDocumentModel getModel() {
 					return FlattenedSelectableDocumentModel.this;
@@ -318,7 +327,7 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 	}
 
 	/** A default implementation of SelectionChangeEvent */
-	class SelectionChangeEventImpl implements SelectionChangeEvent {
+	class SelectionChangeEventImpl extends AbstractCausable implements SelectionChangeEvent {
 		private final SelectableDocumentModel theModel;
 
 		private final int theSelectionAnchor;
@@ -334,6 +343,7 @@ public interface SelectableDocumentModel extends QuickDocumentModel {
 		 * @param cause The cause of the change
 		 */
 		public SelectionChangeEventImpl(SelectableDocumentModel model, int anchor, int cursor, Object cause) {
+			super(cause);
 			theModel = model;
 			theSelectionAnchor = anchor;
 			theCursor = cursor;

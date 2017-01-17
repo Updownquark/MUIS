@@ -259,6 +259,7 @@ public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle>
 		};
 		theController.onNext(evt);
 		theElement.events().fire(evt);
+		evt.finish();
 	}
 
 	/** A BoundsDimension for an element along one axis */

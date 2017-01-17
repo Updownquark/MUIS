@@ -773,7 +773,7 @@ public abstract class QuickTemplate extends QuickElement {
 						if (err != null)
 							throw new IllegalArgumentException(err);
 						E old = doReplace(value);
-						theController.onNext(createChangeEvent(old, value, cause));
+						Observer.onNextAndFinish(theController, createChangeEvent(old, value, cause));
 						return old;
 					}
 

@@ -5,9 +5,7 @@ import static org.quick.core.QuickTextElement.multiLine;
 import java.util.Objects;
 
 import org.observe.*;
-import org.qommons.BiTuple;
-import org.qommons.Transaction;
-import org.qommons.TriTuple;
+import org.qommons.*;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
 import org.quick.base.layout.TextEditLayout;
@@ -231,11 +229,11 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 						Subscription sub = doc.changes().act(evt -> {
 							String newError = get();
 							if (!Objects.equals(newError, theLastError)) {
-								observer.onNext(createChangeEvent(theLastError, newError, evt));
+								Observer.onNextAndFinish(observer, createChangeEvent(theLastError, newError, evt));
 								theLastError = newError;
 							}
 						});
-						observer.onNext(createInitialEvent(get()));
+						Observer.onNextAndFinish(observer, createInitialEvent(get(), null));
 						return sub;
 					}
 
@@ -305,25 +303,20 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				editModel.append("" + mv.get());
 			}
 		}
+		textEdit.finish();
 		isDocDirty = false;
 	}
 
-	private static class TextEditEvent implements Causable {
+	private static class TextEditEvent extends AbstractCausable {
 		private final TextField theTextField;
-		private final Object theCause;
 
 		TextEditEvent(TextField textField, Object cause) {
+			super(cause);
 			theTextField = textField;
-			theCause = cause;
 		}
 
 		TextField getTextField() {
 			return theTextField;
-		}
-
-		@Override
-		public Object getCause() {
-			return theCause;
 		}
 	}
 }

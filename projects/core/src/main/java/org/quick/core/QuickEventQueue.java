@@ -4,7 +4,9 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 
+import org.qommons.AbstractCausable;
 import org.qommons.ArrayUtils;
+import org.qommons.Causable;
 import org.qommons.ProgramTracker;
 import org.quick.util.QuickUtils;
 
@@ -13,7 +15,7 @@ public class QuickEventQueue {
 	private static long DEBUG_TRACKING = 0;
 
 	/** Represents an event that may be queued for handling by the QuickEventQueue */
-	public static interface Event {
+	public static interface Event extends Causable {
 		/** @return The time at which this event was created */
 		long getTime();
 
@@ -79,7 +81,7 @@ public class QuickEventQueue {
 	}
 
 	/** Implements the trivial parts of {@link Event} */
-	public static abstract class AbstractEvent implements Event {
+	public static abstract class AbstractEvent extends AbstractCausable implements Event {
 		private final long theTime;
 
 		private final int thePriority;
@@ -97,6 +99,7 @@ public class QuickEventQueue {
 		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
 		public AbstractEvent(int priority, Runnable... postActions) {
+			super(null);
 			theTime = System.currentTimeMillis();
 			thePriority = priority;
 			thePostActions = postActions;
@@ -915,6 +918,7 @@ public class QuickEventQueue {
 							handle = theTracker.start("handleEvent " + evt);
 						try{
 							evt.handle();
+							evt.finish();
 						} catch(Throwable e){
 							evt.handleError(e);
 						}

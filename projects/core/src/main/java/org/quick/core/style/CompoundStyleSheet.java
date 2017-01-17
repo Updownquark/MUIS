@@ -4,7 +4,6 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
-import org.quick.core.QuickElement;
 
 /** A StyleSheet whose style values come from other StyleSheets */
 public class CompoundStyleSheet implements StyleSheet {
@@ -31,9 +30,9 @@ public class CompoundStyleSheet implements StyleSheet {
 	}
 
 	@Override
-	public boolean isSet(QuickElement element, StyleAttribute<?> attr) {
+	public boolean isSet(StyleConditionInstance<?> condition, StyleAttribute<?> attr) {
 		for (StyleSheet ss : theComponents)
-			if (ss.isSet(element, attr))
+			if (ss.isSet(condition, attr))
 				return true;
 		return false;
 	}

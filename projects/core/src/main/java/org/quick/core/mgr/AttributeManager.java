@@ -194,7 +194,8 @@ public class AttributeManager {
 			theContainedObservable = observable;
 			theLastGoodValue = value;
 			fire(oldValue, value);
-			theContainerController.onNext(theContainerObservable.createChangeEvent(oldObservable, theContainedObservable, null));
+			Observer.onNextAndFinish(theContainerController,
+				theContainerObservable.createChangeEvent(oldObservable, theContainedObservable, null));
 			observable.noInit().takeUntil(theContainerObservable.noInit()).act(evt -> {
 				try {
 					checkValue(evt.getValue());
@@ -240,6 +241,7 @@ public class AttributeManager {
 			}
 			theController.onNext(evt);
 			theElement.events().fire(evt);
+			evt.finish();
 		}
 
 		synchronized void addWanter(Object wanter, boolean isNeeder) {

@@ -5,8 +5,6 @@ import org.observe.assoc.ObservableMultiMap;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
 
-import com.google.common.reflect.TypeToken;
-
 /** Contains property values that are conditional on various properties of an element */
 public interface StyleSheet {
 	/** @return All attributes for which conditional values are defined in this style sheet */
@@ -20,7 +18,7 @@ public interface StyleSheet {
 	 */
 	<T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr);
 
-	default ObservableMultiMap<StyleModifierProperty<?>, StyleConditionValue<?>> getModifierExpressions(StyleAttribute<?> attr) {
+	default ObservableMultiMap<AppliedStyleModifierProperty<?>, StyleConditionValue<?>> getModifierExpressions(StyleAttribute<?> attr) {
 		// TODO will not be default when this arch is done
 		return null;
 	}

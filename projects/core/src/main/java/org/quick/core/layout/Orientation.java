@@ -7,6 +7,11 @@ public enum Orientation {
 	/** Vertical (y-axis) orientation */
 	vertical;
 
+	/** @return WHether this orientation is {@link #vertical}. Just a shortcut for <code>== Orientation.vertical</code> */
+	public boolean isVertical() {
+		return this == vertical;
+	}
+
 	/** @return The opposite orientation as this */
 	public Orientation opposite() {
 		switch (this) {

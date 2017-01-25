@@ -8,7 +8,7 @@ import org.qommons.FloatList;
 import org.quick.core.layout.LayoutUtils;
 import org.quick.core.layout.SizeGuide;
 
-public interface LayoutSpring extends SizeGuide2D {
+public interface LayoutSpring extends SizeGuide {
 	public static float OUTER_PREF_TENSION = 1000;
 	public static float NOT_PREF_TENSION_THRESH = 100000;
 	public static float OUTER_SIZE_TENSION = 1000000;
@@ -17,127 +17,94 @@ public interface LayoutSpring extends SizeGuide2D {
 		MAX_TENSION, OUTER_SIZE_TENSION, NOT_PREF_TENSION_THRESH, OUTER_PREF_TENSION, 0, -OUTER_PREF_TENSION, -NOT_PREF_TENSION_THRESH,
 		-OUTER_SIZE_TENSION, -MAX_TENSION });
 
-	@Override
-	LayoutSpring getOpposite();
-
-	default int getSize(int level, int crossSize) {
+	static int getSize(SizeGuide guide, int level, int crossSize) {
 		switch (level) {
 		case 0:
 			return 0;
 		case 1:
-			return getMin(crossSize);
+			return guide.getMin(crossSize);
 		case 2:
-			return getMinPreferred(crossSize);
+			return guide.getMinPreferred(crossSize);
 		case 3:
-			return getPreferred(crossSize);
+			return guide.getPreferred(crossSize);
 		case 4:
-			return getMaxPreferred(crossSize);
+			return guide.getMaxPreferred(crossSize);
 		case 5:
-			return getMax(crossSize);
+			return guide.getMax(crossSize);
 		case 6:
-			return getMax(crossSize) > Integer.MAX_VALUE / 10 ? Integer.MAX_VALUE : getMax(crossSize) * 10;
+			return guide.getMax(crossSize) > Integer.MAX_VALUE / 10 ? Integer.MAX_VALUE : guide.getMax(crossSize) * 10;
 		default:
 			throw new IllegalStateException("Invalid size level: " + level);
 		}
 	}
 
-	default int getSize(float tension, int crossSize) {
+	static int getSize(SizeGuide guide, float tension, int crossSize) {
 		int level = (TENSIONS.size() + 1) / 2;
 		while (level > 0 && tension < TENSIONS.get(level))
 			level--;
 		while (level < TENSIONS.size() && tension > TENSIONS.get(level))
 			level++;
 		if (tension <= TENSIONS.get(level))
-			return getSize(level, crossSize);
+			return getSize(guide, level, crossSize);
 		else
-			return interpolateInt(getSize(level - 1, crossSize), getSize(level, crossSize), TENSIONS.get(level - 1), TENSIONS.get(level),
+			return interpolateInt(getSize(guide, level - 1, crossSize), getSize(guide, level, crossSize), TENSIONS.get(level - 1),
+				TENSIONS.get(level),
 				tension);
 	}
 
-	default float getTension(int size, int crossSize) {
+	static float getTension(SizeGuide guide, int size, int crossSize) {
 		int level = (TENSIONS.size() + 1) / 2;
-		while (level > 0 && size < getSize(level, crossSize))
+		while (level > 0 && size < getSize(guide, level, crossSize))
 			level--;
-		while (level < TENSIONS.size() && size > getSize(level, crossSize))
+		while (level < TENSIONS.size() && size > getSize(guide, level, crossSize))
 			level++;
-		if (size <= getSize(level, crossSize))
-			return getSize(level, crossSize);
+		if (size <= getSize(guide, level, crossSize))
+			return getSize(guide, level, crossSize);
 		else
-			return interpolateFloat(getSize(level - 1, crossSize), getSize(level, crossSize), TENSIONS.get(level - 1), TENSIONS.get(level),
+			return interpolateFloat(getSize(guide, level - 1, crossSize), getSize(guide, level, crossSize), TENSIONS.get(level - 1),
+				TENSIONS.get(level),
 				size);
 	}
 
+	int getSize();
+	LayoutSpring setSize(int size);
+
+	float getTension();
+	LayoutSpring setTension(float tension);
+
 	class SimpleLayoutSpring implements LayoutSpring{
 		private final SizeGuide theGuide;
-		private final SimpleLayoutSpring theCross;
 
-		private int theCachedCrossSize;
-		private int theCachedMin;
-		private int theCachedMinPref;
-		private int theCachedPref;
-		private int theCachedMaxPref;
-		private int theCachedMax;
+		private int theSize = -1;
+		private float theTension = Float.NaN;
 
 		public SimpleLayoutSpring(SizeGuide main, SizeGuide cross) {
 			theGuide = main;
-			theCross = new SimpleLayoutSpring(cross, this);
-
-			isCachedCrossSize(-1);
-		}
-
-		private SimpleLayoutSpring(SizeGuide main, SimpleLayoutSpring cross) {
-			theGuide = main;
-			theCross = cross;
-
-			isCachedCrossSize(-1);
-		}
-
-		private boolean isCachedCrossSize(int crossSize) {
-			if (theCachedCrossSize != crossSize) {
-				theCachedCrossSize = -1;
-				theCachedMin = -1;
-				theCachedMinPref = -1;
-				theCachedPref = -1;
-				theCachedMaxPref = -1;
-				theCachedMax = -1;
-				return false;
-			}
-			return true;
 		}
 
 		@Override
 		public int getMin(int crossSize) {
-			if (!isCachedCrossSize(crossSize) || theCachedMin < 0)
-				theCachedMin = theGuide.getMin(crossSize);
-			return theCachedMin;
+			return theGuide.getMin(crossSize);
 		}
 
 		@Override
 		public int getMinPreferred(int crossSize) {
-			if (!isCachedCrossSize(crossSize) || theCachedMinPref < 0)
-				theCachedMinPref = theGuide.getMinPreferred(crossSize);
-			return theCachedMinPref;
+			return theGuide.getMinPreferred(crossSize);
 		}
 
 		@Override
 		public int getPreferred(int crossSize) {
-			if (!isCachedCrossSize(crossSize) || theCachedPref < 0)
-				theCachedPref = theGuide.getPreferred(crossSize);
-			return theCachedPref;
+			return theGuide.getPreferred(crossSize);
 		}
 
 		@Override
 		public int getMaxPreferred(int crossSize) {
-			if (!isCachedCrossSize(crossSize) || theCachedMaxPref < 0)
-				theCachedMaxPref = theGuide.getMaxPreferred(crossSize);
-			return theCachedMaxPref;
+			return theGuide.getMaxPreferred(crossSize);
 		}
 
 		@Override
 		public int getMax(int crossSize) {
-			if (!isCachedCrossSize(crossSize) || theCachedMax < 0)
-				theCachedMax = theGuide.getMax(crossSize);
-			return theCachedMax;
+			return theGuide.getMax(crossSize);
 		}
 
 		@Override
@@ -146,8 +113,25 @@ public interface LayoutSpring extends SizeGuide2D {
 		}
 
 		@Override
-		public SimpleLayoutSpring getOpposite() {
-			return theCross;
+		public int getSize() {
+			return theSize;
+		}
+
+		@Override
+		public LayoutSpring setSize(int size) {
+			theSize = size;
+			return this;
+		}
+
+		@Override
+		public float getTension() {
+			return theTension;
+		}
+
+		@Override
+		public LayoutSpring setTension(float tension) {
+			theTension = tension;
+			return this;
 		}
 	}
 

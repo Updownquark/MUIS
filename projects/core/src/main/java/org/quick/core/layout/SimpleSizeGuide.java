@@ -1,7 +1,7 @@
 package org.quick.core.layout;
 
 /** A simple implementation of {@link SizeGuide} that allows all its parameters to be set directly */
-public class SimpleSizeGuide extends AbstractSizeGuide {
+public class SimpleSizeGuide implements SizeGuide {
 	private int theMin;
 
 	private int thePref;
@@ -42,27 +42,27 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	}
 
 	@Override
-	public int getMinPreferred(int crossSize, boolean csMax) {
+	public int getMinPreferred(int crossSize) {
 		return theMinPref;
 	}
 
 	@Override
-	public int getMaxPreferred(int crossSize, boolean csMax) {
+	public int getMaxPreferred(int crossSize) {
 		return theMaxPref;
 	}
 
 	@Override
-	public int getMin(int crossSize, boolean csMax) {
+	public int getMin(int crossSize) {
 		return theMin;
 	}
 
 	@Override
-	public int getPreferred(int crossSize, boolean csMax) {
+	public int getPreferred(int crossSize) {
 		return thePref;
 	}
 
 	@Override
-	public int getMax(int crossSize, boolean csMax) {
+	public int getMax(int crossSize) {
 		return theMax;
 	}
 
@@ -74,7 +74,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	/**
 	 * @param min The minimum size for the guide
 	 * @return This instance, for chaining
-	 * @see #getMin(int, boolean)
+	 * @see #getMin(int)
 	 */
 	public SimpleSizeGuide setMin(int min) {
 		theMin = min;
@@ -88,7 +88,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	/**
 	 * @param minPref The minimum preferred size for the guide
 	 * @return This instance, for chaining
-	 * @see #getMinPreferred(int, boolean)
+	 * @see #getMinPreferred(int)
 	 */
 	public SimpleSizeGuide setMinPreferred(int minPref) {
 		theMinPref = minPref;
@@ -98,7 +98,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	/**
 	 * @param pref The preferred size for the guide
 	 * @return This instance, for chaining
-	 * @see #getPreferred(int, boolean)
+	 * @see #getPreferred(int)
 	 */
 	public SimpleSizeGuide setPreferred(int pref) {
 		thePref = pref;
@@ -112,7 +112,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	/**
 	 * @param maxPref The maximum preferred size for the guide
 	 * @return This instance, for chaining
-	 * @see #getMaxPreferred(int, boolean)
+	 * @see #getMaxPreferred(int)
 	 */
 	public SimpleSizeGuide setMaxPreferred(int maxPref) {
 		theMaxPref = maxPref;
@@ -122,7 +122,7 @@ public class SimpleSizeGuide extends AbstractSizeGuide {
 	/**
 	 * @param max The maximum size for the guide
 	 * @return This instance, for chaining
-	 * @see #getMax(int, boolean)
+	 * @see #getMax(int)
 	 */
 	public SimpleSizeGuide setMax(int max) {
 		theMax = max;

@@ -52,7 +52,7 @@ public class LayoutTests {
 
 	/**
 	 * Tests {@link SimpleLayout}
-	 * 
+	 *
 	 * @throws QuickException If an error occurs setting attributes
 	 */
 	@Test
@@ -76,92 +76,92 @@ public class LayoutTests {
 		child1.initChildren(Collections.emptyList());
 		parent.initChildren(Arrays.asList(child1));
 		parent.postCreate();
-		assertEquals(10, parent.getWSizer().getMin(100, false));
-		assertEquals(20, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(30, parent.getWSizer().getPreferred(100, false));
-		assertEquals(40, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(Integer.MAX_VALUE, parent.getWSizer().getMax(100, false));
+		assertEquals(10, parent.getWSizer().getMin(100));
+		assertEquals(20, parent.getWSizer().getMinPreferred(100));
+		assertEquals(30, parent.getWSizer().getPreferred(100));
+		assertEquals(40, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(Integer.MAX_VALUE, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(left, new Position(20, pixels))//
 			.set(right, new Position(30, pixels));
-		assertEquals(30, parent.getWSizer().getMin(100, false));
-		assertEquals(30, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(30, parent.getWSizer().getPreferred(100, false));
-		assertEquals(30, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(Integer.MAX_VALUE, parent.getWSizer().getMax(100, false));
+		assertEquals(30, parent.getWSizer().getMin(100));
+		assertEquals(30, parent.getWSizer().getMinPreferred(100));
+		assertEquals(30, parent.getWSizer().getPreferred(100));
+		assertEquals(30, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(Integer.MAX_VALUE, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(right, new Position(30, lexips));
-		assertEquals(60, parent.getWSizer().getMin(100, false));
-		assertEquals(70, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(80, parent.getWSizer().getPreferred(100, false));
-		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getMax(100, false));
+		assertEquals(60, parent.getWSizer().getMin(100));
+		assertEquals(70, parent.getWSizer().getMinPreferred(100));
+		assertEquals(80, parent.getWSizer().getPreferred(100));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(100, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(minWidth, new Size(30, pixels));
-		assertEquals(80, parent.getWSizer().getMin(100, false));
-		assertEquals(80, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(80, parent.getWSizer().getPreferred(100, false));
-		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getMax(100, false));
+		assertEquals(80, parent.getWSizer().getMin(100));
+		assertEquals(80, parent.getWSizer().getMinPreferred(100));
+		assertEquals(80, parent.getWSizer().getPreferred(100));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(100, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(maxWidth, new Size(40, pixels));
-		assertEquals(80, parent.getWSizer().getMin(100, false));
-		assertEquals(80, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(80, parent.getWSizer().getPreferred(100, false));
-		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(90, parent.getWSizer().getMax(100, false));
+		assertEquals(80, parent.getWSizer().getMin(100));
+		assertEquals(80, parent.getWSizer().getMinPreferred(100));
+		assertEquals(80, parent.getWSizer().getPreferred(100));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(90, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(minWidth, null)//
 			.set(maxWidth, null)//
 			.set(width, new Size(50, percent));
-		assertEquals(100, parent.getWSizer().getMin(100, false));
-		assertEquals(100, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getMax(100, false));
+		assertEquals(100, parent.getWSizer().getMin(100));
+		assertEquals(100, parent.getWSizer().getMinPreferred(100));
+		assertEquals(100, parent.getWSizer().getPreferred(100));
+		assertEquals(100, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(100, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(minWidth, new Size(25, percent))//
 			.set(maxWidth, null)//
 			.set(width, null);
-		assertEquals(66, parent.getWSizer().getMin(100, false));
-		assertEquals(70, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(80, parent.getWSizer().getPreferred(100, false));
-		assertEquals(90, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getMax(100, false));
+		assertEquals(66, parent.getWSizer().getMin(100));
+		assertEquals(70, parent.getWSizer().getMinPreferred(100));
+		assertEquals(80, parent.getWSizer().getPreferred(100));
+		assertEquals(90, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(100, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(maxWidth, new Size(40, percent))//
 			.set(width, null);
-		assertEquals(66, parent.getWSizer().getMin(100, false));
-		assertEquals(70, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(80, parent.getWSizer().getPreferred(100, false));
-		assertEquals(83, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(83, parent.getWSizer().getMax(100, false));
+		assertEquals(66, parent.getWSizer().getMin(100));
+		assertEquals(70, parent.getWSizer().getMinPreferred(100));
+		assertEquals(80, parent.getWSizer().getPreferred(100));
+		assertEquals(83, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(83, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(minWidth, null)//
 			.set(maxWidth, null)//
 			.set(left, new Position(50, lexips))//
 			.set(right, new Position(80, pixels));
-		assertEquals(80, parent.getWSizer().getMin(100, false));
-		assertEquals(90, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getPreferred(100, false));
-		assertEquals(110, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(120, parent.getWSizer().getMax(100, false));
+		assertEquals(80, parent.getWSizer().getMin(100));
+		assertEquals(90, parent.getWSizer().getMinPreferred(100));
+		assertEquals(100, parent.getWSizer().getPreferred(100));
+		assertEquals(110, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(120, parent.getWSizer().getMax(100));
 
 		child1.atts()//
 			.set(left, new Position(40, lexips))//
 			.set(right, new Position(80, pixels));
-		assertEquals(80, parent.getWSizer().getMin(100, false));
-		assertEquals(80, parent.getWSizer().getMinPreferred(100, false));
-		assertEquals(90, parent.getWSizer().getPreferred(100, false));
-		assertEquals(100, parent.getWSizer().getMaxPreferred(100, false));
-		assertEquals(110, parent.getWSizer().getMax(100, false));
+		assertEquals(80, parent.getWSizer().getMin(100));
+		assertEquals(80, parent.getWSizer().getMinPreferred(100));
+		assertEquals(90, parent.getWSizer().getPreferred(100));
+		assertEquals(100, parent.getWSizer().getMaxPreferred(100));
+		assertEquals(110, parent.getWSizer().getMax(100));
 	}
 }

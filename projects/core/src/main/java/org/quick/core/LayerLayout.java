@@ -1,7 +1,6 @@
 package org.quick.core;
 
 import org.observe.Observable;
-import org.quick.core.layout.AbstractSizeGuide;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 
@@ -18,13 +17,13 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 		else if(children.length == 1)
 			return children[0].getWSizer();
 		else
-			return new AbstractSizeGuide() {
+			return new SizeGuide() {
 				@Override
-				public int getMinPreferred(int crossSize, boolean csMax) {
+				public int getMinPreferred(int crossSize) {
 					int ret = 0;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMinPreferred(crossSize, csMax);
+						int cpRes = cp.getMinPreferred(crossSize);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -32,11 +31,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getMaxPreferred(int crossSize, boolean csMax) {
+				public int getMaxPreferred(int crossSize) {
 					int ret = Integer.MAX_VALUE;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMaxPreferred(crossSize, csMax);
+						int cpRes = cp.getMaxPreferred(crossSize);
 						if(cpRes < ret)
 							ret = cpRes;
 					}
@@ -44,11 +43,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getMin(int crossSize, boolean csMax) {
+				public int getMin(int crossSize) {
 					int ret = 0;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMin(crossSize, csMax);
+						int cpRes = cp.getMin(crossSize);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -56,19 +55,19 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getPreferred(int crossSize, boolean csMax) {
+				public int getPreferred(int crossSize) {
 					int minPref = 0;
 					int maxPref = Integer.MAX_VALUE;
 					int maxOfPreferred = 0;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMinPreferred(crossSize, csMax);
+						int cpRes = cp.getMinPreferred(crossSize);
 						if(cpRes > minPref)
 							minPref = cpRes;
-						cpRes = cp.getMaxPreferred(crossSize, csMax);
+						cpRes = cp.getMaxPreferred(crossSize);
 						if(cpRes < maxPref)
 							maxPref = cpRes;
-						cpRes = cp.getPreferred(crossSize, csMax);
+						cpRes = cp.getPreferred(crossSize);
 						if(cpRes > maxOfPreferred)
 							maxOfPreferred = cpRes;
 					}
@@ -81,11 +80,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getMax(int crossSize, boolean csMax) {
+				public int getMax(int crossSize) {
 					int ret = Integer.MAX_VALUE;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getWSizer();
-						int cpRes = cp.getMax(crossSize, csMax);
+						int cpRes = cp.getMax(crossSize);
 						if(cpRes < ret)
 							ret = cpRes;
 					}
@@ -108,13 +107,13 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 		else if(children.length == 1)
 			return children[0].getHSizer();
 		else
-			return new AbstractSizeGuide() {
+			return new SizeGuide() {
 				@Override
-				public int getMinPreferred(int crossSize, boolean csMax) {
+				public int getMinPreferred(int crossSize) {
 					int ret = 0;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMinPreferred(crossSize, csMax);
+						int cpRes = cp.getMinPreferred(crossSize);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -122,11 +121,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getMaxPreferred(int crossSize, boolean csMax) {
+				public int getMaxPreferred(int crossSize) {
 					int ret = Integer.MAX_VALUE;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMaxPreferred(crossSize, csMax);
+						int cpRes = cp.getMaxPreferred(crossSize);
 						if(cpRes < ret)
 							ret = cpRes;
 					}
@@ -134,11 +133,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getMin(int crossSize, boolean csMax) {
+				public int getMin(int crossSize) {
 					int ret = 0;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMin(crossSize, csMax);
+						int cpRes = cp.getMin(crossSize);
 						if(cpRes > ret)
 							ret = cpRes;
 					}
@@ -146,19 +145,19 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getPreferred(int crossSize, boolean csMax) {
+				public int getPreferred(int crossSize) {
 					int minPref = 0;
 					int maxPref = Integer.MAX_VALUE;
 					float sumPref = 0;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMinPreferred(crossSize, csMax);
+						int cpRes = cp.getMinPreferred(crossSize);
 						if(cpRes > minPref)
 							minPref = cpRes;
-						cpRes = cp.getMaxPreferred(crossSize, csMax);
+						cpRes = cp.getMaxPreferred(crossSize);
 						if(cpRes > maxPref)
 							maxPref = cpRes;
-						sumPref = cp.getPreferred(crossSize, csMax);
+						sumPref = cp.getPreferred(crossSize);
 					}
 					sumPref /= children.length;
 					if(sumPref >= minPref && sumPref <= maxPref)
@@ -170,11 +169,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 				}
 
 				@Override
-				public int getMax(int crossSize, boolean csMax) {
+				public int getMax(int crossSize) {
 					int ret = Integer.MAX_VALUE;
 					for(QuickElement child : children) {
 						SizeGuide cp = child.getHSizer();
-						int cpRes = cp.getMax(crossSize, csMax);
+						int cpRes = cp.getMax(crossSize);
 						if(cpRes < ret)
 							ret = cpRes;
 					}

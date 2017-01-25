@@ -8,7 +8,6 @@ import java.util.Iterator;
 
 import org.observe.ObservableValue;
 import org.observe.SimpleSettableValue;
-import org.quick.core.layout.AbstractSizeGuide;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.MutableDocumentModel;
@@ -242,7 +241,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			int height = Math.round(metrics.getAscent() + metrics.getDescent());
 			return new SimpleSizeGuide(height, height, height, height, height);
 		}
-		return new AbstractSizeGuide() {
+		return new SizeGuide() {
 			private int theCachedWidth;
 
 			private int theCachedHeight;
@@ -281,31 +280,31 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
+			public int getMinPreferred(int crossSize) {
 				getSizes(crossSize);
 				return theCachedHeight;
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
+			public int getMaxPreferred(int crossSize) {
 				getSizes(crossSize);
 				return theCachedHeight;
 			}
 
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
+			public int getMin(int crossSize) {
 				getSizes(crossSize);
 				return theCachedHeight;
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
+			public int getPreferred(int crossSize) {
 				getSizes(crossSize);
 				return theCachedHeight;
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
+			public int getMax(int crossSize) {
 				getSizes(crossSize);
 				return theCachedHeight;
 			}

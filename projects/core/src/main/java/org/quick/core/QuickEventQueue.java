@@ -450,11 +450,11 @@ public class QuickEventQueue {
 			int size = dim.getSize();
 			int cross = child.bounds().get(orient.opposite()).getSize();
 			int minPref = org.quick.core.layout.LayoutUtils.getSize(child, orient, org.quick.core.layout.LayoutGuideType.minPref,
-				parent.bounds().get(orient).getSize(), cross, false, null);
+				parent.bounds().get(orient).getSize(), cross, null);
 			if (size < minPref)
 				return false;
 			int maxPref = org.quick.core.layout.LayoutUtils.getSize(child, orient, org.quick.core.layout.LayoutGuideType.maxPref,
-				parent.bounds().get(orient).getSize(), cross, false, null);
+				parent.bounds().get(orient).getSize(), cross, null);
 			if (size > maxPref)
 				return false;
 			return true;

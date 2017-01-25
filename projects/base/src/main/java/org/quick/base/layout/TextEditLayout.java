@@ -73,32 +73,32 @@ public class TextEditLayout implements QuickLayout {
 		}
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
+			public int getMin(int crossSize) {
+				return get(LayoutGuideType.min, crossSize);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
+			public int getMinPreferred(int crossSize) {
+				return get(LayoutGuideType.minPref, crossSize);
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
+			public int getPreferred(int crossSize) {
+				return get(LayoutGuideType.pref, crossSize);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			public int getMaxPreferred(int crossSize) {
+				return get(LayoutGuideType.maxPref, crossSize);
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
+			public int getMax(int crossSize) {
+				return get(LayoutGuideType.max, crossSize);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			public int get(LayoutGuideType type, int crossSize) {
 				if(type.isPref()) {
 					final int length = parent.atts().get(charLengthAtt, 12);
 					org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
@@ -112,7 +112,7 @@ public class TextEditLayout implements QuickLayout {
 						style.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
 					return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
 				}
-				return children[0].bounds().getHorizontal().getGuide().get(type, crossSize, csMax);
+				return children[0].bounds().getHorizontal().getGuide().get(type, crossSize);
 			}
 
 			@Override
@@ -136,32 +136,32 @@ public class TextEditLayout implements QuickLayout {
 		}
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
+			public int getMin(int crossSize) {
+				return get(LayoutGuideType.min, crossSize);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
+			public int getMinPreferred(int crossSize) {
+				return get(LayoutGuideType.minPref, crossSize);
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
+			public int getPreferred(int crossSize) {
+				return get(LayoutGuideType.pref, crossSize);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			public int getMaxPreferred(int crossSize) {
+				return get(LayoutGuideType.maxPref, crossSize);
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
+			public int getMax(int crossSize) {
+				return get(LayoutGuideType.max, crossSize);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			public int get(LayoutGuideType type, int crossSize) {
 				if(type.isPref()) {
 					final Integer rows = parent.atts().get(charRowsAtt);
 					if(rows != null) {
@@ -177,7 +177,7 @@ public class TextEditLayout implements QuickLayout {
 						return (int) (rows * font.getStringBounds("00", ctx).getHeight());
 					}
 				}
-				return children[0].bounds().getVertical().getGuide().get(type, crossSize, csMax);
+				return children[0].bounds().getVertical().getGuide().get(type, crossSize);
 			}
 
 			@Override
@@ -197,9 +197,8 @@ public class TextEditLayout implements QuickLayout {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		boolean wrap = children[0].getStyle().get(org.quick.core.style.FontStyle.wordWrap).get();
 		int w = parent.bounds().getWidth();
-		int h = children[0].bounds().getVertical().getGuide().getPreferred(w, !wrap);
+		int h = children[0].bounds().getVertical().getGuide().getPreferred(w);
 
 		DocumentedElement child = (DocumentedElement) children[0];
 		if (!(child.getDocumentModel().get() instanceof SelectableDocumentModel)) {

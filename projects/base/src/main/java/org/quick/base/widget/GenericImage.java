@@ -511,7 +511,7 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		graphics.drawImage(img.get(imgIdx), gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
 	}
 
-	private static class ProportionalSizeGuide extends org.quick.core.layout.AbstractSizeGuide {
+	private static class ProportionalSizeGuide implements org.quick.core.layout.SizeGuide {
 		private final int theMainDim;
 
 		private final int theCrossDim;
@@ -522,33 +522,27 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize, boolean csMax) {
-			if(csMax)
-				return 0;
-			else
-				return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public int getMaxPreferred(int crossSize, boolean csMax) {
+		public int getMinPreferred(int crossSize) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 
 		@Override
-		public int getMin(int crossSize, boolean csMax) {
-			if(csMax)
-				return 0;
-			else
-				return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public int getPreferred(int crossSize, boolean csMax) {
+		public int getMaxPreferred(int crossSize) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 
 		@Override
-		public int getMax(int crossSize, boolean csMax) {
+		public int getMin(int crossSize) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getPreferred(int crossSize) {
+			return theMainDim * crossSize / theCrossDim;
+		}
+
+		@Override
+		public int getMax(int crossSize) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 

@@ -84,32 +84,32 @@ public class BoxLayout implements QuickLayout {
 		final Size padding) {
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
+			public int getMin(int crossSize) {
+				return get(LayoutGuideType.min, crossSize);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
+			public int getMinPreferred(int crossSize) {
+				return get(LayoutGuideType.minPref, crossSize);
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
+			public int getPreferred(int crossSize) {
+				return get(LayoutGuideType.pref, crossSize);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			public int getMaxPreferred(int crossSize) {
+				return get(LayoutGuideType.maxPref, crossSize);
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
+			public int getMax(int crossSize) {
+				return get(LayoutGuideType.max, crossSize);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			public int get(LayoutGuideType type, int crossSize) {
 				Alignment align = parent.atts().get(alignment);
 				if ((type == LayoutGuideType.max) && !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
 					return Integer.MAX_VALUE;
@@ -117,11 +117,11 @@ public class BoxLayout implements QuickLayout {
 				if (type == LayoutGuideType.pref || margin.evaluate(crossSize) == 0) {
 					ret = new LayoutSize();
 					crossSize -= margin.evaluate(crossSize) * 2;
-					ret.setPixels(BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, padding, padding));
+					ret.setPixels(BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, padding, padding));
 				} else {
-					int withMargin = BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, padding, padding);
+					int withMargin = BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, padding, padding);
 					crossSize -= margin.evaluate(crossSize) * 2;
-					int withoutMargin = BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, csMax, padding, padding);
+					int withoutMargin = BaseLayoutUtils.getBoxLayoutSize(children, orient, type, crossSize, padding, padding);
 					ret = new LayoutSize()
 						.setPixels(type.isMin() ? Math.min(withMargin, withoutMargin) : Math.max(withMargin, withoutMargin));
 				}
@@ -151,36 +151,36 @@ public class BoxLayout implements QuickLayout {
 	protected SizeGuide getCrossSizer(final QuickElement parent, final QuickElement [] children, final Orientation orient, final Size margin) {
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
+			public int getMin(int crossSize) {
+				return get(LayoutGuideType.min, crossSize);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
+			public int getMinPreferred(int crossSize) {
+				return get(LayoutGuideType.minPref, crossSize);
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
+			public int getPreferred(int crossSize) {
+				return get(LayoutGuideType.pref, crossSize);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
+			public int getMaxPreferred(int crossSize) {
 				if(!Alignment.justify.equals(parent.atts().get(crossAlignment)))
 					return Integer.MAX_VALUE;
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+				return get(LayoutGuideType.maxPref, crossSize);
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
+			public int getMax(int crossSize) {
 				if(!Alignment.justify.equals(parent.atts().get(crossAlignment)))
 					return Integer.MAX_VALUE;
-				return get(LayoutGuideType.max, crossSize, csMax);
+				return get(LayoutGuideType.max, crossSize);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			public int get(LayoutGuideType type, int crossSize) {
 				Alignment align = parent.atts().get(alignment);
 				if ((type == LayoutGuideType.max) && !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
 					return Integer.MAX_VALUE;
@@ -188,11 +188,11 @@ public class BoxLayout implements QuickLayout {
 				if (type == LayoutGuideType.pref || margin.evaluate(crossSize) == 0) {
 					ret = new LayoutSize();
 					crossSize -= margin.evaluate(crossSize) * 2;
-					BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, ret);
+					BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, ret);
 				} else {
-					int withMargin = BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, null);
+					int withMargin = BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, null);
 					crossSize -= margin.evaluate(crossSize) * 2;
-					int withoutMargin = BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, csMax, null);
+					int withoutMargin = BaseLayoutUtils.getBoxLayoutCrossSize(children, orient, type, crossSize, null);
 					ret = new LayoutSize()
 						.setPixels(type.isMin() ? Math.min(withMargin, withoutMargin) : Math.max(withMargin, withoutMargin));
 				}
@@ -227,7 +227,7 @@ public class BoxLayout implements QuickLayout {
 				LayoutSize [] ret = new LayoutSize[children.length];
 				for(int i = 0; i < ret.length; i++) {
 					ret[i] = new LayoutSize();
-					LayoutUtils.getSize(children[i], dir.getOrientation(), type, parallelSize, crossSizeWOMargin, false, ret[i]);
+					LayoutUtils.getSize(children[i], dir.getOrientation(), type, parallelSize, crossSizeWOMargin, ret[i]);
 				}
 				return ret;
 			}
@@ -256,18 +256,18 @@ public class BoxLayout implements QuickLayout {
 			LayoutUtils.setSize(bounds[c], dir.getOrientation(), mainSize);
 
 			int prefCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.pref, crossSizeWOMargin,
-				mainSize, false, null);
+				mainSize, null);
 			int oppSize;
 			if (crossSizeWOMargin < prefCrossSize) {
 				int minCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.min, crossSizeWOMargin,
-					mainSize, false, null);
+					mainSize, null);
 				if(crossSize < minCrossSize)
 					oppSize = minCrossSize;
 				else
 					oppSize = crossSizeWOMargin;
 			} else if(align == Alignment.justify) {
 				int maxCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.max, crossSizeWOMargin,
-					mainSize, false, null);
+					mainSize, null);
 				if (crossSizeWOMargin < maxCrossSize)
 					oppSize = crossSizeWOMargin;
 				else

@@ -59,32 +59,32 @@ public class SimpleLayout implements QuickLayout {
 	protected SizeGuide getSizer(final QuickElement[] children, final Orientation orient) {
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
+			public int getMin(int crossSize) {
+				return get(LayoutGuideType.min, crossSize);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
+			public int getMinPreferred(int crossSize) {
+				return get(LayoutGuideType.minPref, crossSize);
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
+			public int getPreferred(int crossSize) {
+				return get(LayoutGuideType.pref, crossSize);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			public int getMaxPreferred(int crossSize) {
+				return get(LayoutGuideType.maxPref, crossSize);
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
+			public int getMax(int crossSize) {
+				return get(LayoutGuideType.max, crossSize);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			public int get(LayoutGuideType type, int crossSize) {
 				if (children.length == 0) {
 					if (type == LayoutGuideType.max)
 						return Integer.MAX_VALUE;
@@ -94,7 +94,7 @@ public class SimpleLayout implements QuickLayout {
 				for (int i = 0; i < res.length; i++) {
 					// Need to take into account constraints on the opposite orientation.
 					int childCrossSize = childCrossSize(crossSize, children[i], orient);
-					res[i] = getSize(children[i], type, childCrossSize, csMax);
+					res[i] = getSize(children[i], type, childCrossSize);
 				}
 				switch (type) {
 				case min:
@@ -109,7 +109,7 @@ public class SimpleLayout implements QuickLayout {
 				throw new IllegalStateException("Unrecognized layout guide type: " + type);
 			}
 
-			private int getSize(QuickElement child, LayoutGuideType type, int crossSize, boolean csMax) {
+			private int getSize(QuickElement child, LayoutGuideType type, int crossSize) {
 				if (!LayoutUtils.checkLayoutChild(child))
 					return 0;
 
@@ -118,9 +118,9 @@ public class SimpleLayout implements QuickLayout {
 
 				Size[] layoutSizes;
 				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
-					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize, csMax);
+					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize);
 				else
-					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type, crossSize, csMax);
+					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type, crossSize);
 				if (layoutSizes.length == 1)
 					return getSize(type, lead, trail, layoutSizes[0]);
 				else {
@@ -188,7 +188,7 @@ public class SimpleLayout implements QuickLayout {
 				if (children.length == 0)
 					return 0;
 				for (QuickElement child : children) {
-					int childSize = LayoutUtils.getSize(child, orient, LayoutGuideType.pref, size, Integer.MAX_VALUE, true, null);
+					int childSize = LayoutUtils.getSize(child, orient, LayoutGuideType.pref, size, Integer.MAX_VALUE, null);
 					int ret = child.bounds().get(orient).getGuide().getBaseline(childSize);
 					if (ret < 0)
 						continue;
@@ -232,7 +232,7 @@ public class SimpleLayout implements QuickLayout {
 				length = pos2 - pos;
 		} else {
 			Size[] sizes = LayoutUtils.getLayoutSize(child, orient, LayoutGuideType.pref,
-				childCrossSize(parent.bounds().get(orient.opposite()).getSize(), child, orient), false);
+				childCrossSize(parent.bounds().get(orient.opposite()).getSize(), child, orient));
 			if (sizes.length == 1)
 				length = sizes[0].evaluate(parentLength);
 			else {

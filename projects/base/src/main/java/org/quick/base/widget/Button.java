@@ -258,7 +258,7 @@ public class Button extends SimpleContainer {
 			theDepressedController.set(pressed, cause);
 	}
 
-	private static class RadiusAddSizePolicy extends org.quick.core.layout.AbstractSizeGuide {
+	private static class RadiusAddSizePolicy implements org.quick.core.layout.SizeGuide {
 		private final SizeGuide theWrapped;
 
 		private Size theRadius;
@@ -269,32 +269,32 @@ public class Button extends SimpleContainer {
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize, boolean csMax) {
-			int ret = addRadius(theWrapped.getMinPreferred(removeRadius(crossSize, theRadius), csMax), theRadius);
+		public int getMinPreferred(int crossSize) {
+			int ret = addRadius(theWrapped.getMinPreferred(removeRadius(crossSize, theRadius)), theRadius);
 			return ret;
 		}
 
 		@Override
-		public int getMaxPreferred(int crossSize, boolean csMax) {
-			int ret = addRadius(theWrapped.getMaxPreferred(removeRadius(crossSize, theRadius), csMax), theRadius);
+		public int getMaxPreferred(int crossSize) {
+			int ret = addRadius(theWrapped.getMaxPreferred(removeRadius(crossSize, theRadius)), theRadius);
 			return ret;
 		}
 
 		@Override
-		public int getMin(int crossSize, boolean csMax) {
-			int ret = addRadius(theWrapped.getMin(removeRadius(crossSize, theRadius), csMax), theRadius);
+		public int getMin(int crossSize) {
+			int ret = addRadius(theWrapped.getMin(removeRadius(crossSize, theRadius)), theRadius);
 			return ret;
 		}
 
 		@Override
-		public int getPreferred(int crossSize, boolean csMax) {
-			int ret = addRadius(theWrapped.getPreferred(removeRadius(crossSize, theRadius), csMax), theRadius);
+		public int getPreferred(int crossSize) {
+			int ret = addRadius(theWrapped.getPreferred(removeRadius(crossSize, theRadius)), theRadius);
 			return ret;
 		}
 
 		@Override
-		public int getMax(int crossSize, boolean csMax) {
-			int ret = addRadius(theWrapped.getMax(removeRadius(crossSize, theRadius), csMax), theRadius);
+		public int getMax(int crossSize) {
+			int ret = addRadius(theWrapped.getMax(removeRadius(crossSize, theRadius)), theRadius);
 			return ret;
 		}
 

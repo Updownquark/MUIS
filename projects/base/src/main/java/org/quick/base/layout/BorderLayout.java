@@ -68,32 +68,32 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 	public SizeGuide getSizer(final QuickElement parent, final QuickElement [] children, final Orientation orient) {
 		return new SizeGuide() {
 			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
+			public int getMin(int crossSize) {
+				return get(LayoutGuideType.min, crossSize);
 			}
 
 			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
+			public int getMinPreferred(int crossSize) {
+				return get(LayoutGuideType.minPref, crossSize);
 			}
 
 			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
+			public int getPreferred(int crossSize) {
+				return get(LayoutGuideType.pref, crossSize);
 			}
 
 			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
+			public int getMaxPreferred(int crossSize) {
+				return get(LayoutGuideType.maxPref, crossSize);
 			}
 
 			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
+			public int getMax(int crossSize) {
+				return get(LayoutGuideType.max, crossSize);
 			}
 
 			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			public int get(LayoutGuideType type, int crossSize) {
 				Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 				Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 				if (children.length == 0) {
@@ -101,13 +101,13 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 						return 0;
 					return margin.evaluate(0) * 2;
 				}
-				LayoutSize ret = get(type, crossSize, csMax, 0, padding, null);
+				LayoutSize ret = get(type, crossSize, 0, padding, null);
 				ret.add(margin);
 				ret.add(margin);
 				return ret.getTotal();
 			}
 
-			private LayoutSize get(LayoutGuideType type, int crossSize, boolean csMax, int startIndex, Size padding, QuickElement center) {
+			private LayoutSize get(LayoutGuideType type, int crossSize, int startIndex, Size padding, QuickElement center) {
 				Region childRegion = children[startIndex].atts().get(region, Region.center);
 				if(childRegion == Region.center) {
 					if(center != null) {
@@ -115,17 +115,17 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 					} else if(startIndex < children.length - 1)
 						center = children[startIndex];
 					if(startIndex < children.length - 1)
-						return get(type, crossSize, csMax, startIndex + 1, padding, center);
+						return get(type, crossSize, startIndex + 1, padding, center);
 					else {
 						LayoutSize ret = new LayoutSize();
 						if(center != null)
-							LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
+							LayoutUtils.getSize(center, orient, type, 0, crossSize, ret);
 						return ret;
 					}
 				} else if(childRegion.getOrientation() == orient) {
 					LayoutSize ret = new LayoutSize();
 					while(childRegion.getOrientation() == orient) {
-						LayoutUtils.getSize(children[startIndex], orient, type, 0, crossSize, csMax, ret);
+						LayoutUtils.getSize(children[startIndex], orient, type, 0, crossSize, ret);
 						ret.add(padding);
 						startIndex++;
 						if(startIndex == children.length)
@@ -133,24 +133,24 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 						childRegion = children[startIndex].atts().get(region, Region.center);
 					}
 					if(startIndex < children.length)
-						ret.add(get(type, crossSize, csMax, startIndex, padding, center));
+						ret.add(get(type, crossSize, startIndex, padding, center));
 					else if(center != null)
-						LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
+						LayoutUtils.getSize(center, orient, type, 0, crossSize, ret);
 					return ret;
 				} else {
 					LayoutSize ret = new LayoutSize(true);
 					while(childRegion.getOrientation() != orient) {
-						LayoutUtils.getSize(children[startIndex], orient, type, 0, crossSize, csMax, ret);
+						LayoutUtils.getSize(children[startIndex], orient, type, 0, crossSize, ret);
 						startIndex++;
 						if(startIndex == children.length)
 							break;
 						childRegion = children[startIndex].atts().get(region, Region.center);
 					}
 					if(startIndex < children.length)
-						ret.add(get(type, crossSize, csMax, startIndex, padding, center));
+						ret.add(get(type, crossSize, startIndex, padding, center));
 					else if(center != null) {
 						ret = new LayoutSize(ret);
-						LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
+						LayoutUtils.getSize(center, orient, type, 0, crossSize, ret);
 					}
 					return ret;
 				}
@@ -174,7 +174,7 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			public int [] getLayoutValue(LayoutGuideType type) {
 				int [] ret = new int[children.length];
 				for(int c = 0; c < children.length; c++)
-					ret[c] = LayoutUtils.getSize(children[c], horizontal, type, parentWidth, parentHeight, true, null);
+					ret[c] = LayoutUtils.getSize(children[c], horizontal, type, parentWidth, parentHeight, null);
 				return ret;
 			}
 
@@ -247,7 +247,7 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			public int [] getLayoutValue(LayoutGuideType type) {
 				int [] ret = new int[children.length];
 				for(int c = 0; c < children.length; c++)
-					ret[c] = LayoutUtils.getSize(children[c], vertical, type, parentHeight, bounds[c].width, false, null);
+					ret[c] = LayoutUtils.getSize(children[c], vertical, type, parentHeight, bounds[c].width, null);
 				return ret;
 			}
 

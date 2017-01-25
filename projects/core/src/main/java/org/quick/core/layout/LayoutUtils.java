@@ -91,12 +91,11 @@ public class LayoutUtils {
 	 * @param type The type of size to get
 	 * @param parallelSize The size of the element's container along the given orientation
 	 * @param crossSize The size of the element's container along the axis opposite to the given orientation
-	 * @param csMax Whether the cross size is intended as a maximum or a real container value
 	 * @param addTo The layout size to add the result to (may be null)
 	 * @return The intended pixel-size of the element
 	 */
 	public static int getSize(QuickElement element, Orientation orientation, LayoutGuideType type, int parallelSize, int crossSize,
-		boolean csMax, LayoutSize addTo) {
+		LayoutSize addTo) {
 		LayoutAttributes.SizeAttribute att;
 		Size ret;
 		att = LayoutAttributes.getSizeAtt(orientation, null);
@@ -122,7 +121,7 @@ public class LayoutUtils {
 			return -1;
 		else {
 			int size = element.bounds().get(orientation).getGuide()//
-				.get(type, crossSize, csMax);
+				.get(type, crossSize);
 			if(addTo != null)
 				addTo.add(size);
 			return size;
@@ -148,13 +147,12 @@ public class LayoutUtils {
 	 * @param orientation The orientation along which to get the size
 	 * @param type The type of the size
 	 * @param crossSize The cross size
-	 * @param csMax Whether the cross size is a maximum or an absolute value
 	 * @return Either a 1- or a 3-length array of sizes. If 1-length, it is the size for the element. If 3-length, it is the min, pref, and
 	 *         max sizes for the element, where min and max are determined by attributes set on the element. The 3-length array is only
 	 *         returned when the units for the min and max attributes are incompatible with the unit for the preferred value, which may be
 	 *         determined by an attribute or the child's own layout manager.
 	 */
-	public static Size[] getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
+	public static Size[] getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize) {
 		Size ret = element.atts().get(LayoutAttributes.getSizeAtt(orientation, null));
 		if (ret != null)
 			return new Size[] { ret };
@@ -163,7 +161,7 @@ public class LayoutUtils {
 		if (minSize != null && maxSize != null && minSize.compareTo(maxSize) >= 0)
 			return new Size[] { minSize };
 		Size layoutSize = new Size(element.bounds().get(orientation).getGuide()//
-			.get(type, crossSize, csMax), LengthUnit.pixels);
+			.get(type, crossSize), LengthUnit.pixels);
 		if (minSize != null && minSize.getUnit() == layoutSize.getUnit()) {
 			if (layoutSize.compareTo(minSize) < 0)
 				layoutSize = minSize;
@@ -390,7 +388,7 @@ public class LayoutUtils {
 
 	/**
 	 * Adds a corner radius to a size
-	 * 
+	 *
 	 * @param size The size
 	 * @param radius The corner radius
 	 * @return The new size
@@ -413,7 +411,7 @@ public class LayoutUtils {
 
 	/**
 	 * Subtracts a corner radius from a size
-	 * 
+	 *
 	 * @param size The size
 	 * @param radius The corner radius
 	 * @return The new size

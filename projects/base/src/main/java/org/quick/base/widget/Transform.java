@@ -283,28 +283,28 @@ public class Transform extends SimpleContainer {
 		}
 
 		@Override
-		public int getMin(int crossSize, boolean csMax) {
-			return get(LayoutGuideType.min, crossSize, csMax);
+		public int getMin(int crossSize) {
+			return get(LayoutGuideType.min, crossSize);
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize, boolean csMax) {
-			return get(LayoutGuideType.minPref, crossSize, csMax);
+		public int getMinPreferred(int crossSize) {
+			return get(LayoutGuideType.minPref, crossSize);
 		}
 
 		@Override
-		public int getPreferred(int crossSize, boolean csMax) {
-			return get(LayoutGuideType.pref, crossSize, csMax);
+		public int getPreferred(int crossSize) {
+			return get(LayoutGuideType.pref, crossSize);
 		}
 
 		@Override
-		public int getMaxPreferred(int crossSize, boolean csMax) {
-			return get(LayoutGuideType.maxPref, crossSize, csMax);
+		public int getMaxPreferred(int crossSize) {
+			return get(LayoutGuideType.maxPref, crossSize);
 		}
 
 		@Override
-		public int getMax(int crossSize, boolean csMax) {
-			return get(LayoutGuideType.max, crossSize, csMax);
+		public int getMax(int crossSize) {
+			return get(LayoutGuideType.max, crossSize);
 		}
 
 		@Override
@@ -313,15 +313,15 @@ public class Transform extends SimpleContainer {
 		}
 
 		@Override
-		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+		public int get(LayoutGuideType type, int crossSize) {
 			boolean vertical = theOrientation == Orientation.vertical;
 			int ret;
 			if(theRotation == 0.0 || theRotation == 180.0) {
-				ret = (vertical ? theHSizer : theWSizer).get(type, crossSize, csMax);
+				ret = (vertical ? theHSizer : theWSizer).get(type, crossSize);
 				if((vertical ? theScaleY : theScaleX) != 1.0)
 					ret *= vertical ? theScaleY : theScaleX;
 			} else if(theRotation == 90.0 || theRotation == 270.0) {
-				ret = (vertical ? theWSizer : theHSizer).get(type, crossSize, csMax);
+				ret = (vertical ? theWSizer : theHSizer).get(type, crossSize);
 				if((vertical ? theScaleX : theScaleY) != 1.0)
 					ret *= vertical ? theScaleX : theScaleY;
 			} else {

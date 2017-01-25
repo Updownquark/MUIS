@@ -20,6 +20,10 @@ public class StyleModifierProperty<T> extends QuickProperty<T> {
 		theDefault = defValue;
 	}
 
+	public Class<? extends StyleModifier> getModifierType() {
+		return theModifierType;
+	}
+
 	@Override
 	protected String getPropertyTypeName() {
 		return "style modifier property";

@@ -8,6 +8,7 @@ import org.observe.assoc.ObservableMap;
 import org.observe.collect.ObservableOrderedCollection;
 import org.observe.collect.ObservableSortedSet;
 import org.observe.collect.impl.CachingLinkedList;
+import org.qommons.BiTuple;
 import org.qommons.ListenerSet;
 import org.quick.core.prop.QuickProperty;
 
@@ -25,15 +26,18 @@ public class ModifiedStyleValue<T> implements ObservableValue<T> {
 		theValue = value;
 		theProperties = properties;
 		theListeners = new ListenerSet<>();
+		theListeners.setOnSubscribe(observer -> Observer.onNextAndFinish(observer, createInitialEvent(get(), null)));
+
+		ObservableOrderedCollection<BiTuple<Class<? extends StyleModifier>, String>> modifierInstances;
+		modifierInstances = ((ObservableOrderedCollection<AppliedStyleModifierProperty<?>>) properties.keySet())
+			.map(p -> new BiTuple<>(p.getProperty().getModifierType(), p.getInstanceName()));
 		theListeners.setUsedListener(used -> {
 			if (used) {
 			} else {
 			}
 			// TODO
 		});
-		theListeners.setOnSubscribe(observer -> Observer.onNextAndFinish(observer, createInitialEvent(get(), null)));
-		ObservableOrderedCollection<ModifierHolder<T>> uncachedModifiers = ((ObservableOrderedCollection<StyleModifierProperty<?>>) properties
-			.keySet()).;
+
 		theModifiers = new CachingLinkedList<>(uncachedModifiers);
 	}
 

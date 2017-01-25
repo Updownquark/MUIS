@@ -9,7 +9,9 @@ import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableList;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
-import org.quick.core.layout.*;
+import org.quick.core.layout.Direction;
+import org.quick.core.layout.LayoutAttributes;
+import org.quick.core.layout.Orientation;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.LayoutStyle;
@@ -85,57 +87,77 @@ public class GroupLayout implements QuickLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(QuickElement parent, QuickElement[] children) {
+	public LayoutSpring getWSizer(QuickElement parent, QuickElement[] children) {
 		Map<String, NamedLayoutGroup> namedGroups = new LinkedHashMap<>();
 		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		SequentialLayoutGroup outerGroup = groupFor(parent.getPhysicalChildren(), dir, namedGroups);
-		return getSizer(outerGroup, dir.getOrientation(), !dir.getOrientation().isVertical());
+		return getSizer(outerGroup, dir.getOrientation(), !dir.getOrientation().isVertical(), new HashMap<>());
 	}
 
 	@Override
-	public SizeGuide getHSizer(QuickElement parent, QuickElement[] children) {
+	public LayoutSpring getHSizer(QuickElement parent, QuickElement[] children) {
 		Map<String, NamedLayoutGroup> namedGroups = new LinkedHashMap<>();
 		Direction dir = parent.atts().get(LayoutAttributes.direction);
 		SequentialLayoutGroup outerGroup = groupFor(parent.getPhysicalChildren(), dir, namedGroups);
-		return getSizer(outerGroup, dir.getOrientation(), dir.getOrientation().isVertical());
+		return getSizer(outerGroup, dir.getOrientation(), dir.getOrientation().isVertical(), new HashMap<>());
 	}
 
-	private SizeGuide getSizer(SequentialLayoutGroup group, Orientation orient, boolean sequential) {
-		return (sequential ? sequenceSizer(group, orient) : parallelSizer(group, orient)).asGuide();
+	@Override
+	public void layout(QuickElement parent, QuickElement[] children) {
+		Map<String, NamedLayoutGroup> namedGroups = new LinkedHashMap<>();
+		Direction dir = parent.atts().get(LayoutAttributes.direction);
+		SequentialLayoutGroup outerGroup = groupFor(parent.getPhysicalChildren(), dir, namedGroups);
+		Map<LayoutSpring, Object> springsToGroups = new HashMap<>();
+		LayoutSpring vSizer = getSizer(outerGroup, dir.getOrientation(), dir.getOrientation().isVertical(), springsToGroups);
+		LayoutSpring hSizer = vSizer.getOpposite();
+
+		float vTension = vSizer.getTension(parent.bounds().getHeight(), parent.bounds().getWidth());
+		float hTension = hSizer.getTension(parent.bounds().getWidth(), parent.bounds().getHeight());
+		// TODO Auto-generated method stub
+
 	}
 
-	private LayoutSpring sequenceSizer(LayoutGroup group, Orientation orient) {
+	private LayoutSpring getSizer(SequentialLayoutGroup group, Orientation orient, boolean sequential,
+		Map<LayoutSpring, Object> springsToGroups) {
+		return (sequential ? sequenceSizer(group, orient, springsToGroups) : parallelSizer(group, orient, springsToGroups));
+	}
+
+	private LayoutSpring sequenceSizer(LayoutGroup group, Orientation orient, Map<LayoutSpring, Object> springsToGroups) {
 		LayoutSpring[] components = new LayoutSpring[group.elements.size()];
 		int i=0;
 		for(Object el : group.elements){
 			LayoutSpring component;
 			if(el instanceof LayoutGroup)
-				component= parallelSizer((LayoutGroup) el, orient.opposite());
-			else
-				component = new LayoutSpring.SimpleLayoutSpring(((QuickElement) el).bounds().get(orient).getGuide());
+				component = parallelSizer((LayoutGroup) el, orient.opposite(), springsToGroups);
+			else {
+				component = new LayoutSpring.SimpleLayoutSpring(((QuickElement) el).bounds().get(orient).getGuide(), //
+					((QuickElement) el).bounds().get(orient.opposite()).getGuide());
+				springsToGroups.put(component, el);
+			}
 			components[i++]=component;
 		}
-		return new LayoutSpring.SeriesSpring(components);
+		LayoutSpring spring = new LayoutSpring.SeriesSpring(components);
+		springsToGroups.put(spring, group);
+		return spring;
 	}
 
-	private LayoutSpring parallelSizer(LayoutGroup group, Orientation orient) {
+	private LayoutSpring parallelSizer(LayoutGroup group, Orientation orient, Map<LayoutSpring, Object> springsToGroups) {
 		LayoutSpring[] components = new LayoutSpring[group.elements.size()];
 		int i = 0;
 		for (Object el : group.elements) {
 			LayoutSpring component;
 			if (el instanceof LayoutGroup)
-				component = sequenceSizer((LayoutGroup) el, orient.opposite());
-			else
-				component = new LayoutSpring.SimpleLayoutSpring(((QuickElement) el).bounds().get(orient).getGuide()); // TODO
+				component = sequenceSizer((LayoutGroup) el, orient.opposite(), springsToGroups);
+			else {
+				component = new LayoutSpring.SimpleLayoutSpring(((QuickElement) el).bounds().get(orient).getGuide(), //
+					((QuickElement) el).bounds().get(orient.opposite()).getGuide());
+				springsToGroups.put(component, el);
+			}
 			components[i++] = component;
 		}
-		return new LayoutSpring.ParallelSpring(components);
-	}
-
-	@Override
-	public void layout(QuickElement parent, QuickElement[] children) {
-		// TODO Auto-generated method stub
-
+		LayoutSpring spring = new LayoutSpring.ParallelSpring(components);
+		springsToGroups.put(spring, group);
+		return spring;
 	}
 
 	private static SequentialLayoutGroup groupFor(List<? extends QuickElement> children, Direction parentDir,

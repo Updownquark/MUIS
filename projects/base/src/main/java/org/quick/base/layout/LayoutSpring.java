@@ -3,19 +3,99 @@ package org.quick.base.layout;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.qommons.FloatList;
+import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.LayoutUtils;
 import org.quick.core.layout.SizeGuide;
 
-public interface LayoutSpring extends SizeGuide {
+public interface LayoutSpring {
 	public static float OUTER_PREF_TENSION = 1000;
-	public static float NOT_PREF_TENSION_THRESH = 100000;
 	public static float OUTER_SIZE_TENSION = 1000000;
 	public static float MAX_TENSION = 1E9f;
-	public static final FloatList TENSIONS = new FloatList(new float[] { //
-		MAX_TENSION, OUTER_SIZE_TENSION, NOT_PREF_TENSION_THRESH, OUTER_PREF_TENSION, 0, -OUTER_PREF_TENSION, -NOT_PREF_TENSION_THRESH,
-		-OUTER_SIZE_TENSION, -MAX_TENSION });
+	public static final FloatList TENSIONS = createTensions();
+
+	static FloatList createTensions() {
+		FloatList tensions = new FloatList(new float[] { //
+			MAX_TENSION, // Tension at size 0 (if less than min size)
+			OUTER_SIZE_TENSION, // Tension at min size
+			OUTER_PREF_TENSION, // Tension at min pref size
+			0, // Tension at preferred size
+			-OUTER_PREF_TENSION, // Tension at max pref size
+			-OUTER_SIZE_TENSION, // Tension at max size
+			-MAX_TENSION// Tension at Integer.MAX_VALUE (if greater than max size)
+		});
+		tensions.seal();
+		return tensions;
+	}
+
+	int get(LayoutGuideType type);
+
+	default int getSize(float tension) {
+		int index = TENSIONS.indexFor(tension);
+		if (index == 0)
+			return 0;
+		if (index >= TENSIONS.size())
+			return Integer.MAX_VALUE;
+		float preTension = TENSIONS.get(index - 1);
+		float postTension = TENSIONS.get(index);
+		if (tension == preTension)
+			return get(LayoutGuideType.values()[index - 1]);
+		return interpolateInt(get(LayoutGuideType.values()[index - 2]), get(LayoutGuideType.values()[index - 1]), //
+			preTension, postTension, tension);
+	}
+
+	default float getTension(int size) {
+		int pref = getPreferred();
+		if (size == pref)
+			return 0;
+		else if (size < pref) {
+			int minPref = getMinPreferred();
+			if (size == minPref)
+				return OUTER_PREF_TENSION;
+			else if (size < minPref) {
+				int min = getMin();
+				if (size == min)
+					return OUTER_SIZE_TENSION;
+				else if (size < min)
+					return interpolateFloat(0, min, OUTER_SIZE_TENSION, MAX_TENSION, size);
+				else
+					return interpolateFloat(min, minPref, OUTER_PREF_TENSION, OUTER_SIZE_TENSION, size);
+			} else
+				return interpolateFloat(minPref, pref, 0, OUTER_PREF_TENSION, size);
+		} else {
+			int maxPref = getMaxPreferred();
+			if (size == maxPref)
+				return -OUTER_PREF_TENSION;
+			else if (size > maxPref) {
+				int max = getMax();
+				if (size == max)
+					return -OUTER_SIZE_TENSION;
+				else if (size > max)
+					return -interpolateFloat(max, Integer.MAX_VALUE, OUTER_SIZE_TENSION, MAX_TENSION, size);
+				else
+					return -interpolateFloat(maxPref, max, OUTER_PREF_TENSION, OUTER_SIZE_TENSION, size);
+			} else
+				return -interpolateFloat(pref, maxPref, 0, OUTER_PREF_TENSION, size);
+		}
+	}
+
+	default int getMin() {
+		return get(LayoutGuideType.min);
+	}
+	default int getMinPreferred() {
+		return get(LayoutGuideType.minPref);
+	}
+	default int getPreferred() {
+		return get(LayoutGuideType.pref);
+	}
+	default int getMaxPreferred() {
+		return get(LayoutGuideType.maxPref);
+	}
+	default int getMax() {
+		return get(LayoutGuideType.max);
+	}
 
 	static int getSize(SizeGuide guide, int level, int crossSize) {
 		switch (level) {
@@ -66,122 +146,55 @@ public interface LayoutSpring extends SizeGuide {
 				size);
 	}
 
-	int getSize();
-	LayoutSpring setSize(int size);
-
-	float getTension();
-	LayoutSpring setTension(float tension);
-
-	class SimpleLayoutSpring implements LayoutSpring{
+	class SizeGuideSpring implements LayoutSpring {
 		private final SizeGuide theGuide;
+		private final Supplier<Integer> theCrossSize;
 
-		private int theSize = -1;
-		private float theTension = Float.NaN;
-
-		public SimpleLayoutSpring(SizeGuide main, SizeGuide cross) {
+		public SizeGuideSpring(SizeGuide main, Supplier<Integer> crossSize) {
 			theGuide = main;
+			theCrossSize = crossSize;
 		}
 
 		@Override
-		public int getMin(int crossSize) {
-			return theGuide.getMin(crossSize);
-		}
-
-		@Override
-		public int getMinPreferred(int crossSize) {
-			return theGuide.getMinPreferred(crossSize);
-		}
-
-		@Override
-		public int getPreferred(int crossSize) {
-			return theGuide.getPreferred(crossSize);
-		}
-
-		@Override
-		public int getMaxPreferred(int crossSize) {
-			return theGuide.getMaxPreferred(crossSize);
-		}
-
-		@Override
-		public int getMax(int crossSize) {
-			return theGuide.getMax(crossSize);
-		}
-
-		@Override
-		public int getBaseline(int size) {
-			return theGuide.getBaseline(size);
-		}
-
-		@Override
-		public int getSize() {
-			return theSize;
-		}
-
-		@Override
-		public LayoutSpring setSize(int size) {
-			theSize = size;
-			return this;
-		}
-
-		@Override
-		public float getTension() {
-			return theTension;
-		}
-
-		@Override
-		public LayoutSpring setTension(float tension) {
-			theTension = tension;
-			return this;
+		public int get(LayoutGuideType type) {
+			return theGuide.get(type, theCrossSize.get());
 		}
 	}
 
 	class ConstSpring implements LayoutSpring {
-		private final int theSize;
-		private final ConstSpring theCross;
+		private final int theMin;
+		private final int theMinPref;
+		private final int thePref;
+		private final int theMaxPref;
+		private final int theMax;
 
 		public ConstSpring(int size) {
-			theSize = size;
-			theCross = new ConstSpring(0, this);
+			this(size, size, size, size, size);
 		}
 
-		private ConstSpring(int size, ConstSpring cross) {
-			theSize = size;
-			theCross = cross;
-		}
-
-		@Override
-		public int getMin(int crossSize) {
-			return 0;
+		public ConstSpring(int min, int minPref, int pref, int maxPref, int max) {
+			theMin = min;
+			theMinPref = minPref;
+			thePref = pref;
+			theMaxPref = maxPref;
+			theMax = max;
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize) {
-			return theSize;
-		}
-
-		@Override
-		public int getPreferred(int crossSize) {
-			return theSize;
-		}
-
-		@Override
-		public int getMaxPreferred(int crossSize) {
-			return theSize;
-		}
-
-		@Override
-		public int getMax(int crossSize) {
-			return theSize;
-		}
-
-		@Override
-		public int getBaseline(int size) {
-			return 0;
-		}
-
-		@Override
-		public ConstSpring getOpposite() {
-			return theCross;
+		public int get(LayoutGuideType type) {
+			switch (type) {
+			case min:
+				return theMin;
+			case minPref:
+				return theMinPref;
+			case pref:
+				return thePref;
+			case maxPref:
+				return theMaxPref;
+			case max:
+				return theMax;
+			}
+			throw new IllegalStateException("Unrecognized layout guide type: " + type);
 		}
 	}
 

@@ -20,6 +20,23 @@ interface EdgeBox {
 		}
 	}
 
+	public class ValueEdgeBox<V> extends SimpleEdgeBox {
+		private final V theValue;
+
+		public ValueEdgeBox(V value) {
+			theValue = value;
+		}
+
+		public V getValue() {
+			return theValue;
+		}
+
+		@Override
+		public String toString() {
+			return "box for " + getValue();
+		}
+	}
+
 	default Edge getLeft() {
 		return getBoundary(Orientation.horizontal, End.leading);
 	}

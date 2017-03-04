@@ -3,7 +3,6 @@ package org.quick.base.layout;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
 
 import org.qommons.FloatList;
 import org.quick.core.layout.LayoutGuideType;
@@ -148,16 +147,34 @@ public interface LayoutSpring {
 
 	class SizeGuideSpring implements LayoutSpring {
 		private final SizeGuide theGuide;
-		private final Supplier<Integer> theCrossSize;
+		private int theLayoutLength;
+		private int theCrossSize;
+		private boolean isCrossSizeAvailable;
+		private final int[] theCache;
 
-		public SizeGuideSpring(SizeGuide main, Supplier<Integer> crossSize) {
+		public SizeGuideSpring(SizeGuide main) {
 			theGuide = main;
+			theCache = new int[5];
+			clearCache();
+		}
+
+		private void clearCache() {
+			for (int i = 0; i < theCache.length; i++)
+				theCache[0] = -1;
+		}
+
+		public void recalculate(int layoutLength, int crossSize, boolean csAvailable) {
+			theLayoutLength = layoutLength;
 			theCrossSize = crossSize;
+			isCrossSizeAvailable = csAvailable;
+			clearCache();
 		}
 
 		@Override
 		public int get(LayoutGuideType type) {
-			return theGuide.get(type, theCrossSize.get());
+			if (theCache[type.ordinal()] < 0)
+				theCache[type.ordinal()] = theGuide.get(type, theLayoutLength, theCrossSize, isCrossSizeAvailable);
+			return theCache[type.ordinal()];
 		}
 	}
 

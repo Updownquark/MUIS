@@ -3,104 +3,108 @@ package org.quick.core.layout;
 /** Used by layouts to determine what size a widget would like to be in a single dimension */
 public interface SizeGuide {
 	/**
-	 * @param crossSize The size available to the widget in the opposite dimension
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
 	 * @return The minimum size that the widget can allow. Good layouts should never size a widget smaller than this value.
 	 */
-	int getMin(int crossSize);
+	default int getMin(int layoutLength, int crossSize, boolean csAvailable) {
+		return get(LayoutGuideType.min, layoutLength, crossSize, csAvailable);
+	}
 
 	/**
-	 * @param crossSize The size available to the widget in the opposite dimension
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
 	 * @return The minimum dimension that the widget can take and be happy
 	 */
-	int getMinPreferred(int crossSize);
+	default int getMinPreferred(int layoutLength, int crossSize, boolean csAvailable) {
+		return get(LayoutGuideType.minPref, layoutLength, crossSize, csAvailable);
+	}
 
 	/**
-	 * @param crossSize The size available to the widget in the opposite dimension
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
 	 * @return The optimum size for the widget, or possibly the minimum good size. This value is the size below which the widget becomes
 	 *         cluttered or has to shrink its content more than is desirable. A preferred size of <=0 means the widget has no size
 	 *         preference.
 	 */
-	int getPreferred(int crossSize);
+	default int getPreferred(int layoutLength, int crossSize, boolean csAvailable) {
+		return get(LayoutGuideType.pref, layoutLength, crossSize, csAvailable);
+	}
 
 	/**
-	 * @param crossSize The size available to the widget in the opposite dimension
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
 	 * @return The maximum dimension that the widget can make use of
 	 */
-	int getMaxPreferred(int crossSize);
+	default int getMaxPreferred(int layoutLength, int crossSize, boolean csAvailable) {
+		return get(LayoutGuideType.maxPref, layoutLength, crossSize, csAvailable);
+	}
 
 	/**
-	 * @param crossSize The size available to the widget in the opposite dimension
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
 	 * @return The maximum size for the widget. Good layouts should never size a widget larger than this value
 	 */
-	int getMax(int crossSize);
+	default int getMax(int layoutLength, int crossSize, boolean csAvailable) {
+		return get(LayoutGuideType.max, layoutLength, crossSize, csAvailable);
+	}
 
 	/**
 	 * @param type The layout guide type to get the size guide setting for
-	 * @param crossSize The size available to the widget in the opposite dimension
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
 	 * @return The size guide setting of the given type in this guide
 	 */
-	default int get(LayoutGuideType type, int crossSize) {
+	int get(LayoutGuideType type, int layoutLength, int crossSize, boolean csAvailable);
+
+	/**
+	 * A default method that calls one of:
+	 * <ol>
+	 * <li>{@link #getMin(int, int, boolean)}</li>
+	 * <li>{@link #getMinPreferred(int, int, boolean)}</li>
+	 * <li>{@link #getPreferred(int, int, boolean)}</li>
+	 * <li>{@link #getMaxPreferred(int, int, boolean)}</li>
+	 * <li>{@link #getMax(int, int, boolean)}</li>
+	 * </ol>
+	 * 
+	 * @param type The layout guide type to get the size guide setting for
+	 * @param layoutLength The size of the layout space that this guide is in
+	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
+	 *        in the opposite dimension
+	 * @return The size guide setting of the given type in this guide
+	 */
+	default int delegate(LayoutGuideType type, int layoutLength, int crossSize, boolean csAvailable) {
 		switch (type) {
 		case min:
-			return getMin(crossSize);
+			return getMin(layoutLength, crossSize, csAvailable);
 		case minPref:
-			return getMinPreferred(crossSize);
+			return getMinPreferred(layoutLength, crossSize, csAvailable);
 		case pref:
-			return getPreferred(crossSize);
+			return getPreferred(layoutLength, crossSize, csAvailable);
 		case maxPref:
-			return getMaxPreferred(crossSize);
+			return getMaxPreferred(layoutLength, crossSize, csAvailable);
 		case max:
-			return getMax(crossSize);
+			return getMax(layoutLength, crossSize, csAvailable);
 		}
 		throw new IllegalStateException("Unrecognized layout guide type: " + type);
 	}
 
 	/**
-	 * @param size The hypothetical size of the widget in this dimension
+	 * @param layoutLength The hypothetical size of the widget in this dimension
 	 * @return The location of the baseline in this dimension
 	 */
-	int getBaseline(int size);
-
-	/**
-	 * @param size The size to check
-	 * @param crossSize The size of the widget in the opposite dimension
-	 * @return 0 if the given size is within this guide's preferred range, -1 if the size is below minPreferred, 1 if the size is above
-	 *         maxPreferred
-	 */
-	default int compareToPreferred(int size, int crossSize) {
-		if (size < getMinPreferred(crossSize))
-			return -1;
-		else if (size <= getMaxPreferred(crossSize))
-			return 0;
-		else
-			return 1;
-	}
-
-	/**
-	 * @param size The size to check
-	 * @param crossSize The size of the widget in the opposite dimension
-	 * @return 0 if the given size is within this guide's extremity range, -1 if the size is below min, 1 if the size is above max
-	 */
-	default int compareToMinMax(int size, int crossSize) {
-		if (size < getMin(crossSize))
-			return -1;
-		else if (size <= getMax(crossSize))
-			return 0;
-		else
-			return 1;
-	}
-
-	/**
-	 * A utility for adding 2 numbers, the sum of which may be greater than an integer's capacity
-	 *
-	 * @param i1 The first number to add
-	 * @param i2 The second number to add
-	 * @return The added result, or {@link Integer#MAX_VALUE} if the result is too great for the capacity of an integer
-	 */
-	public static int add(int i1, int i2) {
-		int ret = i1 + i2;
-		if(ret < i1)
-			return Integer.MAX_VALUE;
-		return ret;
-	}
+	int getBaseline(int layoutLength);
 }

@@ -1,6 +1,7 @@
 package org.quick.core;
 
 import org.observe.Observable;
+import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 
@@ -18,6 +19,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 			return children[0].getWSizer();
 		else
 			return new SizeGuide() {
+				@Override
+				public int get(LayoutGuideType type, int crossSize) {
+					return delegate(type, crossSize);
+				}
+
 				@Override
 				public int getMinPreferred(int crossSize) {
 					int ret = 0;
@@ -108,6 +114,11 @@ public class LayerLayout implements org.quick.core.QuickLayout {
 			return children[0].getHSizer();
 		else
 			return new SizeGuide() {
+				@Override
+				public int get(LayoutGuideType type, int crossSize) {
+					return delegate(type, crossSize);
+				}
+
 				@Override
 				public int getMinPreferred(int crossSize) {
 					int ret = 0;

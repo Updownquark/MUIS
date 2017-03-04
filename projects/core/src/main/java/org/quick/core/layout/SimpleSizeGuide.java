@@ -42,6 +42,23 @@ public class SimpleSizeGuide implements SizeGuide {
 	}
 
 	@Override
+	public int get(LayoutGuideType type, int crossSize) {
+		switch (type) {
+		case min:
+			return theMin;
+		case minPref:
+			return theMinPref;
+		case pref:
+			return thePref;
+		case maxPref:
+			return theMaxPref;
+		case max:
+			return theMax;
+		}
+		throw new IllegalArgumentException("Unrecognized layout guide type: " + type);
+	}
+
+	@Override
 	public int getMinPreferred(int crossSize) {
 		return theMinPref;
 	}

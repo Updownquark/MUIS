@@ -1,9 +1,7 @@
 package org.quick.base.layout;
 
 import java.awt.Dimension;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.qommons.BiTuple;
 import org.qommons.collect.DefaultGraph;
@@ -15,9 +13,70 @@ import org.quick.core.layout.*;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
+/**
+ * <p>
+ * LayoutSolver is a utility that can be used to build an abstract version of a layout configuration with edges and constraints and solve
+ * for the ideal (or close to ideal) position of the edges.
+ * </p>
+ *
+ * <p>
+ * This class may be used to back any layout which can be described as a set of edges related by springs, each defining a size for each
+ * {@link LayoutGuideType size type}. Implementations of such layouts can be made trivial by use of this class.
+ * </p>
+ *
+ * To initialize this class, edges and boxes (sets of 4 bounding edges) are added to the solver via:
+ * <ul>
+ * <li>{@link #edgeFor(String, Orientation)},</li>
+ * <li>{@link #boxFor(Object)},</li>
+ * <li>and {@link #boxForElement(QuickElement)}.</li>
+ * </ul>
+ * Then information is added to the solver to describe how the edges are associated with each other via:
+ * <ul>
+ * <li>{@link #constrain(Edge, Edge, LayoutEdgeLink)}</li>
+ * <li>and {@link #depends(Edge, Edge, Edge, Edge)}</li>
+ * </ul>
+ * <p>
+ * To obtain the {@link LayoutGuideType#min min}, {@link LayoutGuideType#minPref min-preferred}, {@link LayoutGuideType#pref preferred},
+ * {@link LayoutGuideType#maxPref max-preferred}, or {@link LayoutGuideType#max max} size for the layout, the
+ * {@link #forSizeType(LayoutGuideType)} method is used.
+ * </p>
+ *
+ * <p>
+ * To obtain the optimal edge position configuration for a particular layout size, the {@link #forLayoutSize(Dimension)} method is used.
+ * </p>
+ *
+ * <p>
+ * Either of these methods produces a {@link LayoutSystemSet} which can be {@link LayoutSystemSet#solve() solved} to produce a
+ * {@link LayoutSolution}.
+ * </p>
+ *
+ * <p>
+ * The {@link LayoutSolution} can be queried via {@link LayoutSolution#getPosition(Edge)} for the desired results.
+ * </p>
+ *
+ * TODO
+ * <ul>
+ * <li>Extract independent sub-graphs of constraints and replace with a single combination constraint (e.g. parallel or series spring)</li>
+ * <li>How to initialize each LayoutSystem's edge positions?</li>
+ * <li>Create outer algorithm for solving each system</li>
+ * <li>Create inner algorithm for balancing edge forces</li>
+ * <li>UNIT TESTS!!!</li>
+ * </ul>
+ */
 public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
+	/**
+	 * <p>
+	 * Represents a set of edge positions for a layout.
+	 * </p>
+	 *
+	 * <p>
+	 * During computation for the layout, {@link #isInitialized(Edge)} should be used in conjunction with queries to determine if the edge
+	 * has been initialized yet. After the solution is returned by {@link LayoutSystemSet#solve()}, all edges will have been initialized.
+	 * </p>
+	 */
 	public interface LayoutSolution extends EdgeBox {
 		boolean isInitialized(Edge edge);
+
 		int getPosition(Edge edge);
 	}
 
@@ -35,8 +94,14 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 		}
 	}
 
-	public interface LayoutEdgeLink extends Cloneable {
+	/**
+	 * Represents a constraint on the distance between 2 edges. The constraint may depend on the positions of other edges in the layout
+	 * (these should be declared via {@link LayoutSolver#depends(Edge, Edge, Edge, Edge)}. This is not enforced, but may result in non-ideal
+	 * solutions otherwise).
+	 */
+	public interface LayoutEdgeLink {
 		void recalculate(LayoutSolution current);
+
 		LayoutSpring getConstraint();
 
 		LayoutEdgeLink copy();
@@ -134,15 +199,155 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 	}
 
 	public static class LayoutSystem {
+		private static abstract class LayoutEdgeState implements LayoutEdgeLink {
+			float force;
+
+			@Override
+			public abstract LayoutEdgeState copy();
+		}
+
+		private static class SimpleEdgeState extends LayoutEdgeState {
+			private final LayoutEdgeLink theLink;
+
+			SimpleEdgeState(LayoutEdgeLink link) {
+				theLink = link;
+			}
+
+			@Override
+			public void recalculate(LayoutSolution current) {
+				theLink.recalculate(current);
+			}
+
+			@Override
+			public LayoutSpring getConstraint() {
+				return theLink.getConstraint();
+			}
+
+			@Override
+			public LayoutEdgeState copy() {
+				return new SimpleEdgeState(theLink.copy());
+			}
+		}
+
+		private static class SeriesEdgeState extends LayoutEdgeState {
+			final Edge[] theEdges;
+			final LayoutEdgeState[] theSeries;
+			LayoutSpring evaluated;
+
+			SeriesEdgeState(Edge[] edges, LayoutEdgeState[] series) {
+				theEdges = edges;
+				theSeries = series;
+			}
+
+			@Override
+			public void recalculate(LayoutSolution current) {
+				evaluated = null;
+				for (LayoutEdgeState link : theSeries)
+					link.recalculate(current);
+			}
+
+			@Override
+			public LayoutSpring getConstraint() {
+				if (evaluated == null) {
+					LayoutSpring[] springs = new LayoutSpring[theSeries.length];
+					for (int i = 0; i < springs.length; i++)
+						springs[i] = theSeries[i].getConstraint();
+					evaluated = new LayoutSpring.CachingSpring(new LayoutSpring.SeriesSpring(springs));
+				}
+				return evaluated;
+			}
+
+			@Override
+			public SeriesEdgeState copy() {
+				SeriesEdgeState ret = new SeriesEdgeState(theEdges, theSeries.clone());
+				for (int i = 0; i < ret.theSeries.length; i++)
+					ret.theSeries[i] = ret.theSeries[i].copy();
+				return ret;
+			}
+		}
+
 		private final LayoutSystemSet theSystemSet;
-		private final Graph<Edge, LayoutEdgeLink> theEdges;
-		private boolean isDirty;
+		private final Graph<Edge, LayoutEdgeState> theEdges;
+		private final Map<Edge, float[]> theForces;
 		private int theSolveCount;
 
-		LayoutSystem(LayoutSystemSet systemSet, Graph<Edge, LayoutEdgeLink> edges) {
+		LayoutSystem(LayoutSystemSet systemSet, MutableGraph<Edge, LayoutEdgeLink> edges) {
 			theSystemSet = systemSet;
-			theEdges = edges;
-			isDirty = true;
+			MutableGraph<Edge, LayoutEdgeState> edgeStates = new DefaultGraph<>();
+			for (Graph.Node<Edge, LayoutEdgeLink> node : edges.getNodes())
+				edgeStates.addNode(node.getValue());
+			for (Graph.Edge<Edge, LayoutEdgeLink> edge : edges.getEdges())
+				edgeStates.addEdge(edgeStates.nodeFor(edge.getStart().getValue()), edgeStates.nodeFor(edge.getEnd().getValue()),
+					edge.isDirected(), new SimpleEdgeState(edge.getValue()));
+			boolean modified;
+			do {
+				modified = false;
+
+				// Search for series
+				Iterator<? extends Graph.Node<Edge, LayoutEdgeState>> nodeIter = new ArrayList<>(edgeStates.getNodes()).iterator();
+				while (nodeIter.hasNext()) {
+					Graph.Node<Edge, LayoutEdgeState> node = nodeIter.next();
+					Graph.Edge<Edge, LayoutEdgeState>[] nodeEdges = checkSeries(node);
+					if (nodeEdges != null) {
+						// Replace the edge-node-edge combination with a single series edge
+						modified = true;
+						nodeIter.remove();
+						boolean series0 = nodeEdges[0].getValue() instanceof SeriesEdgeState;
+						boolean series1 = nodeEdges[1].getValue() instanceof SeriesEdgeState;
+						int componentLength = 0;
+						componentLength += series0 ? ((SeriesEdgeState) nodeEdges[0].getValue()).theSeries.length : 1;
+						componentLength += series1 ? ((SeriesEdgeState) nodeEdges[1].getValue()).theSeries.length : 1;
+						LayoutEdgeState[] seriesStates = new LayoutEdgeState[componentLength];
+						Edge[] seriesEdges = new Edge[componentLength - 1];
+						componentLength = 0;
+						if (series0) {
+							SeriesEdgeState ses = (SeriesEdgeState) nodeEdges[0].getValue();
+							int count = ses.theSeries.length;
+							System.arraycopy(ses.theSeries, componentLength, seriesStates, 0, count);
+							System.arraycopy(ses.theEdges, componentLength, seriesEdges, 0, count - 1);
+							componentLength += count;
+						} else
+							seriesStates[componentLength++] = nodeEdges[0].getValue();
+						seriesEdges[componentLength - 1] = node.getValue();
+						if (series0) {
+							SeriesEdgeState ses = (SeriesEdgeState) nodeEdges[1].getValue();
+							int count = ses.theSeries.length;
+							System.arraycopy(ses.theSeries, componentLength, seriesStates, 0, count);
+							System.arraycopy(ses.theEdges, componentLength, seriesEdges, 0, count - 1);
+							componentLength += count;
+						} else
+							seriesStates[componentLength++] = nodeEdges[1].getValue();
+						SeriesEdgeState seriesEdge = new SeriesEdgeState(seriesEdges, seriesStates);
+						edgeStates.addEdge(nodeEdges[0].getOtherEnd(node), nodeEdges[1].getOtherEnd(node), true, seriesEdge);
+						edgeStates.removeNode(node);
+					}
+
+					// Search for parallels
+					Iterator<? extends Graph.Edge<Edge, LayoutEdgeState>> edgeIter = new ArrayList<>(edgeStates.getEdges()).iterator();
+					while (edgeIter.hasNext()) {
+						Graph.Edge<Edge, LayoutEdgeState> edge = edgeIter.next();
+						Graph.Edge<Edge, LayoutEdgeState>[] parallelEdges = checkParallel(edge);
+						if (parallelEdges != null) {
+							// TODO Replace the parallel edges with a single parallel edge
+						}
+					}
+				}
+			} while (modified);
+
+			theEdges = edgeStates.immutable();
+		}
+
+		private Graph.Edge<Edge, LayoutEdgeState>[] checkSeries(Graph.Node<Edge, LayoutEdgeState> node) {
+			if (node.getEdges().size() != 2)
+				return null;
+			Graph.Edge<Edge, LayoutEdgeState>[] nodeEdges = node.getEdges().toArray(new Graph.Edge[2]);
+			if (nodeEdges[0].getOtherEnd(node) != nodeEdges[1].getOtherEnd(node))
+				return nodeEdges;
+			return null;
+		}
+
+		private Graph.Edge<Edge, LayoutEdgeState>[] checkParallel(Graph.Edge<Edge, LayoutEdgeState> edge) {
+			// TODO
 		}
 
 		void initialize() {
@@ -164,9 +369,9 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 
 		LayoutSystemSet(LayoutSolver solver, LayoutGuideType sizeType) {
 			this(solver);
-			int todo = todo; // Initialization
 			for (Graph.Node<LayoutSystem, EdgePair> system : theSystems.getNodes())
 				system.getValue().initialize();
+			int todo = todo; // Add tension to outer edges corresponding to size type
 		}
 
 		LayoutSystemSet(LayoutSolver solver, Dimension layoutSize) {
@@ -204,21 +409,35 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 				}
 			};
 			theSystemsByEdge = new HashMap<>();
-			for (MutableGraph<Edge, LayoutEdgeLink> subGraph : solver.theHSprings.split(node -> new DefaultGraph<>())) {
-				LayoutSystem system = new LayoutSystem(this, subGraph);
+
+			// Derive independent sub-graphs in the layout--graphs which have no direct relationships between them
+			Map<Edge, MutableGraph<Edge, LayoutEdgeLink>> subGraphsByEdge = new HashMap<>();
+			List<MutableGraph<Edge, LayoutEdgeLink>> subGraphs = solver.theHSprings.split(node -> new DefaultGraph<>());
+			for (MutableGraph<Edge, LayoutEdgeLink> subGraph : subGraphs) {
 				for (Graph.Node<Edge, LayoutEdgeLink> edge : subGraph.getNodes())
-					theSystemsByEdge.put(edge.getValue(), system);
-				theSystems.addNode(system);
+					subGraphsByEdge.put(edge.getValue(), subGraph);
 			}
 			// Opposite edges of the overall layout must be in the same sub-graph
-			LayoutSystem leftSys = theSystemsByEdge.get(solver.getLeft());
-			LayoutSystem rightSys = theSystemsByEdge.get(solver.getRight());
-			if (leftSys != rightSys)
-				moveAll(rightSys, leftSys);
-			LayoutSystem topSys = theSystemsByEdge.get(solver.getTop());
-			LayoutSystem bottomSys = theSystemsByEdge.get(solver.getBottom());
-			if (topSys != bottomSys)
-				moveAll(bottomSys, topSys);
+			MutableGraph<Edge, LayoutEdgeLink> leftSys = subGraphsByEdge.get(solver.getLeft());
+			MutableGraph<Edge, LayoutEdgeLink> rightSys = subGraphsByEdge.get(solver.getRight());
+			if (leftSys != rightSys) {
+				leftSys.addAll(rightSys);
+				subGraphs.remove(rightSys);
+			}
+			MutableGraph<Edge, LayoutEdgeLink> topSys = subGraphsByEdge.get(solver.getTop());
+			MutableGraph<Edge, LayoutEdgeLink> bottomSys = subGraphsByEdge.get(solver.getBottom());
+			if (topSys != bottomSys) {
+				topSys.addAll(bottomSys);
+				subGraphs.remove(bottomSys);
+			}
+
+			// Compile LayoutSystem graph
+			for (MutableGraph<Edge, LayoutEdgeLink> subGraph : subGraphs) {
+				LayoutSystem system = new LayoutSystem(this, subGraph);
+				theSystems.addNode(system);
+				for (Graph.Node<Edge, LayoutEdgeLink> node : subGraph.getNodes())
+					theSystemsByEdge.put(node.getValue(), system);
+			}
 			for (Map.Entry<EdgePair, EdgePair> couples : solver.theDependencies.entrySet()) {
 				LayoutSystem sys11 = theSystemsByEdge.get(couples.getKey().edge1);
 				LayoutSystem sys21 = theSystemsByEdge.get(couples.getValue().edge1);
@@ -231,21 +450,12 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			}
 		}
 
-		private void moveAll(LayoutSystem fromSys, LayoutSystem toSys) {
-			for (Graph.Node<Edge, LayoutEdgeLink> edge : fromSys.theEdges.getNodes()) {
-				((MutableGraph<Edge, LayoutEdgeLink>) toSys.theEdges).addNode(edge.getValue());
-				theSystemsByEdge.put(edge.getValue(), toSys);
-			}
-			for (Graph.Edge<Edge, LayoutEdgeLink> link : fromSys.theEdges.getEdges())
-				((MutableGraph<Edge, LayoutEdgeLink>) toSys.theEdges).addEdge(toSys.theEdges.nodeFor(link.getStart().getValue()), //
-					toSys.theEdges.nodeFor(link.getEnd().getValue()), //
+		private void moveAll(MutableGraph<Edge, LayoutEdgeLink> fromSys, MutableGraph<Edge, LayoutEdgeLink> toSys) {
+			for (Graph.Node<Edge, LayoutEdgeLink> edge : fromSys.getNodes())
+				toSys.addNode(edge.getValue());
+			for (Graph.Edge<Edge, LayoutEdgeLink> link : fromSys.getEdges())
+				toSys.addEdge(toSys.nodeFor(link.getStart().getValue()), toSys.nodeFor(link.getEnd().getValue()), //
 					link.isDirected(), link.getValue());
-			Graph.Node<LayoutSystem, EdgePair> rightNode = theSystems.nodeFor(fromSys);
-			for (Graph.Edge<LayoutSystem, EdgePair> depend : rightNode.getEdges()) {
-				if (depend.getStart() == rightNode)
-					theSystems.addEdge(rightNode, theSystems.nodeFor(depend.getEnd().getValue()), depend.isDirected(), depend.getValue());
-			}
-			theSystems.removeNode(rightNode);
 		}
 
 		public LayoutSolution solve() {}

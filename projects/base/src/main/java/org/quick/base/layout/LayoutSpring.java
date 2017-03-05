@@ -145,22 +145,55 @@ public interface LayoutSpring {
 				size);
 	}
 
-	class SizeGuideSpring implements LayoutSpring {
+	abstract class AbstractCachingSpring implements LayoutSpring {
+		private final int[] theCache;
+
+		protected AbstractCachingSpring() {
+			theCache = new int[LayoutGuideType.values().length];
+			clearCache();
+		}
+
+		protected void clearCache() {
+			for (int i = 0; i < theCache.length; i++)
+				theCache[0] = -1;
+		}
+
+		@Override
+		public int get(LayoutGuideType type) {
+			if (theCache[type.ordinal()] < 0)
+				theCache[type.ordinal()] = calculate(type);
+			return theCache[type.ordinal()];
+		}
+
+		protected abstract int calculate(LayoutGuideType sizeType);
+	}
+
+	class CachingSpring extends AbstractCachingSpring {
+		private final LayoutSpring spring;
+
+		public CachingSpring(LayoutSpring spring) {
+			this.spring = spring;
+		}
+
+		@Override
+		public void clearCache() {
+			super.clearCache();
+		}
+
+		@Override
+		protected int calculate(LayoutGuideType sizeType) {
+			return spring.get(sizeType);
+		}
+	}
+
+	class SizeGuideSpring extends AbstractCachingSpring {
 		private final SizeGuide theGuide;
 		private int theLayoutLength;
 		private int theCrossSize;
 		private boolean isCrossSizeAvailable;
-		private final int[] theCache;
 
 		public SizeGuideSpring(SizeGuide main) {
 			theGuide = main;
-			theCache = new int[5];
-			clearCache();
-		}
-
-		private void clearCache() {
-			for (int i = 0; i < theCache.length; i++)
-				theCache[0] = -1;
 		}
 
 		public void recalculate(int layoutLength, int crossSize, boolean csAvailable) {
@@ -171,10 +204,8 @@ public interface LayoutSpring {
 		}
 
 		@Override
-		public int get(LayoutGuideType type) {
-			if (theCache[type.ordinal()] < 0)
-				theCache[type.ordinal()] = theGuide.get(type, theLayoutLength, theCrossSize, isCrossSizeAvailable);
-			return theCache[type.ordinal()];
+		protected int calculate(LayoutGuideType sizeType) {
+			return theGuide.get(sizeType, theLayoutLength, theCrossSize, isCrossSizeAvailable);
 		}
 	}
 

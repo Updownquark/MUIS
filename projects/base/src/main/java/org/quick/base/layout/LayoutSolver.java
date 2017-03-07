@@ -230,28 +230,29 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 		}
 
 		private static class SeriesEdgeState extends LayoutEdgeState {
-			final Edge[] theEdges;
-			final LayoutEdgeState[] theSeries;
+			final List<Edge> theEdges;
+			final List<LayoutEdgeState> theComponents;
 			LayoutSpring evaluated;
 
-			SeriesEdgeState(Edge[] edges, LayoutEdgeState[] series) {
+			SeriesEdgeState(List<Edge> edges, List<LayoutEdgeState> series) {
 				theEdges = edges;
-				theSeries = series;
+				theComponents = series;
 			}
 
 			@Override
 			public void recalculate(LayoutSolution current) {
 				evaluated = null;
-				for (LayoutEdgeState link : theSeries)
+				for (LayoutEdgeState link : theComponents)
 					link.recalculate(current);
+				// TODO calculate positions for internal edges, insert into solution
 			}
 
 			@Override
 			public LayoutSpring getConstraint() {
 				if (evaluated == null) {
-					LayoutSpring[] springs = new LayoutSpring[theSeries.length];
+					LayoutSpring[] springs = new LayoutSpring[theComponents.size()];
 					for (int i = 0; i < springs.length; i++)
-						springs[i] = theSeries[i].getConstraint();
+						springs[i] = theComponents.get(i).getConstraint();
 					evaluated = new LayoutSpring.CachingSpring(new LayoutSpring.SeriesSpring(springs));
 				}
 				return evaluated;
@@ -259,9 +260,44 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 
 			@Override
 			public SeriesEdgeState copy() {
-				SeriesEdgeState ret = new SeriesEdgeState(theEdges, theSeries.clone());
-				for (int i = 0; i < ret.theSeries.length; i++)
-					ret.theSeries[i] = ret.theSeries[i].copy();
+				SeriesEdgeState ret = new SeriesEdgeState(theEdges, new ArrayList<>(theComponents));
+				for (int i = 0; i < ret.theComponents.size(); i++)
+					ret.theComponents.set(i, ret.theComponents.get(i).copy());
+				return ret;
+			}
+		}
+
+		private static class ParallelEdgeState extends LayoutEdgeState {
+			final List<LayoutEdgeState> theComponents;
+			LayoutSpring evaluated;
+
+			ParallelEdgeState(List<LayoutEdgeState> series) {
+				theComponents = series;
+			}
+
+			@Override
+			public void recalculate(LayoutSolution current) {
+				evaluated = null;
+				for (LayoutEdgeState link : theComponents)
+					link.recalculate(current);
+			}
+
+			@Override
+			public LayoutSpring getConstraint() {
+				if (evaluated == null) {
+					LayoutSpring[] springs = new LayoutSpring[theComponents.size()];
+					for (int i = 0; i < springs.length; i++)
+						springs[i] = theComponents.get(i).getConstraint();
+					evaluated = new LayoutSpring.CachingSpring(new LayoutSpring.ParallelSpring(springs));
+				}
+				return evaluated;
+			}
+
+			@Override
+			public ParallelEdgeState copy() {
+				ParallelEdgeState ret = new ParallelEdgeState(new ArrayList<>(theComponents));
+				for (int i = 0; i < ret.theComponents.size(); i++)
+					ret.theComponents.set(i, ret.theComponents.get(i).copy());
 				return ret;
 			}
 		}
@@ -292,43 +328,45 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 						// Replace the edge-node-edge combination with a single series edge
 						modified = true;
 						nodeIter.remove();
-						boolean series0 = nodeEdges[0].getValue() instanceof SeriesEdgeState;
-						boolean series1 = nodeEdges[1].getValue() instanceof SeriesEdgeState;
-						int componentLength = 0;
-						componentLength += series0 ? ((SeriesEdgeState) nodeEdges[0].getValue()).theSeries.length : 1;
-						componentLength += series1 ? ((SeriesEdgeState) nodeEdges[1].getValue()).theSeries.length : 1;
-						LayoutEdgeState[] seriesStates = new LayoutEdgeState[componentLength];
-						Edge[] seriesEdges = new Edge[componentLength - 1];
-						componentLength = 0;
-						if (series0) {
-							SeriesEdgeState ses = (SeriesEdgeState) nodeEdges[0].getValue();
-							int count = ses.theSeries.length;
-							System.arraycopy(ses.theSeries, componentLength, seriesStates, 0, count);
-							System.arraycopy(ses.theEdges, componentLength, seriesEdges, 0, count - 1);
-							componentLength += count;
+						List<Edge> seriesEdges=new ArrayList<>();
+						List<LayoutEdgeState> seriesStates=new ArrayList<>();
+						if(nodeEdges[0].getValue() instanceof SeriesEdgeState){
+							SeriesEdgeState ses=(SeriesEdgeState) nodeEdges[0].getValue();
+							seriesEdges.addAll(ses.theEdges);
+							seriesStates.addAll(ses.theComponents);
 						} else
-							seriesStates[componentLength++] = nodeEdges[0].getValue();
-						seriesEdges[componentLength - 1] = node.getValue();
-						if (series0) {
-							SeriesEdgeState ses = (SeriesEdgeState) nodeEdges[1].getValue();
-							int count = ses.theSeries.length;
-							System.arraycopy(ses.theSeries, componentLength, seriesStates, 0, count);
-							System.arraycopy(ses.theEdges, componentLength, seriesEdges, 0, count - 1);
-							componentLength += count;
+							seriesStates.add(nodeEdges[0].getValue());
+						seriesEdges.add(node.getValue());
+						if(nodeEdges[1].getValue() instanceof SeriesEdgeState){
+							SeriesEdgeState ses=(SeriesEdgeState) nodeEdges[1].getValue();
+							seriesEdges.addAll(ses.theEdges);
+							seriesStates.addAll(ses.theComponents);
 						} else
-							seriesStates[componentLength++] = nodeEdges[1].getValue();
+							seriesStates.add(nodeEdges[1].getValue());
 						SeriesEdgeState seriesEdge = new SeriesEdgeState(seriesEdges, seriesStates);
 						edgeStates.addEdge(nodeEdges[0].getOtherEnd(node), nodeEdges[1].getOtherEnd(node), true, seriesEdge);
 						edgeStates.removeNode(node);
 					}
 
 					// Search for parallels
-					Iterator<? extends Graph.Edge<Edge, LayoutEdgeState>> edgeIter = new ArrayList<>(edgeStates.getEdges()).iterator();
+					List<Graph.Edge<Edge, LayoutEdgeState>> allEdges = new ArrayList<>(edgeStates.getEdges());
+					Iterator<? extends Graph.Edge<Edge, LayoutEdgeState>> edgeIter = allEdges.iterator();
 					while (edgeIter.hasNext()) {
 						Graph.Edge<Edge, LayoutEdgeState> edge = edgeIter.next();
-						Graph.Edge<Edge, LayoutEdgeState>[] parallelEdges = checkParallel(edge);
+						List<Graph.Edge<Edge, LayoutEdgeState>> parallelEdges = checkParallel(edge);
 						if (parallelEdges != null) {
-							// TODO Replace the parallel edges with a single parallel edge
+							modified=true;
+							List<LayoutEdgeState> parallelStates = new ArrayList<>();
+							for (Graph.Edge<Edge, LayoutEdgeState> parallelEdge : parallelEdges) {
+								if (parallelEdge.getValue() instanceof ParallelEdgeState) {
+									parallelStates.addAll(((ParallelEdgeState) parallelEdge.getValue()).theComponents);
+								} else
+									parallelStates.add(parallelEdge.getValue());
+								edgeStates.removeEdge(parallelEdge);
+							}
+							edgeStates.addEdge(edge.getStart(), edge.getEnd(), false, new ParallelEdgeState(parallelStates));
+							allEdges.removeAll(parallelEdges);
+							edgeIter = allEdges.iterator();
 						}
 					}
 				}
@@ -346,8 +384,18 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			return null;
 		}
 
-		private Graph.Edge<Edge, LayoutEdgeState>[] checkParallel(Graph.Edge<Edge, LayoutEdgeState> edge) {
-			// TODO
+		private List<Graph.Edge<Edge, LayoutEdgeState>> checkParallel(Graph.Edge<Edge, LayoutEdgeState> edge) {
+			List<Graph.Edge<Edge, LayoutEdgeState>> parallelEdges = null;
+			for (Graph.Edge<Edge, LayoutEdgeState> fromEdge : edge.getStart().getEdges()) {
+				if (fromEdge != edge && fromEdge.getOtherEnd(edge.getStart()) == edge.getEnd()) {
+					if (parallelEdges == null) {
+						parallelEdges = new ArrayList<>(4);
+						parallelEdges.add(edge);
+					}
+					parallelEdges.add(fromEdge);
+				}
+			}
+			return parallelEdges;
 		}
 
 		void initialize() {

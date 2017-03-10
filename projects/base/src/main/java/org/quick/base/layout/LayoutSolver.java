@@ -253,7 +253,7 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 					LayoutSpring[] springs = new LayoutSpring[theComponents.size()];
 					for (int i = 0; i < springs.length; i++)
 						springs[i] = theComponents.get(i).getConstraint();
-					evaluated = new LayoutSpring.CachingSpring(new LayoutSpring.SeriesSpring(springs));
+					evaluated = new LayoutSpring.SeriesSpring(springs);
 				}
 				return evaluated;
 			}
@@ -288,7 +288,7 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 					LayoutSpring[] springs = new LayoutSpring[theComponents.size()];
 					for (int i = 0; i < springs.length; i++)
 						springs[i] = theComponents.get(i).getConstraint();
-					evaluated = new LayoutSpring.CachingSpring(new LayoutSpring.ParallelSpring(springs));
+					evaluated = new LayoutSpring.ParallelSpring(springs);
 				}
 				return evaluated;
 			}

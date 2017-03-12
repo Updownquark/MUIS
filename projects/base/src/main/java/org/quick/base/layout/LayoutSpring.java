@@ -1,6 +1,5 @@
 package org.quick.base.layout;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -173,11 +172,15 @@ public interface LayoutSpring {
 			theGuide = main;
 		}
 
-		public void recalculate(int layoutLength, int crossSize, boolean csAvailable) {
-			theLayoutLength = layoutLength;
-			theCrossSize = crossSize;
-			isCrossSizeAvailable = csAvailable;
-			clearCache();
+		public boolean recalculate(int layoutLength, int crossSize, boolean csAvailable) {
+			if (theLayoutLength != layoutLength || theCrossSize != crossSize || isCrossSizeAvailable != csAvailable) {
+				theLayoutLength = layoutLength;
+				theCrossSize = crossSize;
+				isCrossSizeAvailable = csAvailable;
+				clearCache();
+				return true;
+			} else
+				return false;
 		}
 
 		@Override
@@ -223,43 +226,45 @@ public interface LayoutSpring {
 		}
 	}
 
-	class SeriesSpring extends AbstractCachingSpring {
-		private final List<LayoutSpring> theComponents;
+	abstract class ComponentizedSpring extends AbstractCachingSpring {
+		private final List<? extends LayoutSpring> theComponents;
 
-		public SeriesSpring(LayoutSpring... components) {
-			theComponents = Collections.unmodifiableList(Arrays.asList(components));
+		public ComponentizedSpring(List<? extends LayoutSpring> components) {
+			if (components.getClass().getSimpleName().contains("Unmodifiable")
+				&& !components.getClass().getSimpleName().contains("Immutable"))
+				components = Collections.unmodifiableList(components);
+			theComponents = components;
 		}
 
-		public List<LayoutSpring> getComponents() {
+		public List<? extends LayoutSpring> getComponents() {
 			return theComponents;
+		}
+	}
+
+	class SeriesSpring extends ComponentizedSpring {
+		public SeriesSpring(List<? extends LayoutSpring> components) {
+			super(components);
 		}
 
 		@Override
 		protected int calculate(LayoutGuideType sizeType) {
 			int size = 0;
-			for (LayoutSpring component : theComponents)
+			for (LayoutSpring component : getComponents())
 				size = LayoutUtils.add(size, component.get(sizeType));
 			return size;
 		}
 	}
 
-	class ParallelSpring extends AbstractCachingSpring {
-		private final List<LayoutSpring> theComponents;
-
-		public ParallelSpring(LayoutSpring... components) {
-			theComponents = Collections.unmodifiableList(Arrays.asList(components));
+	class ParallelSpring extends ComponentizedSpring {
+		public ParallelSpring(List<? extends LayoutSpring> components) {
+			super(components);
 		}
-
-		public List<LayoutSpring> getComponents() {
-			return theComponents;
-		}
-
 		@Override
 		protected int calculate(LayoutGuideType sizeType) {
 			int size = -1;
 			switch (sizeType) {
 			case min:
-				for (LayoutSpring component : theComponents) {
+				for (LayoutSpring component : getComponents()) {
 					int compSize = component.get(sizeType);
 					if (size < 0 || compSize > size)
 						size = compSize;
@@ -268,7 +273,7 @@ public interface LayoutSpring {
 					size = 0;
 				break;
 			case max:
-				for (LayoutSpring component : theComponents) {
+				for (LayoutSpring component : getComponents()) {
 					int compSize = component.get(sizeType);
 					if (size < 0 || compSize < size)
 						size = compSize;
@@ -278,7 +283,7 @@ public interface LayoutSpring {
 					size = min;
 				break;
 			case minPref:
-				for (LayoutSpring component : theComponents) {
+				for (LayoutSpring component : getComponents()) {
 					int compSize = component.get(sizeType);
 					if (size < 0 || compSize > size)
 						size = compSize;
@@ -293,7 +298,7 @@ public interface LayoutSpring {
 				}
 				break;
 			case maxPref:
-				for (LayoutSpring component : theComponents) {
+				for (LayoutSpring component : getComponents()) {
 					int compSize = component.get(sizeType);
 					if (size < 0 || compSize < size)
 						size = compSize;
@@ -309,9 +314,9 @@ public interface LayoutSpring {
 				break;
 			case pref:
 				long sizeL = 0;
-				for (LayoutSpring component : theComponents)
+				for (LayoutSpring component : getComponents())
 					sizeL += component.get(sizeType);
-				size = (int) (sizeL / theComponents.size());
+				size = (int) (sizeL / getComponents().size());
 				min = getMinPreferred();
 				if (size < min)
 					size = min;
@@ -326,6 +331,22 @@ public interface LayoutSpring {
 				size = 0;
 			return size;
 		}
+	}
+
+	static float getTensionFor(LayoutGuideType sizeType) {
+		switch (sizeType) {
+		case min:
+			return -OUTER_SIZE_TENSION;
+		case minPref:
+			return -OUTER_PREF_TENSION;
+		case pref:
+			return 0;
+		case maxPref:
+			return OUTER_PREF_TENSION;
+		case max:
+			return OUTER_SIZE_TENSION;
+		}
+		throw new IllegalStateException("Unrecognized size type: " + sizeType);
 	}
 
 	public static float interpolateFloat(int lowI, int highI, float lowF, float highF, int iValue) {

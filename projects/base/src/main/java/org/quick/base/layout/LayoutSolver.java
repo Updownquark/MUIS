@@ -2,7 +2,10 @@ package org.quick.base.layout;
 
 import java.awt.Dimension;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.observe.collect.ObservableList;
 import org.qommons.BiTuple;
 import org.qommons.collect.DefaultGraph;
 import org.qommons.collect.Graph;
@@ -64,22 +67,6 @@ import com.google.common.collect.HashBiMap;
  * </ul>
  */
 public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
-	/**
-	 * <p>
-	 * Represents a set of edge positions for a layout.
-	 * </p>
-	 *
-	 * <p>
-	 * During computation for the layout, {@link #isInitialized(Edge)} should be used in conjunction with queries to determine if the edge
-	 * has been initialized yet. After the solution is returned by {@link LayoutSystemSet#solve()}, all edges will have been initialized.
-	 * </p>
-	 */
-	public interface LayoutSolution extends EdgeBox {
-		boolean isInitialized(Edge edge);
-
-		int getPosition(Edge edge);
-	}
-
 	public static class NamedEdge extends Edge.SimpleEdge {
 		private final String theName;
 
@@ -99,10 +86,8 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 	 * (these should be declared via {@link LayoutSolver#depends(Edge, Edge, Edge, Edge)}. This is not enforced, but may result in non-ideal
 	 * solutions otherwise).
 	 */
-	public interface LayoutEdgeLink {
-		void recalculate(LayoutSolution current);
-
-		LayoutSpring getConstraint();
+	public interface LayoutEdgeLink extends LayoutSpring {
+		boolean recalculate(LayoutSolution current);
 
 		LayoutEdgeLink copy();
 
@@ -117,7 +102,7 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			}
 
 			@Override
-			public void recalculate(LayoutSolution current) {
+			public boolean recalculate(LayoutSolution current) {
 				if (theSpring == null)
 					theSpring = new LayoutSpring.SizeGuideSpring(guide);
 				Orientation orient = crossEdges.getValue1().getOrientation().opposite();
@@ -128,12 +113,12 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 					crossSize = current.getPosition(current.getBoundary(orient.opposite(), End.trailing));
 				else
 					crossSize = current.getPosition(crossEdges.getValue2()) - current.getPosition(crossEdges.getValue1());
-				theSpring.recalculate(layoutLength, crossSize, csAvailable);
+				return theSpring.recalculate(layoutLength, crossSize, csAvailable);
 			}
 
 			@Override
-			public LayoutSpring getConstraint() {
-				return theSpring;
+			public int get(LayoutGuideType type) {
+				return theSpring.get(type);
 			}
 
 			@Override
@@ -150,11 +135,13 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			}
 
 			@Override
-			public void recalculate(LayoutSolution current) {}
+			public boolean recalculate(LayoutSolution current) {
+				return false;
+			}
 
 			@Override
-			public LayoutSpring getConstraint() {
-				return spring;
+			public int get(LayoutGuideType type) {
+				return spring.get(type);
 			}
 
 			@Override
@@ -162,6 +149,79 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 				return this; // Stateless
 			}
 		}
+
+		public static abstract class ComponentizedEdgeLink implements LayoutEdgeLink {
+			private final List<? extends LayoutEdgeLink> theComponents;
+			private final LayoutSpring.ComponentizedSpring theSpring;
+
+			public ComponentizedEdgeLink(List<? extends LayoutEdgeLink> components) {
+				if (components.getClass().getSimpleName().contains("Unmodifiable")
+					&& !components.getClass().getSimpleName().contains("Immutable"))
+					components = Collections.unmodifiableList(components);
+				theComponents = components;
+				theSpring = aggregate(theComponents);
+			}
+
+			public List<? extends LayoutEdgeLink> getComponents() {
+				return theComponents;
+			}
+
+			protected abstract LayoutSpring.ComponentizedSpring aggregate(List<? extends LayoutEdgeLink> components);
+
+			@Override
+			public boolean recalculate(LayoutSolution current) {
+				boolean recalculated = false;
+				for (LayoutEdgeLink link : theComponents)
+					recalculated |= link.recalculate(current);
+				if (recalculated)
+					theSpring.clearCache();
+				return recalculated;
+			}
+
+			@Override
+			public int get(LayoutGuideType type) {
+				return theSpring.get(type);
+			}
+		}
+
+		public static class SeriesEdgeLink extends ComponentizedEdgeLink {
+			public SeriesEdgeLink(List<? extends LayoutEdgeLink> components) {
+				super(components);
+			}
+
+			@Override
+			protected LayoutSpring.SeriesSpring aggregate(List<? extends LayoutEdgeLink> components) {
+				return new LayoutSpring.SeriesSpring(components);
+			}
+
+			@Override
+			public SeriesEdgeLink copy() {
+				return new SeriesEdgeLink(map(getComponents(), c -> c.copy()));
+			}
+		}
+
+		public static class ParallelEdgeLink extends ComponentizedEdgeLink {
+			public ParallelEdgeLink(List<? extends LayoutEdgeLink> components) {
+				super(components);
+			}
+
+			@Override
+			protected LayoutSpring.ParallelSpring aggregate(List<? extends LayoutEdgeLink> components) {
+				return new LayoutSpring.ParallelSpring(components);
+			}
+
+			@Override
+			public SeriesEdgeLink copy() {
+				return new SeriesEdgeLink(map(getComponents(), c -> c.copy()));
+			}
+		}
+	}
+
+	private static <T, V> List<V> map(List<? extends T> list, Function<? super T, V> map) {
+		if (list instanceof ObservableList) // TODO Change to Qollection when ready
+			return ((ObservableList<? extends T>) list).map(map);
+		else
+			return list.stream().map(map).collect(Collectors.toList());
 	}
 
 	private static class EdgePair {
@@ -198,166 +258,152 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 		}
 	}
 
-	public static class LayoutSystem {
-		private static abstract class LayoutEdgeState implements LayoutEdgeLink {
-			float force;
+	private static class LayoutSolutionImpl extends EdgeBox.SimpleEdgeBox implements LayoutSolution {
+		private final Map<Edge, int[]> thePositions;
+		private final Map<Edge, float[]> theForces;
 
-			@Override
-			public abstract LayoutEdgeState copy();
+		LayoutSolutionImpl() {
+			thePositions = new HashMap<>();
+			theForces = new HashMap<>();
 		}
 
-		private static class SimpleEdgeState extends LayoutEdgeState {
-			private final LayoutEdgeLink theLink;
+		@Override
+		public boolean isInitialized(Edge edge) {
+		}
 
-			SimpleEdgeState(LayoutEdgeLink link) {
+		@Override
+		public int getPosition(Edge edge) {
+			return thePositions.get(edge)[0];
+		}
+	}
+
+	public static class LayoutSystem {
+		public static abstract class CompiledLayoutEdge {
+			private final LayoutEdgeLink theLink;
+			private int theLength;
+
+			CompiledLayoutEdge(LayoutEdgeLink link) {
 				theLink = link;
 			}
 
-			@Override
-			public void recalculate(LayoutSolution current) {
-				theLink.recalculate(current);
+			public LayoutEdgeLink getLink() {
+				return theLink;
 			}
 
-			@Override
-			public LayoutSpring getConstraint() {
-				return theLink.getConstraint();
-			}
-
-			@Override
-			public LayoutEdgeState copy() {
-				return new SimpleEdgeState(theLink.copy());
+			boolean recalculate(LayoutSolutionImpl solution) {
+				return theLink.recalculate(solution);
 			}
 		}
 
-		private static class SeriesEdgeState extends LayoutEdgeState {
-			final List<Edge> theEdges;
-			final List<LayoutEdgeState> theComponents;
-			LayoutSpring evaluated;
+		private static class SimpleEdge extends CompiledLayoutEdge {
+			SimpleEdge(LayoutEdgeLink link) {
+				super(link);
+			}
+		}
 
-			SeriesEdgeState(List<Edge> edges, List<LayoutEdgeState> series) {
+		private static class SeriesEdge extends CompiledLayoutEdge {
+			private final List<Edge> theEdges;
+			private final List<CompiledLayoutEdge> theComponents;
+			private int theCachedLength;
+
+			SeriesEdge(List<Edge> edges, List<CompiledLayoutEdge> series) {
+				super(new LayoutEdgeLink.SeriesEdgeLink(map(series, edge -> edge.getLink())));
 				theEdges = edges;
 				theComponents = series;
+				theCachedLength = -1;
 			}
 
 			@Override
-			public void recalculate(LayoutSolution current) {
-				evaluated = null;
-				for (LayoutEdgeState link : theComponents)
-					link.recalculate(current);
-				// TODO calculate positions for internal edges, insert into solution
-			}
-
-			@Override
-			public LayoutSpring getConstraint() {
-				if (evaluated == null) {
-					LayoutSpring[] springs = new LayoutSpring[theComponents.size()];
-					for (int i = 0; i < springs.length; i++)
-						springs[i] = theComponents.get(i).getConstraint();
-					evaluated = new LayoutSpring.SeriesSpring(springs);
+			boolean recalculate(LayoutSolutionImpl current) {
+				boolean recalculated = super.recalculate(current);
+				if (recalculated) {
+					for (CompiledLayoutEdge link : theComponents)
+						link.recalculate(current);
 				}
-				return evaluated;
-			}
-
-			@Override
-			public SeriesEdgeState copy() {
-				SeriesEdgeState ret = new SeriesEdgeState(theEdges, new ArrayList<>(theComponents));
-				for (int i = 0; i < ret.theComponents.size(); i++)
-					ret.theComponents.set(i, ret.theComponents.get(i).copy());
-				return ret;
+				int length = current.getPosition(theEdges.get(theEdges.size() - 1)) - current.getPosition(theEdges.get(0));
+				if (recalculated || length != theCachedLength) {
+					theCachedLength = length;
+					// TODO calculate positions for internal edges, insert into solution
+				}
+				return recalculated;
 			}
 		}
 
-		private static class ParallelEdgeState extends LayoutEdgeState {
-			final List<LayoutEdgeState> theComponents;
-			LayoutSpring evaluated;
+		private static class ParallelEdgeState extends CompiledLayoutEdge {
+			final List<CompiledLayoutEdge> theComponents;
 
-			ParallelEdgeState(List<LayoutEdgeState> series) {
+			ParallelEdgeState(List<CompiledLayoutEdge> series) {
+				super(new LayoutEdgeLink.ParallelEdgeLink(map(series, edge -> edge.getLink())));
 				theComponents = series;
 			}
 
 			@Override
-			public void recalculate(LayoutSolution current) {
-				evaluated = null;
-				for (LayoutEdgeState link : theComponents)
-					link.recalculate(current);
-			}
-
-			@Override
-			public LayoutSpring getConstraint() {
-				if (evaluated == null) {
-					LayoutSpring[] springs = new LayoutSpring[theComponents.size()];
-					for (int i = 0; i < springs.length; i++)
-						springs[i] = theComponents.get(i).getConstraint();
-					evaluated = new LayoutSpring.ParallelSpring(springs);
+			boolean recalculate(LayoutSolutionImpl current) {
+				boolean recalculated = super.recalculate(current);
+				if (recalculated) {
+					for (CompiledLayoutEdge link : theComponents)
+						link.recalculate(current);
 				}
-				return evaluated;
-			}
-
-			@Override
-			public ParallelEdgeState copy() {
-				ParallelEdgeState ret = new ParallelEdgeState(new ArrayList<>(theComponents));
-				for (int i = 0; i < ret.theComponents.size(); i++)
-					ret.theComponents.set(i, ret.theComponents.get(i).copy());
-				return ret;
+				return recalculated;
 			}
 		}
 
+		private final Orientation theOrientation;
 		private final LayoutSystemSet theSystemSet;
-		private final Graph<Edge, LayoutEdgeState> theEdges;
-		private final Map<Edge, float[]> theForces;
-		private int theSolveCount;
+		private final Graph<Edge, CompiledLayoutEdge> theEdges;
 
 		LayoutSystem(LayoutSystemSet systemSet, MutableGraph<Edge, LayoutEdgeLink> edges) {
 			theSystemSet = systemSet;
-			MutableGraph<Edge, LayoutEdgeState> edgeStates = new DefaultGraph<>();
+			theOrientation = edges.getNodes().iterator().next().getValue().getOrientation();
+			MutableGraph<Edge, CompiledLayoutEdge> edgeStates = new DefaultGraph<>();
 			for (Graph.Node<Edge, LayoutEdgeLink> node : edges.getNodes())
 				edgeStates.addNode(node.getValue());
 			for (Graph.Edge<Edge, LayoutEdgeLink> edge : edges.getEdges())
 				edgeStates.addEdge(edgeStates.nodeFor(edge.getStart().getValue()), edgeStates.nodeFor(edge.getEnd().getValue()),
-					edge.isDirected(), new SimpleEdgeState(edge.getValue()));
+					edge.isDirected(), new SimpleEdge(edge.getValue()));
 			boolean modified;
 			do {
 				modified = false;
 
 				// Search for series
-				Iterator<? extends Graph.Node<Edge, LayoutEdgeState>> nodeIter = new ArrayList<>(edgeStates.getNodes()).iterator();
+				Iterator<? extends Graph.Node<Edge, CompiledLayoutEdge>> nodeIter = new ArrayList<>(edgeStates.getNodes()).iterator();
 				while (nodeIter.hasNext()) {
-					Graph.Node<Edge, LayoutEdgeState> node = nodeIter.next();
-					Graph.Edge<Edge, LayoutEdgeState>[] nodeEdges = checkSeries(node);
+					Graph.Node<Edge, CompiledLayoutEdge> node = nodeIter.next();
+					Graph.Edge<Edge, CompiledLayoutEdge>[] nodeEdges = checkSeries(node);
 					if (nodeEdges != null) {
 						// Replace the edge-node-edge combination with a single series edge
 						modified = true;
 						nodeIter.remove();
 						List<Edge> seriesEdges=new ArrayList<>();
-						List<LayoutEdgeState> seriesStates=new ArrayList<>();
-						if(nodeEdges[0].getValue() instanceof SeriesEdgeState){
-							SeriesEdgeState ses=(SeriesEdgeState) nodeEdges[0].getValue();
+						List<CompiledLayoutEdge> seriesStates = new ArrayList<>();
+						if (nodeEdges[0].getValue() instanceof SeriesEdge) {
+							SeriesEdge ses = (SeriesEdge) nodeEdges[0].getValue();
 							seriesEdges.addAll(ses.theEdges);
 							seriesStates.addAll(ses.theComponents);
 						} else
 							seriesStates.add(nodeEdges[0].getValue());
 						seriesEdges.add(node.getValue());
-						if(nodeEdges[1].getValue() instanceof SeriesEdgeState){
-							SeriesEdgeState ses=(SeriesEdgeState) nodeEdges[1].getValue();
+						if (nodeEdges[1].getValue() instanceof SeriesEdge) {
+							SeriesEdge ses = (SeriesEdge) nodeEdges[1].getValue();
 							seriesEdges.addAll(ses.theEdges);
 							seriesStates.addAll(ses.theComponents);
 						} else
 							seriesStates.add(nodeEdges[1].getValue());
-						SeriesEdgeState seriesEdge = new SeriesEdgeState(seriesEdges, seriesStates);
+						SeriesEdge seriesEdge = new SeriesEdge(seriesEdges, seriesStates);
 						edgeStates.addEdge(nodeEdges[0].getOtherEnd(node), nodeEdges[1].getOtherEnd(node), true, seriesEdge);
 						edgeStates.removeNode(node);
 					}
 
 					// Search for parallels
-					List<Graph.Edge<Edge, LayoutEdgeState>> allEdges = new ArrayList<>(edgeStates.getEdges());
-					Iterator<? extends Graph.Edge<Edge, LayoutEdgeState>> edgeIter = allEdges.iterator();
+					List<Graph.Edge<Edge, CompiledLayoutEdge>> allEdges = new ArrayList<>(edgeStates.getEdges());
+					Iterator<? extends Graph.Edge<Edge, CompiledLayoutEdge>> edgeIter = allEdges.iterator();
 					while (edgeIter.hasNext()) {
-						Graph.Edge<Edge, LayoutEdgeState> edge = edgeIter.next();
-						List<Graph.Edge<Edge, LayoutEdgeState>> parallelEdges = checkParallel(edge);
+						Graph.Edge<Edge, CompiledLayoutEdge> edge = edgeIter.next();
+						List<Graph.Edge<Edge, CompiledLayoutEdge>> parallelEdges = checkParallel(edge);
 						if (parallelEdges != null) {
 							modified=true;
-							List<LayoutEdgeState> parallelStates = new ArrayList<>();
-							for (Graph.Edge<Edge, LayoutEdgeState> parallelEdge : parallelEdges) {
+							List<CompiledLayoutEdge> parallelStates = new ArrayList<>();
+							for (Graph.Edge<Edge, CompiledLayoutEdge> parallelEdge : parallelEdges) {
 								if (parallelEdge.getValue() instanceof ParallelEdgeState) {
 									parallelStates.addAll(((ParallelEdgeState) parallelEdge.getValue()).theComponents);
 								} else
@@ -375,18 +421,26 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			theEdges = edgeStates.immutable();
 		}
 
-		private Graph.Edge<Edge, LayoutEdgeState>[] checkSeries(Graph.Node<Edge, LayoutEdgeState> node) {
+		public LayoutSystemSet getSystemSet() {
+			return theSystemSet;
+		}
+
+		public Orientation getOrientation() {
+			return theOrientation;
+		}
+
+		private Graph.Edge<Edge, CompiledLayoutEdge>[] checkSeries(Graph.Node<Edge, CompiledLayoutEdge> node) {
 			if (node.getEdges().size() != 2)
 				return null;
-			Graph.Edge<Edge, LayoutEdgeState>[] nodeEdges = node.getEdges().toArray(new Graph.Edge[2]);
+			Graph.Edge<Edge, CompiledLayoutEdge>[] nodeEdges = node.getEdges().toArray(new Graph.Edge[2]);
 			if (nodeEdges[0].getOtherEnd(node) != nodeEdges[1].getOtherEnd(node))
 				return nodeEdges;
 			return null;
 		}
 
-		private List<Graph.Edge<Edge, LayoutEdgeState>> checkParallel(Graph.Edge<Edge, LayoutEdgeState> edge) {
-			List<Graph.Edge<Edge, LayoutEdgeState>> parallelEdges = null;
-			for (Graph.Edge<Edge, LayoutEdgeState> fromEdge : edge.getStart().getEdges()) {
+		private List<Graph.Edge<Edge, CompiledLayoutEdge>> checkParallel(Graph.Edge<Edge, CompiledLayoutEdge> edge) {
+			List<Graph.Edge<Edge, CompiledLayoutEdge>> parallelEdges = null;
+			for (Graph.Edge<Edge, CompiledLayoutEdge> fromEdge : edge.getStart().getEdges()) {
 				if (fromEdge != edge && fromEdge.getOtherEnd(edge.getStart()) == edge.getEnd()) {
 					if (parallelEdges == null) {
 						parallelEdges = new ArrayList<>(4);
@@ -398,65 +452,24 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			return parallelEdges;
 		}
 
-		void initialize() {
+		void initialize(LayoutSolutionImpl solution, Orientation primary, int layoutLength, int crossLength, boolean crossAvailable) {
 			int todo = todo;
 			// Set all edges to their preferred sizes
 			// Calculate initial forces on all edges
 		}
 
-		void solve() {
+		void solve(LayoutSolutionImpl solution) {
 			int todo = todo;
 		}
 	}
 
 	public static class LayoutSystemSet {
-		private final MutableGraph<LayoutSystem, EdgePair> theSystems;
+		private final EdgeBox theBounds;
+		private final Graph<LayoutSystem, EdgePair> theSystems;
 		private final Map<Edge, LayoutSystem> theSystemsByEdge;
-		final Map<Edge, int[]> thePositions;
-		final LayoutSolution theSolution;
-
-		LayoutSystemSet(LayoutSolver solver, LayoutGuideType sizeType) {
-			this(solver);
-			for (Graph.Node<LayoutSystem, EdgePair> system : theSystems.getNodes())
-				system.getValue().initialize();
-			int todo = todo; // Add tension to outer edges corresponding to size type
-		}
-
-		LayoutSystemSet(LayoutSolver solver, Dimension layoutSize) {
-			this(solver);
-			LayoutSystem hSystem = theSystemsByEdge.get(solver.getLeft());
-			LayoutSystem vSystem = theSystemsByEdge.get(solver.getTop());
-			((MutableGraph<Edge, LayoutEdgeLink>) hSystem.theEdges).addEdge(hSystem.theEdges.nodeFor(solver.getLeft()),
-				hSystem.theEdges.nodeFor(solver.getRight()), true,
-				new LayoutEdgeLink.SimpleSpringEdgeLink(new LayoutSpring.ConstSpring(layoutSize.width)));
-			((MutableGraph<Edge, LayoutEdgeLink>) vSystem.theEdges).addEdge(hSystem.theEdges.nodeFor(solver.getTop()),
-				hSystem.theEdges.nodeFor(solver.getBottom()), true,
-				new LayoutEdgeLink.SimpleSpringEdgeLink(new LayoutSpring.ConstSpring(layoutSize.height)));
-			for (Graph.Node<LayoutSystem, EdgePair> system : theSystems.getNodes())
-				system.getValue().initialize();
-		}
 
 		private LayoutSystemSet(LayoutSolver solver) {
-			theSystems = new DefaultGraph<>();
-			thePositions = new HashMap<>();
-			theSolution = new LayoutSolution() {
-				@Override
-				public Edge getBoundary(Orientation orient, End end) {
-					return solver.getBoundary(orient, end);
-				}
-
-				@Override
-				public int getPosition(Edge edge) {
-					int[] pos = thePositions.get(edge);
-					return pos == null ? -1 : pos[0];
-				}
-
-				@Override
-				public boolean isInitialized(Edge edge) {
-					return thePositions.containsKey(edge);
-				}
-			};
-			theSystemsByEdge = new HashMap<>();
+			theBounds = solver;
 
 			// Derive independent sub-graphs in the layout--graphs which have no direct relationships between them
 			Map<Edge, MutableGraph<Edge, LayoutEdgeLink>> subGraphsByEdge = new HashMap<>();
@@ -480,33 +493,56 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 			}
 
 			// Compile LayoutSystem graph
+			MutableGraph<LayoutSystem, EdgePair> systems = new DefaultGraph<>();
+			Map<Edge, LayoutSystem> systemsByEdge = new HashMap<>();
 			for (MutableGraph<Edge, LayoutEdgeLink> subGraph : subGraphs) {
 				LayoutSystem system = new LayoutSystem(this, subGraph);
-				theSystems.addNode(system);
+				systems.addNode(system);
 				for (Graph.Node<Edge, LayoutEdgeLink> node : subGraph.getNodes())
-					theSystemsByEdge.put(node.getValue(), system);
+					systemsByEdge.put(node.getValue(), system);
 			}
 			for (Map.Entry<EdgePair, EdgePair> couples : solver.theDependencies.entrySet()) {
-				LayoutSystem sys11 = theSystemsByEdge.get(couples.getKey().edge1);
-				LayoutSystem sys21 = theSystemsByEdge.get(couples.getValue().edge1);
-				if (theSystemsByEdge.get(couples.getKey().edge1) != theSystemsByEdge.get(couples.getKey().edge2)
-					|| theSystemsByEdge.get(couples.getValue().edge1) != theSystemsByEdge.get(couples.getValue().edge2))
+				LayoutSystem sys11 = systemsByEdge.get(couples.getKey().edge1);
+				LayoutSystem sys21 = systemsByEdge.get(couples.getValue().edge1);
+				if (systemsByEdge.get(couples.getKey().edge1) != systemsByEdge.get(couples.getKey().edge2)
+					|| systemsByEdge.get(couples.getValue().edge1) != systemsByEdge.get(couples.getValue().edge2))
 					throw new IllegalStateException(
 						"Edges within same dimension in a dependency must be constrained together or be constrained to common edges");
-				theSystems.addEdge(theSystems.nodeFor(sys11), theSystems.nodeFor(sys21), true, couples.getValue());
-				theSystems.addEdge(theSystems.nodeFor(sys21), theSystems.nodeFor(sys11), true, couples.getValue());
+				systems.addEdge(systems.nodeFor(sys11), systems.nodeFor(sys21), true, couples.getValue());
+				systems.addEdge(systems.nodeFor(sys21), systems.nodeFor(sys11), true, couples.getValue());
 			}
+			theSystems = systems.immutable();
+			theSystemsByEdge = Collections.unmodifiableMap(systemsByEdge);
 		}
 
-		private void moveAll(MutableGraph<Edge, LayoutEdgeLink> fromSys, MutableGraph<Edge, LayoutEdgeLink> toSys) {
-			for (Graph.Node<Edge, LayoutEdgeLink> edge : fromSys.getNodes())
-				toSys.addNode(edge.getValue());
-			for (Graph.Edge<Edge, LayoutEdgeLink> link : fromSys.getEdges())
-				toSys.addEdge(toSys.nodeFor(link.getStart().getValue()), toSys.nodeFor(link.getEnd().getValue()), //
-					link.isDirected(), link.getValue());
+		public LayoutSolution solveSize(LayoutGuideType sizeType, Orientation primary, int layoutLength, int crossLength,
+			boolean crossAvailable) {
+			LayoutSolutionImpl solution = initSolution(primary, layoutLength, crossLength, crossAvailable);
+			// Add a force to the far edge corresponding to the size type
+			Edge farEdge = theBounds.getBoundary(primary, End.trailing);
+			solution.theForces.get(farEdge)[0] += LayoutSpring.getTensionFor(sizeType);
+			solve(solution);
+			return solution;
 		}
 
-		public LayoutSolution solve() {}
+		public LayoutSolution solveLayout(Orientation primary, int layoutLength, int crossLength) {
+			LayoutSolutionImpl solution = initSolution(primary, layoutLength, crossLength, false);
+			// TODO
+			solve(solution);
+			return solution;
+		}
+
+		private LayoutSolutionImpl initSolution(Orientation primary, int layoutLength, int crossLength, boolean crossAvailable) {
+			LayoutSolutionImpl solution = new LayoutSolutionImpl();
+			for (Graph.Node<LayoutSystem, EdgePair> system : theSystems.getNodes())
+				system.getValue().initialize(solution, primary, layoutLength, crossLength, crossAvailable);
+			return solution;
+		}
+
+		private void solve(LayoutSolutionImpl solution) {
+			// TODO Auto-generated method stub
+
+		}
 	}
 
 	private final MutableGraph<Edge, LayoutEdgeLink> theHSprings;
@@ -610,11 +646,7 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 		return orient.isVertical() ? theVSprings : theHSprings;
 	}
 
-	public LayoutSystemSet forSizeType(LayoutGuideType sizeType) {
-		return new LayoutSystemSet(this, sizeType);
-	}
-
-	public LayoutSystemSet forLayoutSize(Dimension layoutSize) {
-		return new LayoutSystemSet(this, layoutSize);
+	public LayoutSystemSet compile() {
+		return new LayoutSystemSet(this);
 	}
 }

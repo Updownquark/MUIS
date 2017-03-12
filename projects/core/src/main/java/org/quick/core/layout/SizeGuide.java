@@ -62,12 +62,12 @@ public interface SizeGuide {
 	/**
 	 * @param type The layout guide type to get the size guide setting for
 	 * @param layoutLength The size of the layout space that this guide is in
-	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
-	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
-	 *        in the opposite dimension
+	 * @param crossLength Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param crossAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the
+	 *        widget in the opposite dimension
 	 * @return The size guide setting of the given type in this guide
 	 */
-	int get(LayoutGuideType type, int layoutLength, int crossSize, boolean csAvailable);
+	int get(LayoutGuideType type, int layoutLength, int crossLength, boolean crossAvailable);
 
 	/**
 	 * A default method that calls one of:
@@ -78,26 +78,26 @@ public interface SizeGuide {
 	 * <li>{@link #getMaxPreferred(int, int, boolean)}</li>
 	 * <li>{@link #getMax(int, int, boolean)}</li>
 	 * </ol>
-	 * 
+	 *
 	 * @param type The layout guide type to get the size guide setting for
 	 * @param layoutLength The size of the layout space that this guide is in
-	 * @param crossSize Either the size of the widget or the amount of space available to the widget in the opposite dimension
-	 * @param csAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the widget
-	 *        in the opposite dimension
+	 * @param crossLength Either the size of the widget or the amount of space available to the widget in the opposite dimension
+	 * @param crossAvailable Whether <code>crossSize</code> is to be interpreted as available size in the layout or absolute size of the
+	 *        widget in the opposite dimension
 	 * @return The size guide setting of the given type in this guide
 	 */
-	default int delegate(LayoutGuideType type, int layoutLength, int crossSize, boolean csAvailable) {
+	default int delegate(LayoutGuideType type, int layoutLength, int crossLength, boolean crossAvailable) {
 		switch (type) {
 		case min:
-			return getMin(layoutLength, crossSize, csAvailable);
+			return getMin(layoutLength, crossLength, crossAvailable);
 		case minPref:
-			return getMinPreferred(layoutLength, crossSize, csAvailable);
+			return getMinPreferred(layoutLength, crossLength, crossAvailable);
 		case pref:
-			return getPreferred(layoutLength, crossSize, csAvailable);
+			return getPreferred(layoutLength, crossLength, crossAvailable);
 		case maxPref:
-			return getMaxPreferred(layoutLength, crossSize, csAvailable);
+			return getMaxPreferred(layoutLength, crossLength, crossAvailable);
 		case max:
-			return getMax(layoutLength, crossSize, csAvailable);
+			return getMax(layoutLength, crossLength, crossAvailable);
 		}
 		throw new IllegalStateException("Unrecognized layout guide type: " + type);
 	}

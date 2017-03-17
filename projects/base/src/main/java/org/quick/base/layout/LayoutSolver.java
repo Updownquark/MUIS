@@ -152,7 +152,7 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 
 		public static abstract class ComponentizedEdgeLink implements LayoutEdgeLink {
 			private final List<? extends LayoutEdgeLink> theComponents;
-			private final LayoutSpring.ComponentizedSpring theSpring;
+			private final LayoutSpring.CompositeSpring theSpring;
 
 			public ComponentizedEdgeLink(List<? extends LayoutEdgeLink> components) {
 				if (components.getClass().getSimpleName().contains("Unmodifiable")
@@ -166,7 +166,7 @@ public class LayoutSolver extends EdgeBox.SimpleEdgeBox {
 				return theComponents;
 			}
 
-			protected abstract LayoutSpring.ComponentizedSpring aggregate(List<? extends LayoutEdgeLink> components);
+			protected abstract LayoutSpring.CompositeSpring aggregate(List<? extends LayoutEdgeLink> components);
 
 			@Override
 			public boolean recalculate(LayoutSolution current) {

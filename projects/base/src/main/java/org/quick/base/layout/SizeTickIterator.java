@@ -1,70 +1,143 @@
 package org.quick.base.layout;
 
+import org.qommons.IntList;
+
 public interface SizeTickIterator {
+	/** @return The size at the current tick */
 	int getSize();
 
-	float getTension();
+	/**
+	 * @return The tension of the spring at the current size. It sign is the same as that of both {@link #getTensionAbove()} and
+	 *         {@link #getTensionBelow()} and its magnitude is the minimum of magnitude of the two.
+	 */
+	default float getTension() {
+		float belowTension = getTensionBelow();
+		float aboveTension = getTensionAbove();
+		if (belowTension < 0)
+			return Math.max(belowTension, aboveTension);
+		else
+			return Math.min(belowTension, aboveTension);
+	}
 
-	int getNextSize();
+	/**
+	 * @return The tension of the spring just below the current size. Used for interpolation for sizes less than this size and greater than
+	 *         the previous tick. Must be &gt;={@link #getTensionAbove()} and must have the same sign.
+	 */
+	float getTensionBelow();
 
-	int getPreviousSize();
+	/**
+	 * @return The tension of the spring just above the current size. Used for interpolation for sizes greater than this size and lower than
+	 *         the previous tick. Must be &lt;={@link #getTensionBelow()} and must have the same sign.
+	 */
+	float getTensionAbove();
+
+	/**
+	 * Advances this iterator to the next higher tick size if there is one
+	 *
+	 * @return Whether this iterator had another higher size to move to
+	 */
+	boolean next();
+
+	/**
+	 * Retreats this iterator to the next lower tick size if there is one
+	 *
+	 * @return Whether this iterator had another lower size to move to
+	 */
+	boolean previous();
 
 	default float getTension(int size) {
 		int now = getSize();
-		if (size == now)
-			return getTension();
+		int lowSz = now;
+		int highSz = now;
+		float lowTension = getTensionBelow();
+		float highTension = getTensionAbove();
 		if (size < now) {
-			int prev = getPreviousSize();
-			while (size < prev && prev < now) {
-				now = prev;
-				prev = getPreviousSize();
-			}
-			if (prev == now)
-				return LayoutSpring.MAX_TENSION;
-			if (prev == size)
+			do {
+				highSz = lowSz;
+				highTension = getTensionBelow();
+				if (!previous()) {
+					lowSz = 0;
+					lowTension = LayoutSpring.MAX_TENSION;
+					break;
+				}
+				lowSz = getSize();
+				lowTension = getTensionAbove();
+			} while (size < lowSz);
+			if (size == lowSz)
 				return getTension();
-			return interpolateFloat(prev, getTension(), getNextSize(), getTension(), size);
-		} else {
-			int next = getNextSize();
-			while (size < next && next > now) {
-				now = next;
-				next = getNextSize();
-			}
-			if (next == now)
-				return -LayoutSpring.MAX_TENSION;
-			return interpolateFloat(next, getTension(), getPreviousSize(), getTension(), size);
+		} else if (size > now) {
+			do {
+				lowSz = highSz;
+				lowTension = getTensionAbove();
+				if (!next()) {
+					highSz = Integer.MAX_VALUE;
+					highTension = -LayoutSpring.MAX_TENSION;
+					break;
+				}
+				highSz = getSize();
+				highTension = getTensionBelow();
+			} while (size > highSz);
+			if (size == highSz)
+				return getTension();
 		}
+		return interpolateFloat(lowSz, lowTension, highSz, highTension, size);
 	}
 
 	default int getSize(float tension) {
-		float nowT = getTension();
 		int now = getSize();
-		if (tension == nowT)
-			return now;
-		if (tension < nowT) {
-			int next = getNextSize();
-			float nextT = getTension();
-			while (tension < nextT && next > now) {
-				now = next;
-				next = getNextSize();
-				nextT = getTension();
-			}
-			;
-			if (next == now)
-				return next;
-			return interpolateInt(next, nextT, getPreviousSize(), getTension(), tension);
-		} else {
-			int prev = getPreviousSize();
-			float prevT = getTension();
-			while (tension > prevT && prev < now) {
-				now = prev;
-				prev = getPreviousSize();
-				prevT = getTension();
-			}
-			if (prev == now)
-				return prev;
-			return interpolateInt(prev, prevT, getNextSize(), getTension(), tension);
+		int lowSz = now;
+		int highSz = now;
+		float lowTension = getTensionBelow();
+		float midTension;
+		float highTension = getTensionAbove();
+		if (tension > lowTension) {
+			do {
+				highSz = lowSz;
+				highTension = getTensionBelow();
+				if (!previous()) {
+					lowSz = 0;
+					lowTension = LayoutSpring.MAX_TENSION;
+					midTension = lowTension;
+					break;
+				}
+				lowSz = getSize();
+				midTension = getTensionAbove();
+				lowTension = getTensionBelow();
+			} while (tension > lowTension);
+			if (tension >= midTension)
+				return lowSz;
+			else
+				lowTension = midTension;
+		} else if (tension < highTension) {
+			do {
+				lowSz = highSz;
+				lowTension = getTensionAbove();
+				if (!next()) {
+					highSz = Integer.MAX_VALUE;
+					highTension = -LayoutSpring.MAX_TENSION;
+					midTension = highTension;
+					break;
+				}
+				highSz = getSize();
+				midTension = getTensionBelow();
+				highTension = getTensionAbove();
+			} while (tension < highTension);
+			if (tension <= midTension)
+				return highSz;
+			else
+				highTension = midTension;
 		}
+		return interpolateInt(lowSz, lowTension, highSz, highTension, tension);
+	}
+
+	default IntList getAllTicks() {
+		IntList ticks = new IntList(true, true);
+		while (previous()) {
+		}
+		do {
+			ticks.add(getSize());
+		} while (next());
+		return ticks;
 	}
 
 	public static float interpolateFloat(int lowI, float lowF, int highI, float highF, int iValue) {

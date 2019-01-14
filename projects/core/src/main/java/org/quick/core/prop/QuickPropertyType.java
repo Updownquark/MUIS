@@ -17,6 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.qommons.ColorUtils;
 import org.qommons.TriFunction;
 import org.qommons.ex.ExFunction;
@@ -391,7 +392,7 @@ public final class QuickPropertyType<T> {
 
 	/** The default property type for string-valued properties */
 	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeToken.of(String.class))
-		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(String.class), s), true)//
+		.withParser((parser, env, s) -> ObservableValue.of(TypeTokens.get().STRING, s), true)//
 		.map(TypeToken.of(CharSequence.class), seq -> seq.toString(), s -> s)//
 		.build();
 
@@ -414,7 +415,7 @@ public final class QuickPropertyType<T> {
 
 	/** The default property type for time-instant-valued properties */
 	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeToken.of(Instant.class))
-		.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Instant.class), parseInstant(s)), true)//
+		.withParser((parser, env, s) -> ObservableValue.of(TypeTokens.get().of(Instant.class), parseInstant(s)), true)//
 		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l), inst -> inst.toEpochMilli())//
 		.map(TypeToken.of(Date.class), date -> date.toInstant(), inst -> new Date(inst.toEpochMilli()))//
 		.map(TypeToken.of(Calendar.class), cal -> cal.toInstant(), inst -> {
@@ -451,9 +452,9 @@ public final class QuickPropertyType<T> {
 		chronoUnits.put("n", ChronoUnit.NANOS);
 		SUPPORTED_CHRONO_UNITS = Collections.unmodifiableMap(chronoUnits);
 
-		TypeToken<Duration> dType=TypeToken.of(Duration.class);
+		TypeToken<Duration> dType = TypeTokens.get().of(Duration.class);
 		Builder<Duration> durationBuilder = QuickPropertyType.build("duration", dType)//
-			.withParser((parser, env, s) -> ObservableValue.constant(dType, parseDuration(s)), true)//
+			.withParser((parser, env, s) -> ObservableValue.of(dType, parseDuration(s)), true)//
 			.withToString(d -> toString(d))//
 			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l), d -> d.toMillis());
 		durationBuilder.buildContext(ctx -> {
@@ -527,13 +528,13 @@ public final class QuickPropertyType<T> {
 
 	static {
 		Builder<Color> colorBuilder = QuickPropertyType.build("color", TypeToken.of(Color.class))//
-			.withParser((parser, env, s) -> ObservableValue.constant(TypeToken.of(Color.class), Colors.parseColor(s)), true)//
+			.withParser((parser, env, s) -> ObservableValue.of(TypeTokens.get().of(Color.class), Colors.parseColor(s)), true)//
 			.withToString(c -> Colors.toString(c))//
 			.buildContext(ctx -> {
 				ctx//
 					.withValueGetter(name -> {
 						Color namedColor = Colors.NAMED_COLORS.get(name);
-						return namedColor == null ? null : ObservableValue.constant(TypeToken.of(Color.class), namedColor);
+						return namedColor == null ? null : ObservableValue.of(TypeTokens.get().of(Color.class), namedColor);
 					})//
 					.withFunction("rgb", ExpressionFunction.build(new TriFunction<Integer, Integer, Integer, Color>() {
 						@Override
@@ -582,7 +583,7 @@ public final class QuickPropertyType<T> {
 	 * @return The property type for the enum
 	 */
 	public static final <T extends Enum<T>> QuickPropertyType<T> forEnum(Class<T> enumType) {
-		TypeToken<T> typeToken = TypeToken.of(enumType);
+		TypeToken<T> typeToken = TypeTokens.get().of(enumType);
 		Map<String, T> byName = new HashMap<>();
 		for (T value : enumType.getEnumConstants())
 			byName.put(QuickUtils.javaToXML(value.name()), value);
@@ -643,9 +644,9 @@ public final class QuickPropertyType<T> {
 				ctx//
 					.withValueGetter(s -> {
 						T enumValue = byName.get(s);
-						return enumValue == null ? null : ObservableValue.constant(typeToken, enumValue);
+						return enumValue == null ? null : ObservableValue.of(typeToken, enumValue);
 					})//
-					.withValue("numConsts", ObservableValue.constant(TypeToken.of(Integer.TYPE), enumType.getEnumConstants().length))//
+					.withValue("numConsts", ObservableValue.of(TypeTokens.get().of(int.class), enumType.getEnumConstants().length))//
 					.withFunction("valueOf", ExpressionFunction.build(new EnumValueOfName()))//
 					.withFunction("name", ExpressionFunction.build(new EnumName()))//
 					.withFunction("ordinal", ExpressionFunction.build(new EnumOrdinal()))//
@@ -666,7 +667,7 @@ public final class QuickPropertyType<T> {
 	 */
 	public static final <T> QuickPropertyType<Class<? extends T>> forType(Class<T> type, Consumer<Builder<Class<? extends T>>> builder) {
 		TypeToken<Class<? extends T>> typeToken = new TypeToken<Class<? extends T>>() {}.where(new TypeParameter<T>() {},
-			TypeToken.of(type));
+			TypeTokens.get().of(type));
 		Builder<Class<? extends T>> build = build(type.getName() + " type", typeToken)//
 			.withParser((parser, env, s) -> {
 				Class<?> res;
@@ -684,7 +685,7 @@ public final class QuickPropertyType<T> {
 				}
 				if (!type.isAssignableFrom(res))
 					throw new QuickParseException("Type " + s + " is not compatible with type " + type.getName());
-				return ObservableValue.constant(typeToken, type.asSubclass(type));
+				return ObservableValue.of(typeToken, type.asSubclass(type));
 			}, true);
 		if (builder != null)
 			builder.accept(build);
@@ -727,7 +728,7 @@ public final class QuickPropertyType<T> {
 					throw new QuickParseException("Cannot access default constructor for type " + name, e);
 				}
 				try {
-					return ObservableValue.constant(TypeToken.of(type), (T) ctor.newInstance());
+					return ObservableValue.of(TypeTokens.get().of(type), (T) ctor.newInstance());
 				} catch (InstantiationException e) {
 					throw new QuickParseException("Cannot instantiate type " + name, e);
 				} catch (InvocationTargetException | IllegalAccessException e) {
@@ -764,7 +765,7 @@ public final class QuickPropertyType<T> {
 			QuickToolkit toolkit = namespace == null ? null : env.cv().getToolkit(namespace);
 			if (toolkit == null && sepIdx >= 0)
 				try {
-					return ObservableValue.constant(TypeToken.of(URL.class), new URL(s));
+					return ObservableValue.of(TypeTokens.get().of(URL.class), new URL(s));
 				} catch (java.net.MalformedURLException e) {
 					throw new QuickParseException("resource: Resource property is not a valid URL: \"" + s + "\"", e);
 				}
@@ -780,13 +781,13 @@ public final class QuickPropertyType<T> {
 			}
 			if (mapped.contains(":"))
 				try {
-					return ObservableValue.constant(TypeToken.of(URL.class), new URL(mapped));
+					return ObservableValue.of(TypeTokens.get().of(URL.class), new URL(mapped));
 				} catch (java.net.MalformedURLException e) {
 					throw new QuickParseException("resource: Resource property maps to an invalid URL \"" + mapped + "\" in "
 						+ (toolkit == null ? "mapped namespaces" : ("toolkit " + toolkit.getName())) + ": \"" + content + "\"");
 				}
 			try {
-				return ObservableValue.constant(TypeToken.of(URL.class), QuickUtils.resolveURL(toolkit.getURI(), mapped));
+				return ObservableValue.of(TypeTokens.get().of(URL.class), QuickUtils.resolveURL(toolkit.getURI(), mapped));
 			} catch (QuickException e) {
 				throw new QuickParseException("resource: Resource property maps to a resource (" + mapped
 					+ ") that cannot be resolved with respect to "

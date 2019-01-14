@@ -7,7 +7,7 @@ package org.quick.util;
  * @param <T> The type of value to store in the cache
  */
 public class SimpleCache<T> {
-	private org.qommons.DemandCache<CompoundKey, T> theCache = new org.qommons.DemandCache<>(null, -1, -1, 2);
+	private org.qommons.DemandCache<CompoundKey, T> theCache = new org.qommons.DemandCache<>(true, null, -1, -1, 2);
 
 	/**
 	 * @param key The compound key to get the value for

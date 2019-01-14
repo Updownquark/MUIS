@@ -12,6 +12,9 @@ import org.observe.SettableStampedValue;
 import org.observe.SettableValue;
 import org.observe.Subscription;
 import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
+import org.qommons.Causable;
+import org.qommons.Lockable;
 import org.qommons.QommonsUtils;
 import org.qommons.Transaction;
 import org.qommons.collect.BetterCollections;
@@ -23,25 +26,27 @@ import org.qommons.collect.ElementId;
 import org.qommons.collect.ListenerList;
 import org.qommons.collect.MutableCollectionElement.StdMsg;
 import org.qommons.tree.SortedTreeList;
+import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
+import org.quick.core.QuickException;
+import org.quick.core.QuickParseEnv;
 import org.quick.core.event.AttributeChangedEvent;
+import org.quick.core.parser.QuickParseException;
 import org.quick.core.prop.QuickAttribute;
 
 import com.google.common.reflect.TypeToken;
 
-/**
- * Holds all the {@link QuickAttribute} values for a {@link QuickElement}.
- *
- * TODO Raw attributes not handled yet
- *
- * TODO Multiple attributes of the same name are sorted earliest-added first. Check to see if this is right.
- */
+/** Holds all the {@link QuickAttribute} values for a {@link QuickElement} */
 public class AttributeManager2 {
 	public class AttributeValue<T> implements SettableStampedValue<T>, Comparable<AttributeValue<?>> {
 		private final QuickAttribute<T> theAttribute;
 		private final ListenerList<ValueListener<T>> theObservers;
 		private final Observable<ObservableValueEvent<T>> theChanges;
 		private ElementId theCollectionElement;
+		private ObservableValue<? extends T> theContainer;
+		private final ListenerList<Observer<? super ObservableValueEvent<ObservableValue<? extends T>>>> theContainerListeners;
+		private final ObservableValue<ObservableValue<? extends T>> theContainerObservable;
+		private Subscription theContainerSubcription;
 		private T theValue;
 		private long theStamp;
 		private int theAcceptedCount;
@@ -49,14 +54,19 @@ public class AttributeManager2 {
 
 		AttributeValue(QuickAttribute<T> attribute) {
 			theAttribute = attribute;
-			theObservers = ListenerList.build()// Make this list performant--we'll thread-secure it ourselves
+			theObservers = ListenerList.build()// Make these lists light and performant--we'll thread-secure them ourselves
 				.forEachSafe(false).withFastSize(false).withSyncType(ListenerList.SynchronizationType.LIST).allowReentrant().build();
+			theContainerListeners = ListenerList.build().forEachSafe(false).withFastSize(false)
+				.withSyncType(ListenerList.SynchronizationType.LIST).allowReentrant().build();
 			theAcceptedCount = 1; // If this is created, then something is interested
 			theChanges = new Observable<ObservableValueEvent<T>>() {
 				@Override
 				public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
 					try (Transaction t = theLocker.lock(false, null)) {
-						observer.onNext(new AttributeChangedEvent<>(theElement, theAttribute, true, null, theValue, null));
+						AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, true, null, theValue, null);
+						try (Transaction evtT = Causable.use(evt)) {
+							observer.onNext(evt);
+						}
 						return theObservers.add(new ValueListener<>(observer, theStamp, theValue), true)::run;
 					}
 				}
@@ -68,14 +78,69 @@ public class AttributeManager2 {
 
 				@Override
 				public Transaction lock() {
-					return theLocker.lock(false, null);
+					return Lockable.lockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
 				}
 
 				@Override
 				public Transaction tryLock() {
-					return theLocker.tryLock(false, false, null);
+					return Lockable.tryLockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
 				}
 			};
+			theContainerObservable = new ObservableValue<ObservableValue<? extends T>>() {
+				private final Observable<ObservableValueEvent<ObservableValue<? extends T>>> containerChanges = new Observable<ObservableValueEvent<ObservableValue<? extends T>>>() {
+					@Override
+					public Subscription subscribe(Observer<? super ObservableValueEvent<ObservableValue<? extends T>>> observer) {
+						try (Transaction t = theLocker.lock(false, null)) {
+							ObservableValueEvent<ObservableValue<? extends T>> evt = theContainerObservable.createInitialEvent(theContainer,
+								null);
+							try (Transaction evtT = Causable.use(evt)) {
+								observer.onNext(evt);
+							}
+							return theContainerListeners.add(observer, false)::run;
+						}
+					}
+
+					@Override
+					public boolean isSafe() {
+						return true;
+					}
+
+					@Override
+					public Transaction lock() {
+						return Lockable.lockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
+					}
+
+					@Override
+					public Transaction tryLock() {
+						return Lockable.tryLockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
+					}
+				};
+
+				@Override
+				public TypeToken<ObservableValue<? extends T>> getType() {
+					return new TypeToken<ObservableValue<? extends T>>() {}; // Slow, but hopefully nobody cares
+				}
+
+				@Override
+				public ObservableValue<? extends T> get() {
+					return theContainer;
+				}
+
+				@Override
+				public Observable<ObservableValueEvent<ObservableValue<? extends T>>> changes() {
+					return containerChanges;
+				}
+			};
+			RawAttributeValue rawValue = theRawAttributes == null ? null : theRawAttributes.remove(attribute.getName());
+			if (rawValue != null) {
+				try {
+					set(rawValue.value, rawValue.context);
+				} catch (QuickParseException e) {
+					theElement.msg().error(
+						"Could not parse pre-set value \"" + rawValue.value + "\" of attribute " + theAttribute.getName(), e, "attribute",
+						theAttribute);
+				}
+			}
 		}
 
 		void element(ElementId element) {
@@ -115,42 +180,107 @@ public class AttributeManager2 {
 			if (!theAttribute.canAccept(value))
 				throw new IllegalArgumentException("Illegal value " + value + " for attribute " + theAttribute);
 			try (Transaction t = theLocker.lock(true, cause)) {
-				long oldStamp = theStamp++;
-				long newStamp = theStamp;
-				T oldValue = theValue;
-				theValue = value;
-				AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, false, oldValue, value, cause);
+				if (theContainer != null) {
+					if (theContainer instanceof SettableValue && TypeTokens.get().isInstance(theContainer.getType(), value))
+						return ((SettableValue<T>) theContainer).set(value, cause);
+					throw new UnsupportedOperationException(StdMsg.UNSUPPORTED_OPERATION);
+				}
+				return fire(value, cause);
+			}
+		}
+
+		public <V extends T> T setContainer(ObservableValue<V> value) throws IllegalArgumentException {
+			try (Transaction t = theLocker.lock(true, null)) {
+				if (value != null && !theAttribute.getType().getType().isAssignableFrom(value.getType()))
+					throw new IllegalArgumentException("Cannot assign value " + value + " of type " + value.getType() + " to attribute "
+						+ theAttribute + ", type " + theAttribute.getType());
+				if (theContainerSubcription != null) {
+					theContainerSubcription.unsubscribe();
+					theContainerSubcription = null;
+				}
+				theContainer = null;
+				if (value == null)
+					return set((T) null, null);
+				theContainer = value;
+				theContainerSubcription = theContainer.changes().act(//
+					evt -> fire(evt.getNewValue(), evt));
+				return theValue;
+			}
+		}
+
+		public T set(String valueStr, QuickParseEnv ctx) throws QuickParseException {
+			ObservableValue<? extends T> value = theElement.getDocument().getEnvironment().getPropertyParser().parseProperty(theAttribute,
+				ctx, valueStr);
+			return setContainer(value);
+		}
+
+		private T fire(T value, Object cause) throws IllegalArgumentException {
+			if (!theAttribute.canAccept(value)) {
+				theElement.msg().error("Unacceptable value " + value + " for attribute " + theAttribute, "attribute", theAttribute, "value",
+					value, "cause", cause);
+				return theValue;
+			}
+			long oldStamp = theStamp++;
+			long newStamp = theStamp;
+			T oldValue = theValue;
+			theValue = value;
+			AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, false, oldValue, value, cause);
+			try (Transaction evtT = Causable.use(evt)) {
 				theObservers.forEach(obs -> {
 					if (obs.lastUpdate > oldStamp)
 						return; // re-entrant update
 					AttributeChangedEvent<T> obsEvt;
-					if (obs.lastUpdate == oldStamp)
-						obsEvt = evt;
-					else
+					if (obs.lastUpdate == oldStamp) {
+						obs.lastUpdate = newStamp;
+						obs.observer.onNext(evt);
+					} else {
+						obs.lastUpdate = newStamp;
 						obsEvt = new AttributeChangedEvent<>(theElement, theAttribute, false, obs.knownValue, value, cause);
-					obs.lastUpdate = newStamp;
-					obs.observer.onNext(obsEvt);
+						try (Transaction obsEvtT = Causable.use(obsEvt)) {
+							obs.observer.onNext(obsEvt);
+						}
+					}
 				});
-				return oldValue;
 			}
+			return oldValue;
 		}
 
 		@Override
 		public <V extends T> String isAcceptable(V value) {
-			if (theAttribute.canAccept(value))
-				return null;
-			else
+			if (!theAttribute.canAccept(value))
 				return StdMsg.ILLEGAL_ELEMENT;
+			try (Transaction t = theLocker.lock(false, null)) {
+				if (theContainer instanceof SettableValue) {
+					if (TypeTokens.get().isInstance(theContainer.getType(), value))
+						return ((SettableValue<T>) theContainer).isAcceptable(value);
+					else
+						return StdMsg.BAD_TYPE;
+				} else if (theContainer != null)
+					return StdMsg.UNSUPPORTED_OPERATION;
+				else
+					return null;
+			}
 		}
 
 		@Override
 		public ObservableValue<String> isEnabled() {
-			return SettableValue.ALWAYS_ENABLED;
+			return theContainerObservable.map(container -> {
+				if (container == null)
+					return null;
+				else if (container instanceof SettableValue)
+					return ((SettableValue<? extends T>) container).isEnabled().get();
+				else
+					return StdMsg.UNSUPPORTED_OPERATION;
+			});
 		}
 
 		@Override
 		public int compareTo(AttributeValue<?> o) {
 			return compare(theAttribute, o.theAttribute);
+		}
+
+		protected boolean isRequired() {
+			return theRequiredCount > 0;
 		}
 
 		void accept() {
@@ -159,6 +289,9 @@ public class AttributeManager2 {
 
 		void incRequired() {
 			theRequiredCount++;
+			if (theRequiredCount == 1 && theRawAttributes == null && theStamp == 0) {
+				theElement.msg().error("Attribute " + theAttribute + " is required but not initialized", "attribute", theAttribute);
+			}
 		}
 
 		void decRequired() {
@@ -170,6 +303,10 @@ public class AttributeManager2 {
 				theRequiredCount--;
 			theAcceptedCount--;
 			if (theAcceptedCount == 0) {
+				if (theContainerSubcription != null) {
+					theContainerSubcription.unsubscribe();
+					theContainerSubcription = null;
+				}
 				theObservableAttributes.mutableElement(theCollectionElement).remove();
 				AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, false, theValue, theValue, wanter);
 				theObservers.forEach(obs -> {
@@ -224,6 +361,7 @@ public class AttributeManager2 {
 	private final SortedTreeList<AttributeValue<?>> theSortedAttributes;
 	private final ObservableCollection<AttributeValue<?>> theObservableAttributes;
 	private final ObservableCollection<AttributeValue<?>> theExposedAttributes;
+	private Map<String, RawAttributeValue> theRawAttributes;
 
 	public AttributeManager2(QuickElement element, CollectionLockingStrategy lock) {
 		theElement = element;
@@ -233,6 +371,10 @@ public class AttributeManager2 {
 		theObservableAttributes = ObservableCollection.create(ATT_VALUE_TYPE, theSortedAttributes);
 		theExposedAttributes = theObservableAttributes.flow().filterMod(f -> f.unmodifiable(StdMsg.UNSUPPORTED_OPERATION, false))
 			.collectPassive();
+		theRawAttributes = new HashMap<>();
+		theElement.life().runWhen(() -> {
+			setReady();
+		}, QuickConstants.CoreStage.STARTUP.toString(), 0);
 	}
 
 	public <T> AttributeValue<T> accept(QuickAttribute<T> attribute, Object wanter, Consumer<IndividualAttributeAcceptance<T>> acceptance) {
@@ -267,10 +409,12 @@ public class AttributeManager2 {
 				// Same name, different attribute
 				// Complete the search to see if we do actually accept the attribute
 				// Look left
+				CollectionElement<AttributeValue<?>> first = found;
 				CollectionElement<AttributeValue<?>> adj = theSortedAttributes.getAdjacentElement(found.getElementId(), false);
 				while (adj != null && compare(attribute, adj.get().getAttribute()) == 0) {
 					if (adj.get().getAttribute().equals(attribute))
 						return (AttributeValue<T>) adj.get();
+					first = adj;
 					adj = theSortedAttributes.getAdjacentElement(found.getElementId(), false);
 				}
 				// Look right
@@ -280,13 +424,16 @@ public class AttributeManager2 {
 						return (AttributeValue<T>) adj.get();
 					adj = theSortedAttributes.getAdjacentElement(found.getElementId(), true);
 				}
+				// Not found. Change the found element so that the new attribute will be inserted as the first attribute of its name
+				// so that getting the attribute by name will return this one, not any previously-defined ones
+				found = first;
 			}
 			// We don't currently accept the attribute. Need to add it.
 			AttributeValue<T> value = new AttributeValue<>(attribute);
 			if (onValue != null)
 				onValue.accept(value);
 			found = theObservableAttributes.addElement(value, //
-				comp >= 0 ? found.getElementId() : null, comp < 0 ? found.getElementId() : null, true);
+				comp > 0 ? found.getElementId() : null, comp <= 0 ? found.getElementId() : null, true);
 			value.element(found.getElementId());
 			return value;
 		} else if (accept) {
@@ -301,7 +448,7 @@ public class AttributeManager2 {
 			return null;
 	}
 
-	public AttributeAcceptance accept(Object wanter, QuickAttribute<?>... attributes) {
+	public AttributeAcceptance acceptAll(Object wanter, QuickAttribute<?>... attributes) {
 		try (Transaction t = theObservableAttributes.lock(true, wanter)) {
 			Map<QuickAttribute<?>, AttributeValue<?>> attrMap = new HashMap<>(attributes.length * 3 / 2);
 			for (QuickAttribute<?> attr : attributes) {
@@ -349,6 +496,12 @@ public class AttributeManager2 {
 
 	public ObservableCollection<AttributeValue<?>> getAllAttributes() {
 		return theExposedAttributes;
+	}
+
+	private static final TypeToken<QuickAttribute<?>> ATTR_TYPE = new TypeToken<QuickAttribute<?>>() {};
+
+	public ObservableCollection<QuickAttribute<?>> attributes() {
+		return theExposedAttributes.flow().map(ATTR_TYPE, av -> av.getAttribute(), opts -> opts.cache(false)).collectPassive();
 	}
 
 	public Observable<AttributeChangedEvent<?>> watch(QuickAttribute<?>... attributes) {
@@ -435,6 +588,91 @@ public class AttributeManager2 {
 				return theLocker.tryLock(false, false, null);
 			}
 		};
+	}
+
+	public boolean isSet(String attr) {
+		try (Transaction t = theLocker.lock(false, null)) {
+			AttributeValue<?> av = getAttributesByName(attr).peekFirst();
+			if (av != null)
+				return true;
+			else
+				return theRawAttributes.containsKey(attr);
+		}
+	}
+
+	/**
+	 * Sets an attribute by String
+	 *
+	 * @param attr The name of the attribute to set
+	 * @param value The string representation of the attribute's value
+	 * @param context The context in which to parse and evaluate the attribute value string
+	 * @return The parsed value for the attribute, or null if the attribute has not been initialized
+	 * @throws QuickException If the attribute is not accepted in the element, the value is null and the attribute is required, or the
+	 *         element has already been initialized and the value is not valid for the given attribute
+	 */
+	public final Object set(String attr, String value, QuickParseEnv context) throws QuickException {
+		try (Transaction t = theLocker.lock(true, null)) {
+			AttributeValue<?> av = getAttributesByName(attr).peekFirst();
+			if (av != null)
+				return av.set(value, context);
+			else if (theRawAttributes == null)
+				throw new QuickException("Attribute " + attr + " is not accepted in this element");
+			else if (value == null)
+				theRawAttributes.remove(attr);
+			else
+				theRawAttributes.put(attr, new RawAttributeValue(value, context));
+			return null;
+		}
+	}
+
+	/**
+	 * Sets the value of an attribute for the element. If the element has not been fully initialized (by {@link QuickElement#postCreate()},
+	 * the attribute's value will be validated and parsed during {@link QuickElement#postCreate()}. If the element has been initialized, the
+	 * value will be validated immediately and a {@link QuickException} will be thrown if the value is not valid.
+	 *
+	 * @param <T> The type of the attribute to set
+	 * @param attr The attribute to set
+	 * @param value The value for the attribute
+	 * @param context The context in which to parse and evaluate the attribute value string
+	 * @return The parsed value for the attribute, or null if the element has not been initialized
+	 * @throws QuickException If the attribute is not accepted in the element, the value is null and the attribute is required, or the
+	 *         element has already been initialized and the value is not valid for the given attribute
+	 */
+	public final <T> T set(QuickAttribute<T> attr, String value, QuickParseEnv context) throws QuickException {
+		try (Transaction t = theLocker.lock(true, null)) {
+			AttributeValue<T> av = getOrAccept(attr, null, false, null);
+			if (av != null) {
+				return av.set(value, context);
+			} else
+				throw new QuickException("Attribute " + attr.getName() + " not accepted");
+		}
+	}
+
+	private void setReady() {
+		for (AttributeValue<?> att : theObservableAttributes) {
+			if (att.isRequired() && att.getStamp() == 0)
+				theElement.msg().error("Attribute " + att.getAttribute() + " is required but was not initialized", "attribute",
+					att.getAttribute());
+		}
+		for (java.util.Map.Entry<String, RawAttributeValue> attr : theRawAttributes.entrySet())
+			theElement.msg().error("No attribute named " + attr.getKey() + " is accepted in this element", "attribute", attr.getKey(),
+				"value", attr.getValue().value);
+		theRawAttributes = null;
+	}
+
+	private static class RawAttributeValue {
+		final String value;
+		final QuickParseEnv context;
+
+		RawAttributeValue(String val, QuickParseEnv ctx) {
+			value = val;
+			context = ctx;
+		}
+
+		@Override
+		public String toString() {
+			return value;
+		}
 	}
 
 	private class AttributeAcceptanceImpl<T> implements IndividualAttributeAcceptance<T> {

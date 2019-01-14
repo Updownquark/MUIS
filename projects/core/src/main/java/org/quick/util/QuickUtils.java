@@ -6,6 +6,7 @@ import java.awt.Rectangle;
 import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 
 import org.observe.ObservableValue;
@@ -24,6 +25,11 @@ import com.google.common.reflect.TypeToken;
 /** A set of utilities to use with core Quick elements */
 public class QuickUtils {
 	private QuickUtils() {
+	}
+
+	public static QuickElement[] sortByZ(QuickElement[] elements) {
+		Arrays.sort(elements, (ch1, ch2) -> ch2.getZ() - ch1.getZ());
+		return elements;
 	}
 
 	/**
@@ -239,7 +245,7 @@ public class QuickUtils {
 	 * @return The background color to paint for the style
 	 */
 	public static ObservableValue<Color> getBackground(QuickStyle style) {
-		return style.get(BackgroundStyle.color).combineV(QuickUtils::getColor, style.get(BackgroundStyle.transparency));
+		return style.get(BackgroundStyle.color).combine(QuickUtils::getColor, style.get(BackgroundStyle.transparency));
 	}
 
 	/**
@@ -249,7 +255,7 @@ public class QuickUtils {
 	 * @return The font color to paint for the style
 	 */
 	public static ObservableValue<Color> getFontColor(QuickStyle style) {
-		return style.get(FontStyle.color).combineV(QuickUtils::getColor, style.get(FontStyle.transparency));
+		return style.get(FontStyle.color).combine(QuickUtils::getColor, style.get(FontStyle.transparency));
 	}
 
 	/**

@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
@@ -25,7 +26,7 @@ public class StyleAttributes {
 		.withParser((parser, env, str) -> {
 			if (str.startsWith("${"))
 				return (ObservableValue<QuickStyle>) parser.parseProperty(directiveStyle, env, str);
-			return ObservableValue.constant(TypeToken.of(QuickStyle.class), parseStyle(parser, env, str));
+			return ObservableValue.of(TypeTokens.get().of(QuickStyle.class), parseStyle(parser, env, str));
 		}, true).noDirectives()//
 		.withToString(style2 -> {
 			StringBuilder ret = new StringBuilder();
@@ -47,7 +48,7 @@ public class StyleAttributes {
 			LinkedHashSet<String> groups = new LinkedHashSet<>();
 			for (String s : split)
 				groups.add(s.trim());
-			return ObservableValue.constant(new TypeToken<Set<String>>() {}, Collections.unmodifiableSet(groups));
+			return ObservableValue.of(new TypeToken<Set<String>>() {}, Collections.unmodifiableSet(groups));
 		}, true)//
 		.map(TypeToken.of(String.class), str -> {
 			String[] split = str.split(",");

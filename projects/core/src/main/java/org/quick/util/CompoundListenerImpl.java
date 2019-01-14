@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.observe.*;
+import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.SimpleObservable;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
 import org.quick.core.prop.QuickAttribute;
@@ -108,7 +112,7 @@ class CompoundListenerImpl {
 			};
 			for (int i = 0; i < accepted.length; i++) {
 				try {
-					accept(element, theAttributes.get(i)).noInit().takeUntil(until).subscribe(events);
+					accept(element, theAttributes.get(i)).changes().noInit().takeUntil(until).subscribe(events);
 					accepted[i] = true;
 				} catch (QuickException e) {
 					element.msg().error("Could not accept " + theAttributes.get(i), e);
@@ -116,7 +120,7 @@ class CompoundListenerImpl {
 				}
 			}
 			for (StyleAttribute<?> attr : theStyleAttributes)
-				element.getStyle().get(attr).noInit().takeUntil(until).subscribe(events);
+				element.getStyle().get(attr).changes().noInit().takeUntil(until).subscribe(events);
 			until.act(evt -> {
 				for (int i = 0; i < accepted.length; i++) {
 					if (accepted[i])
@@ -188,8 +192,8 @@ class CompoundListenerImpl {
 		}
 
 		<T> T getAttribute(QuickAttribute<T> attr, boolean skipOne) {
-			ObservableValue<T> value = theElement.atts().getHolder(attr);
-			Observable<?> onChange = value.noInit().takeUntil(theUntil);
+			ObservableValue<T> value = theElement.atts().get(attr);
+			Observable<?> onChange = value.changes().noInit().takeUntil(theUntil);
 			if (skipOne)
 				onChange = onChange.skip(1);
 			onChange.act(evt -> {
@@ -205,7 +209,7 @@ class CompoundListenerImpl {
 
 		<T> T getStyle(StyleAttribute<T> attr, boolean skipOne) {
 			ObservableValue<T> value = theElement.getStyle().get(attr);
-			Observable<?> onChange = value.noInit().takeUntil(theUntil);
+			Observable<?> onChange = value.changes().noInit().takeUntil(theUntil);
 			if (skipOne)
 				onChange = onChange.skip(1);
 			onChange.act(evt -> {

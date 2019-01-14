@@ -3,6 +3,7 @@ package org.quick.core.style;
 import java.awt.Color;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.qommons.IterableUtils;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
@@ -40,14 +41,14 @@ public class LightedStyle implements StyleDomain {
 		lightSource = StyleAttribute.build(instance, "source",
 			QuickPropertyType.build("source", TypeToken.of(Double.class))//
 				.buildContext(ctx -> {
-					ctx.withValue("top", ObservableValue.constant(TypeToken.of(Double.TYPE), 0d));
-					ctx.withValue("top-right", ObservableValue.constant(TypeToken.of(Double.TYPE), 45d));
-					ctx.withValue("right", ObservableValue.constant(TypeToken.of(Double.TYPE), 90d));
-					ctx.withValue("bottom-right", ObservableValue.constant(TypeToken.of(Double.TYPE), 135d));
-					ctx.withValue("bottom", ObservableValue.constant(TypeToken.of(Double.TYPE), 180d));
-					ctx.withValue("bottom-left", ObservableValue.constant(TypeToken.of(Double.TYPE), 225d));
-					ctx.withValue("left", ObservableValue.constant(TypeToken.of(Double.TYPE), 270d));
-					ctx.withValue("top-left", ObservableValue.constant(TypeToken.of(Double.TYPE), 315d));
+					ctx.withValue("top", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 0d));
+					ctx.withValue("top-right", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 45d));
+					ctx.withValue("right", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 90d));
+					ctx.withValue("bottom-right", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 135d));
+					ctx.withValue("bottom", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 180d));
+					ctx.withValue("bottom-left", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 225d));
+					ctx.withValue("left", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 270d));
+					ctx.withValue("top-left", ObservableValue.of(TypeTokens.get().of(Double.TYPE), 315d));
 			}).build(), 315d).validate(new QuickProperty.ComparableValidator<>(0d, 360d)).build();
 		instance.register(lightSource);
 		lightColor = StyleAttribute.build(instance, "color", QuickPropertyType.color, Color.white).build();

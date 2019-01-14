@@ -6,6 +6,7 @@ import java.awt.font.TextAttribute;
 import java.util.Map;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.qommons.IterableUtils;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
@@ -118,7 +119,7 @@ public class FontStyle implements StyleDomain {
 			families.put(familyName.replaceAll(" ", "-"), familyName);
 		familyPTBuilder.buildContext(ctx -> {
 			for (Map.Entry<String, String> entry : families.entrySet())
-				ctx.withValue(entry.getKey(), ObservableValue.constant(TypeToken.of(String.class), entry.getValue()));
+				ctx.withValue(entry.getKey(), ObservableValue.of(TypeTokens.get().of(String.class), entry.getValue()));
 		});
 		family = StyleAttribute.build(instance, "family", familyPTBuilder.build(), "Default").inherited().build();
 		instance.register(family);
@@ -143,15 +144,15 @@ public class FontStyle implements StyleDomain {
 			.build(instance, "weight",
 				QuickPropertyType.build("weight", TypeToken.of(Double.class)).buildContext(ctx -> {
 					for (Map.Entry<String, Double> entry : weights.entrySet())
-						ctx.withValue(entry.getKey(), ObservableValue.constant(TypeToken.of(Double.TYPE), entry.getValue()));
+						ctx.withValue(entry.getKey(), ObservableValue.of(TypeTokens.get().of(Double.TYPE), entry.getValue()));
 				}).build(), 1d)
 			.inherited()
 			.validate(new QuickProperty.ComparableValidator<>(0.25d, 3d)).build();
 		instance.register(weight);
 		slant = StyleAttribute.build(instance, "slant", QuickPropertyType.build("slant", TypeToken.of(Double.class))//
 			.buildContext(ctx -> {
-				ctx.withValue("normal", ObservableValue.constant(TypeToken.of(Double.TYPE), normalSlant));
-				ctx.withValue("italic", ObservableValue.constant(TypeToken.of(Double.TYPE), italic));
+				ctx.withValue("normal", ObservableValue.of(TypeTokens.get().of(Double.TYPE), normalSlant));
+				ctx.withValue("italic", ObservableValue.of(TypeTokens.get().of(Double.TYPE), italic));
 			}).build(), 0d).validate(new QuickProperty.ComparableValidator<>(0d, 1d)).inherited().build();
 		instance.register(slant);
 		underline = StyleAttribute.build(instance, "underline", QuickPropertyType.forEnum(Underline.class), Underline.none).inherited()

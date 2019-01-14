@@ -4,16 +4,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
 import org.quick.core.mgr.QuickMessageCenter;
-import org.quick.core.parser.*;
+import org.quick.core.parser.DefaultStyleParser;
+import org.quick.core.parser.QuickContentCreator;
+import org.quick.core.parser.QuickDocumentParser;
+import org.quick.core.parser.QuickPropertyParser;
+import org.quick.core.parser.QuickStyleParser;
+import org.quick.core.parser.QuickToolkitParser;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.prop.antlr.AntlrPropertyParser;
 import org.quick.core.style.CompoundStyleSheet;
 import org.quick.core.style.StyleSheet;
-
-import com.google.common.reflect.TypeToken;
 
 /** The environment that Quick documents operate in */
 public class QuickEnvironment implements QuickParseEnv {
@@ -21,7 +25,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	public static final java.net.URL CORE_TOOLKIT = QuickEnvironment.class.getResource("/QuickRegistry.xml");
 
 	private static class EnvironmentStyle extends CompoundStyleSheet {
-		EnvironmentStyle(ObservableList<StyleSheet> dependencies) {
+		EnvironmentStyle(ObservableCollection<StyleSheet> dependencies) {
 			super(dependencies);
 		}
 
@@ -44,14 +48,14 @@ public class QuickEnvironment implements QuickParseEnv {
 	private final EnvironmentStyle theStyle;
 
 	private final Object theToolkitLock;
-	private ObservableList<StyleSheet> theStyleDependencyController;
+	private ObservableCollection<StyleSheet> theStyleDependencyController;
 
 	private QuickEnvironment() {
 		theMessageCenter = new QuickMessageCenter(this, null, null);
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
-		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
-		theStyle = new EnvironmentStyle(theStyleDependencyController.immutable());
+		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class));
+		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect());
 		theToolkitLock = new Object();
 	}
 

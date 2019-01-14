@@ -11,12 +11,17 @@ import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.qommons.ArrayUtils;
-import org.quick.core.event.*;
+import org.quick.core.event.FocusEvent;
+import org.quick.core.event.KeyBoardEvent;
+import org.quick.core.event.MouseEvent;
+import org.quick.core.event.ScrollEvent;
+import org.quick.core.event.UserEvent;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.DocumentStyleSheet;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -134,7 +139,7 @@ public class QuickDocument implements QuickParseEnv {
 				if(model instanceof ObservableValue)
 					return (ObservableValue<?>) model;
 				else if (model != null)
-					return ObservableValue.constant(model);
+					return ObservableValue.of(model);
 				else
 					return null;
 			})//
@@ -599,7 +604,7 @@ public class QuickDocument implements QuickParseEnv {
 		QuickElement lastChild = theFocus;
 		QuickElement parent = theFocus.getParent().get();
 		while(parent != null) {
-			QuickElement[] children = parent.getPhysicalChildren().sortByZ().toArray();
+			QuickElement[] children = QuickUtils.sortByZ(parent.getPhysicalChildren().toArray());
 			if(!forward) {
 				ArrayUtils.reverse(children);
 			}
@@ -632,7 +637,7 @@ public class QuickDocument implements QuickParseEnv {
 			if(first)
 				root = root.ch().get(0);
 			else
-				root = root.ch().last();
+				root = root.ch().peekLast();
 		return root;
 	}
 

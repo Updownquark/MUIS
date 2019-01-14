@@ -9,6 +9,7 @@ import org.observe.assoc.ObservableMap;
 import org.observe.collect.CollectionSession;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
@@ -71,8 +72,8 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		ObservableSet<QuickState> states = element.getStateEngine().activeStates();
 		if (extraStates != null)
 			states = ObservableSet.unique(ObservableCollection.flattenCollections(states, extraStates), Object::equals);
-		ObservableValue<ObservableSet<String>> groupValue = element.atts().getHolder(StyleAttributes.group).mapV((Set<String> g) -> {
-			return ObservableSet.<String> constant(TypeToken.of(String.class), g == null ? Collections.<String> emptySet() : g);
+		ObservableValue<ObservableSet<String>> groupValue = element.atts().get(StyleAttributes.group).map((Set<String> g) -> {
+			return ObservableSet.<String> of(TypeTokens.get().STRING, g == null ? Collections.<String> emptySet() : g);
 		});
 		ObservableSet<String> groups = ObservableSet.flattenValue(groupValue);
 		if (extraGroups != null)
@@ -157,8 +158,8 @@ public interface StyleConditionInstance<T extends QuickElement> {
 
 		Builder(Class<T> type) {
 			theType = type;
-			theState = ObservableSet.constant(TypeToken.of(QuickState.class));
-			theGroups = ObservableSet.constant(TypeToken.of(String.class));
+			theState = ObservableSet.of(TypeTokens.get().of(QuickState.class));
+			theGroups = ObservableSet.of(TypeTokens.get().STRING);
 			theRoles = ObservableMap.empty(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
 		}
 

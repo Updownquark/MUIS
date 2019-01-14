@@ -1,12 +1,10 @@
 package org.quick.core;
 
-import org.observe.Observable;
-
 /** Represents an element that may never have children */
 public class QuickLeaf extends QuickElement {
 	@Override
-	protected void registerChild(QuickElement child, Observable<?> until) {
+	protected Runnable registerChild(QuickElement child) {
 		msg().fatal("Elements of type " + getClass().getName() + " may not have children", null, "child", child);
-		super.registerChild(child, until);
+		return super.registerChild(child);
 	}
 }

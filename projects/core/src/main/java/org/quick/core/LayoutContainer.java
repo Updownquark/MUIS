@@ -1,7 +1,7 @@
 package org.quick.core;
 
 import org.quick.core.layout.SizeGuide;
-import org.quick.core.mgr.AttributeManager.AttributeHolder;
+import org.quick.core.mgr.AttributeManager2.AttributeValue;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 
@@ -14,13 +14,13 @@ public class LayoutContainer extends QuickElement {
 	/** Creates a layout container */
 	public LayoutContainer() {
 		QuickLayout defLayout = getDefaultLayout();
-		AttributeHolder<QuickLayout> layoutAtt;
+		AttributeValue<QuickLayout> layoutAtt;
 		try {
-			layoutAtt = atts().require(this, LAYOUT_ATTR, defLayout);
+			layoutAtt = atts().accept(LAYOUT_ATTR, this, a -> a.init(defLayout).required());
 			life().runWhen(() -> {
-				layoutAtt.value().act(layout -> layout.install(LayoutContainer.this, layoutAtt.noInit()));
+				layoutAtt.value().act(layout -> layout.install(LayoutContainer.this, layoutAtt.changes().noInit()));
 			}, QuickConstants.CoreStage.STARTUP.toString(), -1);
-		} catch (QuickException e) {
+		} catch (IllegalArgumentException e) {
 			msg().error("Could not set default layout", e, "layout", defLayout);
 		}
 	}
@@ -36,7 +36,7 @@ public class LayoutContainer extends QuickElement {
 
 	/** @return The QuickLayout that lays out this container's children */
 	public QuickLayout getLayout() {
-		return atts().get(LAYOUT_ATTR);
+		return atts().get(LAYOUT_ATTR).get();
 	}
 
 	@Override

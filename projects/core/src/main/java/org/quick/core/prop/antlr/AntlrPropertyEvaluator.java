@@ -1,14 +1,31 @@
 package org.quick.core.prop.antlr;
 
-import java.lang.reflect.*;
-import java.util.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.observe.*;
-import org.observe.collect.ObservableList;
-import org.observe.collect.ObservableOrderedCollection;
+import org.observe.ObservableAction;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.SettableValue;
+import org.observe.Subscription;
+import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.QuickAppModel;
@@ -21,6 +38,8 @@ import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
+
+import javafx.collections.ObservableList;
 
 /** Evaluates structures parsed by {@link AntlrPropertyParser} into observable values, actions, etc. */
 class AntlrPropertyEvaluator {
@@ -68,12 +87,12 @@ class AntlrPropertyEvaluator {
 		if (parsedItem instanceof ExpressionTypes.NullLiteral) {
 			if (actionRequired)
 				throw new QuickParseException("null literal cannot be an action");
-			return ObservableValue.constant(type, null);
+			return ObservableValue.of(type, null);
 		} else if (parsedItem instanceof ExpressionTypes.Literal) {
 			if (actionRequired)
 				throw new QuickParseException("literal cannot be an action");
 			ExpressionTypes.Literal<?> literal = (ExpressionTypes.Literal<?>) parsedItem;
-			return ObservableValue.constant((TypeToken<Object>) literal.getType(), literal.getValue());
+			return ObservableValue.of((TypeToken<Object>) literal.getType(), literal.getValue());
 			// Now easy operations
 		} else if (parsedItem instanceof ExpressionTypes.Parenthetic) {
 			return evaluateTypeChecked(parseEnv, type, ((ExpressionTypes.Parenthetic) parsedItem).getContents(), actionAccepted,
@@ -104,8 +123,8 @@ class AntlrPropertyEvaluator {
 				else
 					actions.add(ObservableAction.flatten((ObservableValue<ObservableAction<?>>) eval));
 			}
-			return ObservableValue.constant((TypeToken<ObservableAction<?>>) type, ObservableAction.and(ObservableList
-				.constant((TypeToken<ObservableAction<Object>>) componentType, (List<ObservableAction<Object>>) (List<?>) actions)));
+			return ObservableValue.of((TypeToken<ObservableAction<?>>) type, ObservableAction.and(ObservableCollection
+				.of((TypeToken<ObservableAction<Object>>) componentType, (List<ObservableAction<Object>>) (List<?>) actions)));
 		} else if (parsedItem instanceof ExpressionTypes.Operation) {
 			ExpressionTypes.Operation op = (ExpressionTypes.Operation) parsedItem;
 			boolean actionOp = ASSIGN_BIOPS.contains(op.getName());
@@ -143,15 +162,15 @@ class AntlrPropertyEvaluator {
 						if (testType.isAssignableFrom(primary.getType())) {
 							parseEnv.msg()
 								.warn(binOp.getPrimaryOperand() + " is always an instance of " + binOp.getRight() + " (if non-null)");
-							return primary.mapV(MathUtils.BOOLEAN, v -> v != null, true);
+							return primary.map(MathUtils.BOOLEAN, v -> v != null);
 						} else if (!primary.getType().isAssignableFrom(testType)) {
 							parseEnv.msg().error(binOp.getPrimaryOperand() + " is never an instance of " + binOp.getRight());
-							return ObservableValue.constant(MathUtils.BOOLEAN, false);
+							return ObservableValue.of(MathUtils.BOOLEAN, false);
 						} else {
-							return primary.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+							return primary.map(MathUtils.BOOLEAN, v -> TypeTokens.get().isInstance(testType, v));
 						}
 					} else {
-						return primary.mapV(MathUtils.BOOLEAN, v -> testType.getRawType().isInstance(v), true);
+						return primary.map(MathUtils.BOOLEAN, v -> TypeTokens.get().isInstance(testType, v));
 					}
 				} else {
 					ObservableValue<?> arg2 = evaluateTypeChecked(parseEnv, TypeToken.of(Object.class), binOp.getRight(), actionAccepted,
@@ -179,8 +198,8 @@ class AntlrPropertyEvaluator {
 			TypeToken<T> resultType = (TypeToken<T>) QuickUtils.getCommonType(affirm.getType(), neg.getType());
 			TypeToken<ObservableValue<? extends T>> resultObsType = new TypeToken<ObservableValue<? extends T>>() {}
 				.where(new TypeParameter<T>() {}, resultType.wrap());
-			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).mapV(resultObsType, v -> v ? affirm : neg, true))
-				.mapV(resultType, v -> v, true);
+			return ObservableValue.flatten(((ObservableValue<Boolean>) condition).map(resultObsType, v -> v ? affirm : neg)).map(resultType,
+				v -> v);
 		} else if (parsedItem instanceof ExpressionTypes.Cast) {
 			if (actionRequired)
 				throw new QuickParseException("Cast cannot be an action");
@@ -191,10 +210,10 @@ class AntlrPropertyEvaluator {
 			if (!testType.getRawType().isInterface() && !var.getType().getRawType().isInterface()) {
 				if (testType.isAssignableFrom(var.getType())) {
 					parseEnv.msg().warn(cast.getValue() + " is always an instance of " + cast.getType());
-					return var.mapV((TypeToken<Object>) testType, v -> v, true);
+					return var.map((TypeToken<Object>) testType, v -> v);
 				} else if (!QuickUtils.isAssignableFrom(var.getType(), testType)) {
 					parseEnv.msg().error(cast.getValue() + " is never an instance of " + cast.getType());
-					return var.mapV((TypeToken<Object>) testType, v -> {
+					return var.map((TypeToken<Object>) testType, v -> {
 						if (v == null) {
 							if (testType.isPrimitive())
 								throw new NullPointerException("null cannot be cast to " + testType);
@@ -202,9 +221,9 @@ class AntlrPropertyEvaluator {
 								return null;
 						} else
 							throw new ClassCastException(v + " is not an instance of " + testType);
-					}, true);
+					});
 				} else {
-					return var.mapV((TypeToken<Object>) testType, v -> {
+					return var.map((TypeToken<Object>) testType, v -> {
 						if (v == null) {
 							if (testType.isPrimitive())
 								throw new NullPointerException("null cannot be cast to " + testType);
@@ -218,10 +237,10 @@ class AntlrPropertyEvaluator {
 							return QuickUtils.convert(testType, v);
 						else
 							throw new ClassCastException(v + " is not an instance of " + testType);
-					}, true);
+					});
 				}
 			} else {
-				return var.mapV((TypeToken<Object>) testType, v -> {
+				return var.map((TypeToken<Object>) testType, v -> {
 					if (v == null) {
 						if (testType.isPrimitive())
 							throw new NullPointerException("null cannot be cast to " + testType);
@@ -235,7 +254,7 @@ class AntlrPropertyEvaluator {
 						return QuickUtils.convert(testType, v);
 					else
 						throw new ClassCastException(v + " is not an instance of " + testType);
-				}, true);
+				});
 			}
 			// Harder operations
 			// Array operations
@@ -251,8 +270,8 @@ class AntlrPropertyEvaluator {
 					testResultType = array.getType().getComponentType();
 				} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
 					testResultType = array.getType().resolveType(List.class.getTypeParameters()[0]);
-				} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
-					testResultType = array.getType().resolveType(ObservableOrderedCollection.class.getTypeParameters()[0]);
+				} else if (TypeToken.of(ObservableCollection.class).isAssignableFrom(array.getType())) {
+					testResultType = array.getType().resolveType(ObservableCollection.class.getTypeParameters()[0]);
 				} else {
 					throw new QuickParseException("array value in " + parsedItem + " evaluates to type " + array.getType()
 						+ ", which is not indexable");
@@ -270,12 +289,12 @@ class AntlrPropertyEvaluator {
 			}
 			if (TypeToken.of(ObservableList.class).isAssignableFrom(array.getType())) {
 				return SettableValue.flatten(((ObservableValue<ObservableList<? extends T>>) array)
-					.combineV((list, idx) -> list.observeAt(((Number) idx).intValue(), null), index));
-			} else if (TypeToken.of(ObservableOrderedCollection.class).isAssignableFrom(array.getType())) {
-				return ObservableValue.flatten(((ObservableValue<ObservableOrderedCollection<? extends T>>) array)
-					.combineV((coll, idx) -> coll.observeAt(((Number) idx).intValue(), null), index));
+					.combine((list, idx) -> list.observeAt(((Number) idx).intValue(), null), index));
+			} else if (TypeToken.of(ObservableCollection.class).isAssignableFrom(array.getType())) {
+				return ObservableValue.flatten(((ObservableValue<ObservableCollection<? extends T>>) array)
+					.combine((coll, idx) -> coll.observeAt(((Number) idx).intValue(), null), index));
 			} else
-				return array.combineV((TypeToken<T>) resultType, (BiFunction<Object, Number, T>) (a, i) -> {
+				return array.combine((TypeToken<T>) resultType, (BiFunction<Object, Number, T>) (a, i) -> {
 					int idx = i.intValue();
 					if (TypeToken.of(Object[].class).isAssignableFrom(array.getType())) {
 						return ((T[]) a)[idx];
@@ -284,7 +303,7 @@ class AntlrPropertyEvaluator {
 					} else/* if (TypeToken.of(List.class).isAssignableFrom(array.getType()))*/ {
 						return ((List<? extends T>) a).get(idx);
 					}
-				}, (ObservableValue<? extends Number>) index, true);
+				}, (ObservableValue<? extends Number>) index, null);
 		} else if (parsedItem instanceof ExpressionTypes.ArrayInitializer) {
 			if (actionRequired)
 				throw new QuickParseException("Array init operation cannot be an action");
@@ -397,9 +416,9 @@ class AntlrPropertyEvaluator {
 				}
 			};
 			if (value instanceof SettableValue && unit.getReverseMap() != null) {
-				return ((SettableValue<Object>) value).mapV((TypeToken<T>) bestMatch.returnType, forwardMap, reverseMap, true);
+				return ((SettableValue<Object>) value).map((TypeToken<T>) bestMatch.returnType, forwardMap, reverseMap, null);
 			} else {
-				return value.mapV((TypeToken<T>) bestMatch.returnType, forwardMap);
+				return value.map((TypeToken<T>) bestMatch.returnType, forwardMap);
 			}
 			// Now harder operations
 		} else if (parsedItem instanceof ExpressionTypes.Constructor) {
@@ -904,7 +923,7 @@ class AntlrPropertyEvaluator {
 		QuickParseEnv parseEnv, TypeToken<?> type, boolean actionAccepted) throws QuickParseException {
 		if (TypeToken.of(QuickAppModel.class).isAssignableFrom(context.getType())) {
 			if (!(context instanceof ObservableValue.ConstantObservableValue))
-				throw new QuickParseException("Model observables must be constant to be evaluated");
+				throw new QuickParseException("Model observables must be of to be evaluated");
 			QuickAppModel model = (QuickAppModel) context.get();
 			Object fieldVal = model.getField(member.getName());
 			if (fieldVal == null)
@@ -913,7 +932,7 @@ class AntlrPropertyEvaluator {
 				if (fieldVal instanceof ObservableValue)
 					return (ObservableValue<?>) fieldVal;
 				else
-					return ObservableValue.constant(fieldVal);
+					return ObservableValue.of(fieldVal);
 			} else {
 				ExpressionTypes.MethodInvocation method = (ExpressionTypes.MethodInvocation) member;
 				if (fieldVal instanceof ExpressionFunction) {
@@ -949,7 +968,7 @@ class AntlrPropertyEvaluator {
 				}
 				if ((fieldRef.getModifiers() & Modifier.STATIC) != 0)
 					throw new QuickParseException("Field " + context + "." + fieldRef.getName() + " is static");
-				return context.mapV((TypeToken<Object>) context.getType().resolveType(fieldRef.getGenericType()), v -> {
+				return context.map((TypeToken<Object>) context.getType().resolveType(fieldRef.getGenericType()), v -> {
 					try {
 						return fieldRef.get(v);
 					} catch (Exception e) {
@@ -995,7 +1014,7 @@ class AntlrPropertyEvaluator {
 	}
 
 	private static <T> ObservableValue<ObservableAction<T>> valueOf(ObservableAction<T> action) {
-		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, action.getType().wrap()),
+		return ObservableValue.of(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, action.getType().wrap()),
 			action);
 	}
 
@@ -1033,7 +1052,7 @@ class AntlrPropertyEvaluator {
 		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
 		for (ExpressionFunction<?> fn : functions) {
 			if (fn.applies(Arrays.asList(arg1.getType())))
-				return arg1.mapV((TypeToken<Object>) fn.getReturnType(), v -> fn.apply(Arrays.asList(v)));
+				return arg1.map((TypeToken<Object>) fn.getReturnType(), v -> fn.apply(Arrays.asList(v)));
 		}
 		try {
 			switch (op.getName()) {
@@ -1066,7 +1085,7 @@ class AntlrPropertyEvaluator {
 		for (ExpressionFunction<?> fn : functions) {
 			if (arg1.getType().isAssignableFrom(fn.getReturnType())
 				&& fn.applies(Arrays.asList(arg1.getType(), TypeToken.of(Integer.TYPE))))
-				return arg1.mapV((TypeToken<T>) fn.getReturnType(), v -> (T) fn.apply(Arrays.asList(v, 1)));
+				return arg1.map((TypeToken<T>) fn.getReturnType(), v -> (T) fn.apply(Arrays.asList(v, 1)));
 		}
 		ObservableValue<T> result;
 		try {
@@ -1091,14 +1110,14 @@ class AntlrPropertyEvaluator {
 		List<ExpressionFunction<?>> functions = parseEnv.getContext().getFunctions(op.getName(), new ArrayList<>());
 		for (ExpressionFunction<?> fn : functions) {
 			if (fn.applies(Arrays.asList(arg1.getType(), arg2.getType())))
-				return arg1.combineV((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, true);
+				return arg1.combine((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, null);
 		}
 		try {
 			switch (op.getName()) {
 			case "+":
 				TypeToken<String> strType = TypeToken.of(String.class);
 				if (strType.isAssignableFrom(arg1.getType()) || strType.isAssignableFrom(arg2.getType())) {
-					return arg1.combineV(strType, (a1, a2) -> new StringBuilder().append(a1).append(a2).toString(), arg2, true);
+					return arg1.combine(strType, (a1, a2) -> new StringBuilder().append(a1).append(a2).toString(), arg2, null);
 				}
 				//$FALL-THROUGH$
 			case "-":
@@ -1135,7 +1154,7 @@ class AntlrPropertyEvaluator {
 		for (ExpressionFunction<?> fn : functions) {
 			if (arg1.getType().isAssignableFrom(fn.getReturnType())
 				&& fn.applies(Arrays.asList(arg1.getType(), TypeToken.of(Integer.TYPE))))
-				return arg1.combineV((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, true);
+				return arg1.combine((TypeToken<Object>) fn.getReturnType(), (v1, v2) -> fn.apply(Arrays.asList(v1, v2)), arg2, null);
 		}
 		switch (op.getName()) {
 		case "=":
@@ -1174,7 +1193,7 @@ class AntlrPropertyEvaluator {
 		ObservableValue<V> value, boolean resultPreOp) throws QuickParseException {
 		ObservableAction<V> action = settable.assignmentTo(value);
 		// TODO not handling the pre-op boolean at all
-		return ObservableValue.constant(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, settable.getType().wrap()),
+		return ObservableValue.of(new TypeToken<ObservableAction<T>>() {}.where(new TypeParameter<T>() {}, settable.getType().wrap()),
 			new ObservableAction<T>() {
 				@Override
 				public TypeToken<T> getType() {

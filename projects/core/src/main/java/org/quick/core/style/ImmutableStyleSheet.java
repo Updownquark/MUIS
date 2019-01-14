@@ -1,6 +1,10 @@
 package org.quick.core.style;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
@@ -26,20 +30,20 @@ public class ImmutableStyleSheet implements StyleSheet {
 		SortedSet<? extends StyleConditionValue<?>> values) {
 		TypeToken<StyleConditionValue<T>> type = new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {},
 			key.getType().getType());
-		return ObservableSortedSet.<StyleConditionValue<T>> constant(type, (SortedSet<StyleConditionValue<T>>) values,
+		return ObservableSortedSet.<StyleConditionValue<T>> of(type, (SortedSet<StyleConditionValue<T>>) values,
 			(o1, o2) -> o1.compareTo(o2));
 	}
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		return ObservableSet.constant(new TypeToken<StyleAttribute<?>>() {}, theValues.keySet());
+		return ObservableSet.of(new TypeToken<StyleAttribute<?>>() {}, theValues.keySet());
 	}
 
 	@Override
 	public <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr) {
 		ObservableSortedSet<? extends StyleConditionValue<?>> conditions = theValues.get(attr);
 		return (ObservableSortedSet<StyleConditionValue<T>>) (conditions != null ? conditions
-			: ObservableSortedSet.empty(new TypeToken<StyleConditionValue<?>>() {}));
+			: ObservableSortedSet.of(new TypeToken<StyleConditionValue<?>>() {}));
 	}
 
 	@Override

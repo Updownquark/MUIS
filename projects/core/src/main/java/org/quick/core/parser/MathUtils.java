@@ -146,9 +146,9 @@ public class MathUtils {
 				else
 					throw new IllegalArgumentException("Cannot unset an equality");
 			};
-			return ((SettableValue<T>) v1).combineV(BOOLEAN, test, v2, accept, reverse, true);
+			return ((SettableValue<T>) v1).combine(BOOLEAN, test, v2, accept, reverse, null);
 		} else
-			return v1.combineV(BOOLEAN, test, v2, true);
+			return v1.combine(BOOLEAN, test, v2, null);
 	}
 
 	/**
@@ -165,17 +165,17 @@ public class MathUtils {
 		ObservableValue<Integer> comp = compare(v1, v2);
 		switch (op) {
 		case ">":
-			return comp.mapV(BOOLEAN, c -> c > 0, true);
+			return comp.map(BOOLEAN, c -> c > 0);
 		case ">=":
-			return comp.mapV(BOOLEAN, c -> c >= 0, true);
+			return comp.map(BOOLEAN, c -> c >= 0);
 		case "<":
-			return comp.mapV(BOOLEAN, c -> c < 0, true);
+			return comp.map(BOOLEAN, c -> c < 0);
 		case "<=":
-			return comp.mapV(BOOLEAN, c -> c <= 0, true);
+			return comp.map(BOOLEAN, c -> c <= 0);
 		case "==":
-			return comp.mapV(BOOLEAN, c -> c == 0, true);
+			return comp.map(BOOLEAN, c -> c == 0);
 		case "!=":
-			return comp.mapV(BOOLEAN, c -> c != 0, true);
+			return comp.map(BOOLEAN, c -> c != 0);
 		}
 		throw new IllegalArgumentException("Unrecognized comparison operatior: " + op);
 	}
@@ -193,10 +193,10 @@ public class MathUtils {
 			return (ObservableValue<? extends Number>) v;
 		else if (CHAR.isAssignableFrom(v.getType().unwrap())) {
 			if (v instanceof SettableValue)
-				return ((SettableValue<Character>) v).mapV(INT, c -> Integer.valueOf(c.charValue()),
-					i -> Character.valueOf((char) i.intValue()), false);
+				return ((SettableValue<Character>) v).map(INT, c -> Integer.valueOf(c.charValue()),
+					i -> Character.valueOf((char) i.intValue()), null);
 			else
-				return ((ObservableValue<Character>) v).mapV(INT, c -> Integer.valueOf(c.charValue()), true);
+				return ((ObservableValue<Character>) v).map(INT, c -> Integer.valueOf(c.charValue()));
 		} else
 			throw new IllegalArgumentException("Type " + v.getClass().getName() + " is not mathable");
 	}
@@ -212,23 +212,23 @@ public class MathUtils {
 			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 			if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(INT, (num1, num2) -> Double.compare(num1.doubleValue(), num2.doubleValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Double.compare(num1.doubleValue(), num2.doubleValue()), n2, null);
 			else if (FLOAT.isAssignableFrom(n1.getType()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(INT, (num1, num2) -> Float.compare(num1.floatValue(), num2.floatValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Float.compare(num1.floatValue(), num2.floatValue()), n2, null);
 			else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(INT, (num1, num2) -> Long.compare(num1.longValue(), num2.longValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Long.compare(num1.longValue(), num2.longValue()), n2, null);
 			else if (INT.isAssignableFrom(n1.getType().unwrap()) || INT.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(INT, (num1, num2) -> Integer.compare(num1.intValue(), num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.compare(num1.intValue(), num2.intValue()), n2, null);
 			else if (SHORT.isAssignableFrom(n1.getType().unwrap()) || SHORT.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(INT, (num1, num2) -> Short.compare(num1.shortValue(), num2.shortValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Short.compare(num1.shortValue(), num2.shortValue()), n2, null);
 			else if (BYTE.isAssignableFrom(n1.getType().unwrap()) && BYTE.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(INT, (num1, num2) -> Byte.compare(num1.byteValue(), num2.byteValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Byte.compare(num1.byteValue(), num2.byteValue()), n2, null);
 			else
 				throw new IllegalArgumentException("Unrecognized number types: " + v1.getType() + ", " + v2.getType());
 		} else if (TypeToken.of(Comparable.class).isAssignableFrom(v1.getType())
 			&& TypeToken.of(Comparable.class).isAssignableFrom(v2.getType())) {
 			if (v1.getType().resolveType(Comparable.class.getTypeParameters()[0]).isAssignableFrom(v2.getType())) {
-				return ((ObservableValue<Comparable<Object>>) v1).combineV(INT, (c1, c2) -> c1.compareTo(c2), v2, true);
+				return ((ObservableValue<Comparable<Object>>) v1).combine(INT, (c1, c2) -> c1.compareTo(c2), v2, null);
 			} else
 				throw new IllegalArgumentException("Comparable type " + v1.getType() + " cannot be applied to " + v2.getType());
 		} else
@@ -248,21 +248,20 @@ public class MathUtils {
 		if (!isMathable(value.getType()))
 			throw new IllegalArgumentException("Add one cannot be applied to operand type " + value.getType());
 		if (DOUBLE.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Double>) value).mapV(DOUBLE, num -> Double.valueOf(num.doubleValue() + 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Double>) value).map(DOUBLE, num -> Double.valueOf(num.doubleValue() + 1));
 		else if (FLOAT.isAssignableFrom(value.getType()))
-			return (ObservableValue<T>) ((ObservableValue<Float>) value).mapV(FLOAT, num -> Float.valueOf(num.floatValue() + 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Float>) value).map(FLOAT, num -> Float.valueOf(num.floatValue() + 1));
 		else if (LONG.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Long>) value).mapV(LONG, num -> Long.valueOf(num.longValue() + 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Long>) value).map(LONG, num -> Long.valueOf(num.longValue() + 1));
 		else if (INT.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Integer>) value).mapV(INT, num -> Integer.valueOf(num.intValue() + 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Integer>) value).map(INT, num -> Integer.valueOf(num.intValue() + 1));
 		else if (SHORT.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Short>) value).mapV(SHORT, num -> Short.valueOf((short) (num.shortValue() + 1)),
-				true);
+			return (ObservableValue<T>) ((ObservableValue<Short>) value).map(SHORT, num -> Short.valueOf((short) (num.shortValue() + 1)));
 		else if (BYTE.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Byte>) value).mapV(BYTE, num -> Byte.valueOf((byte) (num.byteValue() + 1)), true);
+			return (ObservableValue<T>) ((ObservableValue<Byte>) value).map(BYTE, num -> Byte.valueOf((byte) (num.byteValue() + 1)));
 		else // if (CHAR.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Character>) value).mapV(CHAR,
-				ch -> Character.valueOf((char) (ch.charValue() + 1)), true);
+			return (ObservableValue<T>) ((ObservableValue<Character>) value).map(CHAR,
+				ch -> Character.valueOf((char) (ch.charValue() + 1)));
 	}
 
 	/**
@@ -277,21 +276,20 @@ public class MathUtils {
 		if (!isMathable(value.getType()))
 			throw new IllegalArgumentException("Add one cannot be applied to operand type " + value.getType());
 		if (DOUBLE.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Double>) value).mapV(DOUBLE, num -> Double.valueOf(num.doubleValue() - 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Double>) value).map(DOUBLE, num -> Double.valueOf(num.doubleValue() - 1));
 		else if (FLOAT.isAssignableFrom(value.getType()))
-			return (ObservableValue<T>) ((ObservableValue<Float>) value).mapV(FLOAT, num -> Float.valueOf(num.floatValue() - 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Float>) value).map(FLOAT, num -> Float.valueOf(num.floatValue() - 1));
 		else if (LONG.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Long>) value).mapV(LONG, num -> Long.valueOf(num.longValue() - 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Long>) value).map(LONG, num -> Long.valueOf(num.longValue() - 1));
 		else if (INT.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Integer>) value).mapV(INT, num -> Integer.valueOf(num.intValue() - 1), true);
+			return (ObservableValue<T>) ((ObservableValue<Integer>) value).map(INT, num -> Integer.valueOf(num.intValue() - 1));
 		else if (SHORT.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Short>) value).mapV(SHORT, num -> Short.valueOf((short) (num.shortValue() - 1)),
-				true);
+			return (ObservableValue<T>) ((ObservableValue<Short>) value).map(SHORT, num -> Short.valueOf((short) (num.shortValue() - 1)));
 		else if (BYTE.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Byte>) value).mapV(BYTE, num -> Byte.valueOf((byte) (num.byteValue() - 1)), true);
+			return (ObservableValue<T>) ((ObservableValue<Byte>) value).map(BYTE, num -> Byte.valueOf((byte) (num.byteValue() - 1)));
 		else // if (CHAR.isAssignableFrom(value.getType().unwrap()))
-			return (ObservableValue<T>) ((ObservableValue<Character>) value).mapV(CHAR,
-				ch -> Character.valueOf((char) (ch.charValue() - 1)), true);
+			return (ObservableValue<T>) ((ObservableValue<Character>) value).map(CHAR,
+				ch -> Character.valueOf((char) (ch.charValue() - 1)));
 	}
 
 	/**
@@ -319,13 +317,13 @@ public class MathUtils {
 			throw new IllegalArgumentException("Negate cannot be applied to operand type " + value.getType());
 		ObservableValue<? extends Number> n = mathableToNumber(value);
 		if (DOUBLE.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Double>) n).mapV(DOUBLE, v -> -v, true);
+			return ((ObservableValue<Double>) n).map(DOUBLE, v -> -v);
 		else if (FLOAT.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Float>) n).mapV(FLOAT, v -> -v, true);
+			return ((ObservableValue<Float>) n).map(FLOAT, v -> -v);
 		else if (LONG.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Long>) n).mapV(LONG, v -> -v, true);
+			return ((ObservableValue<Long>) n).map(LONG, v -> -v);
 		else
-			return ((ObservableValue<? extends Number>) n).mapV(INT, v -> -v.intValue(), true);
+			return ((ObservableValue<? extends Number>) n).map(INT, v -> -v.intValue());
 	}
 
 	/**
@@ -340,9 +338,9 @@ public class MathUtils {
 			throw new IllegalArgumentException("Complement cannot be applied to operand type " + value.getType());
 		ObservableValue<? extends Number> n = mathableToNumber(value);
 		if (LONG.isAssignableFrom(n.getType().unwrap()))
-			return ((ObservableValue<Long>) n).mapV(LONG, v -> ~v, true);
+			return ((ObservableValue<Long>) n).map(LONG, v -> ~v);
 		else
-			return ((ObservableValue<? extends Number>) n).mapV(INT, v -> ~v.intValue(), true);
+			return ((ObservableValue<? extends Number>) n).map(INT, v -> ~v.intValue());
 	}
 
 	/**
@@ -356,7 +354,7 @@ public class MathUtils {
 		if (!value.getType().unwrap().equals(BOOLEAN))
 			throw new IllegalArgumentException("! cannot be applied to operand type " + value.getType());
 		ObservableValue<Boolean> b = (ObservableValue<Boolean>) value;
-		return b.mapV(BOOLEAN, v -> !v, true);
+		return b.map(BOOLEAN, v -> !v);
 	}
 
 	/**
@@ -387,34 +385,34 @@ public class MathUtils {
 			if (resultType == DOUBLE)
 				return combine((ObservableValue<Double>) n1, n2, DOUBLE,
 					(num1, num2) -> Double.valueOf(num1.doubleValue() + num2.doubleValue()),
-					(ret, num2) -> Double.valueOf(ret.doubleValue() - num2.doubleValue()), true);
+					(ret, num2) -> Double.valueOf(ret.doubleValue() - num2.doubleValue()));
 			else if (resultType == FLOAT)
 				return combine((ObservableValue<Float>) n1, n2, FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() + num2.floatValue()),
-					(ret, num2) -> Float.valueOf(ret.floatValue() - num2.floatValue()), true);
+					(ret, num2) -> Float.valueOf(ret.floatValue() - num2.floatValue()));
 			else if (resultType == LONG)
 				return combine((ObservableValue<Long>) n1, n2, LONG, (num1, num2) -> Long.valueOf(num1.longValue() + num2.longValue()),
-					(ret, num2) -> Long.valueOf(ret.longValue() - num2.longValue()), true);
+					(ret, num2) -> Long.valueOf(ret.longValue() - num2.longValue()));
 			else
 				return combine((ObservableValue<Integer>) n1, n2, INT, (num1, num2) -> Integer.valueOf(num1.intValue() + num2.intValue()),
-					(ret, num2) -> Integer.valueOf(ret.intValue() - num2.intValue()), true);
+					(ret, num2) -> Integer.valueOf(ret.intValue() - num2.intValue()));
 		} else {
 			if (resultType == DOUBLE)
-				return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() + num2.doubleValue()), n2, true);
+				return n1.combine(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() + num2.doubleValue()), n2, null);
 			else if (resultType == FLOAT)
-				return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() + num2.floatValue()), n2, true);
+				return n1.combine(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() + num2.floatValue()), n2, null);
 			else if (resultType == LONG)
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() + num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() + num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() + num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() + num2.intValue()), n2, null);
 		}
 	}
 
 	private static <A1 extends Number, A2 extends Number, R> ObservableValue<R> combine(ObservableValue<A1> n1, ObservableValue<A2> n2,
-		TypeToken<R> returnType, BiFunction<A1, A2, R> forwardMap, BiFunction<R, A2, A1> reverseMap, boolean combineNull) {
+		TypeToken<R> returnType, BiFunction<A1, A2, R> forwardMap, BiFunction<R, A2, A1> reverseMap) {
 		if (n1 instanceof SettableValue)
-			return ((SettableValue<A1>) n1).combineV(returnType, forwardMap, n2, reverseMap, combineNull);
+			return ((SettableValue<A1>) n1).combine(returnType, forwardMap, n2, reverseMap, null);
 		else
-			return n1.combineV(returnType, forwardMap, n2, combineNull);
+			return n1.combine(returnType, forwardMap, n2, null);
 	}
 
 	/**
@@ -445,25 +443,25 @@ public class MathUtils {
 			if (resultType == DOUBLE)
 				return combine((ObservableValue<Double>) n1, n2, DOUBLE,
 					(num1, num2) -> Double.valueOf(num1.doubleValue() - num2.doubleValue()),
-					(ret, num2) -> Double.valueOf(ret.doubleValue() + num2.doubleValue()), true);
+					(ret, num2) -> Double.valueOf(ret.doubleValue() + num2.doubleValue()));
 			else if (resultType == FLOAT)
 				return combine((ObservableValue<Float>) n1, n2, FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() - num2.floatValue()),
-					(ret, num2) -> Float.valueOf(ret.floatValue() + num2.floatValue()), true);
+					(ret, num2) -> Float.valueOf(ret.floatValue() + num2.floatValue()));
 			else if (resultType == LONG)
 				return combine((ObservableValue<Long>) n1, n2, LONG, (num1, num2) -> Long.valueOf(num1.longValue() - num2.longValue()),
-					(ret, num2) -> Long.valueOf(ret.longValue() + num2.longValue()), true);
+					(ret, num2) -> Long.valueOf(ret.longValue() + num2.longValue()));
 			else
 				return combine((ObservableValue<Integer>) n1, n2, INT, (num1, num2) -> Integer.valueOf(num1.intValue() - num2.intValue()),
-					(ret, num2) -> Integer.valueOf(ret.intValue() + num2.intValue()), true);
+					(ret, num2) -> Integer.valueOf(ret.intValue() + num2.intValue()));
 		} else {
 			if (resultType == DOUBLE)
-				return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() - num2.doubleValue()), n2, true);
+				return n1.combine(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() - num2.doubleValue()), n2, null);
 			else if (resultType == FLOAT)
-				return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() - num2.floatValue()), n2, true);
+				return n1.combine(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() - num2.floatValue()), n2, null);
 			else if (resultType == LONG)
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() - num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() - num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() - num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() - num2.intValue()), n2, null);
 		}
 	}
 
@@ -495,25 +493,25 @@ public class MathUtils {
 			if (resultType == DOUBLE)
 				return combine((ObservableValue<Double>) n1, n2, DOUBLE,
 					(num1, num2) -> Double.valueOf(num1.doubleValue() * num2.doubleValue()),
-					(ret, num2) -> Double.valueOf(ret.doubleValue() / num2.doubleValue()), true);
+					(ret, num2) -> Double.valueOf(ret.doubleValue() / num2.doubleValue()));
 			else if (resultType == FLOAT)
 				return combine((ObservableValue<Float>) n1, n2, FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() * num2.floatValue()),
-					(ret, num2) -> Float.valueOf(ret.floatValue() / num2.floatValue()), true);
+					(ret, num2) -> Float.valueOf(ret.floatValue() / num2.floatValue()));
 			else if (resultType == LONG)
 				return combine((ObservableValue<Long>) n1, n2, LONG, (num1, num2) -> Long.valueOf(num1.longValue() * num2.longValue()),
-					(ret, num2) -> Long.valueOf(ret.longValue() / num2.longValue()), true);
+					(ret, num2) -> Long.valueOf(ret.longValue() / num2.longValue()));
 			else
 				return combine((ObservableValue<Integer>) n1, n2, INT, (num1, num2) -> Integer.valueOf(num1.intValue() * num2.intValue()),
-					(ret, num2) -> Integer.valueOf(ret.intValue() / num2.intValue()), true);
+					(ret, num2) -> Integer.valueOf(ret.intValue() / num2.intValue()));
 		} else {
 			if (resultType == DOUBLE)
-				return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() * num2.doubleValue()), n2, true);
+				return n1.combine(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() * num2.doubleValue()), n2, null);
 			else if (resultType == FLOAT)
-				return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() * num2.floatValue()), n2, true);
+				return n1.combine(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() * num2.floatValue()), n2, null);
 			else if (resultType == LONG)
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() * num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() * num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() * num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() * num2.intValue()), n2, null);
 		}
 	}
 
@@ -545,25 +543,25 @@ public class MathUtils {
 			if (resultType == DOUBLE)
 				return combine((ObservableValue<Double>) n1, n2, DOUBLE,
 					(num1, num2) -> Double.valueOf(num1.doubleValue() / num2.doubleValue()),
-					(ret, num2) -> Double.valueOf(ret.doubleValue() * num2.doubleValue()), true);
+					(ret, num2) -> Double.valueOf(ret.doubleValue() * num2.doubleValue()));
 			else if (resultType == FLOAT)
 				return combine((ObservableValue<Float>) n1, n2, FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() / num2.floatValue()),
-					(ret, num2) -> Float.valueOf(ret.floatValue() * num2.floatValue()), true);
+					(ret, num2) -> Float.valueOf(ret.floatValue() * num2.floatValue()));
 			else if (resultType == LONG)
 				return combine((ObservableValue<Long>) n1, n2, LONG, (num1, num2) -> Long.valueOf(num1.longValue() / num2.longValue()),
-					(ret, num2) -> Long.valueOf(ret.longValue() * num2.longValue()), true);
+					(ret, num2) -> Long.valueOf(ret.longValue() * num2.longValue()));
 			else
 				return combine((ObservableValue<Integer>) n1, n2, INT, (num1, num2) -> Integer.valueOf(num1.intValue() / num2.intValue()),
-					(ret, num2) -> Integer.valueOf(ret.intValue() * num2.intValue()), true);
+					(ret, num2) -> Integer.valueOf(ret.intValue() * num2.intValue()));
 		} else {
 			if (resultType == DOUBLE)
-				return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() / num2.doubleValue()), n2, true);
+				return n1.combine(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() / num2.doubleValue()), n2, null);
 			else if (resultType == FLOAT)
-				return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() / num2.floatValue()), n2, true);
+				return n1.combine(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() / num2.floatValue()), n2, null);
 			else if (resultType == LONG)
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() / num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() / num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() / num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() / num2.intValue()), n2, null);
 		}
 	}
 
@@ -581,13 +579,13 @@ public class MathUtils {
 		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 		if (DOUBLE.isAssignableFrom(n1.getType().unwrap()) || DOUBLE.isAssignableFrom(n2.getType().unwrap()))
-			return n1.combineV(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() % num2.doubleValue()), n2, true);
+			return n1.combine(DOUBLE, (num1, num2) -> Double.valueOf(num1.doubleValue() % num2.doubleValue()), n2, null);
 		else if (FLOAT.isAssignableFrom(n1.getType().unwrap()) || FLOAT.isAssignableFrom(n2.getType().unwrap()))
-			return n1.combineV(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() % num2.floatValue()), n2, true);
+			return n1.combine(FLOAT, (num1, num2) -> Float.valueOf(num1.floatValue() % num2.floatValue()), n2, null);
 		else if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() % num2.longValue()), n2, true);
+			return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() % num2.longValue()), n2, null);
 		else
-			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() % num2.intValue()), n2, true);
+			return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() % num2.intValue()), n2, null);
 	}
 
 	/**
@@ -605,9 +603,9 @@ public class MathUtils {
 		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 		if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() << num2.longValue()), n2, true);
+			return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() << num2.longValue()), n2, null);
 		else
-			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() << num2.intValue()), n2, true);
+			return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() << num2.intValue()), n2, null);
 	}
 
 	/**
@@ -624,9 +622,9 @@ public class MathUtils {
 		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 		if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() >> num2.longValue()), n2, true);
+			return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() >> num2.longValue()), n2, null);
 		else
-			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() >> num2.intValue()), n2, true);
+			return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() >> num2.intValue()), n2, null);
 	}
 
 	/**
@@ -644,9 +642,9 @@ public class MathUtils {
 		ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 		ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 		if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-			return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() >>> num2.longValue()), n2, true);
+			return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() >>> num2.longValue()), n2, null);
 		else
-			return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() >>> num2.intValue()), n2, true);
+			return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() >>> num2.intValue()), n2, null);
 	}
 
 	/**
@@ -659,14 +657,14 @@ public class MathUtils {
 	 */
 	public static ObservableValue<?> binaryAnd(ObservableValue<?> v1, ObservableValue<?> v2){
 		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
-			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 & b2, (ObservableValue<Boolean>) v2, true);
+			return ((ObservableValue<Boolean>) v1).combine(BOOLEAN, (b1, b2) -> b1 & b2, (ObservableValue<Boolean>) v2, null);
 		} else if (isIntMathable(v1.getType()) && isIntMathable(v2.getType())) {
 			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 			if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() & num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() & num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() & num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() & num2.intValue()), n2, null);
 		} else
 			throw new IllegalArgumentException("Binary and cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}
@@ -681,14 +679,14 @@ public class MathUtils {
 	 */
 	public static ObservableValue<?> binaryOr(ObservableValue<?> v1, ObservableValue<?> v2){
 		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
-			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 | b2, (ObservableValue<Boolean>) v2, true);
+			return ((ObservableValue<Boolean>) v1).combine(BOOLEAN, (b1, b2) -> b1 | b2, (ObservableValue<Boolean>) v2, null);
 		} else if (isIntMathable(v1.getType()) && isIntMathable(v2.getType())) {
 			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 			if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() | num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() | num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() | num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() | num2.intValue()), n2, null);
 		} else
 			throw new IllegalArgumentException("Binary or cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}
@@ -703,14 +701,14 @@ public class MathUtils {
 	 */
 	public static ObservableValue<?> binaryXor(ObservableValue<?> v1, ObservableValue<?> v2){
 		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
-			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 ^ b2, (ObservableValue<Boolean>) v2, true);
+			return ((ObservableValue<Boolean>) v1).combine(BOOLEAN, (b1, b2) -> b1 ^ b2, (ObservableValue<Boolean>) v2, null);
 		} else if (isIntMathable(v1.getType()) && isIntMathable(v2.getType())) {
 			ObservableValue<? extends Number> n1 = mathableToNumber(v1);
 			ObservableValue<? extends Number> n2 = mathableToNumber(v2);
 			if (LONG.isAssignableFrom(n1.getType().unwrap()) || LONG.isAssignableFrom(n2.getType().unwrap()))
-				return n1.combineV(LONG, (num1, num2) -> Long.valueOf(num1.longValue() ^ num2.longValue()), n2, true);
+				return n1.combine(LONG, (num1, num2) -> Long.valueOf(num1.longValue() ^ num2.longValue()), n2, null);
 			else
-				return n1.combineV(INT, (num1, num2) -> Integer.valueOf(num1.intValue() ^ num2.intValue()), n2, true);
+				return n1.combine(INT, (num1, num2) -> Integer.valueOf(num1.intValue() ^ num2.intValue()), n2, null);
 		} else
 			throw new IllegalArgumentException("Binary xor cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}
@@ -725,7 +723,7 @@ public class MathUtils {
 	 */
 	public static ObservableValue<Boolean> and(ObservableValue<?> v1, ObservableValue<?> v2){
 		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
-			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 && b2, (ObservableValue<Boolean>) v2, true);
+			return ((ObservableValue<Boolean>) v1).combine(BOOLEAN, (b1, b2) -> b1 && b2, (ObservableValue<Boolean>) v2, null);
 		} else
 			throw new IllegalArgumentException("And cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}
@@ -740,7 +738,7 @@ public class MathUtils {
 	 */
 	public static ObservableValue<Boolean> or(ObservableValue<?> v1, ObservableValue<?> v2){
 		if (BOOLEAN.isAssignableFrom(v1.getType().unwrap()) && BOOLEAN.isAssignableFrom(v2.getType().unwrap())) {
-			return ((ObservableValue<Boolean>) v1).combineV(BOOLEAN, (b1, b2) -> b1 || b2, (ObservableValue<Boolean>) v2, true);
+			return ((ObservableValue<Boolean>) v1).combine(BOOLEAN, (b1, b2) -> b1 || b2, (ObservableValue<Boolean>) v2, null);
 		} else
 			throw new IllegalArgumentException("Or cannot be applied to operand types " + v1.getType() + " and " + v2.getType());
 	}

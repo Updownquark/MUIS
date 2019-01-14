@@ -1,13 +1,19 @@
 package org.quick.core.style;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.NavigableSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate.AttachPoint;
-
-import com.google.common.reflect.TypeToken;
 
 /**
  * A condition that can be evaluated against various attributes of a {@link QuickElement} to determine whether a style value from a
@@ -153,32 +159,32 @@ public class StyleCondition implements Comparable<StyleCondition> {
 	 */
 	public ObservableValue<Boolean> matches(StyleConditionInstance<?> value) {
 		if (!matchesType(value.getElementType()))
-			return ObservableValue.constant(false);
+			return ObservableValue.of(false);
 
 		ObservableValue<Boolean> stateMatches;
 		if (theState == null)
-			stateMatches = ObservableValue.constant(true);
+			stateMatches = ObservableValue.of(true);
 		else
 			stateMatches = theState.observeMatches(value.getState());
 
 		ObservableValue<Boolean> groupMatches;
 		if (theGroups.isEmpty())
-			groupMatches = ObservableValue.constant(true);
+			groupMatches = ObservableValue.of(true);
 		else
-			groupMatches = value.getGroups().observeContainsAll(ObservableCollection.constant(TypeToken.of(String.class), theGroups));
+			groupMatches = value.getGroups().observeContainsAll(ObservableCollection.of(TypeTokens.get().STRING, theGroups));
 
 		ObservableValue<Boolean> roleMatches;
 		if (theRole == null)
-			roleMatches = ObservableValue.constant(true);
+			roleMatches = ObservableValue.of(true);
 		else
-			roleMatches = ObservableValue.flatten(value.getRoleParent(theRole).mapV(parent -> {
+			roleMatches = ObservableValue.flatten(value.getRoleParent(theRole).map(parent -> {
 				if (parent != null)
 					return theParent.matches(parent);
 				else
-					return ObservableValue.constant(TypeToken.of(Boolean.class), false);
-			}, true));
+					return ObservableValue.of(TypeTokens.get().BOOLEAN, false);
+			}));
 
-		return stateMatches.combineV((b1, b2, b3) -> b1 && b2 && b3, groupMatches, roleMatches);
+		return stateMatches.combine((b1, b2, b3) -> b1 && b2 && b3, groupMatches, roleMatches);
 	}
 
 	@Override

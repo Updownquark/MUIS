@@ -72,9 +72,9 @@ public class LayoutUtils {
 			SizeAttribute sizeAttr = LayoutAttributes.getSizeAtt(orient, null);
 			SizeAttribute minAttr = LayoutAttributes.getSizeAtt(orient, LayoutGuideType.min);
 			SizeAttribute maxAttr = LayoutAttributes.getSizeAtt(orient, LayoutGuideType.max);
-			Size size = child.atts().get(sizeAttr);
-			Size minSize = child.atts().get(minAttr);
-			Size maxSize = child.atts().get(maxAttr);
+			Size size = child.atts().get(sizeAttr).get();
+			Size minSize = child.atts().get(minAttr).get();
+			Size maxSize = child.atts().get(maxAttr).get();
 			if (size != null && (minSize != null || maxSize != null))
 				child.msg().warn(minAttr + " and/or " + maxAttr + " attributes are set at the same time as " + sizeAttr);
 			if (minSize != null && maxSize != null && minSize.getUnit() != maxSize.getUnit()) {
@@ -100,9 +100,9 @@ public class LayoutUtils {
 		LayoutAttributes.SizeAttribute att;
 		Size ret;
 		att = LayoutAttributes.getSizeAtt(orientation, null);
-		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min));
-		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max));
-		ret = element.atts().get(att);
+		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min)).get();
+		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max)).get();
+		ret = element.atts().get(att).get();
 		if (ret == null && type != null && !type.isPref())
 			ret = type.isMin() ? minSize : maxSize;
 		if(ret != null) {
@@ -155,11 +155,11 @@ public class LayoutUtils {
 	 *         determined by an attribute or the child's own layout manager.
 	 */
 	public static Size[] getLayoutSize(QuickElement element, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
-		Size ret = element.atts().get(LayoutAttributes.getSizeAtt(orientation, null));
+		Size ret = element.atts().get(LayoutAttributes.getSizeAtt(orientation, null)).get();
 		if (ret != null)
 			return new Size[] { ret };
-		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min));
-		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max));
+		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min)).get();
+		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max)).get();
 		if (minSize != null && maxSize != null && minSize.compareTo(maxSize) >= 0)
 			return new Size[] { minSize };
 		Size layoutSize = new Size(element.bounds().get(orientation).getGuide()//
@@ -390,7 +390,7 @@ public class LayoutUtils {
 
 	/**
 	 * Adds a corner radius to a size
-	 * 
+	 *
 	 * @param size The size
 	 * @param radius The corner radius
 	 * @return The new size
@@ -413,7 +413,7 @@ public class LayoutUtils {
 
 	/**
 	 * Subtracts a corner radius from a size
-	 * 
+	 *
 	 * @param size The size
 	 * @param radius The corner radius
 	 * @return The new size

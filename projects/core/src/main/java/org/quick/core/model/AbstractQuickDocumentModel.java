@@ -12,7 +12,7 @@ public abstract class AbstractQuickDocumentModel implements QuickDocumentModel {
 
 	/** Creates the document */
 	public AbstractQuickDocumentModel() {
-		theMetricsCache = new org.qommons.DemandCache<>();
+		theMetricsCache = new org.qommons.DemandCache<>(true);
 		theMetricsCache.setPreferredSize(5);
 		theMetricsCache.setHalfLife(60000);
 	}

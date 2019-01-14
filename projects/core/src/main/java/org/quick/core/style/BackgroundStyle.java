@@ -3,6 +3,7 @@ package org.quick.core.style;
 import java.awt.Cursor;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.qommons.IterableUtils;
 import org.quick.core.layout.LayoutAttributes;
 import org.quick.core.prop.QuickProperty;
@@ -64,7 +65,7 @@ public class BackgroundStyle implements StyleDomain {
 		.buildContext(ctx -> {
 			for (PreDefinedCursor preDef : PreDefinedCursor.values())
 				ctx.withValue(preDef.display,
-					ObservableValue.constant(TypeToken.of(Cursor.class), Cursor.getPredefinedCursor(preDef.type)));
+					ObservableValue.of(TypeTokens.get().of(Cursor.class), Cursor.getPredefinedCursor(preDef.type)));
 		})//
 		.build();
 

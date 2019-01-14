@@ -28,7 +28,7 @@ public class ImmutableStyle implements QuickStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		return ObservableSet.constant(new TypeToken<StyleAttribute<?>>() {}, theValues.keySet());
+		return ObservableSet.of(new TypeToken<StyleAttribute<?>>() {}, theValues.keySet());
 	}
 
 	@Override
@@ -36,7 +36,7 @@ public class ImmutableStyle implements QuickStyle {
 		if (theValues.containsKey(attr))
 			return (StyleValue<T>) theValues.get(attr);
 		else
-			return ObservableValue.constant(attr.getType().getType(), withDefault ? attr.getDefault() : null);
+			return ObservableValue.of(attr.getType().getType(), withDefault ? attr.getDefault() : null);
 	}
 
 	@Override

@@ -4,7 +4,7 @@ import org.quick.core.QuickElement;
 import org.quick.core.event.QuickEvent;
 
 /** Manages events for an element */
-public class QuickEventManager extends org.observe.DefaultObservable<QuickEvent> {
+public class QuickEventManager implements org.observe.Observable<QuickEvent> {
 	private final QuickElement theElement;
 	private org.observe.Observer<QuickEvent> theController;
 

@@ -12,6 +12,7 @@ import org.observe.ObservableValue;
 import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.qommons.Causable;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
@@ -556,15 +557,17 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		if(start < end) {
 			StyleChangeEvent styleEvt = new StyleChangeEventImpl(this, start, end, before, after, cause);
 			// System.out.println(styleEvt + ": " + oldAnchor + "->" + oldCursor + " to " + newAnchor + "->" + newCursor);
-			theStyleChanges.onNext(styleEvt);
-			styleEvt.finish();
+			try (Transaction evtT = Causable.use(styleEvt)) {
+				theStyleChanges.onNext(styleEvt);
+			}
 		}
 
 		SelectionChangeEventImpl change = new SelectionChangeEventImpl(this, newAnchor, newCursor, cause);
-		theSelectionChanges.onNext(change);
-		if (theCauseStack.isEmpty())
-			theSimpleChanges.onNext(change);
-		change.finish();
+		try (Transaction evtT = Causable.use(change)) {
+			theSelectionChanges.onNext(change);
+			if (theCauseStack.isEmpty())
+				theSimpleChanges.onNext(change);
+		}
 	}
 
 	/**
@@ -577,10 +580,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	protected void fireStyleEvent(int start, int end, Object cause) {
 		clearCache();
 		StyleChangeEventImpl change = new StyleChangeEventImpl(this, start, end, null, null, cause);
-		theStyleChanges.onNext(change);
-		if (theCauseStack.isEmpty())
-			theSimpleChanges.onNext(change);
-		change.finish();
+		try (Transaction evtT = Causable.use(change)) {
+			theStyleChanges.onNext(change);
+			if (theCauseStack.isEmpty())
+				theSimpleChanges.onNext(change);
+		}
 	}
 
 	/**
@@ -603,10 +607,11 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			evt = new ContentChangeEventImpl(this, value, change, startIndex, endIndex, remove, cause);
 		else
 			evt = new ContentAndSelectionChangeEventImpl(this, value, change, startIndex, endIndex, remove, anchor, cursor, cause);
-		theContentChanges.onNext(evt);
-		if (theCauseStack.isEmpty())
-			theSimpleChanges.onNext(evt);
-		evt.finish();
+		try (Transaction evtT = Causable.use(evt)) {
+			theContentChanges.onNext(evt);
+			if (theCauseStack.isEmpty())
+				theSimpleChanges.onNext(evt);
+		}
 	}
 
 	private static class StyledSequenceWrapper implements StyledSequence {

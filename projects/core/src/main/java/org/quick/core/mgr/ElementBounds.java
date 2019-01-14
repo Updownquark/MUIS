@@ -2,6 +2,7 @@ package org.quick.core.mgr;
 
 import java.awt.Rectangle;
 
+import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.quick.core.QuickElement;
@@ -12,7 +13,7 @@ import org.quick.core.layout.SizeGuide;
 import com.google.common.reflect.TypeToken;
 
 /** Bounds for an element. Contains some extra methods for easy access. */
-public class ElementBounds extends org.observe.DefaultObservableValue<Rectangle> implements org.quick.core.layout.Bounds {
+public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core.layout.Bounds {
 	private final QuickElement theElement;
 
 	private ElementBoundsDimension theHorizontalBounds;

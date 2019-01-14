@@ -71,11 +71,11 @@ public class QuickElementStyle implements QuickStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		ObservableValue<QuickStyle> localStyle = theElement.atts().getHolder(StyleAttributes.style);
-		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.mapV(s -> s.attributes()));
+		ObservableValue<QuickStyle> localStyle = theElement.atts().get(StyleAttributes.style);
+		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.map(s -> s.attributes()));
 		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
 		ObservableSet<StyleAttribute<?>> parentAtts = ObservableSet
-			.flattenValue(theElement.getParent().mapV(p -> p.getStyle().attributes())).filterStatic(att -> att.isInherited());
+			.flattenValue(theElement.getParent().map(p -> p.getStyle().attributes())).filterStatic(att -> att.isInherited());
 		ObservableCollection<StyleAttribute<?>> flattened;
 		if (sheet == null)
 			flattened = ObservableCollection.flattenCollections(localAttrs, parentAtts);
@@ -86,7 +86,7 @@ public class QuickElementStyle implements QuickStyle {
 
 	@Override
 	public boolean isSet(StyleAttribute<?> attr) {
-		QuickStyle localStyle = theElement.atts().get(StyleAttributes.style);
+		QuickStyle localStyle = theElement.atts().get(StyleAttributes.style).get();
 		if (localStyle != null && localStyle.isSet(attr))
 			return true;
 		StyleSheet sheet = theElement.getDocument().getStyle();
@@ -110,13 +110,13 @@ public class QuickElementStyle implements QuickStyle {
 		ObservableValue<StyleConditionValue<T>> ssMatch = sheet.getBestMatch(getCondition(), attr);
 		ObservableValue<T> ssValue;
 		if (attr.isInherited()) {
-			ObservableValue<StyleConditionValue<T>> parentSSMatch = ObservableValue.flatten(theElement.getParent().mapV(p -> {
+			ObservableValue<StyleConditionValue<T>> parentSSMatch = ObservableValue.flatten(theElement.getParent().map(p -> {
 				if (p == null)
 					return null;
 				StyleConditionInstance<?> pCondition = StyleConditionInstance.of(p, theExtraStates, theExtraGroups);
 				return sheet.getBestMatch(pCondition, attr);
 			}));
-			ssMatch = ssMatch.combineV(null, (ss, pSS) -> {
+			ssMatch = ssMatch.combine(null, (ss, pSS) -> {
 				if (ss == null && pSS == null)
 					return null;
 				else if (ss == null)
@@ -128,7 +128,7 @@ public class QuickElementStyle implements QuickStyle {
 					return ss;
 				else
 					return pSS;
-			}, parentSSMatch, true);
+			}, parentSSMatch, null);
 		}
 		if (withDefault)
 			ssValue = ObservableValue.flatten(ssMatch, () -> attr.getDefault());
@@ -138,10 +138,10 @@ public class QuickElementStyle implements QuickStyle {
 	}
 
 	private static <T> ObservableValue<T> getLocalValue(QuickElement bottom, QuickElement element, StyleAttribute<T> attr) {
-		ObservableValue<QuickStyle> localStyle = element.atts().getHolder(StyleAttributes.style);
-		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.mapV(s -> s.get(attr, false)));
+		ObservableValue<QuickStyle> localStyle = element.atts().get(StyleAttributes.style);
+		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.map(s -> s.get(attr, false)));
 		if (attr.isInherited() && !isTemplateParent(element, bottom)) {
-			ObservableValue<T> parentLocalValue = ObservableValue.flatten(element.getParent().mapV(p -> {
+			ObservableValue<T> parentLocalValue = ObservableValue.flatten(element.getParent().map(p -> {
 				if (p == null)
 					return null;
 				return getLocalValue(bottom, p, attr);
@@ -154,7 +154,7 @@ public class QuickElementStyle implements QuickStyle {
 	private static boolean isTemplateParent(QuickElement parent, QuickElement child) {
 		if (parent == null)
 			return false;
-		for (QuickAttribute<?> attr : child.atts().getAllAttributes()) {
+		for (QuickAttribute<?> attr : child.atts().attributes()) {
 			if (attr instanceof RoleAttribute && ((RoleAttribute) attr).getTemplate().getDefiner().isInstance(parent))
 				return true;
 		}

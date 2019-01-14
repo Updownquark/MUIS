@@ -7,17 +7,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.observe.SettableValue;
 import org.observe.SimpleObservable;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.motion.Animation;
 import org.quick.motion.AnimationManager;
-
-import com.google.common.reflect.TypeToken;
 
 /** Increments a value on a timer */
 public class CounterModel implements QuickAppModel {
@@ -33,6 +33,7 @@ public class CounterModel implements QuickAppModel {
 		loop
 	};
 	private final String theName;
+	private final ReentrantReadWriteLock theLock;
 	private final SimpleModelValue<Long> theMin;
 	private final SimpleModelValue<Double> theRate;
 	private final SimpleModelValue<Long> theMax;
@@ -65,30 +66,31 @@ public class CounterModel implements QuickAppModel {
 	 */
 	public CounterModel(long min, long max, double rate, long maxFrequency, String name) {
 		theName = name;
-		theMin = new SimpleModelValue<>(long.class, false, name + ".min");
+		theLock = new ReentrantReadWriteLock();
+		theMin = new SimpleModelValue<>(theLock, long.class, false, name + ".min");
 		theMin.set(min, null);
-		theMax = new SimpleModelValue<>(long.class, false, name + ".max");
+		theMax = new SimpleModelValue<>(theLock, long.class, false, name + ".max");
 		theMax.set(max, null);
-		theRate = new SimpleModelValue<>(double.class, false, name + ".rate");
+		theRate = new SimpleModelValue<>(theLock, double.class, false, name + ".rate");
 		theRate.set(rate, null);
 		theMaxFrequency = maxFrequency;
 
-		theValue = new SimpleModelValue<>(TypeToken.of(long.class), false, name + ".value");
+		theValue = new SimpleModelValue<>(theLock, TypeTokens.get().of(long.class), false, name + ".value");
 		theValue.set(min, null);
-		onFinish = new SimpleModelValue<>(FinishAction.class, false, name + ".onFinish");
+		onFinish = new SimpleModelValue<>(theLock, FinishAction.class, false, name + ".onFinish");
 		onFinish.set(FinishAction.loop, null);
-		isRunning = new SimpleModelValue<>(boolean.class, false, name + ".running");
+		isRunning = new SimpleModelValue<>(theLock, boolean.class, false, name + ".running");
 		isRunning.set(false, null);
 		theLoop=new SimpleObservable<>();
 
 		theMotion = new AtomicReference<>();
 
-		theMin.act(evt -> {
-			if (theValue.get() < evt.getValue())
-				theValue.set(evt.getValue(), evt);
+		theMin.changes().act(evt -> {
+			if (theValue.get() < evt.getNewValue())
+				theValue.set(evt.getNewValue(), evt);
 		});
-		theMax.act(evt -> {
-			if (theValue.get() > evt.getValue())
+		theMax.changes().act(evt -> {
+			if (theValue.get() > evt.getNewValue())
 				theValue.set(theMin.get(), evt);
 		});
 		isRunning.value().act(running -> {
@@ -104,13 +106,13 @@ public class CounterModel implements QuickAppModel {
 				return "min must be less than max";
 			else
 				return null;
-		}).refresh(theMax);
+		}).refresh(theMax.changes());
 		theExposedMax = theMax.filterAccept(v -> {
 			if (v <= theMin.get())
 				return "max must be greater than min";
 			else
 				return null;
-		}).refresh(theMin);
+		}).refresh(theMin.changes());
 		theExposedRate = theRate.filterAccept(v -> {
 			if (Double.isNaN(v))
 				return "rate must be a number";
@@ -128,7 +130,7 @@ public class CounterModel implements QuickAppModel {
 				return "value may not be greater than max";
 			else
 				return null;
-		}).refresh(theMin).refresh(theMax).onSet(v -> {
+		}).refresh(theMin.changes()).refresh(theMax.changes()).onSet(v -> {
 			theReference = v;
 			// Allow the counter to keep counting backwards from min if the value is reset to min externally while going backward
 			if (isRunning.get() && v == theMin.get())

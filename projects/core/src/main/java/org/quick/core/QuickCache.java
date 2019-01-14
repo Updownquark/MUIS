@@ -122,7 +122,8 @@ public class QuickCache {
 
 	/** Creates a Quick cache */
 	public QuickCache() {
-		theInternalCache = new org.qommons.DemandCache<>(new org.qommons.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
+		theInternalCache = new org.qommons.DemandCache<>(true,
+			new org.qommons.DemandCache.Qualitizer<CacheKey<?, ?, ?>, CacheKey<?, ?, ?>>() {
 			@Override
 			public float quality(CacheKey<?, ?, ?> key, CacheKey<?, ?, ?> value) {
 				if(key.isLoading)

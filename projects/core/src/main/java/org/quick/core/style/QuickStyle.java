@@ -3,9 +3,8 @@ package org.quick.core.style;
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.quick.core.mgr.QuickState;
-
-import com.google.common.reflect.TypeToken;
 
 /** Defines style attribute values */
 public interface QuickStyle {
@@ -51,7 +50,7 @@ public interface QuickStyle {
 	 * @return A style that reflects what this style would look like if the given extra state was used in evaluating any conditional values
 	 */
 	default QuickStyle forExtraState(QuickState state){
-		return forExtraStates(ObservableCollection.constant(TypeToken.of(QuickState.class), state));
+		return forExtraStates(ObservableCollection.of(TypeTokens.get().of(QuickState.class), state));
 	}
 
 	/**

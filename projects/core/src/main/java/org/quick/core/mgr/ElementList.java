@@ -1,22 +1,32 @@
 package org.quick.core.mgr;
 
-import org.observe.collect.ObservableList;
-import org.observe.collect.ObservableOrderedCollection;
+import java.util.Collection;
+import java.util.function.Consumer;
+
+import org.observe.Subscription;
+import org.observe.collect.Equivalence;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableCollectionEvent;
 import org.qommons.Transaction;
+import org.qommons.collect.BetterCollections;
+import org.qommons.collect.ElementId;
+import org.qommons.collect.MutableCollectionElement.StdMsg;
 import org.quick.core.QuickElement;
+
+import com.google.common.reflect.TypeToken;
 
 /**
  * A list of elements (potentially a particular type of element) with a few extra operations available
  *
  * @param <E> The type of element
  */
-public interface ElementList<E extends QuickElement> extends ObservableList<E> {
+public interface ElementList<E extends QuickElement> extends ObservableCollection<E> {
 	/** @return The parent whose children this list manages */
 	QuickElement getParent();
 
 	/**
 	 * Moves an element from one index to another
-	 * 
+	 *
 	 * @param element The element to move
 	 * @param index The new index for the element
 	 * @return The previous index of the element
@@ -37,25 +47,6 @@ public interface ElementList<E extends QuickElement> extends ObservableList<E> {
 		}
 	}
 
-	/**
-	 * @param x The x-coordinate of a point relative to this element's upper left corner
-	 * @param y The y-coordinate of a point relative to this element's upper left corner
-	 * @return All children of this element whose bounds contain the given point
-	 */
-	default ObservableList<E> at(int x, int y) {
-		return filter(child -> child.bounds().contains(x, y));
-	}
-
-	/**
-	 * This operation is useful for rendering children in correct sequence and in determining which elements should receive events first.
-	 *
-	 * @return The children in this list, sorted by z-index
-	 */
-	default ObservableOrderedCollection<E> sortByZ() {
-		return sorted((ch1, ch2) -> ch2.getZ() - ch1.getZ());
-	}
-
-	@Override
 	default ElementList<E> immutable() {
 		return new ImmutableElementList<>(this);
 	}
@@ -65,9 +56,9 @@ public interface ElementList<E extends QuickElement> extends ObservableList<E> {
 	 *
 	 * @param <E> The type of elements in the list
 	 */
-	class ImmutableElementList<E extends QuickElement> extends ImmutableObservableList<E> implements ElementList<E> {
-		protected ImmutableElementList(ObservableList<E> wrap) {
-			super(wrap);
+	class ImmutableElementList<E extends QuickElement> extends BetterCollections.UnmodifiableBetterList<E> implements ElementList<E> {
+		protected ImmutableElementList(ElementList<E> wrapped) {
+			super(wrapped);
 		}
 
 		@Override
@@ -83,6 +74,27 @@ public interface ElementList<E extends QuickElement> extends ObservableList<E> {
 		@Override
 		public ImmutableElementList<E> immutable() {
 			return this;
+		}
+
+		@Override
+		public TypeToken<E> getType() {
+			return getWrapped().getType();
+		}
+
+		@Override
+		public Subscription onChange(Consumer<? super ObservableCollectionEvent<? extends E>> observer) {
+			return getWrapped().onChange(observer);
+		}
+
+		@Override
+		public Equivalence<? super E> equivalence() {
+			return getWrapped().equivalence();
+		}
+
+		@Override
+		public void setValue(Collection<ElementId> elements, E value) {
+			if (!elements.isEmpty())
+				throw new UnsupportedOperationException(StdMsg.UNSUPPORTED_OPERATION);
 		}
 	}
 }

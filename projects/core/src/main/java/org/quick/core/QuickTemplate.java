@@ -1,17 +1,31 @@
 package org.quick.core;
 
 import java.lang.reflect.ParameterizedType;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.observe.DefaultSettableValue;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.SettableValue;
-import org.observe.collect.ObservableList;
+import org.observe.SimpleSettableValue;
+import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableCollectionDataFlowImpl.FilterMapResult;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickCache.CacheException;
+import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.ElementList;
 import org.quick.core.model.QuickAppModel;
@@ -35,6 +49,8 @@ import org.quick.core.tags.Template;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
+
+import javafx.collections.ObservableList;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template Quick file with widget definitions that are reproduced in each
@@ -228,7 +244,7 @@ public abstract class QuickTemplate extends QuickElement {
 								"Attach point " + value.name + " from template " + value.template.getDefiner().getName()
 									+ " cannot be assigned to a role in template " + templateStruct.getDefiner().getName());
 					}
-				}, Arrays.asList(str -> ObservableValue.constant(TypeToken.of(AttachPoint.class), templateStruct.getAttachPoint(str))));
+				}, Arrays.asList(str -> ObservableValue.of(TypeTokens.get().of(AttachPoint.class), templateStruct.getAttachPoint(str))));
 				theTemplate = templateStruct;
 			}
 
@@ -353,7 +369,7 @@ public abstract class QuickTemplate extends QuickElement {
 		 * @return The attach point whose role the child is in, or null if the child is not in a role in this template structure
 		 */
 		public AttachPoint<?> getRole(QuickElement child) {
-			AttachPoint<?> ret = child.atts().get(role);
+			AttachPoint<?> ret = child.atts().get(role).get();
 			if (ret == null)
 				ret = theDefaultAttachPoint;
 			return ret;
@@ -736,20 +752,20 @@ public abstract class QuickTemplate extends QuickElement {
 		/** The attach point this instance is for */
 		public final AttachPoint<E> attachPoint;
 
-		private final ObservableList<? extends QuickElement> theParentChildren;
+		private final ObservableCollection<? extends QuickElement> theParentChildren;
 
 		private final SettableValue<E> theValue;
 
 		private final QuickContainer<E> theContainer;
 
-		AttachPointInstance(AttachPoint<E> ap, QuickTemplate template, ObservableList<? extends QuickElement> pc) {
+		AttachPointInstance(AttachPoint<E> ap, QuickTemplate template, ObservableCollection<? extends QuickElement> pc) {
 			attachPoint = ap;
 			theParentChildren = pc;
 			if (attachPoint.multiple){
 				theValue=null;
 				theContainer = new AttachPointInstanceContainer<>(attachPoint, template, theParentChildren);
 			} else{
-				theValue = new DefaultSettableValue<E>() {
+				theValue = new SimpleSettableValue<E>(ap.type, true) {
 					private Observer<ObservableValueEvent<E>> theController = control(null);
 
 					@Override
@@ -787,7 +803,7 @@ public abstract class QuickTemplate extends QuickElement {
 						String msg = null;
 						if (!attachPoint.mutable)
 							msg = "Attach point " + attachPoint + " cannot be modified";
-						return ObservableValue.constant(TypeToken.of(String.class), msg);
+						return ObservableValue.of(TypeTokens.get().STRING, msg);
 					}
 
 					private E doReplace(E el) {
@@ -909,7 +925,7 @@ public abstract class QuickTemplate extends QuickElement {
 				theTemplateStructure = TemplateStructure.getTemplateStructure(env, QuickTemplate.this.getClass());
 				DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build().withParent(super.getContext());
 				ctxBuilder.withValue("attributes",
-					ObservableValue.constant(TypeToken.of(QuickAppModel.class), new TemplateAttributesModel()));
+					ObservableValue.of(TypeTokens.get().of(QuickAppModel.class), new TemplateAttributesModel()));
 				initModels(theTemplateStructure, ctxBuilder);
 				theTemplateContext = ctxBuilder.build();
 			} catch (QuickException e) {
@@ -991,7 +1007,7 @@ public abstract class QuickTemplate extends QuickElement {
 				getDocument().getEnvironment().getPropertyParser(),
 				new SimpleParseEnv(theTemplateStructure.getWidgetStructure().getClassView(), msg(), ctxBuilder.copy().build()));
 			theModels.put(modelName, model);
-			ctxBuilder.withValue(modelName, ObservableValue.constant(TypeToken.of(QuickAppModel.class), model));
+			ctxBuilder.withValue(modelName, ObservableValue.of(TypeTokens.get().of(QuickAppModel.class), model));
 		}
 	}
 
@@ -1019,7 +1035,7 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	@Override
-	public ObservableList<? extends QuickElement> getLogicalChildren() {
+	public ObservableCollection<? extends QuickElement> getLogicalChildren() {
 		return theAttachPointChildList;
 	}
 
@@ -1102,7 +1118,7 @@ public abstract class QuickTemplate extends QuickElement {
 						+ theTemplateStructure.getDefiner().getName(), e);
 				}
 			} else if (att.getKey().equals("style")) {
-				QuickStyle elStyle = atts().get(StyleAttributes.style);
+				QuickStyle elStyle = atts().get(StyleAttributes.style).get();
 				QuickStyle templateStyle;
 				ImmutableStyle.Builder builder = ImmutableStyle.build(msg());
 				boolean mod = false;
@@ -1117,7 +1133,7 @@ public abstract class QuickTemplate extends QuickElement {
 					if (mod) {
 						for (StyleAttribute<?> styleAtt : elStyle.attributes())
 							builder.setConstant((StyleAttribute<Object>) styleAtt, (ObservableValue<Object>) elStyle.get(styleAtt));
-						atts().set(StyleAttributes.style, builder.build());
+						atts().get(StyleAttributes.style).set(builder.build(), null);
 					}
 				} catch (QuickException e) {
 					msg().error("Could not parse style attribute of template", e);
@@ -1157,9 +1173,9 @@ public abstract class QuickTemplate extends QuickElement {
 				implStruct.addChild(content);
 			implStruct.seal();
 			ret = creator.getChild(parent, theTemplateContext, implStruct, false);
-			ret.atts().accept(theRoleWanter, template.role);
+			ret.atts().accept(template.role, theRoleWanter, null);
 			try {
-				ret.atts().set(template.role, ap);
+				ret.atts().get(template.role).set(ap, null);
 				ret.atts().set(TemplateStructure.IMPLEMENTATION, "true", templateParseEnv);
 			} catch (QuickException e) {
 				throw new IllegalStateException("Should not have thrown exception here", e);
@@ -1184,15 +1200,11 @@ public abstract class QuickTemplate extends QuickElement {
 		AttachPoint<?>[] roles = new AttachPoint[children.size()];
 		for (int c = 0; c < children.size(); c++) {
 			QuickElement child = children.get(c);
-			child.atts().accept(theRoleWanter, template.role);
-			roles[c] = child.atts().get(template.role);
+			child.atts().accept(template.role, theRoleWanter, null);
+			roles[c] = child.atts().get(template.role).get();
 			if (roles[c] == null) {
 				roles[c] = template.getDefaultAttachPoint();
-				try {
-					child.atts().set(template.role, roles[c]);
-				} catch (QuickException e) {
-					throw new IllegalArgumentException("Should not get error here", e);
-				}
+				child.atts().get(template.role).set(roles[c], null);
 			}
 			if (roles[c] == null) {
 				msg().error("No role specified for child of templated widget " + template.getDefiner().getName(), "child", child);
@@ -1291,8 +1303,8 @@ public abstract class QuickTemplate extends QuickElement {
 				attaches.add(ap);
 				for (QuickElement child : theAttachmentMappings.get(ap)) {
 					try {
-						child.atts().require(theRoleWanter, theTemplateStructure.role, ap);
-					} catch (QuickException e) {
+						child.atts().accept(theTemplateStructure.role, theRoleWanter, a -> a.init(ap).required());
+					} catch (IllegalArgumentException e) {
 						msg().error("Could not set default attach point role for " + ap, e);
 					}
 					ret.add(child);
@@ -1312,7 +1324,7 @@ public abstract class QuickTemplate extends QuickElement {
 			throw new IllegalStateException("Should not get error here", e);
 		}
 
-		ObservableList<? extends QuickElement> childList;
+		ObservableCollection<? extends QuickElement> childList;
 		if (parent == this) {
 			super.initChildren(ret);
 			childList = getPhysicalChildren();
@@ -1337,20 +1349,20 @@ public abstract class QuickTemplate extends QuickElement {
 		return null;
 	}
 
-	ObservableList<? extends ObservableList<? extends QuickElement>> getAttachPointContentList(){
-		ObservableList<AttachPoint<?>> aps = ObservableList.constant(new TypeToken<AttachPoint<?>>() {},
+	ObservableCollection<? extends ObservableList<? extends QuickElement>> getAttachPointContentList() {
+		ObservableCollection<AttachPoint<?>> aps = ObservableCollection.of(new TypeToken<AttachPoint<?>>() {},
 			new ArrayList<>(theTemplateStructure.getAttachPoints()));
 		return aps.map(ap -> {
-			ObservableList<? extends QuickElement> contents;
+			ObservableCollection<? extends QuickElement> contents;
 			if(!ap.external)
-				contents = ObservableList.constant(TypeToken.of(QuickElement.class));
+				contents = ObservableCollection.of(TypeTokens.get().of(QuickElement.class));
 			else if(ap.multiple){
 				contents = getContainer(ap).getContent();
 			} else{
-				ObservableValue<ObservableList<QuickElement>> el = getElement(ap)
-					.mapV(e -> e == null ? ObservableList.constant(TypeToken.of(QuickElement.class))
-						: ObservableList.constant(TypeToken.of(QuickElement.class), e));
-				contents = ObservableList.flattenValue(el);
+				ObservableValue<ObservableCollection<QuickElement>> el = getElement(ap)
+					.mapV(e -> e == null ? ObservableCollection.of(TypeTokens.get().of(QuickElement.class))
+						: ObservableCollection.of(TypeTokens.get().of(QuickElement.class), e));
+				contents = ObservableCollection.flattenValue(el);
 			}
 			return contents;
 		});
@@ -1415,7 +1427,7 @@ public abstract class QuickTemplate extends QuickElement {
 		@Override
 		public Object getField(String name) {
 			if (theAttributes.containsKey(name))
-				return atts().getHolder(theAttributes.get(name)).asSettable();
+				return atts().get(theAttributes.get(name));
 			return null;
 		}
 	}

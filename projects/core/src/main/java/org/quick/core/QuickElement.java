@@ -2,12 +2,18 @@
 package org.quick.core;
 
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.observe.*;
-import org.observe.collect.ObservableList;
+import org.observe.ObservableValue;
+import org.observe.SettableValue;
+import org.observe.Subscription;
+import org.observe.collect.ObservableCollection;
 import org.qommons.Transaction;
+import org.qommons.collect.CollectionLockingStrategy;
+import org.qommons.collect.RRWLockingStrategy;
+import org.qommons.collect.StampedLockingStrategy;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.event.BoundsChangedEvent;
@@ -15,16 +21,30 @@ import org.quick.core.event.FocusEvent;
 import org.quick.core.event.MouseEvent;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
-import org.quick.core.mgr.*;
+import org.quick.core.mgr.AttributeManager2;
+import org.quick.core.mgr.ChildList;
+import org.quick.core.mgr.ElementBounds;
+import org.quick.core.mgr.ElementList;
+import org.quick.core.mgr.QuickEventManager;
+import org.quick.core.mgr.QuickLifeCycleManager;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
+import org.quick.core.mgr.QuickMessageCenter;
+import org.quick.core.mgr.QuickState;
+import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
-import org.quick.core.style.*;
+import org.quick.core.style.BackgroundStyle;
+import org.quick.core.style.LightedStyle;
+import org.quick.core.style.QuickElementStyle;
+import org.quick.core.style.StyleAttributes;
+import org.quick.core.style.StyleChangeObservable;
+import org.quick.core.style.Texture;
 import org.quick.core.tags.AcceptAttribute;
 import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.QuickTagUtils;
 import org.quick.core.tags.State;
+import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
 
@@ -42,6 +62,10 @@ public abstract class QuickElement implements QuickParseEnv {
 	private final QuickLifeCycleManager theLifeCycleManager;
 
 	private QuickLifeCycleManager.Controller theLifeCycleController;
+
+	private final RRWLockingStrategy theAttributeLocker;
+
+	private final CollectionLockingStrategy theContentLocker;
 
 	private final StateEngine theStateEngine;
 
@@ -65,7 +89,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private String theTagName;
 
-	private final AttributeManager theAttributeManager;
+	private final AttributeManager2 theAttributeManager;
 
 	private final ChildList theChildren;
 
@@ -94,10 +118,12 @@ public abstract class QuickElement implements QuickParseEnv {
 	/** Creates a Quick element */
 	public QuickElement() {
 		theParent = new org.observe.SimpleSettableValue<>(TypeToken.of(QuickElement.class), true);
-		theParent.act(evt -> {
+		theParent.changes().act(evt -> {
 			if (evt.getOldValue() != null)
 				evt.getOldValue().theChildren.remove(QuickElement.this);
 		});
+		theAttributeLocker = new RRWLockingStrategy();
+		theContentLocker = new StampedLockingStrategy();
 		theMessageCenter = new QuickMessageCenter(null, null, this);
 		theLifeCycleManager = new QuickLifeCycleManager(this, (Controller controller) -> {
 			theLifeCycleController = controller;
@@ -114,7 +140,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theBounds = new ElementBounds(this);
 		theChildren = new ChildList(this);
 		theExposedChildren = theChildren.immutable();
-		theAttributeManager = new AttributeManager(this);
+		theAttributeManager = new AttributeManager2(this, theAttributeLocker);
 		theStyle = new QuickElementStyle(this);
 		theSelfModel = QuickAppModel.empty("this");
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
@@ -122,25 +148,31 @@ public abstract class QuickElement implements QuickParseEnv {
 		theDefaultStyleListener.act(evt -> {
 			repaint(null, false);
 		});
-		theChildren.onOrderedElement(el -> {
-			el.subscribe(new Observer<ObservableValueEvent<QuickElement>>() {
-				@Override
-				public <V extends ObservableValueEvent<QuickElement>> void onNext(V event) {
-					if (!event.isInitial())
-						unregisterChild(event.getOldValue());
-					registerChild(event.getValue(), el);
+		List<Runnable> childRemoves = new ArrayList<>();
+		theChildren.subscribe(evt -> {
+			switch (evt.getType()) {
+			case add:
+				childRemoves.add(evt.getIndex(), registerChild(//
+					evt.getNewValue()));
+				break;
+			case remove:
+				Runnable remove = childRemoves.remove(evt.getIndex());
+				remove.run();
+				break;
+			case set:
+				if (evt.getOldValue() != evt.getNewValue()) {
+					remove = childRemoves.get(evt.getIndex());
+					remove.run();
+					childRemoves.set(evt.getIndex(), registerChild(//
+						evt.getNewValue()));
 				}
-
-				@Override
-				public <V extends ObservableValueEvent<QuickElement>> void onCompleted(V event) {
-					unregisterChild(event.getValue());
-				}
-			});
-		});
+				break;
+			}
+		}, true);
 		theChildren.simpleChanges().act(cause -> sizeNeedsChanged());
 		theChildren.changes().act(event -> {
 			Rectangle bounds = null;
-			for (QuickElement child : event.values) {
+			for (QuickElement child : event.getValues()) {
 				if (child.bounds().isEmpty())
 					continue;
 				else if (bounds == null)
@@ -148,8 +180,8 @@ public abstract class QuickElement implements QuickParseEnv {
 				else
 					bounds.add(child.bounds().getBounds());
 			}
-			if (event.oldValues != null) {
-				for (QuickElement child : event.oldValues) {
+			if (event.getOldValues() != null) {
+				for (QuickElement child : event.getOldValues()) {
 					if (bounds == null)
 						bounds = child.bounds().getBounds();
 					else if (!child.bounds().isEmpty())
@@ -159,9 +191,9 @@ public abstract class QuickElement implements QuickParseEnv {
 			if (bounds != null)
 				repaint(bounds, false);
 		});
-		bounds().act(event -> {
+		bounds().changes().act(event -> {
 			Rectangle old = event.getOldValue();
-			if(old == null || event.getValue().width != old.width || event.getValue().height != old.height)
+			if (old == null || event.getNewValue().width != old.width || event.getNewValue().height != old.height)
 				relayout(false);
 		});
 		theLifeCycleManager.runWhen(() -> {
@@ -255,6 +287,16 @@ public abstract class QuickElement implements QuickParseEnv {
 		});
 	}
 
+	/** @return A locker controlling threaded access to this element's single-valued attributes */
+	public CollectionLockingStrategy getAttributeLocker() {
+		return theAttributeLocker;
+	}
+
+	/** @return A locker controlling threaded access to this element's multi-valued attributes (e.g. children) */
+	public CollectionLockingStrategy getContentLocker() {
+		return theContentLocker;
+	}
+
 	/** @return The document that this element belongs to */
 	public final QuickDocument getDocument() {
 		return theDocument;
@@ -306,7 +348,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	/** @return The manager of this element's attributes */
-	public AttributeManager getAttributeManager() {
+	public AttributeManager2 getAttributeManager() {
 		return theAttributeManager;
 	}
 
@@ -315,7 +357,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 *
 	 * @return The manager of this element's attributes
 	 */
-	public AttributeManager atts() {
+	public AttributeManager2 atts() {
 		return getAttributeManager();
 	}
 
@@ -385,7 +427,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			throw new NullPointerException("Self model is not initialized yet");
 		DefaultExpressionContext.Builder ctxBuilder = DefaultExpressionContext.build()//
 			.withParent(theDocument.getContext())//
-			.withValue("this", ObservableValue.constant(selfModel));
+			.withValue("this", ObservableValue.of(selfModel));
 		theContext = ctxBuilder.build();
 		setParent(parent);
 		addAnnotatedAttributes();
@@ -403,9 +445,9 @@ public abstract class QuickElement implements QuickParseEnv {
 		}
 		for (QuickTagUtils.AcceptedAttributeStruct<?> att : atts) {
 			if (att.annotation.required())
-				theAttributeManager.require(wanter, att.attribute);
+				theAttributeManager.accept(att.attribute, wanter, a -> a.required());
 			else
-				theAttributeManager.accept(wanter, att.attribute);
+				theAttributeManager.accept(att.attribute, wanter, a -> a.optional());
 			if (att.annotation.defaultValue().length() > 0)
 				try {
 					theAttributeManager.set(att.attribute, att.annotation.defaultValue(), this);
@@ -436,9 +478,9 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * Called when a child is introduced to this parent
 	 *
 	 * @param child The child that has been added to this parent
-	 * @param until An observable that will fire when the child is removed
+	 * @return A runnable that will be executed when the element is no longer a child of this element
 	 */
-	protected void registerChild(QuickElement child, Observable<?> until) {
+	protected Runnable registerChild(QuickElement child) {
 		if(child.getParent() != this)
 			child.setParent(this);
 
@@ -458,11 +500,17 @@ public abstract class QuickElement implements QuickParseEnv {
 		if (child.life().isAfter(CoreStage.STARTUP.name()) < 0 && life().isAfter(CoreStage.READY.name()) > 0) {
 			child.postCreate();
 		}
-
-		child.events().takeUntil(until).filterMap(BoundsChangedEvent.bounds).filter(event -> !isStamp(event.getElement())).act(event -> {
-			Rectangle paintRect = event.getValue().union(event.getOldValue());
+		Subscription eventSub = child.events().filterMap(BoundsChangedEvent.bounds).filter(event -> !isStamp(event.getElement()))
+			.act(event -> {
+			Rectangle paintRect = event.getNewValue().union(event.getOldValue());
 			repaint(paintRect, false);
 		});
+
+		return () -> {
+			eventSub.unsubscribe();
+			if (child.getParent() == this)
+				child.setParent(null);
+		};
 	}
 
 	/**
@@ -471,8 +519,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param child The child that has been removed from this parent
 	 */
 	protected void unregisterChild(QuickElement child) {
-		if(child.getParent() == this)
-			child.setParent(null);
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
@@ -551,7 +597,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @return A list of the logical contents of this element. By default, this is the same as its {@link #getPhysicalChildren() physical
 	 *         children}.
 	 */
-	public ObservableList<? extends QuickElement> getLogicalChildren() {
+	public ObservableCollection<? extends QuickElement> getLogicalChildren() {
 		return theExposedChildren;
 	}
 
@@ -670,7 +716,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		if(theNamespace != null)
 			str.append(theNamespace).append(':');
 		str.append(theTagName);
-		if(theAttributeManager.holders().iterator().hasNext())
+		if (!theAttributeManager.getAllAttributes().isEmpty())
 			str.append(' ').append(theAttributeManager.toString());
 		if(!deep || theChildren.isEmpty()) {
 			str.append(' ').append('/').append('>');
@@ -840,7 +886,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @return The cached bounds used to draw each of the element's children
 	 */
 	public QuickElementCapture [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
-		QuickElement[] children = ch().sortByZ().toArray();
+		QuickElement[] children = QuickUtils.sortByZ(ch().toArray());
 		QuickElementCapture [] childBounds = new QuickElementCapture[children.length];
 		if(children.length == 0)
 			return childBounds;

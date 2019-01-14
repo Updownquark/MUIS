@@ -2,31 +2,32 @@ package org.quick.core.style;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
-import org.observe.collect.impl.CachingHashSet;
 import org.observe.collect.impl.CachingTreeSet;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickDocument;
 
 import com.google.common.reflect.TypeToken;
 
 /** A {@link QuickDocument}'s style */
 public class DocumentStyleSheet extends CompoundStyleSheet {
+	private static final TypeToken STYLE_ATTR_TYPE = new TypeToken<StyleAttribute<?>>() {};
 	private final QuickDocument theDocument;
-	private final ObservableList<StyleSheet> theExternalStyleSheets;
-	private final CachingHashSet<StyleAttribute<?>> theCachedAttributes;
-	private final ConcurrentHashMap<StyleAttribute<?>, CachingTreeSet<? extends StyleConditionValue<?>>> theCachedValues;
+	private final ObservableCollection<StyleSheet> theExternalStyleSheets;
+	private final ObservableSet<StyleAttribute<?>> theCachedAttributes;
+	private final ConcurrentHashMap<StyleAttribute<?>, ObservableSortedSet<? extends StyleConditionValue<?>>> theCachedValues;
 
-	private DocumentStyleSheet(QuickDocument doc, ObservableList<StyleSheet> externalStyleSheets) {
-		super(ObservableList.flattenLists(TypeToken.of(StyleSheet.class), //
+	private DocumentStyleSheet(QuickDocument doc, ObservableCollection<StyleSheet> externalStyleSheets) {
+		super(ObservableCollection.flattenLists(TypeToken.of(StyleSheet.class), //
 			externalStyleSheets, //
-			ObservableList.constant(TypeToken.of(StyleSheet.class), doc.getHead().getStyleSheets()), //
-			ObservableList.constant(TypeToken.of(StyleSheet.class), doc.getEnvironment().getStyle())));
+			ObservableCollection.of(TypeTokens.get().of(StyleSheet.class), doc.getHead().getStyleSheets()), //
+			ObservableCollection.of(TypeTokens.get().of(StyleSheet.class), doc.getEnvironment().getStyle())));
 		theDocument = doc;
 		theExternalStyleSheets = externalStyleSheets;
 		// Cache these for performance
-		theCachedAttributes = new CachingHashSet<>(super.attributes());
+		theCachedAttributes = ObservableSet.create(STYLE_ATTR_TYPE);
 		doc.getDispose().take(1).act(v -> theCachedAttributes.unsubscribe());
 		theCachedValues = new ConcurrentHashMap<>();
 	}
@@ -37,7 +38,7 @@ public class DocumentStyleSheet extends CompoundStyleSheet {
 	}
 
 	/** @return A mutable list of the extra style sheets pulled in directly from the document */
-	public ObservableList<StyleSheet> getExternalStyleSheets() {
+	public ObservableCollection<StyleSheet> getExternalStyleSheets() {
 		return theExternalStyleSheets;
 	}
 
@@ -46,7 +47,7 @@ public class DocumentStyleSheet extends CompoundStyleSheet {
 	 * @return The new document style sheet
 	 */
 	public static DocumentStyleSheet build(QuickDocument doc) {
-		return new DocumentStyleSheet(doc, ObservableList.constant(TypeToken.of(StyleSheet.class)));
+		return new DocumentStyleSheet(doc, ObservableCollection.of(TypeTokens.get().of(StyleSheet.class)));
 	}
 
 	@Override

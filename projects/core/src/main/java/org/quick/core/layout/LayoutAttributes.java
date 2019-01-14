@@ -267,7 +267,7 @@ public class LayoutAttributes {
 	 * @return The position value for the attribute on the element, in pixels
 	 */
 	public static int getPositionValue(org.quick.core.QuickElement element, PositionAttribute attr, int totalLength, int defVal) {
-		Position ret = element.atts().get(attr);
+		Position ret = element.atts().get(attr).get();
 		if(ret != null)
 			return ret.evaluate(totalLength);
 		else

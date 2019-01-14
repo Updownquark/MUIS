@@ -1,12 +1,19 @@
 package org.quick.core.model;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.observe.ObservableAction;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.parser.QuickParseException;
@@ -234,7 +241,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			};
 			QuickParseEnv innerEnv = new SimpleParseEnv(parseEnv.cv(), parseEnv.msg(),
 				DefaultExpressionContext.build().withParent(parseEnv.getContext())
-					.withValue("this", ObservableValue.constant(TypeToken.of(QuickAppModel.class), tempModel)).build());
+					.withValue("this", ObservableValue.of(TypeTokens.get().of(QuickAppModel.class), tempModel)).build());
 			for (Map.Entry<String, QuickModelConfig> cfg : config.getAllConfigs()) {
 				String childName = cfg.getValue().getString("name");
 				if (theFields.containsKey(childName))
@@ -308,8 +315,7 @@ public class DefaultQuickModel implements QuickAppModel {
 		}
 
 		private <T> ObservableValue<T> parseValue(QuickPropertyType<T> type, String text, QuickPropertyParser parser,
-			QuickParseEnv parseEnv)
-			throws QuickParseException {
+			QuickParseEnv parseEnv) throws QuickParseException {
 			QuickAttribute<T> prop = type == null ? null : QuickAttribute.build("model-value", type).build();
 			return (ObservableValue<T>) parser.parseProperty(prop, parseEnv, text);
 		}
@@ -378,13 +384,13 @@ public class DefaultQuickModel implements QuickAppModel {
 			TypeToken<V> fType = (TypeToken<V>) superType;
 			SettableValue<V> settableValue = (SettableValue<V>) value;
 			if (!fType.wrap().isAssignableFrom(value.getType().wrap())) {
-				settableValue = settableValue.mapV(fType, v -> QuickUtils.convert(fType, v),
-					v -> QuickUtils.convert(((ObservableValue<V>) value).getType(), v), true);
+				settableValue = settableValue.map(fType, v -> QuickUtils.convert(fType, v),
+					v -> QuickUtils.convert(((ObservableValue<V>) value).getType(), v), null);
 			}
 			if (minValue != null && !fType.wrap().isAssignableFrom(minValue.getType().wrap()))
-				minValue = minValue.mapV(fType, v -> QuickUtils.convert(fType, v), true);
+				minValue = minValue.map(fType, v -> QuickUtils.convert(fType, v));
 			if (maxValue != null && !fType.wrap().isAssignableFrom(maxValue.getType().wrap()))
-				maxValue = maxValue.mapV(fType, v -> QuickUtils.convert(fType, v), true);
+				maxValue = maxValue.map(fType, v -> QuickUtils.convert(fType, v));
 			ObservableValue<?> fMin = minValue;
 			ObservableValue<?> fMax = maxValue;
 			settableValue = settableValue.filterAccept(v -> {
@@ -401,9 +407,9 @@ public class DefaultQuickModel implements QuickAppModel {
 				return null;
 			});
 			if (minValue != null && !(minValue instanceof ObservableValue.ConstantObservableValue))
-				settableValue = settableValue.refresh(minValue.noInit());
+				settableValue = settableValue.refresh(minValue.changes().noInit());
 			if (maxValue != null && !(maxValue instanceof ObservableValue.ConstantObservableValue))
-				settableValue = settableValue.refresh(maxValue.noInit());
+				settableValue = settableValue.refresh(maxValue.changes().noInit());
 			return settableValue;
 		}
 
@@ -436,7 +442,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			ObservableAction<?> action = parser.parseProperty(ModelAttributes.action, parseEnv, actionText).get();
 			org.observe.Observable<?> event;
 			if (TypeToken.of(boolean.class).isAssignableFrom(eventValue.getType().unwrap())) {
-				event = ((ObservableValue<Boolean>) eventValue).noInit().filter(v -> v.getValue());
+				event = ((ObservableValue<Boolean>) eventValue).changes().noInit().filter(v -> v.getNewValue());
 			} else if (new TypeToken<org.observe.Observable<?>>() {}.isAssignableFrom(eventValue.getType())) {
 				event = ObservableValue.flattenObservableValue((ObservableValue<? extends org.observe.Observable<?>>) eventValue);
 			} else
@@ -496,14 +502,14 @@ public class DefaultQuickModel implements QuickAppModel {
 			for (Map.Entry<F, ObservableValue<T>> mapping : mappings.entrySet()) {
 				ObservableValue<T> to = mapping.getValue();
 				if (!common.isAssignableFrom(to.getType())) {
-					to = to.mapV(common, v -> QuickUtils.convert(common, v), true);
+					to = to.map(common, v -> QuickUtils.convert(common, v));
 					mapping.setValue(to);
 				}
 				if (allConstant)
 					reverseMappings.put(to.get(), new Holder<>(mapping.getKey()));
 			}
 			if (def != null && !common.isAssignableFrom(def.getType()))
-				def = def.mapV(common, v -> QuickUtils.convert(common, v), true);
+				def = def.map(common, v -> QuickUtils.convert(common, v));
 
 			ObservableValue<T> fDef = def;
 			if (value instanceof SettableValue && allConstant) {
@@ -518,7 +524,7 @@ public class DefaultQuickModel implements QuickAppModel {
 					Holder<F> from = reverseMappings.get(v);
 					return from == null ? null : from.val;
 				};
-				return settable.mapV(common, from -> {
+				return settable.map(common, from -> {
 					ObservableValue<T> to = mappings.get(from);
 					if (to != null)
 						return to.get();
@@ -526,12 +532,12 @@ public class DefaultQuickModel implements QuickAppModel {
 						return fDef.get();
 					else
 						return null;
-				}, reverseMapFn, true).filterAccept(allowedFn);
+				}, reverseMapFn, null).filterAccept(allowedFn);
 			} else {
 				TypeToken<ObservableValue<T>> tObs = new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, common);
-				return ObservableValue.flatten(value.mapV(tObs, from -> {
+				return ObservableValue.flatten(value.map(tObs, from -> {
 					return mappings.getOrDefault(from, fDef);
-				}, true));
+				}));
 			}
 		}
 	}

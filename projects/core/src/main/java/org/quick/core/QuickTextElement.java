@@ -1,6 +1,10 @@
 package org.quick.core;
 
-import static org.quick.core.style.FontStyle.*;
+import static org.quick.core.style.FontStyle.family;
+import static org.quick.core.style.FontStyle.size;
+import static org.quick.core.style.FontStyle.slant;
+import static org.quick.core.style.FontStyle.stretch;
+import static org.quick.core.style.FontStyle.weight;
 
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -74,7 +78,8 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			.runWhen(() -> {
 				new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
 			}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1)//
-			.runWhen(() -> atts().getHolder(multiLine).act(evt -> sizeNeedsChanged()), QuickConstants.CoreStage.INITIALIZED.toString(), 1);
+			.runWhen(() -> atts().get(multiLine).changes().act(evt -> sizeNeedsChanged()), QuickConstants.CoreStage.INITIALIZED.toString(),
+				1);
 	}
 
 	/**
@@ -165,7 +170,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	 */
 	public void setText(String text) {
 		QuickDocumentModel doc = theDocument.get();
-		if(doc instanceof MutableDocumentModel)
+		if (doc instanceof MutableDocumentModel)
 			((MutableDocumentModel) doc).setText(text);
 		else
 			throw new UnsupportedOperationException("This text element's document is not mutable");
@@ -197,14 +202,14 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		float maxW = 0;
 		float lineW = 0;
 		for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, Integer.MAX_VALUE)) {
-			if(metric.isNewLine()) {
-				if(lineW > maxW)
+			if (metric.isNewLine()) {
+				if (lineW > maxW)
 					maxW = lineW;
 				lineW = 0;
 			}
 			lineW += metric.getWidth();
 		}
-		if(lineW > maxW)
+		if (lineW > maxW)
 			maxW = lineW;
 		int max = Math.round(maxW);
 
@@ -254,7 +259,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			}
 
 			private void getSizes(int crossSize) {
-				if(crossSize == theCachedWidth)
+				if (crossSize == theCachedWidth)
 					return;
 				theCachedWidth = crossSize;
 				float totalH = 0;
@@ -262,16 +267,16 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 				float baselineOffset = -1;
 				float baseline = -1;
 				for (org.quick.core.model.QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, crossSize)) {
-					if(metric.isNewLine()) {
+					if (metric.isNewLine()) {
 						totalH += lineH;
-						if(baseline < 0 && baselineOffset >= 0)
+						if (baseline < 0 && baselineOffset >= 0)
 							baseline = lineH - baselineOffset;
 						lineH = 0;
 					}
 					float h = metric.getHeight();
-					if(h > lineH)
+					if (h > lineH)
 						lineH = h;
-					if(baselineOffset < 0)
+					if (baselineOffset < 0)
 						baseline = h - metric.getBaseline();
 				}
 				totalH += lineH;
@@ -312,7 +317,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 
 			@Override
 			public int getBaseline(int widgetSize) {
-				if(theCachedWidth < 0)
+				if (theCachedWidth < 0)
 					getSizes(Integer.MAX_VALUE);
 				return theCachedBaseline;
 			}
@@ -328,17 +333,17 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	@Override
 	public String toString() {
 		StringBuilder ret = new StringBuilder();
-		if(getTagName() != null)
+		if (getTagName() != null)
 			ret.append('<').append(getTagName()).append('>');
 		else
 			ret.append("<!TEXT>");
 		ret.append(org.jdom2.output.Format.escapeText(ch -> {
-			if(org.jdom2.Verifier.isHighSurrogate(ch)) {
+			if (org.jdom2.Verifier.isHighSurrogate(ch)) {
 				return true; // Safer this way per http://unicode.org/faq/utf_bom.html#utf8-4
 			}
-		return false;
+			return false;
 		}, "\n", theDocument.get().toString()));
-		if(getTagName() != null)
+		if (getTagName() != null)
 			ret.append('<').append('/').append(getTagName()).append('>');
 		else
 			ret.append("</TEXT\u00a1>");

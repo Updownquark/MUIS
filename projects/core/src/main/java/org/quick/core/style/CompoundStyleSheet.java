@@ -1,21 +1,20 @@
 package org.quick.core.style;
 
 import org.observe.collect.ObservableCollection;
-import org.observe.collect.ObservableList;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
 
 /** A StyleSheet whose style values come from other StyleSheets */
 public class CompoundStyleSheet implements StyleSheet {
-	private final ObservableList<StyleSheet> theComponents;
+	private final ObservableCollection<StyleSheet> theComponents;
 
 	/** @param components The style sheets that this style sheet will use as sources */
-	public CompoundStyleSheet(ObservableList<StyleSheet> components) {
+	public CompoundStyleSheet(ObservableCollection<StyleSheet> components) {
 		theComponents = components;
 	}
 
 	/** @return The style sheets that this style sheet uses for sources */
-	public ObservableList<StyleSheet> getComponents() {
+	public ObservableCollection<StyleSheet> getComponents() {
 		return theComponents;
 	}
 

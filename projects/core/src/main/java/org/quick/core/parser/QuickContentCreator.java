@@ -6,7 +6,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.observe.ObservableValue;
-import org.quick.core.*;
+import org.quick.core.QuickDocument;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickException;
+import org.quick.core.QuickHeadSection;
+import org.quick.core.QuickParseEnv;
+import org.quick.core.QuickTextElement;
+import org.quick.core.QuickToolkit;
 import org.quick.core.model.DefaultQuickModel;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickModelConfig;
@@ -181,7 +187,7 @@ public class QuickContentCreator {
 		QuickParseEnv modelEnv = new SimpleParseEnv(parseEnv.cv(), parseEnv.msg(), org.quick.core.prop.DefaultExpressionContext.build()//
 			.withParent(parseEnv.getContext()).withValueGetter(name -> {
 				if (models.containsKey(name))
-					return ObservableValue.constant(models.get(name));
+					return ObservableValue.of(models.get(name));
 				else
 					return null;
 			}).build());

@@ -1,20 +1,29 @@
 package org.quick.core;
 
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.parser.Version;
-import org.quick.core.style.*;
-
-import com.google.common.reflect.TypeToken;
+import org.quick.core.style.CompoundStyleSheet;
+import org.quick.core.style.MutableStyleSheet;
+import org.quick.core.style.StyleAttribute;
+import org.quick.core.style.StyleCondition;
+import org.quick.core.style.StyleConditionValue;
+import org.quick.core.style.StyleSheet;
 
 /** Represents a toolkit that contains resources for use in a Quick document */
 public class QuickToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
 	public class ToolkitStyleSheet extends CompoundStyleSheet {
-		ToolkitStyleSheet(ObservableList<StyleSheet> dependencies) {
+		ToolkitStyleSheet(ObservableCollection<StyleSheet> dependencies) {
 			super(dependencies);
 		}
 
@@ -37,7 +46,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	private final List<QuickPermission> thePermissions;
 
 	private ToolkitStyleSheet theStyle;
-	private ObservableList<StyleSheet> theStyleDependencyController;
+	private ObservableCollection<StyleSheet> theStyleDependencyController;
 
 	private QuickToolkit(QuickEnvironment env, URL uri, String name, String descrip, Version version, List<URL> cps,
 		Map<String, String> classMap, Map<String, String> resMap, List<QuickToolkit> depends, List<QuickPermission> perms) {
@@ -51,8 +60,8 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		thePermissions = Collections.unmodifiableList(new ArrayList<>(perms));
 		theClassMappings = Collections.unmodifiableMap(new LinkedHashMap<>(classMap));
 		theResourceMappings = Collections.unmodifiableMap(new LinkedHashMap<>(resMap));
-		theStyleDependencyController = new org.observe.collect.impl.ObservableArrayList<>(TypeToken.of(StyleSheet.class));
-		theStyle = new ToolkitStyleSheet(theStyleDependencyController.immutable());
+		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class));
+		theStyle = new ToolkitStyleSheet(theStyleDependencyController.flow().unmodifiable().collect());
 
 		for(URL cp : cps)
 			super.addURL(cp);

@@ -8,8 +8,8 @@ import java.util.Set;
 
 import org.observe.Observable;
 import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
+import org.observe.SettableValue;
+import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.KeyBoardEvent;
@@ -22,8 +22,7 @@ import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.DocumentStyleSheet;
 import org.quick.util.QuickUtils;
-
-import com.google.common.reflect.TypeToken;
+import org.quick.util.QuickValue;
 
 /** Contains all data pertaining to a Quick application */
 public class QuickDocument implements QuickParseEnv {
@@ -86,13 +85,9 @@ public class QuickDocument implements QuickParseEnv {
 
 	private ScrollPolicy theScrollPolicy;
 
-	private QuickElement theFocus;
-	private ObservableValue<QuickElement> theObservableFocus;
-	private Observer<ObservableValueEvent<QuickElement>> theFocusController;
+	private SettableValue<QuickElement> theFocus;
 
-	private QuickEventPositionCapture theMouseTarget;
-	private ObservableValue<QuickEventPositionCapture> theObservableTarget;
-	private Observer<ObservableValueEvent<QuickEventPositionCapture>> theTargetController;
+	private SettableValue<QuickEventPositionCapture> theTarget;
 
 	private boolean hasMouse;
 
@@ -155,36 +150,15 @@ public class QuickDocument implements QuickParseEnv {
 		theRoot = new BodyElement();
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-		theObservableFocus = new org.observe.DefaultObservableValue<QuickElement>() {
-			@Override
-			public TypeToken<QuickElement> getType() {
-				return TypeToken.of(QuickElement.class);
-			}
-
-			@Override
-			public QuickElement get() {
-				return theFocus;
-			}
-		};
-		theFocusController = ((org.observe.DefaultObservableValue<QuickElement>) theObservableFocus).control(null);
-		theObservableTarget = new org.observe.DefaultObservableValue<QuickEventPositionCapture>() {
-			@Override
-			public TypeToken<QuickEventPositionCapture> getType() {
-				return TypeToken.of(QuickEventPositionCapture.class);
-			}
-
-			@Override
-			public QuickEventPositionCapture get() {
-				return theMouseTarget;
-			}
-		};
-		theTargetController = ((org.observe.DefaultObservableValue<QuickEventPositionCapture>) theObservableTarget).control(null);
+		theFocus = new QuickValue<>(TypeTokens.get().of(QuickElement.class), true, theEnvironment.getAttributeLocker());
+		theTarget = new QuickValue<>(TypeTokens.get().of(QuickEventPositionCapture.class), true,
+			theEnvironment.getAttributeLocker());
 		ObservableValue
-			.flatten(theObservableTarget
-				.mapV(target -> target == null ? null : target.getTarget().getElement().getStyle().get(BackgroundStyle.cursor)))
-			.act(event -> {
-				if (event.getValue() != null && theGraphics != null)
-					theGraphics.setCursor(event.getValue());
+			.flatten(theTarget
+				.map(target -> target == null ? null : target.getTarget().getElement().getStyle().get(BackgroundStyle.cursor)))
+			.changes().act(event -> {
+				if (event.getNewValue() != null && theGraphics != null)
+					theGraphics.setCursor(event.getNewValue());
 			});
 	}
 
@@ -298,7 +272,7 @@ public class QuickDocument implements QuickParseEnv {
 
 	/** @return The element that has focus in this document */
 	public ObservableValue<QuickElement> getFocus() {
-		return theObservableFocus;
+		return theFocus;
 	}
 
 	/** @return The policy that this document uses to dispatch scroll events */
@@ -434,7 +408,7 @@ public class QuickDocument implements QuickParseEnv {
 	 * @param buttonType The button that caused the event
 	 * @param clickCount The click count for the event
 	 */
-	public void mouse(int x, int y, MouseEvent.MouseEventType type, MouseEvent.ButtonType buttonType, int clickCount) {
+	public void mouse(int x, int y, MouseEvent.MouseEventType type, MouseEvent.ButtonType buttonType, int clickCount, Object cause) {
 		boolean oldHasMouse = hasMouse;
 		hasMouse = type != MouseEvent.MouseEventType.exited;
 		theMouseX = x;
@@ -443,9 +417,7 @@ public class QuickDocument implements QuickParseEnv {
 		if(rendering == null)
 			return;
 		QuickEventPositionCapture newCapture = rendering.capture(x, y);
-		QuickEventPositionCapture oldCapture = theMouseTarget;
-		theMouseTarget = newCapture;
-		Observer.onNextAndFinish(theTargetController, theObservableTarget.createChangeEvent(oldCapture, newCapture, null));
+		QuickEventPositionCapture oldCapture = theTarget.set(newCapture, cause);
 		MouseEvent evt = new MouseEvent(this, newCapture.getTarget().getElement(), type, buttonType, clickCount, thePressedButtons,
 			thePressedKeys, newCapture);
 
@@ -557,16 +529,15 @@ public class QuickDocument implements QuickParseEnv {
 	}
 
 	private void setFocus(QuickElement focus, UserEvent cause, java.util.List<QuickEventQueue.Event> events) {
-		QuickElement oldFocus = theFocus;
-		theFocus = focus;
-		if(oldFocus != theFocus) {
+		QuickElement oldFocus = theFocus.get();
+		if (oldFocus != focus) {
 			if(oldFocus != null)
 				events.add(new QuickEventQueue.UserQueueEvent(
 					new FocusEvent(this, oldFocus, thePressedButtons, thePressedKeys, false, cause), false));
 			if(theFocus != null)
 				events.add(new QuickEventQueue.UserQueueEvent(
-					new FocusEvent(this, theFocus, thePressedButtons, thePressedKeys, true, cause), false));
-			Observer.onNextAndFinish(theFocusController, theObservableFocus.createChangeEvent(oldFocus, theFocus, null));
+					new FocusEvent(this, focus, thePressedButtons, thePressedKeys, true, cause), false));
+			theFocus.set(focus, cause);
 		}
 	}
 
@@ -578,7 +549,7 @@ public class QuickDocument implements QuickParseEnv {
 	public void backupFocus(UserEvent cause) {
 		if(theFocus == null)
 			return;
-		if(searchFocus(theFocus, cause, false))
+		if (searchFocus(theFocus.get(), cause, false))
 			return;
 		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable element. */
 		QuickElement deepest = getDeepestElement(theRoot, false);
@@ -593,7 +564,7 @@ public class QuickDocument implements QuickParseEnv {
 	public void advanceFocus(UserEvent cause) {
 		if(theFocus == null)
 			return;
-		if(searchFocus(theFocus, cause, true))
+		if (searchFocus(theFocus.get(), cause, true))
 			return;
 		/* If we get here, then there was no next focusable element. We must wrap around to the first focusable element. */
 		QuickElement deepest = getDeepestElement(theRoot, true);
@@ -601,8 +572,8 @@ public class QuickDocument implements QuickParseEnv {
 	}
 
 	boolean searchFocus(QuickElement el, UserEvent cause, boolean forward) {
-		QuickElement lastChild = theFocus;
-		QuickElement parent = theFocus.getParent().get();
+		QuickElement lastChild = theFocus.get();
+		QuickElement parent = theFocus.get().getParent().get();
 		while(parent != null) {
 			QuickElement[] children = QuickUtils.sortByZ(parent.getPhysicalChildren().toArray());
 			if(!forward) {
@@ -662,7 +633,7 @@ public class QuickDocument implements QuickParseEnv {
 				capture, null);
 			break;
 		case FOCUS:
-			element = theFocus;
+			element = theFocus.get();
 			if(element == null)
 				element = theRoot;
 			evt = new ScrollEvent(this, element, ScrollEvent.ScrollType.UNIT, true, amount, null, thePressedButtons, thePressedKeys, null,
@@ -692,7 +663,7 @@ public class QuickDocument implements QuickParseEnv {
 		}
 		final KeyBoardEvent evt;
 		if(theFocus != null)
-			evt = new KeyBoardEvent(this, theFocus, code, thePressedButtons, thePressedKeys, pressed);
+			evt = new KeyBoardEvent(this, theFocus.get(), code, thePressedButtons, thePressedKeys, pressed);
 		else
 			evt = new KeyBoardEvent(this, theRoot, code, thePressedButtons, thePressedKeys, pressed);
 		if(theFocus != null)
@@ -719,7 +690,7 @@ public class QuickDocument implements QuickParseEnv {
 			case FOCUS:
 			case MIXED:
 				if(theFocus != null)
-					scrollElement = theFocus;
+					scrollElement = theFocus.get();
 				else
 					scrollElement = theRoot;
 				break;
@@ -787,7 +758,7 @@ public class QuickDocument implements QuickParseEnv {
 	public void character(char c) {
 		org.quick.core.event.CharInputEvent evt = null;
 		if(theFocus != null)
-			evt = new org.quick.core.event.CharInputEvent(this, theFocus, thePressedButtons, thePressedKeys, c);
+			evt = new org.quick.core.event.CharInputEvent(this, theFocus.get(), thePressedButtons, thePressedKeys, c);
 		else
 			evt = new org.quick.core.event.CharInputEvent(this, theRoot, thePressedButtons, thePressedKeys, c);
 		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.UserQueueEvent(evt, false), true);

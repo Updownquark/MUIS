@@ -2,12 +2,12 @@ package org.quick.core.event;
 
 import java.util.Set;
 
-import org.qommons.AbstractCausable;
+import org.qommons.Causable;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 
 /** An event caused by user interaction */
-public abstract class UserEvent extends AbstractCausable implements QuickEvent {
+public abstract class UserEvent extends Causable implements QuickEvent {
 	private final QuickDocument theDocument;
 
 	private final QuickElement theTarget;
@@ -113,9 +113,4 @@ public abstract class UserEvent extends AbstractCausable implements QuickEvent {
 	 *         properties (e.g. {@link UserEvent#isUsed() used}) will be backed by this event's properties.
 	 */
 	public abstract UserEvent copyFor(QuickElement element);
-
-	@Override
-	public boolean isOverridden() {
-		return false;
-	}
 }

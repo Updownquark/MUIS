@@ -2,10 +2,14 @@ package org.quick.core;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
+import org.qommons.collect.CollectionLockingStrategy;
+import org.qommons.collect.StampedLockingStrategy;
+import org.qommons.tree.BetterTreeList;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.DefaultStyleParser;
 import org.quick.core.parser.QuickContentCreator;
@@ -42,21 +46,32 @@ public class QuickEnvironment implements QuickParseEnv {
 	private QuickPropertyParser thePropertyParser;
 	private ExpressionContext theContext;
 
+	private final ReentrantReadWriteLock theAttributeLocker;
+	private final CollectionLockingStrategy theContentLocker;
 	private final QuickMessageCenter theMessageCenter;
 	private final java.util.Map<String, QuickToolkit> theToolkits;
 	private final QuickCache theCache;
 	private final EnvironmentStyle theStyle;
 
-	private final Object theToolkitLock;
 	private ObservableCollection<StyleSheet> theStyleDependencyController;
 
 	private QuickEnvironment() {
+		theAttributeLocker = new ReentrantReadWriteLock();
+		theContentLocker = new StampedLockingStrategy();
 		theMessageCenter = new QuickMessageCenter(this, null, null);
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
-		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class));
+		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class),
+			new BetterTreeList<>(theContentLocker));
 		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect());
-		theToolkitLock = new Object();
+	}
+
+	ReentrantReadWriteLock getAttributeLocker() {
+		return theAttributeLocker;
+	}
+
+	CollectionLockingStrategy getContentLocker() {
+		return theContentLocker;
 	}
 
 	@Override
@@ -134,7 +149,8 @@ public class QuickEnvironment implements QuickParseEnv {
 		QuickToolkit toolkit = theToolkits.get(location.toString());
 		if(toolkit != null)
 			return toolkit;
-		synchronized(theToolkitLock) {
+		theAttributeLocker.writeLock().lock();
+		try {
 			toolkit = theToolkits.get(location.toString());
 			if(toolkit != null)
 				return toolkit;
@@ -142,6 +158,8 @@ public class QuickEnvironment implements QuickParseEnv {
 				theStyleDependencyController.add(tk.getStyle());
 				theToolkits.put(location.toString(), tk);
 			});
+		} finally {
+			theAttributeLocker.writeLock().unlock();
 		}
 		return toolkit;
 	}

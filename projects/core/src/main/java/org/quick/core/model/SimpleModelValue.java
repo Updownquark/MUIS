@@ -2,10 +2,8 @@ package org.quick.core.model;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.observe.ObservableValueEvent;
-import org.observe.SimpleObservable;
-import org.observe.SimpleSettableValue;
-import org.qommons.collect.ListenerList;
+import org.observe.util.TypeTokens;
+import org.quick.util.QuickValue;
 
 import com.google.common.reflect.TypeToken;
 
@@ -14,8 +12,7 @@ import com.google.common.reflect.TypeToken;
  *
  * @param <T> The type of the value
  */
-public class SimpleModelValue<T> extends SimpleSettableValue<T> {
-	private final ReentrantReadWriteLock theLock;
+public class SimpleModelValue<T> extends QuickValue<T> {
 	private final String theToString;
 
 	/**
@@ -24,9 +21,7 @@ public class SimpleModelValue<T> extends SimpleSettableValue<T> {
 	 * @param toString The toString() value for this value
 	 */
 	public SimpleModelValue(ReentrantReadWriteLock lock, Class<T> type, boolean nullable, String toString) {
-		super(type, nullable);
-		theLock = lock;
-		theToString = toString;
+		this(lock, TypeTokens.get().of(type), nullable, toString);
 	}
 
 	/**
@@ -35,15 +30,8 @@ public class SimpleModelValue<T> extends SimpleSettableValue<T> {
 	 * @param toString The toString() value for this value
 	 */
 	public SimpleModelValue(ReentrantReadWriteLock lock, TypeToken<T> type, boolean nullable, String toString) {
-		super(type, nullable);
-		theLock = lock;
+		super(type, nullable, lock);
 		theToString = toString;
-	}
-
-	@Override
-	protected SimpleObservable<ObservableValueEvent<T>> createEventer() {
-		return new SimpleObservable<>(observer -> fireInitial(observer), true, theLock,
-			lb -> lb.forEachSafe(false).withFastSize(false).withSyncType(ListenerList.SynchronizationType.LIST));
 	}
 
 	@Override

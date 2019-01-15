@@ -4,26 +4,32 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.observe.*;
+import org.observe.ObservableValue;
 import org.observe.collect.ObservableSet;
-import org.observe.collect.impl.ObservableHashSet;
+import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
+import org.qommons.collect.BetterHashSet;
+import org.qommons.collect.RRWLockingStrategy;
 import org.quick.core.QuickElement;
-
-import com.google.common.reflect.TypeToken;
 
 /** Keeps track of states for an entity and fires events when they change */
 public class StateEngine implements StateSet {
 	/** Allows control over one state in an engine */
-	public interface StateController extends SettableValue<Boolean> {
+	public interface StateController {
 		/** @return The engine that this controller controls a state in */
 		StateEngine getEngine();
 
 		/** @return The state that this controller controls */
 		QuickState getState();
+
+		/**
+		 * @param active Whether the state should be active
+		 * @param cause The cause of the change
+		 * @return Whether the state was previously active
+		 */
+		boolean setActive(boolean active, Object cause);
 	}
 
-	@SuppressWarnings("unused")
 	private final QuickElement theElement;
 	private final ConcurrentHashMap<QuickState, StateHolder> theStateHolders;
 	private final ObservableSet<QuickState> theStateSet;
@@ -39,10 +45,12 @@ public class StateEngine implements StateSet {
 	public StateEngine(QuickElement element) {
 		theElement = element;
 		theStateHolders = new ConcurrentHashMap<>();
-		theStateSet = new ObservableHashSet<>(TypeToken.of(QuickState.class));
-		theActiveStates = new ObservableHashSet<>(theStateSet.getType());
-		theExposedStateSet = theStateSet.immutable();
-		theExposedActiveStates = theActiveStates.immutable();
+		theStateSet = ObservableSet.of(TypeTokens.get().of(QuickState.class),
+			BetterHashSet.build().withLocking(new RRWLockingStrategy(theElement.getAttributeLocker())).buildSet());
+		theActiveStates = ObservableSet.of(TypeTokens.get().of(QuickState.class),
+			BetterHashSet.build().withLocking(new RRWLockingStrategy(theElement.getAttributeLocker())).buildSet());
+		theExposedStateSet = theStateSet.flow().unmodifiable(false).collectPassive();
+		theExposedActiveStates = theActiveStates.flow().unmodifiable(false).collectPassive();
 	}
 
 	@Override
@@ -52,11 +60,7 @@ public class StateEngine implements StateSet {
 
 	@Override
 	public ObservableValue<Boolean> observe(QuickState state) {
-		StateHolder holder = theStateHolders.get(state);
-		if (holder != null)
-			return holder;
-		else
-			return ObservableValue.constant(TypeToken.of(Boolean.TYPE), false);
+		return theActiveStates.observeContains(ObservableValue.of(state));
 	}
 
 	/**
@@ -144,8 +148,8 @@ public class StateEngine implements StateSet {
 		return ret.toString();
 	}
 
-	private class StateHolder implements ObservableValue<Boolean> {
-		private final QuickState theState;
+	private class StateHolder {
+		final QuickState theState;
 		private final AtomicReference<StateControllerImpl> theController;
 
 		StateHolder(QuickState state) {
@@ -156,50 +160,11 @@ public class StateEngine implements StateSet {
 		QuickState getState() {
 			return theState;
 		}
-
-		@Override
-		public TypeToken<Boolean> getType() {
-			return TypeToken.of(Boolean.TYPE);
-		}
-
-		@Override
-		public boolean isSafe() {
-			return theActiveStates.isSafe();
-		}
-
-		@Override
-		public Boolean get() {
-			return theActiveStates.contains(theState);
-		}
-
-		@Override
-		public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
-			Subscription sub = theActiveStates.changes().act(event -> {
-				switch (event.type) {
-				case add:
-					if (event.values.contains(theState))
-						Observer.onNextAndFinish(observer, createChangeEvent(false, true, event));
-					break;
-				case remove:
-					if (event.values.contains(theState))
-						Observer.onNextAndFinish(observer, createChangeEvent(true, false, event));
-					break;
-				case set:
-					if (event.values.contains(theState)) {
-						if (!event.oldValues.contains(theState))
-							Observer.onNextAndFinish(observer, createChangeEvent(false, true, event));
-					} else if (event.oldValues.contains(theState))
-						Observer.onNextAndFinish(observer, createChangeEvent(true, false, event));
-					break;
-				}
-			});
-			Observer.onNextAndFinish(observer, createInitialEvent(theActiveStates.contains(theState), null));
-			return sub;
-		}
 	}
 
 	private class StateControllerImpl implements StateController {
 		private final StateHolder theState;
+		private boolean isActive;
 
 		public StateControllerImpl(StateHolder state) {
 			theState = state;
@@ -216,49 +181,17 @@ public class StateEngine implements StateSet {
 		}
 
 		@Override
-		public TypeToken<Boolean> getType() {
-			return TypeToken.of(Boolean.class);
-		}
-
-		@Override
-		public boolean isSafe() {
-			return theState.isSafe();
-		}
-
-		@Override
-		public Boolean get() {
-			return theState.get();
-		}
-
-		@Override
-		public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
-			return theState.subscribe(observer);
-		}
-
-		@Override
-		public Boolean set(Boolean active, Object cause) throws IllegalArgumentException {
-			if (active == null)
-				throw new IllegalArgumentException("A null boolean is not allowed");
-			Transaction trans = cause != null ? theActiveStates.lock(true, cause) : null;
-			try {
-				if (active)
-					return !theActiveStates.add(getState());
-				else
-					return theActiveStates.remove(getState());
-			} finally {
-				if (trans != null)
-					trans.close();
+		public boolean setActive(boolean active, Object cause) {
+			if (isActive == active)
+				return active;
+			else {
+				try (Transaction t = theActiveStates.lock(true, cause)) {
+					if (active)
+						return !theActiveStates.add(theState.theState);
+					else
+						return theActiveStates.remove(theState.theState);
+				}
 			}
-		}
-
-		@Override
-		public String isAcceptable(Boolean value) {
-			return value != null ? null : "null Boolean value unacceptable";
-		}
-
-		@Override
-		public ObservableValue<String> isEnabled() {
-			return ObservableValue.constant(TypeToken.of(String.class), null);
 		}
 	}
 }

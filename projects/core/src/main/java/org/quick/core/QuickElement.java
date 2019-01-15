@@ -1,19 +1,20 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.quick.core;
 
-import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
 import org.observe.Subscription;
 import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionLockingStrategy;
-import org.qommons.collect.RRWLockingStrategy;
 import org.qommons.collect.StampedLockingStrategy;
+import org.qommons.tree.BetterTreeList;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.event.BoundsChangedEvent;
@@ -22,9 +23,7 @@ import org.quick.core.event.MouseEvent;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager2;
-import org.quick.core.mgr.ChildList;
 import org.quick.core.mgr.ElementBounds;
-import org.quick.core.mgr.ElementList;
 import org.quick.core.mgr.QuickEventManager;
 import org.quick.core.mgr.QuickLifeCycleManager;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
@@ -63,7 +62,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private QuickLifeCycleManager.Controller theLifeCycleController;
 
-	private final RRWLockingStrategy theAttributeLocker;
+	private final ReentrantReadWriteLock theAttributeLocker;
 
 	private final CollectionLockingStrategy theContentLocker;
 
@@ -91,9 +90,9 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private final AttributeManager2 theAttributeManager;
 
-	private final ChildList theChildren;
+	private final ObservableCollection<QuickElement> theChildren;
 
-	private final ElementList<QuickElement> theExposedChildren;
+	private final ObservableCollection<QuickElement> theExposedChildren;
 
 	private final QuickElementStyle theStyle;
 
@@ -122,7 +121,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			if (evt.getOldValue() != null)
 				evt.getOldValue().theChildren.remove(QuickElement.this);
 		});
-		theAttributeLocker = new RRWLockingStrategy();
+		theAttributeLocker = new ReentrantReadWriteLock();
 		theContentLocker = new StampedLockingStrategy();
 		theMessageCenter = new QuickMessageCenter(null, null, this);
 		theLifeCycleManager = new QuickLifeCycleManager(this, (Controller controller) -> {
@@ -138,8 +137,8 @@ public abstract class QuickElement implements QuickParseEnv {
 				lastStage = stage.toString();
 			}
 		theBounds = new ElementBounds(this);
-		theChildren = new ChildList(this);
-		theExposedChildren = theChildren.immutable();
+		theChildren = ObservableCollection.create(TypeTokens.get().of(QuickElement.class), new BetterTreeList<>(theContentLocker));
+		theExposedChildren = theChildren.flow().unmodifiable(false).collect();
 		theAttributeManager = new AttributeManager2(this, theAttributeLocker);
 		theStyle = new QuickElementStyle(this);
 		theSelfModel = QuickAppModel.empty("this");
@@ -178,14 +177,14 @@ public abstract class QuickElement implements QuickParseEnv {
 				else if (bounds == null)
 					bounds = child.bounds().getBounds();
 				else
-					bounds.add(child.bounds().getBounds());
+					bounds = bounds.union(child.bounds().getBounds());
 			}
 			if (event.getOldValues() != null) {
 				for (QuickElement child : event.getOldValues()) {
 					if (bounds == null)
 						bounds = child.bounds().getBounds();
 					else if (!child.bounds().isEmpty())
-						bounds.add(child.bounds().getBounds());
+						bounds = bounds.union(child.bounds().getBounds());
 				}
 			}
 			if (bounds != null)
@@ -225,13 +224,13 @@ public abstract class QuickElement implements QuickParseEnv {
 			case pressed:
 				switch (event.getButton()) {
 				case left:
-					theStateControllers.clicked.set(true, event);
+					theStateControllers.clicked.setActive(true, event);
 					break;
 				case right:
-					theStateControllers.rightClicked.set(true, event);
+					theStateControllers.rightClicked.setActive(true, event);
 					break;
 				case middle:
-					theStateControllers.middleClicked.set(true, event);
+					theStateControllers.middleClicked.setActive(true, event);
 					break;
 				default:
 					break;
@@ -240,13 +239,13 @@ public abstract class QuickElement implements QuickParseEnv {
 			case released:
 				switch (event.getButton()) {
 				case left:
-					theStateControllers.clicked.set(false, event);
+					theStateControllers.clicked.setActive(false, event);
 					break;
 				case right:
-					theStateControllers.rightClicked.set(false, event);
+					theStateControllers.rightClicked.setActive(false, event);
 					break;
 				case middle:
-					theStateControllers.middleClicked.set(false, event);
+					theStateControllers.middleClicked.setActive(false, event);
 					break;
 				default:
 					break;
@@ -257,17 +256,17 @@ public abstract class QuickElement implements QuickParseEnv {
 			case moved:
 				break;
 			case entered:
-				theStateControllers.hovered.set(true, event);
+				theStateControllers.hovered.setActive(true, event);
 				for(org.quick.core.event.MouseEvent.ButtonType button : theDocument.getPressedButtons()) {
 					switch (button) {
 					case left:
-						theStateControllers.clicked.set(true, event);
+						theStateControllers.clicked.setActive(true, event);
 						break;
 					case right:
-						theStateControllers.rightClicked.set(true, event);
+						theStateControllers.rightClicked.setActive(true, event);
 						break;
 					case middle:
-						theStateControllers.middleClicked.set(true, event);
+						theStateControllers.middleClicked.setActive(true, event);
 						break;
 					default:
 						break;
@@ -275,20 +274,20 @@ public abstract class QuickElement implements QuickParseEnv {
 				}
 				break;
 			case exited:
-				theStateControllers.clicked.set(false, event);
-				theStateControllers.rightClicked.set(false, event);
-				theStateControllers.middleClicked.set(false, event);
-				theStateControllers.hovered.set(false, event);
+				theStateControllers.clicked.setActive(false, event);
+				theStateControllers.rightClicked.setActive(false, event);
+				theStateControllers.middleClicked.setActive(false, event);
+				theStateControllers.hovered.setActive(false, event);
 				break;
 			}
 		});
 		events().filterMap(FocusEvent.focusEvent).act(event -> {
-			theStateControllers.focused.set(event.isFocus(), event);
+			theStateControllers.focused.setActive(event.isFocus(), event);
 		});
 	}
 
 	/** @return A locker controlling threaded access to this element's single-valued attributes */
-	public CollectionLockingStrategy getAttributeLocker() {
+	public ReentrantReadWriteLock getAttributeLocker() {
 		return theAttributeLocker;
 	}
 
@@ -580,7 +579,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	/** @return An list of the elements immediately contained by this element. By default, this list is immutable. */
-	public ElementList<? extends QuickElement> getPhysicalChildren() {
+	public ObservableCollection<? extends QuickElement> getPhysicalChildren() {
 		return theExposedChildren;
 	}
 
@@ -589,7 +588,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 *
 	 * @return An unmodifiable list of the elements immediately contained by this element
 	 */
-	public ElementList<? extends QuickElement> ch() {
+	public ObservableCollection<? extends QuickElement> ch() {
 		return getPhysicalChildren();
 	}
 
@@ -602,7 +601,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	/** @return An augmented, modifiable {@link List} of this element's children */
-	protected ChildList getChildManager() {
+	protected ObservableCollection<QuickElement> getChildManager() {
 		return theChildren;
 	}
 
@@ -816,7 +815,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		int cacheX = paintBounds.x + theBounds.getX();
 		int cacheY = paintBounds.y + theBounds.getY();
 		int cacheZ = theZ;
-		Rectangle preClip = graphics.getClipBounds();
+		Rectangle preClip = Rectangle.fromAwt(graphics.getClipBounds());
 		try {
 			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
 			boolean visible = !((area != null && (area.width <= 0 || area.height <= 0)) || theBounds.getWidth() <= 0 || theBounds
@@ -831,7 +830,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			}
 			return ret;
 		} finally {
-			graphics.setClip(preClip);
+			graphics.setClip(preClip.toAwt());
 		}
 	}
 
@@ -890,17 +889,20 @@ public abstract class QuickElement implements QuickParseEnv {
 		QuickElementCapture [] childBounds = new QuickElementCapture[children.length];
 		if(children.length == 0)
 			return childBounds;
-		if(area == null)
-			area = new Rectangle(0, 0, theBounds.getWidth(), theBounds.getHeight());
+		java.awt.Rectangle awtArea;
+		if (area != null)
+			awtArea = area.toAwt();
+		else
+			awtArea = new java.awt.Rectangle(0, 0, theBounds.getWidth(), theBounds.getHeight());
 		int translateX = 0;
 		int translateY = 0;
 		try {
 			for(int c = 0; c < children.length; c++) {
 				QuickElement child = children[c];
-				Rectangle childArea = child.theBounds.getBounds();
+				java.awt.Rectangle childArea = child.theBounds.getBounds().toAwt();
 				int childX = childArea.x;
 				int childY = childArea.y;
-				childArea = childArea.intersection(area);
+				childArea = childArea.intersection(awtArea);
 				childArea.x -= childX;
 				childArea.y -= childY;
 				translateX += childX;
@@ -908,7 +910,7 @@ public abstract class QuickElement implements QuickParseEnv {
 				graphics.translate(translateX, translateY);
 				translateX = -childX;
 				translateY = -childY;
-				childBounds[c] = child.paint(graphics, childArea);
+				childBounds[c] = child.paint(graphics, Rectangle.fromAwt(childArea));
 			}
 		} finally {
 			if(translateX != 0 || translateY != 0)

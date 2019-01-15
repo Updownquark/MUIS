@@ -1,6 +1,6 @@
 package org.quick.core;
 
-import org.quick.core.mgr.ElementList;
+import org.observe.collect.ObservableCollection;
 
 /**
  * <p>
@@ -44,5 +44,7 @@ public interface QuickContainer<E extends QuickElement> {
 	 * @return The logical contents of this container
 	 * @see QuickContainer
 	 */
-	ElementList<E> getContent();
+	ObservableCollection<? extends E> getContent();
+
+	// TODO May add some stuff here to facilitate addition since otherwise the caller would have to cast annoyingly
 }

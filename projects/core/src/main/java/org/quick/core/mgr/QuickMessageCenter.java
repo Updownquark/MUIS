@@ -3,7 +3,7 @@ package org.quick.core.mgr;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.qommons.AbstractCausable;
+import org.qommons.Causable;
 import org.qommons.IterableUtils;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
@@ -14,28 +14,21 @@ import org.quick.core.mgr.QuickMessage.Type;
 /** Defines a center that can store Quick messages */
 public class QuickMessageCenter implements Iterable<QuickMessage> {
 	/** A message fired in an element when a message is added to or removed from it */
-	public static class QuickMessageEvent extends AbstractCausable implements org.quick.core.event.QuickEvent {
+	public static class QuickMessageEvent extends Causable implements org.quick.core.event.QuickEvent {
 		private final QuickElement theElement;
 		private final QuickMessage theMessage;
 		private final boolean isRemove;
-		private final QuickEvent theCause;
 
 		QuickMessageEvent(QuickElement element, QuickMessage message, boolean remove, QuickEvent cause) {
 			super(cause);
 			theElement = element;
 			theMessage = message;
 			isRemove = remove;
-			theCause = cause;
 		}
 
 		@Override
 		public QuickElement getElement() {
 			return theElement;
-		}
-
-		@Override
-		public QuickEvent getCause() {
-			return theCause;
 		}
 
 		/** @return The message that was added or removed */
@@ -46,11 +39,6 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 		/** @return Whether the message was added or removed */
 		public boolean isRemove() {
 			return isRemove;
-		}
-
-		@Override
-		public boolean isOverridden() {
-			return false;
 		}
 	}
 

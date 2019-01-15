@@ -1,13 +1,11 @@
 package org.quick.core;
 
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
 
-import org.qommons.AbstractCausable;
 import org.qommons.ArrayUtils;
 import org.qommons.Causable;
 import org.qommons.ProgramTracker;
+import org.qommons.Transaction;
 import org.quick.util.QuickUtils;
 
 /** The event queue in Quick which makes sure elements's states stay up-to-date */
@@ -15,7 +13,7 @@ public class QuickEventQueue {
 	private static long DEBUG_TRACKING = 0;
 
 	/** Represents an event that may be queued for handling by the QuickEventQueue */
-	public static interface Event extends Causable {
+	public static interface Event {
 		/** @return The time at which this event was created */
 		long getTime();
 
@@ -78,15 +76,19 @@ public class QuickEventQueue {
 
 		/** @param err The error that was thrown by this event */
 		void handleError(Throwable err);
+
+		/** Called by the event architecture after the event has finished its work. External code should NEVER call this! */
+		void finish();
 	}
 
 	/** Implements the trivial parts of {@link Event} */
-	public static abstract class AbstractEvent extends AbstractCausable implements Event {
+	public static abstract class AbstractEvent extends Causable implements Event {
 		private final long theTime;
 
 		private final int thePriority;
 
 		private final Runnable [] thePostActions;
+		private final Transaction running;
 
 		private volatile boolean isHandling;
 
@@ -103,6 +105,7 @@ public class QuickEventQueue {
 			theTime = System.currentTimeMillis();
 			thePriority = priority;
 			thePostActions = postActions;
+			running = use(this);
 		}
 
 		@Override
@@ -173,6 +176,11 @@ public class QuickEventQueue {
 		public int comparePriority(Event evt) {
 			return 0;
 		}
+
+		@Override
+		public void finish() {
+			running.close();
+		}
 	}
 
 	/** Represents an element's need to be redrawn */
@@ -227,13 +235,11 @@ public class QuickEventQueue {
 			if(element != doc.getRoot() && element.isTransparent()) {
 				Point docPos = QuickUtils.getDocumentPosition(element);
 				if(area == null)
-					area = new Rectangle(element.getBounds().getSize());
-				area.x += docPos.x;
-				area.y += docPos.y;
+					area = new Rectangle(docPos, element.getBounds().getSize());
 				element = doc.getRoot();
 			}
-			if(area != null && area.getX() == 0 && area.getY() == 0 && area.getWidth() >= element.bounds().getWidth()
-				&& area.getHeight() >= element.bounds().getHeight())
+			if (area != null && area.x == 0 && area.y == 0 && area.width >= element.bounds().getWidth()
+				&& area.height >= element.bounds().getHeight())
 				area = null;
 			if(element == doc.getRoot() && area == null) {
 				QuickRendering render = new QuickRendering(element.bounds().getWidth(), element.bounds().getHeight());

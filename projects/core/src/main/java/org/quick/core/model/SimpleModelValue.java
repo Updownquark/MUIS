@@ -2,8 +2,8 @@ package org.quick.core.model;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.observe.VetoableSettableValue;
 import org.observe.util.TypeTokens;
-import org.quick.util.QuickValue;
 
 import com.google.common.reflect.TypeToken;
 
@@ -12,7 +12,7 @@ import com.google.common.reflect.TypeToken;
  *
  * @param <T> The type of the value
  */
-public class SimpleModelValue<T> extends QuickValue<T> {
+public class SimpleModelValue<T> extends VetoableSettableValue<T> {
 	private final String theToString;
 
 	/**

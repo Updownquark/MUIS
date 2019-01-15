@@ -9,6 +9,7 @@ import java.util.Set;
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
+import org.observe.VetoableSettableValue;
 import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
 import org.quick.core.event.FocusEvent;
@@ -22,7 +23,6 @@ import org.quick.core.prop.ExpressionContext;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.DocumentStyleSheet;
 import org.quick.util.QuickUtils;
-import org.quick.util.QuickValue;
 
 /** Contains all data pertaining to a Quick application */
 public class QuickDocument implements QuickParseEnv {
@@ -150,8 +150,8 @@ public class QuickDocument implements QuickParseEnv {
 		theRoot = new BodyElement();
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-		theFocus = new QuickValue<>(TypeTokens.get().of(QuickElement.class), true, theEnvironment.getAttributeLocker());
-		theTarget = new QuickValue<>(TypeTokens.get().of(QuickEventPositionCapture.class), true,
+		theFocus = new VetoableSettableValue<>(TypeTokens.get().of(QuickElement.class), true, theEnvironment.getAttributeLocker());
+		theTarget = new VetoableSettableValue<>(TypeTokens.get().of(QuickEventPositionCapture.class), true,
 			theEnvironment.getAttributeLocker());
 		ObservableValue
 			.flatten(theTarget
@@ -292,7 +292,7 @@ public class QuickDocument implements QuickParseEnv {
 	 * @param height The height of the document size
 	 */
 	public void setSize(int width, int height) {
-		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.ReboundEvent(theRoot, new java.awt.Rectangle(0, 0, width, height)), true);
+		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.ReboundEvent(theRoot, new Rectangle(0, 0, width, height)), true);
 	}
 
 	/** @return The most recent rendering of this document */
@@ -407,6 +407,7 @@ public class QuickDocument implements QuickParseEnv {
 	 * @param type The type of the event
 	 * @param buttonType The button that caused the event
 	 * @param clickCount The click count for the event
+	 * @param cause The cause of the mouse event (typically a platform-specific mouse event)
 	 */
 	public void mouse(int x, int y, MouseEvent.MouseEventType type, MouseEvent.ButtonType buttonType, int clickCount, Object cause) {
 		boolean oldHasMouse = hasMouse;

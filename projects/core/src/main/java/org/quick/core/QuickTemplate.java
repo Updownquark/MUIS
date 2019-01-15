@@ -17,17 +17,12 @@ import java.util.stream.Collectors;
 
 import org.observe.Observable;
 import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
 import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
 import org.observe.collect.ObservableCollection;
-import org.observe.collect.ObservableCollectionDataFlowImpl.FilterMapResult;
 import org.observe.util.TypeTokens;
 import org.quick.core.QuickCache.CacheException;
-import org.quick.core.QuickTemplate.AttachPoint;
 import org.quick.core.layout.SizeGuide;
-import org.quick.core.mgr.ElementList;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickBehavior;
 import org.quick.core.model.QuickModelConfig;
@@ -49,8 +44,6 @@ import org.quick.core.tags.Template;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
-
-import javafx.collections.ObservableList;
 
 /**
  * Allows complex widgets to be created more easily by addressing a template Quick file with widget definitions that are reproduced in each
@@ -766,8 +759,6 @@ public abstract class QuickTemplate extends QuickElement {
 				theContainer = new AttachPointInstanceContainer<>(attachPoint, template, theParentChildren);
 			} else{
 				theValue = new SimpleSettableValue<E>(ap.type, true) {
-					private Observer<ObservableValueEvent<E>> theController = control(null);
-
 					@Override
 					public TypeToken<E> getType() {
 						return TypeToken.of(attachPoint.type);
@@ -789,13 +780,16 @@ public abstract class QuickTemplate extends QuickElement {
 						if (err != null)
 							throw new IllegalArgumentException(err);
 						E old = doReplace(value);
-						Observer.onNextAndFinish(theController, createChangeEvent(old, value, cause));
+						super.set(value, cause);
 						return old;
 					}
 
 					@Override
 					public <V extends E> String isAcceptable(V value) {
-						return isAcceptable(value);
+						String msg = null;
+						if (!attachPoint.mutable)
+							msg = "Attach point " + attachPoint + " cannot be modified";
+						return msg;
 					}
 
 					@Override
@@ -901,7 +895,7 @@ public abstract class QuickTemplate extends QuickElement {
 	// Valid during initialization only (prior to initChildren())--will be null after that
 
 	private Map<AttachPoint<?>, List<QuickElement>> theAttachmentMappings;
-	private AttachPointSetChildList theAttachPointChildList;
+	private ObservableCollection<QuickElement> theAttachPointChildList;
 
 	private Set<QuickElement> theUninitialized;
 
@@ -1094,7 +1088,8 @@ public abstract class QuickTemplate extends QuickElement {
 		theAttachmentMappings = null;
 		theUninitialized = null;
 
-		theAttachPointChildList = new AttachPointSetChildList();
+		theAttachPointChildList = getAttachPointContentList().flow().flatMap(TypeTokens.get().of(QuickElement.class), c -> c.flow())
+			.collect();
 	}
 
 	private void initTemplate(TemplateStructure structure) throws QuickParseException {
@@ -1349,10 +1344,12 @@ public abstract class QuickTemplate extends QuickElement {
 		return null;
 	}
 
-	ObservableCollection<? extends ObservableList<? extends QuickElement>> getAttachPointContentList() {
+	private static TypeToken<ObservableCollection<? extends QuickElement>> EL_COLL_TYPE = new TypeToken<ObservableCollection<? extends QuickElement>>() {};
+
+	ObservableCollection<? extends ObservableCollection<? extends QuickElement>> getAttachPointContentList() {
 		ObservableCollection<AttachPoint<?>> aps = ObservableCollection.of(new TypeToken<AttachPoint<?>>() {},
 			new ArrayList<>(theTemplateStructure.getAttachPoints()));
-		return aps.map(ap -> {
+		return aps.flow().map(EL_COLL_TYPE, ap -> {
 			ObservableCollection<? extends QuickElement> contents;
 			if(!ap.external)
 				contents = ObservableCollection.of(TypeTokens.get().of(QuickElement.class));
@@ -1360,12 +1357,12 @@ public abstract class QuickTemplate extends QuickElement {
 				contents = getContainer(ap).getContent();
 			} else{
 				ObservableValue<ObservableCollection<QuickElement>> el = getElement(ap)
-					.mapV(e -> e == null ? ObservableCollection.of(TypeTokens.get().of(QuickElement.class))
+					.map(e -> e == null ? ObservableCollection.of(TypeTokens.get().of(QuickElement.class))
 						: ObservableCollection.of(TypeTokens.get().of(QuickElement.class), e));
 				contents = ObservableCollection.flattenValue(el);
 			}
 			return contents;
-		});
+		}, opts -> opts.cache(false)).collectPassive();
 	}
 
 	/**
@@ -1432,218 +1429,23 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 	}
 
-	private class AttachPointSetChildList extends ObservableList.FlattenedObservableList<QuickElement> implements ElementList<QuickElement> {
-		AttachPointSetChildList() {
-			super(getAttachPointContentList());
-		}
-
-		@Override
-		public QuickElement getParent(){
-			return QuickTemplate.this;
-		}
-
-		/*@Override
-		public boolean add(QuickElement e) {
-			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
-			if (role == null)
-				role = theTemplateStructure.getDefaultAttachPoint();
-			if (role == null) {
-				throw new UnsupportedOperationException("Templated widget " + QuickTemplate.class.getName()
-					+ " does not have a default attach point, and therefore does not support addition"
-					+ " of children without a role assignment");
-			}
-			if (!role.external)
-				throw new UnsupportedOperationException("The " + role.name + " attach point is not externally-exposed");
-			if (!role.mutable)
-				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
-			if (!role.type.isInstance(e))
-				throw new UnsupportedOperationException("The " + role.name + " attach point's elements must be of type "
-					+ role.type.getName() + ", not " + e.getClass().getName());
-			if (role.multiple)
-				return getContainer((AttachPoint<QuickElement>) role).getContent().add(e);
-			else {
-				SettableValue<QuickElement> apVal = getElement((AttachPoint<QuickElement>) role);
-				if (apVal.get() != null)
-					throw new UnsupportedOperationException(
-						"The " + role.name + " attach point only supports a single element and is already occupied");
-				apVal.set(e, null);
-				return true;
-			}
-		}
-
-		@Override
-		public boolean remove(Object o) {
-			if (!(o instanceof QuickElement))
-				return false;
-			QuickElement e = (QuickElement) o;
-			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
-			if (role == null)
-				role = theTemplateStructure.getDefaultAttachPoint();
-			if (role == null)
-				return false;
-			if (!role.type.isInstance(e))
-				return false;
-			if (!role.external)
-				throw new UnsupportedOperationException("The " + role.name + " attach point is not externally-exposed");
-			if (!role.mutable)
-				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
-			if (role.multiple) {
-				getContainer(role).getContent().remove(e);
-				// TODO move this to AttachPointInstanceElementList
-				org.quick.core.mgr.ElementList<? extends QuickElement> content = getContainer(role).getContent();
-				if (role.required && content.size() == 1 && content.get(0).equals(e))
-					throw new UnsupportedOperationException(
-						"The " + role.name + " attach point is required and only has one element left in it");
-				return content.remove(e);
-			} else {
-				SettableValue<QuickElement> apVal = getElement((AttachPoint<QuickElement>) role);
-				if (!e.equals(apVal.get()))
-					return false;
-				if (role.required)
-					throw new UnsupportedOperationException("The " + role.name + " attach point is required");
-				apVal.set(null, null);
-				return true;
-			}
-		}
-
-		@Override
-		public void clear() {
-			for (AttachPoint<?> ap : theTemplateStructure) {
-				if (!ap.external)
-					continue;
-				if (ap.required)
-					throw new UnsupportedOperationException("Template has required attach points--can't be cleared");
-				if (!ap.mutable) {
-					if ((ap.multiple && !getContainer(ap).getContent().isEmpty()) || (!ap.multiple && getElement(ap).get() != null))
-						throw new UnsupportedOperationException("Template has non-empty, immutable attach points--can't be cleared");
-				}
-			}
-			for (AttachPoint<?> ap : theTemplateStructure) {
-				if (ap.multiple)
-					getContainer(ap).getContent().clear();
-				else
-					getElement(ap).set(null, null);
-			}
-		}
-
-		@Override
-		public QuickElement set(int index, QuickElement element) {
-			QuickElement e = get(index);
-			AttachPoint<?> role = e.atts().get(theTemplateStructure.role);
-			if (role == null)
-				role = theTemplateStructure.getDefaultAttachPoint();
-			if (role == null)
-				throw new UnsupportedOperationException("Templated widget " + QuickTemplate.class.getName()
-					+ " does not have a default attach point, and therefore does not support replacement"
-					+ " of children without a role assignment");
-			if (!role.external)
-				throw new UnsupportedOperationException("The " + role.name + " attach point is not externally-exposed");
-			if (!role.mutable)
-				throw new UnsupportedOperationException("The " + role.name + " attach point is not mutable");
-			if (!role.type.isInstance(e))
-				throw new UnsupportedOperationException("The " + role.name + " attach point's elements must be of type "
-					+ role.type.getName() + ", not " + e.getClass().getName());
-			AttachPoint<?> elRole = element.atts().get(theTemplateStructure.role);
-			if (elRole != null && elRole != role)
-				throw new UnsupportedOperationException(
-					"The role of the element to set (" + elRole + ") is not the same as the element being replaced (" + role + ")");
-			if (role.multiple) {
-				ElementList<QuickElement> contents = getContainer((AttachPoint<QuickElement>) role).getContent();
-				int contentIdx = contents.indexOf(e);
-				if (contentIdx < 0)
-					throw new UnsupportedOperationException("The contents of the " + role.name
-						+ " attach point does not include the element at index " + index + " in the contents list");
-				contents.set(contentIdx, element);
-			} else {
-				SettableValue<QuickElement> apVal = getElement((AttachPoint<QuickElement>) role);
-				if (apVal.get() != e)
-					throw new UnsupportedOperationException(
-						"The " + role.name + " attach point's value is not the element at index " + index);
-				apVal.set(element, null);
-			}
-			return e;
-		}
-
-		@Override
-		public void add(int index, QuickElement element) {
-			throw new UnsupportedOperationException("add at index unsupported");
-		}
-
-		@Override
-		public QuickElement remove(int index) {
-			QuickElement el = get(index);
-			remove(el);
-			return el;
-		}*/
-	}
-
 	private class AttachPointInstanceContainer<E extends QuickElement> implements QuickContainer<E> {
-		private AttachPointInstanceElementList<?, E> theContent;
+		private ObservableCollection<? extends E> theContent;
 
-		AttachPointInstanceContainer(AttachPoint<E> ap, QuickTemplate template, ObservableList<? extends QuickElement> parentChildren) {
-			theContent = new AttachPointInstanceElementList<>(ap, template, parentChildren);
-		}
-
-		@Override
-		public ElementList<E> getContent() {
-			return theContent;
-		}
-	}
-
-	private class AttachPointInstanceElementList<E1 extends QuickElement, E2 extends QuickElement>
-		extends ObservableList.DynamicFilteredList<E1, E2> implements ElementList<E2> {
-		@SuppressWarnings("unused")
-		private final AttachPoint<E2> theAttachPoint;
-
-		AttachPointInstanceElementList(AttachPoint<E2> ap, QuickTemplate template, ObservableList<E1> parentChildren) {
-			super(parentChildren, TypeToken.of(ap.type), e -> {
-				AttachPoint<?> elAp = e.atts().get(ap.template.role);
-				FilterMapResult<E2> result = null;
+		AttachPointInstanceContainer(AttachPoint<E> ap, QuickTemplate template,
+			ObservableCollection<? extends QuickElement> parentChildren) {
+			theContent = parentChildren.flow().filter(el -> {
+				AttachPoint<?> elAp = el.atts().get(ap.template.role).get();
 				if (elAp == ap || (ap.isDefault && elAp == null))
-					result = new FilterMapResult<>((E2) e, true);
-				return result;
-			}, e -> (E1) e);
-			theAttachPoint = ap;
+					return null;
+				else
+					return "Role " + elAp + " does not match attach point " + ap;
+			}).map(TypeTokens.get().of(ap.type), el -> (E) el).collect();
 		}
 
 		@Override
-		public QuickElement getParent() {
-			return QuickTemplate.this;
-		}
-
-		@Override
-		public boolean addAll(int index, Collection<? extends E2> c) {
-			throw new UnsupportedOperationException("Not implemented");
-		}
-
-		@Override
-		public E2 set(int index, E2 element) {
-			throw new UnsupportedOperationException("Not implemented");
-		}
-
-		@Override
-		public void add(int index, E2 element) {
-			throw new UnsupportedOperationException("Not implemented");
-		}
-
-		@Override
-		public E2 remove(int index) {
-			throw new UnsupportedOperationException("Not implemented");
-		}
-
-		@Override
-		public boolean add(E2 e) {
-			throw new UnsupportedOperationException("Not implemented");
-		}
-
-		@Override
-		public boolean remove(Object o) {
-			throw new UnsupportedOperationException("Not implemented");
-		}
-
-		@Override
-		public void clear() {
-			throw new UnsupportedOperationException("Not implemented");
+		public ObservableCollection<? extends E> getContent() {
+			return theContent;
 		}
 	}
 }

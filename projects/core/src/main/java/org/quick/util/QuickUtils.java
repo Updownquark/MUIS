@@ -1,8 +1,6 @@
 package org.quick.util;
 
 import java.awt.Color;
-import java.awt.Point;
-import java.awt.Rectangle;
 import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
@@ -12,8 +10,10 @@ import java.util.LinkedHashSet;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.qommons.ArrayUtils;
+import org.quick.core.Point;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
+import org.quick.core.Rectangle;
 import org.quick.core.event.UserEvent;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.FontStyle;
@@ -132,7 +132,7 @@ public class QuickUtils {
 	 * @return <code>area</code> translated from <code>el1</code>'s coordinates to <code>el2</code>'s
 	 */
 	public static Rectangle relative(Rectangle area, QuickElement el1, QuickElement el2) {
-		Point relP = relative(area.getLocation(), el1, el2);
+		Point relP = relative(area.getPosition(), el1, el2);
 		return new Rectangle(relP.x, relP.y, area.width, area.height);
 	}
 
@@ -148,23 +148,24 @@ public class QuickUtils {
 	public static Point relative(Point point, QuickElement el1, QuickElement el2) {
 		if(el1 == null)
 			el1 = getRoot(el2);
-		Point ret = new Point(point);
+		int x = point.x;
+		int y = point.y;
 		QuickElement common = commonAncestor(el1, el2);
 		if(common == null)
 			return null;
 		QuickElement parent = el2;
 		while (parent != null && parent != common) {
-			ret.x -= parent.bounds().getX();
-			ret.y -= parent.bounds().getY();
+			x -= parent.bounds().getX();
+			y -= parent.bounds().getY();
 			parent = parent.getParent().get();
 		}
 		parent = el1;
 		while (parent != null && parent != common) {
-			ret.x += parent.bounds().getX();
-			ret.y += parent.bounds().getY();
+			x += parent.bounds().getX();
+			y += parent.bounds().getY();
 			parent = parent.getParent().get();
 		}
-		return ret;
+		return new Point(x, y);
 	}
 
 	/**

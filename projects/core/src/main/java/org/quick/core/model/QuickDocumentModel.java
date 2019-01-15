@@ -3,7 +3,6 @@ package org.quick.core.model;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.Rectangle;
 import java.awt.font.TextLayout;
 import java.awt.geom.Point2D;
 import java.util.Collections;
@@ -13,10 +12,10 @@ import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.Observer;
 import org.observe.Subscription;
-import org.qommons.AbstractCausable;
 import org.qommons.Causable;
 import org.qommons.IterableUtils;
 import org.qommons.Transaction;
+import org.quick.core.Rectangle;
 import org.quick.core.model.QuickDocumentModel.StyledSequence;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
@@ -81,7 +80,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	}
 
 	/** A change in a {@link QuickDocumentModel} */
-	public static interface QuickDocumentChangeEvent extends Causable {
+	public static interface QuickDocumentChangeEvent {
 		/** @return The document model that changed */
 		QuickDocumentModel getModel();
 
@@ -349,7 +348,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 				if (metric.isNewLine()) {
 					lineHeights.add(lineH);
 					totalH += lineH;
-					if (window != null && startLine < 0 && totalH > window.getMinY()) {
+					if (window != null && startLine < 0 && totalH > window.y) {
 						startLine = lineHeights.size() - 1;
 						startLinePos = linePos;
 					}
@@ -365,7 +364,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 			}
 			lineHeights.add(lineH);
 			totalH += lineH;
-			if (window != null && startLine < 0 && totalH > window.getMinY()) {
+			if (window != null && startLine < 0 && totalH > window.y) {
 				startLine = lineHeights.size() - 1;
 				startLinePos = linePos;
 			}
@@ -385,7 +384,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 			int lineNumber = startLine;
 			totalH = startHeight;
 			lineH = lineHeights.get(startLine);
-			Rectangle oldClip = graphics.getClipBounds();
+			Rectangle oldClip = Rectangle.fromAwt(graphics.getClipBounds());
 			if (window != null)
 				graphics.setClip(window.x, window.y, window.width, window.height);
 			try {
@@ -400,7 +399,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 						lineW = 0;
 					}
 					firstMetric = false;
-					if (window == null || (lineW < window.getMaxX() && lineW + metric.getWidth() > window.getMinX()
+					if (window == null || (lineW < window.getMaxX() && lineW + metric.getWidth() > window.x
 						&& totalH + lineH - metric.getHeight() < window.getMaxY())) {
 						graphics.setFont(QuickUtils.getFont(metric.getStyle()).get());
 						metric.draw(graphics, lineW, totalH + lineH - metric.getHeight());
@@ -409,7 +408,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 				}
 			} finally {
 				if (window != null)
-					graphics.setClip(oldClip);
+					graphics.setClip(oldClip.toAwt());
 			}
 		}
 	}
@@ -895,46 +894,58 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 		public Observable<QuickDocumentChangeEvent> changes() {
 			return new Observable<QuickDocumentChangeEvent>() {
 				@Override
+				public Transaction lock() {
+					return theWrapper.lock();
+				}
+
+				@Override
+				public Transaction tryLock() {
+					return theWrapper.tryLock();
+				}
+
+				@Override
 				public Subscription subscribe(Observer<? super QuickDocumentChangeEvent> observer) {
-					return theWrapper.act(event -> {
+					return theWrapper.changes().act(event -> {
 						QuickDocumentModel old = event.getOldValue();
 						if (old != null && old.length() > 0 && !event.isInitial()) {
 							ContentChangeEvent clear = createClearEvent(old, event);
-							observer.onNext(clear);
-							clear.finish();
+							try (Transaction clearT = Causable.use(clear)) {
+								observer.onNext(clear);
+							}
 						}
 
-						QuickDocumentModel current = event.getValue();
+						QuickDocumentModel current = event.getNewValue();
 						if (current != null) {
 							if (!event.isInitial()) {
 								ContentChangeEvent pop = createPopulateEvent(current, event);
-								observer.onNext(pop);
-								pop.finish();
+								try (Transaction popT = Causable.use(pop)) {
+									observer.onNext(pop);
+								}
 							}
 							// Need to skip the initial event, and also the one that will be fired as a result of the same event that
 							// this listener is getting.
 							int skip = 1;
 							if (!event.isInitial())
 								skip++;
-							current.changes().takeUntil(theWrapper.skip(skip)).subscribe(new Observer<QuickDocumentChangeEvent>() {
-								@Override
-								public <V extends QuickDocumentChangeEvent> void onNext(V value) {
-									observer.onNext(value);
-								}
+							current.changes().takeUntil(theWrapper.changes().skip(skip))
+								.subscribe(new Observer<QuickDocumentChangeEvent>() {
+									@Override
+									public <V extends QuickDocumentChangeEvent> void onNext(V value) {
+										observer.onNext(value);
+									}
 
-								@Override
-								public <V extends QuickDocumentChangeEvent> void onCompleted(V value) {
-									observer.onCompleted(value);
-								}
-							});
-							// observer);
+									@Override
+									public <V extends QuickDocumentChangeEvent> void onCompleted(V value) {
+										observer.onCompleted(value);
+									}
+								});
 						}
 					});
 				}
 
 				@Override
 				public boolean isSafe() {
-					return theWrapper.isSafe(); // Assume the document model itself will be safe
+					return true; // Assume the contained document model itself will be safe
 				}
 			};
 		}
@@ -980,7 +991,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 
 		@Override
 		public QuickDocumentModel subSequence(int start, int end) {
-			return QuickDocumentModel.flatten(theWrapper.mapV(doc -> doc.subSequence(start, end)));
+			return QuickDocumentModel.flatten(theWrapper.map(doc -> doc.subSequence(start, end)));
 		}
 
 		@Override
@@ -1067,7 +1078,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	}
 
 	/** A default implementation of ContentChangeEvent */
-	static class ContentChangeEventImpl extends AbstractCausable implements ContentChangeEvent {
+	static class ContentChangeEventImpl extends Causable implements ContentChangeEvent {
 		private final QuickDocumentModel theModel;
 
 		private final String theValue;
@@ -1136,7 +1147,7 @@ public interface QuickDocumentModel extends CharSequence, Iterable<StyledSequenc
 	}
 
 	/** A default implementation of StyleChangeEvent */
-	static class StyleChangeEventImpl extends AbstractCausable implements StyleChangeEvent {
+	static class StyleChangeEventImpl extends Causable implements StyleChangeEvent {
 		private final QuickDocumentModel theDocument;
 
 		private final int theStart;

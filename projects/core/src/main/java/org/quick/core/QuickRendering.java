@@ -67,7 +67,7 @@ public class QuickRendering implements Cloneable {
 	 * @return The capture of each element in the hierarchy of the document that the event occurred over
 	 */
 	public QuickEventPositionCapture capture(int x, int y) {
-		return theRoot.getPositionCapture(null, new java.awt.Point(x, y));
+		return theRoot.getPositionCapture(null, new Point(x, y));
 	}
 
 	@Override

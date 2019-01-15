@@ -2,29 +2,29 @@ package org.quick.core.mgr;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
 import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
-import org.observe.SettableStampedValue;
 import org.observe.SettableValue;
 import org.observe.Subscription;
+import org.observe.VetoableSettableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
-import org.qommons.Causable;
-import org.qommons.Lockable;
 import org.qommons.QommonsUtils;
+import org.qommons.Transactable;
 import org.qommons.Transaction;
 import org.qommons.collect.BetterCollections;
 import org.qommons.collect.BetterList;
 import org.qommons.collect.BetterSortedSet.SortedSearchFilter;
 import org.qommons.collect.CollectionElement;
-import org.qommons.collect.CollectionLockingStrategy;
 import org.qommons.collect.ElementId;
-import org.qommons.collect.ListenerList;
 import org.qommons.collect.MutableCollectionElement.StdMsg;
+import org.qommons.collect.RRWLockingStrategy;
 import org.qommons.tree.SortedTreeList;
 import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
@@ -34,103 +34,48 @@ import org.quick.core.event.AttributeChangedEvent;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.prop.QuickAttribute;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** Holds all the {@link QuickAttribute} values for a {@link QuickElement} */
 public class AttributeManager2 {
-	public class AttributeValue<T> implements SettableStampedValue<T>, Comparable<AttributeValue<?>> {
+	public class AttributeValue<T> extends VetoableSettableValue<T> implements Comparable<AttributeValue<?>> {
 		private final QuickAttribute<T> theAttribute;
-		private final ListenerList<ValueListener<T>> theObservers;
-		private final Observable<ObservableValueEvent<T>> theChanges;
 		private ElementId theCollectionElement;
-		private ObservableValue<? extends T> theContainer;
-		private final ListenerList<Observer<? super ObservableValueEvent<ObservableValue<? extends T>>>> theContainerListeners;
-		private final ObservableValue<ObservableValue<? extends T>> theContainerObservable;
-		private Subscription theContainerSubcription;
-		private T theValue;
-		private long theStamp;
+		private final VetoableSettableValue<ObservableValue<? extends T>> theContainerObservable;
+		private Subscription theContainerSubscription;
 		private int theAcceptedCount;
 		private int theRequiredCount;
+		private boolean isInternalSetting;
 
 		AttributeValue(QuickAttribute<T> attribute) {
+			super(attribute.getType().getType(), true);
 			theAttribute = attribute;
-			theObservers = ListenerList.build()// Make these lists light and performant--we'll thread-secure them ourselves
-				.forEachSafe(false).withFastSize(false).withSyncType(ListenerList.SynchronizationType.LIST).allowReentrant().build();
-			theContainerListeners = ListenerList.build().forEachSafe(false).withFastSize(false)
-				.withSyncType(ListenerList.SynchronizationType.LIST).allowReentrant().build();
 			theAcceptedCount = 1; // If this is created, then something is interested
-			theChanges = new Observable<ObservableValueEvent<T>>() {
-				@Override
-				public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
-					try (Transaction t = theLocker.lock(false, null)) {
-						AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, true, null, theValue, null);
-						try (Transaction evtT = Causable.use(evt)) {
-							observer.onNext(evt);
-						}
-						return theObservers.add(new ValueListener<>(observer, theStamp, theValue), true)::run;
-					}
+			theContainerObservable = new VetoableSettableValue<>(//
+				new TypeToken<ObservableValue<? extends T>>() {}.where(new TypeParameter<T>() {}, getType()), //
+				true, theLocker);
+			theContainerObservable.changes().act(evt -> {
+				if (theContainerSubscription != null) {
+					theContainerSubscription.unsubscribe();
+					theContainerSubscription = null;
 				}
-
-				@Override
-				public boolean isSafe() {
-					return true;
+				if (evt.getNewValue() == null)
+					set(null, evt);
+				else {
+					ObservableValue<? extends T> container = evt.getNewValue();
+					theContainerSubscription = container.changes().act(//
+						containerEvt -> {
+							if (!theAttribute.canAccept(containerEvt.getNewValue())) {
+								theElement.msg().error(
+									"Value " + containerEvt.getNewValue() + " from container " + container
+										+ " is unacceptable for attribute " + theAttribute,
+									"attribute", theAttribute, "value", containerEvt.getNewValue());
+							} else
+								innerSet(containerEvt.getNewValue(), containerEvt);
+						});
 				}
-
-				@Override
-				public Transaction lock() {
-					return Lockable.lockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
-				}
-
-				@Override
-				public Transaction tryLock() {
-					return Lockable.tryLockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
-				}
-			};
-			theContainerObservable = new ObservableValue<ObservableValue<? extends T>>() {
-				private final Observable<ObservableValueEvent<ObservableValue<? extends T>>> containerChanges = new Observable<ObservableValueEvent<ObservableValue<? extends T>>>() {
-					@Override
-					public Subscription subscribe(Observer<? super ObservableValueEvent<ObservableValue<? extends T>>> observer) {
-						try (Transaction t = theLocker.lock(false, null)) {
-							ObservableValueEvent<ObservableValue<? extends T>> evt = theContainerObservable.createInitialEvent(theContainer,
-								null);
-							try (Transaction evtT = Causable.use(evt)) {
-								observer.onNext(evt);
-							}
-							return theContainerListeners.add(observer, false)::run;
-						}
-					}
-
-					@Override
-					public boolean isSafe() {
-						return true;
-					}
-
-					@Override
-					public Transaction lock() {
-						return Lockable.lockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
-					}
-
-					@Override
-					public Transaction tryLock() {
-						return Lockable.tryLockAll(Lockable.lockable(theLocker, false, false, null), theContainer);
-					}
-				};
-
-				@Override
-				public TypeToken<ObservableValue<? extends T>> getType() {
-					return new TypeToken<ObservableValue<? extends T>>() {}; // Slow, but hopefully nobody cares
-				}
-
-				@Override
-				public ObservableValue<? extends T> get() {
-					return theContainer;
-				}
-
-				@Override
-				public Observable<ObservableValueEvent<ObservableValue<? extends T>>> changes() {
-					return containerChanges;
-				}
-			};
+			});
 			RawAttributeValue rawValue = theRawAttributes == null ? null : theRawAttributes.remove(attribute.getName());
 			if (rawValue != null) {
 				try {
@@ -161,50 +106,60 @@ public class AttributeManager2 {
 		}
 
 		@Override
-		public T get() {
-			return theValue;
-		}
-
-		@Override
-		public long getStamp() {
-			return theStamp;
-		}
-
-		@Override
-		public Observable<ObservableValueEvent<T>> changes() {
-			return theChanges;
-		}
-
-		@Override
 		public <V extends T> T set(V value, Object cause) throws IllegalArgumentException, UnsupportedOperationException {
 			if (!theAttribute.canAccept(value))
 				throw new IllegalArgumentException("Illegal value " + value + " for attribute " + theAttribute);
-			try (Transaction t = theLocker.lock(true, cause)) {
-				if (theContainer != null) {
-					if (theContainer instanceof SettableValue && TypeTokens.get().isInstance(theContainer.getType(), value))
-						return ((SettableValue<T>) theContainer).set(value, cause);
-					throw new UnsupportedOperationException(StdMsg.UNSUPPORTED_OPERATION);
-				}
-				return fire(value, cause);
+			Lock lock = theLocker.writeLock();
+			lock.lock();
+			try {
+				ObservableValue<? extends T> container = theContainerObservable.get();
+				if (container != null) {
+					if (container instanceof SettableValue) {
+						if (TypeTokens.get().isInstance(container.getType(), value))
+							return ((SettableValue<T>) container).set(value, cause);
+						else
+							throw new IllegalArgumentException(StdMsg.BAD_TYPE);
+					} else
+						throw new UnsupportedOperationException(StdMsg.UNSUPPORTED_OPERATION);
+				} else
+					return innerSet(value, cause);
+			} finally {
+				lock.unlock();
+			}
+		}
+
+		@Override
+		public ObservableValueEvent<T> createInitialEvent(T value, Object cause) {
+			return new AttributeChangedEvent<>(theElement, theAttribute, true, null, value, cause);
+		}
+
+		@Override
+		public ObservableValueEvent<T> createChangeEvent(T oldVal, T newVal, Object cause) {
+			return new AttributeChangedEvent<>(theElement, theAttribute, false, oldVal, newVal, cause);
+		}
+
+		T innerSet(T value, Object cause) {
+			boolean oldIS = isInternalSetting;
+			isInternalSetting = true;
+			try {
+				return super.set(value, cause);
+			} finally {
+				isInternalSetting = oldIS;
 			}
 		}
 
 		public <V extends T> T setContainer(ObservableValue<V> value) throws IllegalArgumentException {
-			try (Transaction t = theLocker.lock(true, null)) {
-				if (value != null && !theAttribute.getType().getType().isAssignableFrom(value.getType()))
-					throw new IllegalArgumentException("Cannot assign value " + value + " of type " + value.getType() + " to attribute "
-						+ theAttribute + ", type " + theAttribute.getType());
-				if (theContainerSubcription != null) {
-					theContainerSubcription.unsubscribe();
-					theContainerSubcription = null;
-				}
-				theContainer = null;
-				if (value == null)
-					return set((T) null, null);
-				theContainer = value;
-				theContainerSubcription = theContainer.changes().act(//
-					evt -> fire(evt.getNewValue(), evt));
-				return theValue;
+			if (value != null && !theAttribute.getType().getType().isAssignableFrom(value.getType()))
+				throw new IllegalArgumentException("Cannot assign value " + value + " of type " + value.getType() + " to attribute "
+					+ theAttribute + ", type " + theAttribute.getType());
+			Lock lock = theLocker.writeLock();
+			lock.lock();
+			try {
+				T oldValue = get();
+				theContainerObservable.set(value, null);
+				return oldValue;
+			} finally {
+				lock.unlock();
 			}
 		}
 
@@ -214,51 +169,27 @@ public class AttributeManager2 {
 			return setContainer(value);
 		}
 
-		private T fire(T value, Object cause) throws IllegalArgumentException {
-			if (!theAttribute.canAccept(value)) {
-				theElement.msg().error("Unacceptable value " + value + " for attribute " + theAttribute, "attribute", theAttribute, "value",
-					value, "cause", cause);
-				return theValue;
-			}
-			long oldStamp = theStamp++;
-			long newStamp = theStamp;
-			T oldValue = theValue;
-			theValue = value;
-			AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, false, oldValue, value, cause);
-			try (Transaction evtT = Causable.use(evt)) {
-				theObservers.forEach(obs -> {
-					if (obs.lastUpdate > oldStamp)
-						return; // re-entrant update
-					AttributeChangedEvent<T> obsEvt;
-					if (obs.lastUpdate == oldStamp) {
-						obs.lastUpdate = newStamp;
-						obs.observer.onNext(evt);
-					} else {
-						obs.lastUpdate = newStamp;
-						obsEvt = new AttributeChangedEvent<>(theElement, theAttribute, false, obs.knownValue, value, cause);
-						try (Transaction obsEvtT = Causable.use(obsEvt)) {
-							obs.observer.onNext(obsEvt);
-						}
-					}
-				});
-			}
-			return oldValue;
-		}
-
 		@Override
 		public <V extends T> String isAcceptable(V value) {
+			if (isInternalSetting)
+				return null;
 			if (!theAttribute.canAccept(value))
 				return StdMsg.ILLEGAL_ELEMENT;
-			try (Transaction t = theLocker.lock(false, null)) {
-				if (theContainer instanceof SettableValue) {
-					if (TypeTokens.get().isInstance(theContainer.getType(), value))
-						return ((SettableValue<T>) theContainer).isAcceptable(value);
+			Lock lock = theLocker.readLock();
+			lock.lock();
+			try {
+				ObservableValue<? extends T> container = theContainerObservable.get();
+				if (container instanceof SettableValue) {
+					if (TypeTokens.get().isInstance(container.getType(), value))
+						return ((SettableValue<T>) container).isAcceptable(value);
 					else
 						return StdMsg.BAD_TYPE;
-				} else if (theContainer != null)
+				} else if (container != null)
 					return StdMsg.UNSUPPORTED_OPERATION;
 				else
 					return null;
+			} finally {
+				lock.unlock();
 			}
 		}
 
@@ -289,7 +220,7 @@ public class AttributeManager2 {
 
 		void incRequired() {
 			theRequiredCount++;
-			if (theRequiredCount == 1 && theRawAttributes == null && theStamp == 0) {
+			if (theRequiredCount == 1 && theRawAttributes == null && getStamp() == 0) {
 				theElement.msg().error("Attribute " + theAttribute + " is required but not initialized", "attribute", theAttribute);
 			}
 		}
@@ -303,15 +234,12 @@ public class AttributeManager2 {
 				theRequiredCount--;
 			theAcceptedCount--;
 			if (theAcceptedCount == 0) {
-				if (theContainerSubcription != null) {
-					theContainerSubcription.unsubscribe();
-					theContainerSubcription = null;
+				if (theContainerSubscription != null) {
+					theContainerSubscription.unsubscribe();
+					theContainerSubscription = null;
 				}
 				theObservableAttributes.mutableElement(theCollectionElement).remove();
-				AttributeChangedEvent<T> evt = new AttributeChangedEvent<>(theElement, theAttribute, false, theValue, theValue, wanter);
-				theObservers.forEach(obs -> {
-					obs.observer.onCompleted(evt);
-				});
+				kill(wanter);
 			}
 		}
 	}
@@ -357,17 +285,17 @@ public class AttributeManager2 {
 	private static final TypeToken<AttributeValue<?>> ATT_VALUE_TYPE = new TypeToken<AttributeValue<?>>() {};
 
 	private final QuickElement theElement;
-	private final CollectionLockingStrategy theLocker;
+	private final ReentrantReadWriteLock theLocker;
 	private final SortedTreeList<AttributeValue<?>> theSortedAttributes;
 	private final ObservableCollection<AttributeValue<?>> theObservableAttributes;
 	private final ObservableCollection<AttributeValue<?>> theExposedAttributes;
 	private Map<String, RawAttributeValue> theRawAttributes;
 
-	public AttributeManager2(QuickElement element, CollectionLockingStrategy lock) {
+	public AttributeManager2(QuickElement element, ReentrantReadWriteLock lock) {
 		theElement = element;
 		theLocker = lock;
 		// IMPORTANT!! NEVER, EVER modify the bare sorted attributes directly!
-		theSortedAttributes = new SortedTreeList<>(lock, AttributeValue::compareTo);
+		theSortedAttributes = new SortedTreeList<>(new RRWLockingStrategy(lock), AttributeValue::compareTo);
 		theObservableAttributes = ObservableCollection.create(ATT_VALUE_TYPE, theSortedAttributes);
 		theExposedAttributes = theObservableAttributes.flow().filterMod(f -> f.unmodifiable(StdMsg.UNSUPPORTED_OPERATION, false))
 			.collectPassive();
@@ -561,7 +489,9 @@ public class AttributeManager2 {
 				}, true);
 				initialized[0] = true;
 				return () -> {
-					try (Transaction t = theLocker.lock(false, null)) {
+					Lock lock = theLocker.readLock();
+					lock.lock();
+					try {
 						for (Subscription[] sub : attrs.values()) {
 							if (sub[0] != null) {
 								sub[0].unsubscribe();
@@ -569,6 +499,8 @@ public class AttributeManager2 {
 						}
 						attrs.clear();
 						attrSub.unsubscribe();
+					} finally {
+						lock.unlock();
 					}
 				};
 			}
@@ -580,23 +512,27 @@ public class AttributeManager2 {
 
 			@Override
 			public Transaction lock() {
-				return theLocker.lock(false, null);
+				return Transactable.lock(theLocker, false);
 			}
 
 			@Override
 			public Transaction tryLock() {
-				return theLocker.tryLock(false, false, null);
+				return Transactable.tryLock(theLocker, false);
 			}
 		};
 	}
 
 	public boolean isSet(String attr) {
-		try (Transaction t = theLocker.lock(false, null)) {
+		Lock lock = theLocker.readLock();
+		lock.lock();
+		try {
 			AttributeValue<?> av = getAttributesByName(attr).peekFirst();
 			if (av != null)
 				return true;
 			else
 				return theRawAttributes.containsKey(attr);
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -611,7 +547,9 @@ public class AttributeManager2 {
 	 *         element has already been initialized and the value is not valid for the given attribute
 	 */
 	public final Object set(String attr, String value, QuickParseEnv context) throws QuickException {
-		try (Transaction t = theLocker.lock(true, null)) {
+		Lock lock = theLocker.writeLock();
+		lock.lock();
+		try {
 			AttributeValue<?> av = getAttributesByName(attr).peekFirst();
 			if (av != null)
 				return av.set(value, context);
@@ -622,6 +560,8 @@ public class AttributeManager2 {
 			else
 				theRawAttributes.put(attr, new RawAttributeValue(value, context));
 			return null;
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -639,12 +579,16 @@ public class AttributeManager2 {
 	 *         element has already been initialized and the value is not valid for the given attribute
 	 */
 	public final <T> T set(QuickAttribute<T> attr, String value, QuickParseEnv context) throws QuickException {
-		try (Transaction t = theLocker.lock(true, null)) {
+		Lock lock = theLocker.writeLock();
+		lock.lock();
+		try {
 			AttributeValue<T> av = getOrAccept(attr, null, false, null);
 			if (av != null) {
 				return av.set(value, context);
 			} else
 				throw new QuickException("Attribute " + attr.getName() + " not accepted");
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -703,13 +647,17 @@ public class AttributeManager2 {
 			if (!isAccepted)
 				return this;
 			synchronized (theAttribute) {
-				try (Transaction t = theLocker.lock(false, theWanter)) {
+				Lock lock = theLocker.readLock();
+				lock.lock();
+				try {
 					if (!isAccepted)
 						return this;
 					else if (!isRequired) {
 						isRequired = true;
 						theAttribute.incRequired();
 					}
+				} finally {
+					lock.unlock();
 				}
 			}
 			return this;
@@ -719,7 +667,9 @@ public class AttributeManager2 {
 		public IndividualAttributeAcceptance<T> optional() {
 			if (!isAccepted)
 				return this;
-			try (Transaction t = theLocker.lock(false, theWanter)) {
+			Lock lock = theLocker.readLock();
+			lock.lock();
+			try {
 				synchronized (theAttribute) {
 					if (!isAccepted)
 						return this;
@@ -728,6 +678,8 @@ public class AttributeManager2 {
 						theAttribute.decRequired();
 					}
 				}
+			} finally {
+				lock.unlock();
 			}
 			return this;
 		}
@@ -747,13 +699,17 @@ public class AttributeManager2 {
 				throw new IllegalStateException("Cannot reject an attribute during acceptance");
 			else if (!isAccepted)
 				return;
-			try (Transaction t = theLocker.lock(true, theWanter)) {
+			Lock lock = theLocker.writeLock();
+			lock.lock();
+			try {
 				synchronized (theAttribute) {
 					if (!isAccepted)
 						return;
 					isAccepted = false;
 					theAttribute.reject(isRequired, theWanter);
 				}
+			} finally {
+				lock.unlock();
 			}
 		}
 
@@ -785,7 +741,7 @@ public class AttributeManager2 {
 					return this;
 				isRequired = true;
 			}
-			try (Transaction t = theLocker.lock(false, theWanter)) {
+			try (Transaction t = Transactable.lock(theLocker, false)) {
 				for (AttributeValue<?> attr : theAttributes.values())
 					synchronized (attr) {
 						attr.incRequired();
@@ -805,7 +761,7 @@ public class AttributeManager2 {
 					return this;
 				isRequired = false;
 			}
-			try (Transaction t = theLocker.lock(false, theWanter)) {
+			try (Transaction t = Transactable.lock(theLocker, false)) {
 				for (AttributeValue<?> attr : theAttributes.values())
 					synchronized (attr) {
 						attr.decRequired();
@@ -823,7 +779,7 @@ public class AttributeManager2 {
 					return;
 				isAccepted = false;
 			}
-			try (Transaction t = theLocker.lock(true, theWanter)) {
+			try (Transaction t = Transactable.lock(theLocker, true)) {
 				for (AttributeValue<?> attr : theAttributes.values())
 					synchronized (attr) {
 						attr.reject(isRequired, theWanter);

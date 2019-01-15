@@ -1,38 +1,45 @@
 package org.quick.core.mgr;
 
-import java.awt.Rectangle;
+import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
-import org.observe.Observer;
+import org.observe.VetoableSettableValue;
+import org.observe.util.TypeTokens;
+import org.quick.core.Dimension;
+import org.quick.core.Point;
 import org.quick.core.QuickElement;
+import org.quick.core.Rectangle;
 import org.quick.core.event.BoundsChangedEvent;
+import org.quick.core.layout.Bounds;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 
-import com.google.common.reflect.TypeToken;
-
 /** Bounds for an element. Contains some extra methods for easy access. */
-public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core.layout.Bounds {
+public class ElementBounds extends VetoableSettableValue<Rectangle> implements Bounds {
 	private final QuickElement theElement;
 
 	private ElementBoundsDimension theHorizontalBounds;
 	private ElementBoundsDimension theVerticalBounds;
 
-	private int theX;
-	private int theY;
-	private int theW;
-	private int theH;
-
-	private final Observer<ObservableValueEvent<Rectangle>> theController;
-	private volatile int theStackChecker;
-
 	/** @param element The element to create the bounds for */
 	public ElementBounds(QuickElement element) {
-		theController = control(null);
+		super(BoundsChangedEvent.BOUNDS_TYPE, false, element.getAttributeLocker());
+		set(new Rectangle(0, 0, 0, 0), null);
 		theElement = element;
 		theHorizontalBounds = new ElementBoundsDimension(false);
 		theVerticalBounds = new ElementBoundsDimension(true);
+	}
+
+	@Override
+	public ObservableValueEvent<Rectangle> createInitialEvent(Rectangle value, Object cause) {
+		return new BoundsChangedEvent(theElement, true, null, value, cause);
+	}
+
+	@Override
+	public ObservableValueEvent<Rectangle> createChangeEvent(Rectangle oldVal, Rectangle newVal, Object cause) {
+		return new BoundsChangedEvent(theElement, false, oldVal, newVal, cause);
 	}
 
 	/** @return The horizontal bounds */
@@ -68,105 +75,116 @@ public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core
 
 	/** @return {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#getPosition() getPosition()} */
 	public int getX() {
-		return theX;
+		return get().x;
 	}
 
-	/** @param x See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)} */
-	public void setX(int x) {
-		if(theX == x)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
-		theHorizontalBounds.setPosition(x);
+	private ElementBounds update(Function<Rectangle, Rectangle> update) {
+		Lock lock = theElement.getAttributeLocker().writeLock();
+		lock.lock();
+		try {
+			Rectangle updated = update.apply(get());
+			if (updated != null)
+				set(updated, null);
+		} finally {
+			lock.unlock();
+		}
+		return this;
+	}
+
+	/**
+	 * @param x See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)}
+	 * @return This bounds
+	 */
+	public ElementBounds setX(int x) {
+		return update(r -> r.x == x ? null : new Rectangle(x, r.y, r.width, r.height));
 	}
 
 	/** @return {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#getPosition() getPosition()} */
 	public int getY() {
-		return theY;
+		return get().y;
 	}
 
-	/** @param y See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)} */
-	public void setY(int y) {
-		if(theY == y)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theY = y;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
+	/**
+	 * @param y See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)}
+	 * @return This bounds
+	 */
+	public ElementBounds setY(int y) {
+		return update(r -> r.y == y ? null : new Rectangle(r.x, y, r.width, r.height));
 	}
 
 	/** @return The element's 2-dimensional position */
-	public java.awt.Point getPosition() {
-		return new java.awt.Point(theX, theY);
+	public Point getPosition() {
+		return get().getPosition();
 	}
 
 	/**
 	 * @param x See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)}
 	 * @param y See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)}
+	 * @return This bounds
 	 */
-	public void setPosition(int x, int y) {
-		if(theX == x && theY == y)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		theY = y;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
+	public ElementBounds setPosition(int x, int y) {
+		return update(r -> (r.x == x && r.y == y) ? null : new Rectangle(x, y, r.width, r.height));
+	}
+
+	/**
+	 * @param pos The position for this bounds
+	 * @return This bounds
+	 */
+	public ElementBounds setPosition(Point pos) {
+		return setPosition(pos.x, pos.y);
 	}
 
 	/** @return {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#getSize() getSize()} */
 	public int getWidth() {
-		return theW;
+		return get().width;
 	}
 
-	/** @param width See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)} */
-	public void setWidth(int width) {
-		if(theW == width)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theW = width;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
+	/**
+	 * @param width See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)}
+	 * @return This bounds
+	 */
+	public ElementBounds setWidth(int width) {
+		return update(r -> r.width == width ? null : new Rectangle(r.x, r.y, width, r.height));
 	}
 
 	/** @return {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#getSize() getSize()} */
 	public int getHeight() {
-		return theH;
+		return get().height;
 	}
 
-	/** @param height See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)} */
-	public void setHeight(int height) {
-		if(theH == height)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theH = height;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
+	/**
+	 * @param height See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)}
+	 * @return This bounds
+	 */
+	public ElementBounds setHeight(int height) {
+		return update(r -> r.height == height ? null : new Rectangle(r.x, r.y, r.width, height));
 	}
 
 	/** @return The element's 2-dimensional size */
-	public java.awt.Dimension getSize() {
-		return new java.awt.Dimension(theW, theH);
+	public Dimension getSize() {
+		return get().getSize();
 	}
 
 	/**
 	 * @param width See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)}
 	 * @param height See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)}
+	 * @return This bounds
 	 */
-	public void setSize(int width, int height) {
-		if(theW == width && theH == height)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theW = width;
-		theH = height;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
+	public ElementBounds setSize(int width, int height) {
+		return update(r -> (r.width == width && r.height == height) ? null : new Rectangle(r.x, r.y, width, height));
+	}
+
+	/**
+	 * @param size The size for this bounds
+	 * @return This bounds
+	 */
+	public ElementBounds setSize(Dimension size) {
+		return setSize(size.width, size.height);
 	}
 
 	/** @return The element's rectangle bounds */
 	public Rectangle getBounds() {
-		return new Rectangle(theX, theY, theW, theH);
-	}
-
-	@Override
-	public Rectangle get() {
-		return getBounds();
+		return get();
 	}
 
 	/**
@@ -175,51 +193,32 @@ public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core
 	 * @return Whether this bounds overlaps the given coordinate
 	 */
 	public boolean contains(int x, int y) {
-		int xDiff = x - theX;
-		if (xDiff < 0 || xDiff >= theW)
-			return false;
-		int yDiff = y - theY;
-		if (yDiff < 0 || yDiff >= theH)
-			return false;
-		return true;
+		return get().contains(x, y);
 	}
 
 	/** @return Whether this bounds has zero area */
-	public boolean isEmpty(){
-		return theW == 0 && theH == 0;
-	}
-
-	@Override
-	public TypeToken<Rectangle> getType() {
-		return TypeToken.of(Rectangle.class);
+	public boolean isEmpty() {
+		return get().isEmpty();
 	}
 
 	/** @return An observable value for this bounds' x-coordinate. Equivalent to <code>mapV(bounds->{return bounds.x;})</code>. */
-	public org.observe.ObservableValue<Integer> observeX() {
-		return mapV(bounds -> {
-			return bounds.x;
-		});
+	public ObservableValue<Integer> observeX() {
+		return map(TypeTokens.get().of(int.class), r -> r.x);
 	}
 
 	/** @return An observable value for this bounds' y-coordinate. Equivalent to <code>mapV(bounds->{return bounds.y;})</code>. */
 	public org.observe.ObservableValue<Integer> observeY() {
-		return mapV(bounds -> {
-			return bounds.y;
-		});
+		return map(TypeTokens.get().of(int.class), r -> r.y);
 	}
 
 	/** @return An observable value for this bounds' width. Equivalent to <code>mapV(bounds->{return bounds.width;})</code>. */
 	public org.observe.ObservableValue<Integer> observeW() {
-		return mapV(bounds -> {
-			return bounds.width;
-		});
+		return map(TypeTokens.get().of(int.class), r -> r.width);
 	}
 
 	/** @return An observable value for this bounds' height. Equivalent to <code>mapV(bounds->{return bounds.height;})</code>. */
 	public org.observe.ObservableValue<Integer> observeH() {
-		return mapV(bounds -> {
-			return bounds.height;
-		});
+		return map(TypeTokens.get().of(int.class), r -> r.height);
 	}
 
 	/**
@@ -228,16 +227,10 @@ public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core
 	 * @param y See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setPosition(int) setPosition(int)}
 	 * @param width See {@link #getHorizontal()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)}
 	 * @param height See {@link #getVertical()}.{@link org.quick.core.layout.BoundsDimension#setSize(int) setSize(int)}
+	 * @return This bounds
 	 */
-	public void setBounds(int x, int y, int width, int height) {
-		if(theX == x && theY == y && theW == width && theH == height)
-			return;
-		Rectangle preBounds = new Rectangle(theX, theY, theW, theH);
-		theX = x;
-		theY = y;
-		theW = width;
-		theH = height;
-		fire(preBounds, new Rectangle(theX, theY, theW, theH));
+	public ElementBounds setBounds(int x, int y, int width, int height) {
+		return update(r -> (r.x == x && r.y == y && r.width == width && r.height == height) ? null : new Rectangle(x, y, width, height));
 	}
 
 	@Override
@@ -245,22 +238,7 @@ public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core
 		StringBuilder builder = new StringBuilder();
 		if (theElement.getTagName() != null)
 			builder.append(theElement.getTagName()).append(' ');
-		return builder.append("bounds=(").append(theX).append(',').append(theY).append("){").append(theW).append(',').append(theH)
-			.append('}').toString();
-	}
-
-	private final void fire(Rectangle preBounds, Rectangle newBounds) {
-		theStackChecker++;
-		final int stackCheck = theStackChecker;
-		BoundsChangedEvent evt = new BoundsChangedEvent(theElement, this, false, preBounds, newBounds, null) {
-			@Override
-			public boolean isOverridden() {
-				return stackCheck != theStackChecker;
-			}
-		};
-		theController.onNext(evt);
-		theElement.events().fire(evt);
-		evt.finish();
+		return builder.append("bounds=").append(get()).toString();
 	}
 
 	/** A BoundsDimension for an element along one axis */
@@ -273,12 +251,12 @@ public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core
 
 		@Override
 		public int getPosition() {
-			return isVertical ? theY : theX;
+			return isVertical ? get().y : get().x;
 		}
 
 		@Override
 		public void setPosition(int pos) {
-			if(isVertical)
+			if (isVertical)
 				setY(pos);
 			else
 				setX(pos);
@@ -286,12 +264,12 @@ public class ElementBounds implements ObservableValue<Rectangle>, org.quick.core
 
 		@Override
 		public int getSize() {
-			return isVertical ? theH : theW;
+			return isVertical ? get().height : get().width;
 		}
 
 		@Override
 		public void setSize(int size) {
-			if(isVertical)
+			if (isVertical)
 				setHeight(size);
 			else
 				setWidth(size);

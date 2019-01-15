@@ -7,7 +7,6 @@ import static org.quick.core.style.FontStyle.stretch;
 import static org.quick.core.style.FontStyle.weight;
 
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import java.util.Iterator;
 
 import org.observe.ObservableValue;

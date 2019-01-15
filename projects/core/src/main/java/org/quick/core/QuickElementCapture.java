@@ -1,6 +1,5 @@
 package org.quick.core;
 
-import java.awt.Point;
 import java.util.Iterator;
 
 import org.qommons.IterableUtils;
@@ -251,8 +250,8 @@ public class QuickElementCapture implements Cloneable, org.qommons.Sealable {
 	}
 
 	/** @return The location of the top left corner of this element relative to the document's top left corner */
-	public java.awt.Point getDocLocation() {
-		java.awt.Point ret = new java.awt.Point(theX, theY);
+	public Point getDocLocation() {
+		Point ret = new Point(theX, theY);
 		QuickElementCapture parent = theParent;
 		while(parent != null) {
 			ret = parent.getParentIntersection(this, ret);

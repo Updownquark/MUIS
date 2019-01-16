@@ -4,9 +4,11 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
 import org.quick.util.QuickUtils;
@@ -28,7 +30,8 @@ public class ImmutableStyle implements QuickStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		return ObservableSet.of(new TypeToken<StyleAttribute<?>>() {}, theValues.keySet());
+		return ObservableSet.of(TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}),
+			theValues.keySet());
 	}
 
 	@Override
@@ -40,12 +43,12 @@ public class ImmutableStyle implements QuickStyle {
 	}
 
 	@Override
-	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
+	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates, Observable<?> until) {
 		return this;
 	}
 
 	@Override
-	public QuickStyle forExtraGroups(ObservableCollection<String> extraStates) {
+	public QuickStyle forExtraGroups(ObservableCollection<String> extraStates, Observable<?> until) {
 		return this;
 	}
 
@@ -87,7 +90,7 @@ public class ImmutableStyle implements QuickStyle {
 			if (!QuickUtils.isAssignableFrom(attr.getType().getType(), value.getType()))
 				throw new IllegalArgumentException(
 					"Type of value " + value + " (" + value.getType() + ") is not valid for attribute " + attr);
-			theValues.put(attr, new StyleValue<>(attr, value, theMessageCenter));
+			theValues.put(attr, new StyleValueImpl<>(attr, value, theMessageCenter));
 			return this;
 		}
 

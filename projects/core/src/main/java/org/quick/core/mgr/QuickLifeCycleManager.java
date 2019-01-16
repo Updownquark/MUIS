@@ -1,8 +1,13 @@
 package org.quick.core.mgr;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
-
+import org.observe.Observable;
+import org.observe.Observer;
+import org.observe.Subscription;
 import org.qommons.ArrayUtils;
+import org.qommons.Transactable;
+import org.qommons.Transaction;
+import org.qommons.collect.ListenerList;
+import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
 
 /** Manages the life cycle of an element */
@@ -25,7 +30,7 @@ public class QuickLifeCycleManager {
 
 	private int theCurrentStage;
 
-	private final ConcurrentLinkedQueue<LifeCycleListener> theLifeCycleListeners;
+	private final ListenerList<LifeCycleListener> theLifeCycleListeners;
 
 	/**
 	 * Creates a new life cycle manager. This should only be called from {@link QuickElement#QuickElement()}.
@@ -41,7 +46,7 @@ public class QuickLifeCycleManager {
 				+ " to the life cycle manager constructor");
 		theQuickElement = quickElement;
 		theStages = initStages;
-		theLifeCycleListeners = new ConcurrentLinkedQueue<>();
+		theLifeCycleListeners = ListenerList.build().allowReentrant().withFastSize(false).forEachSafe(false).build();
 		acceptor.setController(toStage -> {
 			advanceLifeCycle(toStage);
 		});
@@ -70,13 +75,8 @@ public class QuickLifeCycleManager {
 	}
 
 	/** @param listener The listener to be notified when the life cycle stage changes */
-	public void addListener(LifeCycleListener listener) {
-		theLifeCycleListeners.add(listener);
-	}
-
-	/** @param listener The listener to remove from notification */
-	public void removeListener(LifeCycleListener listener) {
-		theLifeCycleListeners.remove(listener);
+	public Subscription addListener(LifeCycleListener listener) {
+		return theLifeCycleListeners.add(listener, false)::run;
 	}
 
 	/**
@@ -94,11 +94,13 @@ public class QuickLifeCycleManager {
 	 *        </ul>
 	 * @return This manager, for chaining
 	 */
-	public QuickLifeCycleManager runWhen(final Runnable task, final String stage, final int transition) {
-		if(isAfter(stage) >= 0)
+	public Subscription runWhen(final Runnable task, final String stage, final int transition) {
+		if (isAfter(stage) >= 0) {
 			task.run();
-		else
-			addListener(new LifeCycleListener() {
+			return Subscription.NONE;
+		} else {
+			Subscription[] sub = new Subscription[1];
+			sub[0] = addListener(new LifeCycleListener() {
 				@Override
 				public void preTransition(String fromStage, String toStage) {
 					if(transition < 0 && toStage.equals(stage))
@@ -117,10 +119,11 @@ public class QuickLifeCycleManager {
 
 				void run() {
 					task.run();
-					removeListener(this);
+					sub[0].unsubscribe();
 				}
 			});
-		return this;
+			return sub[0];
+		}
 	}
 
 	/**
@@ -157,7 +160,6 @@ public class QuickLifeCycleManager {
 	/** Advances the life cycle stage of the element to the given stage. Called from QuickElement. */
 	private void advanceLifeCycle(String toStage) {
 		String [] stages = theStages;
-		LifeCycleListener[] listeners = theLifeCycleListeners.toArray(new LifeCycleListener[0]);
 		int goal = ArrayUtils.indexOf(stages, toStage);
 		if(goal <= theCurrentStage) {
 			theQuickElement.msg().error("Stage " + toStage + " has already been transitioned", "stage", toStage);
@@ -171,15 +173,43 @@ public class QuickLifeCycleManager {
 			 * Call listeners for the pre-transition in reverse order so that the first listener added gets notified just before the
 			 * transition actually occurs so nobody has a chance to override its actions
 			 */
-			for (LifeCycleListener listener : listeners)
-				listener.preTransition(oldStage, newStage);
+			theLifeCycleListeners.forEach(//
+				listener -> listener.preTransition(oldStage, newStage));
 			theCurrentStage++;
-			for(LifeCycleListener listener : listeners)
-				listener.postTransition(oldStage, newStage);
+			theLifeCycleListeners.forEach(//
+				listener -> listener.postTransition(oldStage, newStage));
 		}
 		if(theCurrentStage == theStages.length - 1) {
 			// Can dispose of resources, since this instance is now effectively immutable
 			theLifeCycleListeners.clear();
+		}
+	}
+
+	public Observable<?> death() {
+		return new QuickDeathObservable() {
+
+		};
+	}
+
+	private class QuickDeathObservable implements Observable<Void> {
+		@Override
+		public Subscription subscribe(Observer<? super Void> observer) {
+			return runWhen(() -> observer.onNext(null), QuickConstants.CoreStage.DISPOSE.name(), 0);
+		}
+
+		@Override
+		public boolean isSafe() {
+			return true;
+		}
+
+		@Override
+		public Transaction lock() {
+			return Transactable.lock(theQuickElement.getAttributeLocker(), false);
+		}
+
+		@Override
+		public Transaction tryLock() {
+			return Transactable.tryLock(theQuickElement.getAttributeLocker(), false);
 		}
 	}
 }

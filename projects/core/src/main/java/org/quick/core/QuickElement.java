@@ -936,6 +936,12 @@ public abstract class QuickElement implements QuickParseEnv {
 		return super.hashCode();
 	}
 
+	@Override
+	protected void finalize() throws Throwable {
+		theLifeCycleController.advance(QuickConstants.CoreStage.DISPOSE.name());
+		super.finalize();
+	}
+
 	private static class CoreStateControllers {
 		StateEngine.StateController clicked;
 

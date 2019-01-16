@@ -1,16 +1,30 @@
 package org.quick.core.style;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.observe.Observable;
 import org.observe.ObservableValue;
+import org.observe.Observer;
+import org.observe.SimpleObservable;
+import org.observe.Subscription;
 import org.observe.assoc.ObservableMap;
-import org.observe.collect.CollectionSession;
+import org.observe.assoc.ObservableMapEvent;
+import org.observe.collect.Equivalence;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.observe.util.TypeTokens;
+import org.qommons.Lockable;
 import org.qommons.Transaction;
+import org.qommons.collect.ElementId;
+import org.qommons.collect.MapEntryHandle;
+import org.qommons.collect.MutableMapEntryHandle;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
@@ -33,6 +47,8 @@ public interface StyleConditionInstance<T extends QuickElement> {
 
 	/** @return The set of groups that this condition has */
 	ObservableSet<String> getGroups();
+
+	ObservableSet<AttachPoint<?>> getInterestedRoles();
 
 	/**
 	 * @param role The template role to get the parent for
@@ -60,6 +76,81 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		return of(element, null, null);
 	}
 
+	default Observable<?> changes() {
+		Observable<?> stateChanges = getState().simpleChanges();
+		Observable<?> groupChanges = getGroups().simpleChanges();
+		Map<AttachPoint<?>, Subscription> roleSubs = new HashMap<>();
+		SimpleObservable<Object> roleChanges = new SimpleObservable<>(null, false, null, null);
+		Observable<?> rolledUpChanges = Observable.or(stateChanges, groupChanges, roleChanges);
+		return new Observable<Object>() {
+			final AtomicInteger subCount = new AtomicInteger();
+			Subscription roleSub;
+
+			@Override
+			public Subscription subscribe(Observer<? super Object> observer) {
+				if (subCount.getAndIncrement() == 0) {
+					try (Transaction t = getInterestedRoles().lock(false, null)) {
+						for (AttachPoint<?> role : getInterestedRoles()) {
+							Observable<?> roleConditionChanges = StyleConditionInstanceFunctions.roleConditionChanges(getRoleParent(role));
+							roleSubs.put(role, roleConditionChanges.act(v -> roleChanges.onNext(v)));
+						}
+						roleSub = getInterestedRoles().onChange(evt -> {
+							switch (evt.getType()) {
+							case add:
+								Observable<?> roleConditionChanges = StyleConditionInstanceFunctions
+									.roleConditionChanges(getRoleParent(evt.getNewValue()));
+								roleSubs.put(evt.getNewValue(), roleConditionChanges.act(v -> roleChanges.onNext(v)));
+								break;
+							case remove:
+								roleSubs.remove(evt.getOldValue()).unsubscribe();
+								break;
+							case set:
+								if (evt.getOldValue() != evt.getNewValue()) {
+									roleSubs.remove(evt.getOldValue()).unsubscribe();
+									roleConditionChanges = StyleConditionInstanceFunctions
+										.roleConditionChanges(getRoleParent(evt.getNewValue()));
+									roleSubs.put(evt.getNewValue(), roleConditionChanges.act(v -> roleChanges.onNext(v)));
+								}
+								break;
+							}
+						});
+					}
+				}
+				Subscription rolledUpSub = rolledUpChanges.subscribe(observer);
+				return () -> {
+					rolledUpSub.unsubscribe();
+					if (subCount.decrementAndGet() == 0) {
+						roleSub.unsubscribe();
+						for (Subscription sub : roleSubs.values())
+							sub.unsubscribe();
+						roleSubs.clear();
+					}
+				};
+			}
+
+			@Override
+			public boolean isSafe() {
+				return false;
+			}
+
+			@Override
+			public Transaction lock() {
+				Lockable roleLock = Lockable.collapse(Lockable.lockable(getInterestedRoles(), false, false, null), //
+					() -> getInterestedRoles().stream().map(r -> StyleConditionInstanceFunctions.roleConditionChanges(getRoleParent(r)))
+						.collect(Collectors.toList()));
+				return Lockable.lockAll(stateChanges, groupChanges, roleLock);
+			}
+
+			@Override
+			public Transaction tryLock() {
+				Lockable roleLock = Lockable.collapse(Lockable.lockable(getInterestedRoles(), false, false, null), //
+					() -> getInterestedRoles().stream().map(r -> StyleConditionInstanceFunctions.roleConditionChanges(getRoleParent(r)))
+						.collect(Collectors.toList()));
+				return Lockable.tryLockAll(stateChanges, groupChanges, roleLock);
+			}
+		};
+	}
+
 	/**
 	 * @param <T> The type of the element
 	 * @param element The element
@@ -68,17 +159,18 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	 * @return A condition instance whose data reflects the element's, with the addition of the extra states
 	 */
 	public static <T extends QuickElement> StyleConditionInstance<T> of(T element, ObservableSet<QuickState> extraStates,
-		ObservableSet<String> extraGroups) {
+		ObservableSet<String> extraGroups, Observable<?> until) {
 		ObservableSet<QuickState> states = element.getStateEngine().activeStates();
 		if (extraStates != null)
-			states = ObservableSet.unique(ObservableCollection.flattenCollections(states, extraStates), Object::equals);
+			states = ObservableCollection.flattenCollections(TypeTokens.get().of(QuickState.class), states, extraStates).distinct()
+				.collectActive(until);
 		ObservableValue<ObservableSet<String>> groupValue = element.atts().get(StyleAttributes.group).map((Set<String> g) -> {
 			return ObservableSet.<String> of(TypeTokens.get().STRING, g == null ? Collections.<String> emptySet() : g);
 		});
 		ObservableSet<String> groups = ObservableSet.flattenValue(groupValue);
 		if (extraGroups != null)
-			groups = ObservableSet.unique(ObservableCollection.flattenCollections(groups, extraGroups), Object::equals);
-		ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles = StyleConditionInstanceFunctions.getTemplateRoles(element);
+			groups = ObservableCollection.flattenCollections(TypeTokens.get().STRING, groups, extraGroups).distinct().collectActive(until);
+		ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles = StyleConditionInstanceFunctions.getTemplateRoles(element, until);
 
 		return new Builder<>((Class<T>) element.getClass())//
 			.withState(states)//
@@ -89,52 +181,94 @@ public interface StyleConditionInstance<T extends QuickElement> {
 
 	/** Internal functions for use by this interface's static methods */
 	static class StyleConditionInstanceFunctions {
-		private static ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> getTemplateRoles(QuickElement element) {
-			ObservableSet<RoleAttribute> roles = element.atts().getAllAttributes()
-				.filter(RoleAttribute.class).immutable();
-			return new ObservableMap<AttachPoint<?>, StyleConditionInstance<?>>(){
-				@Override
-				public boolean isSafe() {
-					return roles.isSafe();
-				}
-
+		private static ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> getTemplateRoles(QuickElement element,
+			Observable<?> until) {
+			ObservableSet<RoleAttribute> roles = element.atts().attributes().flow().filter(RoleAttribute.class).collectActive(until);
+			return new ObservableMap<AttachPoint<?>, StyleConditionInstance<?>>() {
 				@Override
 				public Transaction lock(boolean write, Object cause) {
 					return roles.lock(write, cause);
 				}
 
 				@Override
-				public ObservableValue<CollectionSession> getSession() {
-					return roles.getSession();
-				}
-
-				@Override
 				public TypeToken<AttachPoint<?>> getKeyType() {
-					return new TypeToken<AttachPoint<?>>(){};
+					return TypeTokens.get().keyFor(AttachPoint.class).parameterized(() -> new TypeToken<AttachPoint<?>>() {});
 				}
 
 				@Override
 				public TypeToken<StyleConditionInstance<?>> getValueType() {
-					return new TypeToken<StyleConditionInstance<?>>(){};
+					return TypeTokens.get().keyFor(StyleConditionInstance.class)
+						.parameterized(() -> new TypeToken<StyleConditionInstance<?>>() {});
 				}
 
 				@Override
 				public ObservableSet<AttachPoint<?>> keySet() {
-					return roles.mapEquivalent(att->element.atts().get(att), null);
+					return roles.flow().mapEquivalent(getKeyType(), ap -> element.atts().get(ap).get(), role -> role.template.role,
+						opts -> opts.cache(false)).collectPassive();
 				}
 
 				@Override
 				public ObservableValue<StyleConditionInstance<?>> observe(Object key) {
 					if (!(key instanceof AttachPoint))
-						return ObservableValue.constant(getValueType(), null);
+						return ObservableValue.of(getValueType(), null);
 					AttachPoint<?> attachPoint = (AttachPoint<?>) key;
-					return element.atts().observe(attachPoint.template.role)
-						.mapV(ap -> ap.equals(key) ? StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap)) : null);
+					return element.atts().get(attachPoint.template.role)
+						.map(ap -> ap.equals(key) ? StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap)) : null);
 				}
 
 				@Override
-				public ObservableSet<? extends org.observe.assoc.ObservableMap.ObservableEntry<AttachPoint<?>, StyleConditionInstance<?>>> observeEntries() {
-					return ObservableMap.defaultObserveEntries(this);
+				public MapEntryHandle<AttachPoint<?>, StyleConditionInstance<?>> putEntry(AttachPoint<?> key,
+					StyleConditionInstance<?> value, ElementId after, ElementId before, boolean first) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public MapEntryHandle<AttachPoint<?>, StyleConditionInstance<?>> getEntry(AttachPoint<?> key) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public MapEntryHandle<AttachPoint<?>, StyleConditionInstance<?>> getOrPutEntry(AttachPoint<?> key,
+					Function<? super AttachPoint<?>, ? extends StyleConditionInstance<?>> value, boolean first, Runnable added) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public MapEntryHandle<AttachPoint<?>, StyleConditionInstance<?>> getEntryById(ElementId entryId) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public MutableMapEntryHandle<AttachPoint<?>, StyleConditionInstance<?>> mutableEntry(ElementId entryId) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public TypeToken<Entry<AttachPoint<?>, StyleConditionInstance<?>>> getEntryType() {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public boolean isLockSupported() {
+					return true;
+				}
+
+				@Override
+				public Equivalence<? super StyleConditionInstance<?>> equivalence() {
+					return Equivalence.DEFAULT;
+				}
+
+				@Override
+				public Subscription onChange(
+					Consumer<? super ObservableMapEvent<? extends AttachPoint<?>, ? extends StyleConditionInstance<?>>> action) {
+					// TODO Auto-generated method stub
+					return null;
 				}
 
 				@Override
@@ -143,7 +277,13 @@ public interface StyleConditionInstance<T extends QuickElement> {
 				}
 			};
 		}
+
+		private static Observable<?> roleConditionChanges(ObservableValue<StyleConditionInstance<?>> roleCondition) {
+			return Observable.flatten(roleCondition.value().noInit().map(sci -> sci.changes()));
+		}
 	}
+
+	public static final StyleConditionInstance<QuickElement> EMPTY = build(QuickElement.class).build();
 
 	/**
 	 * Builds ad-hoc condition values
@@ -154,13 +294,15 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		private final Class<T> theType;
 		private ObservableSet<QuickState> theState;
 		private ObservableSet<String> theGroups;
-		private ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> theRoles;
+		private ObservableSet<AttachPoint<?>> theRoles;
+		private Function<AttachPoint<?>, ObservableValue<StyleConditionInstance<?>>> theRoleConditions;
 
 		Builder(Class<T> type) {
 			theType = type;
 			theState = ObservableSet.of(TypeTokens.get().of(QuickState.class));
 			theGroups = ObservableSet.of(TypeTokens.get().STRING);
-			theRoles = ObservableMap.empty(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
+			theRoles = ObservableSet.of(TypeTokens.get().keyFor(AttachPoint.class).parameterized(() -> new TypeToken<AttachPoint<?>>() {}));
+			theRoleConditions = ap -> ObservableValue.of;
 		}
 
 		/**
@@ -185,28 +327,31 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		 * @param roles The template roles for the condition
 		 * @return This builder
 		 */
-		public Builder<T> withRoles(ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles) {
+		public Builder<T> withRoles(ObservableSet<AttachPoint<?>> roles, Function<AttachPoint<?>, StyleConditionInstance<?>> conditions) {
 			theRoles = roles;
+			theRoleConditions = conditions;
 			return this;
 		}
 
 		/** @return A new condition instance with this builder's data */
 		public StyleConditionInstance<T> build() {
-			return new DefaultStyleConditionInstance<>(theType, theState, theGroups, theRoles);
+			return new DefaultStyleConditionInstance<>(theType, theState, theGroups, theRoles, theRoleConditions);
 		}
 
 		private static class DefaultStyleConditionInstance<T extends QuickElement> implements StyleConditionInstance<T> {
 			private final Class<T> theType;
 			private final ObservableSet<QuickState> theState;
 			private final ObservableSet<String> theGroups;
-			private final ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> theRoles;
+			private final ObservableSet<AttachPoint<?>> theRoles;
+			private final Function<AttachPoint<?>, ObservableValue<StyleConditionInstance<?>>> theConditions;
 
 			DefaultStyleConditionInstance(Class<T> type, ObservableSet<QuickState> state, ObservableSet<String> groups,
-				ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> rolePaths) {
+				ObservableSet<AttachPoint<?>> roles, Function<AttachPoint<?>, ObservableValue<StyleConditionInstance<?>>> conditions) {
 				theType = type;
 				theState = state;
 				theGroups = groups;
-				theRoles = rolePaths;
+				theRoles = roles;
+				theConditions = conditions;
 			}
 
 			@Override
@@ -225,8 +370,13 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			}
 
 			@Override
+			public ObservableSet<AttachPoint<?>> getInterestedRoles() {
+				return theRoles;
+			}
+
+			@Override
 			public ObservableValue<StyleConditionInstance<?>> getRoleParent(AttachPoint<?> role) {
-				return theRoles.observe(role);
+				return theConditions.apply(role);
 			}
 
 			@Override
@@ -236,11 +386,11 @@ public interface StyleConditionInstance<T extends QuickElement> {
 				if (!theRoles.isEmpty()) {
 					str.append('{');
 					boolean first = true;
-					for (Map.Entry<AttachPoint<?>, StyleConditionInstance<?>> roleEntry : theRoles.entrySet()) {
+					for (AttachPoint<?> role : theRoles) {
 						if (!first)
 							str.append("  ");
 						first = false;
-						str.append(roleEntry.getValue()).append('.').append(roleEntry.getKey().name);
+						str.append(theConditions.apply(role)).append('.').append(role.name);
 					}
 					str.append('}');
 				}

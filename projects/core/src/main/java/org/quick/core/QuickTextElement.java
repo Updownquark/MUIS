@@ -68,17 +68,16 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 			if (needsRepaint)
 				repaint(null, repaintImmediate);
 		});
-		life()//
-			.runWhen(() -> {
-				if (theDocument.get() == null)
-					theDocument.set(getInitDocument(theInitText), null);
-				theInitText = null;
-			}, QuickConstants.CoreStage.INIT_SELF.toString(), 1)//
-			.runWhen(() -> {
-				new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
-			}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1)//
-			.runWhen(() -> atts().get(multiLine).changes().act(evt -> sizeNeedsChanged()), QuickConstants.CoreStage.INITIALIZED.toString(),
-				1);
+		life().runWhen(() -> {
+			if (theDocument.get() == null)
+				theDocument.set(getInitDocument(theInitText), null);
+			theInitText = null;
+		}, QuickConstants.CoreStage.INIT_SELF.toString(), 1);
+		life().runWhen(() -> {
+			new org.quick.core.model.TextSelectionBehavior().install(QuickTextElement.this);
+		}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
+		life().runWhen(() -> atts().get(multiLine).changes().act(evt -> sizeNeedsChanged()),
+			QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	/**

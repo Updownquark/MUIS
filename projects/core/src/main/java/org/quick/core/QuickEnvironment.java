@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
+import org.observe.Observable;
+import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
 import org.qommons.collect.CollectionLockingStrategy;
@@ -29,8 +31,8 @@ public class QuickEnvironment implements QuickParseEnv {
 	public static final java.net.URL CORE_TOOLKIT = QuickEnvironment.class.getResource("/QuickRegistry.xml");
 
 	private static class EnvironmentStyle extends CompoundStyleSheet {
-		EnvironmentStyle(ObservableCollection<StyleSheet> dependencies) {
-			super(dependencies);
+		EnvironmentStyle(ObservableCollection<StyleSheet> dependencies, Observable<?> death) {
+			super(dependencies, death);
 		}
 
 		@Override
@@ -52,6 +54,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	private final java.util.Map<String, QuickToolkit> theToolkits;
 	private final QuickCache theCache;
 	private final EnvironmentStyle theStyle;
+	private final SimpleObservable<Void> theDeath;
 
 	private ObservableCollection<StyleSheet> theStyleDependencyController;
 
@@ -63,7 +66,8 @@ public class QuickEnvironment implements QuickParseEnv {
 		theCache = new QuickCache();
 		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class),
 			new BetterTreeList<>(theContentLocker));
-		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect());
+		theDeath = new SimpleObservable<>(null, false, theAttributeLocker, null);
+		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect(), theDeath);
 	}
 
 	ReentrantReadWriteLock getAttributeLocker() {
@@ -105,6 +109,11 @@ public class QuickEnvironment implements QuickParseEnv {
 	/** @return The message center for this environment */
 	public QuickMessageCenter getMessageCenter() {
 		return theMessageCenter;
+	}
+
+	/** @return An observable that will fire once when this environment is destroyed */
+	public Observable<?> getDeath() {
+		return theDeath.readOnly();
 	}
 
 	/**
@@ -281,6 +290,13 @@ public class QuickEnvironment implements QuickParseEnv {
 			if(isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.thePropertyParser = propertyParser;
+			return this;
+		}
+
+		public Builder withDeath(Observable<?> death) {
+			if (isBuilt.get())
+				throw new IllegalStateException("The builder may not be changed after the environment is built");
+			death.noInit().take(1).takeUntil(theEnv.theDeath).act(v -> theEnv.theDeath.onNext(null));
 			return this;
 		}
 

@@ -1,67 +1,104 @@
 package org.quick.core.style;
 
+import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTemplate.TemplateStructure.RoleAttribute;
 import org.quick.core.mgr.QuickState;
 import org.quick.core.prop.QuickAttribute;
+
+import com.google.common.reflect.TypeToken;
 
 /** The style on a {@link QuickElement} */
 public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
 	private final ObservableSet<QuickState> theExtraStates;
 	private final ObservableSet<String> theExtraGroups;
+	private final Observable<?> theDeath;
+	private final ObservableSet<StyleAttribute<?>> theAttributes;
 	private StyleConditionInstance<?> theCondition;
+	private ObservableValue<StyleConditionInstance<?>> theParentCondition;
 
 	/** @param element The element that this style is for */
 	public QuickElementStyle(QuickElement element) {
-		this(element, null, null);
+		this(element, null, null, null);
 	}
 
 	/**
 	 * @param element The element that this style is for
 	 * @param extraStates Extra states, if any to use for determining style from style sheets
 	 * @param extraGroups Extra groups, if any to use for determining style from style sheets
+	 * @param until The observable that, when fired, will release this style's resources
 	 */
-	public QuickElementStyle(QuickElement element, ObservableSet<QuickState> extraStates, ObservableSet<String> extraGroups) {
+	public QuickElementStyle(QuickElement element, ObservableSet<QuickState> extraStates, ObservableSet<String> extraGroups,
+		Observable<?> until) {
 		theElement = element;
 		theExtraStates = extraStates;
 		theExtraGroups = extraGroups;
+		if (until == null)
+			theDeath = element.life().death();
+		else
+			theDeath = Observable.or(element.life().death(), until);
+		ObservableValue<QuickStyle> localStyle = theElement.atts().get(StyleAttributes.style);
+		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.map(s -> s.attributes()));
+		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
+		ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>> parentAttrs = ObservableSet
+			.flattenValue(theElement.getParent().map(p -> p.getStyle().attributes())).flow()
+			.filter(att -> att.isInherited() ? null : "Not inherited");
+		ObservableCollection<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> toFlatten;
+		if (sheet == null)
+			toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs);
+		else
+			toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs, sheet.attributes().flow());
+		theAttributes = toFlatten.flow()
+			.flatMap(TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}), f -> f)
+			.distinct().collectActive(theDeath);
 	}
+
+	private static final TypeToken<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> ATTR_CDF_TYPE = new TypeToken<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>>() {};
 
 	/** @return The condition instance representing this style */
 	public StyleConditionInstance<?> getCondition() {
 		if (theCondition == null)
-			theCondition = StyleConditionInstance.of(theElement, theExtraStates, theExtraGroups);
+			theCondition = StyleConditionInstance.of(theElement, theExtraStates, theExtraGroups, theDeath);
 		return theCondition;
 	}
 
-	@Override
-	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
-		ObservableSet<QuickState> allExtraStates;
-		if (theExtraStates == null) {
-			if (extraStates instanceof ObservableSet)
-				allExtraStates = (ObservableSet<QuickState>) extraStates;
-			else
-				allExtraStates = ObservableSet.unique(extraStates, Object::equals);
-		} else
-			allExtraStates = ObservableSet.unique(ObservableCollection.flattenCollections(theExtraStates, extraStates), Object::equals);
-		return new QuickElementStyle(theElement, allExtraStates, theExtraGroups);
+	protected ObservableValue<StyleConditionInstance<?>> getParentCondition() {
+		if (theParentCondition == null)
+			theParentCondition = theElement.getParent()
+				.map(p -> p == null ? null : StyleConditionInstance.of(p, theExtraStates, theExtraGroups, //
+					Observable.or(theElement.getParent().changes().noInit(), theDeath)));
+		return theParentCondition;
 	}
 
 	@Override
-	public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups) {
+	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates, Observable<?> until) {
+		ObservableSet<QuickState> allExtraStates;
+		if (theExtraStates != null)
+			allExtraStates = ObservableCollection.flattenCollections(TypeTokens.get().of(QuickState.class), theExtraStates, extraStates)
+				.distinct().collectActive(until);
+		else if (extraStates instanceof ObservableSet)
+			allExtraStates = (ObservableSet<QuickState>) extraStates;
+		else
+			allExtraStates = extraStates.flow().distinct().collectActive(until);
+		return new QuickElementStyle(theElement, allExtraStates, theExtraGroups, until);
+	}
+
+	@Override
+	public QuickStyle forExtraGroups(ObservableCollection<String> extraGroups, Observable<?> until) {
 		ObservableSet<String> allExtraGroups;
-		if (theExtraStates == null) {
-			if (extraGroups instanceof ObservableSet)
-				allExtraGroups = (ObservableSet<String>) extraGroups;
-			else
-				allExtraGroups = ObservableSet.unique(extraGroups, Object::equals);
-		} else
-			allExtraGroups = ObservableSet.unique(ObservableCollection.flattenCollections(theExtraGroups, extraGroups), Object::equals);
-		return new QuickElementStyle(theElement, theExtraStates, allExtraGroups);
+		if (theExtraGroups != null)
+			allExtraGroups = ObservableCollection.flattenCollections(TypeTokens.get().STRING, theExtraGroups, extraGroups).distinct()
+				.collectActive(until);
+		else if (extraGroups instanceof ObservableSet)
+			allExtraGroups = (ObservableSet<String>) extraGroups;
+		else
+			allExtraGroups = extraGroups.flow().distinct().collectActive(until);
+		return new QuickElementStyle(theElement, theExtraStates, allExtraGroups, until);
 	}
 
 	/** @return The element that this style is for */
@@ -71,17 +108,7 @@ public class QuickElementStyle implements QuickStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		ObservableValue<QuickStyle> localStyle = theElement.atts().get(StyleAttributes.style);
-		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.map(s -> s.attributes()));
-		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
-		ObservableSet<StyleAttribute<?>> parentAtts = ObservableSet
-			.flattenValue(theElement.getParent().map(p -> p.getStyle().attributes())).filterStatic(att -> att.isInherited());
-		ObservableCollection<StyleAttribute<?>> flattened;
-		if (sheet == null)
-			flattened = ObservableCollection.flattenCollections(localAttrs, parentAtts);
-		else
-			flattened = ObservableCollection.flattenCollections(localAttrs, parentAtts, sheet.attributes());
-		return ObservableSet.unique(flattened, Object::equals);
+		return theAttributes;
 	}
 
 	@Override
@@ -110,12 +137,14 @@ public class QuickElementStyle implements QuickStyle {
 		ObservableValue<StyleConditionValue<T>> ssMatch = sheet.getBestMatch(getCondition(), attr);
 		ObservableValue<T> ssValue;
 		if (attr.isInherited()) {
-			ObservableValue<StyleConditionValue<T>> parentSSMatch = ObservableValue.flatten(theElement.getParent().map(p -> {
-				if (p == null)
+			TypeToken<StyleConditionValue<T>> scvType = TypeTokens.get().keyFor(StyleConditionValue.class)
+				.getCompoundType(attr.getType().getType(), t -> new TypeToken<StyleConditionValue<T>>() {});
+			ObservableValue<ObservableValue<StyleConditionValue<T>>> layered = getParentCondition().map(scvType, pCondition -> {
+				if (pCondition == null)
 					return null;
-				StyleConditionInstance<?> pCondition = StyleConditionInstance.of(p, theExtraStates, theExtraGroups);
 				return sheet.getBestMatch(pCondition, attr);
-			}));
+			});
+			ObservableValue<StyleConditionValue<T>> parentSSMatch = ObservableValue.flatten(layered);
 			ssMatch = ssMatch.combine(null, (ss, pSS) -> {
 				if (ss == null && pSS == null)
 					return null;
@@ -141,7 +170,9 @@ public class QuickElementStyle implements QuickStyle {
 		ObservableValue<QuickStyle> localStyle = element.atts().get(StyleAttributes.style);
 		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.map(s -> s.get(attr, false)));
 		if (attr.isInherited() && !isTemplateParent(element, bottom)) {
-			ObservableValue<T> parentLocalValue = ObservableValue.flatten(element.getParent().map(p -> {
+			TypeToken<ObservableValue<T>> obsType = TypeTokens.get().keyFor(ObservableValue.class).getCompoundType(attr.getType().getType(),
+				t -> new TypeToken<ObservableValue<T>>() {});
+			ObservableValue<T> parentLocalValue = ObservableValue.flatten(element.getParent().map(obsType, p -> {
 				if (p == null)
 					return null;
 				return getLocalValue(bottom, p, attr);

@@ -8,11 +8,16 @@ import org.junit.Test;
 import org.observe.ObservableValueTester;
 import org.observe.SimpleSettableValue;
 import org.observe.assoc.ObservableMap;
-import org.observe.assoc.impl.ObservableMapImpl;
-import org.observe.collect.impl.ObservableHashSet;
-import org.quick.core.*;
+import org.observe.collect.ObservableSet;
+import org.qommons.collect.FastFailLockingStrategy;
 import org.quick.core.QuickConstants.States;
+import org.quick.core.QuickDocument;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickException;
+import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTemplate.AttachPoint;
+import org.quick.core.QuickTextElement;
+import org.quick.core.QuickToolkit;
 import org.quick.core.mgr.QuickState;
 
 import com.google.common.reflect.TypeToken;
@@ -20,14 +25,14 @@ import com.google.common.reflect.TypeToken;
 /** Tests style classes in the org.quick.core.style package */
 public class StylesTest {
 	class StyleConditionInstanceBacking {
-		final ObservableHashSet<QuickState> state;
-		final ObservableHashSet<String> groups;
+		final ObservableSet<QuickState> state;
+		final ObservableSet<String> groups;
 		final ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles;
 
 		StyleConditionInstanceBacking() {
-			state = new ObservableHashSet<>(TypeToken.of(QuickState.class));
-			groups = new ObservableHashSet<>(TypeToken.of(String.class));
-			roles = new ObservableMapImpl<>(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
+			state = ObservableSet.of(TypeToken.of(QuickState.class));
+			groups = ObservableSet.of(TypeToken.of(String.class));
+			roles = ObservableMap.create(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
 		}
 	}
 
@@ -52,7 +57,7 @@ public class StylesTest {
 	public void testSimpleStyleSheet() {
 		SimpleSettableValue<Double> v1 = new SimpleSettableValue<>(Double.class, false);
 		v1.set(0d, null);
-		SimpleStyleSheet sheet = new SimpleStyleSheet(null);
+		SimpleStyleSheet sheet = new SimpleStyleSheet(new FastFailLockingStrategy(), null);
 		sheet.set(BackgroundStyle.transparency, v1);
 
 		class DeepElement extends QuickTextElement {}
@@ -221,9 +226,9 @@ public class StylesTest {
 		AttachPoint<?> attach1 = template1Struct.getAttachPoint("attach1");
 		AttachPoint<?> attach2 = template2Struct.getAttachPoint("attach2");
 
-		QuickTemplate template1 = (QuickTemplate) doc.getRoot().getLogicalChildren().last();
-		QuickTemplate template2 = (QuickTemplate) template1.getLogicalChildren().last();
-		QuickTextElement text = (QuickTextElement) template2.getLogicalChildren().last();
+		QuickTemplate template1 = (QuickTemplate) doc.getRoot().getLogicalChildren().peekLast();
+		QuickTemplate template2 = (QuickTemplate) template1.getLogicalChildren().peekLast();
+		QuickTextElement text = (QuickTextElement) template2.getLogicalChildren().peekLast();
 
 		StyleCondition shallowCondition = StyleCondition.build(QuickElement.class)//
 			.forRole(attach1, StyleCondition.build(template1Struct.getDefiner()).build())//

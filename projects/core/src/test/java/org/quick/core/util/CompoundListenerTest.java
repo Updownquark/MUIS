@@ -4,19 +4,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.quick.core.layout.LayoutAttributes.*;
+import static org.quick.core.layout.LayoutAttributes.bottom;
+import static org.quick.core.layout.LayoutAttributes.height;
+import static org.quick.core.layout.LayoutAttributes.left;
+import static org.quick.core.layout.LayoutAttributes.region;
+import static org.quick.core.layout.LayoutAttributes.right;
+import static org.quick.core.layout.LayoutAttributes.top;
+import static org.quick.core.layout.LayoutAttributes.width;
 import static org.quick.core.style.BackgroundStyle.color;
 
 import org.junit.Test;
 import org.observe.SimpleObservable;
-import org.observe.collect.ObservableList;
+import org.observe.collect.ObservableCollection;
 import org.quick.QuickTestUtils;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
-import org.quick.core.QuickException;
 import org.quick.core.layout.Region;
-import org.quick.core.mgr.ElementList;
-import org.quick.core.style.*;
+import org.quick.core.style.Colors;
+import org.quick.core.style.ImmutableStyle;
+import org.quick.core.style.LengthUnit;
+import org.quick.core.style.Size;
+import org.quick.core.style.StyleAttributes;
 import org.quick.util.CompoundListener;
 
 /** Tests {@link CompoundListener} */
@@ -37,39 +45,39 @@ public class CompoundListenerTest {
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
 
-		assertNotNull(testEl.atts().getHolder(region));
+		assertNotNull(testEl.atts().get(region));
 		assertEquals(0, events[0]);
 		try {
-			testEl.atts().set(region, Region.left);
-		} catch (QuickException e) {
+			testEl.atts().get(region).set(Region.left, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(1, events[0]);
 		try {
-			testEl.atts().set(region, Region.right);
-		} catch (QuickException e) {
+			testEl.atts().get(region).set(Region.right, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(2, events[0]);
 		ImmutableStyle style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.blue).build();
 		try {
-			testEl.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			testEl.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(3, events[0]);
 
 		until.onNext(null);
-		assertNull(testEl.atts().getHolder(region));
+		assertNull(testEl.atts().get(region));
 		try {
-			testEl.atts().set(region, Region.bottom);
+			testEl.atts().get(region).set(Region.bottom, null);
 			assertTrue("Should have thrown a QuickException", false);
-		} catch (QuickException e) {
+		} catch (IllegalArgumentException e) {
 		}
 		style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.red).build();
 		try {
-			testEl.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			testEl.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(3, events[0]);
@@ -90,24 +98,24 @@ public class CompoundListenerTest {
 		org.quick.core.QuickDocument doc = org.quick.QuickTestUtils.createDocument();
 		QuickElement testEl = new QuickElement() {
 			@Override
-			public ElementList<? extends QuickElement> getPhysicalChildren() {
+			public ObservableCollection<? extends QuickElement> getPhysicalChildren() {
 				return getChildManager();
 			}
 		};
 		testEl.init(doc, null, doc.cv(), testEl, null, null);
-		ObservableList<QuickElement> ch = (ObservableList<QuickElement>) testEl.ch();
+		ObservableCollection<QuickElement> ch = (ObservableCollection<QuickElement>) testEl.ch();
 		QuickElement firstChild = new QuickElement() {};
 		firstChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(firstChild);
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
 
-		assertNull(testEl.atts().getHolder(region));
-		assertNotNull(firstChild.atts().getHolder(region));
+		assertNull(testEl.atts().get(region));
+		assertNotNull(firstChild.atts().get(region));
 		assertEquals(0, events[0]);
 		try {
-			firstChild.atts().set(region, Region.left);
-		} catch (QuickException e) {
+			firstChild.atts().get(region).set(Region.left, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(1, events[0]);
@@ -115,45 +123,45 @@ public class CompoundListenerTest {
 		QuickElement secondChild = new QuickElement() {};
 		secondChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(secondChild);
-		assertNotNull(secondChild.atts().getHolder(region));
+		assertNotNull(secondChild.atts().get(region));
 		assertEquals(1, events[0]);
 		try {
-			secondChild.atts().set(region, Region.left);
-		} catch (QuickException e) {
+			secondChild.atts().get(region).set(Region.left, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(2, events[0]);
 		ImmutableStyle style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.blue).build();
 		try {
-			testEl.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			testEl.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(2, events[0]);
 		try {
-			firstChild.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			firstChild.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(3, events[0]);
 
 		until.onNext(null);
-		assertNull(firstChild.atts().getHolder(region));
+		assertNull(firstChild.atts().get(region));
 		try {
-			firstChild.atts().set(region, Region.bottom);
-			assertTrue("Should have thrown a QuickException", false);
-		} catch (QuickException e) {
+			firstChild.atts().get(region).set(Region.bottom, null);
+			assertTrue("Should have thrown a IllegalArgumentException", false);
+		} catch (IllegalArgumentException e) {
 		}
-		assertNull(secondChild.atts().getHolder(region));
+		assertNull(secondChild.atts().get(region));
 		try {
-			secondChild.atts().set(region, Region.bottom);
-			assertTrue("Should have thrown a QuickException", false);
-		} catch (QuickException e) {
+			secondChild.atts().get(region).set(Region.bottom, null);
+			assertTrue("Should have thrown a IllegalArgumentException", false);
+		} catch (IllegalArgumentException e) {
 		}
 		style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.red).build();
 		try {
-			firstChild.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			firstChild.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(3, events[0]);
@@ -195,44 +203,44 @@ public class CompoundListenerTest {
 		QuickDocument doc = QuickTestUtils.createDocument();
 		QuickElement testEl = new QuickElement() {
 			@Override
-			public ElementList<? extends QuickElement> getPhysicalChildren() {
+			public ObservableCollection<? extends QuickElement> getPhysicalChildren() {
 				return getChildManager();
 			}
 		};
 		testEl.init(doc, null, doc.cv(), testEl, null, null);
-		ObservableList<QuickElement> ch = (ObservableList<QuickElement>) testEl.ch();
+		ObservableCollection<QuickElement> ch = (ObservableCollection<QuickElement>) testEl.ch();
 		QuickElement firstChild = new QuickElement() {};
 		firstChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(firstChild);
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
 
-		assertNull(testEl.atts().getHolder(region));
-		assertNotNull(firstChild.atts().getHolder(region));
+		assertNull(testEl.atts().get(region));
+		assertNotNull(firstChild.atts().get(region));
 		assertEquals(correctEvents, events[0]);
-		assertNull(firstChild.atts().getHolder(width));
-		assertNull(firstChild.atts().getHolder(height));
-		assertNull(firstChild.atts().getHolder(right));
-		assertNull(firstChild.atts().getHolder(left));
-		assertNull(firstChild.atts().getHolder(top));
-		assertNull(firstChild.atts().getHolder(bottom));
+		assertNull(firstChild.atts().get(width));
+		assertNull(firstChild.atts().get(height));
+		assertNull(firstChild.atts().get(right));
+		assertNull(firstChild.atts().get(left));
+		assertNull(firstChild.atts().get(top));
+		assertNull(firstChild.atts().get(bottom));
 		try {
-			firstChild.atts().set(region, Region.left);
-		} catch (QuickException e) {
+			firstChild.atts().get(region).set(Region.left, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		correctEvents++;
 		assertEquals(correctEvents, events[0]);
-		assertNotNull(firstChild.atts().getHolder(width));
-		assertNull(firstChild.atts().getHolder(height));
-		assertNotNull(firstChild.atts().getHolder(right));
-		assertNull(firstChild.atts().getHolder(left));
-		assertNull(firstChild.atts().getHolder(top));
-		assertNull(firstChild.atts().getHolder(bottom));
+		assertNotNull(firstChild.atts().get(width));
+		assertNull(firstChild.atts().get(height));
+		assertNotNull(firstChild.atts().get(right));
+		assertNull(firstChild.atts().get(left));
+		assertNull(firstChild.atts().get(top));
+		assertNull(firstChild.atts().get(bottom));
 		ImmutableStyle style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.blue).build();
 		try {
-			firstChild.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			firstChild.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		correctEvents++;
@@ -241,73 +249,73 @@ public class CompoundListenerTest {
 		QuickElement secondChild = new QuickElement() {};
 		secondChild.init(doc, null, doc.cv(), testEl, null, null);
 		ch.add(secondChild);
-		assertNotNull(secondChild.atts().getHolder(region));
+		assertNotNull(secondChild.atts().get(region));
 		assertEquals(correctEvents, events[0]);
 		try {
-			secondChild.atts().set(region, Region.top);
-		} catch (QuickException e) {
+			secondChild.atts().get(region).set(Region.top, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		correctEvents++;
 		assertEquals(correctEvents, events[0]);
-		assertNull(secondChild.atts().getHolder(width));
-		assertNotNull(secondChild.atts().getHolder(height));
-		assertNull(secondChild.atts().getHolder(right));
-		assertNull(secondChild.atts().getHolder(left));
-		assertNull(secondChild.atts().getHolder(top));
-		assertNotNull(secondChild.atts().getHolder(bottom));
+		assertNull(secondChild.atts().get(width));
+		assertNotNull(secondChild.atts().get(height));
+		assertNull(secondChild.atts().get(right));
+		assertNull(secondChild.atts().get(left));
+		assertNull(secondChild.atts().get(top));
+		assertNotNull(secondChild.atts().get(bottom));
 		try {
-			secondChild.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			secondChild.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(correctEvents, events[0]);
 
 		try {
-			secondChild.atts().set(region, Region.right);
-		} catch (QuickException e) {
+			secondChild.atts().get(region).set(Region.right, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		correctEvents++;
 		assertEquals(correctEvents, events[0]);
-		assertNotNull(secondChild.atts().getHolder(width));
-		assertNull(secondChild.atts().getHolder(height));
-		assertNull(secondChild.atts().getHolder(right));
-		assertNotNull(secondChild.atts().getHolder(left));
-		assertNull(secondChild.atts().getHolder(top));
-		assertNull(secondChild.atts().getHolder(bottom));
+		assertNotNull(secondChild.atts().get(width));
+		assertNull(secondChild.atts().get(height));
+		assertNull(secondChild.atts().get(right));
+		assertNotNull(secondChild.atts().get(left));
+		assertNull(secondChild.atts().get(top));
+		assertNull(secondChild.atts().get(bottom));
 
 		try {
-			secondChild.atts().set(width, new Size(100, LengthUnit.pixels));
-		} catch (QuickException e) {
+			secondChild.atts().get(width).set(new Size(100, LengthUnit.pixels), null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		correctEvents++;
 		assertEquals(correctEvents, events[0]);
 
 		until.onNext(null);
-		assertNull(firstChild.atts().getHolder(region));
+		assertNull(firstChild.atts().get(region));
 		try {
-			firstChild.atts().set(region, Region.bottom);
-			assertTrue("Should have thrown a QuickException", false);
-		} catch (QuickException e) {
+			firstChild.atts().get(region).set(Region.bottom, null);
+			assertTrue("Should have thrown a IllegalArgumentException", false);
+		} catch (IllegalArgumentException e) {
 		}
-		assertNull(secondChild.atts().getHolder(region));
+		assertNull(secondChild.atts().get(region));
 		try {
-			secondChild.atts().set(region, Region.bottom);
-			assertTrue("Should have thrown a QuickException", false);
-		} catch (QuickException e) {
+			secondChild.atts().get(region).set(Region.bottom, null);
+			assertTrue("Should have thrown a IllegalArgumentException", false);
+		} catch (IllegalArgumentException e) {
 		}
-		assertNull(firstChild.atts().getHolder(width));
-		assertNull(firstChild.atts().getHolder(height));
-		assertNull(firstChild.atts().getHolder(right));
-		assertNull(firstChild.atts().getHolder(left));
-		assertNull(firstChild.atts().getHolder(top));
-		assertNull(firstChild.atts().getHolder(bottom));
+		assertNull(firstChild.atts().get(width));
+		assertNull(firstChild.atts().get(height));
+		assertNull(firstChild.atts().get(right));
+		assertNull(firstChild.atts().get(left));
+		assertNull(firstChild.atts().get(top));
+		assertNull(firstChild.atts().get(bottom));
 		style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.red).build();
 		try {
-			firstChild.atts().set(StyleAttributes.style, style);
-		} catch (QuickException e) {
+			firstChild.atts().get(StyleAttributes.style).set(style, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		assertEquals(correctEvents, events[0]);

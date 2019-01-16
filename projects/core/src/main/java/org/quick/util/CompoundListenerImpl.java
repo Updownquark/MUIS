@@ -2,7 +2,9 @@ package org.quick.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -11,8 +13,10 @@ import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.SimpleObservable;
+import org.qommons.collect.ElementId;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
+import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.util.CompoundListener.CompoundListenerBuilder;
@@ -91,6 +95,7 @@ class CompoundListenerImpl {
 		private final List<StyleAttribute<?>> theStyleAttributes;
 		private final List<EventListener> theEventListeners;
 		private final List<CompoundListener> theSubListeners;
+		private final Map<QuickAttribute<?>, AttributeManager2.AttributeAcceptance> theAttributeAccepts;
 
 		ElementListener(List<AttributeAccept<?>> attrs, List<StyleAttribute<?>> styles, List<EventListener> listeners,
 			List<CompoundListener> subs) {
@@ -98,6 +103,7 @@ class CompoundListenerImpl {
 			theStyleAttributes = Collections.unmodifiableList(new ArrayList<>(styles));
 			theEventListeners = Collections.unmodifiableList(new ArrayList<>(listeners));
 			theSubListeners = Collections.unmodifiableList(new ArrayList<>(subs));
+			theAttributeAccepts = new HashMap<>();
 		}
 
 		@Override
@@ -109,6 +115,9 @@ class CompoundListenerImpl {
 					for (EventListener listener : theEventListeners)
 						listener.eventOccurred(element, root, event);
 				}
+
+				@Override
+				public <V extends ObservableValueEvent<?>> void onCompleted(V value) {}
 			};
 			for (int i = 0; i < accepted.length; i++) {
 				try {
@@ -124,7 +133,7 @@ class CompoundListenerImpl {
 			until.act(evt -> {
 				for (int i = 0; i < accepted.length; i++) {
 					if (accepted[i])
-						element.atts().reject(ElementListener.this, theAttributes.get(i).attr);
+						theAttributeAccepts.remove(theAttributes.get(i).attr).reject();
 				}
 			});
 			for (CompoundListener sub : theSubListeners)
@@ -132,7 +141,14 @@ class CompoundListenerImpl {
 		}
 
 		private <T> ObservableValue<T> accept(QuickElement element, AttributeAccept<T> attr) throws QuickException {
-			return element.atts().accept(this, attr.required, attr.attr, attr.init);
+			if (theAttributeAccepts.containsKey(attr.attr))
+				return element.atts().get(attr.attr);
+			return element.atts().accept(attr.attr, this, acc->{
+				acc.required(attr.required);
+				if (attr.init != null)
+					acc.init(attr.init);
+				theAttributeAccepts.put(attr.attr, acc);
+			});
 		}
 	}
 
@@ -145,9 +161,26 @@ class CompoundListenerImpl {
 
 		@Override
 		public void listen(QuickElement element, QuickElement root, Observable<?> until) {
-			element.ch().onElement(child -> {
-				theElementListener.listen(child.get(), root, Observable.or(until, child.noInit()));
-			});
+			Map<ElementId, SimpleObservable<Void>> childSubs = new HashMap<>();
+			element.ch().subscribe(evt -> {
+				switch (evt.getType()) {
+				case add:
+					SimpleObservable<Void> sub = new SimpleObservable<>(null, false, false);
+					childSubs.put(evt.getElementId(), sub);
+					theElementListener.listen(evt.getNewValue(), root, until == null ? sub : Observable.or(until, sub));
+					break;
+				case remove:
+					childSubs.remove(evt.getElementId()).onNext(null);
+					break;
+				case set:
+					if (evt.getOldValue() != evt.getNewValue()) {
+						sub = childSubs.get(evt.getElementId());
+						sub.onNext(null);
+						theElementListener.listen(evt.getNewValue(), root, until == null ? sub : Observable.or(until, sub));
+					}
+					break;
+				}
+			}, true);
 		}
 	}
 

@@ -1,9 +1,9 @@
 package org.quick.core.style;
 
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 
 import org.quick.core.QuickElement;
+import org.quick.core.Rectangle;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
 
@@ -20,8 +20,11 @@ public class DocumentTexture extends BaseTexture {
 			int w = (int) metric.getWidth();
 			int h = (int) metric.getHeight();
 			Rectangle mBound = new Rectangle(x, y, w, h);
-			if(area != null)
+			if (area != null) {
 				mBound = mBound.intersection(area);
+				if (mBound == null || mBound.width == 0 || mBound.height == 0)
+					return;
+			}
 			java.awt.Color color = org.quick.util.QuickUtils.getBackground(metric.getStyle()).get();
 			graphics.setColor(color);
 			graphics.fillRect(mBound.x, mBound.y, mBound.width, mBound.height);

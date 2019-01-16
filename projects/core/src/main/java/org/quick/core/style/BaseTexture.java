@@ -1,9 +1,11 @@
 package org.quick.core.style;
 
+import org.quick.core.Rectangle;
+
 /** Renders the background style of the widget */
 public class BaseTexture implements Texture {
 	@Override
-	public void render(java.awt.Graphics2D graphics, org.quick.core.QuickElement element, java.awt.Rectangle area) {
+	public void render(java.awt.Graphics2D graphics, org.quick.core.QuickElement element, Rectangle area) {
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
 		int x = area == null ? 0 : area.x;

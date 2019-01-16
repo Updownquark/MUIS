@@ -14,6 +14,7 @@ import org.observe.SettableValue;
 import org.observe.Subscription;
 import org.observe.VetoableSettableValue;
 import org.observe.collect.ObservableCollection;
+import org.observe.collect.ObservableSet;
 import org.observe.util.TypeTokens;
 import org.qommons.QommonsUtils;
 import org.qommons.Transactable;
@@ -261,6 +262,14 @@ public class AttributeManager2 {
 
 		AttributeAcceptance optional();
 
+		default AttributeAcceptance required(boolean required) {
+			if (required)
+				required();
+			else
+				optional();
+			return this;
+		}
+
 		void reject();
 
 		AttributeManager2 getAttributes();
@@ -274,6 +283,12 @@ public class AttributeManager2 {
 
 		@Override
 		IndividualAttributeAcceptance<T> optional();
+
+		@Override
+		default IndividualAttributeAcceptance<T> required(boolean required) {
+			AttributeAcceptance.super.required(required);
+			return this;
+		}
 
 		IndividualAttributeAcceptance<T> init(T value);
 	}
@@ -289,6 +304,7 @@ public class AttributeManager2 {
 	private final SortedTreeList<AttributeValue<?>> theSortedAttributes;
 	private final ObservableCollection<AttributeValue<?>> theObservableAttributes;
 	private final ObservableCollection<AttributeValue<?>> theExposedAttributes;
+	private final ObservableSet<QuickAttribute<?>> theAttributes;
 	private Map<String, RawAttributeValue> theRawAttributes;
 
 	public AttributeManager2(QuickElement element, ReentrantReadWriteLock lock) {
@@ -299,6 +315,10 @@ public class AttributeManager2 {
 		theObservableAttributes = ObservableCollection.create(ATT_VALUE_TYPE, theSortedAttributes);
 		theExposedAttributes = theObservableAttributes.flow().filterMod(f -> f.unmodifiable(StdMsg.UNSUPPORTED_OPERATION, false))
 			.collectPassive();
+		theAttributes = theExposedAttributes.flow()
+			.map(TypeTokens.get().keyFor(QuickAttribute.class).parameterized(() -> new TypeToken<QuickAttribute<?>>() {}),
+				av -> av.getAttribute())
+			.distinct().collectActive(theElement.life().death());
 		theRawAttributes = new HashMap<>();
 		theElement.life().runWhen(() -> {
 			setReady();
@@ -426,10 +446,8 @@ public class AttributeManager2 {
 		return theExposedAttributes;
 	}
 
-	private static final TypeToken<QuickAttribute<?>> ATTR_TYPE = new TypeToken<QuickAttribute<?>>() {};
-
-	public ObservableCollection<QuickAttribute<?>> attributes() {
-		return theExposedAttributes.flow().map(ATTR_TYPE, av -> av.getAttribute(), opts -> opts.cache(false)).collectPassive();
+	public ObservableSet<QuickAttribute<?>> attributes() {
+		return theAttributes;
 	}
 
 	public Observable<AttributeChangedEvent<?>> watch(QuickAttribute<?>... attributes) {

@@ -5,9 +5,17 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
-import org.observe.*;
+import org.observe.Observable;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueEvent;
+import org.observe.Observer;
+import org.observe.Subscription;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
+import org.qommons.Causable;
+import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
 
@@ -400,10 +408,61 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 	 * @return An observable boolean reflecting whether this state condition matches the given set of active states
 	 */
 	public ObservableValue<Boolean> observeMatches(ObservableSet<QuickState> states) {
+		class StateMatchChanges implements Observable<ObservableValueEvent<Boolean>> {
+			private final ObservableValue<Boolean> theObservable;
+
+			StateMatchChanges(ObservableValue<Boolean> observable) {
+				theObservable = observable;
+			}
+
+			@Override
+			public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
+				Subscription sub = states.simpleChanges().act(new Consumer<Object>() {
+					private final AtomicBoolean preMatches = new AtomicBoolean(theObservable.get());
+
+					{
+						boolean initMatch = matches(states);
+						preMatches.set(initMatch);
+						ObservableValueEvent<Boolean> evt = theObservable.createInitialEvent(initMatch, null);
+						try (Transaction t = Causable.use(evt)) {
+							observer.onNext(evt);
+						}
+					}
+
+					@Override
+					public void accept(Object cause) {
+						boolean newMatch = matches(states);
+						boolean oldMatch = preMatches.getAndSet(newMatch);
+						ObservableValueEvent<Boolean> evt = theObservable.createChangeEvent(oldMatch, newMatch, cause);
+						try (Transaction t = Causable.use(evt)) {
+							observer.onNext(evt);
+						}
+					}
+				});
+				return sub;
+			}
+
+			@Override
+			public boolean isSafe() {
+				return true;
+			}
+
+			@Override
+			public Transaction lock() {
+				return states.lock(false, null);
+			}
+
+			@Override
+			public Transaction tryLock() {
+				return states.tryLock(false, false, null);
+			}
+		}
 		class StateMatchObserver implements ObservableValue<Boolean> {
+			private final StateMatchChanges theChanges = new StateMatchChanges(this);
+
 			@Override
 			public TypeToken<Boolean> getType() {
-				return TypeToken.of(Boolean.class);
+				return TypeTokens.get().BOOLEAN;
 			}
 
 			@Override
@@ -412,30 +471,8 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 			}
 
 			@Override
-			public Subscription subscribe(Observer<? super ObservableValueEvent<Boolean>> observer) {
-				Subscription sub = states.simpleChanges().act(new Action<Object>() {
-					private final AtomicBoolean preMatches = new AtomicBoolean(get());
-
-					{
-						boolean initMatch = matches(states);
-						preMatches.set(initMatch);
-						Observer.onNextAndFinish(observer, createInitialEvent(initMatch, null));
-					}
-
-					@Override
-					public void act(Object cause) {
-						boolean newMatch = matches(states);
-						boolean oldMatch = preMatches.getAndSet(newMatch);
-						Observer.onNextAndFinish(observer, createChangeEvent(oldMatch, newMatch, cause));
-					}
-				});
-				Observer.onNextAndFinish(observer, createInitialEvent(get(), null));
-				return sub;
-			}
-
-			@Override
-			public boolean isSafe() {
-				return states.isSafe();
+			public Observable<ObservableValueEvent<Boolean>> changes() {
+				return theChanges;
 			}
 		}
 		return new StateMatchObserver();

@@ -1,9 +1,9 @@
 package org.quick.core.model;
 
 import java.awt.geom.Point2D;
+import java.util.function.Consumer;
 
-import org.observe.DefaultObservable;
-import org.observe.Observer;
+import org.observe.SimpleObservable;
 import org.qommons.Transaction;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.KeyBoardEvent;
@@ -13,7 +13,7 @@ import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 
 /** Implements the text-selecting feature as a user drags over a text element. Also implements keyboard copying (Ctrl+C or Ctrl+X). */
 public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
-	private class MouseListener implements org.observe.Action<MouseEvent> {
+	private class MouseListener implements Consumer<MouseEvent> {
 		MouseListener() {
 			super();
 		}
@@ -21,7 +21,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		private int theAnchor = -1;
 
 		@Override
-		public void act(MouseEvent event) {
+		public void accept(MouseEvent event) {
 			QuickTextElement element = (QuickTextElement) event.getElement();
 			if (!(element.getDocumentModel().get() instanceof SelectableDocumentModel))
 				return;
@@ -80,9 +80,9 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		}
 	}
 
-	private class KeyListener implements org.observe.Action<KeyBoardEvent> {
+	private class KeyListener implements Consumer<KeyBoardEvent> {
 		@Override
-		public void act(KeyBoardEvent event) {
+		public void accept(KeyBoardEvent event) {
 			QuickTextElement text = (QuickTextElement) event.getElement();
 			if (!(text.getDocumentModel().get() instanceof SelectableDocumentModel))
 				return;
@@ -138,8 +138,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 
 	private MouseListener theMouseListener = new MouseListener();
 	private KeyListener theKeyListener = new KeyListener();
-	private DefaultObservable<QuickTextElement> theUnsubscribeObservable = new DefaultObservable<>();
-	private Observer<QuickTextElement> theUnsubscribeController = theUnsubscribeObservable.control(null);
+	private SimpleObservable<QuickTextElement> theUnsubscribeObservable;
 
 	private int theCursorXLoc = -1;
 
@@ -148,6 +147,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 		if (theElement != null)
 			throw new IllegalStateException(getClass().getSimpleName() + " may only be used with a single element");
 		theElement = element;
+		theUnsubscribeObservable = new SimpleObservable<>(null, false, theElement.getAttributeLocker(), null);
 		element.events().filterMap(MouseEvent.mouse).takeUntil(theUnsubscribeObservable.filter(el -> {
 			return el == element;
 		})).act(theMouseListener);
@@ -162,7 +162,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 
 	@Override
 	public void uninstall(QuickTextElement element) {
-		theUnsubscribeController.onNext(element);
+		theUnsubscribeObservable.onNext(element);
 		if (theElement == element)
 			theElement = null;
 	}

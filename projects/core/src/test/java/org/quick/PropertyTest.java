@@ -10,9 +10,15 @@ import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.observe.*;
+import org.observe.ObservableAction;
+import org.observe.ObservableValue;
+import org.observe.ObservableValueTester;
+import org.observe.SettableValue;
+import org.observe.SimpleSettableValue;
+import org.observe.Subscription;
 import org.observe.collect.ObservableCollectionTester;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.DefaultQuickModel;
@@ -20,8 +26,18 @@ import org.quick.core.model.ModelAttributes;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.SimpleParseEnv;
-import org.quick.core.prop.*;
-import org.quick.core.style.*;
+import org.quick.core.prop.DefaultExpressionContext;
+import org.quick.core.prop.ExpressionFunction;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickProperty;
+import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.style.BackgroundStyle;
+import org.quick.core.style.BaseTexture;
+import org.quick.core.style.Colors;
+import org.quick.core.style.FontStyle;
+import org.quick.core.style.LengthUnit;
+import org.quick.core.style.Size;
+import org.quick.core.style.StyleAttributes;
 
 import com.google.common.reflect.TypeToken;
 
@@ -192,11 +208,11 @@ public class PropertyTest {
 			ObservableValueTester<Set<String>> groupsTester = new ObservableValueTester<>(parsedGroups);
 
 			// The ObservableSet stuff here isn't technically part of the parsing, just throwing it in here to see if I can find a bug
-			ObservableValue<ObservableSet<String>> groupValue = parsedGroups.mapV((Set<String> g) -> {
-				return ObservableSet.<String> constant(TypeToken.of(String.class), g == null ? Collections.<String> emptySet() : g);
+			ObservableValue<ObservableSet<String>> groupValue = parsedGroups.map((Set<String> g) -> {
+				return ObservableSet.<String> of(TypeTokens.get().of(String.class), g == null ? Collections.<String> emptySet() : g);
 			});
 			ObservableSet<String> flatGroups = ObservableSet.flattenValue(groupValue);
-			ObservableCollectionTester<String> flatGroupsTester = new ObservableCollectionTester<>(flatGroups);
+			ObservableCollectionTester<String> flatGroupsTester = new ObservableCollectionTester<>("Flat Groups Tester", flatGroups);
 
 			flatGroupsTester.set("group-name");
 			groupsTester.check(setOf("group-name"));
@@ -231,7 +247,7 @@ public class PropertyTest {
 		var2.set(2d, null);
 		QuickParseEnv parseEnv = new SimpleParseEnv(env.cv(), env.msg(),
 			DefaultExpressionContext.build().withParent(env.getContext())//
-				.withValue("constVar", ObservableValue.constant(1))//
+				.withValue("constVar", ObservableValue.of(1))//
 				.withValue("var1", var1)//
 				.withValueGetter(name -> {
 					if (name.equals("var2"))
@@ -262,15 +278,15 @@ public class PropertyTest {
 			result = propParser.parseProperty(doubleAtt, parseEnv, "var1+5");
 			if (!(result instanceof SettableValue))
 				throw new IllegalStateException("Result should be settable");
-			assertSameObservable(var1.mapV(dType, v -> v + 5, v -> v - 5, true), result);
+			assertSameObservable(var1.map(dType, v -> v + 5, v -> v - 5, null), result);
 
 			result = propParser.parseProperty(doubleAtt, parseEnv, "square(var1)");
-			assertSameObservable(var1.mapV(dType, v -> v * v, v -> Math.sqrt(v), true), result);
+			assertSameObservable(var1.map(dType, v -> v * v, v -> Math.sqrt(v), null), result);
 
 			result = propParser.parseProperty(doubleAtt, parseEnv, "var1 sqrt");
 			if (!(result instanceof SettableValue))
 				throw new IllegalStateException("Result should be settable");
-			assertSameObservable(var1.mapV(dType, v -> Math.sqrt(v), v -> v * v, true), result);
+			assertSameObservable(var1.map(dType, v -> Math.sqrt(v), v -> v * v, null), result);
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
 		}
@@ -289,7 +305,7 @@ public class PropertyTest {
 		var2.set(5d, null);
 		SimpleSettableValue<Integer> var3 = new SimpleSettableValue<>(TypeToken.of(Integer.class), false);
 		var3.set(25, null);
-		ObservableAction<Double> incVar1 = var1.assignmentTo(var1.mapV(v -> v + 1));
+		ObservableAction<Double> incVar1 = var1.assignmentTo(var1.map(v -> v + 1));
 		DefaultQuickModel nested = DefaultQuickModel.build("nested")//
 			.with("var2", var2)//
 			.with("var3", var3)//
@@ -306,8 +322,8 @@ public class PropertyTest {
 
 		QuickParseEnv parseEnv = new SimpleParseEnv(env.cv(), env.msg(),
 			DefaultExpressionContext.build().withParent(env.getContext())//
-				.withValue("model", ObservableValue.constant(model))//
-				.withValue("this", ObservableValue.constant(thisModel))//
+				.withValue("model", ObservableValue.of(model))//
+				.withValue("this", ObservableValue.of(thisModel))//
 				.build());
 
 		try {
@@ -346,7 +362,7 @@ public class PropertyTest {
 
 		Double[] expectedValue = new Double[1];
 		Double[] actualValue = new Double[1];
-		Subscription sub = actual.act(v -> actualValue[0] = v.getValue());
+		Subscription sub = actual.changes().act(v -> actualValue[0] = v.getNewValue());
 
 		expectedValue[0] = 5d;
 		expected.set(expectedValue[0], null);
@@ -376,7 +392,7 @@ public class PropertyTest {
 
 		if (actual instanceof SettableValue) {
 			SettableValue<Double> actualS = (SettableValue<Double>) actual;
-			sub = expected.act(v -> expectedValue[0] = v.getValue());
+			sub = expected.changes().act(v -> expectedValue[0] = v.getNewValue());
 
 			actualValue[0] = 5d;
 			actualS.set(actualValue[0], null);

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.observe.Observable;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
 import org.quick.core.QuickTemplate.AttachPoint;
@@ -24,7 +25,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
 	public class ToolkitStyleSheet extends CompoundStyleSheet {
 		ToolkitStyleSheet(ObservableCollection<StyleSheet> dependencies) {
-			super(dependencies);
+			super(dependencies, theDeath);
 		}
 
 		@Override
@@ -44,6 +45,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	private final Map<String, String> theResourceMappings;
 	private final List<QuickToolkit> theDependencies;
 	private final List<QuickPermission> thePermissions;
+	private final Observable<?> theDeath;
 
 	private ToolkitStyleSheet theStyle;
 	private ObservableCollection<StyleSheet> theStyleDependencyController;
@@ -62,6 +64,9 @@ public class QuickToolkit extends java.net.URLClassLoader {
 		theResourceMappings = Collections.unmodifiableMap(new LinkedHashMap<>(resMap));
 		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class));
 		theStyle = new ToolkitStyleSheet(theStyleDependencyController.flow().unmodifiable().collect());
+		// TODO Assuming toolkits are immortal right now.
+		// If we ever want to remove them from memory when they're unused, replace this with something that can be called by the environment
+		theDeath = Observable.empty();
 
 		for(URL cp : cps)
 			super.addURL(cp);

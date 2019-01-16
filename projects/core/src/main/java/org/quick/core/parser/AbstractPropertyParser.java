@@ -94,25 +94,25 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 
 	private <X> ObservableValue<X> unwrap(ObservableValue<X> parsedValue) {
 		if (parsedValue instanceof SettableValue)
-			return ((SettableValue<X>) parsedValue).mapV(parsedValue.getType().unwrap(), v -> v, v -> v, true);
+			return ((SettableValue<X>) parsedValue).map(parsedValue.getType().unwrap(), v -> v, v -> v, null);
 		else
-			return parsedValue.mapV(parsedValue.getType().unwrap(), v -> v, true);
+			return parsedValue.map(parsedValue.getType().unwrap(), v -> v, null);
 	}
 
 	private <X> ObservableValue<X> wrap(ObservableValue<X> parsedValue) {
 		if (parsedValue instanceof SettableValue)
-			return ((SettableValue<X>) parsedValue).mapV(parsedValue.getType().unwrap(), v -> v, v -> v, true);
+			return ((SettableValue<X>) parsedValue).map(parsedValue.getType().unwrap(), v -> v, v -> v, null);
 		else
-			return parsedValue.mapV(parsedValue.getType().wrap(), v -> v, true);
+			return parsedValue.map(parsedValue.getType().wrap(), v -> v, null);
 	}
 
 	private <T, X> ObservableValue<T> convert(ObservableValue<X> parsedValue, TypeToken<T> type) {
 		Function<X, T> forwardMap = v -> QuickUtils.convert(type, v);
 		Function<T, X> reverseMap = v -> QuickUtils.convert(parsedValue.getType(), v);
 		if (parsedValue instanceof SettableValue && QuickUtils.isAssignableFrom(type, parsedValue.getType()))
-			return ((SettableValue<X>) parsedValue).mapV(type, forwardMap, reverseMap, true);
+			return ((SettableValue<X>) parsedValue).map(type, forwardMap, reverseMap, null);
 		else
-			return parsedValue.mapV(type, forwardMap, true);
+			return parsedValue.map(type, forwardMap, null);
 	}
 
 	private <T, X> ObservableValue<T> convert(ObservableValue<X> parsedValue, QuickProperty<T> property, QuickParseEnv parseEnv) {
@@ -133,9 +133,9 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 			}
 		};
 		if (parsedValue instanceof SettableValue && property.getType().canConvertTo(parsedValue.getType()))
-			return ((SettableValue<X>) parsedValue).mapV(property.getType().getType(), forwardMap, reverseMap, true);
+			return ((SettableValue<X>) parsedValue).map(property.getType().getType(), forwardMap, reverseMap, null);
 		else
-			return parsedValue.mapV(property.getType().getType(), forwardMap, true);
+			return parsedValue.map(property.getType().getType(), forwardMap, null);
 	}
 
 	private <T> ObservableValue<?> parseByType(QuickProperty<T> property, QuickParseEnv parseEnv, String value, String type,
@@ -318,34 +318,27 @@ public abstract class AbstractPropertyParser implements QuickPropertyParser {
 	 * @param <T> The type of the value
 	 */
 	private class StringBuildingReferenceValue<T> extends ObservableValue.ComposedObservableValue<ObservableValue<T>> {
-		private final QuickProperty<T> theProperty;
-		private final QuickParseEnv theParseEnv;
-		private final String theDirectiveType;
-		private final List<String> theText;
-
 		StringBuildingReferenceValue(QuickProperty<T> property, QuickParseEnv parseEnv, List<String> text, List<ObservableValue<?>> inserts,
 			String directiveType) {
-			super(new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, property.getType().getType()), null, true,
-				inserts.toArray(new ObservableValue[inserts.size()]));
-			theProperty = property;
-			theParseEnv = parseEnv;
-			theDirectiveType = directiveType;
-			theText = text;
+			super(new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, property.getType().getType()), //
+				combineForString(property, parseEnv, text, directiveType), null, inserts.toArray(new ObservableValue[inserts.size()]));
 		}
+	}
 
-		@Override
-		protected ObservableValue<T> combine(Object[] args) {
-			StringBuilder text = new StringBuilder(theText.get(0));
+	private <T> Function<Object[], ObservableValue<T>> combineForString(QuickProperty<T> property, QuickParseEnv parseEnv,
+		List<String> text, String directiveType) {
+		return args -> {
+			StringBuilder str = new StringBuilder(text.get(0));
 			for (int i = 0; i < args.length; i++) {
 				// TODO is there an elegant way to get more control of the way model values are stringified here?
-				text.append(args[i]).append(theText.get(i + 1));
+				str.append(args[i]).append(text.get(i + 1));
 			}
 			try {
-				return theProperty.getType().getSelfParser().parse(AbstractPropertyParser.this, theParseEnv, text.toString());
+				return property.getType().getSelfParser().parse(AbstractPropertyParser.this, parseEnv, str.toString());
 			} catch (QuickParseException e) {
-				theParseEnv.msg().error("Could not parse value " + text + " by directive " + theDirectiveType, e);
+				parseEnv.msg().error("Could not parse value " + str + " by directive " + directiveType, e);
 				return null; // TODO I guess? Can't think how else to populate a value if parsing fails
 			}
-		}
+		};
 	}
 }

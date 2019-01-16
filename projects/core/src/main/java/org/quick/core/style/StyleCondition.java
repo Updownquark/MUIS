@@ -187,6 +187,21 @@ public class StyleCondition implements Comparable<StyleCondition> {
 		return stateMatches.combine((b1, b2, b3) -> b1 && b2 && b3, groupMatches, roleMatches);
 	}
 
+	public boolean currentlyMatches(StyleConditionInstance<?> value) {
+		if (!matchesType(value.getElementType()))
+			return false;
+		if (theState != null && !theState.matches(value.getState()))
+			return false;
+		if (!theGroups.isEmpty() && !value.getGroups().containsAll(theGroups))
+			return false;
+		if (theRole != null) {
+			StyleConditionInstance<?> parent = value.getRoleParent(theRole).get();
+			if (parent == null || !theParent.currentlyMatches(parent))
+				return false;
+		}
+		return true;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(theState, theRole, theParent, theGroups, theType);

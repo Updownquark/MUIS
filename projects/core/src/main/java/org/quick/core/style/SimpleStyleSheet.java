@@ -1,67 +1,89 @@
 package org.quick.core.style;
 
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.observe.ObservableValue;
-import org.observe.assoc.ObservableMultiMap.ObservableMultiEntry;
-import org.observe.assoc.impl.ObservableMultiMapImpl;
-import org.observe.collect.CollectionSession;
 import org.observe.collect.ObservableSet;
 import org.observe.collect.ObservableSortedSet;
-import org.observe.collect.impl.ObservableHashSet;
-import org.qommons.Transactable;
+import org.observe.util.TypeTokens;
+import org.qommons.collect.CollectionLockingStrategy;
+import org.qommons.tree.BetterTreeSet;
 import org.quick.core.mgr.QuickMessageCenter;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** A simple, mutable stylesheet implementation */
 public class SimpleStyleSheet implements MutableStyleSheet {
-	private final ObservableMultiMapImpl<StyleAttribute<?>, StyleConditionValue<?>> theValues;
-	private QuickMessageCenter theMsg;
+	private final CollectionLockingStrategy theLocker;
+	private final QuickMessageCenter theMsg;
+	private final ObservableSet<StyleConditionHolder<?>> theAttributeConditions;
+	private final ObservableSet<StyleAttribute<?>> theAttributes;
 
 	/** @param msg The message center to use to report style value errors */
-	public SimpleStyleSheet(QuickMessageCenter msg) {
-		theValues = new ObservableMultiMapImpl<>(//
-			new TypeToken<StyleAttribute<?>>() {}, //
-			new TypeToken<StyleConditionValue<?>>() {}, //
-			new TypeToken<ObservableMultiMapImpl.SortedSetMultiEntry<StyleAttribute<?>, StyleConditionValue<?>>>() {}, //
-			ObservableHashSet.creator(), //
-			(key, keyType, valueType, lock, session, controller) -> createEntry((StyleAttribute<Object>) key, keyType, valueType, lock,
-				session, controller));
+	public SimpleStyleSheet(CollectionLockingStrategy locker, QuickMessageCenter msg) {
+		theLocker = locker;
 		theMsg = msg;
-	}
-
-	private static <T> ObservableMultiEntry<StyleAttribute<?>, StyleConditionValue<?>> createEntry(StyleAttribute<T> key,
-		TypeToken<StyleAttribute<?>> keyType, TypeToken<StyleConditionValue<?>> valueType, ReentrantReadWriteLock lock,
-		ObservableValue<CollectionSession> session, Transactable controller) {
-		TypeToken<StyleConditionValue<T>> attValueType = new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {},
-			key.getType().getType());
-		return (ObservableMultiEntry<StyleAttribute<?>, StyleConditionValue<?>>) (ObservableMultiEntry<?, ?>) new ObservableMultiMapImpl.SortedSetMultiEntry<>(
-			key, attValueType, lock, session, controller, StyleConditionValue::compareTo);
+		theAttributeConditions = ObservableSet.create(SCH_TYPE);
+		TypeToken<StyleAttribute<?>> attrType = TypeTokens.get().keyFor(StyleAttribute.class)
+			.parameterized(() -> new TypeToken<StyleAttribute<?>>() {});
+		theAttributes = theAttributeConditions.flow().filter(ac -> ac.theValues.isEmpty() ? "No values" : null)//
+			.mapEquivalent(attrType, ac -> ac.attribute, attr -> new StyleConditionHolder<>(attr),
+				opts -> opts.cache(false).fireIfUnchanged(false))//
+			.collect();
 	}
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
-		return theValues.keySet();
+		return theAttributes;
 	}
 
 	@Override
 	public <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr) {
-		return ((ObservableSortedSet<StyleConditionValue<?>>) theValues.get(attr)).mapEquivalent(
-			new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {}, attr.getType().getType()),
-			v -> (StyleConditionValue<T>) v, v -> v);
+		return ((StyleConditionHolder<T>) theAttributeConditions.getOrAdd(new StyleConditionHolder<>(attr), true, null)).getValues();
 	}
 
 	@Override
 	public <T> SimpleStyleSheet set(StyleAttribute<T> attr, StyleCondition condition, ObservableValue<? extends T> value) {
-		theValues.add(attr, new StyleConditionValue<>(attr, condition, value, theMsg));
+		getStyleExpressions(attr).add(new StyleConditionValueImpl<>(attr, condition, value, theMsg));
 		return this;
 	}
 
 	@Override
 	public SimpleStyleSheet clear(StyleAttribute<?> attr, StyleCondition condition) {
-		theValues.remove(attr, new StyleConditionValue<>(attr, condition, null, theMsg));
+		getStyleExpressions(attr).remove(new StyleConditionValueImpl<>(attr, condition, null, theMsg));
 		return this;
+	}
+
+	private static TypeToken<StyleConditionHolder<?>> SCH_TYPE = new TypeToken<StyleConditionHolder<?>>() {};
+
+	private class StyleConditionHolder<T> {
+		final StyleAttribute<T> attribute;
+		private ObservableSortedSet<StyleConditionValue<T>> theValues;
+
+		StyleConditionHolder(StyleAttribute<T> attr) {
+			attribute = attr;
+		}
+
+		ObservableSortedSet<StyleConditionValue<T>> getValues() {
+			if (theValues == null) {
+				TypeToken<StyleConditionValue<T>> type = TypeTokens.get().keyFor(StyleConditionValue.class)
+					.getCompoundType(attribute.getType().getType(), t -> new TypeToken<StyleConditionValue<T>>() {});
+				theValues = ObservableSortedSet.create(type, new BetterTreeSet<>(theLocker, StyleConditionValue::compareTo));
+			}
+			return theValues;
+		}
+
+		@Override
+		public int hashCode() {
+			return attribute.hashCode();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof StyleConditionHolder && attribute.equals(((StyleConditionHolder<?>) obj).attribute);
+		}
+
+		@Override
+		public String toString() {
+			return attribute + "=" + theValues;
+		}
 	}
 }

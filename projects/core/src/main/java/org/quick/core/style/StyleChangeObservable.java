@@ -6,11 +6,15 @@ import java.util.Set;
 import org.observe.Observable;
 import org.observe.ObservableValueEvent;
 import org.observe.Observer;
+import org.observe.SimpleObservable;
 import org.observe.Subscription;
 import org.observe.collect.ObservableCollection;
-import org.observe.collect.ObservableSet;
 import org.qommons.ConcurrentHashSet;
 import org.qommons.ListenerSet;
+import org.qommons.Lockable;
+import org.qommons.Transaction;
+
+import com.google.common.reflect.TypeToken;
 
 /** A utility for listening to style changes where the particular attributes of interest may not be known initially and may change */
 public class StyleChangeObservable implements Observable<ObservableValueEvent<?>> {
@@ -19,6 +23,8 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	private final Set<StyleAttribute<?>> theAttributes;
 	private final ListenerSet<Observer<? super ObservableValueEvent<?>>> theStyleListeners;
 	private final ListenerSet<Runnable> theWatchListeners;
+	private final SimpleObservable<Void> theRestart;
+	private Lockable theLockable;
 	private Subscription theSubscription;
 	private boolean isStarted;
 
@@ -38,6 +44,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 			}
 		});
 		theWatchListeners = new ListenerSet<>();
+		theRestart = new SimpleObservable<>(null, false, null, null);
 	}
 
 	/**
@@ -59,6 +66,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 			}
 		});
 		theWatchListeners = new ListenerSet<>();
+		theRestart = new SimpleObservable<>(null, false, null, null);
 		other.theWatchListeners.add(() -> {
 			restart();
 		});
@@ -84,6 +92,16 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	@Override
 	public boolean isSafe() {
 		return false;
+	}
+
+	@Override
+	public Transaction lock() {
+		return theLockable.lock();
+	}
+
+	@Override
+	public Transaction tryLock() {
+		return theLockable.tryLock();
 	}
 
 	/**
@@ -134,7 +152,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	}
 
 	/**
-	 * REmoves one or more attributes from the set of attributes which are listened to
+	 * Removes one or more attributes from the set of attributes which are listened to
 	 *
 	 * @param attributes The attributes to cease listening to
 	 * @return This observable
@@ -155,6 +173,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 	private void restart() {
 		if (!isStarted)
 			return;
+		theRestart.onNext(null);
 		if (theSubscription != null) {
 			theSubscription.unsubscribe();
 			theSubscription = null;
@@ -163,14 +182,17 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 		theWatchListeners.forEach(r -> r.run());
 	}
 
+	private static final TypeToken<Observable<? extends ObservableValueEvent<?>>> OBS_TYPE = new TypeToken<Observable<? extends ObservableValueEvent<?>>>() {};
+
 	private void start() {
 		if (theStyle == null || !isStarted)
 			return;
-		ObservableSet<StyleAttribute<?>> filteredAttributes = theStyle.attributes().filterStatic(att -> {
-			return theDomains.contains(att.getDomain()) || theAttributes.contains(att);
-		});
+		ObservableCollection<Observable<? extends ObservableValueEvent<?>>> filteredAttributeChanges = theStyle.attributes().flow()
+			.filter(att -> {
+				return (theDomains.contains(att.getDomain()) || theAttributes.contains(att)) ? null : "Not interested";
+			}).map(OBS_TYPE, att -> theStyle.get(att, true).changes().noInit()).collectActive(theRestart);
 		Observable<? extends ObservableValueEvent<?>> styleEventObservable = ObservableCollection
-			.fold(filteredAttributes.map(att -> theStyle.get(att, true))).noInit();
+			.fold(filteredAttributeChanges);
 		theSubscription = styleEventObservable.act(evt -> {
 			theStyleListeners.forEach(listener -> listener.onNext(evt));
 		});

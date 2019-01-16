@@ -1,6 +1,6 @@
 package org.quick.core;
 
-import org.quick.core.mgr.AttributeManager;
+import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.mgr.QuickState;
 
 /** Contains constants (inside their own categorical classes) used by the Quick core */
@@ -33,14 +33,16 @@ public final class QuickConstants {
 		 * checks during this time. Before this stage, attributes may be added which are not recognized by the element. During this stage,
 		 * all unchecked attributes are checked and errors are logged for any attributes that are unrecognized or malformatted as well as
 		 * for any required attributes whose values have not been set. During and after this stage, no attributes may be set in the element
-		 * unless they have been {@link AttributeManager#accept(Object, org.quick.core.prop.QuickAttribute) accepted} and the type is
-		 * correct. An element's children are started up at the tail end of this stage, so note that when an element transitions out of this
-		 * stage, its contents will be in the {@link #READY} stage, but its parent will still be in the {@link #STARTUP} stage, though all
-		 * its attribute work has completed.
+		 * unless they have been {@link AttributeManager2#accept(org.quick.core.prop.QuickAttribute, Object, java.util.function.Consumer)
+		 * accepted} and the type is correct. An element's children are started up at the tail end of this stage, so note that when an
+		 * element transitions out of this stage, its contents will be in the {@link #READY} stage, but its parent will still be in the
+		 * {@link #STARTUP} stage, though all its attribute work has completed.
 		 */
 		STARTUP,
 		/** The element has been fully initialized within the full document context and is ready to render and receive events */
 		READY,
+		/** When the element is garbage collected */
+		DISPOSE,
 		/** Represents any stage that the core does not know about */
 		OTHER;
 

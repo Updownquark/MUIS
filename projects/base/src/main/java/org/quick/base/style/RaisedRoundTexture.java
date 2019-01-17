@@ -1,6 +1,8 @@
 package org.quick.base.style;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
 import org.quick.core.QuickCache.CacheException;
@@ -115,7 +117,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 	};
 
 	@Override
-	public void render(java.awt.Graphics2D graphics, org.quick.core.QuickElement element, java.awt.Rectangle area)
+	public void render(java.awt.Graphics2D graphics, org.quick.core.QuickElement element, org.quick.core.Rectangle area)
 	{
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
@@ -313,7 +315,7 @@ public class RaisedRoundTexture implements org.quick.core.style.Texture
 		}
 	}
 
-	private void fill(Graphics2D graphics, int x, int y, int w, int h, Rectangle area) {
+	private static void fill(Graphics2D graphics, int x, int y, int w, int h, org.quick.core.Rectangle area) {
 		if(area!=null){
 			x=Math.max(x, area.x);
 			y=Math.max(y, area.y);

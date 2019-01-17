@@ -25,7 +25,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 	/** A toolkit style sheet contains no values itself, but serves as a container to hold all style sheets referred to by the toolkit */
 	public class ToolkitStyleSheet extends CompoundStyleSheet {
 		ToolkitStyleSheet(ObservableCollection<StyleSheet> dependencies) {
-			super(dependencies, theDeath);
+			super(dependencies);
 		}
 
 		@Override

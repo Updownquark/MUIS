@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.function.Function;
 
-import org.observe.Observable;
 import org.quick.core.QuickException;
 import org.quick.core.model.*;
 import org.quick.core.style.Colors;
@@ -177,7 +176,7 @@ public class Formats {
 	/** Formats integers, allowing them to be incremented variably depending on the location of the cursor */
 	public static final AdjustableFormatter.Factory<Integer> advancedInteger = new AdjustableFormatter.Factory<Integer>() {
 		@Override
-		public AdjustableFormatter<Integer> create(QuickDocumentModel doc, Observable<?> until) {
+		public AdjustableFormatter<Integer> create(QuickDocumentModel doc) {
 			return new AdvancedIntFormatter(doc);
 		}
 
@@ -336,7 +335,7 @@ public class Formats {
 	 */
 	public static final AdjustableFormatter.Factory<Duration> durationHHMMss = new AdjustableFormatter.Factory<Duration>() {
 		@Override
-		public AdjustableFormatter<Duration> create(QuickDocumentModel document, Observable<?> until) {
+		public AdjustableFormatter<Duration> create(QuickDocumentModel document) {
 			return new SimpleFormatter.SimpleAdjustableFormatter<Duration>() {
 				@Override
 				public TypeToken<Duration> getFormatType() {

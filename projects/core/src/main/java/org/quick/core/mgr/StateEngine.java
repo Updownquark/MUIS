@@ -22,6 +22,9 @@ public class StateEngine implements StateSet {
 		/** @return The state that this controller controls */
 		QuickState getState();
 
+		/** @return Whether the state is currently active */
+		boolean isActive();
+
 		/**
 		 * @param active Whether the state should be active
 		 * @param cause The cause of the change
@@ -178,6 +181,11 @@ public class StateEngine implements StateSet {
 		@Override
 		public QuickState getState() {
 			return theState.getState();
+		}
+
+		@Override
+		public boolean isActive() {
+			return theActiveStates.contains(theState.theState);
 		}
 
 		@Override

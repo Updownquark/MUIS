@@ -37,18 +37,18 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 			() -> {
 				// Instantiate the format from the format factory
 				ObservableValue<BiTuple<QuickFormatter.Factory<?>, QuickDocumentModel>> formatDocObs = atts()
-					.observe(BaseAttributes.formatFactory).tupleV(getDocumentModel());
-				formatDocObs.act(event -> {
-					if (event.getValue().getValue1() == null)
+					.get(BaseAttributes.formatFactory).combine(BiTuple::new, getDocumentModel());
+				formatDocObs.changes().act(event -> {
+					if (event.getNewValue().getValue1() == null)
 						return; // Don't do anything if the factory is unset
 					try {
-						atts().set(BaseAttributes.format,
-							event.getValue().getValue1().create(event.getValue().getValue2(), formatDocObs.noInit()));
-					} catch (QuickException e) {
+						atts().get(BaseAttributes.format).set(event.getNewValue().getValue1().create(event.getNewValue().getValue2()),
+							event);
+					} catch (IllegalArgumentException e) {
 						msg().error("Could not set format from factory", e);
 					}
 				});
-				atts().getHolder(document).tupleV(atts().getHolder(rich)).value().act(tuple -> {
+				atts().get(document).combine(BiTuple::new, atts().get(rich)).value().act(tuple -> {
 					QuickTextElement textEl = getValue();
 					QuickDocumentModel docModel;
 					if(tuple.getValue1() != null) {
@@ -77,8 +77,9 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 					}
 					setDocumentModel(docModel);
 				});
-				atts().getHolder(ModelAttributes.value).tupleV(atts().getHolder(format).mapV(Formats.defNullCatch)).act(event -> {
-					if (event.getValue().getValue1() == null)
+				atts().get(ModelAttributes.value).combine(BiTuple::new, atts().get(format).map(Formats.defNullCatch)).changes()
+					.act(event -> {
+						if (event.getNewValue().getValue1() == null)
 						return;
 					QuickDocumentModel doc = getDocumentModel().get();
 					if (!(doc instanceof MutableDocumentModel)) {
@@ -87,18 +88,18 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 					}
 					MutableDocumentModel mutableDoc = (MutableDocumentModel) doc;
 					try (Transaction trans = mutableDoc.holdForWrite(event)) {
-						QuickFormatter<Object> formatter = (QuickFormatter<Object>) event.getValue().getValue2();
+							QuickFormatter<Object> formatter = (QuickFormatter<Object>) event.getNewValue().getValue2();
 						if (formatter == null) {
-							String text = String.valueOf(event.getValue().getValue1());
+								String text = String.valueOf(event.getNewValue().getValue1());
 							if (!mutableDoc.toString().equals(text)) {
 								mutableDoc.clear();
 								mutableDoc.append(text);
 							}
 						} else
-							formatter.adjust(mutableDoc, event.getValue().getValue1());
+								formatter.adjust(mutableDoc, event.getNewValue().getValue1());
 					} catch (ClassCastException e) {
-						msg().error("Formatter instance " + event.getValue().getValue2() + " is incompatible with model value "
-							+ event.getValue().getValue1(), e);
+							msg().error("Formatter instance " + event.getNewValue().getValue2() + " is incompatible with model value "
+								+ event.getNewValue().getValue1(), e);
 					}
 				});
 			}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
@@ -111,8 +112,8 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 	public Label(String text, boolean richText) {
 		this();
 		try {
-			atts().set(BaseAttributes.rich, richText);
-		} catch(QuickException e) {
+			atts().get(BaseAttributes.rich).set(richText, null);
+		} catch (IllegalArgumentException e) {
 			throw new IllegalStateException(e);
 		}
 		setText(text);

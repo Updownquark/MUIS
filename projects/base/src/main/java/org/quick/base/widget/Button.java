@@ -6,14 +6,14 @@ import static org.quick.core.QuickConstants.States.FOCUS;
 import static org.quick.core.layout.LayoutUtils.addRadius;
 import static org.quick.core.layout.LayoutUtils.removeRadius;
 
-import java.awt.Point;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
-import org.observe.Action;
 import org.observe.ObservableAction;
 import org.observe.ObservableValueEvent;
 import org.quick.base.BaseConstants;
 import org.quick.base.style.ButtonStyle;
+import org.quick.core.Point;
 import org.quick.core.QuickConstants;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
@@ -55,26 +55,26 @@ public class Button extends SimpleContainer {
 	public Button() {
 		theDepressedController = state().control(BaseConstants.States.DEPRESSED);
 		theEnabledController = state().control(ENABLED);
-		theEnabledController.set(true, null);
+		theEnabledController.setActive(true, null);
 		theCurrentClick = new AtomicReference<>();
 		setFocusable(true);
 		life().runWhen(() -> {
 			theAction = createAction();
-			theAction.isEnabled().act(event -> {
-				theEnabledController.set(event.getValue() == null, event);
-				if (event.getValue() != null)
-					theDepressedController.set(false, event);
+			theAction.isEnabled().changes().act(event -> {
+				theEnabledController.setActive(event.getNewValue() == null, event);
+				if (event.getNewValue() != null)
+					theDepressedController.setActive(false, event);
 			});
-			state().observe(CLICK).noInit().act(new Action<ObservableValueEvent<Boolean>>() {
+			state().observe(CLICK).changes().noInit().act(new Consumer<ObservableValueEvent<Boolean>>() {
 				private Point theClickLocation;
 				private ClickControl theMouseClick;
 
 				@Override
-				public void act(ObservableValueEvent<Boolean> event) {
+				public void accept(ObservableValueEvent<Boolean> event) {
 					if (!state().is(ENABLED))
 						return;
 					MouseEvent cause = event.getCauseLike(c -> c instanceof MouseEvent ? (MouseEvent) c : null);
-					if (event.getValue()) {
+					if (event.getNewValue()) {
 						if (cause != null) {
 							theClickLocation = cause.getPosition(Button.this);
 							theMouseClick = press(cause);
@@ -115,14 +115,14 @@ public class Button extends SimpleContainer {
 					}
 				}
 			});
-			state().observe(FOCUS).noInit().act(evt -> {
+			state().observe(FOCUS).changes().noInit().act(evt -> {
 				cancel(theCurrentClick.get(), evt);
 			});
-			events().filterMap(KeyBoardEvent.key).act(new Action<KeyBoardEvent>() {
+			events().filterMap(KeyBoardEvent.key).act(new Consumer<KeyBoardEvent>() {
 				private ClickControl theKeyClick;
 
 				@Override
-				public void act(KeyBoardEvent event) {
+				public void accept(KeyBoardEvent event) {
 					if (event.wasPressed()) {
 						theKeyClick = cancel(theKeyClick, event);
 						if (event.getKeyCode() != KeyBoardEvent.KeyCode.SPACE && event.getKeyCode() != KeyBoardEvent.KeyCode.ENTER)
@@ -152,7 +152,7 @@ public class Button extends SimpleContainer {
 					}
 				}
 			});
-			getStyle().get(BackgroundStyle.cornerRadius).act(event -> relayout(false));
+			getStyle().get(BackgroundStyle.cornerRadius).changes().noInit().act(event -> relayout(false));
 		}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
@@ -191,7 +191,7 @@ public class Button extends SimpleContainer {
 	 * @return The action that this button will perform when it is clicked
 	 */
 	protected ObservableAction<?> createAction() {
-		return ObservableAction.flatten(atts().getHolder(ModelAttributes.action));
+		return ObservableAction.flatten(atts().get(ModelAttributes.action));
 	}
 
 	/**
@@ -209,7 +209,7 @@ public class Button extends SimpleContainer {
 			};
 		RepeatPressAnimation anim = new RepeatPressAnimation(cause);
 		ClickControlImpl control = new ClickControlImpl(anim);
-		theDepressedController.set(true, cause);
+		theDepressedController.setActive(true, cause);
 		org.quick.motion.AnimationManager.get().start(anim);
 		return control;
 	}
@@ -255,7 +255,7 @@ public class Button extends SimpleContainer {
 		else
 			pressed = false;
 		if (!pressed)
-			theDepressedController.set(pressed, cause);
+			theDepressedController.setActive(pressed, cause);
 	}
 
 	private static class RadiusAddSizePolicy extends org.quick.core.layout.AbstractSizeGuide {

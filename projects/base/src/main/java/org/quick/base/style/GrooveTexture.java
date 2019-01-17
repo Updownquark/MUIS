@@ -2,7 +2,6 @@ package org.quick.base.style;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 
 import org.quick.core.QuickElement;
 import org.quick.core.layout.Orientation;
@@ -10,10 +9,10 @@ import org.quick.core.layout.Orientation;
 /** Implements a texture making an element look like a rounded groove */
 public class GrooveTexture implements org.quick.core.style.Texture {
 	@Override
-	public void render(Graphics2D graphics, QuickElement element, Rectangle area) {
+	public void render(Graphics2D graphics, QuickElement element, org.quick.core.Rectangle area) {
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();
-		Orientation orientation = element.atts().get(org.quick.core.layout.LayoutAttributes.orientation);
+		Orientation orientation = element.atts().get(org.quick.core.layout.LayoutAttributes.orientation).get();
 		if(orientation == null)
 			orientation = Orientation.horizontal;
 		Color bg = org.quick.util.QuickUtils.getBackground(element.getStyle()).get();

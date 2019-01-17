@@ -46,7 +46,7 @@ public class TextSelectionBehavior implements QuickBehavior<QuickTextElement> {
 						theAnchor = selectWord(doc, pos, event);
 						break;
 					case 2: // Triple-click. Select line.
-						if (!Boolean.TRUE.equals(element.atts().get(QuickTextElement.multiLine))) {
+						if (!Boolean.TRUE.equals(element.atts().get(QuickTextElement.multiLine).get())) {
 							theAnchor = 0;
 							try (Transaction t = doc.holdForWrite(event)) {
 								doc.setSelection(0, doc.length());

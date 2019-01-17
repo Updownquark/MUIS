@@ -37,7 +37,8 @@ public class SimpleStyleSheet implements MutableStyleSheet {
 
 	@Override
 	public <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr) {
-		return ((StyleConditionHolder<T>) theAttributeConditions.getOrAdd(new StyleConditionHolder<>(attr), true, null)).getValues();
+		return ObservableSortedSet.flattenValue(theAttributeConditions.observeElement(new StyleConditionHolder<>(attr), true)
+			.map(holder -> ((StyleConditionHolder<T>) holder).getValues()), (scv1, scv2) -> scv1.compareTo(scv2));
 	}
 
 	@Override

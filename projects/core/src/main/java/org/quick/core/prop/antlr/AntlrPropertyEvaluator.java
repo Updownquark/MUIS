@@ -19,13 +19,16 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.observe.Observable;
 import org.observe.ObservableAction;
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
+import org.observe.Observer;
 import org.observe.SettableValue;
 import org.observe.Subscription;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
+import org.qommons.Transaction;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.QuickAppModel;
@@ -38,8 +41,6 @@ import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
-
-import javafx.collections.ObservableList;
 
 /** Evaluates structures parsed by {@link AntlrPropertyParser} into observable values, actions, etc. */
 class AntlrPropertyEvaluator {
@@ -268,10 +269,6 @@ class AntlrPropertyEvaluator {
 				TypeToken<?> testResultType;
 				if (array.getType().isArray()) {
 					testResultType = array.getType().getComponentType();
-				} else if (TypeToken.of(List.class).isAssignableFrom(array.getType())) {
-					testResultType = array.getType().resolveType(List.class.getTypeParameters()[0]);
-				} else if (TypeToken.of(ObservableCollection.class).isAssignableFrom(array.getType())) {
-					testResultType = array.getType().resolveType(ObservableCollection.class.getTypeParameters()[0]);
 				} else {
 					throw new QuickParseException("array value in " + parsedItem + " evaluates to type " + array.getType()
 						+ ", which is not indexable");
@@ -287,23 +284,16 @@ class AntlrPropertyEvaluator {
 					"index value in " + parsedItem + " evaluates to type " + index.getType()
 					+ ", which is not a valid index");
 			}
-			if (TypeToken.of(ObservableList.class).isAssignableFrom(array.getType())) {
-				return SettableValue.flatten(((ObservableValue<ObservableList<? extends T>>) array)
-					.combine((list, idx) -> list.observeAt(((Number) idx).intValue(), null), index));
-			} else if (TypeToken.of(ObservableCollection.class).isAssignableFrom(array.getType())) {
-				return ObservableValue.flatten(((ObservableValue<ObservableCollection<? extends T>>) array)
-					.combine((coll, idx) -> coll.observeAt(((Number) idx).intValue(), null), index));
-			} else
-				return array.combine((TypeToken<T>) resultType, (BiFunction<Object, Number, T>) (a, i) -> {
-					int idx = i.intValue();
-					if (TypeToken.of(Object[].class).isAssignableFrom(array.getType())) {
-						return ((T[]) a)[idx];
-					} else if (array.getType().isArray()) {
-						return (T) java.lang.reflect.Array.get(a, idx);
-					} else/* if (TypeToken.of(List.class).isAssignableFrom(array.getType()))*/ {
-						return ((List<? extends T>) a).get(idx);
-					}
-				}, (ObservableValue<? extends Number>) index, null);
+			return array.combine((TypeToken<T>) resultType, (BiFunction<Object, Number, T>) (a, i) -> {
+				int idx = i.intValue();
+				if (TypeToken.of(Object[].class).isAssignableFrom(array.getType())) {
+					return ((T[]) a)[idx];
+				} else if (array.getType().isArray()) {
+					return (T) java.lang.reflect.Array.get(a, idx);
+				} else/* if (TypeToken.of(List.class).isAssignableFrom(array.getType()))*/ {
+					return ((List<? extends T>) a).get(idx);
+				}
+			}, (ObservableValue<? extends Number>) index, null);
 		} else if (parsedItem instanceof ExpressionTypes.ArrayInitializer) {
 			if (actionRequired)
 				throw new QuickParseException("Array init operation cannot be an action");
@@ -338,7 +328,7 @@ class AntlrPropertyEvaluator {
 						}
 						return array;
 					}
-				}, true, sizes);
+				}, null, sizes);
 			} else if (arrayInit.getElements() != null) {
 				ObservableValue<?>[] elements = new ObservableValue[arrayInit.getElements().size()];
 				TypeToken<?> componentType = arrayType.getComponentType();
@@ -360,7 +350,7 @@ class AntlrPropertyEvaluator {
 							Array.set(array, i, args[i]);
 						return array;
 					}
-				}, true, elements);
+				}, null, elements);
 			} else
 				throw new QuickParseException("Either array sizes or a value list must be specifieded for array initialization");
 			// Now pulling stuff from the context
@@ -450,7 +440,7 @@ class AntlrPropertyEvaluator {
 					parseEnv.msg().error("Invocation failed for " + constructor, e);
 					return null; // TODO What to do with this?
 				}
-			}, true, bestMatch.parameters);
+			}, null, bestMatch.parameters);
 		} else if (parsedItem instanceof ExpressionTypes.QualifiedName) {
 			ExpressionTypes.QualifiedName qName = (ExpressionTypes.QualifiedName) parsedItem;
 			return evaluateMember(new ExpressionTypes.FieldAccess(qName.getContext(), qName.getQualifier(), qName.getName()), parseEnv,
@@ -869,7 +859,7 @@ class AntlrPropertyEvaluator {
 						parseEnv.msg().error("Invocation failed for static method " + member, e);
 						return null; // TODO What to do with this?
 					}
-				}, true, bestMatch.parameters);
+				}, null, bestMatch.parameters);
 		} else {
 			Field fieldRef;
 			try {
@@ -881,30 +871,19 @@ class AntlrPropertyEvaluator {
 			}
 			if ((fieldRef.getModifiers() & Modifier.STATIC) == 0)
 				throw new QuickParseException("Field " + targetType.getName() + "." + fieldRef.getName() + " is not static");
-			return new ObservableValue<Object>() {
-				private final TypeToken<Object> fieldType = (TypeToken<Object>) TypeToken.of(fieldRef.getGenericType());
+			class JavaFieldObservable<T> implements ObservableValue<T> {
+				private final Field field = fieldRef;
+				private final TypeToken<T> fieldType = (TypeToken<T>) TypeToken.of(fieldRef.getGenericType());
 
 				@Override
-				public Subscription subscribe(org.observe.Observer<? super ObservableValueEvent<Object>> observer) {
-					observer.onNext(createInitialEvent(get(), null));
-					return () -> {
-					}; // Can't get notifications on a field change
-				}
-
-				@Override
-				public boolean isSafe() {
-					return true;
-				}
-
-				@Override
-				public TypeToken<Object> getType() {
+				public TypeToken<T> getType() {
 					return fieldType;
 				}
 
 				@Override
-				public Object get() {
+				public T get() {
 					try {
-						return fieldRef.get(null);
+						return (T) fieldRef.get(null);
 					} catch (Exception e) {
 						parseEnv.msg().error("Could not get static field " + targetType.getName() + "." + fieldRef.getName(), e);
 						return null; // TODO What to do with this?
@@ -912,10 +891,71 @@ class AntlrPropertyEvaluator {
 				}
 
 				@Override
-				public String toString() {
-					return member.toString();
+				public Observable<ObservableValueEvent<T>> changes() {
+					return new Changes();
 				}
-			};
+
+				@Override
+				public int hashCode() {
+					return fieldRef.hashCode();
+				}
+
+				@Override
+				public boolean equals(Object obj) {
+					return obj instanceof JavaFieldObservable && field.equals(((JavaFieldObservable<?>) obj).field);
+				}
+
+				@Override
+				public String toString() {
+					return targetType.getName() + "." + member.toString();
+				}
+
+				class Changes implements Observable<ObservableValueEvent<T>> {
+					private final JavaFieldObservable<?> field = JavaFieldObservable.this;
+
+					@Override
+					public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
+						observer.onNext(createInitialEvent(get(), null));
+						return Subscription.NONE; // Can't get notifications on a field change
+					}
+
+					@Override
+					public boolean isSafe() {
+						return true;
+					}
+
+					@Override
+					public boolean isLockSupported() {
+						return false;
+					}
+
+					@Override
+					public Transaction lock() {
+						return Transaction.NONE;
+					}
+
+					@Override
+					public Transaction tryLock() {
+						return Transaction.NONE;
+					}
+
+					@Override
+					public int hashCode() {
+						return field.hashCode();
+					}
+
+					@Override
+					public boolean equals(Object obj) {
+						return obj instanceof Changes && field.equals(((Changes) obj).field);
+					}
+
+					@Override
+					public String toString() {
+						return JavaFieldObservable.this + " changes";
+					}
+				}
+			}
+			return new JavaFieldObservable<>();
 		}
 	}
 
@@ -946,7 +986,7 @@ class AntlrPropertyEvaluator {
 							parseEnv.msg().error("Invocation failed for function " + method, e);
 							return null; // TODO What to do with this?
 						}
-					}, true, match.parameters);
+					}, null, match.parameters);
 				} else if (fieldVal instanceof ObservableAction) {
 					if (method.getArguments().size() != 0)
 						throw new QuickParseException("Invalid invocation of action " + method.getName() + " of model "
@@ -1008,7 +1048,7 @@ class AntlrPropertyEvaluator {
 						parseEnv.msg().error("Invocation failed for method " + method, e);
 						return null; // TODO What to do with this?
 					}
-				}, true, composed);
+				}, null, composed);
 			}
 		}
 	}
@@ -1044,7 +1084,7 @@ class AntlrPropertyEvaluator {
 				parseEnv.msg().error("Invocation failed for function " + method, e);
 				return null; // TODO What to do with this?
 			}
-		}, true, bestMatch.parameters);
+		}, null, bestMatch.parameters);
 	}
 
 	private static ObservableValue<?> mapUnary(ObservableValue<?> arg1, ExpressionTypes.UnaryOperation op, QuickParseEnv parseEnv)

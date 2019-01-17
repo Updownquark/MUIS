@@ -2,6 +2,7 @@ package org.quick.core.event;
 
 import java.util.Set;
 
+import org.quick.core.Point;
 import org.quick.core.QuickDocument;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickEventPositionCapture;
@@ -48,7 +49,7 @@ public abstract class PositionedUserEvent extends UserEvent {
 	 * @param element The element to get the position of for this event
 	 * @return The position of this event over the given element, or null if this information cannot be obtained from this event's capture
 	 */
-	public java.awt.Point getPosition(QuickElement element) {
+	public Point getPosition(QuickElement element) {
 		if(theCapture == null)
 			return null;
 		QuickEventPositionCapture capture = theCapture.find(element);
@@ -58,6 +59,6 @@ public abstract class PositionedUserEvent extends UserEvent {
 					capture = mec;
 					break;
 				}
-		return capture == null ? null : new java.awt.Point(capture.getEventX(), capture.getEventY());
+		return capture == null ? null : new Point(capture.getEventX(), capture.getEventY());
 	}
 }

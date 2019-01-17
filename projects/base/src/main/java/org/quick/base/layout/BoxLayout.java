@@ -39,7 +39,7 @@ public class BoxLayout implements QuickLayout {
 
 	@Override
 	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.right);
+		Direction dir = parent.atts().getValue(direction, Direction.right);
 		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		switch (dir) {
@@ -55,7 +55,7 @@ public class BoxLayout implements QuickLayout {
 
 	@Override
 	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().get(direction, Direction.right);
+		Direction dir = parent.atts().getValue(direction, Direction.right);
 		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 		switch (dir) {
@@ -110,7 +110,7 @@ public class BoxLayout implements QuickLayout {
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				Alignment align = parent.atts().get(alignment);
+				Alignment align = parent.atts().getValue(alignment, null);
 				if ((type == LayoutGuideType.max) && !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
 					return Integer.MAX_VALUE;
 				LayoutSize ret;
@@ -167,21 +167,21 @@ public class BoxLayout implements QuickLayout {
 
 			@Override
 			public int getMaxPreferred(int crossSize, boolean csMax) {
-				if(!Alignment.justify.equals(parent.atts().get(crossAlignment)))
+				if (!Alignment.justify.equals(parent.atts().get(crossAlignment).get()))
 					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.maxPref, crossSize, csMax);
 			}
 
 			@Override
 			public int getMax(int crossSize, boolean csMax) {
-				if(!Alignment.justify.equals(parent.atts().get(crossAlignment)))
+				if (!Alignment.justify.equals(parent.atts().get(crossAlignment).get()))
 					return Integer.MAX_VALUE;
 				return get(LayoutGuideType.max, crossSize, csMax);
 			}
 
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				Alignment align = parent.atts().get(alignment);
+				Alignment align = parent.atts().getValue(alignment, null);
 				if ((type == LayoutGuideType.max) && !(Alignment.justify.equals(align) || Alignment.center.equals(align)))
 					return Integer.MAX_VALUE;
 				LayoutSize ret;
@@ -212,9 +212,9 @@ public class BoxLayout implements QuickLayout {
 
 	@Override
 	public void layout(QuickElement parent, final QuickElement [] children) {
-		final Direction dir = parent.atts().get(direction, Direction.right);
-		Alignment align = parent.atts().get(alignment, Alignment.begin);
-		Alignment crossAlign = parent.atts().get(crossAlignment, Alignment.begin);
+		final Direction dir = parent.atts().getValue(direction, Direction.right);
+		Alignment align = parent.atts().getValue(alignment, Alignment.begin);
+		Alignment crossAlign = parent.atts().getValue(crossAlignment, Alignment.begin);
 		final Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 		final Size padding = parent.getStyle().get(LayoutStyle.padding).get();
 

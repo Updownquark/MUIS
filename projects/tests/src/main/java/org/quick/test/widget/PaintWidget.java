@@ -1,9 +1,10 @@
 package org.quick.test.widget;
 
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
+import java.util.function.Consumer;
 
+import org.quick.core.Point;
+import org.quick.core.Rectangle;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
 
@@ -17,12 +18,12 @@ public class PaintWidget extends org.quick.base.widget.Block {
 	/** Creates a PaintWidget */
 	public PaintWidget() {
 		setFocusable(true);
-		bounds().noInit().act(rect -> resized());
-		events().filterMap(MouseEvent.mouse).act(new org.observe.Action<MouseEvent>() {
+		bounds().changes().noInit().act(rect -> resized());
+		events().filterMap(MouseEvent.mouse).act(new Consumer<MouseEvent>() {
 			private boolean isMouseDown;
 
 			@Override
-			public void act(MouseEvent event) {
+			public void accept(MouseEvent event) {
 				switch (event.getType()) {
 				case entered:
 					isMouseDown = getDocument().isButtonPressed(MouseEvent.ButtonType.left);

@@ -236,7 +236,7 @@ public class QuickContentPane extends java.awt.Component {
 			buttonType = org.quick.core.event.MouseEvent.ButtonType.other;
 			break;
 		}
-		theContent.mouse(evt.getX(), evt.getY(), type, buttonType, evt.getClickCount());
+		theContent.mouse(evt.getX(), evt.getY(), type, buttonType, evt.getClickCount(), evt);
 	}
 
 	void scrolled(java.awt.event.MouseWheelEvent evt) {

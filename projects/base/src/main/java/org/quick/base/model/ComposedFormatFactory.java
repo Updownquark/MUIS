@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.observe.Observable;
+import org.observe.util.WeakListening;
 import org.qommons.BiTuple;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.QuickDocumentModel;
@@ -33,8 +33,8 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 	protected abstract T assemble(List<?> components) throws IllegalArgumentException;
 
 	@Override
-	public AdjustableFormatter<T> create(QuickDocumentModel doc, Observable<?> until) {
-		return new ComposedFormatter(doc, until);
+	public AdjustableFormatter<T> create(QuickDocumentModel doc) {
+		return new ComposedFormatter(doc);
 	}
 
 	public class ComposedFormatter implements AdjustableFormatter<T> {
@@ -43,10 +43,10 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 		private QuickParseException theCurrentError;
 		private T theCurrentValue;
 
-		ComposedFormatter(QuickDocumentModel doc, Observable<?> until) {
+		ComposedFormatter(QuickDocumentModel doc) {
 			theDoc = doc;
 			reset();
-			theDoc.changes().takeUntil(until).act(change -> {
+			WeakListening.consumeWeakly(change -> {
 				if (theSubFormats == null)
 					reset();
 				if (change instanceof ContentChangeEvent) {
@@ -89,7 +89,7 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 						}
 					}
 				}
-			});
+			}, theDoc.changes()::act);
 		}
 
 		private void reset() {

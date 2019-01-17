@@ -3,15 +3,16 @@ package org.quick.base.model;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.observe.ObservableValue;
-import org.observe.assoc.ObservableMap;
-import org.observe.assoc.impl.ObservableMapImpl;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
-import org.observe.collect.impl.ObservableHashSet;
-import org.observe.util.DefaultTransactable;
+import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
+import org.qommons.collect.CollectionElement;
+import org.qommons.collect.RRWLockingStrategy;
+import org.qommons.tree.BetterTreeList;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.mgr.QuickState;
@@ -24,18 +25,27 @@ import com.google.common.reflect.TypeToken;
 
 /** A {@link MutableDocumentModel} that allows different styles for different sections of text */
 public class RichDocumentModel extends AbstractSelectableDocumentModel implements StyleableSelectableDocumentModel {
+	private static final TypeToken<StyleAttribute<?>> ATTR_TYPE = TypeTokens.get().keyFor(StyleAttribute.class)
+		.parameterized(() -> new TypeToken<StyleAttribute<?>>() {});
 	private class RichStyleSequence implements StyledSequence, QuickStyle {
 		private final StringBuilder theContent;
-		private final ObservableMap<StyleAttribute<?>, StyleValue<?>> theStyles;
+		private final ObservableSet<StyleValueHolder<?>> theStyles;
+		private final ObservableSet<StyleAttribute<?>> theAttributes;
 		private final ObservableSet<String> theExtraGroups;
 		private final QuickStyle theBacking;
 
 		RichStyleSequence() {
 			theContent = new StringBuilder();
-			DefaultTransactable transactable = new DefaultTransactable(getLock());
-			theStyles = new ObservableMapImpl<>(new TypeToken<StyleAttribute<?>>() {}, new TypeToken<StyleValue<?>>() {},
-				ObservableHashSet::new, getLock(), transactable.getSession(), transactable);
-			theExtraGroups = new ObservableHashSet<>(TypeToken.of(String.class), getLock(), transactable.getSession(), transactable);
+			ReentrantReadWriteLock lock = getLock();
+			theStyles=ObservableCollection.create(//
+				TypeTokens.get().keyFor(StyleValueHolder.class).parameterized(()->new TypeToken<StyleValueHolder<?>>(){}),
+				new BetterTreeList<>(new RRWLockingStrategy(lock))).flow().distinct().collect();
+			theAttributes = theStyles.flow()
+				.mapEquivalent(ATTR_TYPE, s -> s.attribute, StyleValueHolder::new, //
+					opts -> opts.cache(false).reEvalOnUpdate(false).fireIfUnchanged(false))
+				.collectPassive();
+			theExtraGroups = ObservableCollection.create(TypeTokens.get().STRING, new BetterTreeList<>(new RRWLockingStrategy(lock))).flow()
+				.distinct().collect();
 			theBacking = getNormalStyle().forExtraGroups(theExtraGroups);
 		}
 
@@ -80,21 +90,33 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> attributes() {
-			return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), theBacking.attributes()),
-				Object::equals);
+			return theAttributes;
 		}
 
 		@Override
 		public boolean isSet(StyleAttribute<?> attr) {
-			return theStyles.containsKey(attr) || theBacking.isSet(attr);
+			return theStyles.contains(new StyleValueHolder<>(attr)) || theBacking.isSet(attr);
+		}
+
+		<T> ObservableValue<T> getLocal(StyleAttribute<T> attr) {
+			return ObservableValue.flatten(theStyles.observeElement(new StyleValueHolder<>(attr), true)//
+				.map(svh -> svh == null ? null : ((StyleValueHolder<T>) svh).theValue));
 		}
 
 		@Override
 		public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-			ObservableValue<T> localValue = ObservableValue
-				.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
-			return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
-				theBacking.get(attr, withDefault));
+			return ObservableValue.firstValue(attr.getType().getType(), v -> v != null, () -> withDefault ? attr.getDefault() : null,
+				getLocal(attr), theBacking.get(attr, false));
+		}
+
+		<T> void set(StyleAttribute<T> attr, ObservableValue<? extends T> value) {
+			CollectionElement<StyleValueHolder<?>> el = theStyles.getOrAdd(new StyleValueHolder<>(attr), false, null);
+			((StyleValueHolder<T>) el.get()).theValue = new StyleValueImpl<>(attr, value, theMessageCenter);
+			theStyles.mutableElement(el.getElementId()).set(el.get()); // Fire update
+		}
+
+		void addAll(RichStyleSequence seq) {
+			theStyles.addAll(seq.theStyles);
 		}
 
 		@Override
@@ -109,28 +131,29 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 
 		class RichStyleWithExtraStates implements QuickStyle {
 			private final QuickStyle theBacking2;
+			private final ObservableSet<StyleAttribute<?>> theAttributes2;
 
 			RichStyleWithExtraStates(QuickStyle backing) {
 				theBacking2 = backing;
+				theAttributes2 = ObservableCollection.flattenCollections(//
+					TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}), //
+					theAttributes, theBacking2.attributes()).distinct().collect();
 			}
 
 			@Override
 			public boolean isSet(StyleAttribute<?> attr) {
-				return theStyles.containsKey(attr) || theBacking2.isSet(attr);
+				return theStyles.contains(new StyleValueHolder<>(attr)) || theBacking2.isSet(attr);
 			}
 
 			@Override
 			public ObservableSet<StyleAttribute<?>> attributes() {
-				return ObservableSet.unique(ObservableCollection.flattenCollections(theStyles.keySet(), theBacking2.attributes()),
-					Object::equals);
+				return theAttributes2;
 			}
 
 			@Override
 			public <T> ObservableValue<T> get(StyleAttribute<T> attr, boolean withDefault) {
-				ObservableValue<T> localValue = ObservableValue
-					.flatten((ObservableValue<StyleValue<T>>) (ObservableValue<?>) theStyles.observe(attr));
-				return ObservableValue.firstValue(localValue.getType(), v -> v != null, null, localValue,
-					theBacking2.get(attr, withDefault));
+				return ObservableValue.firstValue(attr.getType().getType(), v -> v != null, () -> withDefault ? attr.getDefault() : null,
+					getLocal(attr), theBacking2.get(attr, false));
 			}
 
 			@Override
@@ -168,8 +191,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 			if(last().getStyle().get(attr) == value)
 				return this;
 
-			RichStyleSequence seq = getEmptyLast();
-			seq.theStyles.put(attr, new StyleValue<>(attr, value, theMessageCenter));
+			getEmptyLast().set(attr, value);
 		}
 		return this;
 	}
@@ -184,7 +206,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		if(seq == null) {
 			seq = new RichStyleSequence();
 			if(!theSequences.isEmpty())
-				seq.theStyles.putAll(theSequences.get(theSequences.size() - 1).theStyles);
+				seq.addAll(theSequences.get(theSequences.size() - 1));
 			theSequences.add(seq);
 		}
 		return seq;
@@ -202,7 +224,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 				return this;
 
 			RichStyleSequence seq = getEmptyLast();
-			seq.theStyles.remove(attr);
+			seq.theStyles.remove(new StyleValueHolder<>(attr));
 		}
 		return this;
 	}
@@ -251,10 +273,10 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 				RichStyleSequence newSeq = new RichStyleSequence();
 				if (!theSequences.isEmpty()) {
 					RichStyleSequence last = theSequences.get(theSequences.size() - 1);
-					newSeq.theStyles.putAll(last.theStyles);
+					newSeq.addAll(last);
 				}
 				for (StyleAttribute<?> att : style.attributes())
-					newSeq.theStyles.put(att, new StyleValue<>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
+					newSeq.set((StyleAttribute<Object>) att, style.get(att));
 				newSeq.theContent.append(csq);
 				theSequences.add(newSeq);
 			} else if (theSequences.isEmpty())
@@ -283,9 +305,9 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 					if(split)
 						splitSequence(i, offset - pos);
 					RichStyleSequence newSeq = new RichStyleSequence();
-					newSeq.theStyles.putAll(seq.theStyles);
+					newSeq.addAll(seq);
 					for(StyleAttribute<?> att : style.attributes())
-						newSeq.theStyles.put(att, new StyleValue<>((StyleAttribute<Object>) att, style.get(att), theMessageCenter));
+						newSeq.set((StyleAttribute<Object>) att, style.get(att));
 					newSeq.theContent.append(csq);
 					theSequences.add(split ? i + 1 : 1, newSeq);
 				} else
@@ -338,7 +360,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		String postSplit = seq.theContent.substring(seqPos);
 		seq.theContent.delete(seqPos, seq.theContent.length());
 		RichStyleSequence newSeq = new RichStyleSequence();
-		newSeq.theStyles.putAll(seq.theStyles);
+		newSeq.addAll(seq);
 		newSeq.theContent.append(postSplit);
 		theSequences.add(seqIndex + 1, newSeq);
 	}
@@ -419,6 +441,30 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		}
 	}
 
+	private static class StyleValueHolder<T> {
+		final StyleAttribute<T> attribute;
+		StyleValue<T> theValue;
+
+		StyleValueHolder(StyleAttribute<T> attr) {
+			attribute = attr;
+		}
+
+		@Override
+		public int hashCode() {
+			return attribute.hashCode();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof StyleValueHolder && attribute.equals(((StyleValueHolder<?>) obj).attribute);
+		}
+
+		@Override
+		public String toString() {
+			return attribute + "=" + theValue;
+		}
+	}
+
 	private class RichSegmentStyle implements GroupableStyle {
 		private final int theStart;
 		private final int theEnd;
@@ -467,26 +513,26 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 					if(seq.getStyle().isSet(attr))
 						return seq.getStyle().get(attr);
 			}
-			return ObservableValue.constant(attr.getType().getType(), withDefault ? attr.getDefault() : null);
+			return ObservableValue.of(attr.getType().getType(), withDefault ? attr.getDefault() : null);
 		}
 
 		@Override
 		public ObservableSet<StyleAttribute<?>> attributes() {
-			ObservableHashSet<ObservableSet<StyleAttribute<?>>> ret = new ObservableHashSet<>(
-				new TypeToken<ObservableSet<StyleAttribute<?>>>() {});
+			ObservableCollection<ObservableSet<StyleAttribute<?>>> ret = ObservableCollection.create(//
+				TypeTokens.get().keyFor(ObservableSet.class).getCompoundType(ATTR_TYPE,
+					t -> new TypeToken<ObservableSet<StyleAttribute<?>>>() {}));
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().attributes());
 			}
-			return ObservableSet.unique(ObservableCollection.flatten(ret), Object::equals).immutable();
+			return ret.flow().flatMap(ATTR_TYPE, s -> s.flow()).distinct().unmodifiable(false).collect();
 		}
 
 		@Override
 		public <T> MutableStyle set(StyleAttribute<T> attr, ObservableValue<? extends T> value) throws IllegalArgumentException {
-			StyleValue<T> safe = new StyleValue<>(attr, value, theMessageCenter);
 			try (Transaction t = holdForWrite(getWriteLockCause())) {
 				for (RichStyleSequence seq : getSeqsForMod())
-					seq.theStyles.put(attr, safe);
+					seq.set(attr, value);
 			}
 
 			fireStyleEvent(theStart, theEnd, getWriteLockCause());

@@ -1,7 +1,5 @@
 package org.quick.core.model;
 
-import org.observe.Observable;
-
 /** A mutable, selectable document model which provides some extra utility methods */
 public interface MutableSelectableDocumentModel extends MutableDocumentModel, SelectableDocumentModel {
 	@Override
@@ -11,12 +9,7 @@ public interface MutableSelectableDocumentModel extends MutableDocumentModel, Se
 
 	@Override
 	default MutableSelectableDocumentModel subSequence(int start, int end) {
-		return (MutableSelectableDocumentModel) MutableDocumentModel.super.subSequence(start, end);
-	}
-
-	@Override
-	default MutableSelectableDocumentModel subSequence(int start, int end, Observable<?> until) {
-		return new MutableSelectableSubDoc(this, start, end, until);
+		return new MutableSelectableSubDoc(this, start, end);
 	}
 
 	/**
@@ -40,10 +33,10 @@ public interface MutableSelectableDocumentModel extends MutableDocumentModel, Se
 		return insert(String.valueOf(c));
 	};
 
-	/** Implements {@link MutableSelectableDocumentModel#subSequence(int, int, Observable)} */
+	/** Implements {@link MutableSelectableDocumentModel#subSequence(int, int)} */
 	class MutableSelectableSubDoc extends MutableSubDoc implements MutableSelectableDocumentModel {
-		public MutableSelectableSubDoc(MutableSelectableDocumentModel outer, int start, int length, Observable<?> until) {
-			super(outer, start, length, until);
+		public MutableSelectableSubDoc(MutableSelectableDocumentModel outer, int start, int length) {
+			super(outer, start, length);
 		}
 
 		@Override

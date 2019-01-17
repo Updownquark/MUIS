@@ -2,7 +2,7 @@ package org.quick.core.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.observe.Observable;
+import org.observe.util.WeakListening;
 import org.qommons.Transaction;
 
 /** A modifiable document model */
@@ -14,19 +14,7 @@ public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
 
 	@Override
 	default MutableDocumentModel subSequence(int start, int end) {
-		return subSequence(start, end, null);
-	}
-
-	/**
-	 * Creates a sub-document whose position in the super-sequence can be kept up-to-date for changes in the super-sequence
-	 *
-	 * @param start The location in this document for the beginning of the sub-document
-	 * @param end The location in this document for the end of the sub-document
-	 * @param until The observable until which to keep the sub-document updated, or null to forego keeping it up-to-date
-	 * @return The sub-document
-	 */
-	default MutableDocumentModel subSequence(int start, int end, Observable<?> until) {
-		return new MutableSubDoc(this, start, end - start, until);
+		return new MutableSubDoc(this, start, end - start);
 	}
 
 	@Override
@@ -92,11 +80,11 @@ public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
 	class MutableSubDoc extends SubDocument implements MutableDocumentModel {
 		private final AtomicInteger isLocalMod;
 
-		public MutableSubDoc(MutableDocumentModel outer, int start, int length, Observable<?> until) {
+		public MutableSubDoc(MutableDocumentModel outer, int start, int length) {
 			super(outer, start, length);
 			isLocalMod = new AtomicInteger();
-			if (until != null)
-				getWrapped().changes().takeUntil(until).act(this::changed);
+			// Allows this sub-doc to be GC'd when nobody cares about it anymore
+			WeakListening.consumeWeakly(this::changed, getWrapped().changes()::act);
 		}
 
 		protected void changed(QuickDocumentChangeEvent change) {

@@ -1,12 +1,11 @@
 package org.quick.base.widget;
 
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
+import org.quick.core.Point;
 import org.quick.core.QuickElementCapture;
-import org.quick.core.QuickException;
+import org.quick.core.Rectangle;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
@@ -44,16 +43,17 @@ public class Transform extends SimpleContainer {
 	/** Creates a transform widget */
 	public Transform() {
 		life().runWhen(() -> {
-			atts().getHolder(flip).act(event -> {
+			atts().get(flip).changes().act(event -> {
 				sizeNeedsChanged();
 				relayout(false);
 			});
-			atts().getHolder(rotate).act(event -> {
-				if (event.getValue() % 90 != 0) {
-					msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value", event.getValue());
+			atts().get(rotate).changes().act(event -> {
+				if (event.getNewValue() % 90 != 0) {
+					msg().warn("The " + rotate.getName() + " attribute currently supports only multiples of 90", "value",
+						event.getNewValue());
 					try {
-						atts().set(rotate, Math.round(event.getValue() / 90) * 90.0);
-					} catch (QuickException e) {
+						atts().get(rotate).set(Math.round(event.getNewValue() / 90) * 90.0, event);
+					} catch (IllegalArgumentException e) {
 						throw new IllegalStateException(e);
 					}
 					return;
@@ -72,10 +72,10 @@ public class Transform extends SimpleContainer {
 	@Override
 	public void doLayout() {
 		Block contents = getContents();
-		double rotation = normalize(atts().get(rotate));
-		Double s = atts().get(scale);
-		Double sx = atts().get(scaleX);
-		Double sy = atts().get(scaleY);
+		double rotation = normalize(atts().get(rotate).get());
+		Double s = atts().get(scale).get();
+		Double sx = atts().get(scaleX).get();
+		Double sy = atts().get(scaleY).get();
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
 
@@ -129,10 +129,10 @@ public class Transform extends SimpleContainer {
 
 	private SizeGuide getSizer(Orientation orientation) {
 		Block contents = getContents();
-		Double rotation = atts().get(rotate);
-		Double s = atts().get(scale);
-		Double sx = atts().get(scaleX);
-		Double sy = atts().get(scaleY);
+		Double rotation = atts().get(rotate).get();
+		Double s = atts().get(scale).get();
+		Double sx = atts().get(scaleX).get();
+		Double sy = atts().get(scaleY).get();
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
 		return new TransformingSizeGuide(normalize(rotation), sxv, syv, contents.getWSizer(), contents.getHSizer(),
@@ -141,17 +141,17 @@ public class Transform extends SimpleContainer {
 
 	@Override
 	protected QuickElementCapture createCapture(int x, int y, int z, int w, int h) {
-		Double rotation = atts().get(rotate);
-		Double s = atts().get(scale);
-		Double sx = atts().get(scaleX);
-		Double sy = atts().get(scaleY);
+		Double rotation = atts().get(rotate).get();
+		Double s = atts().get(scale).get();
+		Double sx = atts().get(scaleX).get();
+		Double sy = atts().get(scaleY).get();
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
-		return new QuickElementCapture(null, this, new TransformTransformer(atts().get(flip), normalize(rotation), sxv, syv), x,
+		return new QuickElementCapture(null, this, new TransformTransformer(atts().get(flip).get(), normalize(rotation), sxv, syv), x,
 			y, z, w, h);
 	}
 
-	private double normalize(Double rotation) {
+	private static double normalize(Double rotation) {
 		if(rotation == null)
 			return 0.0;
 		double ret = rotation;
@@ -164,38 +164,42 @@ public class Transform extends SimpleContainer {
 		return ret;
 	}
 
-	private static void rotate(Point p, int w, int h, double rotation) {
+	private static Point rotate(Point p, int w, int h, double rotation) {
+		int x = p.x;
+		int y = p.y;
 		if(rotation == 0) {
+			return p;
 		} else if(rotation == 90.0) {
 			final int oldX = p.x, oldY = p.y;
-			p.x = oldY;
-			p.y = h - oldX;
+			x = oldY;
+			y = h - oldX;
 		} else if(rotation == 180.0) {
 			final int oldX = p.x, oldY = p.y;
-			p.x = w - oldX;
-			p.y = h - oldY;
+			x = w - oldX;
+			y = h - oldY;
 		} else if(rotation == 270.0) {
 			final int oldX = p.x, oldY = p.y;
-			p.x = oldY;
-			p.y = h - oldX;
+			x = oldY;
+			y = h - oldX;
 		} else {
 			double radians = -rotation / 180.0 * Math.PI;
 			double sin = Math.sin(radians);
 			double cos = Math.cos(radians);
 			final int oldX = p.x, oldY = p.y;
-			p.x = (int) Math.round(cos * oldX - sin * oldY);
-			p.y = (int) Math.round(sin * oldX + cos * oldY);
+			x = (int) Math.round(cos * oldX - sin * oldY);
+			y = (int) Math.round(sin * oldX + cos * oldY);
 		}
+		return new Point(x, y);
 	}
 
 	@Override
 	public QuickElementCapture [] paintChildren(Graphics2D graphics, Rectangle area) {
 		Block content = getContents();
-		Orientation reflection = atts().get(flip);
-		double rotation = normalize(atts().get(rotate));
-		Double s = atts().get(scale);
-		Double sx = atts().get(scaleX);
-		Double sy = atts().get(scaleY);
+		Orientation reflection = atts().get(flip).get();
+		double rotation = normalize(atts().get(rotate).get());
+		Double s = atts().get(scale).get();
+		Double sx = atts().get(scaleX).get();
+		Double sy = atts().get(scaleY).get();
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
 		AffineTransform tx = new AffineTransform();
@@ -378,7 +382,7 @@ public class Transform extends SimpleContainer {
 			int x = pos.x - child.getX();
 			int y = pos.y - child.getY();
 
-			rotate(pos, child.getWidth(), child.getHeight(), theRotation);
+			pos = rotate(pos, child.getWidth(), child.getHeight(), theRotation);
 
 			if(theScaleX != 1.0)
 				x = (int) Math.round(x / theScaleX);
@@ -414,7 +418,7 @@ public class Transform extends SimpleContainer {
 			if(theScaleY != 1.0)
 				y = (int) Math.round(y * theScaleY);
 
-			rotate(pos, child.getWidth(), child.getHeight(), -theRotation);
+			pos = rotate(pos, child.getWidth(), child.getHeight(), -theRotation);
 
 			x += child.getX();
 			y += child.getY();

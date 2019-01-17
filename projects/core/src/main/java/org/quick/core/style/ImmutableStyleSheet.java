@@ -13,14 +13,10 @@ import org.observe.util.TypeTokens;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.util.QuickUtils;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** A StyleSheet that cannot be modified */
 public class ImmutableStyleSheet implements StyleSheet {
-	private static final TypeToken<StyleConditionValue<?>> CONDITION_VALUE_TYPE = TypeTokens.get().keyFor(StyleConditionValue.class)//
-		.parameterized(() -> new TypeToken<StyleConditionValue<?>>() {});
-
 	private final Map<StyleAttribute<?>, ObservableSortedSet<? extends StyleConditionValue<?>>> theValues;
 
 	private ImmutableStyleSheet(Map<StyleAttribute<?>, SortedSet<? extends StyleConditionValue<?>>> values) {
@@ -32,7 +28,8 @@ public class ImmutableStyleSheet implements StyleSheet {
 
 	private <T> ObservableSortedSet<StyleConditionValue<T>> makeSCVSet(StyleAttribute<T> key,
 		SortedSet<? extends StyleConditionValue<?>> values) {
-		return ObservableSortedSet.<StyleConditionValue<T>> of(Builder.conditionType(key.getType().getType()), //
+		return ObservableSortedSet.<StyleConditionValue<T>> of(
+			TypeTokens.get().keyFor(StyleConditionValue.class).getCompoundType(key.getType().getType()), //
 			StyleConditionValue::compareTo, (SortedSet<StyleConditionValue<T>>) values);
 	}
 
@@ -44,8 +41,8 @@ public class ImmutableStyleSheet implements StyleSheet {
 	@Override
 	public <T> ObservableSortedSet<StyleConditionValue<T>> getStyleExpressions(StyleAttribute<T> attr) {
 		ObservableSortedSet<? extends StyleConditionValue<?>> conditions = theValues.get(attr);
-		return conditions != null ? (ObservableSortedSet<StyleConditionValue<T>>) conditions
-			: ObservableSortedSet.of(Builder.conditionType(attr.getType().getType()), StyleConditionValue::compareTo);
+		return conditions != null ? (ObservableSortedSet<StyleConditionValue<T>>) conditions : ObservableSortedSet.of(
+			TypeTokens.get().keyFor(StyleConditionValue.class).getCompoundType(attr.getType().getType()), StyleConditionValue::compareTo);
 	}
 
 	@Override
@@ -103,11 +100,6 @@ public class ImmutableStyleSheet implements StyleSheet {
 		/** @return The new {@link ImmutableStyleSheet} */
 		public ImmutableStyleSheet build() {
 			return new ImmutableStyleSheet(theValues);
-		}
-
-		private static <T> TypeToken<StyleConditionValue<T>> conditionType(TypeToken<T> type) {
-			return TypeTokens.get().keyFor(StyleConditionValue.class).getCompoundType(//
-				type, t -> new TypeToken<StyleConditionValue<T>>() {}.where(new TypeParameter<T>() {}, t));
 		}
 	}
 }

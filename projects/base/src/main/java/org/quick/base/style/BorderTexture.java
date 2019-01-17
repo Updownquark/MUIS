@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.geom.Arc2D;
 
 import org.quick.core.QuickElement;
+import org.quick.core.Rectangle;
 
 /** Draws a border at the very edge of an element */
 public class BorderTexture extends org.quick.core.style.BaseTexture {

@@ -247,7 +247,7 @@ public class QuickRichTextParser {
 			else {
 				Color color = org.quick.core.style.Colors.parseIfColor(tagContent.toString());
 				if(color != null)
-					model.set(FontStyle.color, ObservableValue.constant(color));
+					model.set(FontStyle.color, ObservableValue.of(color));
 				else {
 					QuickStyle style;
 					try {
@@ -272,7 +272,7 @@ public class QuickRichTextParser {
 	}
 
 	private <T> void set(RichDocumentModel model, StyleValue<T> sv) {
-		model.set(sv.attr, ObservableValue.constant(sv.value));
+		model.set(sv.attr, ObservableValue.of(sv.attr.getType().getType(), sv.value));
 	}
 
 	private <T> void set(RichDocumentModel model, StyleAttribute<T> att, QuickStyle style) {

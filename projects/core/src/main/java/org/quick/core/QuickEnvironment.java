@@ -31,8 +31,8 @@ public class QuickEnvironment implements QuickParseEnv {
 	public static final java.net.URL CORE_TOOLKIT = QuickEnvironment.class.getResource("/QuickRegistry.xml");
 
 	private static class EnvironmentStyle extends CompoundStyleSheet {
-		EnvironmentStyle(ObservableCollection<StyleSheet> dependencies, Observable<?> death) {
-			super(dependencies, death);
+		EnvironmentStyle(ObservableCollection<StyleSheet> dependencies) {
+			super(dependencies);
 		}
 
 		@Override
@@ -67,7 +67,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class),
 			new BetterTreeList<>(theContentLocker));
 		theDeath = new SimpleObservable<>(null, false, theAttributeLocker, null);
-		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect(), theDeath);
+		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect());
 	}
 
 	ReentrantReadWriteLock getAttributeLocker() {

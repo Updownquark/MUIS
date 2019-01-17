@@ -1,6 +1,10 @@
 package org.quick.base.model;
 
+import java.util.function.Consumer;
+
+import org.observe.SimpleObservable;
 import org.quick.core.QuickElement;
+import org.quick.core.QuickTextElement;
 import org.quick.core.event.CharInputEvent;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.MutableSelectableDocumentModel;
@@ -8,11 +12,9 @@ import org.quick.core.model.QuickBehavior;
 
 /** Behavior allowing keyboard input */
 public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
-	private org.observe.Action<CharInputEvent> theInputListener;
+	private Consumer<CharInputEvent> theInputListener;
 
-	private org.observe.DefaultObservable<DocumentedElement> theUninstallObservable = new org.observe.DefaultObservable<>();
-
-	private org.observe.Observer<DocumentedElement> theUninstallController = theUninstallObservable.control(null);
+	private SimpleObservable<DocumentedElement> theUninstallObservable;
 
 	private boolean isEnabled = true;
 
@@ -26,16 +28,17 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 
 	@Override
 	public void install(DocumentedElement element) {
+		theUninstallObservable = new SimpleObservable<>(null, false, ((QuickElement) element).getAttributeLocker(), null);
 		((QuickElement) element).events().filterMap(CharInputEvent.charInput).takeUntil(theUninstallObservable.filter(el -> {
 			return el == element;
 		})).act(theInputListener);
 		((QuickElement) element).state().observe(org.quick.base.BaseConstants.States.ENABLED).takeUntil(theUninstallObservable)
-			.act(event -> setEnabled(event.getValue()));
+			.changes().act(event -> setEnabled(event.getNewValue()));
 	}
 
 	@Override
 	public void uninstall(DocumentedElement element) {
-		theUninstallController.onNext(element);
+		theUninstallObservable.onNext(element);
 	}
 
 	/** @param enabled Whether this behavior should be acting on events */
@@ -66,7 +69,7 @@ public class SimpleTextEditing implements QuickBehavior<DocumentedElement> {
 				doc.delete(doc.getCursor(), doc.getCursor() + 1);
 		} else if(ch == CharInputEvent.PASTE)
 			pasteFromClipboard(widget);
-		else if(ch == '\n' && !Boolean.TRUE.equals(((QuickElement) widget).atts().get(org.quick.core.QuickTextElement.multiLine)))
+		else if (ch == '\n' && !Boolean.TRUE.equals(((QuickElement) widget).atts().get(QuickTextElement.multiLine).get()))
 			return;
 		else
 			doc.insert(ch);

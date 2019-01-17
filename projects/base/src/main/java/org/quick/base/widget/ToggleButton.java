@@ -2,9 +2,9 @@ package org.quick.base.widget;
 
 import org.observe.ObservableAction;
 import org.observe.SettableValue;
+import org.observe.util.TypeTokens;
 import org.quick.base.BaseConstants;
 import org.quick.core.QuickConstants;
-import org.quick.core.QuickException;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.tags.AcceptAttribute;
@@ -32,25 +32,24 @@ public class ToggleButton extends Button {
 	public ToggleButton() {
 		theSelectedController = state().control(BaseConstants.States.SELECTED);
 		life().runWhen(() -> {
-			if (atts().getHolder(ModelAttributes.action).get() == null) {
+			if (atts().get(ModelAttributes.action).get() == null) {
 				try {
-					atts().set(ModelAttributes.action, ObservableAction.nullAction(TypeToken.of(Object.class), null));
-				} catch (QuickException e) {
+					atts().get(ModelAttributes.action).set(ObservableAction.nullAction(TypeTokens.get().OBJECT, null), null);
+				} catch (IllegalArgumentException e) {
 					msg().error("Could not set default value for action", e);
 				}
 			}
 		}, QuickConstants.CoreStage.STARTUP.toString(), -1);
 		life().runWhen(() -> {
-			theSelectedController.link(theValue);
+			theValue.changes().act(evt -> theSelectedController.setActive(evt.getNewValue(), evt));
 		}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 
 	@Override
 	protected ObservableAction<?> createAction() {
-		theValue = atts().getHolder(ModelAttributes.selected).asSettable();
-		theValue = theValue.mapV(theValue.getType(), b -> b == null ? false : b, b -> b,
-			true);
-		return ObservableAction.and(TypeToken.of(Object.class), ObservableAction.flatten(atts().getHolder(ModelAttributes.action)),
-			theValue.assignmentTo(theValue.mapV(v -> !v)));
+		theValue = atts().get(ModelAttributes.selected);
+		theValue = theValue.map(theValue.getType(), b -> b == null ? false : b, b -> b, null);
+		return ObservableAction.and(TypeToken.of(Object.class), ObservableAction.flatten(atts().get(ModelAttributes.action)),
+			theValue.assignmentTo(theValue.map(v -> !v)));
 	}
 }

@@ -3,6 +3,7 @@ package org.quick.base;
 import java.awt.Color;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.quick.base.model.Formats;
 import org.quick.base.model.QuickFormatter;
 import org.quick.base.model.Validator;
@@ -10,18 +11,16 @@ import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 
-import com.google.common.reflect.TypeToken;
-
 /** Constant class containing attributes used in the base project */
 public class BaseAttributes {
 	/** Allows specification of the format used by a text field */
 	public static final QuickAttribute<QuickFormatter<?>> format = QuickAttribute.build("format", QuickPropertyType
 		.forTypeInstance((Class<QuickFormatter<?>>) (Class<?>) QuickFormatter.class, builder -> builder.buildContext(ctx -> {
-			ctx.withValue("string", ObservableValue.constant(new TypeToken<QuickFormatter<String>>() {}, Formats.string))
-				.withValue("number", ObservableValue.constant(new TypeToken<QuickFormatter<Number>>() {}, Formats.number))
-				.withValue("integer", ObservableValue.constant(new TypeToken<QuickFormatter<Integer>>() {}, Formats.integer))
-				.withValue("color", ObservableValue.constant(new TypeToken<QuickFormatter<Color>>() {}, Formats.color))
-				.withValue("default", ObservableValue.constant(new TypeToken<QuickFormatter<Object>>() {}, Formats.def));
+			ctx.withValue("string", ObservableValue.of(QuickFormatter.formatType(TypeTokens.get().STRING), Formats.string))
+				.withValue("number", ObservableValue.of(QuickFormatter.formatType(TypeTokens.get().of(Number.class)), Formats.number))
+				.withValue("integer", ObservableValue.of(QuickFormatter.formatType(TypeTokens.get().INT), Formats.integer))
+				.withValue("color", ObservableValue.of(QuickFormatter.formatType(TypeTokens.get().of(Color.class)), Formats.color))
+				.withValue("default", ObservableValue.of(QuickFormatter.formatType(TypeTokens.get().OBJECT), Formats.def));
 		}))).build();
 
 	/** Allows specification of the factory to create the format used by a text field */

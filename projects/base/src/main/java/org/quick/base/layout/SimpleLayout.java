@@ -113,8 +113,8 @@ public class SimpleLayout implements QuickLayout {
 				if (!LayoutUtils.checkLayoutChild(child))
 					return 0;
 
-				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
-				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null)).get();
+				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null)).get();
 
 				Size[] layoutSizes;
 				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
@@ -192,11 +192,11 @@ public class SimpleLayout implements QuickLayout {
 					int ret = child.bounds().get(orient).getGuide().getBaseline(childSize);
 					if (ret < 0)
 						continue;
-					Position pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
+					Position pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null)).get();
 					if (pos != null) {
 						return ret + pos.evaluate(size);
 					}
-					pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+					pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null)).get();
 					if (pos != null) {
 						return size - pos.evaluate(size) - childSize + ret;
 					}
@@ -217,9 +217,9 @@ public class SimpleLayout implements QuickLayout {
 		}
 	}
 
-	private void layout(QuickElement parent, QuickElement child, Orientation orient, Rectangle bounds) {
-		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null));
-		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null));
+	private static void layout(QuickElement parent, QuickElement child, Orientation orient, Rectangle bounds) {
+		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null)).get();
+		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null)).get();
 		int parentLength = parent.bounds().get(orient).getSize();
 		int pos;
 		int length;
@@ -267,12 +267,12 @@ public class SimpleLayout implements QuickLayout {
 		}
 	}
 
-	private int childCrossSize(int crossSize, QuickElement child, Orientation orient) {
+	private static int childCrossSize(int crossSize, QuickElement child, Orientation orient) {
 		int childCrossSize;
-		Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), null));
-		Size maxSize = child.atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), LayoutGuideType.max));
-		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient.opposite(), End.leading, null));
-		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient.opposite(), End.trailing, null));
+		Size size = child.atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), null)).get();
+		Size maxSize = child.atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), LayoutGuideType.max)).get();
+		Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient.opposite(), End.leading, null)).get();
+		Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient.opposite(), End.trailing, null)).get();
 		if (size != null)
 			childCrossSize = size.evaluate(crossSize);
 		else if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels) {

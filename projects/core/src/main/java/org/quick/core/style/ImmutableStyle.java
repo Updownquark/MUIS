@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
@@ -43,12 +42,12 @@ public class ImmutableStyle implements QuickStyle {
 	}
 
 	@Override
-	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates, Observable<?> until) {
+	public QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates) {
 		return this;
 	}
 
 	@Override
-	public QuickStyle forExtraGroups(ObservableCollection<String> extraStates, Observable<?> until) {
+	public QuickStyle forExtraGroups(ObservableCollection<String> extraStates) {
 		return this;
 	}
 

@@ -105,6 +105,18 @@ public class Rectangle {
 		return new Rectangle(minX, minY, maxX - minX, maxY - minY);
 	}
 
+	public boolean intersects(int x2, int y2, int width2, int height2) {
+		int minX = Math.min(x, x2);
+		int maxX = Math.max(x + width, x2 + width2);
+		if (minX >= maxX)
+			return false;
+		int minY = Math.min(y, y2);
+		int maxY = Math.max(y + height, y2 + height2);
+		if (minY >= maxY)
+			return false;
+		return true;
+	}
+
 	public Rectangle intersection(Rectangle r) {
 		int minX = Math.min(x, r.x);
 		int maxX = Math.max(x + width, r.x + r.width);

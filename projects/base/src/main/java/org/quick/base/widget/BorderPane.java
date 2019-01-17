@@ -17,8 +17,11 @@ public class BorderPane extends SimpleContainer {
 		life().runWhen(
 			() -> {
 				QuickStyle selfStyle = getStyle();
-				org.observe.Observable.or(selfStyle.get(BackgroundStyle.cornerRadius), selfStyle.get(BorderStyle.thickness),
-					selfStyle.get(BorderStyle.inset)).act(event -> relayout(false));
+				org.observe.Observable.or(//
+					selfStyle.get(BackgroundStyle.cornerRadius).changes().noInit(), //
+					selfStyle.get(BorderStyle.thickness).changes().noInit(), //
+					selfStyle.get(BorderStyle.inset).changes().noInit()//
+				).act(event -> relayout(false));
 			}, org.quick.core.QuickConstants.CoreStage.INITIALIZED.toString(), 1);
 	}
 

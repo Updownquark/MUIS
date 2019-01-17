@@ -4,14 +4,12 @@ import static org.quick.base.BaseConstants.States.ENABLED;
 import static org.quick.core.QuickConstants.States.FOCUS;
 
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.time.Duration;
 
+import org.qommons.BiTuple;
 import org.quick.base.style.TextEditStyle;
-import org.quick.core.QuickElement;
-import org.quick.core.QuickTextElement;
+import org.quick.core.*;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
@@ -76,7 +74,8 @@ public class DocumentCursorOverlay extends QuickElement {
 		theElement = element;
 		theTextElement = text;
 		StateEngine state = ((QuickElement) theElement).state();
-		state.observe(FOCUS).tupleV(state.observe(ENABLED)).value().act(tuple -> enableChanged(tuple.getValue1(), tuple.getValue2()));
+		state.observe(FOCUS).combine(BiTuple::new, state.observe(ENABLED)).value()//
+			.act(tuple -> enableChanged(tuple.getValue1(), tuple.getValue2()));
 		QuickDocumentModel.flatten(theElement.getDocumentModel()).changes().act(evt -> {
 			if (evt instanceof SelectionChangeEvent) {
 				resetCursorImage();
@@ -206,11 +205,11 @@ public class DocumentCursorOverlay extends QuickElement {
 		boolean wordWrap = ((QuickElement) theElement).getStyle().get(FontStyle.wordWrap).get();
 		java.awt.geom.Point2D cursorLoc2D = theElement.getDocumentModel().get().getLocationAt(doc.getCursor(),
 			wordWrap ? theTextElement.bounds().getWidth() : Integer.MAX_VALUE);
-		Point loc = new Point((int) Math.round(cursorLoc2D.getX()), (int) Math.round(cursorLoc2D.getY()));
-		loc.y += metrics.getLeading();
-		loc.y--;
-		loc = org.quick.util.QuickUtils.relative(loc, theTextElement, this);
-		theCursorLocation = loc;
+		int locX = (int) Math.round(cursorLoc2D.getX());
+		int locY = (int) Math.round(cursorLoc2D.getY());
+		locY += metrics.getLeading();
+		locY--;
+		theCursorLocation = org.quick.util.QuickUtils.relative(new Point(locX, locY), theTextElement, this);
 
 		return ret;
 	}

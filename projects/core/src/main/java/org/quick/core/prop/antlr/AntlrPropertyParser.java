@@ -7,7 +7,11 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
@@ -50,7 +54,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 			// acquire parse result
 			ParseTreeWalker walker = new ParseTreeWalker();
-			QPPCompiler compiler = new QPPCompiler();
+			QPPCompiler compiler = new QPPCompiler(parser);
 			walker.walk(compiler, parser.type());
 			typeExpr = (ExpressionTypes.Type) compiler.getExpression();
 		} catch (RecognitionException e) {
@@ -72,7 +76,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 
 			// acquire parse result
 			ParseTreeWalker walker = new ParseTreeWalker();
-			QPPCompiler compiler = new QPPCompiler();
+			QPPCompiler compiler = new QPPCompiler(parser);
 			walker.walk(compiler, parser.compoundExpression());
 			return compiler.getExpression();
 		} catch (RecognitionException e) {
@@ -87,9 +91,11 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 	}
 
 	private static class QPPCompiler extends QPPBaseListener {
+		private final QPPParser theParser;
 		private final Map<ParserRuleContext, QPPExpression> theDanglingExpressions;
 
-		public QPPCompiler() {
+		public QPPCompiler(QPPParser parser) {
+			theParser = parser;
 			theDanglingExpressions = new HashMap<>();
 		}
 
@@ -132,7 +138,8 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 		@Override
 		public void visitErrorNode(ErrorNode arg0) {
 			throw new IllegalStateException("Unexpected token ( " + arg0.getSymbol().getText() + ", type "
-				+ QPPParser.VOCABULARY.getDisplayName(arg0.getSymbol().getType()) + " ) at position " + arg0.getSymbol().getStartIndex());
+				+ theParser.getVocabulary().getDisplayName(arg0.getSymbol().getType()) + " ) at position "
+				+ arg0.getSymbol().getStartIndex());
 		}
 
 		@Override
@@ -164,8 +171,9 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				push(new ExpressionTypes.StringLiteral(ctx));
 				break;
 			default:
-				throw new IllegalStateException("Unrecognized literal type: " + QPPParser.VOCABULARY.getDisplayName(ctx.start.getType())
-					+ " (" + ctx.start.getType() + ") at position " + ctx.start.getStartIndex());
+				throw new IllegalStateException(
+					"Unrecognized literal type: " + theParser.getVocabulary().getDisplayName(ctx.start.getType()) + " ("
+						+ ctx.start.getType() + ") at position " + ctx.start.getStartIndex());
 			}
 		}
 

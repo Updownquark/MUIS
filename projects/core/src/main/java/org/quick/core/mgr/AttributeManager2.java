@@ -170,6 +170,10 @@ public class AttributeManager2 {
 			return setContainer(value);
 		}
 
+		public ObservableValue<ObservableValue<? extends T>> getContainer() {
+			return theContainerObservable.unsettable();
+		}
+
 		@Override
 		public <V extends T> String isAcceptable(V value) {
 			if (isInternalSetting)
@@ -318,7 +322,7 @@ public class AttributeManager2 {
 		theAttributes = theExposedAttributes.flow()
 			.map(TypeTokens.get().keyFor(QuickAttribute.class).parameterized(() -> new TypeToken<QuickAttribute<?>>() {}),
 				av -> av.getAttribute())
-			.distinct().collectActive(theElement.life().death());
+			.distinct().collect();
 		theRawAttributes = new HashMap<>();
 		theElement.life().runWhen(() -> {
 			setReady();
@@ -406,10 +410,28 @@ public class AttributeManager2 {
 		}
 	}
 
-	public <T> AttributeValue<T> get(QuickAttribute<T> attribute) throws IllegalArgumentException {
+	public <T> AttributeValue<T> get(QuickAttribute<T> attribute) {
 		try (Transaction t = theObservableAttributes.lock(false, null)) {
 			return getOrAccept(attribute, null, false, null);
 		}
+	}
+
+	public <T> T getValue(QuickAttribute<T> attribute, T defValue) {
+		AttributeValue<T> av = get(attribute);
+		T value;
+		if (av == null)
+			value = defValue;
+		else {
+			value = av.get();
+			if (value == null)
+				value = defValue;
+		}
+		return value;
+	}
+
+	public <T> AttributeManager2 setValue(QuickAttribute<T> attribute, T value, Object cause) throws IllegalArgumentException {
+		get(attribute).set(value, cause);
+		return this;
 	}
 
 	public BetterList<AttributeValue<?>> getAttributesByName(String name) {
@@ -810,4 +832,5 @@ public class AttributeManager2 {
 			return AttributeManager2.this;
 		}
 	}
+
 }

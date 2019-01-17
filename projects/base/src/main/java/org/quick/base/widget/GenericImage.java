@@ -2,11 +2,11 @@ package org.quick.base.widget;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.Rectangle;
 import java.net.URL;
 
 import org.quick.base.data.ImageData;
 import org.quick.core.QuickLayout;
+import org.quick.core.Rectangle;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 

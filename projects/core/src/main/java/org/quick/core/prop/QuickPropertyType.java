@@ -9,7 +9,14 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -391,34 +398,34 @@ public final class QuickPropertyType<T> {
 	}
 
 	/** The default property type for string-valued properties */
-	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeToken.of(String.class))
+	public static final QuickPropertyType<String> string = QuickPropertyType.build("string", TypeTokens.get().STRING)
 		.withParser((parser, env, s) -> ObservableValue.of(TypeTokens.get().STRING, s), true)//
-		.map(TypeToken.of(CharSequence.class), seq -> seq.toString(), s -> s)//
+		.map(TypeTokens.get().of(CharSequence.class), seq -> seq.toString(), s -> s)//
 		.build();
 
 	/** The default property type for boolean-valued properties */
-	public static final QuickPropertyType<Boolean> boole = QuickPropertyType.build("boolean", TypeToken.of(Boolean.class)).build();
+	public static final QuickPropertyType<Boolean> boole = QuickPropertyType.build("boolean", TypeTokens.get().BOOLEAN).build();
 
 	/** The default property type for integer-valued properties */
-	public static final QuickPropertyType<Integer> integer = QuickPropertyType.build("integer", TypeToken.of(Integer.class))
-		.map(TypeToken.of(Number.class), num -> num.intValue(), i -> i)//
-		.map(TypeToken.of(Long.class), l -> l.intValue(), i -> Long.valueOf(i))//
-		.map(TypeToken.of(Character.class), c -> (int) c.charValue(), null)//
+	public static final QuickPropertyType<Integer> integer = QuickPropertyType.build("integer", TypeTokens.get().INT)
+		.map(TypeTokens.get().of(Number.class), num -> num.intValue(), i -> i)//
+		.map(TypeTokens.get().LONG, l -> l.intValue(), i -> Long.valueOf(i))//
+		.map(TypeTokens.get().of(Character.class), c -> (int) c.charValue(), null)//
 		.build();
 
 	/** The default property type for floating-point-valued properties */
-	public static final QuickPropertyType<Double> floating = QuickPropertyType.build("float", TypeToken.of(Double.class))
-		.map(TypeToken.of(Number.class), num -> num.doubleValue(), d -> d)//
-		.map(TypeToken.of(Long.class), l -> l.doubleValue(), null)//
-		.map(TypeToken.of(Character.class), c -> (double) c.charValue(), null)//
+	public static final QuickPropertyType<Double> floating = QuickPropertyType.build("float", TypeTokens.get().DOUBLE)
+		.map(TypeTokens.get().of(Number.class), num -> num.doubleValue(), d -> d)//
+		.map(TypeTokens.get().LONG, l -> l.doubleValue(), null)//
+		.map(TypeTokens.get().of(Character.class), c -> (double) c.charValue(), null)//
 		.build();
 
 	/** The default property type for time-instant-valued properties */
-	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeToken.of(Instant.class))
+	public static final QuickPropertyType<Instant> instant = QuickPropertyType.build("instant", TypeTokens.get().of(Instant.class))
 		.withParser((parser, env, s) -> ObservableValue.of(TypeTokens.get().of(Instant.class), parseInstant(s)), true)//
-		.map(TypeToken.of(Long.class), l -> Instant.ofEpochMilli(l), inst -> inst.toEpochMilli())//
-		.map(TypeToken.of(Date.class), date -> date.toInstant(), inst -> new Date(inst.toEpochMilli()))//
-		.map(TypeToken.of(Calendar.class), cal -> cal.toInstant(), inst -> {
+		.map(TypeTokens.get().LONG, l -> Instant.ofEpochMilli(l), inst -> inst.toEpochMilli())//
+		.map(TypeTokens.get().of(Date.class), date -> date.toInstant(), inst -> new Date(inst.toEpochMilli()))//
+		.map(TypeTokens.get().of(Calendar.class), cal -> cal.toInstant(), inst -> {
 			Calendar cal = Calendar.getInstance();
 			cal.setTimeInMillis(inst.toEpochMilli());
 			return cal;
@@ -456,10 +463,10 @@ public final class QuickPropertyType<T> {
 		Builder<Duration> durationBuilder = QuickPropertyType.build("duration", dType)//
 			.withParser((parser, env, s) -> ObservableValue.of(dType, parseDuration(s)), true)//
 			.withToString(d -> toString(d))//
-			.map(TypeToken.of(Long.class), l -> Duration.ofMillis(l), d -> d.toMillis());
+			.map(TypeTokens.get().LONG, l -> Duration.ofMillis(l), d -> d.toMillis());
 		durationBuilder.buildContext(ctx -> {
 			for (Map.Entry<String, ChronoUnit> unit : SUPPORTED_CHRONO_UNITS.entrySet())
-				ctx.withUnit(unit.getKey(), TypeToken.of(Long.class), dType, l -> Duration.of(l, unit.getValue()),
+				ctx.withUnit(unit.getKey(), TypeTokens.get().LONG, dType, l -> Duration.of(l, unit.getValue()),
 					d -> d.get(unit.getValue()));
 			ctx//
 				.withFunction("+",
@@ -469,12 +476,12 @@ public final class QuickPropertyType<T> {
 					ExpressionFunction.build(dType).withArgs(dType, dType)
 						.withApply(args -> ((Duration) args.get(0)).minus((Duration) args.get(1))).build())//
 				.withFunction("*",
-					ExpressionFunction.build(dType).withArgs(dType, TypeToken.of(Long.class))
+					ExpressionFunction.build(dType).withArgs(dType, TypeTokens.get().LONG)
 						.withApply(args -> ((Duration) args.get(0)).multipliedBy((Long) args.get(1))).build())//
 				.withFunction("*",
-					ExpressionFunction.build(dType).withArgs(TypeToken.of(Long.class), dType)
+					ExpressionFunction.build(dType).withArgs(TypeTokens.get().LONG, dType)
 						.withApply(args -> ((Duration) args.get(1)).multipliedBy((Long) args.get(0))).build())//
-				.withFunction("/", ExpressionFunction.build(dType).withArgs(dType, TypeToken.of(Long.class))
+				.withFunction("/", ExpressionFunction.build(dType).withArgs(dType, TypeTokens.get().LONG)
 					.withApply(args -> ((Duration) args.get(0)).dividedBy((Long) args.get(1))).build())//
 			;
 		});//
@@ -527,7 +534,7 @@ public final class QuickPropertyType<T> {
 	public static final QuickPropertyType<Color> color;
 
 	static {
-		Builder<Color> colorBuilder = QuickPropertyType.build("color", TypeToken.of(Color.class))//
+		Builder<Color> colorBuilder = QuickPropertyType.build("color", TypeTokens.get().of(Color.class))//
 			.withParser((parser, env, s) -> ObservableValue.of(TypeTokens.get().of(Color.class), Colors.parseColor(s)), true)//
 			.withToString(c -> Colors.toString(c))//
 			.buildContext(ctx -> {
@@ -638,7 +645,7 @@ public final class QuickPropertyType<T> {
 				return vals[v.ordinal() - 1];
 			}
 		}
-		Builder<T> builder = build("enum " + enumType.getName(), TypeToken.of(enumType))//
+		Builder<T> builder = build("enum " + enumType.getName(), TypeTokens.get().of(enumType))//
 			.withToString(v -> QuickUtils.javaToXML(v.name()))//
 			.buildContext(ctx -> {
 				ctx//
@@ -657,6 +664,16 @@ public final class QuickPropertyType<T> {
 		return builder.build();
 	}
 
+	static {
+		@SuppressWarnings({ "rawtypes", "unused" })
+		TypeTokens.TypeKey clazzKey = TypeTokens.get().keyFor(Class.class).enableCompoundTypes(new TypeTokens.CompoundTypeCreator<Class>() {
+			@Override
+			public <P> TypeToken<? extends Class> createCompoundType(TypeToken<P> param) {
+				return new TypeToken<Class<? extends P>>() {}.where(new TypeParameter<P>() {}, param);
+			}
+		});
+	}
+
 	/**
 	 * Creates a property type that parses a java type
 	 *
@@ -666,8 +683,7 @@ public final class QuickPropertyType<T> {
 	 * @return The property type
 	 */
 	public static final <T> QuickPropertyType<Class<? extends T>> forType(Class<T> type, Consumer<Builder<Class<? extends T>>> builder) {
-		TypeToken<Class<? extends T>> typeToken = new TypeToken<Class<? extends T>>() {}.where(new TypeParameter<T>() {},
-			TypeTokens.get().of(type));
+		TypeToken<Class<? extends T>> typeToken = TypeTokens.get().keyFor(Class.class).getCompoundType(type);
 		Builder<Class<? extends T>> build = build(type.getName() + " type", typeToken)//
 			.withParser((parser, env, s) -> {
 				Class<?> res;
@@ -701,7 +717,7 @@ public final class QuickPropertyType<T> {
 	 * @return The property type
 	 */
 	public static final <T> QuickPropertyType<T> forTypeInstance(Class<T> type, Consumer<Builder<T>> builder) {
-		Builder<T> build = build(type.getName(), TypeToken.of(type))//
+		Builder<T> build = build(type.getName(), TypeTokens.get().of(type))//
 			.withParser((parser, env, s) -> {
 				Class<?> res;
 				try {
@@ -756,7 +772,7 @@ public final class QuickPropertyType<T> {
 	 * </li>
 	 * </ul>
 	 */
-	public static final QuickPropertyType<URL> resource = build("resource", TypeToken.of(URL.class))// TODO
+	public static final QuickPropertyType<URL> resource = build("resource", TypeTokens.get().of(URL.class))// TODO
 		.withParser((parser, env, s) -> {
 			int sepIdx = s.indexOf(':');
 			String namespace = sepIdx < 0 ? null : s.substring(0, sepIdx);

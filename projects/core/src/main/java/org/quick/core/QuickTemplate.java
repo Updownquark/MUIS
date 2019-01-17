@@ -844,7 +844,7 @@ public abstract class QuickTemplate extends QuickElement {
 								return (E) ret;
 							} else {
 								boolean postAttach = postAttachEls.contains(ret);
-								if (!postAttach && postAttachAPs.contains(ret.atts().get(attachPoint.template.role)))
+								if (!postAttach && postAttachAPs.contains(ret.atts().get(attachPoint.template.role).get()))
 									postAttach = true;
 								if (postAttach) {
 									iter.hasPrevious();

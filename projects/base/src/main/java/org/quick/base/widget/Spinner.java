@@ -1,10 +1,12 @@
 package org.quick.base.widget;
 
+import java.util.function.Consumer;
+
 import org.observe.*;
+import org.observe.util.TypeTokens;
 import org.quick.base.BaseAttributes;
 import org.quick.base.layout.TextEditLayout;
 import org.quick.base.model.AdjustableFormatter;
-import org.quick.core.QuickException;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTextElement;
 import org.quick.core.event.KeyBoardEvent;
@@ -44,15 +46,15 @@ public class Spinner extends QuickTemplate {
 			setButtonAction(true);
 			setButtonAction(false);
 		}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
-		events().filterMap(KeyBoardEvent.key).act(new Action<KeyBoardEvent>() {
+		events().filterMap(KeyBoardEvent.key).act(new Consumer<KeyBoardEvent>() {
 			private Button.ClickControl theUpControl;
 			private Button.ClickControl theDownControl;
 
 			@Override
-			public void act(KeyBoardEvent event) {
+			public void accept(KeyBoardEvent event) {
 				theUpControl = Button.release(theUpControl, event);
 				theDownControl = Button.release(theDownControl, event);
-				if (Boolean.TRUE.equals(atts().get(QuickTextElement.multiLine))) {
+				if (Boolean.TRUE.equals(atts().get(QuickTextElement.multiLine).get())) {
 					return;
 				}
 				if (event.getKeyCode() == KeyBoardEvent.KeyCode.UP_ARROW) {
@@ -84,7 +86,8 @@ public class Spinner extends QuickTemplate {
 		TextField textField = getTextField();
 		SettableValue<Object> value = textField.getValue();
 		try {
-			ObservableValue<ObservableAction<?>> actionObs = atts().observe(incOrDec).combineV(new TypeToken<ObservableAction<?>>() {},
+			ObservableValue<ObservableAction<?>> actionObs = atts().get(incOrDec).combine(//
+				TypeTokens.get().keyFor(ObservableAction.class).parameterized(() -> new TypeToken<ObservableAction<?>>() {}),
 				(action, format, val) -> {
 					if (action != null)
 						return action;
@@ -116,12 +119,12 @@ public class Spinner extends QuickTemplate {
 									ObservableValue<String> opEnabled;
 									ObservableValue<String> adjustEnabled;
 									if (incOrDec == increment) {
-										opEnabled = ObservableValue.constant(TypeToken.of(String.class), adjFormat.isIncrementEnabled(val));
-										adjustEnabled = ObservableValue.constant(TypeToken.of(String.class),
+										opEnabled = ObservableValue.of(TypeTokens.get().STRING, adjFormat.isIncrementEnabled(val));
+										adjustEnabled = ObservableValue.of(TypeTokens.get().STRING,
 											value.isAcceptable(adjFormat.increment(val)));
 									} else {
-										opEnabled = ObservableValue.constant(TypeToken.of(String.class), adjFormat.isDecrementEnabled(val));
-										adjustEnabled = ObservableValue.constant(TypeToken.of(String.class),
+										opEnabled = ObservableValue.of(TypeTokens.get().STRING, adjFormat.isDecrementEnabled(val));
+										adjustEnabled = ObservableValue.of(TypeTokens.get().STRING,
 											value.isAcceptable(adjFormat.decrement(val)));
 									}
 									return ObservableValue.firstValue(TypeToken.of(String.class), v -> v != null, value.isEnabled(),
@@ -132,10 +135,10 @@ public class Spinner extends QuickTemplate {
 							return ObservableAction.disabled(TypeToken.of(Object.class), "No value");
 					} else
 						return ObservableAction.disabled(TypeToken.of(Object.class), "No " + incOrDec.getName() + " action set");
-				}, textField.atts().observe(BaseAttributes.format), value, true);
+				}, textField.atts().get(BaseAttributes.format), value, null);
 			actionObs = actionObs.refresh(Observable.flatten(textField.getDocumentModel().value().map(doc -> doc.simpleChanges())));
-			getAdjust(up).atts().set(ModelAttributes.action, ObservableAction.flatten(actionObs));
-		} catch (QuickException e) {
+			getAdjust(up).atts().get(ModelAttributes.action).set(ObservableAction.flatten(actionObs), null);
+		} catch (IllegalArgumentException e) {
 			msg().error("Could not set action for " + (up ? "up" : "down") + " button", e);
 		}
 	}

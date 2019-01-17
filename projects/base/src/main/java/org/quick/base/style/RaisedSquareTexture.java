@@ -2,16 +2,14 @@ package org.quick.base.style;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 
 import org.quick.core.QuickElement;
 import org.quick.core.style.Texture;
 
 /** Renders a raised, square, button-looking texture over an element */
-public class RaisedSquareTexture implements Texture
-{
+public class RaisedSquareTexture implements Texture {
 	@Override
-	public void render(Graphics2D graphics, QuickElement element, Rectangle area)
+	public void render(Graphics2D graphics, QuickElement element, org.quick.core.Rectangle area)
 	{
 		int w = element.bounds().getWidth();
 		int h = element.bounds().getHeight();

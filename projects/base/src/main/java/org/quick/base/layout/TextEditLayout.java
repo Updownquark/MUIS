@@ -1,8 +1,13 @@
 package org.quick.base.layout;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.observe.Observable;
-import org.observe.ObservableValueEvent;
-import org.observe.Observer;
+import org.observe.SimpleObservable;
+import org.qommons.Transaction;
+import org.qommons.collect.CollectionElement;
+import org.qommons.collect.ElementId;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.LayoutGuideType;
@@ -39,20 +44,41 @@ public class TextEditLayout implements QuickLayout {
 
 	@Override
 	public void install(QuickElement parent, Observable<?> until) {
-		parent.ch().onElement(el->{
-			el.subscribe(new Observer<ObservableValueEvent<? extends QuickElement>>() {
-				@Override
-				public <V extends ObservableValueEvent<? extends QuickElement>> void onNext(V value) {
-					childAdded(parent, value.getValue(), Observable.or(until, el.noInit()));
+		Map<ElementId, SimpleObservable<Void>> childRemoves = new HashMap<>();
+		try (Transaction t = parent.ch().lock(false, null)) {
+			SimpleObservable<Void> remove = new SimpleObservable<>(null, false, parent.getAttributeLocker(), null);
+			CollectionElement<? extends QuickElement> el = parent.ch().getTerminalElement(true);
+			while (el != null) {
+				childAdded(parent, el.get(), remove);
+				childRemoves.put(el.getElementId(), remove);
+				el = parent.ch().getAdjacentElement(el.getElementId(), true);
+			}
+			parent.ch().onChange(evt -> {
+				switch (evt.getType()) {
+				case add:
+					SimpleObservable<Void> chRemove = new SimpleObservable<>(null, false, parent.getAttributeLocker(), null);
+					childAdded(parent, evt.getNewValue(), chRemove);
+					childRemoves.put(evt.getElementId(), chRemove);
+					break;
+				case remove:
+					childRemoves.remove(evt.getElementId()).onNext(null);
+					break;
+				case set:
+					if (evt.getOldValue() != evt.getNewValue()) {
+						chRemove = childRemoves.get(evt.getElementId());
+						chRemove.onNext(null);
+						childAdded(parent, evt.getNewValue(), chRemove);
+					}
+					break;
 				}
 			});
-		});
+		}
 		theListener.listen(parent, parent, until);
 	}
 
 	private void childAdded(QuickElement parent, QuickElement child, Observable<?> until) {
 		if (child instanceof DocumentedElement) {
-			QuickDocumentModel doc = ((DocumentedElement) child).getDocumentModel().get();
+			QuickDocumentModel doc = QuickDocumentModel.flatten(((DocumentedElement) child).getDocumentModel());
 			doc.changes().takeUntil(until).filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
 				.act(evt -> parent.relayout(false));
 		} else
@@ -100,7 +126,7 @@ public class TextEditLayout implements QuickLayout {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(type.isPref()) {
-					final int length = parent.atts().get(charLengthAtt, 12);
+					final int length = parent.atts().getValue(charLengthAtt, 12);
 					org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
 					QuickStyle style;
 					if (doc.length() > 0)
@@ -163,7 +189,7 @@ public class TextEditLayout implements QuickLayout {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(type.isPref()) {
-					final Integer rows = parent.atts().get(charRowsAtt);
+					final Integer rows = parent.atts().get(charRowsAtt).get();
 					if(rows != null) {
 						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
 						QuickStyle style;

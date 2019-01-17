@@ -66,11 +66,11 @@ public class StylesTest {
 		StyleConditionInstance<QuickElement> baseCondition = StyleConditionInstance.build(QuickElement.class)//
 			.withState(baseBacking.state)//
 			.withGroups(baseBacking.groups)//
-			.withRoles(baseBacking.roles).build();
+			.withRoles(baseBacking.roles.keySet(), ap -> baseBacking.roles.observe(ap)).build();
 		StyleConditionInstance<DeepElement> deepCondition = StyleConditionInstance.build(DeepElement.class)//
 			.withState(deepBacking.state)//
 			.withGroups(deepBacking.groups)//
-			.withRoles(deepBacking.roles).build();
+			.withRoles(deepBacking.roles.keySet(), ap -> baseBacking.roles.observe(ap)).build();
 
 		ObservableValueTester<Double> baseTester = new ObservableValueTester<>(
 			sheet.get(baseCondition, BackgroundStyle.transparency, false), 0.0000001);

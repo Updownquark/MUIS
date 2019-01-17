@@ -10,14 +10,14 @@ import com.google.common.reflect.TypeToken;
 /** A {@link QuickDocument}'s style */
 public class DocumentStyleSheet extends CompoundStyleSheet {
 	private static final TypeToken<ObservableCollection<StyleSheet>> SS_COLL_TYPE = TypeTokens.get().keyFor(ObservableCollection.class)
-		.getCompoundType(StyleSheet.class, ss -> new TypeToken<ObservableCollection<StyleSheet>>() {});
+		.getCompoundType(StyleSheet.class);
 	private final QuickDocument theDocument;
 	private final ObservableCollection<StyleSheet> theExternalStyleSheets;
 
 	private DocumentStyleSheet(QuickDocument doc, ObservableCollection<StyleSheet> externalStyleSheets) {
 		super(flatten(doc.getDispose(), externalStyleSheets, //
 			ObservableCollection.of(TypeTokens.get().of(StyleSheet.class), doc.getHead().getStyleSheets()), //
-			ObservableCollection.of(TypeTokens.get().of(StyleSheet.class), doc.getEnvironment().getStyle())), doc.getDispose());
+			ObservableCollection.of(TypeTokens.get().of(StyleSheet.class), doc.getEnvironment().getStyle())));
 		theDocument = doc;
 		theExternalStyleSheets = externalStyleSheets;
 	}

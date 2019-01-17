@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -12,6 +13,8 @@ import javax.sound.sampled.Clip;
 import org.observe.*;
 import org.observe.Observable;
 import org.observe.Observer;
+import org.qommons.Causable;
+import org.qommons.Transaction;
 import org.quick.core.QuickParseEnv;
 import org.quick.core.model.*;
 import org.quick.core.parser.QuickParseException;
@@ -40,16 +43,17 @@ public class SoundModel implements QuickAppModel {
 
 	public SoundModel(String name) {
 		theName = name;
-		theFile = new SimpleModelValue<>(URL.class, true, name + ".file");
-		theLength = new SimpleModelValue<>(Duration.class, false, name + ".length");
+		ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+		theFile = new SimpleModelValue<>(lock, URL.class, true, name + ".file");
+		theLength = new SimpleModelValue<>(lock, Duration.class, false, name + ".length");
 		theLength.set(Duration.ZERO, null);
 		theClip = new AtomicReference<>();
 
-		theRate = new SimpleModelValue<>(double.class, false, name + ".rate");
+		theRate = new SimpleModelValue<>(lock, double.class, false, name + ".rate");
 		theRate.set(1.0, null);
-		isLooping = new SimpleModelValue<>(boolean.class, false, name + ".looping");
+		isLooping = new SimpleModelValue<>(lock, boolean.class, false, name + ".looping");
 		isLooping.set(false, null);
-		isPlaying = new SimpleModelValue<Boolean>(boolean.class, false, name + ".playing") {
+		isPlaying = new SimpleModelValue<Boolean>(lock, boolean.class, false, name + ".playing") {
 			@Override
 			public String isAcceptable(Boolean value) {
 				String msg = super.isAcceptable(value);
@@ -65,7 +69,7 @@ public class SoundModel implements QuickAppModel {
 
 			@Override
 			public ObservableValue<String> isEnabled() {
-				return theFile.mapV(file -> {
+				return theFile.map(file -> {
 					if (file == null)
 						return "No file set";
 					else if (theClip.get() == null)
@@ -80,27 +84,25 @@ public class SoundModel implements QuickAppModel {
 		isPlaying.set(false, null);
 		theEnd = new SimpleObservable<>();
 
-		theFile.act(evt -> {
+		theFile.changes().act(evt -> {
 			isPlaying.set(false, evt);
-			loadFile(evt.getValue(), evt);
+			loadFile(evt.getNewValue(), evt);
 		});
-		isPlaying.act(evt -> {
-			if (evt.getValue())
+		isPlaying.changes().act(evt -> {
+			if (evt.getNewValue())
 				start();
 			else
 				stop();
 		});
 		// TODO Use the rate
 		SimpleObservable<Object> internalPositionEvent = new SimpleObservable<>();
-		thePosition = new SettableValue<Duration>() {
+		class SoundModelPosition implements SettableValue<Duration> {
+			final Observable<?> update = Observable.or(theFile.changes().noInit(), theLength.changes().noInit(),
+				isPlaying.changes().noInit(), theEnd, internalPositionEvent);
+
 			@Override
 			public TypeToken<Duration> getType() {
 				return TypeToken.of(Duration.class);
-			}
-
-			@Override
-			public boolean isSafe() {
-				return true;
 			}
 
 			@Override
@@ -109,11 +111,8 @@ public class SoundModel implements QuickAppModel {
 			}
 
 			@Override
-			public Subscription subscribe(Observer<? super ObservableValueEvent<Duration>> observer) {
-				return Observable.or(theFile.noInit(), theLength.noInit(), isPlaying.noInit(), theEnd, internalPositionEvent).act(evt -> {
-					Duration newPos = get();
-					Observer.onNextAndFinish(observer, createChangeEvent(newPos, newPos, evt));
-				});
+			public Observable<ObservableValueEvent<Duration>> changes() {
+				return new Changes();
 			}
 
 			@Override
@@ -145,7 +144,43 @@ public class SoundModel implements QuickAppModel {
 			public ObservableValue<String> isEnabled() {
 				return isPlaying.isEnabled();
 			}
-		};
+
+			class Changes implements Observable<ObservableValueEvent<Duration>> {
+				@Override
+				public Subscription subscribe(Observer<? super ObservableValueEvent<Duration>> observer) {
+					Duration[] value = new Duration[] { get() };
+					Subscription sub = update.act(x -> {
+						Duration newPos = get();
+						ObservableValueEvent<Duration> evt = createChangeEvent(value[0], newPos, x);
+						try (Transaction t = Causable.use(evt)) {
+							observer.onNext(evt);
+						}
+						value[0] = newPos;
+					});
+					ObservableValueEvent<Duration> initEvt = createInitialEvent(value[0], null);
+					try (Transaction t = Causable.use(initEvt)) {
+						observer.onNext(initEvt);
+					}
+					return sub;
+				}
+
+				@Override
+				public boolean isSafe() {
+					return true;
+				}
+
+				@Override
+				public Transaction lock() {
+					return theFile.lock();
+				}
+
+				@Override
+				public Transaction tryLock() {
+					return theFile.tryLock();
+				}
+			}
+		}
+		thePosition = new SoundModelPosition();
 
 		Map<String, Object> fields = new LinkedHashMap<>();
 		fields.put("file", theFile);

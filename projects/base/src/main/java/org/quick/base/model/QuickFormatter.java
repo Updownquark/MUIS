@@ -1,9 +1,10 @@
 package org.quick.base.model;
 
-import org.observe.Observable;
+import org.observe.util.TypeTokens;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.QuickDocumentModel;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /**
@@ -47,16 +48,26 @@ public interface QuickFormatter<T> {
 	T parse(QuickDocumentModel doc) throws QuickParseException;
 
 	/**
+	 * Static utility method to generate a type token for <code>QuickFormatter<T></code>
+	 *
+	 * @param type The parameter type
+	 * @return The formatter type
+	 */
+	static <T> TypeToken<QuickFormatter<T>> formatType(TypeToken<T> type) {
+		return TypeTokens.get().keyFor(QuickFormatter.class).getCompoundType(type,
+			t -> new TypeToken<QuickFormatter<T>>() {}.where(new TypeParameter<T>() {}, t));
+	}
+
+	/**
 	 * A factory that produces QuickFormatters that may keep state for their document
-	 * 
+	 *
 	 * @param <T> The type of values that formatters produced by this factory understand
 	 */
 	interface Factory<T> {
 		/**
 		 * @param doc The document to create the formatter for
-		 * @param until An observable that will fire when the formatter is no longer needed and should release its state
 		 * @return The formatter
 		 */
-		QuickFormatter<T> create(QuickDocumentModel doc, Observable<?> until);
+		QuickFormatter<T> create(QuickDocumentModel doc);
 	}
 }

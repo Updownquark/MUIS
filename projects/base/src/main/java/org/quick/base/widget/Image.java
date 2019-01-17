@@ -42,11 +42,11 @@ public class Image extends GenericImage {
 	/** Creates an image element */
 	public Image() {
 		life().runWhen(() -> {
-			atts().getHolder(src).act(event -> {
-				setImageLocation(event.getValue());
+			atts().get(src).changes().act(event -> {
+				setImageLocation(event.getNewValue());
 			});
-			atts().getHolder(resize).act(event -> {
-				ImageResizePolicy policy = event.getValue();
+			atts().get(resize).changes().act(event -> {
+				ImageResizePolicy policy = event.getNewValue();
 				if (atts().get(hResize) != null || atts().get(vResize) != null) {
 					if (policy != null)
 						msg().warn(
@@ -64,24 +64,24 @@ public class Image extends GenericImage {
 					setVerticalResizePolicy(policy);
 				}
 			});
-			atts().getHolder(hResize).act(event -> {
-				ImageResizePolicy policy = event.getValue();
+			atts().get(hResize).changes().act(event -> {
+				ImageResizePolicy policy = event.getNewValue();
 				if (policy == null)
-					policy = atts().get(resize);
+					policy = atts().get(resize).get();
 				if (policy == null)
 					policy = ImageResizePolicy.lockIfEmpty;
 				setHorizontalResizePolicy(policy);
 			});
-			atts().getHolder(vResize).act(event -> {
-				ImageResizePolicy policy = event.getValue();
+			atts().get(vResize).changes().act(event -> {
+				ImageResizePolicy policy = event.getNewValue();
 				if (policy == null)
-					policy = atts().get(resize);
+					policy = atts().get(resize).get();
 				if (policy == null)
 					policy = ImageResizePolicy.lockIfEmpty;
 				setVerticalResizePolicy(policy);
 			});
-			atts().getHolder(propLocked).act(event -> {
-				Boolean locked = event.getValue();
+			atts().get(propLocked).changes().act(event -> {
+				Boolean locked = event.getNewValue();
 				setProportionLocked(locked == null ? false : locked.booleanValue());
 			});
 		}, QuickConstants.CoreStage.INITIALIZED.toString(), 1);

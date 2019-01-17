@@ -12,6 +12,7 @@ import org.observe.ObservableValue;
 import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.qommons.Causable;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
@@ -19,6 +20,8 @@ import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleChangeObservable;
+
+import com.google.common.reflect.TypeToken;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocumentModel implements SelectableDocumentModel {
@@ -641,10 +644,13 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 				theStyle = wrappedStyle;
 			else
 				theStyle = new QuickStyle() {
+					private final ObservableSet<StyleAttribute<?>> theAttributes = ObservableCollection.flattenCollections(//
+						TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}), //
+						theWrappedStyle.attributes(), theBackup.attributes()).distinct().collect();
+
 					@Override
 					public ObservableSet<StyleAttribute<?>> attributes() {
-						return ObservableSet.unique(
-							ObservableCollection.flattenCollections(theWrappedStyle.attributes(), theBackup.attributes()), Object::equals);
+						return theAttributes;
 					}
 
 					@Override

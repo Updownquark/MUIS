@@ -212,7 +212,7 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		int max = Math.round(maxW);
 
 		int min;
-		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine));
+		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine).get());
 		maxW = 0;
 		lineW = 0;
 		for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, 1)) {

@@ -1,6 +1,5 @@
 package org.quick.core.model;
 
-import org.observe.Observable;
 import org.quick.core.style.GroupableStyle;
 
 /** A document model whose content can be styled */
@@ -33,18 +32,13 @@ public interface StyleableDocumentModel extends MutableDocumentModel {
 
 	@Override
 	default StyleableDocumentModel subSequence(int start, int end) {
-		return (StyleableDocumentModel) MutableDocumentModel.super.subSequence(start, end);
+		return new StyleableSubDoc(this, start, end - start);
 	}
 
-	@Override
-	default StyleableDocumentModel subSequence(int start, int end, Observable<?> until) {
-		return new StyleableSubDoc(this, start, end - start, until);
-	}
-
-	/** Implements {@link StyleableDocumentModel#subSequence(int, int, Observable)} */
+	/** Implements {@link StyleableDocumentModel#subSequence(int, int)} */
 	class StyleableSubDoc extends MutableSubDoc implements StyleableDocumentModel {
-		public StyleableSubDoc(StyleableDocumentModel outer, int start, int length, Observable<?> until) {
-			super(outer, start, length, until);
+		public StyleableSubDoc(StyleableDocumentModel outer, int start, int length) {
+			super(outer, start, length);
 		}
 
 		@Override

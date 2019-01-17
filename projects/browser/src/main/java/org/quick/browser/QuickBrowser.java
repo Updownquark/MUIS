@@ -100,8 +100,8 @@ public class QuickBrowser extends javax.swing.JPanel {
 		}
 
 		try {
-			quickDoc.getRoot().bounds().act(event -> {
-				System.out.println("Bounds " + event.getValue());
+			quickDoc.getRoot().bounds().changes().act(event -> {
+				System.out.println("Bounds " + event.getNewValue());
 			});
 			java.awt.Window window = getWindow();
 			if (window instanceof java.awt.Frame)

@@ -1,6 +1,5 @@
 package org.quick.core.style;
 
-import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
@@ -44,14 +43,14 @@ public interface QuickStyle {
 	 * @return A style that reflects what this style would look like if the given extra states were used in evaluating any conditional
 	 *         values
 	 */
-	QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates, Observable<?> until);
+	QuickStyle forExtraStates(ObservableCollection<QuickState> extraStates);
 
 	/**
 	 * @param state The extra state to create a new style for
 	 * @return A style that reflects what this style would look like if the given extra state was used in evaluating any conditional values
 	 */
-	default QuickStyle forExtraState(QuickState state, Observable<?> until) {
-		return forExtraStates(ObservableCollection.of(TypeTokens.get().of(QuickState.class), state), until);
+	default QuickStyle forExtraState(QuickState state) {
+		return forExtraStates(ObservableCollection.of(TypeTokens.get().of(QuickState.class), state));
 	}
 
 	/**
@@ -59,5 +58,5 @@ public interface QuickStyle {
 	 * @return A style that reflects what this style would look like if the given extra groups were used in evaluating any conditional
 	 *         values
 	 */
-	QuickStyle forExtraGroups(ObservableCollection<String> extraGroups, Observable<?> until);
+	QuickStyle forExtraGroups(ObservableCollection<String> extraGroups);
 }

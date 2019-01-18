@@ -6,7 +6,6 @@ import java.util.function.Predicate;
 import org.observe.Observable;
 import org.observe.ObservableValueEvent;
 import org.quick.core.QuickElement;
-import org.quick.core.QuickException;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
@@ -19,8 +18,8 @@ public interface CompoundListener {
 	 * @param element The element to add the listeners to
 	 * @param root The root element being listened to. Unless called internally, this will typically be the same as {@code element}.
 	 * @param until An observable that signals the end of this listener's interest in the element. When this observable fires, all
-	 *        attributes added by this listener will be {@link org.quick.core.mgr.AttributeManager#reject(Object, QuickAttribute...)
-	 *        rejected} and all listeners will be removed.
+	 *        attributes added by this listener will be {@link org.quick.core.mgr.AttributeManager2.AttributeAcceptance#reject() rejected}
+	 *        and all listeners will be removed.
 	 */
 	void listen(QuickElement element, QuickElement root, Observable<?> until);
 
@@ -79,10 +78,8 @@ public interface CompoundListener {
 		 * @param attr The attribute to accept in the element(s) that this listener applies to
 		 * @param value The initial value for the attribute (if it is not already set)
 		 * @return The listener for chaining
-		 * @throws IllegalArgumentException If {@link org.quick.core.mgr.AttributeManager#accept(Object, QuickAttribute, Object)} throws a
-		 *         {@link QuickException}
 		 */
-		default <A, V extends A> CompoundListenerBuilder accept(QuickAttribute<A> attr, V value) throws IllegalArgumentException {
+		default <A, V extends A> CompoundListenerBuilder accept(QuickAttribute<A> attr, V value) {
 			return accept(attr, false, value);
 		}
 
@@ -100,10 +97,8 @@ public interface CompoundListener {
 		 * @param attr The attribute to require in the element(s) that this listener applies to
 		 * @param value The initial value for the attribute (if it is not already set)
 		 * @return The listener for chaining
-		 * @throws IllegalArgumentException If {@link org.quick.core.mgr.AttributeManager#accept(Object, QuickAttribute, Object)} throws a
-		 *         {@link QuickException}
 		 */
-		default <A, V extends A> CompoundListenerBuilder require(QuickAttribute<A> attr, V value) throws IllegalArgumentException {
+		default <A, V extends A> CompoundListenerBuilder require(QuickAttribute<A> attr, V value) {
 			return accept(attr, true, value);
 		}
 
@@ -114,10 +109,8 @@ public interface CompoundListener {
 		 * @param required Whether the attribute should be required or just accepted
 		 * @param value The initial value for the attribute (if it is not already set)
 		 * @return The listener for chaining
-		 * @throws IllegalArgumentException If {@link org.quick.core.mgr.AttributeManager#accept(Object, QuickAttribute, Object)} throws a
-		 *         {@link QuickException}
 		 */
-		<A, V extends A> CompoundListenerBuilder accept(QuickAttribute<A> attr, boolean required, V value) throws IllegalArgumentException;
+		<A, V extends A> CompoundListenerBuilder accept(QuickAttribute<A> attr, boolean required, V value);
 
 		/**
 		 * A utility method for accepting multiple attributes at once

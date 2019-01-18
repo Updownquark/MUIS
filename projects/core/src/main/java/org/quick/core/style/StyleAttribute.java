@@ -4,8 +4,12 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
+
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A style property that can affect the rendering of Quick elements
@@ -13,6 +17,15 @@ import org.quick.core.prop.QuickPropertyType;
  * @param <T> The type of value the property supports
  */
 public final class StyleAttribute<T> extends QuickProperty<T> {
+	@SuppressWarnings("rawtypes")
+	public static final TypeToken<StyleAttribute<?>> TYPE = TypeTokens.get().keyFor(StyleAttribute.class)
+		.enableCompoundTypes(new TypeTokens.UnaryCompoundTypeCreator<StyleAttribute>() {
+			@Override
+			public <P> TypeToken<? extends StyleAttribute> createCompoundType(TypeToken<P> param) {
+				return new TypeToken<StyleAttribute<P>>() {}.where(new TypeParameter<P>() {}, param);
+			}
+		}).parameterized();
+
 	private final StyleDomain theDomain;
 	private final boolean isInherited;
 	private final T theDefault;

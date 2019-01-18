@@ -13,6 +13,15 @@ import com.google.common.reflect.TypeToken;
  * @param <T> The type of objects that this formatter can parse and format
  */
 public interface QuickFormatter<T> {
+	@SuppressWarnings("rawtypes")
+	static TypeToken<QuickFormatter<?>> TYPE = TypeTokens.get().keyFor(QuickFormatter.class)
+		.enableCompoundTypes(new TypeTokens.UnaryCompoundTypeCreator<QuickFormatter>() {
+			@Override
+			public <P> TypeToken<? extends QuickFormatter> createCompoundType(TypeToken<P> param) {
+				return new TypeToken<QuickFormatter<P>>() {}.where(new TypeParameter<P>() {}, param);
+			}
+		}).parameterized();
+
 	/** @return The type of values that this formatter can format */
 	TypeToken<T> getFormatType();
 
@@ -54,8 +63,7 @@ public interface QuickFormatter<T> {
 	 * @return The formatter type
 	 */
 	static <T> TypeToken<QuickFormatter<T>> formatType(TypeToken<T> type) {
-		return TypeTokens.get().keyFor(QuickFormatter.class).getCompoundType(type,
-			t -> new TypeToken<QuickFormatter<T>>() {}.where(new TypeParameter<T>() {}, t));
+		return TypeTokens.get().keyFor(QuickFormatter.class).getCompoundType(type);
 	}
 
 	/**

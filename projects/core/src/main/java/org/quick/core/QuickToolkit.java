@@ -52,7 +52,7 @@ public class QuickToolkit extends java.net.URLClassLoader {
 
 	private QuickToolkit(QuickEnvironment env, URL uri, String name, String descrip, Version version, List<URL> cps,
 		Map<String, String> classMap, Map<String, String> resMap, List<QuickToolkit> depends, List<QuickPermission> perms) {
-		super(new URL[0]);
+		super(new URL[0], null);
 		theEnvironment = env;
 		theURI = uri;
 		theName = name;
@@ -191,7 +191,11 @@ public class QuickToolkit extends java.net.URLClassLoader {
 				return depend.loadClass(name, resolve);
 			} catch(ClassNotFoundException e) {
 			}
-		throw cnfe;
+		try {
+			return ClassLoader.getSystemClassLoader().loadClass(name);
+		} catch (ClassNotFoundException __e) {
+			throw new ClassNotFoundException("Toolkit " + theName + " could not load class " + name, cnfe);
+		}
 	}
 
 	/**

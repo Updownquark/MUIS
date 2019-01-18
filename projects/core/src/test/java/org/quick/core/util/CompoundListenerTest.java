@@ -41,7 +41,7 @@ public class CompoundListenerTest {
 
 		org.quick.core.QuickDocument doc = org.quick.QuickTestUtils.createDocument();
 		QuickElement testEl = new QuickElement() {};
-		testEl.init(doc, null, doc.cv(), testEl, null, null);
+		testEl.init(doc, null, doc.cv(), null, null, null);
 		SimpleObservable<Void> until = new SimpleObservable<>();
 		listener.listen(testEl, testEl, until);
 
@@ -70,8 +70,8 @@ public class CompoundListenerTest {
 		until.onNext(null);
 		assertNull(testEl.atts().get(region));
 		try {
-			testEl.atts().get(region).set(Region.bottom, null);
-			assertTrue("Should have thrown a QuickException", false);
+			testEl.atts().setValue(region, Region.bottom, null);
+			assertTrue("Should have thrown an exception", false);
 		} catch (IllegalArgumentException e) {
 		}
 		style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.red).build();
@@ -102,7 +102,7 @@ public class CompoundListenerTest {
 				return getChildManager();
 			}
 		};
-		testEl.init(doc, null, doc.cv(), testEl, null, null);
+		testEl.init(doc, null, doc.cv(), null, null, null);
 		ObservableCollection<QuickElement> ch = (ObservableCollection<QuickElement>) testEl.ch();
 		QuickElement firstChild = new QuickElement() {};
 		firstChild.init(doc, null, doc.cv(), testEl, null, null);
@@ -148,14 +148,14 @@ public class CompoundListenerTest {
 		until.onNext(null);
 		assertNull(firstChild.atts().get(region));
 		try {
-			firstChild.atts().get(region).set(Region.bottom, null);
-			assertTrue("Should have thrown a IllegalArgumentException", false);
+			firstChild.atts().setValue(region, Region.bottom, null);
+			assertTrue("Should have thrown an exception", false);
 		} catch (IllegalArgumentException e) {
 		}
 		assertNull(secondChild.atts().get(region));
 		try {
-			secondChild.atts().get(region).set(Region.bottom, null);
-			assertTrue("Should have thrown a IllegalArgumentException", false);
+			secondChild.atts().setValue(region, Region.bottom, null);
+			assertTrue("Should have thrown an exception", false);
 		} catch (IllegalArgumentException e) {
 		}
 		style = org.quick.core.style.ImmutableStyle.build(null).setConstant(color, Colors.red).build();
@@ -207,7 +207,7 @@ public class CompoundListenerTest {
 				return getChildManager();
 			}
 		};
-		testEl.init(doc, null, doc.cv(), testEl, null, null);
+		testEl.init(doc, null, doc.cv(), null, null, null);
 		ObservableCollection<QuickElement> ch = (ObservableCollection<QuickElement>) testEl.ch();
 		QuickElement firstChild = new QuickElement() {};
 		firstChild.init(doc, null, doc.cv(), testEl, null, null);
@@ -296,14 +296,14 @@ public class CompoundListenerTest {
 		until.onNext(null);
 		assertNull(firstChild.atts().get(region));
 		try {
-			firstChild.atts().get(region).set(Region.bottom, null);
-			assertTrue("Should have thrown a IllegalArgumentException", false);
+			firstChild.atts().setValue(region, Region.bottom, null);
+			assertTrue("Should have thrown an exception", false);
 		} catch (IllegalArgumentException e) {
 		}
 		assertNull(secondChild.atts().get(region));
 		try {
-			secondChild.atts().get(region).set(Region.bottom, null);
-			assertTrue("Should have thrown a IllegalArgumentException", false);
+			secondChild.atts().setValue(region, Region.bottom, null);
+			assertTrue("Should have thrown an exception", false);
 		} catch (IllegalArgumentException e) {
 		}
 		assertNull(firstChild.atts().get(width));

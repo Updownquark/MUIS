@@ -247,6 +247,11 @@ public class AttributeManager2 {
 				kill(wanter);
 			}
 		}
+
+		@Override
+		public String toString() {
+			return theAttribute.getName() + "=" + (theContainerObservable.get() != null ? theContainerObservable.get() : get());
+		}
 	}
 
 	private static class ValueListener<T> {
@@ -320,8 +325,7 @@ public class AttributeManager2 {
 		theExposedAttributes = theObservableAttributes.flow().filterMod(f -> f.unmodifiable(StdMsg.UNSUPPORTED_OPERATION, false))
 			.collectPassive();
 		theAttributes = theExposedAttributes.flow()
-			.map(TypeTokens.get().keyFor(QuickAttribute.class).parameterized(() -> new TypeToken<QuickAttribute<?>>() {}),
-				av -> av.getAttribute())
+			.map(QuickAttribute.TYPE, av -> av.getAttribute())
 			.distinct().collect();
 		theRawAttributes = new HashMap<>();
 		theElement.life().runWhen(() -> {
@@ -345,7 +349,7 @@ public class AttributeManager2 {
 		CollectionElement<AttributeValue<?>> found = theSortedAttributes.search(av -> compare(attribute, av.getAttribute()),
 			SortedSearchFilter.PreferLess);
 		if (found != null) {
-			if (found.get().equals(attribute)) {
+			if (found.get().getAttribute().equals(attribute)) {
 				if (accept) {
 					synchronized (found.get()) {
 						if (onValue != null)
@@ -416,6 +420,23 @@ public class AttributeManager2 {
 		}
 	}
 
+	/**
+	 * The difference between this method and {@link #get(QuickAttribute)} is that the get method returns null if the attribute is not
+	 * {@link #accept(QuickAttribute, Object, Consumer) accepted} in this manager. This method returns an observable that will reflect the
+	 * value in the event the attribute is later accepted. It will also reflect null if the attribute is {@link AttributeAcceptance#reject()
+	 * rejected} later.
+	 *
+	 * @param <T> The type of the attribute
+	 * @param attribute The attribute to watch for
+	 * @return The value of the attribute
+	 */
+	public <T> ObservableValue<T> watchFor(QuickAttribute<T> attribute) {
+		ObservableValue<AttributeValue<?>> found = theObservableAttributes.observeFind(av -> av.getAttribute().equals(attribute)).find();
+		ObservableValue<ObservableValue<T>> typed = found.map(
+			TypeTokens.get().keyFor(ObservableValue.class).getCompoundType(attribute.getType().getType()), av -> (AttributeValue<T>) av);
+		return ObservableValue.flatten(typed);
+	}
+
 	public <T> T getValue(QuickAttribute<T> attribute, T defValue) {
 		AttributeValue<T> av = get(attribute);
 		T value;
@@ -430,7 +451,10 @@ public class AttributeManager2 {
 	}
 
 	public <T> AttributeManager2 setValue(QuickAttribute<T> attribute, T value, Object cause) throws IllegalArgumentException {
-		get(attribute).set(value, cause);
+		AttributeValue<T> av = get(attribute);
+		if (av == null)
+			throw new IllegalArgumentException("Attribute " + attribute + " is not accepted");
+		av.set(value, cause);
 		return this;
 	}
 

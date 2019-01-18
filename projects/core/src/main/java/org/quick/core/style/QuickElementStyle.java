@@ -34,20 +34,22 @@ public class QuickElementStyle implements QuickStyle {
 		theElement = element;
 		theExtraStates = extraStates;
 		theExtraGroups = extraGroups;
+
 		ObservableValue<QuickStyle> localStyle = theElement.atts().get(StyleAttributes.style);
-		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet.flattenValue(localStyle.map(s -> s.attributes()));
+		if (localStyle == null)
+			localStyle = theElement.atts().watchFor(StyleAttributes.style);
+		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet
+			.flattenValue(localStyle.map(s -> s == null ? ObservableSet.of(StyleAttribute.TYPE) : s.attributes()));
 		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
 		ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>> parentAttrs = ObservableSet
-			.flattenValue(theElement.getParent().map(p -> p.getStyle().attributes())).flow()
-			.filter(att -> att.isInherited() ? null : "Not inherited");
+			.flattenValue(theElement.getParent().map(p -> p == null ? ObservableSet.of(StyleAttribute.TYPE) : p.getStyle().attributes()))
+			.flow().filter(att -> att.isInherited() ? null : "Not inherited");
 		ObservableCollection<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> toFlatten;
 		if (sheet == null)
 			toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs);
 		else
 			toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs, sheet.attributes().flow());
-		theAttributes = toFlatten.flow()
-			.flatMap(TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}), f -> f)
-			.distinct().collect();
+		theAttributes = toFlatten.flow().flatMap(StyleAttribute.TYPE, f -> f).distinct().collect();
 	}
 
 	private static final TypeToken<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> ATTR_CDF_TYPE = new TypeToken<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>>() {};
@@ -129,7 +131,7 @@ public class QuickElementStyle implements QuickStyle {
 		ObservableValue<T> ssValue;
 		if (attr.isInherited()) {
 			TypeToken<StyleConditionValue<T>> scvType = TypeTokens.get().keyFor(StyleConditionValue.class)
-				.getCompoundType(attr.getType().getType(), t -> new TypeToken<StyleConditionValue<T>>() {});
+				.getCompoundType(attr.getType().getType());
 			ObservableValue<ObservableValue<StyleConditionValue<T>>> layered = getParentCondition().map(scvType, pCondition -> {
 				if (pCondition == null)
 					return null;
@@ -159,10 +161,12 @@ public class QuickElementStyle implements QuickStyle {
 
 	private static <T> ObservableValue<T> getLocalValue(QuickElement bottom, QuickElement element, StyleAttribute<T> attr) {
 		ObservableValue<QuickStyle> localStyle = element.atts().get(StyleAttributes.style);
-		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.map(s -> s.get(attr, false)));
+		if (localStyle == null)
+			localStyle = element.atts().watchFor(StyleAttributes.style);
+		ObservableValue<T> localValue = ObservableValue.flatten(localStyle.map(s -> s == null ? null : s.get(attr, false)));
 		if (attr.isInherited() && !isTemplateParent(element, bottom)) {
-			TypeToken<ObservableValue<T>> obsType = TypeTokens.get().keyFor(ObservableValue.class).getCompoundType(attr.getType().getType(),
-				t -> new TypeToken<ObservableValue<T>>() {});
+			TypeToken<ObservableValue<T>> obsType = TypeTokens.get().keyFor(ObservableValue.class)
+				.getCompoundType(attr.getType().getType());
 			ObservableValue<T> parentLocalValue = ObservableValue.flatten(element.getParent().map(obsType, p -> {
 				if (p == null)
 					return null;

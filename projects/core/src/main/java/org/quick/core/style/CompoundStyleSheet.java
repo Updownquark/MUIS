@@ -20,9 +20,7 @@ public class CompoundStyleSheet implements StyleSheet {
 	public CompoundStyleSheet(ObservableCollection<StyleSheet> components) {
 		theComponents = components;
 		theAttributes = theComponents.flow()
-			.flatMap(//
-				TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}),
-				component -> component.attributes().flow())
+			.flatMap(StyleAttribute.TYPE, component -> component.attributes().flow())
 			.distinct().collect();
 		theAttributeExpressions = new ConcurrentHashMap<>();
 	}

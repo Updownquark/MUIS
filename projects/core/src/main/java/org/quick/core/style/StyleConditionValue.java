@@ -13,12 +13,12 @@ import com.google.common.reflect.TypeToken;
 public interface StyleConditionValue<T> extends StyleValue<T>, Comparable<StyleConditionValue<?>> {
 	@SuppressWarnings("rawtypes")
 	static TypeToken<StyleConditionValue<?>> TYPE = TypeTokens.get().keyFor(StyleConditionValue.class)
-		.enableCompoundTypes(new TypeTokens.CompoundTypeCreator<StyleConditionValue>() {
+		.enableCompoundTypes(new TypeTokens.UnaryCompoundTypeCreator<StyleConditionValue>() {
 			@Override
 			public <P> TypeToken<? extends StyleConditionValue> createCompoundType(TypeToken<P> param) {
 				return new TypeToken<StyleConditionValue<P>>() {}.where(new TypeParameter<P>() {}, param);
 			}
-		}).parameterized(() -> new TypeToken<StyleConditionValue<?>>() {});
+		}).parameterized();
 
 	/** @return The condition under which this value applies */
 	StyleCondition getCondition();

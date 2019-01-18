@@ -31,6 +31,10 @@ import org.quick.core.tags.Template;
 		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"),//
 	})
 public class Label extends org.quick.core.QuickTemplate implements org.quick.core.model.DocumentedElement {
+	static {
+		System.currentTimeMillis();
+	}
+
 	/** Creates the label */
 	public Label() {
 		life().runWhen(

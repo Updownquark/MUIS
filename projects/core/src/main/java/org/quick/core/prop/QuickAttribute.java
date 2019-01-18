@@ -4,6 +4,10 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.observe.ObservableValue;
+import org.observe.util.TypeTokens;
+
+import com.google.common.reflect.TypeParameter;
+import com.google.common.reflect.TypeToken;
 
 /**
  * A QuickAttribute represents an option that may or must be specified in a Quick element either from the document(XML) or from code. A
@@ -15,6 +19,15 @@ import org.observe.ObservableValue;
  * @param <T> The java type of the attribute
  */
 public class QuickAttribute<T> extends QuickProperty<T> {
+	@SuppressWarnings("rawtypes")
+	public static final TypeToken<QuickAttribute<?>> TYPE = TypeTokens.get().keyFor(QuickAttribute.class)
+		.enableCompoundTypes(new TypeTokens.UnaryCompoundTypeCreator<QuickAttribute>() {
+			@Override
+			public <P> TypeToken<? extends QuickAttribute> createCompoundType(TypeToken<P> param) {
+				return new TypeToken<QuickAttribute<P>>() {}.where(new TypeParameter<P>() {}, param);
+			}
+		}).parameterized();
+
 	/** @see QuickProperty#QuickProperty(String, QuickPropertyType, PropertyValidator, List) */
 	protected QuickAttribute(String name, QuickPropertyType<T> type, PropertyValidator<T> validator,
 		List<Function<String, ObservableValue<?>>> valueSuppliers) {

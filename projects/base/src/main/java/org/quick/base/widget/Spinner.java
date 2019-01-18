@@ -87,8 +87,7 @@ public class Spinner extends QuickTemplate {
 		SettableValue<Object> value = textField.getValue();
 		try {
 			ObservableValue<ObservableAction<?>> actionObs = atts().get(incOrDec).combine(//
-				TypeTokens.get().keyFor(ObservableAction.class).parameterized(() -> new TypeToken<ObservableAction<?>>() {}),
-				(action, format, val) -> {
+				ObservableAction.TYPE, (action, format, val) -> {
 					if (action != null)
 						return action;
 					else if (format instanceof AdjustableFormatter) {

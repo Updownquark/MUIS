@@ -37,7 +37,6 @@ import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.style.Colors;
 import org.quick.util.QuickUtils;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /**
@@ -662,16 +661,6 @@ public final class QuickPropertyType<T> {
 					.withFunction("previous", ExpressionFunction.build(new EnumPrevious()));
 			});
 		return builder.build();
-	}
-
-	static {
-		@SuppressWarnings({ "rawtypes", "unused" })
-		TypeTokens.TypeKey clazzKey = TypeTokens.get().keyFor(Class.class).enableCompoundTypes(new TypeTokens.CompoundTypeCreator<Class>() {
-			@Override
-			public <P> TypeToken<? extends Class> createCompoundType(TypeToken<P> param) {
-				return new TypeToken<Class<? extends P>>() {}.where(new TypeParameter<P>() {}, param);
-			}
-		});
 	}
 
 	/**

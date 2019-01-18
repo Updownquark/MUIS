@@ -5,6 +5,7 @@ import static org.quick.core.QuickConstants.States.TEXT_SELECTION;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.observe.Observable;
@@ -12,7 +13,6 @@ import org.observe.ObservableValue;
 import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
-import org.observe.util.TypeTokens;
 import org.qommons.Causable;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
@@ -20,8 +20,6 @@ import org.quick.core.mgr.QuickState;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleChangeObservable;
-
-import com.google.common.reflect.TypeToken;
 
 /** A base implementation of a selectable document model */
 public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocumentModel implements SelectableDocumentModel {
@@ -95,7 +93,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 	@Override
 	public Observable<?> simpleChanges() {
-		return theSelectionChanges.readOnly();
+		return theSimpleChanges.readOnly();
 	}
 
 	/** @return The style for text that is not selected */
@@ -110,7 +108,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 
 	@Override
 	public Transaction holdForRead() {
-		final java.util.concurrent.locks.Lock lock = theLock.readLock();
+		final Lock lock = theLock.readLock();
 		lock.lock();
 		return new Transaction() {
 			@Override
@@ -135,7 +133,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 		if(theLock.getWriteHoldCount() == 0 && theLock.getReadHoldCount() > 0)
 			throw new IllegalStateException("A write lock cannot be acquired for this document model while a read lock is held."
 				+ "  The read lock must be released before attempting to acquire a write lock.");
-		final java.util.concurrent.locks.Lock lock = theLock.writeLock();
+		final Lock lock = theLock.writeLock();
 		lock.lock();
 		theCauseStack.add(cause);
 		return new Transaction() {
@@ -645,8 +643,7 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			else
 				theStyle = new QuickStyle() {
 					private final ObservableSet<StyleAttribute<?>> theAttributes = ObservableCollection.flattenCollections(//
-						TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}), //
-						theWrappedStyle.attributes(), theBackup.attributes()).distinct().collect();
+						StyleAttribute.TYPE, theWrappedStyle.attributes(), theBackup.attributes()).distinct().collect();
 
 					@Override
 					public ObservableSet<StyleAttribute<?>> attributes() {

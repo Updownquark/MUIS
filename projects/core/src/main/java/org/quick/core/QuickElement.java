@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
 import org.observe.Subscription;
+import org.observe.collect.CollectionChangeEvent;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
@@ -44,8 +45,6 @@ import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.QuickTagUtils;
 import org.quick.core.tags.State;
 import org.quick.util.QuickUtils;
-
-import com.google.common.reflect.TypeToken;
 
 /** The base display element in Quick. Contains base methods to administer content (children, style, placement, etc.) */
 @QuickElementType(
@@ -116,13 +115,14 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/** Creates a Quick element */
 	public QuickElement() {
-		theParent = new org.observe.SimpleSettableValue<>(TypeToken.of(QuickElement.class), true);
+		theAttributeLocker = new ReentrantReadWriteLock();
+		theContentLocker = new StampedLockingStrategy();
+		theParent = new org.observe.SimpleSettableValue<>(TypeTokens.get().of(QuickElement.class), true, theAttributeLocker, null)//
+			.filterAccept(el -> el == QuickElement.this ? "An element cannot have itself as a parent" : null);
 		theParent.changes().act(evt -> {
 			if (evt.getOldValue() != null)
 				evt.getOldValue().theChildren.remove(QuickElement.this);
 		});
-		theAttributeLocker = new ReentrantReadWriteLock();
-		theContentLocker = new StampedLockingStrategy();
 		theMessageCenter = new QuickMessageCenter(null, null, this);
 		theLifeCycleManager = new QuickLifeCycleManager(this, (Controller controller) -> {
 			theLifeCycleController = controller;
@@ -171,21 +171,19 @@ public abstract class QuickElement implements QuickParseEnv {
 		theChildren.simpleChanges().act(cause -> sizeNeedsChanged());
 		theChildren.changes().act(event -> {
 			Rectangle bounds = null;
-			for (QuickElement child : event.getValues()) {
-				if (child.bounds().isEmpty())
-					continue;
-				else if (bounds == null)
-					bounds = child.bounds().getBounds();
-				else
-					bounds = bounds.union(child.bounds().getBounds());
-			}
-			if (event.getOldValues() != null) {
-				for (QuickElement child : event.getOldValues()) {
-					if (bounds == null)
-						bounds = child.bounds().getBounds();
-					else if (!child.bounds().isEmpty())
-						bounds = bounds.union(child.bounds().getBounds());
+			switch (event.type) {
+			case add:
+			case remove:
+				for (QuickElement child : event.getValues())
+					bounds = bounds == null ? child.bounds().get() : bounds.union(child.bounds().get());
+				break;
+			case set:
+				for (CollectionChangeEvent.ElementChange<QuickElement> el : event.elements) {
+					bounds = bounds == null ? el.newValue.bounds().get() : bounds.union(el.newValue.bounds().get());
+					if (el.oldValue != null && !el.oldValue.bounds().isEmpty())
+						bounds = bounds.union(el.oldValue.bounds().get());
 				}
+				break;
 			}
 			if (bounds != null)
 				repaint(bounds, false);

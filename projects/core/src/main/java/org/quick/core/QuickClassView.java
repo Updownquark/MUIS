@@ -81,18 +81,17 @@ public class QuickClassView {
 	}
 
 	/** @return The toolkits that may be used without specifying a namespace */
-	public QuickToolkit [] getScopedToolkits() {
+	public Set<QuickToolkit> getScopedToolkits() {
 		java.util.LinkedHashSet<QuickToolkit> ret = new java.util.LinkedHashSet<>();
 		if(theMemberToolkit != null)
 			ret.add(theMemberToolkit);
 		for(QuickToolkit tk : theNamespaces.values())
 			ret.add(tk);
-		if(theParent != null) {
-			for(QuickToolkit tk : theParent.getScopedToolkits())
-				ret.add(tk);
-		} else
+		if (theParent != null)
+			ret.addAll(theParent.getScopedToolkits());
+		else
 			ret.add(theEnvironment.getCoreToolkit());
-		return ret.toArray(new QuickToolkit[ret.size()]);
+		return Collections.unmodifiableSet(ret);
 	}
 
 	/**

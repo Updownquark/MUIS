@@ -32,6 +32,8 @@ import com.google.common.reflect.TypeToken;
  * @param <T> The type of element that this condition is for
  */
 public interface StyleConditionInstance<T extends QuickElement> {
+	static TypeToken<StyleConditionInstance<?>> TYPE = new TypeToken<StyleConditionInstance<?>>() {};
+
 	/** @return The type of element that this condition is for */
 	Class<T> getElementType();
 
@@ -164,14 +166,13 @@ public interface StyleConditionInstance<T extends QuickElement> {
 		if (extraGroups != null)
 			groups = ObservableCollection.flattenCollections(TypeTokens.get().STRING, groups, extraGroups).distinct().collect();
 		ObservableSet<AttachPoint<?>> roles = element.atts().attributes().flow().filter(RoleAttribute.class)//
-			.refreshEach(role -> element.atts().get(role).changes())//
-			.mapEquivalent(TypeTokens.get().keyFor(AttachPoint.class).parameterized(() -> new TypeToken<AttachPoint<?>>() {}),
-				ap -> element.atts().get(ap).get(), ap -> ap.template.role)
+			.refreshEach(role -> element.atts().get(role).changes().noInit())//
+			.mapEquivalent(AttachPoint.TYPE, ap -> element.atts().get(ap).get(), ap -> ap.template.role)
 			.collect();
 		Function<AttachPoint<?>, ObservableValue<StyleConditionInstance<?>>> conditions = attachPoint -> element.atts()
-			.get(attachPoint.template.role)//
-			.map(Builder.SCI_TYPE, ap -> {
-				if (!ap.equals(attachPoint))
+			.watchFor(attachPoint.template.role)//
+			.map(StyleConditionInstance.TYPE, ap -> {
+				if (ap == null || !ap.equals(attachPoint))
 					return null;
 				return StyleConditionInstance.of(QuickTemplate.getTemplateFor(element, ap), extraStates, extraGroups);
 			});
@@ -198,9 +199,6 @@ public interface StyleConditionInstance<T extends QuickElement> {
 	 * @param <T> The type of element that the condition will be for
 	 */
 	public static class Builder<T extends QuickElement> {
-		static final TypeToken<StyleConditionInstance<?>> SCI_TYPE = TypeTokens.get().keyFor(StyleConditionInstance.class)
-			.parameterized(() -> new TypeToken<StyleConditionInstance<?>>() {});
-
 		private final Class<T> theType;
 		private ObservableSet<QuickState> theState;
 		private ObservableSet<String> theGroups;
@@ -211,8 +209,8 @@ public interface StyleConditionInstance<T extends QuickElement> {
 			theType = type;
 			theState = ObservableSet.of(TypeTokens.get().of(QuickState.class));
 			theGroups = ObservableSet.of(TypeTokens.get().STRING);
-			theRoles = ObservableSet.of(TypeTokens.get().keyFor(AttachPoint.class).parameterized(() -> new TypeToken<AttachPoint<?>>() {}));
-			theRoleConditions = ap -> ObservableValue.of(SCI_TYPE, null);
+			theRoles = ObservableSet.of(AttachPoint.TYPE);
+			theRoleConditions = ap -> ObservableValue.of(StyleConditionInstance.TYPE, null);
 		}
 
 		/**

@@ -5,11 +5,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.observe.ObservableValue;
+import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableSet;
 import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
-import org.qommons.collect.BetterHashSet;
 import org.qommons.collect.RRWLockingStrategy;
+import org.qommons.tree.BetterTreeList;
 import org.quick.core.QuickElement;
 
 /** Keeps track of states for an entity and fires events when they change */
@@ -48,10 +49,12 @@ public class StateEngine implements StateSet {
 	public StateEngine(QuickElement element) {
 		theElement = element;
 		theStateHolders = new ConcurrentHashMap<>();
-		theStateSet = ObservableSet.of(TypeTokens.get().of(QuickState.class),
-			BetterHashSet.build().withLocking(new RRWLockingStrategy(theElement.getAttributeLocker())).buildSet());
-		theActiveStates = ObservableSet.of(TypeTokens.get().of(QuickState.class),
-			BetterHashSet.build().withLocking(new RRWLockingStrategy(theElement.getAttributeLocker())).buildSet());
+		theStateSet = ObservableCollection
+			.create(TypeTokens.get().of(QuickState.class), new BetterTreeList<>(new RRWLockingStrategy(theElement.getAttributeLocker())))
+			.flow().distinct().collect();
+		theActiveStates = ObservableCollection
+			.create(TypeTokens.get().of(QuickState.class), new BetterTreeList<>(new RRWLockingStrategy(theElement.getAttributeLocker())))
+			.flow().distinct().collect();
 		theExposedStateSet = theStateSet.flow().unmodifiable(false).collectPassive();
 		theExposedActiveStates = theActiveStates.flow().unmodifiable(false).collectPassive();
 	}

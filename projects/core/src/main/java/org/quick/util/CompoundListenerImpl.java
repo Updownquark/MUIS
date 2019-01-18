@@ -15,7 +15,6 @@ import org.observe.Observer;
 import org.observe.SimpleObservable;
 import org.qommons.collect.ElementId;
 import org.quick.core.QuickElement;
-import org.quick.core.QuickException;
 import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
@@ -50,8 +49,7 @@ class CompoundListenerImpl {
 		}
 
 		@Override
-		public <A, V extends A> CompoundListenerBuilder accept(QuickAttribute<A> attr, boolean required, V value)
-			throws IllegalArgumentException {
+		public <A, V extends A> CompoundListenerBuilder accept(QuickAttribute<A> attr, boolean required, V value) {
 			theAttributes.add(new AttributeAccept<>(attr, required, value));
 			return this;
 		}
@@ -95,7 +93,7 @@ class CompoundListenerImpl {
 		private final List<StyleAttribute<?>> theStyleAttributes;
 		private final List<EventListener> theEventListeners;
 		private final List<CompoundListener> theSubListeners;
-		private final Map<QuickAttribute<?>, AttributeManager2.AttributeAcceptance> theAttributeAccepts;
+		private final Map<QuickElement, ElementListening> theElementAttributeAccepts;
 
 		ElementListener(List<AttributeAccept<?>> attrs, List<StyleAttribute<?>> styles, List<EventListener> listeners,
 			List<CompoundListener> subs) {
@@ -103,12 +101,13 @@ class CompoundListenerImpl {
 			theStyleAttributes = Collections.unmodifiableList(new ArrayList<>(styles));
 			theEventListeners = Collections.unmodifiableList(new ArrayList<>(listeners));
 			theSubListeners = Collections.unmodifiableList(new ArrayList<>(subs));
-			theAttributeAccepts = new HashMap<>();
+			theElementAttributeAccepts = new HashMap<>();
 		}
 
 		@Override
 		public void listen(QuickElement element, QuickElement root, Observable<?> until) {
-			boolean[] accepted = new boolean[theAttributes.size()];
+			if (theElementAttributeAccepts.containsKey(element))
+				return;
 			Observer<ObservableValueEvent<?>> events = new Observer<ObservableValueEvent<?>>() {
 				@Override
 				public <E extends ObservableValueEvent<?>> void onNext(E event) {
@@ -119,36 +118,45 @@ class CompoundListenerImpl {
 				@Override
 				public <V extends ObservableValueEvent<?>> void onCompleted(V value) {}
 			};
-			for (int i = 0; i < accepted.length; i++) {
-				try {
-					accept(element, theAttributes.get(i)).changes().noInit().takeUntil(until).subscribe(events);
-					accepted[i] = true;
-				} catch (QuickException e) {
-					element.msg().error("Could not accept " + theAttributes.get(i), e);
-					accepted[i] = false;
-				}
-			}
+			theElementAttributeAccepts.put(element, new ElementListening(element));
+			for (AttributeAccept<?> attr : theAttributes)
+				element.atts().get(attr.attr).changes().noInit().takeUntil(until).subscribe(events);
 			for (StyleAttribute<?> attr : theStyleAttributes)
 				element.getStyle().get(attr).changes().noInit().takeUntil(until).subscribe(events);
-			until.act(evt -> {
-				for (int i = 0; i < accepted.length; i++) {
-					if (accepted[i])
-						theAttributeAccepts.remove(theAttributes.get(i).attr).reject();
-				}
-			});
+			until.take(1).act(evt -> theElementAttributeAccepts.remove(element).reject());
 			for (CompoundListener sub : theSubListeners)
 				sub.listen(element, root, until);
 		}
 
-		private <T> ObservableValue<T> accept(QuickElement element, AttributeAccept<T> attr) throws QuickException {
-			if (theAttributeAccepts.containsKey(attr.attr))
-				return element.atts().get(attr.attr);
-			return element.atts().accept(attr.attr, this, acc->{
-				acc.required(attr.required);
-				if (attr.init != null)
-					acc.init(attr.init);
-				theAttributeAccepts.put(attr.attr, acc);
-			});
+		private class ElementListening {
+			final AttributeManager2.AttributeAcceptance[] theAccepts;
+
+			ElementListening(QuickElement element) {
+				theAccepts = new AttributeManager2.AttributeAcceptance[theAttributes.size()];
+				for (int i = 0; i < theAttributes.size(); i++) {
+					accept(element, i, theAttributes.get(i));
+				}
+			}
+
+			private <T> void accept(QuickElement element, int i, AttributeAccept<T> attr) {
+				element.atts().accept(attr.attr, ElementListener.this, accept -> {
+					theAccepts[i] = accept;
+					accept.required(attr.required);
+					if (attr.init != null) {
+						try {
+							accept.init(attr.init);
+						} catch (IllegalArgumentException e) {
+							element.msg().error("Initial value for attribute " + attr.attr + " is unacceptable", e);
+						}
+					}
+				});
+			}
+
+			void reject() {
+				for (AttributeManager2.AttributeAcceptance accept : theAccepts)
+					if (accept != null)
+						accept.reject();
+			}
 		}
 	}
 
@@ -221,14 +229,8 @@ class CompoundListenerImpl {
 
 		@Override
 		public <T> T getAttribute(QuickAttribute<T> attr) {
-			return getAttribute(attr, false);
-		}
-
-		<T> T getAttribute(QuickAttribute<T> attr, boolean skipOne) {
 			ObservableValue<T> value = theElement.atts().get(attr);
 			Observable<?> onChange = value.changes().noInit().takeUntil(theUntil);
-			if (skipOne)
-				onChange = onChange.skip(1);
 			onChange.act(evt -> {
 				changed();
 			});
@@ -237,14 +239,8 @@ class CompoundListenerImpl {
 
 		@Override
 		public <T> T getStyle(StyleAttribute<T> attr) {
-			return getStyle(attr, false);
-		}
-
-		<T> T getStyle(StyleAttribute<T> attr, boolean skipOne) {
 			ObservableValue<T> value = theElement.getStyle().get(attr);
 			Observable<?> onChange = value.changes().noInit().takeUntil(theUntil);
-			if (skipOne)
-				onChange = onChange.skip(1);
 			onChange.act(evt -> {
 				changed();
 			});
@@ -253,9 +249,7 @@ class CompoundListenerImpl {
 
 		private synchronized void changed() {
 			theChangeObservable.onNext(null);
-			/* If we just call the condition on this, the listeners added by the get methods will be notified at the end of the current
-			 * event and we'll get an infinite loop.  Need to skip this first notification. */
-			boolean active = theCondition.test(new SkippingElementMock(this));
+			boolean active = theCondition.test(this);
 			if (active)
 				theListener.listen(theElement, theRoot, theUntil);
 		}
@@ -264,24 +258,6 @@ class CompoundListenerImpl {
 			boolean active = theCondition.test(this);
 			if (active)
 				theListener.listen(theElement, theRoot, theUntil);
-		}
-	}
-
-	private static class SkippingElementMock implements ElementMock {
-		private final ElementMockImpl theImpl;
-
-		SkippingElementMock(ElementMockImpl impl) {
-			theImpl = impl;
-		}
-
-		@Override
-		public <T> T getAttribute(QuickAttribute<T> attr) {
-			return theImpl.getAttribute(attr, true);
-		}
-
-		@Override
-		public <T> T getStyle(StyleAttribute<T> attr) {
-			return theImpl.getStyle(attr, true);
 		}
 	}
 }

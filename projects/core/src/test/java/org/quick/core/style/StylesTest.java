@@ -9,6 +9,7 @@ import org.observe.ObservableValueTester;
 import org.observe.SimpleSettableValue;
 import org.observe.assoc.ObservableMap;
 import org.observe.collect.ObservableSet;
+import org.observe.util.TypeTokens;
 import org.qommons.collect.FastFailLockingStrategy;
 import org.quick.core.QuickConstants.States;
 import org.quick.core.QuickDocument;
@@ -20,8 +21,6 @@ import org.quick.core.QuickTextElement;
 import org.quick.core.QuickToolkit;
 import org.quick.core.mgr.QuickState;
 
-import com.google.common.reflect.TypeToken;
-
 /** Tests style classes in the org.quick.core.style package */
 public class StylesTest {
 	class StyleConditionInstanceBacking {
@@ -30,9 +29,9 @@ public class StylesTest {
 		final ObservableMap<AttachPoint<?>, StyleConditionInstance<?>> roles;
 
 		StyleConditionInstanceBacking() {
-			state = ObservableSet.of(TypeToken.of(QuickState.class));
-			groups = ObservableSet.of(TypeToken.of(String.class));
-			roles = ObservableMap.create(new TypeToken<AttachPoint<?>>() {}, new TypeToken<StyleConditionInstance<?>>() {});
+			state = ObservableSet.create(TypeTokens.get().of(QuickState.class));
+			groups = ObservableSet.create(TypeTokens.get().STRING);
+			roles = ObservableMap.create(AttachPoint.TYPE, StyleConditionInstance.TYPE);
 		}
 	}
 

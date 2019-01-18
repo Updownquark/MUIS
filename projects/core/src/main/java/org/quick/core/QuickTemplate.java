@@ -57,6 +57,9 @@ public abstract class QuickTemplate extends QuickElement {
 	 * @param <E> The type of element that belongs in the attach point's place
 	 */
 	public static class AttachPoint<E extends QuickElement> implements Comparable<AttachPoint<?>> {
+		/** The wildcard AttachPoint type token */
+		public static final TypeToken<AttachPoint<?>> TYPE = new TypeToken<AttachPoint<?>>() {};
+
 		/** The template structure that this attach point belongs to */
 		public final TemplateStructure template;
 
@@ -227,7 +230,7 @@ public abstract class QuickTemplate extends QuickElement {
 				super("role", roleType, new PropertyValidator<AttachPoint<?>>() {
 					@Override
 					public boolean isValid(AttachPoint<?> value) {
-						return value.template == templateStruct;
+						return value==null || value.template == templateStruct;
 					}
 
 					@Override

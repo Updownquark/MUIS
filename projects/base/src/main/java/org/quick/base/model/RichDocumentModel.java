@@ -25,8 +25,6 @@ import com.google.common.reflect.TypeToken;
 
 /** A {@link MutableDocumentModel} that allows different styles for different sections of text */
 public class RichDocumentModel extends AbstractSelectableDocumentModel implements StyleableSelectableDocumentModel {
-	private static final TypeToken<StyleAttribute<?>> ATTR_TYPE = TypeTokens.get().keyFor(StyleAttribute.class)
-		.parameterized(() -> new TypeToken<StyleAttribute<?>>() {});
 	private class RichStyleSequence implements StyledSequence, QuickStyle {
 		private final StringBuilder theContent;
 		private final ObservableSet<StyleValueHolder<?>> theStyles;
@@ -37,11 +35,10 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		RichStyleSequence() {
 			theContent = new StringBuilder();
 			ReentrantReadWriteLock lock = getLock();
-			theStyles=ObservableCollection.create(//
-				TypeTokens.get().keyFor(StyleValueHolder.class).parameterized(()->new TypeToken<StyleValueHolder<?>>(){}),
-				new BetterTreeList<>(new RRWLockingStrategy(lock))).flow().distinct().collect();
+			theStyles = ObservableCollection.create(StyleValueHolder.TYPE, new BetterTreeList<>(new RRWLockingStrategy(lock))).flow()
+				.distinct().collect();
 			theAttributes = theStyles.flow()
-				.mapEquivalent(ATTR_TYPE, s -> s.attribute, StyleValueHolder::new, //
+				.mapEquivalent(StyleAttribute.TYPE, s -> s.attribute, StyleValueHolder::new, //
 					opts -> opts.cache(false).reEvalOnUpdate(false).fireIfUnchanged(false))
 				.collectPassive();
 			theExtraGroups = ObservableCollection.create(TypeTokens.get().STRING, new BetterTreeList<>(new RRWLockingStrategy(lock))).flow()
@@ -136,8 +133,7 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 			RichStyleWithExtraStates(QuickStyle backing) {
 				theBacking2 = backing;
 				theAttributes2 = ObservableCollection.flattenCollections(//
-					TypeTokens.get().keyFor(StyleAttribute.class).parameterized(() -> new TypeToken<StyleAttribute<?>>() {}), //
-					theAttributes, theBacking2.attributes()).distinct().collect();
+					StyleAttribute.TYPE, theAttributes, theBacking2.attributes()).distinct().collect();
 			}
 
 			@Override
@@ -442,6 +438,8 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 	}
 
 	private static class StyleValueHolder<T> {
+		static final TypeToken<StyleValueHolder<?>> TYPE = new TypeToken<StyleValueHolder<?>>() {};
+
 		final StyleAttribute<T> attribute;
 		StyleValue<T> theValue;
 
@@ -519,13 +517,12 @@ public class RichDocumentModel extends AbstractSelectableDocumentModel implement
 		@Override
 		public ObservableSet<StyleAttribute<?>> attributes() {
 			ObservableCollection<ObservableSet<StyleAttribute<?>>> ret = ObservableCollection.create(//
-				TypeTokens.get().keyFor(ObservableSet.class).getCompoundType(ATTR_TYPE,
-					t -> new TypeToken<ObservableSet<StyleAttribute<?>>>() {}));
+				TypeTokens.get().keyFor(ObservableSet.class).getCompoundType(StyleAttribute.TYPE));
 			try (Transaction t = holdForRead()) {
 				for(StyledSequence seq : iterateFrom(theStart, theEnd))
 					ret.add(seq.getStyle().attributes());
 			}
-			return ret.flow().flatMap(ATTR_TYPE, s -> s.flow()).distinct().unmodifiable(false).collect();
+			return ret.flow().flatMap(StyleAttribute.TYPE, s -> s.flow()).distinct().unmodifiable(false).collect();
 		}
 
 		@Override

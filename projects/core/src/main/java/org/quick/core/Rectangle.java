@@ -134,7 +134,7 @@ public class Rectangle {
 	}
 
 	public static Rectangle fromAwt(java.awt.Rectangle r) {
-		return new Rectangle(r.x, r.y, r.width, r.height);
+		return r == null ? null : new Rectangle(r.x, r.y, r.width, r.height);
 	}
 
 	@Override

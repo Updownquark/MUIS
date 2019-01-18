@@ -3,6 +3,7 @@ package org.quick.browser;
 
 import java.awt.Cursor;
 import java.awt.Graphics2D;
+import java.net.MalformedURLException;
 
 import org.quick.core.QuickDocument;
 import org.quick.core.mgr.QuickMessage;
@@ -87,8 +88,13 @@ public class QuickBrowser extends javax.swing.JPanel {
 		java.net.URL url;
 		try {
 			url = new java.net.URL(address);
-		} catch (java.net.MalformedURLException e) {
-			throw new IllegalArgumentException(address + " is not a valid URL", e);
+		} catch (MalformedURLException e) {
+			address = "file:///" + address;
+			try {
+				url = new java.net.URL(address);
+			} catch (MalformedURLException e2) {
+				throw new IllegalArgumentException(address + " is not a valid URL", e);
+			}
 		}
 		QuickDocument quickDoc;
 		try {

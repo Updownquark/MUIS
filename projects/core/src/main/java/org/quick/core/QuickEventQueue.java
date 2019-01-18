@@ -6,6 +6,7 @@ import org.qommons.ArrayUtils;
 import org.qommons.Causable;
 import org.qommons.ProgramTracker;
 import org.qommons.Transaction;
+import org.quick.core.event.UserEvent;
 import org.quick.util.QuickUtils;
 
 /** The event queue in Quick which makes sure elements's states stay up-to-date */
@@ -606,8 +607,12 @@ public class QuickEventQueue {
 					}
 				}
 			} else
-				for(QuickEventPositionCapture el : theEvent.getCapture().iterate(!isDownward))
-					el.getElement().events().fire(theEvent.copyFor(el.getElement()));
+				for (QuickEventPositionCapture el : theEvent.getCapture().iterate(!isDownward)) {
+					UserEvent copy = theEvent.copyFor(el.getElement());
+					try (Transaction copyT = Causable.use(copy)) {
+						el.getElement().events().fire(copy);
+					}
+				}
 		}
 
 		@Override
@@ -659,7 +664,10 @@ public class QuickEventQueue {
 			else {
 				QuickElement el = theEvent.getElement();
 				while(el != null) {
-					el.events().fire(theEvent.copyFor(el));
+					UserEvent copy = theEvent.copyFor(el);
+					try (Transaction copyT = Causable.use(copy)) {
+						el.events().fire(copy);
+					}
 					el = el.getParent().get();
 				}
 			}

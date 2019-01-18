@@ -828,7 +828,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			}
 			return ret;
 		} finally {
-			graphics.setClip(preClip.toAwt());
+			graphics.setClip(preClip == null ? null : preClip.toAwt());
 		}
 	}
 
@@ -908,7 +908,10 @@ public abstract class QuickElement implements QuickParseEnv {
 				graphics.translate(translateX, translateY);
 				translateX = -childX;
 				translateY = -childY;
-				childBounds[c] = child.paint(graphics, Rectangle.fromAwt(childArea));
+				if (childArea.isEmpty())
+					childBounds[c] = child.paint(graphics, new Rectangle(childArea.x, childArea.y, 0, 0));
+				else
+					childBounds[c] = child.paint(graphics, Rectangle.fromAwt(childArea));
 			}
 		} finally {
 			if(translateX != 0 || translateY != 0)
@@ -932,12 +935,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	@Override
 	public final int hashCode() {
 		return super.hashCode();
-	}
-
-	@Override
-	protected void finalize() throws Throwable {
-		theLifeCycleController.advance(QuickConstants.CoreStage.DISPOSE.name());
-		super.finalize();
 	}
 
 	private static class CoreStateControllers {

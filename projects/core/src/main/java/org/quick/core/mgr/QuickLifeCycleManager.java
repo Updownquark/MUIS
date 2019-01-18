@@ -1,13 +1,8 @@
 package org.quick.core.mgr;
 
-import org.observe.Observable;
-import org.observe.Observer;
 import org.observe.Subscription;
 import org.qommons.ArrayUtils;
-import org.qommons.Transactable;
-import org.qommons.Transaction;
 import org.qommons.collect.ListenerList;
-import org.quick.core.QuickConstants;
 import org.quick.core.QuickElement;
 
 /** Manages the life cycle of an element */
@@ -182,34 +177,6 @@ public class QuickLifeCycleManager {
 		if(theCurrentStage == theStages.length - 1) {
 			// Can dispose of resources, since this instance is now effectively immutable
 			theLifeCycleListeners.clear();
-		}
-	}
-
-	public Observable<?> death() {
-		return new QuickDeathObservable() {
-
-		};
-	}
-
-	private class QuickDeathObservable implements Observable<Void> {
-		@Override
-		public Subscription subscribe(Observer<? super Void> observer) {
-			return runWhen(() -> observer.onNext(null), QuickConstants.CoreStage.DISPOSE.name(), 0);
-		}
-
-		@Override
-		public boolean isSafe() {
-			return true;
-		}
-
-		@Override
-		public Transaction lock() {
-			return Transactable.lock(theQuickElement.getAttributeLocker(), false);
-		}
-
-		@Override
-		public Transaction tryLock() {
-			return Transactable.tryLock(theQuickElement.getAttributeLocker(), false);
 		}
 	}
 }

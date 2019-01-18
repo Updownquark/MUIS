@@ -36,9 +36,4 @@ public abstract class QuickPropertyEvent<T> extends ObservableValueEvent<T> impl
 	public QuickElement getElement() {
 		return theElement;
 	}
-
-	@Override
-	public QuickEvent getCause() {
-		return (QuickEvent) super.getCause();
-	}
 }

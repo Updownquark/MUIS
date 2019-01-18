@@ -41,8 +41,6 @@ public final class QuickConstants {
 		STARTUP,
 		/** The element has been fully initialized within the full document context and is ready to render and receive events */
 		READY,
-		/** When the element is garbage collected */
-		DISPOSE,
 		/** Represents any stage that the core does not know about */
 		OTHER;
 

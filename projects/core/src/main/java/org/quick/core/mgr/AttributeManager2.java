@@ -352,7 +352,42 @@ public class AttributeManager2 {
 		CollectionElement<AttributeValue<?>> found = theSortedAttributes.search(av -> compare(attribute, av.getAttribute()),
 			SortedSearchFilter.PreferLess);
 		if (found != null) {
-			if (found.get().getAttribute().equals(attribute)) {
+			boolean matches = found.get().getAttribute().equals(attribute);
+			int comp = matches ? 0 : compare(attribute, found.get().getAttribute());
+			if (!matches && comp == 0) {
+				// Same name, different attribute
+				// Complete the search to see if we do actually accept the attribute
+				// Look left
+				CollectionElement<AttributeValue<?>> first = found;
+				CollectionElement<AttributeValue<?>> adj = theSortedAttributes.getAdjacentElement(first.getElementId(), false);
+				while (adj != null && compare(attribute, adj.get().getAttribute()) == 0) {
+					if (adj.get().getAttribute().equals(attribute)) {
+						found = adj;
+						matches = true;
+						break;
+					}
+					first = adj;
+					adj = theSortedAttributes.getAdjacentElement(adj.getElementId(), false);
+				}
+				if (!matches) {
+					// Look right
+					adj = theSortedAttributes.getAdjacentElement(found.getElementId(), true);
+					while (adj != null && compare(attribute, adj.get().getAttribute()) == 0) {
+						if (adj.get().getAttribute().equals(attribute)) {
+							found = adj;
+							matches = true;
+							break;
+						}
+						adj = theSortedAttributes.getAdjacentElement(adj.getElementId(), true);
+					}
+				}
+				if (!matches) {
+					// Not found. Change the found element so that the new attribute will be inserted as the first attribute of its name
+					// so that getting the attribute by name will return this one, not any previously-defined ones
+					found = first;
+				}
+			}
+			if (matches) {
 				if (accept) {
 					synchronized (found.get()) {
 						if (onValue != null)
@@ -361,31 +396,6 @@ public class AttributeManager2 {
 					}
 				}
 				return (AttributeValue<T>) found.get();
-			} else if (!accept)
-				return null;
-			int comp = compare(attribute, found.get().getAttribute());
-			if (comp == 0) {
-				// Same name, different attribute
-				// Complete the search to see if we do actually accept the attribute
-				// Look left
-				CollectionElement<AttributeValue<?>> first = found;
-				CollectionElement<AttributeValue<?>> adj = theSortedAttributes.getAdjacentElement(found.getElementId(), false);
-				while (adj != null && compare(attribute, adj.get().getAttribute()) == 0) {
-					if (adj.get().getAttribute().equals(attribute))
-						return (AttributeValue<T>) adj.get();
-					first = adj;
-					adj = theSortedAttributes.getAdjacentElement(found.getElementId(), false);
-				}
-				// Look right
-				adj = theSortedAttributes.getAdjacentElement(found.getElementId(), true);
-				while (adj != null && compare(attribute, adj.get().getAttribute()) == 0) {
-					if (adj.get().getAttribute().equals(attribute))
-						return (AttributeValue<T>) adj.get();
-					adj = theSortedAttributes.getAdjacentElement(found.getElementId(), true);
-				}
-				// Not found. Change the found element so that the new attribute will be inserted as the first attribute of its name
-				// so that getting the attribute by name will return this one, not any previously-defined ones
-				found = first;
 			}
 			// We don't currently accept the attribute. Need to add it.
 			AttributeValue<T> value = new AttributeValue<>(attribute);

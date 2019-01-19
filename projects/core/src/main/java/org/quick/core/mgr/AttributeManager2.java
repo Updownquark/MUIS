@@ -67,13 +67,16 @@ public class AttributeManager2 {
 					ObservableValue<? extends T> container = evt.getNewValue();
 					theContainerSubscription = container.changes().act(//
 						containerEvt -> {
-							if (!theAttribute.canAccept(containerEvt.getNewValue())) {
+							T value;
+							try {
+								value = theAttribute.getType().cast((TypeToken<T>) container.getType(), containerEvt.getNewValue());
+								innerSet(value, containerEvt);
+							} catch (QuickException e) {
 								theElement.msg().error(
 									"Value " + containerEvt.getNewValue() + " from container " + container
 										+ " is unacceptable for attribute " + theAttribute,
-									"attribute", theAttribute, "value", containerEvt.getNewValue());
-							} else
-								innerSet(containerEvt.getNewValue(), containerEvt);
+									e, "attribute", theAttribute, "value", containerEvt.getNewValue());
+							}
 						});
 				}
 			});
@@ -150,7 +153,7 @@ public class AttributeManager2 {
 		}
 
 		public <V extends T> T setContainer(ObservableValue<V> value) throws IllegalArgumentException {
-			if (value != null && !theAttribute.getType().getType().isAssignableFrom(value.getType()))
+			if (value != null && !theAttribute.getType().canAccept(value.getType()))
 				throw new IllegalArgumentException("Cannot assign value " + value + " of type " + value.getType() + " to attribute "
 					+ theAttribute + ", type " + theAttribute.getType());
 			Lock lock = theLocker.writeLock();

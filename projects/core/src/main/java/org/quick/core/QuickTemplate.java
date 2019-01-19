@@ -1199,7 +1199,8 @@ public abstract class QuickTemplate extends QuickElement {
 		for (int c = 0; c < children.size(); c++) {
 			QuickElement child = children.get(c);
 			child.atts().accept(template.role, theRoleWanter, null);
-			roles[c] = child.atts().get(template.role).get();
+			ObservableValue<AttachPoint<?>> roleValue = child.atts().get(template.role);
+			roles[c] = roleValue.get();
 			if (roles[c] == null) {
 				roles[c] = template.getDefaultAttachPoint();
 				child.atts().get(template.role).set(roles[c], null);

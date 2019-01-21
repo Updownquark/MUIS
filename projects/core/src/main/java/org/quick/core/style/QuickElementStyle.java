@@ -132,7 +132,9 @@ public class QuickElementStyle implements QuickStyle {
 		if (attr.isInherited()) {
 			TypeToken<StyleConditionValue<T>> scvType = TypeTokens.get().keyFor(StyleConditionValue.class)
 				.getCompoundType(attr.getType().getType());
-			ObservableValue<ObservableValue<StyleConditionValue<T>>> layered = getParentCondition().map(scvType, pCondition -> {
+			TypeToken<ObservableValue<StyleConditionValue<T>>> obsScvType = TypeTokens.get().keyFor(ObservableValue.class)
+				.getCompoundType(scvType);
+			ObservableValue<ObservableValue<StyleConditionValue<T>>> layered = getParentCondition().map(obsScvType, pCondition -> {
 				if (pCondition == null)
 					return null;
 				return sheet.getBestMatch(pCondition, attr);

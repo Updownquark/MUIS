@@ -126,14 +126,14 @@ public class Spinner extends QuickTemplate {
 										adjustEnabled = ObservableValue.of(TypeTokens.get().STRING,
 											value.isAcceptable(adjFormat.decrement(val)));
 									}
-									return ObservableValue.firstValue(TypeToken.of(String.class), v -> v != null, value.isEnabled(),
+									return ObservableValue.firstValue(TypeTokens.get().STRING, v -> v != null, value.isEnabled(),
 										opEnabled, adjustEnabled);
 								}
 							};
 						} else
-							return ObservableAction.disabled(TypeToken.of(Object.class), "No value");
+							return ObservableAction.disabled(TypeTokens.get().OBJECT, "No value");
 					} else
-						return ObservableAction.disabled(TypeToken.of(Object.class), "No " + incOrDec.getName() + " action set");
+						return ObservableAction.disabled(TypeTokens.get().OBJECT, "No " + incOrDec.getName() + " action set");
 				}, textField.atts().get(BaseAttributes.format), value, null);
 			actionObs = actionObs.refresh(Observable.flatten(textField.getDocumentModel().value().map(doc -> doc.simpleChanges())));
 			getAdjust(up).atts().get(ModelAttributes.action).set(ObservableAction.flatten(actionObs), null);

@@ -56,7 +56,7 @@ public class AttributeManager2 {
 			theContainerObservable = new VetoableSettableValue<>(//
 				new TypeToken<ObservableValue<? extends T>>() {}.where(new TypeParameter<T>() {}, getType()), //
 				true, theLocker);
-			theContainerObservable.changes().act(evt -> {
+			theContainerObservable.changes().noInit().act(evt -> {
 				if (theContainerSubscription != null) {
 					theContainerSubscription.unsubscribe();
 					theContainerSubscription = null;
@@ -396,7 +396,8 @@ public class AttributeManager2 {
 					}
 				}
 				return (AttributeValue<T>) found.get();
-			}
+			} else if (!accept)
+				return null;
 			// We don't currently accept the attribute. Need to add it.
 			AttributeValue<T> value = new AttributeValue<>(attribute);
 			if (onValue != null)

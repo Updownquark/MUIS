@@ -33,6 +33,16 @@ class CompoundListenerImpl {
 			this.required = required;
 			this.init = init;
 		}
+
+		@Override
+		public String toString() {
+			StringBuilder str = new StringBuilder(attr.getName()).append('(');
+			if (init != null)
+				str.append(init).append(", ");
+			str.append(required ? "required" : "optional");
+			str.append(')');
+			return str.toString();
+		}
 	}
 
 	static class ElementListenerBuilder implements CompoundListenerBuilder {

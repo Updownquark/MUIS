@@ -682,6 +682,11 @@ public class AttributeManager2 {
 		theRawAttributes = null;
 	}
 
+	@Override
+	public String toString() {
+		return theSortedAttributes.toString();
+	}
+
 	private static class RawAttributeValue {
 		final String value;
 		final QuickParseEnv context;

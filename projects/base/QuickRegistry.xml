@@ -21,8 +21,9 @@
         <type tag="text-cursor-overlay">org.quick.base.widget.DocumentCursorOverlay</type>
         <type tag="text-field">org.quick.base.widget.TextField</type>
         <type tag="spinner">org.quick.base.widget.Spinner</type>
+        <type tag="table">org.quick.base.widget.Table</type>
+        <type tag="table-column">org.quick.base.widget.Table</type>
         <type tag="tree">org.quick.base.widget.Tree</type>
-        <type tag="value-renderer">org.quick.base.widget.ValueRenderer</type>
         
 		<!-- Layouts -->
         <type tag="simple">org.quick.base.layout.SimpleLayout</type>

@@ -16,7 +16,7 @@ public class QuickElementStyle implements QuickStyle {
 	private final QuickElement theElement;
 	private final ObservableSet<QuickState> theExtraStates;
 	private final ObservableSet<String> theExtraGroups;
-	private final ObservableSet<StyleAttribute<?>> theAttributes;
+	private ObservableSet<StyleAttribute<?>> theAttributes;
 	private StyleConditionInstance<?> theCondition;
 	private ObservableValue<StyleConditionInstance<?>> theParentCondition;
 
@@ -34,22 +34,6 @@ public class QuickElementStyle implements QuickStyle {
 		theElement = element;
 		theExtraStates = extraStates;
 		theExtraGroups = extraGroups;
-
-		ObservableValue<QuickStyle> localStyle = theElement.atts().get(StyleAttributes.style);
-		if (localStyle == null)
-			localStyle = theElement.atts().watchFor(StyleAttributes.style);
-		ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet
-			.flattenValue(localStyle.map(s -> s == null ? ObservableSet.of(StyleAttribute.TYPE) : s.attributes()));
-		StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
-		ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>> parentAttrs = ObservableSet
-			.flattenValue(theElement.getParent().map(p -> p == null ? ObservableSet.of(StyleAttribute.TYPE) : p.getStyle().attributes()))
-			.flow().filter(att -> att.isInherited() ? null : "Not inherited");
-		ObservableCollection<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> toFlatten;
-		if (sheet == null)
-			toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs);
-		else
-			toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs, sheet.attributes().flow());
-		theAttributes = toFlatten.flow().flatMap(StyleAttribute.TYPE, f -> f).distinct().collect();
 	}
 
 	private static final TypeToken<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> ATTR_CDF_TYPE = new TypeToken<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>>() {};
@@ -101,6 +85,24 @@ public class QuickElementStyle implements QuickStyle {
 
 	@Override
 	public ObservableSet<StyleAttribute<?>> attributes() {
+		if (theAttributes == null) {
+			ObservableValue<QuickStyle> localStyle = theElement.atts().get(StyleAttributes.style);
+			if (localStyle == null)
+				localStyle = theElement.atts().watchFor(StyleAttributes.style);
+			ObservableSet<StyleAttribute<?>> localAttrs = ObservableSet
+				.flattenValue(localStyle.map(s -> s == null ? ObservableSet.of(StyleAttribute.TYPE) : s.attributes()));
+			StyleSheet sheet = theElement.getDocument() == null ? null : theElement.getDocument().getStyle();
+			ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>> parentAttrs = ObservableSet
+				.flattenValue(
+					theElement.getParent().map(p -> p == null ? ObservableSet.of(StyleAttribute.TYPE) : p.getStyle().attributes()))
+				.flow().filter(att -> att.isInherited() ? null : "Not inherited");
+			ObservableCollection<ObservableCollection.CollectionDataFlow<?, ?, StyleAttribute<?>>> toFlatten;
+			if (sheet == null)
+				toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs);
+			else
+				toFlatten = ObservableCollection.of(ATTR_CDF_TYPE, localAttrs.flow(), parentAttrs, sheet.attributes().flow());
+			theAttributes = toFlatten.flow().flatMap(StyleAttribute.TYPE, f -> f).distinct().collect();
+		}
 		return theAttributes;
 	}
 
@@ -154,11 +156,9 @@ public class QuickElementStyle implements QuickStyle {
 					return pSS;
 			}, parentSSMatch, null);
 		}
-		if (withDefault)
-			ssValue = ObservableValue.flatten(ssMatch, () -> attr.getDefault());
-		else
-			ssValue = ObservableValue.flatten(ssMatch);
-		return ObservableValue.firstValue(attr.getType().getType(), null, null, localValue, ssValue);
+		ssValue = ObservableValue.flatten(ssMatch);
+		return ObservableValue.firstValue(attr.getType().getType(), v -> v != null, withDefault ? attr::getDefault : null, localValue,
+			ssValue);
 	}
 
 	private static <T> ObservableValue<T> getLocalValue(QuickElement bottom, QuickElement element, StyleAttribute<T> attr) {

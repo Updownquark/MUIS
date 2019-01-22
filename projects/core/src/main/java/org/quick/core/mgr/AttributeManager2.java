@@ -253,7 +253,13 @@ public class AttributeManager2 {
 
 		@Override
 		public String toString() {
-			return theAttribute.getName() + "=" + (theContainerObservable.get() != null ? theContainerObservable.get() : get());
+			StringBuilder str = new StringBuilder(theAttribute.getName()).append("=");
+			ObservableValue<? extends T> container = theContainerObservable.get();
+			if (container == null || container instanceof ObservableValue.ConstantObservableValue)
+				str.append(theAttribute.getType().toString(get()));
+			else
+				str.append(container.toString());
+			return str.toString();
 		}
 	}
 

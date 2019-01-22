@@ -233,7 +233,9 @@ public final class QuickPropertyType<T> {
 	 * @return The string representation of the value
 	 */
 	public String toString(T value) {
-		if (thePrinter != null)
+		if (value == null)
+			return "unset";
+		else if (thePrinter != null)
 			return thePrinter.apply(value);
 		else
 			return String.valueOf(value);

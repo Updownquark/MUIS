@@ -102,7 +102,10 @@ public class StyleValueImpl<T> implements StyleValue<T> {
 
 	@Override
 	public String toString() {
-		return theValue.toString();
+		if (theValue instanceof ObservableValue.ConstantObservableValue)
+			return theAttribute.getType().toString(theValue.get());
+		else
+			return theValue.toString();
 	}
 
 	private class StyleValueChanges implements Observable<ObservableValueEvent<T>> {

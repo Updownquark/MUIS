@@ -7,12 +7,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
+import org.observe.Observable;
 import org.observe.ObservableAction;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
-import org.observe.SimpleSettableValue;
 import org.observe.util.TypeTokens;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
@@ -24,7 +25,6 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.util.QuickUtils;
 
-import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 /** The default (typically XML-specified) implementation for QuickAppModel */
@@ -200,13 +200,14 @@ public class DefaultQuickModel implements QuickAppModel {
 		@Override
 		public QuickAppModel buildModel(String name, QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
 			throws QuickParseException {
+			ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 			VALIDATOR.validate(config);
 			QuickAppModel tempModel = new QuickAppModel() {
 				private final ObservableValue<QuickAppModel> theSuper;
 
 				{
 					ObservableValue<?> res = parseEnv.getContext().getVariable("this");
-					if (res != null && TypeToken.of(QuickAppModel.class).isAssignableFrom(res.getType()))
+					if (res != null && TypeTokens.get().of(QuickAppModel.class).isAssignableFrom(res.getType()))
 						theSuper = (ObservableValue<QuickAppModel>) res;
 					else
 						theSuper = null;
@@ -252,7 +253,7 @@ public class DefaultQuickModel implements QuickAppModel {
 					value = parseModelValue(cfg.getValue(), parser, innerEnv);
 					break;
 				case "variable":
-					value = parseModelVariable(cfg.getValue(), parser, innerEnv);
+					value = parseModelVariable(cfg.getValue(), parser, innerEnv, lock);
 					break;
 				case "action":
 					value = parseModelAction(cfg.getValue().getText(), parser, innerEnv);
@@ -325,7 +326,7 @@ public class DefaultQuickModel implements QuickAppModel {
 			if (!(value instanceof SettableValue)) {
 				parseEnv.msg().warn("Attempting to constrain unsettable value", "value", value, "min", minConfig, "max", maxConfig);
 				return (ObservableValue<V>) value;
-			} else if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), value.getType())) {
+			} else if (!TypeTokens.get().isComparable(value.getType())) {
 				parseEnv.msg().warn("Attempting to constrain uncomparable value", "value", value, "min", minConfig, "max", maxConfig);
 				return (ObservableValue<V>) value;
 			}
@@ -337,7 +338,7 @@ public class DefaultQuickModel implements QuickAppModel {
 				} catch (QuickParseException e) {
 					parseEnv.msg().warn("Could not parse min constraint for value", "value", value, "min", minConfig);
 				}
-				if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), minValue.getType())) {
+				if (!TypeTokens.get().isComparable(minValue.getType())) {
 					parseEnv.msg().warn("Min constraint is not comparable", "value", value, "min", minConfig, "minValue", minValue);
 					minValue = null;
 				}
@@ -348,7 +349,7 @@ public class DefaultQuickModel implements QuickAppModel {
 				} catch (QuickParseException e) {
 					parseEnv.msg().warn("Could not parse max constraint for value", "value", value, "max", maxConfig);
 				}
-				if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), minValue.getType())) {
+				if (!TypeTokens.get().isComparable(minValue.getType())) {
 					parseEnv.msg().warn("Max constraint is not comparable", "value", value, "max", minConfig, "maxValue", maxValue);
 					minValue = null;
 				}
@@ -374,7 +375,7 @@ public class DefaultQuickModel implements QuickAppModel {
 						maxValue);
 				}
 			}
-			if (!QuickUtils.isAssignableFrom(TypeToken.of(Comparable.class), superType)) {
+			if (!TypeTokens.get().isComparable(superType)) {
 				parseEnv.msg().warn("Super type of value and constraints, " + superType + " is not comparable", "value", value, "min",
 					minConfig, "minValue", minValue, "max", maxConfig, "maxValue", maxValue);
 				return (ObservableValue<V>) value;
@@ -419,12 +420,13 @@ public class DefaultQuickModel implements QuickAppModel {
 			return parseValue(type, config.getText(), parser, parseEnv);
 		}
 
-		private <T> SettableValue<T> parseModelVariable(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv)
+		private <T> SettableValue<T> parseModelVariable(QuickModelConfig config, QuickPropertyParser parser, QuickParseEnv parseEnv,
+			ReentrantReadWriteLock lock)
 			throws QuickParseException {
 			QuickPropertyType<T> type = (QuickPropertyType<T>) parseType(parser, parseEnv, config.getString("type"));
 			ObservableValue<T> obsValue = parseValue(type, config.getText(), parser, parseEnv);
-			SettableValue<T> modelVariable = new SimpleSettableValue<>(obsValue.getType(), true);
-			((SimpleSettableValue<Object>) modelVariable).set(obsValue.get(), null);
+			SettableValue<T> modelVariable = new SimpleModelValue<>(lock, obsValue.getType(), true, config.toString());
+			((SettableValue<Object>) modelVariable).set(obsValue.get(), null);
 			if (config.get("min") != null | config.get("max") != null)
 				modelVariable = (SettableValue<T>) constrainValue(type, modelVariable, config.getString("min"), config.getString("max"),
 					parser, parseEnv);
@@ -441,9 +443,9 @@ public class DefaultQuickModel implements QuickAppModel {
 			ObservableValue<?> eventValue = parser.parseProperty(ModelAttributes.value, parseEnv, eventText);
 			ObservableAction<?> action = parser.parseProperty(ModelAttributes.action, parseEnv, actionText).get();
 			org.observe.Observable<?> event;
-			if (TypeToken.of(boolean.class).isAssignableFrom(eventValue.getType().unwrap())) {
+			if (TypeTokens.get().isBoolean(eventValue.getType().unwrap())) {
 				event = ((ObservableValue<Boolean>) eventValue).changes().noInit().filter(v -> v.getNewValue());
-			} else if (new TypeToken<org.observe.Observable<?>>() {}.isAssignableFrom(eventValue.getType())) {
+			} else if (Observable.class.isAssignableFrom(TypeTokens.getRawType(eventValue.getType()))) {
 				event = ObservableValue.flattenObservableValue((ObservableValue<? extends org.observe.Observable<?>>) eventValue);
 			} else
 				throw new QuickParseException(
@@ -534,7 +536,7 @@ public class DefaultQuickModel implements QuickAppModel {
 						return null;
 				}, reverseMapFn, null).filterAccept(allowedFn);
 			} else {
-				TypeToken<ObservableValue<T>> tObs = new TypeToken<ObservableValue<T>>() {}.where(new TypeParameter<T>() {}, common);
+				TypeToken<ObservableValue<T>> tObs = TypeTokens.get().keyFor(ObservableValue.class).getCompoundType(common);
 				return ObservableValue.flatten(value.map(tObs, from -> {
 					return mappings.getOrDefault(from, fDef);
 				}));

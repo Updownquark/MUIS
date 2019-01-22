@@ -178,10 +178,10 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			}
 
 			@Override
-			public int getSize(int [] layoutValue) {
-				int ret = 0;
-				ret = add(ret, margin.evaluate(parentWidth) * 2);
-				ret = add(ret, getSize(layoutValue, 0, -1));
+			public long getSize(int[] layoutValue) {
+				long ret = 0;
+				ret += margin.evaluate(parentWidth) * 2;
+				ret += getSize(layoutValue, 0, -1);
 				return ret;
 			}
 
@@ -250,10 +250,10 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			}
 
 			@Override
-			public int getSize(int [] layoutValue) {
-				int ret = 0;
-				ret = add(ret, margin.evaluate(parentHeight) * 2);
-				ret = add(ret, getSize(layoutValue, 0, -1));
+			public long getSize(int[] layoutValue) {
+				long ret = 0;
+				ret += margin.evaluate(parentHeight) * 2;
+				ret += getSize(layoutValue, 0, -1);
 				return ret;
 			}
 

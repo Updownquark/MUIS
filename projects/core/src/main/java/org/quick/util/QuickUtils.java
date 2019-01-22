@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 
 import org.observe.ObservableValue;
 import org.observe.ObservableValueEvent;
+import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
 import org.quick.core.Point;
 import org.quick.core.QuickElement;
@@ -27,6 +28,10 @@ public class QuickUtils {
 	private QuickUtils() {
 	}
 
+	/**
+	 * @param elements The elements to sort by their z-values
+	 * @return The sorted elements
+	 */
 	public static QuickElement[] sortByZ(QuickElement[] elements) {
 		Arrays.sort(elements, (ch1, ch2) -> ch2.getZ() - ch1.getZ());
 		return elements;
@@ -274,7 +279,7 @@ public class QuickUtils {
 		ObservableValue<Double> weight = style.get(FontStyle.weight);
 		ObservableValue<Boolean> strike = style.get(FontStyle.strike);
 		ObservableValue<Double> slant = style.get(FontStyle.slant);
-		return ObservableValue.assemble(TypeToken.of(java.awt.Font.class), () -> {
+		return ObservableValue.assemble(TypeTokens.get().of(java.awt.Font.class), () -> {
 			attribs.put(TextAttribute.FAMILY, family.get());
 			attribs.put(TextAttribute.SIZE, size.get());
 			attribs.put(TextAttribute.BACKGROUND, org.quick.core.style.Colors.transparent);

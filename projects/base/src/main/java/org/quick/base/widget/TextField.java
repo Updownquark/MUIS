@@ -16,6 +16,7 @@ import org.quick.core.QuickTextElement;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.KeyBoardEvent.KeyCode;
+import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
@@ -56,6 +57,8 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	private volatile boolean isDocDirty;
 	private Object theLastParsedValue;
 
+	private Observable<QuickDocumentChangeEvent> theDocChanges;
+
 	/** Creates a text field */
 	public TextField() {
 		theErrorController = state().control(BaseConstants.States.ERROR);
@@ -64,10 +67,10 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 
 		life().runWhen(() -> {
 			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
+			theDocChanges = WeakListening.weaklyListeningObservable(doc.changes());
 			theTextEditing.install(this); // Installs the text editing behavior
 			// Mark the document dirty when the user edits it
-			Observable<QuickDocumentChangeEvent> docChanges = WeakListening.weaklyListeningObservable(doc.changes());
-			docChanges.filter(evt -> {
+			theDocChanges.filter(evt -> {
 				if (evt instanceof ContentChangeEvent && evt instanceof Causable) {
 					TextEditEvent textEdit = null;
 					textEdit = ((Causable) evt).getCauseLike(c -> {
@@ -141,7 +144,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			enabled.changes().act(e -> theEnabledController.setActive(e.getNewValue() == null, e));
 			// Set up the error state as a function of value, formatter, validator, and the document itself
 			ObservableValue<String> error = ObservableValue
-				.flatten(trioObs.map(tuple -> getErrorFor(tuple.getValue1(), tuple.getValue2(), tuple.getValue3(), docChanges)));
+				.flatten(trioObs.map(tuple -> getErrorFor(tuple.getValue1(), tuple.getValue2(), tuple.getValue3(), theDocChanges)));
 			error.changes().act(e -> theErrorController.setActive(e.getNewValue() != null, e));
 			resetDocument(null); // Set the document text to the value's initial value
 		}, org.quick.core.QuickConstants.CoreStage.STARTUP.toString(), 1);
@@ -290,7 +293,13 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	private static <T> TypeToken<? extends T> deepType(ObservableValue<? extends T> value) {
 		if (value instanceof ObservableValue.FlattenedObservableValue)
 			return ((ObservableValue.FlattenedObservableValue<? extends T>) value).getDeepType();
-		else
+		else if (value instanceof AttributeManager2.AttributeValue) {
+			ObservableValue<? extends T> container = ((AttributeManager2.AttributeValue<? extends T>) value).getContainer().get();
+			if (container == null)
+				return value.getType();
+			else
+				return deepType(container);
+		} else
 			return value.getType();
 	}
 

@@ -81,6 +81,7 @@ public class SoundModel implements QuickAppModel {
 
 		theExposedRate = theRate.filterAccept(value -> value == null ? "Rate must be non-zero" : null);
 
+		lock.writeLock().lock(); // Lock for initialization
 		isPlaying.set(false, null);
 		theEnd = new SimpleObservable<>();
 
@@ -145,6 +146,11 @@ public class SoundModel implements QuickAppModel {
 				return isPlaying.isEnabled();
 			}
 
+			@Override
+			public String toString() {
+				return getName() + ".position";
+			}
+
 			class Changes implements Observable<ObservableValueEvent<Duration>> {
 				@Override
 				public Subscription subscribe(Observer<? super ObservableValueEvent<Duration>> observer) {
@@ -192,6 +198,7 @@ public class SoundModel implements QuickAppModel {
 		fields.put("end", theEnd.readOnly());
 
 		theFields = Collections.unmodifiableMap(fields);
+		lock.writeLock().unlock();
 	}
 
 	@Override

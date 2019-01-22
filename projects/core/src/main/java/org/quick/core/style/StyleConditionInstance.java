@@ -285,7 +285,10 @@ public interface StyleConditionInstance<T extends QuickElement> {
 
 			@Override
 			public ObservableValue<StyleConditionInstance<?>> getRoleParent(AttachPoint<?> role) {
-				return theConditions.apply(role);
+				if (role == null)
+					return ObservableValue.of(StyleConditionInstance.TYPE, null);
+				else
+					return theConditions.apply(role);
 			}
 
 			@Override

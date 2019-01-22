@@ -331,19 +331,23 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			}
 			switch (childRegion) {
 			case left:
-				bounds[c] = new Rectangle(leftEdge, topEdge, widths[c], bottomEdge - topEdge);
+				bounds[c] = new Rectangle(leftEdge, topEdge, //
+					Math.max(0, widths[c]), Math.max(0, bottomEdge - topEdge));
 				leftEdge = add(leftEdge, add(bounds[c].width, padding.evaluate(parentWidth)));
 				break;
 			case right:
-				bounds[c] = new Rectangle(rightEdge - bounds[c].width, topEdge, widths[c], bottomEdge - topEdge);
+				bounds[c] = new Rectangle(rightEdge - widths[c], topEdge, //
+					Math.max(0, widths[c]), Math.max(0, bottomEdge - topEdge));
 				rightEdge -= add(bounds[c].width, padding.evaluate(parentWidth));
 				break;
 			case top:
-				bounds[c] = new Rectangle(leftEdge, topEdge, rightEdge - leftEdge, heights[c]);
+				bounds[c] = new Rectangle(leftEdge, topEdge, //
+					Math.max(0, rightEdge - leftEdge), Math.max(0, heights[c]));
 				topEdge = add(leftEdge, add(bounds[c].height, padding.evaluate(parentHeight)));
 				break;
 			case bottom:
-				bounds[c] = new Rectangle(leftEdge, bottomEdge - bounds[c].height, rightEdge - leftEdge, heights[c]);
+				bounds[c] = new Rectangle(leftEdge, bottomEdge - heights[c], //
+					Math.max(0, rightEdge - leftEdge), Math.max(0, heights[c]));
 				bottomEdge -= add(bounds[c].height, padding.evaluate(parentHeight));
 				break;
 			case center:
@@ -351,12 +355,12 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			}
 		}
 
-		if(centerIndex >= 0) {
-			bounds[centerIndex] = new Rectangle(leftEdge, topEdge, rightEdge - leftEdge, bottomEdge - topEdge);
-		}
+		if (centerIndex >= 0)
+			bounds[centerIndex] = new Rectangle(leftEdge, topEdge, //
+				Math.max(0, rightEdge - leftEdge), Math.max(0, bottomEdge - topEdge));
 
 		for(int c = 0; c < children.length; c++)
-			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
+			children[c].bounds().set(bounds[c], null);
 	}
 
 	@Override

@@ -100,9 +100,9 @@ public class LayoutUtils {
 		LayoutAttributes.SizeAttribute att;
 		Size ret;
 		att = LayoutAttributes.getSizeAtt(orientation, null);
-		Size minSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min)).get();
-		Size maxSize = element.atts().get(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max)).get();
-		ret = element.atts().get(att).get();
+		Size minSize = element.atts().getValue(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.min), null);
+		Size maxSize = element.atts().getValue(LayoutAttributes.getSizeAtt(orientation, LayoutGuideType.max), null);
+		ret = element.atts().getValue(att, null);
 		if (ret == null && type != null && !type.isPref())
 			ret = type.isMin() ? minSize : maxSize;
 		if(ret != null) {

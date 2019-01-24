@@ -40,4 +40,6 @@ public class ModelAttributes {
 
 	/** The "event" attribute on an eventing widget */
 	public static final QuickAttribute<Observable<?>> event = QuickAttribute.build("event", eventType).build();
+
+	public static final QuickAttribute<String> name = QuickAttribute.build("name", QuickPropertyType.string).build();
 }

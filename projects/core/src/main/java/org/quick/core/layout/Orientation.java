@@ -7,6 +7,14 @@ public enum Orientation {
 	/** Vertical (y-axis) orientation */
 	vertical;
 
+	/**
+	 * @param vert Whether to return {@link #vertical} or {@link #horizontal}
+	 * @return The corresponding orientation
+	 */
+	public static Orientation of(boolean vert) {
+		return vert ? vertical : horizontal;
+	}
+
 	/** @return The opposite orientation as this */
 	public Orientation opposite() {
 		switch (this) {

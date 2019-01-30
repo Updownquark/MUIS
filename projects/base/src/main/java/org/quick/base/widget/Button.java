@@ -61,6 +61,8 @@ public class Button extends SimpleContainer {
 		life().runWhen(() -> {
 			theAction = createAction();
 			theAction.isEnabled().changes().act(event -> {
+				if (!event.isInitial() && (event.getOldValue() == null) == (event.getNewValue() == null))
+					return;
 				theEnabledController.setActive(event.getNewValue() == null, event);
 				if (event.getNewValue() != null)
 					theDepressedController.setActive(false, event);

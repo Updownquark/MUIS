@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<template>
+	<head>
+	</head>
+	<body layout="layer">
+		<block layout="box" orientation="{$attributes.orientation}">
+			<block>
+				<table-column template-attach-point="leading-header" template-external="true" template-multiple="true" />
+			</block>
+			<block layout="box" orientation="{$attributes.orientation}.opposite()">
+				<table-column template-attach-point="column" template-external="true" template-multiple="true" template-default="true" />
+			</block>
+			<block>
+				<table-column template-attach-point="trailing-header" template-external="true" template-multiple="true" />
+			</block>
+		</block>
+	</body>
+</template>

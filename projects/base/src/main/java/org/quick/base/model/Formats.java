@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.function.Function;
 
+import org.observe.util.TypeTokens;
 import org.quick.core.QuickException;
 import org.quick.core.model.*;
 import org.quick.core.style.Colors;
@@ -17,7 +18,7 @@ public class Formats {
 	public static final QuickFormatter<Object> def = new SimpleFormatter<Object>() {
 		@Override
 		public TypeToken<Object> getFormatType() {
-			return TypeToken.of(Object.class);
+			return TypeTokens.get().OBJECT;
 		}
 
 		@Override
@@ -50,12 +51,12 @@ public class Formats {
 	public static final QuickFormatter<String> string = new SimpleFormatter<String>() {
 		@Override
 		public TypeToken<String> getFormatType() {
-			return TypeToken.of(String.class);
+			return TypeTokens.get().STRING;
 		}
 
 		@Override
 		public TypeToken<String> getParseType() {
-			return TypeToken.of(String.class);
+			return TypeTokens.get().STRING;
 		}
 
 		@Override
@@ -78,12 +79,12 @@ public class Formats {
 	public static final QuickFormatter<Number> number = new SimpleFormatter<Number>() {
 		@Override
 		public TypeToken<Number> getFormatType() {
-			return TypeToken.of(Number.class);
+			return TypeTokens.get().of(Number.class);
 		}
 
 		@Override
 		public TypeToken<Number> getParseType() {
-			return TypeToken.of(Number.class);
+			return TypeTokens.get().of(Number.class);
 		}
 
 		@Override
@@ -113,12 +114,12 @@ public class Formats {
 	public static final AdjustableFormatter<Integer> integer = new SimpleFormatter.SimpleAdjustableFormatter<Integer>() {
 		@Override
 		public TypeToken<Integer> getFormatType() {
-			return TypeToken.of(Integer.class);
+			return TypeTokens.get().INT;
 		}
 
 		@Override
 		public TypeToken<Integer> getParseType() {
-			return TypeToken.of(Integer.class);
+			return TypeTokens.get().INT;
 		}
 
 		@Override
@@ -191,12 +192,12 @@ public class Formats {
 
 		@Override
 		public TypeToken<Integer> getFormatType() {
-			return TypeToken.of(Integer.class);
+			return TypeTokens.get().INT;
 		}
 
 		@Override
 		public TypeToken<Integer> getParseType() {
-			return TypeToken.of(Integer.class);
+			return TypeTokens.get().INT;
 		}
 
 		@Override
@@ -300,12 +301,12 @@ public class Formats {
 	public static final QuickFormatter<Color> color = new SimpleFormatter<Color>() {
 		@Override
 		public TypeToken<Color> getFormatType() {
-			return TypeToken.of(Color.class);
+			return TypeTokens.get().of(Color.class);
 		}
 
 		@Override
 		public TypeToken<Color> getParseType() {
-			return TypeToken.of(Color.class);
+			return TypeTokens.get().of(Color.class);
 		}
 
 		@Override
@@ -339,12 +340,12 @@ public class Formats {
 			return new SimpleFormatter.SimpleAdjustableFormatter<Duration>() {
 				@Override
 				public TypeToken<Duration> getFormatType() {
-					return TypeToken.of(Duration.class);
+					return TypeTokens.get().of(Duration.class);
 				}
 
 				@Override
 				public TypeToken<? extends Duration> getParseType() {
-					return TypeToken.of(Duration.class);
+					return TypeTokens.get().of(Duration.class);
 				}
 
 				@Override

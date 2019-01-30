@@ -342,11 +342,11 @@ public class FlowLayoutTester {
 			}
 
 			@Override
-			public int getSize(LayoutSize [] layoutValue) {
-				LayoutSize total = new LayoutSize();
+			public long getSize(LayoutSize[] layoutValue) {
+				long total = 0;
 				for(LayoutSize lv : layoutValue)
-					total.add(lv);
-				return total.getTotal(crossSize);
+					total += lv.getTotal(crossSize);
+				return total;
 			}
 		}, crossSize, LayoutGuideType.min, isFillContainer ? LayoutGuideType.max : LayoutGuideType.maxPref);
 		int [] pixRowHeights = new int[result.lowerValue.length];
@@ -534,8 +534,8 @@ public class FlowLayoutTester {
 			}
 
 			@Override
-			public int getSize(int [] layoutValue) {
-				int ret = 0;
+			public long getSize(int[] layoutValue) {
+				long ret = 0;
 				for(int lv : layoutValue)
 					ret += lv;
 				return ret;

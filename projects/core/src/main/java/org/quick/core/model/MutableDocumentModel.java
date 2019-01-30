@@ -1,6 +1,7 @@
 package org.quick.core.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import org.observe.util.WeakListening;
 import org.qommons.Transaction;
@@ -79,12 +80,14 @@ public interface MutableDocumentModel extends QuickDocumentModel, Appendable {
 	/** Implements {@link MutableDocumentModel#subSequence(int, int)} */
 	class MutableSubDoc extends SubDocument implements MutableDocumentModel {
 		private final AtomicInteger isLocalMod;
+		private final Consumer<QuickDocumentChangeEvent> theChanges;
 
 		public MutableSubDoc(MutableDocumentModel outer, int start, int length) {
 			super(outer, start, length);
 			isLocalMod = new AtomicInteger();
 			// Allows this sub-doc to be GC'd when nobody cares about it anymore
-			WeakListening.consumeWeakly(this::changed, getWrapped().changes()::act);
+			theChanges = this::changed;
+			WeakListening.consumeWeakly(theChanges, getWrapped().changes()::act);
 		}
 
 		protected void changed(QuickDocumentChangeEvent change) {

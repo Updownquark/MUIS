@@ -58,7 +58,7 @@ public class LayoutUtils {
 		 * @param layoutValue The value to get the size for
 		 * @return The pixel size of the layout value
 		 */
-		int getSize(T layoutValue);
+		long getSize(T layoutValue);
 	}
 
 	/**
@@ -296,19 +296,19 @@ public class LayoutUtils {
 			throw new IllegalArgumentException("maxType may be " + LayoutGuideType.pref + ", " + LayoutGuideType.maxPref + ", or "
 				+ LayoutGuideType.max);
 		T prefValue = checker.getLayoutValue(LayoutGuideType.pref);
-		int prefSize = checker.getSize(prefValue);
+		long prefSize = checker.getSize(prefValue);
 		if(prefSize > size) {
 			switch (minType) {
 			case min:
 				T minValue = checker.getLayoutValue(LayoutGuideType.min);
-				int minSize = checker.getSize(minValue);
+				long minSize = checker.getSize(minValue);
 				if(minSize == prefSize)
 					return new LayoutInterpolation<>(LayoutGuideType.pref, 0, prefValue, prefValue);
 				else if(minSize >= size)
 					return new LayoutInterpolation<>(LayoutGuideType.min, 0, minValue, minValue);
 				else {
 					T minPrefValue = checker.getLayoutValue(LayoutGuideType.minPref);
-					int minPrefSize = checker.getSize(minPrefValue);
+					long minPrefSize = checker.getSize(minPrefValue);
 					if(minPrefSize > size) {
 						// Some proportion between min and minPref
 						double prop = (size - minSize) * 1.0 / (minPrefSize - minSize);
@@ -322,7 +322,7 @@ public class LayoutUtils {
 				}
 			case minPref:
 				T minPrefValue = checker.getLayoutValue(LayoutGuideType.minPref);
-				int minPrefSize = checker.getSize(minPrefValue);
+				long minPrefSize = checker.getSize(minPrefValue);
 				if(minPrefSize > size)
 					return new LayoutInterpolation<>(LayoutGuideType.minPref, 0, minPrefValue, minPrefValue);
 				else if(minPrefSize < size) {
@@ -340,10 +340,10 @@ public class LayoutUtils {
 			switch (maxType) {
 			case max:
 				T maxValue = checker.getLayoutValue(LayoutGuideType.max);
-				int maxSize = checker.getSize(maxValue);
+				long maxSize = checker.getSize(maxValue);
 				if(maxSize > size) {
 					T maxPrefValue = checker.getLayoutValue(LayoutGuideType.maxPref);
-					int maxPrefSize = checker.getSize(maxPrefValue);
+					long maxPrefSize = checker.getSize(maxPrefValue);
 					if(maxPrefSize > size) {
 						// Some proportion between pref and maxPref
 						double prop = (size - prefSize) * 1.0 / (maxPrefSize - prefSize);
@@ -358,7 +358,7 @@ public class LayoutUtils {
 					return new LayoutInterpolation<>(LayoutGuideType.max, 0, maxValue, maxValue);
 			case maxPref:
 				T maxPrefValue = checker.getLayoutValue(LayoutGuideType.maxPref);
-				int maxPrefSize = checker.getSize(maxPrefValue);
+				long maxPrefSize = checker.getSize(maxPrefValue);
 				if(maxPrefSize > size) {
 					// Some proportion between pref and maxPref
 					double prop = (size - prefSize) * 1.0 / (maxPrefSize - prefSize);

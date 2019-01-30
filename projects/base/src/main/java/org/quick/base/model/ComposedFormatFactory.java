@@ -2,6 +2,7 @@ package org.quick.base.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.observe.util.WeakListening;
@@ -9,6 +10,7 @@ import org.qommons.BiTuple;
 import org.quick.core.model.MutableDocumentModel;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
+import org.quick.core.model.QuickDocumentModel.QuickDocumentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 
 import com.google.common.reflect.TypeToken;
@@ -43,53 +45,58 @@ public abstract class ComposedFormatFactory<T> implements AdjustableFormatter.Fa
 		private QuickParseException theCurrentError;
 		private T theCurrentValue;
 
+		private final Consumer<QuickDocumentChangeEvent> theChanges;
+
 		ComposedFormatter(QuickDocumentModel doc) {
 			theDoc = doc;
 			reset();
-			WeakListening.consumeWeakly(change -> {
-				if (theSubFormats == null)
-					reset();
-				if (change instanceof ContentChangeEvent) {
-					ContentChangeEvent contentChange = (ContentChangeEvent) change;
-					int posDiff = change.getEndIndex() - change.getStartIndex();
-					if (contentChange.isRemove())
-						posDiff = -posDiff;
-					boolean accounted = false;
-					// See if this change can be handled in one sub-format sequence
-					for (SubFormat<?> sub : theSubFormats) {
-						if (accounted) {
-							sub.start += posDiff;
-							continue;
-						}
-						int preEnd = change.getEndIndex();
-						if (!contentChange.isRemove())
-							preEnd -= posDiff;
-						if (sub.start <= change.getStartIndex() && sub.start + sub.length >= preEnd) {
-							int newLen = sub.length + posDiff;
-							try {
-								sub.component.parse(theDoc.subSequence(sub.start, sub.start + newLen));
-								sub.length = newLen;
-								accounted = true;
-							} catch (QuickParseException e) {
-								// We'll give other sequences a chance maybe, otherwise we'll reset and get the error there
-							}
-						}
+			theChanges = this::onChange;
+			WeakListening.consumeWeakly(theChanges, theDoc.changes()::act);
+		}
+
+		private void onChange(QuickDocumentChangeEvent change) {
+			if (theSubFormats == null)
+				reset();
+			if (change instanceof ContentChangeEvent) {
+				ContentChangeEvent contentChange = (ContentChangeEvent) change;
+				int posDiff = change.getEndIndex() - change.getStartIndex();
+				if (contentChange.isRemove())
+					posDiff = -posDiff;
+				boolean accounted = false;
+				// See if this change can be handled in one sub-format sequence
+				for (SubFormat<?> sub : theSubFormats) {
+					if (accounted) {
+						sub.start += posDiff;
+						continue;
 					}
-					if (!accounted)
-						reset();
-				} else {
-					for (SubFormat<?> sub : theSubFormats) {
-						if (sub.start < change.getEndIndex() && sub.start + sub.length < change.getStartIndex()) {
-							try {
-								sub.component.parse(theDoc.subSequence(sub.start, sub.start + sub.length));
-							} catch (QuickParseException e) {
-								reset();
-								break;
-							}
+					int preEnd = change.getEndIndex();
+					if (!contentChange.isRemove())
+						preEnd -= posDiff;
+					if (sub.start <= change.getStartIndex() && sub.start + sub.length >= preEnd) {
+						int newLen = sub.length + posDiff;
+						try {
+							sub.component.parse(theDoc.subSequence(sub.start, sub.start + newLen));
+							sub.length = newLen;
+							accounted = true;
+						} catch (QuickParseException e) {
+							// We'll give other sequences a chance maybe, otherwise we'll reset and get the error there
 						}
 					}
 				}
-			}, theDoc.changes()::act);
+				if (!accounted)
+					reset();
+			} else {
+				for (SubFormat<?> sub : theSubFormats) {
+					if (sub.start < change.getEndIndex() && sub.start + sub.length < change.getStartIndex()) {
+						try {
+							sub.component.parse(theDoc.subSequence(sub.start, sub.start + sub.length));
+						} catch (QuickParseException e) {
+							reset();
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		private void reset() {

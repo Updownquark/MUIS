@@ -12,6 +12,7 @@ import org.observe.Subscription;
 import org.observe.collect.CollectionChangeEvent;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
+import org.qommons.Lockable;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionLockingStrategy;
 import org.qommons.collect.StampedLockingStrategy;
@@ -113,6 +114,8 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private long theLayoutDirtyTime;
 
+	private volatile int isHoldingEvents;
+
 	/** Creates a Quick element */
 	public QuickElement() {
 		theAttributeLocker = new ReentrantReadWriteLock();
@@ -145,7 +148,8 @@ public abstract class QuickElement implements QuickParseEnv {
 		theDefaultStyleListener = new StyleChangeObservable(theStyle);
 		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {
-			repaint(null, false);
+			if (isHoldingEvents == 0)
+				repaint(null, false);
 		});
 		List<Runnable> childRemoves = new ArrayList<>();
 		theChildren.subscribe(evt -> {
@@ -170,6 +174,8 @@ public abstract class QuickElement implements QuickParseEnv {
 		}, true);
 		theChildren.simpleChanges().act(cause -> sizeNeedsChanged());
 		theChildren.changes().act(event -> {
+			if (isHoldingEvents != 0)
+				return;
 			Rectangle bounds = null;
 			switch (event.type) {
 			case add:
@@ -189,6 +195,8 @@ public abstract class QuickElement implements QuickParseEnv {
 				repaint(bounds, false);
 		});
 		bounds().changes().act(event -> {
+			if (isHoldingEvents != 0)
+				return;
 			Rectangle old = event.getOldValue();
 			if (old == null || event.getNewValue().width != old.width || event.getNewValue().height != old.height)
 				relayout(false);
@@ -441,10 +449,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			return;
 		}
 		for (QuickTagUtils.AcceptedAttributeStruct<?> att : atts) {
-			if (att.annotation.required())
-				theAttributeManager.accept(att.attribute, wanter, a -> a.required());
-			else
-				theAttributeManager.accept(att.attribute, wanter, a -> a.optional());
+			theAttributeManager.accept(att.attribute, wanter, a -> a.required(att.annotation.required()));
 			if (att.annotation.defaultValue().length() > 0)
 				try {
 					theAttributeManager.set(att.attribute, att.annotation.defaultValue(), this);
@@ -497,10 +502,11 @@ public abstract class QuickElement implements QuickParseEnv {
 		if (child.life().isAfter(CoreStage.STARTUP.name()) < 0 && life().isAfter(CoreStage.READY.name()) > 0) {
 			child.postCreate();
 		}
-		Subscription eventSub = child.events().filterMap(BoundsChangedEvent.bounds).filter(event -> !isStamp(event.getElement()))
-			.act(event -> {
-			Rectangle paintRect = event.getNewValue().union(event.getOldValue());
-			repaint(paintRect, false);
+		Subscription eventSub = child.events().filterMap(BoundsChangedEvent.bounds).act(event -> {
+			if (isHoldingEvents == 0) {
+				Rectangle paintRect = event.getNewValue().union(event.getOldValue());
+				repaint(paintRect, false);
+			}
 		});
 
 		return () -> {
@@ -558,6 +564,30 @@ public abstract class QuickElement implements QuickParseEnv {
 		return theSelfModel;
 	}
 
+	/**
+	 * Places a temporary hold on this element so that changes to its content or attributes do not cause events
+	 *
+	 * @param editAttributes Whether attributes are expected to be modified during the hold
+	 * @param editContent Whether content is expected to be modified during the hold
+	 * @return A transaction to close to release the lock
+	 */
+	public Transaction holdEvents(boolean editAttributes, boolean editContent) {
+		if (!editAttributes && !editContent)
+			throw new IllegalArgumentException("Either an attribute or content lock must be held");
+		Transaction release = Lockable.lockAll(//
+			Lockable.lockable(theAttributeLocker, editContent), //
+			Lockable.lockable(theContentLocker, editContent, editContent, null));
+		isHoldingEvents++;
+		boolean[] released = new boolean[1];
+		return () -> {
+			if (!released[0]) {
+				released[0] = true;
+				isHoldingEvents--;
+				release.close();
+			}
+		};
+	}
+
 	// Hierarchy methods
 
 	/** @return This element's parent in the DOM tree */
@@ -603,14 +633,6 @@ public abstract class QuickElement implements QuickParseEnv {
 		return theChildren;
 	}
 
-	/**
-	 * @param child The child element of this element to check
-	 * @return Whether the given child is being used as a stamp for rendering
-	 */
-	protected boolean isStamp(QuickElement child) {
-		return false;
-	}
-
 	// End hierarchy methods
 
 	/**
@@ -644,7 +666,7 @@ public abstract class QuickElement implements QuickParseEnv {
 			return;
 		theZ = z;
 		QuickElement parent = theParent.get();
-		if (parent != null)
+		if (parent != null && isHoldingEvents == 0)
 			parent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
 	}
 

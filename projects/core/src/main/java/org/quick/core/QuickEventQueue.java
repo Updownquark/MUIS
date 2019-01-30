@@ -286,14 +286,16 @@ public class QuickEventQueue {
 				int y = trans.y;
 				if(y < 0)
 					y = 0;
-				int w = newBound.getWidth();
-				if(x + w > newRender.getImage().getWidth())
-					w = newRender.getImage().getWidth() - trans.x;
-				int h = newBound.getHeight();
-				if(y + h > newRender.getImage().getHeight())
-					h = newRender.getImage().getHeight() - trans.y;
-				docGraphics.drawImage(newRender.getImage().getSubimage(x, y, w, h), x, y, null);
-				doc.graphicsUpdated();
+				if (x < newRender.getImage().getWidth() && y < newRender.getImage().getHeight()) {
+					int w = newBound.getWidth();
+					if (x + w > newRender.getImage().getWidth())
+						w = newRender.getImage().getWidth() - x;
+					int h = newBound.getHeight();
+					if (y + h > newRender.getImage().getHeight())
+						h = newRender.getImage().getHeight() - y;
+					docGraphics.drawImage(newRender.getImage().getSubimage(x, y, w, h), x, y, null);
+					doc.graphicsUpdated();
+				}
 			}
 			if(bound.getParent() != null)
 				((java.util.List<QuickElementCapture>) bound.getParent().getChildren()).set(bound.getParent().getChildren().indexOf(bound),

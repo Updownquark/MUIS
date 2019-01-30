@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.observe.ObservableValue;
+import org.qommons.Transaction;
 import org.quick.core.QuickClassView;
 import org.quick.core.QuickException;
 import org.quick.core.QuickParseEnv;
@@ -67,25 +68,34 @@ public class QuickRichTextParser {
 	 * @return The model
 	 * @throws QuickException If the text cannot be parsed
 	 */
-	public RichDocumentModel parse(RichDocumentModel model, String richText, QuickPropertyParser parser, QuickParseEnv env)
+	public static RichDocumentModel parse(RichDocumentModel model, String richText, QuickPropertyParser parser, QuickParseEnv env)
 		throws QuickException {
 		env = new NoMVParseEnv(env);
 		boolean isEscaped = false;
-		for(int i = 0; i < richText.length(); i++) {
-			char ch = richText.charAt(i);
-			if(isEscaped) {
-				if(!isEscapable(ch))
-					throw new QuickParseException("Escaped character '" + ch + "' is not escapable in rich text");
-				model.append(ch);
-				isEscaped = false;
-			} else if(ch == '\\')
-				isEscaped = true;
-			else if(ch == '{')
-				i = parseTag(model, richText, i, parser, env);
-			else if(ch == '}')
-				throw new QuickParseException("Unmatched '}' found in rich text at character " + i);
-			else
-				model.append(ch);
+		StringBuilder buffer = new StringBuilder();
+		try (Transaction t = model.holdForWrite(richText)) {
+			for (int i = 0; i < richText.length(); i++) {
+				char ch = richText.charAt(i);
+				if (isEscaped) {
+					if (!isEscapable(ch))
+						throw new QuickParseException("Escaped character '" + ch + "' is not escapable in rich text");
+					buffer.append(ch);
+					isEscaped = false;
+				} else if (ch == '\\')
+					isEscaped = true;
+				else if (ch == '{') {
+					if (buffer.length() > 0) {
+						model.append(buffer);
+						buffer.setLength(0);
+					}
+					i = parseTag(model, richText, i, parser, env);
+				} else if (ch == '}')
+					throw new QuickParseException("Unmatched '}' found in rich text at character " + i);
+				else
+					buffer.append(ch);
+			}
+			if (buffer.length() > 0)
+				model.append(buffer);
 		}
 		return model;
 	}
@@ -110,7 +120,7 @@ public class QuickRichTextParser {
 	 * @return The location of the end brace for the tag
 	 * @throws QuickException If the tag cannot be parsed
 	 */
-	public int parseTag(RichDocumentModel model, String richText, int index, QuickPropertyParser parser, QuickParseEnv env)
+	public static int parseTag(RichDocumentModel model, String richText, int index, QuickPropertyParser parser, QuickParseEnv env)
 		throws QuickException {
 		if(richText.charAt(index) != '{')
 			throw new QuickParseException("The character at index " + index + " is not '{'");
@@ -264,18 +274,18 @@ public class QuickRichTextParser {
 		return end;
 	}
 
-	private void trim(StringBuilder str) {
+	private static void trim(StringBuilder str) {
 		while(str.length() > 0 && Character.isWhitespace(str.charAt(0)))
 			str.delete(0, 1);
 		while(str.length() > 0 && Character.isWhitespace(str.charAt(str.length() - 1)))
 			str.delete(str.length() - 1, str.length());
 	}
 
-	private <T> void set(RichDocumentModel model, StyleValue<T> sv) {
+	private static <T> void set(RichDocumentModel model, StyleValue<T> sv) {
 		model.set(sv.attr, ObservableValue.of(sv.attr.getType().getType(), sv.value));
 	}
 
-	private <T> void set(RichDocumentModel model, StyleAttribute<T> att, QuickStyle style) {
+	private static <T> void set(RichDocumentModel model, StyleAttribute<T> att, QuickStyle style) {
 		model.set(att, style.get(att));
 	}
 
@@ -285,7 +295,7 @@ public class QuickRichTextParser {
 	 * @param model The rich model to format the content and styles of
 	 * @return Rich-formatted text that would parse to give the same style and content as the given model
 	 */
-	public String format(RichDocumentModel model) {
+	public static String format(RichDocumentModel model) {
 		StringBuilder ret = new StringBuilder();
 		QuickStyle lastStyle = null;
 		for(StyledSequence seq : model) {
@@ -397,6 +407,7 @@ public class QuickRichTextParser {
 					ret.append(ch);
 				}
 			}
+			lastStyle = seq.getStyle();
 		}
 		return ret.toString();
 	}

@@ -196,6 +196,7 @@ public class StateEngine implements StateSet {
 			if (isActive == active)
 				return active;
 			else {
+				isActive = active;
 				try (Transaction t = theActiveStates.lock(true, cause)) {
 					if (active)
 						return !theActiveStates.add(theState.theState);

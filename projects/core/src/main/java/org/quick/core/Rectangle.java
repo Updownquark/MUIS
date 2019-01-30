@@ -98,35 +98,91 @@ public class Rectangle {
 	}
 
 	public Rectangle union(Rectangle r) {
-		int minX = Math.min(x, r.x);
-		int minY = Math.min(y, r.y);
-		int maxX = Math.max(x + width, r.x + r.width);
-		int maxY = Math.max(y + height, r.y + r.height);
-		return new Rectangle(minX, minY, maxX - minX, maxY - minY);
+		boolean thisMatches = true, rMatches = true;
+		int minX = x;
+		if (r.x < x) {
+			thisMatches = false;
+			minX = r.x;
+		} else
+			rMatches = false;
+		int minY = y;
+		if (r.y < y) {
+			thisMatches = false;
+			minY = r.y;
+		} else
+			rMatches = false;
+		int maxX = x + width;
+		int rMaxX = r.x + r.width;
+		if (rMaxX > maxX) {
+			thisMatches = false;
+			maxX = rMaxX;
+		} else
+			rMatches = false;
+		int maxY = y + height;
+		int rMaxY = r.y + r.height;
+		if (rMaxY > maxY) {
+			thisMatches = false;
+			maxY = rMaxY;
+		} else
+			rMatches = false;
+		if (thisMatches)
+			return this;
+		else if (rMatches)
+			return r;
+		else
+			return new Rectangle(minX, minY, maxX - minX, maxY - minY);
 	}
 
 	public boolean intersects(int x2, int y2, int width2, int height2) {
-		int minX = Math.min(x, x2);
-		int maxX = Math.max(x + width, x2 + width2);
+		int minX = Math.max(x, x2);
+		int maxX = Math.min(x + width, x2 + width2);
 		if (minX >= maxX)
 			return false;
-		int minY = Math.min(y, y2);
-		int maxY = Math.max(y + height, y2 + height2);
+		int minY = Math.max(y, y2);
+		int maxY = Math.min(y + height, y2 + height2);
 		if (minY >= maxY)
 			return false;
 		return true;
 	}
 
 	public Rectangle intersection(Rectangle r) {
-		int minX = Math.min(x, r.x);
-		int maxX = Math.max(x + width, r.x + r.width);
+		boolean thisMatches = true, rMatches = true;
+		int minX = x;
+		if (r.x > x) {
+			thisMatches = false;
+			minX = r.x;
+		} else
+			rMatches = false;
+		int minY = y;
+		if (r.y > y) {
+			thisMatches = false;
+			minY = r.y;
+		} else
+			rMatches = false;
+		int maxX = x + width;
+		int rMaxX = r.x + r.width;
+		if (rMaxX < maxX) {
+			thisMatches = false;
+			maxX = rMaxX;
+		} else
+			rMatches = false;
 		if (minX > maxX)
 			return null;
-		int minY = Math.min(y, r.y);
-		int maxY = Math.max(y + height, r.y + r.height);
+		int maxY = y + height;
+		int rMaxY = r.y + r.height;
+		if (rMaxY < maxY) {
+			thisMatches = false;
+			maxY = rMaxY;
+		} else
+			rMatches = false;
 		if (minY > maxY)
 			return null;
-		return new Rectangle(minX, minY, maxX - minX, maxY - minY);
+		if (thisMatches)
+			return this;
+		else if (rMatches)
+			return r;
+		else
+			return new Rectangle(minX, minY, maxX - minX, maxY - minY);
 	}
 
 	public java.awt.Rectangle toAwt() {

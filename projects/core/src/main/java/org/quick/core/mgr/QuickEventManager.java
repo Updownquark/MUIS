@@ -15,7 +15,7 @@ public class QuickEventManager implements org.observe.Observable<QuickEvent> {
 	/** @param element The element that events are being managed for */
 	public QuickEventManager(QuickElement element) {
 		theElement = element;
-		theController = new SimpleObservable<>(null, false, theElement.getAttributeLocker(), null);
+		theController = new SimpleObservable<>(null, false, theElement.getAttributeLocker(), ll -> ll.allowReentrant());
 	}
 
 	/**

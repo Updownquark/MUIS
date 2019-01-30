@@ -233,16 +233,18 @@ public class BoxLayout implements QuickLayout {
 			}
 
 			@Override
-			public int getSize(LayoutSize [] layoutValue) {
-				LayoutSize ret = new LayoutSize();
-				ret.add(margin);
-				ret.add(margin);
+			public long getSize(LayoutSize[] layoutValue) {
+				LayoutSize space = new LayoutSize();
+				space.add(margin);
+				space.add(margin);
+				long size = 0;
 				for(int i = 0; i < layoutValue.length; i++) {
 					if(i > 0)
-						ret.add(padding);
-					ret.add(layoutValue[i]);
+						space.add(padding);
+					size += layoutValue[i].getTotal(parallelSize);
 				}
-				return ret.getTotal(parallelSize);
+				size += space.getTotal(parallelSize);
+				return size;
 			}
 		}, parallelSize, LayoutGuideType.min, align == Alignment.justify ? LayoutGuideType.max : LayoutGuideType.pref);
 

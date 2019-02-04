@@ -243,6 +243,11 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 				return new Changes();
 			}
 
+			@Override
+			public Observable<ObservableValueEvent<String>> noInitChanges() {
+				return changes().noInit();
+			}
+
 			class Changes implements Observable<ObservableValueEvent<String>> {
 				private String theLastError;
 

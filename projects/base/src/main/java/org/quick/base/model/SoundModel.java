@@ -112,7 +112,7 @@ public class SoundModel implements QuickAppModel {
 			}
 
 			@Override
-			public Observable<ObservableValueEvent<Duration>> changes() {
+			public Observable<ObservableValueEvent<Duration>> noInitChanges() {
 				return new Changes();
 			}
 
@@ -163,10 +163,6 @@ public class SoundModel implements QuickAppModel {
 						}
 						value[0] = newPos;
 					});
-					ObservableValueEvent<Duration> initEvt = createInitialEvent(value[0], null);
-					try (Transaction t = Causable.use(initEvt)) {
-						observer.onNext(initEvt);
-					}
 					return sub;
 				}
 

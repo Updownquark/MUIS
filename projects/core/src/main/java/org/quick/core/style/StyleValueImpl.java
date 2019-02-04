@@ -75,7 +75,7 @@ public class StyleValueImpl<T> implements StyleValue<T> {
 	}
 
 	@Override
-	public Observable<ObservableValueEvent<T>> changes() {
+	public Observable<ObservableValueEvent<T>> noInitChanges() {
 		return new StyleValueChanges();
 	}
 
@@ -111,7 +111,7 @@ public class StyleValueImpl<T> implements StyleValue<T> {
 	private class StyleValueChanges implements Observable<ObservableValueEvent<T>> {
 		@Override
 		public Subscription subscribe(Observer<? super ObservableValueEvent<T>> observer) {
-			return theValue.changes().act(event -> {
+			return theValue.noInitChanges().act(event -> {
 				StyleAttributeEvent<T> styleEvent;
 				if (theAttribute.canAccept(event.getNewValue())) {
 					styleEvent = wrap(event);
@@ -133,7 +133,7 @@ public class StyleValueImpl<T> implements StyleValue<T> {
 
 		@Override
 		public boolean isSafe() {
-			return theValue.changes().isSafe();
+			return theValue.noInitChanges().isSafe();
 		}
 
 		@Override

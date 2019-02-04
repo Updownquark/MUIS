@@ -423,10 +423,6 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 					{
 						boolean initMatch = matches(states);
 						preMatches.set(initMatch);
-						ObservableValueEvent<Boolean> evt = theObservable.createInitialEvent(initMatch, null);
-						try (Transaction t = Causable.use(evt)) {
-							observer.onNext(evt);
-						}
 					}
 
 					@Override
@@ -471,7 +467,7 @@ public abstract class StateCondition implements Comparable<StateCondition> {
 			}
 
 			@Override
-			public Observable<ObservableValueEvent<Boolean>> changes() {
+			public Observable<ObservableValueEvent<Boolean>> noInitChanges() {
 				return theChanges;
 			}
 		}

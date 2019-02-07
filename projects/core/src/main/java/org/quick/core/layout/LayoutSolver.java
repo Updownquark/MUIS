@@ -1,6 +1,8 @@
 package org.quick.core.layout;
 
 import java.awt.Color;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,7 +42,9 @@ public class LayoutSolver<L> {
 		Line getLeft();
 
 		Line getRight();
+
 		Line getTop();
+
 		Line getBottom();
 
 		default Point getTopLeft() {
@@ -142,8 +146,8 @@ public class LayoutSolver<L> {
 	private static final int MAX_TRIES = 4;
 
 	private final BoxImpl theBounds = new BoxImpl(//
-		new LineImpl(false, true), new LineImpl(false, true), //
-			new LineImpl(true, true), new LineImpl(true, true)//
+		new LineImpl(null, false, true), new LineImpl(null, false, true), //
+		new LineImpl(null, true, true), new LineImpl(null, true, true)//
 	);
 
 	private final BetterMap<L, LineImpl> theLines;
@@ -164,13 +168,13 @@ public class LayoutSolver<L> {
 	public Box getOrCreateBox(L left, L right, L top, L bottom) {
 		return new BoxImpl(//
 			(LineImpl) getOrCreateLine(left, false), (LineImpl) getOrCreateLine(right, false), //
-			(LineImpl) getOrCreateLine(top, true), (LineImpl) getOrCreateLine(right, true));
+			(LineImpl) getOrCreateLine(top, true), (LineImpl) getOrCreateLine(bottom, true));
 	}
 
 	public Line getOrCreateLine(L lineObject, boolean vertical) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
-		return theLines.computeIfAbsent(lineObject, lo -> new LineImpl(vertical, false));
+		return theLines.computeIfAbsent(lineObject, lo -> new LineImpl(lineObject, vertical, false));
 	}
 
 	public Line getLine(L lineObject) {
@@ -195,6 +199,20 @@ public class LayoutSolver<L> {
 		if (spring1.getSource().getOrientation() == spring2.getSource().getOrientation())
 			throw new IllegalArgumentException("Linked springs must have different orientations");
 		((SpringImpl) spring1).affects((SpringImpl) spring2);
+	}
+
+	public LayoutSolver reset() {
+		theBounds.left.reset();
+		theBounds.right.reset();
+		theBounds.top.reset();
+		theBounds.bottom.reset();
+		for (LineImpl line : theLines.values())
+			line.reset();
+		theLineSets.clear();
+		theIteration = 0;
+		theUnstableLines = 0;
+		isSealed = false;
+		return this;
 	}
 
 	public LayoutSolver solve(Dimension size) {
@@ -351,6 +369,7 @@ public class LayoutSolver<L> {
 	}
 
 	private class LineImpl implements Line {
+		private final L theValue;
 		private final boolean isVertical;
 		final boolean isBorder;
 		private List<SpringImpl> theOutgoingSprings;
@@ -359,7 +378,8 @@ public class LayoutSolver<L> {
 		float theForce;
 		int lastChecked;
 
-		LineImpl(boolean vertical, boolean border) {
+		LineImpl(L value, boolean vertical, boolean border) {
+			theValue = value;
 			isVertical = vertical;
 			isBorder = border;
 		}
@@ -376,6 +396,16 @@ public class LayoutSolver<L> {
 				springs = theIncomingSprings;
 			}
 			springs.add(spring);
+		}
+
+		void reset() {
+			lastChecked = 0;
+			thePosition = 0;
+			theForce = 0;
+			if (theOutgoingSprings != null) {
+				for (SpringImpl spring : theOutgoingSprings)
+					spring.reset();
+			}
 		}
 
 		boolean setPosition(int position, int iteration) {
@@ -408,6 +438,11 @@ public class LayoutSolver<L> {
 			if (theForce == 0)
 				theUnstableLines--;
 		}
+
+		@Override
+		public String toString() {
+			return String.valueOf(theValue) + ": " + thePosition;
+		}
 	}
 
 	private class SpringImpl implements Spring {
@@ -431,6 +466,10 @@ public class LayoutSolver<L> {
 			if (other.theLinkedSprings == null)
 				other.theLinkedSprings = new LinkedList<>();
 			other.theLinkedSprings.add(this);
+		}
+
+		void reset() {
+			theTension = theGradient = 0;
 		}
 
 		boolean recalculate() {
@@ -497,17 +536,19 @@ public class LayoutSolver<L> {
 	public static void main(String[] args) {
 		DebugPlotter plotter = new DebugPlotter();
 		Map<Box, Line2D[]> boxes = new HashMap<>(); // Each entry is 4 lines--left, right, top, bottom
+		Map<Spring, Line2D> springs = new HashMap<>();
 
 		// First, a simple system with 2 boxes
 		LayoutSolver<String> solver = new LayoutSolver<>();
-		Box box1 = solver.getOrCreateBox("b1 l", "b1 r", "b1 t", "b1 b");
-		Box box2 = solver.getOrCreateBox("b2 l", "b2 r", "b2 t", "b2 b");
+		Box box1 = solver.getOrCreateBox("b1 left", "b1 right", "b1 top", "b1 bottom");
+		Box box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
 		addBox(plotter, boxes, solver.getBounds(), "bounds");
 		addBox(plotter, boxes, box1, "box1");
 		addBox(plotter, boxes, box2, "box2");
-		//Margins
+		// Margins
 		Spring leftMargin = solver.createSpring(box1.getLeft(), solver.getBounds().getLeft(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
+		addSpring(plotter, springs, leftMargin, "left margin");
 		Spring rightMargin = solver.createSpring(solver.getBounds().getRight(), box2.getRight(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
 		Spring topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
@@ -532,7 +573,22 @@ public class LayoutSolver<L> {
 			forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
 
 		JFrame plotterFrame = plotter.showFrame("Layout Solver", null);
-		updateBox(boxes);
+		solver.solve(Dimension.fromAWT(plotter.getSize()));
+		updateShapes(boxes, springs);
+		plotter.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				solver.reset();
+				solver.solve(//
+					Dimension.fromAWT(plotter.getSize()));
+				if (updateShapes(boxes, springs))
+					plotter.repaint();
+			}
+		});
+		Thread updateThread = new Thread(() -> {
+			if (updateShapes(boxes, springs))
+				plotter.repaint();
+		}, "Plot updater");
 		// TODO Now show the debugger and call the solver using the debugger's size
 		// Set breakpoints to watch it work
 		// Need a hook or some way to update the shapes when the solver moves or recalculates anything
@@ -540,31 +596,46 @@ public class LayoutSolver<L> {
 
 	private static void addBox(DebugPlotter plotter, Map<Box, Line2D[]> boxes, Box box, String boxName) {
 		Line2D[] lines = new Line2D[4];
-		lines[0] = new Line2D.Float(0, 0, 0, 0);
-		lines[1] = new Line2D.Float(0, 0, 0, 0);
-		lines[2] = new Line2D.Float(0, 0, 0, 0);
-		lines[3] = new Line2D.Float(0, 0, 0, 0);
+		lines[0] = new Line2D.Float();
+		lines[1] = new Line2D.Float();
+		lines[2] = new Line2D.Float();
+		lines[3] = new Line2D.Float();
 		boxes.put(box, lines);
-		plotter.add(lines[0]).setColor(Color.black).setText(boxName + " left");
-		plotter.add(lines[1]).setColor(Color.black).setText(boxName + " right");
-		plotter.add(lines[2]).setColor(Color.black).setText(boxName + " top");
-		plotter.add(lines[3]).setColor(Color.black).setText(boxName + " bottom");
+		plotter.add(lines[0]).setColor(Color.black).setText(() -> boxName + " left: " + box.getLeft().getPosition());
+		plotter.add(lines[1]).setColor(Color.black).setText(() -> boxName + " right: " + box.getRight().getPosition());
+		plotter.add(lines[2]).setColor(Color.black).setText(() -> boxName + " top: " + box.getTop().getPosition());
+		plotter.add(lines[3]).setColor(Color.black).setText(() -> boxName + " bottom: " + box.getBottom().getPosition());
 	}
 
-	private static void updateBox(Map<Box, Line2D[]> boxes) {
+	private static void addSpring(DebugPlotter plotter, Map<Spring, Line2D> springs, Spring spring, String springName) {
+		Line2D line = new Line2D.Float();
+		springs.put(spring, line);
+		// plotter.add(line).setColor(Color.blue).setText(() -> springName + ": " + spring.getTension());
+	}
+
+	private static boolean updateShapes(Map<Box, Line2D[]> boxes, Map<Spring, Line2D> springs) {
+		boolean updated = false;
 		for (Map.Entry<Box, Line2D[]> box : boxes.entrySet()) {
-			box.getValue()[0].setLine(//
-				box.getKey().getLeft().getPosition(), box.getKey().getTop().getPosition(), box.getKey().getLeft().getPosition(),
-				box.getKey().getBottom().getPosition());
-			box.getValue()[1].setLine(//
-				box.getKey().getRight().getPosition(), box.getKey().getTop().getPosition(), box.getKey().getRight().getPosition(),
-				box.getKey().getBottom().getPosition());
-			box.getValue()[2].setLine(//
-				box.getKey().getLeft().getPosition(), box.getKey().getTop().getPosition(), box.getKey().getRight().getPosition(),
-				box.getKey().getTop().getPosition());
-			box.getValue()[3].setLine(//
-				box.getKey().getLeft().getPosition(), box.getKey().getBottom().getPosition(), box.getKey().getRight().getPosition(),
-				box.getKey().getBottom().getPosition());
+			double left = box.getKey().getLeft().getPosition();
+			double right = box.getKey().getRight().getPosition();
+			double top = box.getKey().getTop().getPosition();
+			double bottom = box.getKey().getBottom().getPosition();
+			if (box.getValue()[0].getX1() != left || box.getValue()[0].getY1() != top || box.getValue()[0].getY2() != bottom
+				|| box.getValue()[1].getX1() != right) {
+				updated = true;
+				box.getValue()[0].setLine(left, top, left, bottom);
+				box.getValue()[1].setLine(right, top, right, bottom);
+				box.getValue()[2].setLine(left, top, right, top);
+				box.getValue()[3].setLine(left, bottom, right, bottom);
+			}
 		}
+		if (updated) {
+			for (Map.Entry<Spring, Line2D> spring : springs.entrySet()) {
+				if (spring.getKey().getSource().getOrientation().isVertical()) {
+					// double midY=spring.getKey().getSource().g
+				}
+			}
+		}
+		return updated;
 	}
 }

@@ -7,6 +7,10 @@ public enum Orientation {
 	/** Vertical (y-axis) orientation */
 	vertical;
 
+	public boolean isVertical() {
+		return this == vertical;
+	}
+
 	/**
 	 * @param vert Whether to return {@link #vertical} or {@link #horizontal}
 	 * @return The corresponding orientation

@@ -13,6 +13,10 @@ public class Dimension {
 		this.height = h;
 	}
 
+	public static Dimension fromAWT(java.awt.Dimension d) {
+		return new Dimension(d.width, d.height);
+	}
+
 	@Override
 	public int hashCode() {
 		return height * 7 + width;

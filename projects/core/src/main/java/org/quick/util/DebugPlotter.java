@@ -18,6 +18,7 @@ import org.qommons.collect.BetterHashMap;
 import org.qommons.collect.BetterMap;
 
 public class DebugPlotter extends JComponent {
+	public static final int HOVER_RESOLUTION = 2;
 	public static final Supplier<Color> DEFAULT_COLOR = () -> Color.blue;
 	public static final Supplier<String> DEFAULT_TEXT = () -> null;
 
@@ -41,6 +42,11 @@ public class DebugPlotter extends JComponent {
 			this.text = () -> text;
 			return this;
 		}
+
+		public ShapeHolder setText(Supplier<String> text) {
+			this.text = text;
+			return this;
+		}
 	}
 
 	private final BetterMap<Shape, ShapeHolder> theShapes;
@@ -53,7 +59,8 @@ public class DebugPlotter extends JComponent {
 
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				Rectangle2D rect = new Rectangle2D.Double(e.getX() - .5, e.getY() - .5, 1, 1);
+				Rectangle2D rect = new Rectangle2D.Double(e.getX() - HOVER_RESOLUTION / 2.0, e.getY() - HOVER_RESOLUTION / 2.0, //
+					HOVER_RESOLUTION, HOVER_RESOLUTION);
 				boolean found = false;
 				for (ShapeHolder shape : theShapes.values().reverse()) {
 					found = shape.shape.intersects(rect);
@@ -93,10 +100,12 @@ public class DebugPlotter extends JComponent {
 	@Override
 	public void paint(Graphics g) {
 		Graphics2D g2d = (Graphics2D) g;
+		g2d.setColor(Color.white);
 		g2d.fillRect(0, 0, getWidth(), getHeight());
 		for (ShapeHolder shape : theShapes.values()) {
 			g2d.setColor(shape.color.get());
 			g2d.fill(shape.shape);
+			g2d.draw(shape.shape);
 		}
 	}
 

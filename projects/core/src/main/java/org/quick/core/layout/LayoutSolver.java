@@ -251,8 +251,11 @@ public class LayoutSolver<L> {
 			init(dirtySprings);
 		}
 		int moves = MAX_TRIES * theLines.size();
-		for (int i = 0; !theLinesByForce.isEmpty() && i < moves; i++)
-			adjust(theLinesByForce.peekFirst());
+		DivImpl toMove = theLinesByForce.peekFirst();
+		for (int i = 0; toMove != null && i < moves; i++) {
+			adjust(toMove);
+			toMove = theLinesByForce.peekFirst();
+		}
 		return this;
 	}
 
@@ -278,7 +281,7 @@ public class LayoutSolver<L> {
 		}
 		for (DivImpl line : theLines.values()) {
 			if (line.lastChecked != theIteration) {
-				line.setPosition(0, theIteration);
+				line.setPosition(0);
 				initConstraints(line, Ternian.NONE, false, lines, dirtySprings);
 				theLineSets.add(lines);
 				lines = new LinkedList<>();
@@ -317,7 +320,7 @@ public class LayoutSolver<L> {
 						dest.lastChecked = theIteration;
 						lines.add(dest);
 						dirtySprings.add(spring);
-					} else if (dest.setPosition(line.thePosition + spring.theEvaluator.getSize(0), theIteration))
+					} else if (dest.setPosition(line.thePosition + spring.theEvaluator.getSize(0)))
 						initConstraints(dest, Ternian.TRUE, secondary, lines, dirtySprings);
 				} else
 					dirtySprings.add(spring);
@@ -326,13 +329,13 @@ public class LayoutSolver<L> {
 						if (linked.theSource.borderEnd != null) {
 						} else if (linked.theSource.lastChecked != theIteration) {
 							lines.add(linked.theSource);
-							linked.theSource.setPosition(0, theIteration);
+							linked.theSource.setPosition(0);
 							initConstraints(linked.theSource, Ternian.FALSE, true, lines, dirtySprings);
 						}
 						if (linked.theDest.borderEnd != null) {
 						} else if (linked.theDest.lastChecked != theIteration) {
 							lines.add(linked.theDest);
-							linked.theSource.setPosition(linked.theSource.thePosition + linked.theEvaluator.getSize(0), theIteration);
+							linked.theSource.setPosition(linked.theSource.thePosition + linked.theEvaluator.getSize(0));
 							initConstraints(linked.theDest, Ternian.TRUE, true, lines, dirtySprings);
 						}
 					}
@@ -347,7 +350,7 @@ public class LayoutSolver<L> {
 						src.lastChecked = theIteration;
 						lines.add(src);
 						dirtySprings.add(spring);
-					} else if (src.setPosition(line.thePosition - spring.theEvaluator.getSize(0), theIteration))
+					} else if (src.setPosition(line.thePosition - spring.theEvaluator.getSize(0)))
 						initConstraints(src, Ternian.FALSE, secondary, lines, dirtySprings);
 				} else
 					dirtySprings.add(spring);
@@ -356,13 +359,13 @@ public class LayoutSolver<L> {
 						if (linked.theSource.borderEnd != null) {
 						} else if (linked.theSource.lastChecked != theIteration) {
 							lines.add(linked.theSource);
-							linked.theSource.setPosition(0, theIteration);
+							linked.theSource.setPosition(0);
 							initConstraints(linked.theSource, Ternian.FALSE, true, lines, dirtySprings);
 						}
 						if (linked.theDest.borderEnd != null) {
 						} else if (linked.theDest.lastChecked != theIteration) {
 							lines.add(linked.theDest);
-							linked.theSource.setPosition(linked.theSource.thePosition + linked.theEvaluator.getSize(0), theIteration);
+							linked.theSource.setPosition(linked.theSource.thePosition + linked.theEvaluator.getSize(0));
 							initConstraints(linked.theDest, Ternian.TRUE, true, lines, dirtySprings);
 						}
 					}
@@ -372,6 +375,7 @@ public class LayoutSolver<L> {
 	}
 
 	private void adjust(DivImpl toMove) {
+		float cutoffForce = theLinesByForce.size() == 1 ? 0 : Math.abs(theLinesByForce.get(1).theForce);
 		int leadingMost, trailingMost;
 		float leadingForce, trailingForce;
 		if (toMove.theForce > 0) {
@@ -402,7 +406,7 @@ public class LayoutSolver<L> {
 		} else
 			incomingTensions = null;
 		boolean stepped = false;
-		stepping: while (leadingMost < trailingMost - 1 && force != 0) {
+		stepping: while (leadingMost < trailingMost - 1 && force != 0 && Math.abs(force) >= cutoffForce) {
 			int nextSnap = force > 0 ? trailingMost : leadingMost;
 			int signum = (int) Math.signum(force);
 			if (outgoingTensions != null) {
@@ -460,6 +464,7 @@ public class LayoutSolver<L> {
 				for (SpringImpl spring : toMove.theOutgoingSprings) {
 					outgoingTensions[i] = spring.theEvaluator.getTension(spring.theDest.thePosition - nextSnap);
 					force -= outgoingTensions[i].tension;
+					i++;
 				}
 			}
 			if (incomingTensions != null) {
@@ -467,6 +472,7 @@ public class LayoutSolver<L> {
 				for (SpringImpl spring : toMove.theIncomingSprings) {
 					incomingTensions[i] = spring.theEvaluator.getTension(nextSnap - spring.theSource.thePosition);
 					force += incomingTensions[i].tension;
+					i++;
 				}
 			}
 			if (force < 0) {
@@ -478,9 +484,9 @@ public class LayoutSolver<L> {
 			}
 		}
 		int position;
-		if (force == 0) {
+		if (force == 0 || Math.abs(force) < cutoffForce) {
 			position = leadingMost;
-		} else if (!stepped && leadingForce < trailingForce - 1) {
+		} else if (!stepped && leadingMost < trailingMost - 1) {
 			// Steps can't help us at this point. Use binary search.
 			float[] f = new float[1];
 			int lead = leadingMost, trail = trailingMost;
@@ -494,21 +500,34 @@ public class LayoutSolver<L> {
 					int i = 0;
 					for (SpringImpl spring : toMove.theOutgoingSprings) {
 						outgoingTensions[i] = spring.theEvaluator.getTension(spring.theDest.thePosition - pos);
-						f[0] += outgoingTensions[i].tension;
+						f[0] -= outgoingTensions[i].tension;
+						i++;
 					}
 				}
 				if (incomingTensions != null) {
 					int i = 0;
 					for (SpringImpl spring : toMove.theIncomingSprings) {
-						incomingTensions[i] = spring.theEvaluator.getTension(spring.theSource.thePosition - pos);
-						f[0] -= incomingTensions[i].tension;
+						incomingTensions[i] = spring.theEvaluator.getTension(pos - spring.theSource.thePosition);
+						f[0] += incomingTensions[i].tension;
+						i++;
 					}
 				}
-				return f[0] == 0 ? 0 : (f[0] > 0 ? 1 : -1);
+				if (f[0] == 0 || Math.abs(f[0]) <= cutoffForce)
+					return 0;
+				else
+					return f[0] > 0 ? -1 : 1;
 			});
 			if (position < 0)
 				position = -position - 1;
 			force = f[0];
+			if (Math.abs(leadingForce) < Math.abs(force)) {
+				position = leadingMost;
+				force = leadingForce;
+			}
+			if (Math.abs(trailingForce) < Math.abs(force)) {
+				position = trailingMost;
+				force = trailingForce;
+			}
 		} else if (leadingForce < trailingForce) {
 			position = leadingMost;
 			force = leadingForce;
@@ -516,27 +535,30 @@ public class LayoutSolver<L> {
 			position = trailingMost;
 			force = trailingForce;
 		}
-		toMove.thePosition = position;
-		toMove.theForce = force;
-		if (outgoingTensions != null) {
-			int i = 0;
-			for (SpringImpl spring : toMove.theOutgoingSprings) {
-				TensionAndSnap newTension = outgoingTensions[i];
-				float diff = newTension.tension - spring.theTension.tension;
-				spring.theTension = newTension;
-				spring.theDest.setForce(spring.theDest.theForce + diff);
-				i++;
+		if (toMove.setPosition(position)) {
+			toMove.setForce(force);
+			if (outgoingTensions != null) {
+				int i = 0;
+				for (SpringImpl spring : toMove.theOutgoingSprings) {
+					TensionAndSnap newTension = outgoingTensions[i];
+					float diff = newTension.tension - spring.theTension.tension;
+					spring.theTension = newTension;
+					spring.theDest.setForce(spring.theDest.theForce + diff);
+					i++;
+				}
 			}
-		}
-		if (incomingTensions != null) {
-			int i = 0;
-			for (SpringImpl spring : toMove.theIncomingSprings) {
-				TensionAndSnap newTension = incomingTensions[i];
-				float diff = newTension.tension - spring.theTension.tension;
-				spring.theTension = newTension;
-				spring.theSource.setForce(spring.theSource.theForce - diff);
-				i++;
+			if (incomingTensions != null) {
+				int i = 0;
+				for (SpringImpl spring : toMove.theIncomingSprings) {
+					TensionAndSnap newTension = incomingTensions[i];
+					float diff = newTension.tension - spring.theTension.tension;
+					spring.theTension = newTension;
+					spring.theSource.setForce(spring.theSource.theForce - diff);
+					i++;
+				}
 			}
+		} else {
+			toMove.stabilized();
 		}
 	}
 
@@ -588,7 +610,7 @@ public class LayoutSolver<L> {
 			}
 		}
 
-		boolean setPosition(int position, int iteration) {
+		boolean setPosition(int position) {
 			if (thePosition == position)
 				return false;
 			thePosition = position;
@@ -638,9 +660,16 @@ public class LayoutSolver<L> {
 			}
 		}
 
+		void stabilized() {
+			if (theForceSortedElement != null) {
+				theLinesByForce.mutableElement(theForceSortedElement).remove();
+				theForceSortedElement = null;
+			}
+		}
+
 		@Override
 		public String toString() {
-			return String.valueOf(theValue) + ": " + thePosition;
+			return String.valueOf(theValue) + ": " + thePosition + " (" + theForce + ")";
 		}
 	}
 
@@ -803,7 +832,7 @@ public class LayoutSolver<L> {
 				}
 				if (reSolve[0]) {
 					reSolve[0] = false;
-					solver.reset();
+					// solver.reset();
 					solver.solve(//
 						Dimension.fromAWT(plotter.getSize()));
 				}

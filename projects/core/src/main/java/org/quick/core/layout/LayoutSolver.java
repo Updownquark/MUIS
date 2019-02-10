@@ -6,7 +6,9 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -185,7 +187,8 @@ public class LayoutSolver<L> {
 	public LayoutSolver() {
 		theLines = BetterHashMap.build().unsafe().buildMap();
 		theLineSets = new LinkedList<>();
-		theLinesByForce = new SortedTreeList<>(false, (div1, div2) -> -Float.compare(Math.abs(div1.theForce), Math.abs(div2.theForce)));
+		theLinesByForce = new SortedTreeList<>(false,
+			(div1, div2) -> -Float.compare(Math.abs(div1.theTotalForce), Math.abs(div2.theTotalForce)));
 	}
 
 	public Box getBounds() {
@@ -375,21 +378,21 @@ public class LayoutSolver<L> {
 	}
 
 	private void adjust(DivImpl toMove) {
-		float cutoffForce = theLinesByForce.size() == 1 ? 0 : Math.abs(theLinesByForce.get(1).theForce);
+		float cutoffForce = theLinesByForce.size() == 1 ? 0 : Math.abs(theLinesByForce.get(1).theTotalForce);
 		int leadingMost, trailingMost;
 		float leadingForce, trailingForce;
-		if (toMove.theForce > 0) {
+		if (toMove.theTotalForce > 0) {
 			leadingMost = toMove.thePosition;
-			leadingForce = toMove.theForce;
+			leadingForce = toMove.theTotalForce;
 			trailingMost = theBounds.get(toMove.getOrientation(), End.trailing).getPosition();
 			trailingForce = 0;
 		} else {
 			leadingMost = 0;
 			leadingForce = 0;
 			trailingMost = toMove.thePosition;
-			trailingForce = -toMove.theForce;
+			trailingForce = -toMove.theTotalForce;
 		}
-		float force = toMove.theForce;
+		float force = toMove.theTotalForce;
 		TensionAndSnap[] outgoingTensions, incomingTensions;
 		if (toMove.theOutgoingSprings != null) {
 			outgoingTensions = new TensionAndSnap[toMove.theOutgoingSprings.size()];
@@ -543,7 +546,7 @@ public class LayoutSolver<L> {
 					TensionAndSnap newTension = outgoingTensions[i];
 					float diff = newTension.tension - spring.theTension.tension;
 					spring.theTension = newTension;
-					spring.theDest.setForce(spring.theDest.theForce + diff);
+					spring.theDest.setForce(spring.theDest.theTotalForce + diff);
 					i++;
 				}
 			}
@@ -553,7 +556,7 @@ public class LayoutSolver<L> {
 					TensionAndSnap newTension = incomingTensions[i];
 					float diff = newTension.tension - spring.theTension.tension;
 					spring.theTension = newTension;
-					spring.theSource.setForce(spring.theSource.theForce - diff);
+					spring.theSource.setForce(spring.theSource.theTotalForce - diff);
 					i++;
 				}
 			}
@@ -562,21 +565,56 @@ public class LayoutSolver<L> {
 		}
 	}
 
+	private class SpringSet implements Iterable<SpringImpl> {
+		private List<SpringImpl> theSprings;
+		float theForce;
+
+		SpringSet() {}
+
+		void add(SpringImpl spring) {
+			if (theSprings == null)
+				theSprings = new LinkedList<>();
+			theSprings.add(spring);
+		}
+
+		void adjustForce(float diff) {
+			theForce += diff;
+		}
+
+		void reset() {
+			theForce = 0;
+			if (theSprings != null) {
+				for (SpringImpl spring : theSprings)
+					spring.reset();
+			}
+		}
+
+		@Override
+		public Iterator<SpringImpl> iterator() {
+			if (theSprings == null)
+				return Collections.emptyIterator();
+			else
+				return theSprings.iterator();
+		}
+	}
+
 	private class DivImpl implements Divider {
 		private final L theValue;
 		private final boolean isVertical;
 		final End borderEnd;
-		private List<SpringImpl> theOutgoingSprings;
-		private List<SpringImpl> theIncomingSprings;
-		ElementId theForceSortedElement;
+		private final SpringSet theOutgoingSprings;
+		private final SpringSet theIncomingSprings;
+		private ElementId theForceSortedElement;
 		int thePosition;
-		float theForce;
+		float theTotalForce;
 		int lastChecked;
 
 		DivImpl(L value, boolean vertical, End borderEnd) {
 			theValue = value;
 			isVertical = vertical;
 			this.borderEnd = borderEnd;
+			theOutgoingSprings = new SpringSet();
+			theIncomingSprings = new SpringSet();
 		}
 
 		void constrain(SpringImpl spring, boolean outgoing) {
@@ -586,28 +624,16 @@ public class LayoutSolver<L> {
 				if (borderEnd == End.trailing && outgoing)
 					throw new IllegalArgumentException("A trailing border of the container may not be a source spring endpoint");
 			}
-			List<SpringImpl> springs;
-			if (outgoing) {
-				if (theOutgoingSprings == null)
-					theOutgoingSprings = new LinkedList<>();
-				springs = theOutgoingSprings;
-			} else {
-				if (theIncomingSprings == null)
-					theIncomingSprings = new LinkedList<>();
-				springs = theIncomingSprings;
-			}
-			springs.add(spring);
+			(outgoing ? theOutgoingSprings : theIncomingSprings).add(spring);
 		}
 
 		void reset() {
 			lastChecked = 0;
 			thePosition = 0;
-			theForce = 0;
+			theTotalForce = 0;
 			theForceSortedElement = null;
-			if (theOutgoingSprings != null) {
-				for (SpringImpl spring : theOutgoingSprings)
-					spring.reset();
-			}
+			theOutgoingSprings.reset();
+			theIncomingSprings.theForce = 0;
 		}
 
 		boolean setPosition(int position) {
@@ -629,25 +655,30 @@ public class LayoutSolver<L> {
 
 		@Override
 		public float getForce() {
-			return theForce;
+			return theTotalForce;
 		}
 
-		void setForce(float force) {
-			if (force == theForce)
-				return;
-			theForce = force;
+		void adjustForce(boolean outgoing, float forceDiff) {
+			if (outgoing) {
+				theOutgoingSprings.adjustForce(forceDiff);
+				theTotalForce -= forceDiff;
+			} else {
+				theIncomingSprings.adjustForce(-forceDiff);
+				theTotalForce += forceDiff;
+			}
+			theTotalForce = forceDiff;
 			if (theForceSortedElement != null) {
-				if (force == 0) {
+				if (forceDiff == 0) {
 					theLinesByForce.mutableElement(theForceSortedElement).remove();
 					theForceSortedElement = null;
 				} else {
 					boolean belongs = true;
 					CollectionElement<DivImpl> adj = theLinesByForce.getAdjacentElement(theForceSortedElement, false);
-					if (adj != null && Math.abs(adj.get().theForce) < Math.abs(force))
+					if (adj != null && Math.abs(adj.get().theTotalForce) < Math.abs(forceDiff))
 						belongs = false;
 					if (belongs) {
 						adj = theLinesByForce.getAdjacentElement(theForceSortedElement, true);
-						if (adj != null && Math.abs(adj.get().theForce) > Math.abs(force))
+						if (adj != null && Math.abs(adj.get().theTotalForce) > Math.abs(forceDiff))
 							belongs = false;
 					}
 					if (!belongs) {
@@ -655,7 +686,7 @@ public class LayoutSolver<L> {
 						theForceSortedElement = theLinesByForce.addElement(this, false).getElementId();
 					}
 				}
-			} else if (borderEnd == null && force != 0) {
+			} else if (borderEnd == null && forceDiff != 0) {
 				theForceSortedElement = theLinesByForce.addElement(this, false).getElementId();
 			}
 		}
@@ -669,7 +700,7 @@ public class LayoutSolver<L> {
 
 		@Override
 		public String toString() {
-			return String.valueOf(theValue) + ": " + thePosition + " (" + theForce + ")";
+			return String.valueOf(theValue) + ": " + thePosition + " (" + theTotalForce + ")";
 		}
 	}
 
@@ -705,8 +736,8 @@ public class LayoutSolver<L> {
 			if (theTension.equals(tas.tension))
 				return false;
 			float tensionDiff = tas.tension - theTension.tension;
-			theSource.setForce(theSource.theForce - tensionDiff);
-			theDest.setForce(theDest.theForce + tensionDiff);
+			theSource.setForce(theSource.theTotalForce - tensionDiff);
+			theDest.setForce(theDest.theTotalForce + tensionDiff);
 			theTension = tas;
 			return true;
 		}

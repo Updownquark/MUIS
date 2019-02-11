@@ -5,10 +5,9 @@ import java.awt.EventQueue;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,18 +29,28 @@ import org.quick.core.layout.LayoutSpringEvaluator.TensionAndSnap;
 import org.quick.util.DebugPlotter;
 
 public class LayoutSolver<L> {
-	public interface Divider {
+	public interface DividerDef {
 		Orientation getOrientation();
+	}
 
+	public interface DividerState extends DividerDef {
 		int getPosition();
 
 		float getForce();
 	}
 
-	public interface Spring {
-		Divider getSource();
+	public interface SpringDef {
+		DividerDef getSource();
 
-		Divider getDest();
+		DividerDef getDest();
+	}
+
+	public interface SpringState extends SpringDef {
+		@Override
+		DividerState getSource();
+
+		@Override
+		DividerState getDest();
 
 		default int getLength() {
 			return getDest().getPosition() - getSource().getPosition();
@@ -50,22 +59,41 @@ public class LayoutSolver<L> {
 		float getTension();
 	}
 
-	public interface Box {
-		Divider getLeft();
+	public interface BoxDef {
+		DividerDef getLeft();
 
-		Divider getRight();
+		DividerDef getRight();
 
-		Divider getTop();
+		DividerDef getTop();
 
-		Divider getBottom();
+		DividerDef getBottom();
 
-		default Divider get(Orientation orientation, End end) {
+		default DividerDef get(Orientation orientation, End end) {
 			switch (orientation) {
 			case horizontal:
 				return end == End.leading ? getLeft() : getRight();
 			default:
 				return end == End.leading ? getTop() : getBottom();
 			}
+		}
+	}
+
+	public interface BoxState extends BoxDef {
+		@Override
+		DividerState getLeft();
+
+		@Override
+		DividerState getRight();
+
+		@Override
+		DividerState getTop();
+
+		@Override
+		DividerState getBottom();
+
+		@Override
+		default DividerState get(Orientation orientation, End end) {
+			return (DividerState) BoxDef.super.get(orientation, end);
 		}
 
 		default Point getTopLeft() {
@@ -86,8 +114,29 @@ public class LayoutSolver<L> {
 		}
 	}
 
-	public static final float MAX_TENSION = 10000;
-	public static final float MAX_PREF_TENSION = 10;
+	public interface State<L> {
+		LayoutSolver<L> getSolver();
+
+		BoxState getBounds();
+
+		DividerState getLine(L lineObj);
+
+		DividerState getLine(DividerDef line);
+
+		SpringState getSpring(SpringDef spring);
+
+		State<L> reset();
+
+		State<L> layout(Dimension size);
+
+		State<L> layout(float hTension, float vTension);
+
+		BoxState getBox(BoxDef box);
+	}
+
+	public static final float SUPER_TENSION = 1000000; // TODO Use this beyond min or max size
+	public static final float MAX_TENSION = 1000;
+	public static final float MAX_PREF_TENSION = 1;
 
 	public static LayoutSpringEvaluator forSizer(IntSupplier crossSize, SizeGuide sizer) {
 		return new LayoutSpringEvaluator() {
@@ -179,39 +228,33 @@ public class LayoutSolver<L> {
 	);
 
 	private final BetterMap<L, DivImpl> theLines;
-	private final List<Collection<DivImpl>> theLineSets;
-	private final BetterList<DivImpl> theLinesByForce;
 	private boolean isSealed;
-	private int theIteration;
 
 	public LayoutSolver() {
 		theLines = BetterHashMap.build().unsafe().buildMap();
-		theLineSets = new LinkedList<>();
-		theLinesByForce = new SortedTreeList<>(false,
-			(div1, div2) -> -Float.compare(Math.abs(div1.theTotalForce), Math.abs(div2.theTotalForce)));
 	}
 
-	public Box getBounds() {
+	public BoxDef getBounds() {
 		return theBounds;
 	}
 
-	public Box getOrCreateBox(L left, L right, L top, L bottom) {
+	public BoxDef getOrCreateBox(L left, L right, L top, L bottom) {
 		return new BoxImpl(//
 			(DivImpl) getOrCreateLine(left, false), (DivImpl) getOrCreateLine(right, false), //
 			(DivImpl) getOrCreateLine(top, true), (DivImpl) getOrCreateLine(bottom, true));
 	}
 
-	public Divider getOrCreateLine(L lineObject, boolean vertical) {
+	public DividerDef getOrCreateLine(L lineObject, boolean vertical) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
 		return theLines.computeIfAbsent(lineObject, lo -> new DivImpl(lineObject, vertical, null));
 	}
 
-	public Divider getLine(L lineObject) {
+	public DividerDef getLine(L lineObject) {
 		return theLines.get(lineObject);
 	}
 
-	public Spring createSpring(Divider src, Divider dest, LayoutSpringEvaluator eval) {
+	public SpringDef createSpring(DividerDef src, DividerDef dest, LayoutSpringEvaluator eval) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
 		if (src.getOrientation() != dest.getOrientation())
@@ -223,7 +266,7 @@ public class LayoutSolver<L> {
 		return spring;
 	}
 
-	public void linkSprings(Spring spring1, Spring spring2) {
+	public void linkSprings(SpringDef spring1, SpringDef spring2) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
 		if (spring1.getSource().getOrientation() == spring2.getSource().getOrientation())
@@ -231,390 +274,24 @@ public class LayoutSolver<L> {
 		((SpringImpl) spring1).affects((SpringImpl) spring2);
 	}
 
-	public LayoutSolver reset() {
-		theBounds.left.reset();
-		theBounds.right.reset();
-		theBounds.top.reset();
-		theBounds.bottom.reset();
-		for (DivImpl line : theLines.values())
-			line.reset();
-		theLineSets.clear();
-		theLinesByForce.clear();
-		theIteration = 0;
-		isSealed = false;
-		return this;
+	public State use() {
+		isSealed = true;
+		return new LayoutStateImpl();
 	}
 
-	public LayoutSolver solve(Dimension size) {
-		theBounds.right.thePosition = size.width;
-		theBounds.bottom.thePosition = size.height;
-		List<SpringImpl> dirtySprings = new LinkedList<>();
-		if (!isSealed) {
-			isSealed = true;
-			init(dirtySprings);
-		}
-		int moves = MAX_TRIES * theLines.size();
-		DivImpl toMove = theLinesByForce.peekFirst();
-		for (int i = 0; toMove != null && i < moves; i++) {
-			adjust(toMove);
-			toMove = theLinesByForce.peekFirst();
-		}
-		return this;
-	}
-
-	private void init(List<SpringImpl> dirtySprings) {
-		theIteration++;
-		theLineSets.clear();
-		if (theLines.isEmpty())
-			return;
-		List<DivImpl> lines = new LinkedList<>();
-		if (theBounds.left.theOutgoingSprings != null) {
-			initConstraints(theBounds.left, Ternian.TRUE, false, lines, dirtySprings);
-			if (!lines.isEmpty()) {
-				theLineSets.add(lines);
-				lines = new LinkedList<>();
-			}
-		}
-		if (theBounds.top.theOutgoingSprings != null) {
-			initConstraints(theBounds.top, Ternian.TRUE, false, lines, dirtySprings);
-			if (!lines.isEmpty()) {
-				theLineSets.add(lines);
-				lines = new LinkedList<>();
-			}
-		}
-		for (DivImpl line : theLines.values()) {
-			if (line.lastChecked != theIteration) {
-				line.setPosition(0);
-				initConstraints(line, Ternian.NONE, false, lines, dirtySprings);
-				theLineSets.add(lines);
-				lines = new LinkedList<>();
-			}
-		}
-		if (theBounds.right.theIncomingSprings != null) {
-			initConstraints(theBounds.right, Ternian.FALSE, false, lines, dirtySprings);
-			if (!lines.isEmpty()) {
-				theLineSets.add(lines);
-				lines = new LinkedList<>();
-			}
-		}
-		if (theBounds.bottom.theIncomingSprings != null) {
-			initConstraints(theBounds.bottom, Ternian.FALSE, false, lines, dirtySprings);
-			if (!lines.isEmpty()) {
-				theLineSets.add(lines);
-				lines = new LinkedList<>();
-			}
-		}
-		for (SpringImpl spring : dirtySprings)
-			spring.recalculate();
-		dirtySprings.clear();
-		return;
-	}
-
-	private void initConstraints(DivImpl line, Ternian outgoing, boolean secondary, List<DivImpl> lines, List<SpringImpl> dirtySprings) {
-		if (line.lastChecked == theIteration)
-			return;
-		line.lastChecked = theIteration;
-		lines.add(line);
-		if (outgoing != Ternian.FALSE && line.theOutgoingSprings != null) {
-			for (SpringImpl spring : line.theOutgoingSprings) {
-				DivImpl dest = spring.theDest;
-				if (dest.lastChecked != theIteration) {
-					if (dest.borderEnd != null) {
-						dest.lastChecked = theIteration;
-						lines.add(dest);
-						dirtySprings.add(spring);
-					} else if (dest.setPosition(line.thePosition + spring.theEvaluator.getSize(0)))
-						initConstraints(dest, Ternian.TRUE, secondary, lines, dirtySprings);
-				} else
-					dirtySprings.add(spring);
-				if (!secondary && spring.theLinkedSprings != null) {
-					for (SpringImpl linked : spring.theLinkedSprings) {
-						if (linked.theSource.borderEnd != null) {
-						} else if (linked.theSource.lastChecked != theIteration) {
-							lines.add(linked.theSource);
-							linked.theSource.setPosition(0);
-							initConstraints(linked.theSource, Ternian.FALSE, true, lines, dirtySprings);
-						}
-						if (linked.theDest.borderEnd != null) {
-						} else if (linked.theDest.lastChecked != theIteration) {
-							lines.add(linked.theDest);
-							linked.theSource.setPosition(linked.theSource.thePosition + linked.theEvaluator.getSize(0));
-							initConstraints(linked.theDest, Ternian.TRUE, true, lines, dirtySprings);
-						}
-					}
-				}
-			}
-		}
-		if (outgoing != Ternian.TRUE && line.theIncomingSprings != null) {
-			for (SpringImpl spring : line.theIncomingSprings) {
-				DivImpl src = spring.theSource;
-				if (src.lastChecked != theIteration) {
-					if (src.borderEnd != null) {
-						src.lastChecked = theIteration;
-						lines.add(src);
-						dirtySprings.add(spring);
-					} else if (src.setPosition(line.thePosition - spring.theEvaluator.getSize(0)))
-						initConstraints(src, Ternian.FALSE, secondary, lines, dirtySprings);
-				} else
-					dirtySprings.add(spring);
-				if (!secondary && spring.theLinkedSprings != null) {
-					for (SpringImpl linked : spring.theLinkedSprings) {
-						if (linked.theSource.borderEnd != null) {
-						} else if (linked.theSource.lastChecked != theIteration) {
-							lines.add(linked.theSource);
-							linked.theSource.setPosition(0);
-							initConstraints(linked.theSource, Ternian.FALSE, true, lines, dirtySprings);
-						}
-						if (linked.theDest.borderEnd != null) {
-						} else if (linked.theDest.lastChecked != theIteration) {
-							lines.add(linked.theDest);
-							linked.theSource.setPosition(linked.theSource.thePosition + linked.theEvaluator.getSize(0));
-							initConstraints(linked.theDest, Ternian.TRUE, true, lines, dirtySprings);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	private void adjust(DivImpl toMove) {
-		float cutoffForce = theLinesByForce.size() == 1 ? 0 : Math.abs(theLinesByForce.get(1).theTotalForce);
-		int leadingMost, trailingMost;
-		float leadingForce, trailingForce;
-		if (toMove.theTotalForce > 0) {
-			leadingMost = toMove.thePosition;
-			leadingForce = toMove.theTotalForce;
-			trailingMost = theBounds.get(toMove.getOrientation(), End.trailing).getPosition();
-			trailingForce = 0;
-		} else {
-			leadingMost = 0;
-			leadingForce = 0;
-			trailingMost = toMove.thePosition;
-			trailingForce = -toMove.theTotalForce;
-		}
-		float force = toMove.theTotalForce;
-		TensionAndSnap[] outgoingTensions, incomingTensions;
-		if (toMove.theOutgoingSprings != null) {
-			outgoingTensions = new TensionAndSnap[toMove.theOutgoingSprings.size()];
-			int i = 0;
-			for (SpringImpl spring : toMove.theOutgoingSprings)
-				outgoingTensions[i++] = spring.theTension;
-		} else
-			outgoingTensions = null;
-		if (toMove.theIncomingSprings != null) {
-			incomingTensions = new TensionAndSnap[toMove.theIncomingSprings.size()];
-			int i = 0;
-			for (SpringImpl spring : toMove.theIncomingSprings)
-				incomingTensions[i++] = spring.theTension;
-		} else
-			incomingTensions = null;
-		boolean stepped = false;
-		stepping: while (leadingMost < trailingMost - 1 && force != 0 && Math.abs(force) >= cutoffForce) {
-			int nextSnap = force > 0 ? trailingMost : leadingMost;
-			int signum = (int) Math.signum(force);
-			if (outgoingTensions != null) {
-				int i = 0;
-				for (SpringImpl spring : toMove.theOutgoingSprings) {
-					int springSign = (int) Math.signum(outgoingTensions[i].tension);
-					if (springSign != 0 && signum != springSign) {
-						int snap = spring.theDest.getPosition() - outgoingTensions[i].snap;
-						if (signum > 0) {
-							if (snap < nextSnap) {
-								nextSnap = snap;
-								if (nextSnap <= leadingMost)
-									break stepping;
-							}
-						} else {
-							if (snap > nextSnap) {
-								nextSnap = snap;
-								if (nextSnap >= trailingMost)
-									break stepping;
-							}
-						}
-					}
-					i++;
-				}
-			}
-			if (incomingTensions != null) {
-				int i = 0;
-				for (SpringImpl spring : toMove.theIncomingSprings) {
-					int springSign = (int) Math.signum(incomingTensions[i].tension);
-					if (signum == springSign) {
-						int snap = spring.theSource.getPosition() + incomingTensions[i].snap;
-						if (signum > 0) {
-							if (snap < nextSnap) {
-								nextSnap = snap;
-								if (nextSnap <= leadingMost)
-									break stepping;
-							}
-						} else {
-							if (snap > nextSnap) {
-								nextSnap = snap;
-								if (nextSnap >= trailingMost)
-									break stepping;
-							}
-						}
-					}
-					i++;
-				}
-			}
-			if (nextSnap == trailingMost || nextSnap == leadingMost)
-				break;
-			// Re-compute forces
-			force = 0;
-			if (outgoingTensions != null) {
-				int i = 0;
-				for (SpringImpl spring : toMove.theOutgoingSprings) {
-					outgoingTensions[i] = spring.theEvaluator.getTension(spring.theDest.thePosition - nextSnap);
-					force -= outgoingTensions[i].tension;
-					i++;
-				}
-			}
-			if (incomingTensions != null) {
-				int i = 0;
-				for (SpringImpl spring : toMove.theIncomingSprings) {
-					incomingTensions[i] = spring.theEvaluator.getTension(nextSnap - spring.theSource.thePosition);
-					force += incomingTensions[i].tension;
-					i++;
-				}
-			}
-			if (force < 0) {
-				trailingMost = nextSnap;
-				trailingForce = force;
-			} else {
-				leadingMost = nextSnap;
-				leadingForce = force;
-			}
-		}
-		int position;
-		if (force == 0 || Math.abs(force) < cutoffForce) {
-			position = leadingMost;
-		} else if (!stepped && leadingMost < trailingMost - 1) {
-			// Steps can't help us at this point. Use binary search.
-			float[] f = new float[1];
-			int lead = leadingMost, trail = trailingMost;
-			position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
-				if (pos == lead)
-					return 1;
-				else if (pos == trail)
-					return -1;
-				f[0] = 0;
-				if (outgoingTensions != null) {
-					int i = 0;
-					for (SpringImpl spring : toMove.theOutgoingSprings) {
-						outgoingTensions[i] = spring.theEvaluator.getTension(spring.theDest.thePosition - pos);
-						f[0] -= outgoingTensions[i].tension;
-						i++;
-					}
-				}
-				if (incomingTensions != null) {
-					int i = 0;
-					for (SpringImpl spring : toMove.theIncomingSprings) {
-						incomingTensions[i] = spring.theEvaluator.getTension(pos - spring.theSource.thePosition);
-						f[0] += incomingTensions[i].tension;
-						i++;
-					}
-				}
-				if (f[0] == 0 || Math.abs(f[0]) <= cutoffForce)
-					return 0;
-				else
-					return f[0] > 0 ? -1 : 1;
-			});
-			if (position < 0)
-				position = -position - 1;
-			force = f[0];
-			if (Math.abs(leadingForce) < Math.abs(force)) {
-				position = leadingMost;
-				force = leadingForce;
-			}
-			if (Math.abs(trailingForce) < Math.abs(force)) {
-				position = trailingMost;
-				force = trailingForce;
-			}
-		} else if (leadingForce < trailingForce) {
-			position = leadingMost;
-			force = leadingForce;
-		} else {
-			position = trailingMost;
-			force = trailingForce;
-		}
-		if (toMove.setPosition(position)) {
-			toMove.setForce(force);
-			if (outgoingTensions != null) {
-				int i = 0;
-				for (SpringImpl spring : toMove.theOutgoingSprings) {
-					TensionAndSnap newTension = outgoingTensions[i];
-					float diff = newTension.tension - spring.theTension.tension;
-					spring.theTension = newTension;
-					spring.theDest.setForce(spring.theDest.theTotalForce + diff);
-					i++;
-				}
-			}
-			if (incomingTensions != null) {
-				int i = 0;
-				for (SpringImpl spring : toMove.theIncomingSprings) {
-					TensionAndSnap newTension = incomingTensions[i];
-					float diff = newTension.tension - spring.theTension.tension;
-					spring.theTension = newTension;
-					spring.theSource.setForce(spring.theSource.theTotalForce - diff);
-					i++;
-				}
-			}
-		} else {
-			toMove.stabilized();
-		}
-	}
-
-	private class SpringSet implements Iterable<SpringImpl> {
-		private List<SpringImpl> theSprings;
-		float theForce;
-
-		SpringSet() {}
-
-		void add(SpringImpl spring) {
-			if (theSprings == null)
-				theSprings = new LinkedList<>();
-			theSprings.add(spring);
-		}
-
-		void adjustForce(float diff) {
-			theForce += diff;
-		}
-
-		void reset() {
-			theForce = 0;
-			if (theSprings != null) {
-				for (SpringImpl spring : theSprings)
-					spring.reset();
-			}
-		}
-
-		@Override
-		public Iterator<SpringImpl> iterator() {
-			if (theSprings == null)
-				return Collections.emptyIterator();
-			else
-				return theSprings.iterator();
-		}
-	}
-
-	private class DivImpl implements Divider {
+	private class DivImpl implements DividerDef {
 		private final L theValue;
 		private final boolean isVertical;
 		final End borderEnd;
-		private final SpringSet theOutgoingSprings;
-		private final SpringSet theIncomingSprings;
-		private ElementId theForceSortedElement;
-		int thePosition;
-		float theTotalForce;
-		int lastChecked;
+		private final List<SpringImpl> theOutgoingSprings;
+		private final List<SpringImpl> theIncomingSprings;
 
 		DivImpl(L value, boolean vertical, End borderEnd) {
 			theValue = value;
 			isVertical = vertical;
 			this.borderEnd = borderEnd;
-			theOutgoingSprings = new SpringSet();
-			theIncomingSprings = new SpringSet();
+			theOutgoingSprings = new LinkedList<>();
+			theIncomingSprings = new LinkedList<>();
 		}
 
 		void constrain(SpringImpl spring, boolean outgoing) {
@@ -627,95 +304,27 @@ public class LayoutSolver<L> {
 			(outgoing ? theOutgoingSprings : theIncomingSprings).add(spring);
 		}
 
-		void reset() {
-			lastChecked = 0;
-			thePosition = 0;
-			theTotalForce = 0;
-			theForceSortedElement = null;
-			theOutgoingSprings.reset();
-			theIncomingSprings.theForce = 0;
-		}
-
-		boolean setPosition(int position) {
-			if (thePosition == position)
-				return false;
-			thePosition = position;
-			return true;
-		}
-
 		@Override
 		public Orientation getOrientation() {
 			return Orientation.of(isVertical);
 		}
 
 		@Override
-		public int getPosition() {
-			return thePosition;
-		}
-
-		@Override
-		public float getForce() {
-			return theTotalForce;
-		}
-
-		void adjustForce(boolean outgoing, float forceDiff) {
-			if (outgoing) {
-				theOutgoingSprings.adjustForce(forceDiff);
-				theTotalForce -= forceDiff;
-			} else {
-				theIncomingSprings.adjustForce(-forceDiff);
-				theTotalForce += forceDiff;
-			}
-			theTotalForce = forceDiff;
-			if (theForceSortedElement != null) {
-				if (forceDiff == 0) {
-					theLinesByForce.mutableElement(theForceSortedElement).remove();
-					theForceSortedElement = null;
-				} else {
-					boolean belongs = true;
-					CollectionElement<DivImpl> adj = theLinesByForce.getAdjacentElement(theForceSortedElement, false);
-					if (adj != null && Math.abs(adj.get().theTotalForce) < Math.abs(forceDiff))
-						belongs = false;
-					if (belongs) {
-						adj = theLinesByForce.getAdjacentElement(theForceSortedElement, true);
-						if (adj != null && Math.abs(adj.get().theTotalForce) > Math.abs(forceDiff))
-							belongs = false;
-					}
-					if (!belongs) {
-						theLinesByForce.mutableElement(theForceSortedElement).remove();
-						theForceSortedElement = theLinesByForce.addElement(this, false).getElementId();
-					}
-				}
-			} else if (borderEnd == null && forceDiff != 0) {
-				theForceSortedElement = theLinesByForce.addElement(this, false).getElementId();
-			}
-		}
-
-		void stabilized() {
-			if (theForceSortedElement != null) {
-				theLinesByForce.mutableElement(theForceSortedElement).remove();
-				theForceSortedElement = null;
-			}
-		}
-
-		@Override
 		public String toString() {
-			return String.valueOf(theValue) + ": " + thePosition + " (" + theTotalForce + ")";
+			return String.valueOf(theValue);
 		}
 	}
 
-	private class SpringImpl implements Spring {
+	private class SpringImpl implements SpringDef {
 		private final DivImpl theSource;
 		private final DivImpl theDest;
-		private final LayoutSpringEvaluator theEvaluator;
-		private List<SpringImpl> theLinkedSprings;
-		TensionAndSnap theTension;
+		final LayoutSpringEvaluator theEvaluator;
+		List<SpringImpl> theLinkedSprings;
 
 		SpringImpl(DivImpl source, DivImpl dest, LayoutSpringEvaluator evaluator) {
 			theSource = source;
 			theDest = dest;
 			theEvaluator = evaluator;
-			theTension = TensionAndSnap.ZERO;
 		}
 
 		void affects(SpringImpl other) {
@@ -727,43 +336,23 @@ public class LayoutSolver<L> {
 			other.theLinkedSprings.add(this);
 		}
 
-		void reset() {
-			theTension = TensionAndSnap.ZERO;
-		}
-
-		boolean recalculate() {
-			LayoutSpringEvaluator.TensionAndSnap tas = theEvaluator.getTension(theDest.thePosition - theSource.thePosition);
-			if (theTension.equals(tas.tension))
-				return false;
-			float tensionDiff = tas.tension - theTension.tension;
-			theSource.setForce(theSource.theTotalForce - tensionDiff);
-			theDest.setForce(theDest.theTotalForce + tensionDiff);
-			theTension = tas;
-			return true;
-		}
-
 		@Override
-		public Divider getSource() {
+		public DividerDef getSource() {
 			return theSource;
 		}
 
 		@Override
-		public Divider getDest() {
+		public DividerDef getDest() {
 			return theDest;
 		}
 
 		@Override
-		public float getTension() {
-			return theTension.tension;
-		}
-
-		@Override
 		public String toString() {
-			return theSource.theValue + "->" + theDest.theValue + ": " + theTension;
+			return theSource.theValue + "->" + theDest.theValue;
 		}
 	}
 
-	private class BoxImpl implements Box {
+	private class BoxImpl implements BoxDef {
 		final DivImpl left;
 		final DivImpl right;
 		final DivImpl top;
@@ -797,54 +386,629 @@ public class LayoutSolver<L> {
 		}
 	}
 
+	private class LayoutStateImpl implements State<L> {
+		private final IdentityHashMap<DivImpl, DivStateImpl> theLineStates;
+		private final IdentityHashMap<SpringImpl, SpringStateImpl> theSpringStates;
+		private final BetterList<DivStateImpl> theLinesByPosition;
+		private final BetterList<DivStateImpl> theLinesByForce;
+
+		private final BoxStateImpl theBoundState;
+
+		private boolean isInitialized;
+
+		LayoutStateImpl() {
+			theLineStates = new IdentityHashMap<>();
+			theSpringStates = new IdentityHashMap<>();
+			theBoundState = new BoxStateImpl(this, //
+				new DivStateImpl(this, theBounds.left), new DivStateImpl(this, theBounds.right), //
+				new DivStateImpl(this, theBounds.top), new DivStateImpl(this, theBounds.bottom));
+			for (DivImpl line : theLines.values())
+				theLineStates.put(line, new DivStateImpl(this, line));
+			theBoundState.left.theIncoming.fillIncoming();
+			theBoundState.right.theIncoming.fillIncoming();
+			theBoundState.top.theIncoming.fillIncoming();
+			theBoundState.bottom.theIncoming.fillIncoming();
+			for (DivStateImpl line : theLineStates.values())
+				line.theIncoming.fillIncoming();
+			theLinesByForce = new SortedTreeList<>(false,
+				(div1, div2) -> -Float.compare(Math.abs(div1.theTotalForce), Math.abs(div2.theTotalForce)));
+			theLinesByPosition = new SortedTreeList<>(false, (div1, div2) -> div1.thePosition - div2.thePosition);
+		}
+
+		@Override
+		public LayoutSolver<L> getSolver() {
+			return LayoutSolver.this;
+		}
+
+		@Override
+		public BoxState getBounds() {
+			return theBoundState;
+		}
+
+		@Override
+		public DividerState getLine(L lineObj) {
+			DivImpl divider = theLines.get(lineObj);
+			return divider == null ? null : theLineStates.get(divider);
+		}
+
+		@Override
+		public DividerState getLine(DividerDef line) {
+			return theLineStates.get(line);
+		}
+
+		@Override
+		public SpringState getSpring(SpringDef spring) {
+			return theSpringStates.get(spring);
+		}
+
+		@Override
+		public BoxState getBox(BoxDef box) {
+			return new BoxStateImpl(this, //
+				theLineStates.get(((BoxImpl) box).left), theLineStates.get(((BoxImpl) box).right), //
+				theLineStates.get(((BoxImpl) box).top), theLineStates.get(((BoxImpl) box).bottom));
+		}
+
+		@Override
+		public State<L> reset() {
+			isInitialized = false;
+			theBoundState.left.reset();
+			theBoundState.right.reset();
+			theBoundState.top.reset();
+			theBoundState.bottom.reset();
+			for (DivStateImpl line : theLineStates.values())
+				line.reset();
+			theLinesByForce.clear();
+			theLinesByPosition.clear();
+			return this;
+		}
+
+		@Override
+		public State<L> layout(Dimension size) {
+			theBoundState.right.setPosition(size.width);
+			theBoundState.bottom.setPosition(size.height);
+			if (!isInitialized) {
+				isInitialized = true;
+				init();
+			}
+			int maxMoves = MAX_TRIES * theLines.size();
+			DivStateImpl toMove = theLinesByForce.peekFirst();
+			int moves = 0;
+			for (int i = 0; toMove != null && i < maxMoves; i++) {
+				moves++;
+				adjust(toMove);
+				toMove = theLinesByForce.peekFirst();
+			}
+			System.out.println(moves + " moves");
+			return this;
+		}
+
+		@Override
+		public State<L> layout(float hTension, float vTension) {
+			// TODO Auto-generated method stub
+		}
+
+		private void init() {
+			List<SpringStateImpl> dirtySprings = new LinkedList<>();
+			if (theLines.isEmpty())
+				return;
+			if (theBounds.left.theOutgoingSprings != null)
+				initConstraints(theBoundState.left, Ternian.TRUE, dirtySprings);
+			if (theBounds.top.theOutgoingSprings != null)
+				initConstraints(theBoundState.top, Ternian.TRUE, dirtySprings);
+			for (DivStateImpl line : theLineStates.values()) {
+				if (!line.isPositioned()) {
+					line.setPosition(0);
+					initConstraints(line, Ternian.NONE, dirtySprings);
+				}
+			}
+			if (theBounds.right.theIncomingSprings != null)
+				initConstraints(theBoundState.right, Ternian.FALSE, dirtySprings);
+			if (theBounds.bottom.theIncomingSprings != null)
+				initConstraints(theBoundState.bottom, Ternian.FALSE, dirtySprings);
+			for (SpringStateImpl spring : dirtySprings)
+				spring.recalculate();
+			return;
+		}
+
+		private void initConstraints(DivStateImpl line, Ternian outgoing, List<SpringStateImpl> dirtySprings) {
+			if (outgoing != Ternian.FALSE) {
+				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
+					DivStateImpl dest = spring.theDest.theDivider;
+					if (!dest.isPositioned()) {
+						dest.setPosition(line.thePosition + spring.theSpring.theEvaluator.getSize(0));
+						initConstraints(dest, Ternian.TRUE, dirtySprings);
+					} else
+						dirtySprings.add(spring);
+				}
+			}
+			if (outgoing != Ternian.TRUE) {
+				for (SpringStateImpl spring : line.theIncoming.theSprings) {
+					DivStateImpl src = spring.theSource.theDivider;
+					if (!src.isPositioned()) {
+						src.setPosition(line.thePosition - spring.theSpring.theEvaluator.getSize(0));
+						initConstraints(src, Ternian.FALSE, dirtySprings);
+					} else
+						dirtySprings.add(spring);
+				}
+			}
+		}
+
+		private void adjust(DivStateImpl toMove) {
+			float cutoffForce = theLinesByForce.size() == 1 ? 0 : Math.abs(theLinesByForce.get(1).theTotalForce);
+			int leadingMost, trailingMost;
+			float leadingForce, trailingForce;
+			if (toMove.theTotalForce > 0) {
+				leadingMost = toMove.thePosition;
+				leadingForce = toMove.theTotalForce;
+				trailingMost = theBoundState.get(toMove.getOrientation(), End.trailing).getPosition();
+				trailingForce = 0;
+			} else {
+				leadingMost = 0;
+				leadingForce = 0;
+				trailingMost = toMove.thePosition;
+				trailingForce = -toMove.theTotalForce;
+			}
+			float force = toMove.theTotalForce;
+			TensionAndSnap[] outgoingTensions = toMove.theOutgoing.copyTensionState();
+			TensionAndSnap[] incomingTensions = toMove.theIncoming.copyTensionState();
+			boolean stepped = false;
+			int position = toMove.thePosition;
+			stepping: while (leadingMost < trailingMost - 1 && force != 0 && Math.abs(force) >= cutoffForce) {
+				int nextSnap = force > 0 ? trailingMost : leadingMost;
+				int signum = (int) Math.signum(force);
+				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
+					int springSign = (int) Math.signum(outgoingTensions[i].tension);
+					if (springSign != 0 && signum != springSign) {
+						int snap = spring.theDest.theDivider.getPosition() - outgoingTensions[i].snap;
+						if (signum > 0) {
+							if (snap < nextSnap) {
+								nextSnap = snap;
+								if (nextSnap <= leadingMost)
+									break stepping;
+							}
+						} else {
+							if (snap > nextSnap) {
+								nextSnap = snap;
+								if (nextSnap >= trailingMost)
+									break stepping;
+							}
+						}
+					}
+				}
+				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
+					int springSign = (int) Math.signum(incomingTensions[i].tension);
+					if (signum == springSign) {
+						int snap = spring.theSource.theDivider.getPosition() + incomingTensions[i].snap;
+						if (signum > 0) {
+							if (snap < nextSnap) {
+								nextSnap = snap;
+								if (nextSnap <= leadingMost)
+									break stepping;
+							}
+						} else {
+							if (snap > nextSnap) {
+								nextSnap = snap;
+								if (nextSnap >= trailingMost)
+									break stepping;
+							}
+						}
+					}
+				}
+				if (nextSnap == trailingMost || nextSnap == leadingMost)
+					break;
+				// Re-compute forces
+				position = nextSnap;
+				force = 0;
+				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
+					outgoingTensions[i] = spring.theSpring.theEvaluator.getTension(spring.theDest.theDivider.thePosition - nextSnap);
+					force -= outgoingTensions[i].tension;
+				}
+				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
+					incomingTensions[i] = spring.theSpring.theEvaluator.getTension(nextSnap - spring.theSource.theDivider.thePosition);
+					force += incomingTensions[i].tension;
+				}
+				if (force < 0) {
+					trailingMost = nextSnap;
+					trailingForce = force;
+				} else {
+					leadingMost = nextSnap;
+					leadingForce = force;
+				}
+			}
+			boolean tensionsCalculated = true;
+			if (force == 0 || Math.abs(force) < cutoffForce) {
+			} else if (!stepped && leadingMost < trailingMost - 1) {
+				// Steps can't help us at this point. Use binary search.
+				float[] f = new float[1];
+				int lead = leadingMost, trail = trailingMost;
+				position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
+					if (pos == lead)
+						return 1;
+					else if (pos == trail)
+						return -1;
+					f[0] = 0;
+					for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
+						SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
+						outgoingTensions[i] = spring.theSpring.theEvaluator.getTension(spring.theDest.theDivider.thePosition - pos);
+						f[0] -= outgoingTensions[i].tension;
+					}
+					for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
+						SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
+						incomingTensions[i] = spring.theSpring.theEvaluator.getTension(pos - spring.theSource.theDivider.thePosition);
+						f[0] += incomingTensions[i].tension;
+					}
+					if (f[0] == 0 || Math.abs(f[0]) <= cutoffForce)
+						return 0;
+					else
+						return f[0] > 0 ? -1 : 1;
+				});
+				if (position < 0)
+					position = -position - 1;
+				force = f[0];
+				if (Math.abs(leadingForce) < Math.abs(force)) {
+					position = leadingMost;
+					force = leadingForce;
+					tensionsCalculated = false;
+				}
+				if (Math.abs(trailingForce) < Math.abs(force)) {
+					position = trailingMost;
+					force = trailingForce;
+					tensionsCalculated = false;
+				}
+			} else if (leadingForce < trailingForce) {
+				if (leadingMost != position) {
+					position = leadingMost;
+					force = leadingForce;
+					tensionsCalculated = false;
+				}
+			} else {
+				if (trailingMost != position) {
+					position = trailingMost;
+					force = trailingForce;
+					tensionsCalculated = false;
+				}
+			}
+			if (!tensionsCalculated) {
+				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
+					outgoingTensions[i] = spring.theSpring.theEvaluator.getTension(spring.theDest.theDivider.thePosition - position);
+				}
+				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
+					incomingTensions[i] = spring.theSpring.theEvaluator.getTension(position - spring.theSource.theDivider.thePosition);
+				}
+			}
+			if (toMove.setPosition(position)) {
+				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
+					TensionAndSnap newTension = outgoingTensions[i];
+					spring.theTension = newTension;
+					if (spring.theDest.forceChanged())
+						spring.theDest.theDivider.forceChanged();
+				}
+				toMove.theOutgoing.forceChanged();
+				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
+					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
+					TensionAndSnap newTension = incomingTensions[i];
+					spring.theTension = newTension;
+					if (spring.theSource.forceChanged())
+						spring.theSource.theDivider.forceChanged();
+				}
+				toMove.theIncoming.forceChanged();
+				toMove.forceChanged();
+			} else
+				toMove.stabilized();
+		}
+	}
+
+	private class DivStateImpl implements DividerState {
+		final LayoutStateImpl theLayoutState;
+		final DivImpl theDivider;
+		final SpringSet theIncoming;
+		final SpringSet theOutgoing;
+
+		int thePosition;
+		float theTotalForce;
+
+		private ElementId thePositionSortedElement;
+		private ElementId theForceSortedElement;
+
+		DivStateImpl(LayoutStateImpl layoutState, DivImpl divider) {
+			theLayoutState = layoutState;
+			theDivider = divider;
+			theIncoming = new SpringSet(this, true);
+			theOutgoing = new SpringSet(this, false);
+		}
+
+		void reset() {
+			thePosition = 0;
+			theTotalForce = 0;
+			thePositionSortedElement = null;
+			theForceSortedElement = null;
+			theOutgoing.reset();
+			theIncoming.theForce = 0;
+		}
+
+		void forceChanged() {
+			theTotalForce = theIncoming.theForce + theOutgoing.theForce;
+			if (theForceSortedElement != null) {
+				if (theTotalForce == 0) {
+					theLayoutState.theLinesByForce.mutableElement(theForceSortedElement).remove();
+					theForceSortedElement = null;
+				} else {
+					boolean belongs = true;
+					CollectionElement<DivStateImpl> adj = theLayoutState.theLinesByForce.getAdjacentElement(theForceSortedElement, false);
+					if (adj != null && Math.abs(adj.get().theTotalForce) < Math.abs(theTotalForce))
+						belongs = false;
+					if (belongs) {
+						adj = theLayoutState.theLinesByForce.getAdjacentElement(theForceSortedElement, true);
+						if (adj != null && Math.abs(adj.get().theTotalForce) > Math.abs(theTotalForce))
+							belongs = false;
+					}
+					if (!belongs) {
+						theLayoutState.theLinesByForce.mutableElement(theForceSortedElement).remove();
+						theForceSortedElement = theLayoutState.theLinesByForce.addElement(this, false).getElementId();
+					}
+				}
+			} else if (theDivider.borderEnd == null && theTotalForce != 0)
+				theForceSortedElement = theLayoutState.theLinesByForce.addElement(this, false).getElementId();
+		}
+
+		void stabilized() {
+			if (theForceSortedElement != null) {
+				theLayoutState.theLinesByForce.mutableElement(theForceSortedElement).remove();
+				theForceSortedElement = null;
+			}
+		}
+
+		boolean isPositioned() {
+			return thePositionSortedElement != null;
+		}
+
+		boolean setPosition(int position) {
+			if (thePosition == position && thePositionSortedElement != null)
+				return false;
+			thePosition = position;
+			if (thePositionSortedElement != null) {
+				boolean belongs = true;
+				CollectionElement<DivStateImpl> adj = theLayoutState.theLinesByPosition.getAdjacentElement(thePositionSortedElement, false);
+				if (adj != null && adj.get().thePosition > thePosition)
+					belongs = false;
+				if (belongs) {
+					adj = theLayoutState.theLinesByPosition.getAdjacentElement(thePositionSortedElement, true);
+					if (adj != null && adj.get().thePosition < thePosition)
+						belongs = false;
+				}
+				if (!belongs) {
+					theLayoutState.theLinesByPosition.mutableElement(thePositionSortedElement).remove();
+					thePositionSortedElement = theLayoutState.theLinesByPosition.addElement(this, false).getElementId();
+				}
+			} else
+				thePositionSortedElement = theLayoutState.theLinesByPosition.addElement(this, false).getElementId();
+			return true;
+		}
+
+		@Override
+		public Orientation getOrientation() {
+			return theDivider.getOrientation();
+		}
+
+		@Override
+		public int getPosition() {
+			return thePosition;
+		}
+
+		@Override
+		public float getForce() {
+			return theTotalForce;
+		}
+
+		@Override
+		public String toString() {
+			return theDivider + ": " + thePosition + " (" + theTotalForce + ")";
+		}
+	}
+
+	private class SpringSet {
+		final DivStateImpl theDivider;
+		private final boolean isIncoming;
+		final List<SpringStateImpl> theSprings;
+		float theForce;
+
+		SpringSet(DivStateImpl divider, boolean incoming) {
+			theDivider = divider;
+			isIncoming = incoming;
+			theSprings = new ArrayList<>((incoming ? divider.theDivider.theIncomingSprings : divider.theDivider.theOutgoingSprings).size());
+			if (!incoming) {
+				for (SpringImpl spring : divider.theDivider.theOutgoingSprings) {
+					SpringStateImpl springState = new SpringStateImpl(this, spring);
+					theDivider.theLayoutState.theSpringStates.put(spring, springState);
+					theSprings.add(springState);
+				}
+			}
+		}
+
+		void fillIncoming() {
+			for (SpringImpl spring : theDivider.theDivider.theIncomingSprings) {
+				SpringStateImpl springState = theDivider.theLayoutState.theSpringStates.get(spring);
+				springState.theDest = this;
+				theSprings.add(springState);
+			}
+		}
+
+		boolean forceChanged() {
+			float totalForce = 0;
+			for (SpringStateImpl springState : theSprings)
+				totalForce += springState.theTension.tension;
+			if (!isIncoming)
+				totalForce = -totalForce;
+			if (totalForce == theForce)
+				return false;
+			theForce = totalForce;
+			return true;
+		}
+
+		void reset() {
+			theForce = 0;
+			for (SpringStateImpl spring : theSprings)
+				spring.reset();
+		}
+
+		TensionAndSnap[] copyTensionState() {
+			TensionAndSnap[] tensions = new TensionAndSnap[theSprings.size()];
+			for (int i = 0; i < theSprings.size(); i++)
+				tensions[i] = theSprings.get(i).theTension;
+			return tensions;
+		}
+
+		void updateTensionState(TensionAndSnap[] tensions, int length) {
+			for (int i = 0; i < tensions.length; i++)
+				tensions[i] = theSprings.get(i).theSpring.theEvaluator.getTension(length);
+		}
+	}
+
+	private class SpringStateImpl implements SpringState {
+		final SpringSet theSource;
+		SpringSet theDest;
+		final SpringImpl theSpring;
+		TensionAndSnap theTension;
+
+		SpringStateImpl(SpringSet source, SpringImpl spring) {
+			theSource = source;
+			theSpring = spring;
+			theTension = TensionAndSnap.ZERO;
+		}
+
+		void reset() {
+			theTension = TensionAndSnap.ZERO;
+		}
+
+		boolean recalculate() {
+			LayoutSpringEvaluator.TensionAndSnap tas = theSpring.theEvaluator
+				.getTension(theDest.theDivider.thePosition - theSource.theDivider.thePosition);
+			if (theTension.equals(tas.tension))
+				return false;
+			theTension = tas;
+			if (theSource.forceChanged())
+				theSource.theDivider.forceChanged();
+			if (theDest.forceChanged())
+				theDest.theDivider.forceChanged();
+			return true;
+		}
+
+		@Override
+		public DividerState getSource() {
+			return theSource.theDivider;
+		}
+
+		@Override
+		public DividerState getDest() {
+			return theDest.theDivider;
+		}
+
+		@Override
+		public float getTension() {
+			return theTension.tension;
+		}
+
+		@Override
+		public String toString() {
+			return theSpring.toString() + ": " + theTension;
+		}
+	}
+
+	private class BoxStateImpl implements BoxState {
+		final DivStateImpl left;
+		final DivStateImpl right;
+		final DivStateImpl top;
+		final DivStateImpl bottom;
+
+		BoxStateImpl(LayoutStateImpl layoutState, DivStateImpl left, DivStateImpl right, DivStateImpl top, DivStateImpl bottom) {
+			this.left = left;
+			this.right = right;
+			this.top = top;
+			this.bottom = bottom;
+		}
+
+		@Override
+		public DividerState getLeft() {
+			return left;
+		}
+
+		@Override
+		public DividerState getRight() {
+			return right;
+		}
+
+		@Override
+		public DividerState getTop() {
+			return top;
+		}
+
+		@Override
+		public DividerState getBottom() {
+			return bottom;
+		}
+	}
+
 	public static void main(String[] args) {
 		DebugPlotter plotter = new DebugPlotter();
-		Map<Box, Line2D[]> boxes = new HashMap<>(); // Each entry is 4 lines--left, right, top, bottom
-		Map<Spring, SpringHolder> springs = new HashMap<>();
+		Map<BoxState, Line2D[]> boxes = new HashMap<>(); // Each entry is 4 lines--left, right, top, bottom
+		Map<SpringState, SpringHolder> springs = new HashMap<>();
 
 		// First, a simple system with 2 boxes
 		LayoutSolver<String> solver = new LayoutSolver<>();
-		Box box1 = solver.getOrCreateBox("b1 left", "b1 right", "b1 top", "b1 bottom");
-		Box box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
-		addBox(plotter, boxes, solver.getBounds(), "bounds");
-		addBox(plotter, boxes, box1, "box1");
-		addBox(plotter, boxes, box2, "box2");
+		BoxDef box1 = solver.getOrCreateBox("b1 left", "b1 right", "b1 top", "b1 bottom");
+		BoxDef box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
 		// Margins
-		Spring leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
+		SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, leftMargin, "left margin", () -> box1.getCenter().y);
-		Spring rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
+		SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, rightMargin, "right margin", () -> box2.getCenter().y);
-		Spring topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
+		SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, topMargin1, "top margin 1", () -> box1.getCenter().x);
-		Spring topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
+		SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, topMargin2, "top margin 2", () -> box2.getCenter().x);
-		Spring bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
+		SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, bottomMargin1, "bottom margin 1", () -> box1.getCenter().x);
-		Spring bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
+		SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
 			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, bottomMargin2, "bottom margin 2", () -> box2.getCenter().x);
 		// Between the boxes
-		Spring padding = solver.createSpring(box1.getRight(), box2.getLeft(), //
+		SpringDef padding = solver.createSpring(box1.getRight(), box2.getLeft(), //
 			forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, Integer.MAX_VALUE)));
-		addSpring(plotter, springs, padding, "padding", () -> box1.getCenter().y);
 		// Now the box dimensions
-		Spring w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
+		SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
 			forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
-		addSpring(plotter, springs, w1, "box 1 width", () -> box1.getCenter().y);
-		Spring h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
+		SpringDef h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
 			forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
-		addSpring(plotter, springs, h1, "box 1 height", () -> box1.getCenter().x);
-		Spring w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
+		SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
 			forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
-		addSpring(plotter, springs, w2, "box 2 width", () -> box2.getCenter().y);
-		Spring h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
+		SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
 			forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
-		addSpring(plotter, springs, h2, "box 2 height", () -> box2.getCenter().x);
+
+		LayoutSolver.State<String> solverState = solver.use();
+		BoxState box1State = solverState.getBox(box1);
+		BoxState box2State = solverState.getBox(box2);
+
+		addBox(plotter, boxes, solverState.getBounds(), "bounds");
+		addBox(plotter, boxes, box1State, "box1");
+		addBox(plotter, boxes, box2State, "box2");
+
+		addSpring(plotter, springs, solverState.getSpring(leftMargin), "left margin", () -> box1State.getCenter().y);
+		addSpring(plotter, springs, solverState.getSpring(rightMargin), "right margin", () -> box2State.getCenter().y);
+		addSpring(plotter, springs, solverState.getSpring(topMargin1), "top margin 1", () -> box1State.getCenter().x);
+		addSpring(plotter, springs, solverState.getSpring(topMargin2), "top margin 2", () -> box2State.getCenter().x);
+		addSpring(plotter, springs, solverState.getSpring(bottomMargin1), "bottom margin 1", () -> box1State.getCenter().x);
+		addSpring(plotter, springs, solverState.getSpring(bottomMargin2), "bottom margin 2", () -> box2State.getCenter().x);
+		addSpring(plotter, springs, solverState.getSpring(padding), "padding", () -> box1State.getCenter().y);
+		addSpring(plotter, springs, solverState.getSpring(w1), "box 1 width", () -> box1State.getCenter().y);
+		addSpring(plotter, springs, solverState.getSpring(h1), "box 1 height", () -> box1State.getCenter().x);
+		addSpring(plotter, springs, solverState.getSpring(w2), "box 2 width", () -> box2State.getCenter().y);
+		addSpring(plotter, springs, solverState.getSpring(h2), "box 2 height", () -> box2State.getCenter().x);
 
 		JFrame plotterFrame = plotter.showFrame("Layout Solver", null);
 		plotterFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -863,8 +1027,8 @@ public class LayoutSolver<L> {
 				}
 				if (reSolve[0]) {
 					reSolve[0] = false;
-					// solver.reset();
-					solver.solve(//
+					solverState.reset();
+					solverState.layout(//
 						Dimension.fromAWT(plotter.getSize()));
 				}
 			}
@@ -882,7 +1046,7 @@ public class LayoutSolver<L> {
 		updateRenderThread.start();
 		reSolveThread.start();
 		plotter.setAction(() -> printAll(boxes, springs));
-		solver.solve(Dimension.fromAWT(plotter.getSize()));
+		solverState.layout(Dimension.fromAWT(plotter.getSize()));
 		updateShapes(boxes, springs);
 	}
 
@@ -897,7 +1061,7 @@ public class LayoutSolver<L> {
 		}
 	}
 
-	private static void addBox(DebugPlotter plotter, Map<Box, Line2D[]> boxes, Box box, String boxName) {
+	private static void addBox(DebugPlotter plotter, Map<BoxState, Line2D[]> boxes, BoxState box, String boxName) {
 		Line2D[] lines = new Line2D[4];
 		lines[0] = new Line2D.Float();
 		lines[1] = new Line2D.Float();
@@ -914,16 +1078,16 @@ public class LayoutSolver<L> {
 			.setText(() -> boxName + " bottom: P " + box.getBottom().getPosition() + " F " + box.getBottom().getForce());
 	}
 
-	private static void addSpring(DebugPlotter plotter, Map<Spring, SpringHolder> springs, Spring spring, String springName,
+	private static void addSpring(DebugPlotter plotter, Map<SpringState, SpringHolder> springs, SpringState spring, String springName,
 		IntSupplier location) {
 		Line2D line = new Line2D.Float();
 		springs.put(spring, new SpringHolder(line, location));
 		plotter.add(line).setColor(Color.blue).setText(() -> springName + ": L " + spring.getLength() + " T " + spring.getTension());
 	}
 
-	private static boolean updateShapes(Map<Box, Line2D[]> boxes, Map<Spring, SpringHolder> springs) {
+	private static boolean updateShapes(Map<BoxState, Line2D[]> boxes, Map<SpringState, SpringHolder> springs) {
 		boolean updated = false;
-		for (Map.Entry<Box, Line2D[]> box : boxes.entrySet()) {
+		for (Map.Entry<BoxState, Line2D[]> box : boxes.entrySet()) {
 			double left = box.getKey().getLeft().getPosition();
 			double right = box.getKey().getRight().getPosition();
 			double top = box.getKey().getTop().getPosition();
@@ -938,7 +1102,7 @@ public class LayoutSolver<L> {
 			}
 		}
 		if (updated) {
-			for (Map.Entry<Spring, SpringHolder> spring : springs.entrySet()) {
+			for (Map.Entry<SpringState, SpringHolder> spring : springs.entrySet()) {
 				int pos = spring.getValue().location.getAsInt();
 				if (spring.getKey().getSource().getOrientation().isVertical()) {
 					spring.getValue().line.setLine(pos, spring.getKey().getSource().getPosition(), //
@@ -952,14 +1116,14 @@ public class LayoutSolver<L> {
 		return updated;
 	}
 
-	private static void printAll(Map<Box, Line2D[]> boxes, Map<Spring, SpringHolder> springs) {
-		for (Box box : boxes.keySet()) {
+	private static void printAll(Map<BoxState, Line2D[]> boxes, Map<SpringState, SpringHolder> springs) {
+		for (BoxDef box : boxes.keySet()) {
 			System.out.println(box.getLeft());
 			System.out.println(box.getRight());
 			System.out.println(box.getTop());
 			System.out.println(box.getBottom());
 		}
-		for (Spring spring : springs.keySet())
+		for (SpringDef spring : springs.keySet())
 			System.out.println(spring);
 	}
 }

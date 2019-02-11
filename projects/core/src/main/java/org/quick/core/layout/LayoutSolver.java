@@ -16,6 +16,7 @@ import java.util.function.IntSupplier;
 import javax.swing.JFrame;
 
 import org.qommons.ArrayUtils;
+import org.qommons.IntList;
 import org.qommons.Ternian;
 import org.qommons.collect.BetterHashMap;
 import org.qommons.collect.BetterList;
@@ -222,16 +223,17 @@ public class LayoutSolver<L> {
 
 	private final int MAX_TRIES = 100; // TODO Should be static when not debugging
 
-	private final BoxImpl theBounds = new BoxImpl(//
-		new DivImpl((L) "Left Bound", false, End.leading), new DivImpl((L) "Right Bound", false, End.trailing), //
-		new DivImpl((L) "Top Bound", true, End.leading), new DivImpl((L) "Bottom Bound", true, End.trailing)//
-	);
+	private final BoxImpl theBounds;
 
 	private final BetterMap<L, DivImpl> theLines;
 	private boolean isSealed;
 
 	public LayoutSolver() {
 		theLines = BetterHashMap.build().unsafe().buildMap();
+		theBounds = new BoxImpl(//
+			new DivImpl((L) "Left Bound", false, End.leading), new DivImpl((L) "Right Bound", false, End.trailing), //
+			new DivImpl((L) "Top Bound", true, End.leading), new DivImpl((L) "Bottom Bound", true, End.trailing)//
+		);
 	}
 
 	public BoxDef getBounds() {
@@ -281,7 +283,7 @@ public class LayoutSolver<L> {
 
 	private class DivImpl implements DividerDef {
 		private final L theValue;
-		private final boolean isVertical;
+		final boolean isVertical;
 		final End borderEnd;
 		private final List<SpringImpl> theOutgoingSprings;
 		private final List<SpringImpl> theIncomingSprings;
@@ -389,7 +391,8 @@ public class LayoutSolver<L> {
 	private class LayoutStateImpl implements State<L> {
 		private final IdentityHashMap<DivImpl, DivStateImpl> theLineStates;
 		private final IdentityHashMap<SpringImpl, SpringStateImpl> theSpringStates;
-		private final BetterList<DivStateImpl> theLinesByPosition;
+		private final BetterList<DivStateImpl> theHLinesByPosition;
+		private final BetterList<DivStateImpl> theVLinesByPosition;
 		private final BetterList<DivStateImpl> theLinesByForce;
 
 		private final BoxStateImpl theBoundState;
@@ -412,7 +415,8 @@ public class LayoutSolver<L> {
 				line.theIncoming.fillIncoming();
 			theLinesByForce = new SortedTreeList<>(false,
 				(div1, div2) -> -Float.compare(Math.abs(div1.theTotalForce), Math.abs(div2.theTotalForce)));
-			theLinesByPosition = new SortedTreeList<>(false, (div1, div2) -> div1.thePosition - div2.thePosition);
+			theHLinesByPosition = new SortedTreeList<>(false, (div1, div2) -> div1.thePosition - div2.thePosition);
+			theVLinesByPosition = new SortedTreeList<>(false, (div1, div2) -> div1.thePosition - div2.thePosition);
 		}
 
 		@Override
@@ -458,7 +462,8 @@ public class LayoutSolver<L> {
 			for (DivStateImpl line : theLineStates.values())
 				line.reset();
 			theLinesByForce.clear();
-			theLinesByPosition.clear();
+			theHLinesByPosition.clear();
+			theVLinesByPosition.clear();
 			return this;
 		}
 
@@ -475,7 +480,54 @@ public class LayoutSolver<L> {
 			int moves = 0;
 			for (int i = 0; toMove != null && i < maxMoves; i++) {
 				moves++;
-				adjust(toMove);
+				// Rather than move just one line at a time, we can move an optimal set of lines with the greatest possible
+				// collective net force. This is much more efficient in general.
+				// TODO Exclude stable line sets
+				boolean signum = toMove.theTotalForce > 0;
+				BetterList<DivStateImpl> linesByPosition = toMove.theDivider.isVertical ? theVLinesByPosition : theHLinesByPosition;
+				// Find the min line to move
+				float bestForce = 0;
+				ElementId minBound = toMove.thePositionSortedElement;
+				CollectionElement<DivStateImpl> el = linesByPosition.getTerminalElement(true);
+				while (!el.getElementId().equals(toMove.thePositionSortedElement)) {
+					if (el.get().theDivider.borderEnd == null) { // Exclude bounds (not flexible here)
+						float force = el.get().theTotalForce;
+						if ((force > 0) == signum && Math.abs(force) > bestForce) {
+							bestForce = Math.abs(force);
+							minBound = el.getElementId();
+						}
+					}
+					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
+				}
+				// Find the max line to move
+				bestForce = 0;
+				ElementId maxBound = toMove.thePositionSortedElement;
+				el = linesByPosition.getTerminalElement(false);
+				while (!el.getElementId().equals(toMove.thePositionSortedElement)) {
+					if (el.get().theDivider.borderEnd == null) { // Exclude bounds (not flexible here)
+						float force = el.get().theTotalForce;
+						if ((force > 0) == signum && Math.abs(force) > bestForce) {
+							bestForce = Math.abs(force);
+							maxBound = el.getElementId();
+						}
+					}
+					el = linesByPosition.getAdjacentElement(el.getElementId(), false);
+				}
+
+				while (!adjust(toMove.theDivider.isVertical, minBound, maxBound, false)) {
+					if (minBound.equals(maxBound)) {
+						toMove.stabilized();
+						break;
+					} else if (minBound.equals(toMove.thePositionSortedElement))
+						maxBound = linesByPosition.getAdjacentElement(maxBound, false).getElementId();
+					else if (maxBound.equals(toMove.thePositionSortedElement))
+						minBound = linesByPosition.getAdjacentElement(minBound, true).getElementId();
+					else if (Math.abs(linesByPosition.getElement(minBound).get().theTotalForce) < Math
+						.abs(linesByPosition.getElement(maxBound).get().theTotalForce))
+						maxBound = linesByPosition.getAdjacentElement(maxBound, false).getElementId();
+					else
+						minBound = linesByPosition.getAdjacentElement(minBound, true).getElementId();
+				}
 				toMove = theLinesByForce.peekFirst();
 			}
 			System.out.println(moves + " moves");
@@ -484,13 +536,17 @@ public class LayoutSolver<L> {
 
 		@Override
 		public State<L> layout(float hTension, float vTension) {
-			// TODO Auto-generated method stub
+			// TODO Add a left->right and a top->bottom constraint on the bounds rectangle with the given tensions
+			// Then perform the normal layout operation with the additional degree of freedom
+			// that the right and bottom bounds can be adjusted
 		}
 
 		private void init() {
 			List<SpringStateImpl> dirtySprings = new LinkedList<>();
 			if (theLines.isEmpty())
 				return;
+			theBoundState.left.setPosition(0);
+			theBoundState.top.setPosition(0);
 			if (theBounds.left.theOutgoingSprings != null)
 				initConstraints(theBoundState.left, Ternian.TRUE, dirtySprings);
 			if (theBounds.top.theOutgoingSprings != null)
@@ -531,6 +587,260 @@ public class LayoutSolver<L> {
 						dirtySprings.add(spring);
 				}
 			}
+		}
+
+		// These are basically local variables that I don't want to waste performance initializing repeatedly
+		// This state class is NOT thread-safe, so this should be fine within good usage as long as I clear them after usage
+		private final List<SpringStateImpl> incomingSprings = new ArrayList<>();
+		private final List<SpringStateImpl> outgoingSprings = new ArrayList<>();
+		private final IntList incomingSpringDestOffsets = new IntList();
+		private final IntList outgoingSpringSrcOffsets = new IntList();
+		private final List<TensionAndSnap> incomingTensions = new ArrayList<>();
+		private final List<TensionAndSnap> outgoingTensions = new ArrayList<>();
+		private int lastCalculatedForces;
+
+		private boolean adjust(boolean vertical, ElementId minBound, ElementId maxBound, boolean flexBounds) {
+			BetterList<DivStateImpl> linesByPosition = vertical ? theVLinesByPosition : theHLinesByPosition;
+			// Determine the set of springs that act upon the given set of lines as a whole,
+			// i.e. the springs that have one end on a line in the set and the other end on a line not in the set
+			float force = 0;
+			int initPosition;
+			CollectionElement<DivStateImpl> el = linesByPosition.getElement(minBound);
+			initPosition = el.get().thePosition;
+			while (true) {
+				DivStateImpl line = el.get();
+				for (SpringStateImpl spring : line.theIncoming.theSprings) {
+					if (spring.theSource.theDivider.thePositionSortedElement.compareTo(minBound) < 0//
+						|| spring.theSource.theDivider.thePositionSortedElement.compareTo(maxBound) > 0) {
+						incomingSprings.add(spring);
+						incomingSpringDestOffsets.add(spring.theDest.theDivider.thePosition - initPosition);
+						incomingTensions.add(spring.theTension);
+						force += spring.theTension.tension;
+					}
+				}
+				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
+					if (spring.theDest.theDivider.thePositionSortedElement.compareTo(minBound) < 0//
+						|| spring.theDest.theDivider.thePositionSortedElement.compareTo(maxBound) > 0) {
+						outgoingSprings.add(spring);
+						outgoingSpringSrcOffsets.add(spring.theSource.theDivider.thePosition - initPosition);
+						outgoingTensions.add(spring.theTension);
+						force -= spring.theTension.tension;
+					}
+				}
+				if (el.getElementId().equals(maxBound))
+					break;
+				else
+					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
+			}
+			// Instead of finding the absolute best equilibrium for the line set, we'll stop doing work when the force on the line set
+			// drops so that a different line set has more force and is therefore higher-priority
+			float cutoffForce;
+			{
+				float cf = 0;
+				for (DivStateImpl line : theLinesByForce) {
+					if (line.theDivider.isVertical != vertical || line.thePositionSortedElement.compareTo(minBound) < 0
+						|| line.thePositionSortedElement.compareTo(maxBound) > 0) {
+						cf = Math.abs(line.theTotalForce);
+						break;
+					}
+				}
+				cutoffForce = cf;
+			}
+			int[] relPositions = new int[linesByPosition.getElementsBefore(maxBound) - linesByPosition.getElementsBefore(minBound) + 1];
+			el = linesByPosition.getElement(minBound);
+			initPosition = el.get().thePosition;
+			for (int i = 1; i < relPositions.length; i++) {
+				el = linesByPosition.getAdjacentElement(el.getElementId(), true);
+				relPositions[i] = el.get().thePosition - initPosition;
+			}
+			lastCalculatedForces = initPosition;
+
+			int leadingMost, trailingMost;
+			float leadingForce, trailingForce;
+			if (force > 0) {
+				leadingMost = initPosition;
+				leadingForce = force;
+				trailingMost = theBoundState.get(Orientation.of(vertical), End.trailing).getPosition();
+				if (!flexBounds)
+					trailingMost -= relPositions[relPositions.length - 1];
+				trailingForce = 0;
+			} else {
+				leadingMost = 0;
+				leadingForce = 0;
+				trailingMost = initPosition;
+				trailingForce = force;
+			}
+			int position = initPosition;
+			stepping: while (leadingMost < trailingMost - 1 && force != 0 && Math.abs(force) >= cutoffForce) {
+				int nextSnap = force > 0 ? trailingMost : leadingMost;
+				int signum = (int) Math.signum(force);
+				for (int i = 0; i < incomingSprings.size(); i++) {
+					SpringStateImpl spring = incomingSprings.get(i);
+					int springSign = (int) Math.signum(incomingTensions.get(i).tension);
+					if (signum == springSign) {
+						int snap = spring.theSource.theDivider.getPosition() + incomingTensions.get(i).snap
+							- incomingSpringDestOffsets.get(i);
+						if (signum > 0) {
+							if (snap < nextSnap) {
+								nextSnap = snap;
+								if (nextSnap <= leadingMost)
+									break stepping;
+							}
+						} else {
+							if (snap > nextSnap) {
+								nextSnap = snap;
+								if (nextSnap >= trailingMost)
+									break stepping;
+							}
+						}
+					}
+				}
+				for (int i = 0; i < outgoingSprings.size(); i++) {
+					SpringStateImpl spring = outgoingSprings.get(i);
+					int springSign = (int) Math.signum(outgoingTensions.get(i).tension);
+					if (springSign != 0 && signum != springSign) {
+						int snap = spring.theDest.theDivider.getPosition() - outgoingTensions.get(i).snap - outgoingSpringSrcOffsets.get(i);
+						if (signum > 0) {
+							if (snap < nextSnap) {
+								nextSnap = snap;
+								if (nextSnap <= leadingMost)
+									break stepping;
+							}
+						} else {
+							if (snap > nextSnap) {
+								nextSnap = snap;
+								if (nextSnap >= trailingMost)
+									break stepping;
+							}
+						}
+					}
+				}
+				if (nextSnap == trailingMost || nextSnap == leadingMost)
+					break;
+				// Re-compute forces
+				position = nextSnap;
+				force = computeAdjustedForce(nextSnap);
+				if (force == 0) {
+					leadingMost = trailingMost = position;
+					leadingForce = trailingForce = position;
+				} else if (force < 0) {
+					trailingMost = position;
+					trailingForce = force;
+				} else {
+					leadingMost = position;
+					leadingForce = force;
+				}
+			}
+			boolean cutoff = false;
+			if (force == 0) {
+			} else if (trailingMost - leadingMost <= 1) {
+				if (Math.abs(leadingForce) < Math.abs(trailingForce)) {
+					position = leadingMost;
+					force = leadingForce;
+				} else {
+					position = trailingMost;
+					force = trailingForce;
+				}
+			} else if (Math.abs(force) < cutoffForce) {
+				cutoff = true;
+			} else {
+				// Steps can't help us at this point. Use binary search.
+				float[] f = new float[1];
+				int lead = leadingMost, trail = trailingMost;
+				position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
+					if (pos == lead)
+						return 1;
+					else if (pos == trail)
+						return -1;
+					f[0] = computeAdjustedForce(pos);
+					if (f[0] == 0 || Math.abs(f[0]) <= cutoffForce)
+						return 0;
+					else
+						return f[0] > 0 ? -1 : 1;
+				});
+				if (position < 0)
+					position = -position - 1;
+				force = f[0];
+				if (Math.abs(leadingForce) < Math.abs(force)) {
+					position = leadingMost;
+					force = leadingForce;
+				}
+				if (Math.abs(trailingForce) < Math.abs(force)) {
+					position = trailingMost;
+					force = trailingForce;
+				}
+			}
+			boolean modified = position != initPosition;
+			if (modified) {
+				if (lastCalculatedForces != position)
+					computeAdjustedForce(position);
+				// From here on out, we can't just use the backing position-sorted list to iterate,
+				// because setting the positions here will affect the list's content
+				// So we need to create a copy
+				List<DivStateImpl> includedLines = new ArrayList<>(relPositions.length);
+				el = linesByPosition.getElement(minBound);
+				for (int i = 0; i < relPositions.length; i++) {
+					includedLines.add(el.get());
+					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
+				}
+				// Set the positions
+				for (int i = 0; i < includedLines.size(); i++)
+					includedLines.get(i).setPosition(position + relPositions[i]);
+				// Update spring tensions and forces on the lines outside the set
+				for (int i = 0; i < incomingSprings.size(); i++) {
+					SpringStateImpl spring = incomingSprings.get(i);
+					TensionAndSnap newTension = incomingTensions.get(i);
+					spring.theTension = newTension;
+					if (spring.theSource.forceChanged())
+						spring.theSource.theDivider.forceChanged();
+				}
+				for (int i = 0; i < outgoingSprings.size(); i++) {
+					SpringStateImpl spring = outgoingSprings.get(i);
+					TensionAndSnap newTension = outgoingTensions.get(i);
+					spring.theTension = newTension;
+					if (spring.theDest.forceChanged())
+						spring.theDest.theDivider.forceChanged();
+				}
+
+				// Set the forces on the lines in the set
+				for (DivStateImpl line : includedLines) {
+					// Don't just use || here, because then if incoming force is changed, the outgoing forceChanged() won't be called
+					boolean forceChanged = line.theIncoming.forceChanged();
+					if (line.theOutgoing.forceChanged())
+						forceChanged = true;
+					if (forceChanged)
+						line.forceChanged();
+				}
+			}
+			// Reset "local variables" for the next adjustment
+			incomingSprings.clear();
+			outgoingSprings.clear();
+			incomingSpringDestOffsets.clear();
+			outgoingSpringSrcOffsets.clear();
+			incomingTensions.clear();
+			outgoingTensions.clear();
+			lastCalculatedForces = -1;
+			return modified;
+		}
+
+		private float computeAdjustedForce(int position) {
+			lastCalculatedForces = position;
+			float force = 0;
+			for (int i = 0; i < incomingSprings.size(); i++) {
+				SpringStateImpl spring = incomingSprings.get(i);
+				int springDestPosition = position + incomingSpringDestOffsets.get(i);
+				incomingTensions.set(i, spring.theSpring.theEvaluator
+					.getTension(springDestPosition - spring.theSource.theDivider.thePosition));
+				force += incomingTensions.get(i).tension;
+			}
+			for (int i = 0; i < outgoingSprings.size(); i++) {
+				SpringStateImpl spring = outgoingSprings.get(i);
+				int springSrcPosition = position + outgoingSpringSrcOffsets.get(i);
+				outgoingTensions.set(i, spring.theSpring.theEvaluator
+					.getTension(spring.theDest.theDivider.thePosition - springSrcPosition));
+				force -= outgoingTensions.get(i).tension;
+			}
+			return force;
 		}
 
 		private void adjust(DivStateImpl toMove) {
@@ -773,22 +1083,24 @@ public class LayoutSolver<L> {
 			if (thePosition == position && thePositionSortedElement != null)
 				return false;
 			thePosition = position;
+			BetterList<DivStateImpl> linesByPosition = theDivider.isVertical ? theLayoutState.theVLinesByPosition
+				: theLayoutState.theHLinesByPosition;
 			if (thePositionSortedElement != null) {
 				boolean belongs = true;
-				CollectionElement<DivStateImpl> adj = theLayoutState.theLinesByPosition.getAdjacentElement(thePositionSortedElement, false);
+				CollectionElement<DivStateImpl> adj = linesByPosition.getAdjacentElement(thePositionSortedElement, false);
 				if (adj != null && adj.get().thePosition > thePosition)
 					belongs = false;
 				if (belongs) {
-					adj = theLayoutState.theLinesByPosition.getAdjacentElement(thePositionSortedElement, true);
+					adj = linesByPosition.getAdjacentElement(thePositionSortedElement, true);
 					if (adj != null && adj.get().thePosition < thePosition)
 						belongs = false;
 				}
 				if (!belongs) {
-					theLayoutState.theLinesByPosition.mutableElement(thePositionSortedElement).remove();
-					thePositionSortedElement = theLayoutState.theLinesByPosition.addElement(this, false).getElementId();
+					linesByPosition.mutableElement(thePositionSortedElement).remove();
+					thePositionSortedElement = linesByPosition.addElement(this, false).getElementId();
 				}
 			} else
-				thePositionSortedElement = theLayoutState.theLinesByPosition.addElement(this, false).getElementId();
+				thePositionSortedElement = linesByPosition.addElement(this, false).getElementId();
 			return true;
 		}
 
@@ -863,11 +1175,6 @@ public class LayoutSolver<L> {
 			for (int i = 0; i < theSprings.size(); i++)
 				tensions[i] = theSprings.get(i).theTension;
 			return tensions;
-		}
-
-		void updateTensionState(TensionAndSnap[] tensions, int length) {
-			for (int i = 0; i < tensions.length; i++)
-				tensions[i] = theSprings.get(i).theSpring.theEvaluator.getTension(length);
 		}
 	}
 
@@ -955,6 +1262,11 @@ public class LayoutSolver<L> {
 		}
 	}
 
+	/**
+	 * Debugs this class graphically for a layout scenario or two
+	 *
+	 * @param args Command-line arguments, ignored
+	 */
 	public static void main(String[] args) {
 		DebugPlotter plotter = new DebugPlotter();
 		Map<BoxState, Line2D[]> boxes = new HashMap<>(); // Each entry is 4 lines--left, right, top, bottom

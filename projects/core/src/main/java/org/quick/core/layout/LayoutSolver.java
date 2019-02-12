@@ -916,6 +916,7 @@ public class LayoutSolver<L> {
 					SpringStateImpl spring = incomingSprings.get(i);
 					TensionAndSnap newTension = incomingTensions.get(i);
 					spring.theTension = newTension;
+					spring.updateLinkedSprings();
 					if (spring.theSource.forceChanged())
 						spring.theSource.theDivider.forceChanged();
 				}
@@ -923,6 +924,7 @@ public class LayoutSolver<L> {
 					SpringStateImpl spring = outgoingSprings.get(i);
 					TensionAndSnap newTension = outgoingTensions.get(i);
 					spring.theTension = newTension;
+					spring.updateLinkedSprings();
 					if (spring.theDest.forceChanged())
 						spring.theDest.theDivider.forceChanged();
 				}
@@ -1137,6 +1139,7 @@ public class LayoutSolver<L> {
 				SpringStateImpl springState = theDivider.theLayoutState.theSpringStates.get(spring);
 				springState.theDest = this;
 				theSprings.add(springState);
+				springState.findLinked();
 			}
 		}
 
@@ -1163,16 +1166,31 @@ public class LayoutSolver<L> {
 		final SpringSet theSource;
 		SpringSet theDest;
 		final SpringImpl theSpring;
+		final List<SpringStateImpl> theLinkedSprings;
 		TensionAndSnap theTension;
 
 		SpringStateImpl(SpringSet source, SpringImpl spring) {
 			theSource = source;
 			theSpring = spring;
+			theLinkedSprings = new ArrayList<>(spring.theLinkedSprings == null ? 0 : spring.theLinkedSprings.size());
 			theTension = TensionAndSnap.ZERO;
+		}
+
+		void findLinked() {
+			if (theSpring.theLinkedSprings != null) {
+				for (SpringImpl spring : theSpring.theLinkedSprings)
+					theLinkedSprings.add(theSource.theDivider.theLayoutState.theSpringStates.get(spring));
+			}
 		}
 
 		void reset() {
 			theTension = TensionAndSnap.ZERO;
+		}
+
+		void updateLinkedSprings() {
+			for (SpringStateImpl spring : theLinkedSprings) {
+				spring.recalculate();
+			}
 		}
 
 		boolean recalculate() {
@@ -1257,62 +1275,151 @@ public class LayoutSolver<L> {
 	/**
 	 * Debugs this class graphically for a layout scenario or two
 	 *
-	 * @param args Command-line arguments, ignored
+	 * @param args Command-line arguments. The first argument may be:
+	 *        <ul>
+	 *        <li>2box: Creates a simple system with 2 boxes (also the default when no args are specified)</li>
+	 *        <li>2boxAndText: Creates a system with 2 boxes and a simulated text block</li>
+	 *        </ul>
 	 */
 	public static void main(String[] args) {
 		DebugPlotter plotter = new DebugPlotter();
 		Map<BoxState, Line2D[]> boxes = new HashMap<>(); // Each entry is 4 lines--left, right, top, bottom
 		Map<SpringState, SpringHolder> springs = new HashMap<>();
-
-		// First, a simple system with 2 boxes
 		LayoutSolver<String> solver = new LayoutSolver<>();
-		BoxDef box1 = solver.getOrCreateBox("b1 left", "b1 right", "b1 top", "b1 bottom");
-		BoxDef box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
-		// Margins
-		SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
-		SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
-		SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
-		SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
-		SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
-		SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
-		// Between the boxes
-		SpringDef padding = solver.createSpring(box1.getRight(), box2.getLeft(), //
-			forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
-		// Now the box dimensions
-		SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
-			forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
-		SpringDef h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
-			forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
-		SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
-			forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
-		SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
-			forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+		State<String> solverState;
 
-		LayoutSolver.State<String> solverState = solver.use();
-		BoxState box1State = solverState.getBox(box1);
-		BoxState box2State = solverState.getBox(box2);
+		String scenario;
+		if (args.length == 0)
+			scenario = "2box";
+		else {
+			scenario = args[0].toLowerCase();
+			switch (scenario) {
+			case "2box":
+			case "2boxandtext":
+				break;
+			default:
+				scenario = "2box";
+				break;
+			}
+		}
+		if (scenario.equals("2box")) {
+			// First, a simple system with 2 boxes
+			BoxDef box1 = solver.getOrCreateBox("b1 left", "b1 right", "b1 top", "b1 bottom");
+			BoxDef box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
+			// Margins
+			SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			// Between the boxes
+			SpringDef padding = solver.createSpring(box1.getRight(), box2.getLeft(), //
+				forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
+			// Now the box dimensions
+			SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
+			SpringDef h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+			SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
+			SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
 
-		addBox(plotter, boxes, solverState.getBounds(), "bounds");
-		addBox(plotter, boxes, box1State, "box1");
-		addBox(plotter, boxes, box2State, "box2");
+			solverState = solver.use();
+			BoxState box1State = solverState.getBox(box1);
+			BoxState box2State = solverState.getBox(box2);
 
-		addSpring(plotter, springs, solverState.getSpring(leftMargin), "left margin", () -> box1State.getCenter().y);
-		addSpring(plotter, springs, solverState.getSpring(rightMargin), "right margin", () -> box2State.getCenter().y);
-		addSpring(plotter, springs, solverState.getSpring(topMargin1), "top margin 1", () -> box1State.getCenter().x);
-		addSpring(plotter, springs, solverState.getSpring(topMargin2), "top margin 2", () -> box2State.getCenter().x);
-		addSpring(plotter, springs, solverState.getSpring(bottomMargin1), "bottom margin 1", () -> box1State.getCenter().x);
-		addSpring(plotter, springs, solverState.getSpring(bottomMargin2), "bottom margin 2", () -> box2State.getCenter().x);
-		addSpring(plotter, springs, solverState.getSpring(padding), "padding", () -> box1State.getCenter().y);
-		addSpring(plotter, springs, solverState.getSpring(w1), "box 1 width", () -> box1State.getCenter().y);
-		addSpring(plotter, springs, solverState.getSpring(h1), "box 1 height", () -> box1State.getCenter().x);
-		addSpring(plotter, springs, solverState.getSpring(w2), "box 2 width", () -> box2State.getCenter().y);
-		addSpring(plotter, springs, solverState.getSpring(h2), "box 2 height", () -> box2State.getCenter().x);
+			addBox(plotter, boxes, solverState.getBounds(), "bounds");
+			addBox(plotter, boxes, box1State, "box1");
+			addBox(plotter, boxes, box2State, "box2");
+
+			addSpring(plotter, springs, solverState.getSpring(leftMargin), "left margin", () -> box1State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(rightMargin), "right margin", () -> box2State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(topMargin1), "top margin 1", () -> box1State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(topMargin2), "top margin 2", () -> box2State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(bottomMargin1), "bottom margin 1", () -> box1State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(bottomMargin2), "bottom margin 2", () -> box2State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(padding), "padding", () -> box1State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(w1), "box 1 width", () -> box1State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(h1), "box 1 height", () -> box1State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(w2), "box 2 width", () -> box2State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(h2), "box 2 height", () -> box2State.getCenter().x);
+		} else {
+			BoxDef box1 = solver.getOrCreateBox("b1 left", "b1 right", "b1 top", "b1 bottom");
+			BoxDef textBox = solver.getOrCreateBox("text left", "text right", "text top", "text bottom");
+			BoxDef box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
+			BoxState[] textBoxState = new BoxState[1];
+
+			// Margins
+			SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef topMarginText = solver.createSpring(solver.getBounds().getTop(), textBox.getTop(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef bottomMarginText = solver.createSpring(textBox.getBottom(), solver.getBounds().getBottom(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+			// Between the boxes
+			SpringDef padding1 = solver.createSpring(box1.getRight(), textBox.getLeft(), //
+				forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
+			SpringDef padding2 = solver.createSpring(textBox.getRight(), box2.getLeft(), //
+				forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
+			// Now the box dimensions
+			SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
+			SpringDef h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+			SpringDef wText = solver.createSpring(textBox.getLeft(), textBox.getRight(), //
+				forSizer(() -> textBoxState[0].getHeight(), new ConstAreaSizer(25000)));
+			SpringDef hText = solver.createSpring(textBox.getTop(), textBox.getBottom(), //
+				forSizer(() -> textBoxState[0].getWidth(), new ConstAreaSizer(25000)));
+			SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
+			SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
+				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+
+			solverState = solver.use();
+			BoxState box1State = solverState.getBox(box1);
+			textBoxState[0] = solverState.getBox(textBox);
+			BoxState box2State = solverState.getBox(box2);
+
+			addBox(plotter, boxes, solverState.getBounds(), "bounds");
+			addBox(plotter, boxes, box1State, "box1");
+			addBox(plotter, boxes, textBoxState[0], "textBox");
+			addBox(plotter, boxes, box2State, "box2");
+
+			addSpring(plotter, springs, solverState.getSpring(leftMargin), "left margin", () -> box1State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(rightMargin), "right margin", () -> box2State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(topMargin1), "top margin 1", () -> box1State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(topMarginText), "top margin text", () -> textBoxState[0].getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(topMargin2), "top margin 2", () -> box2State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(bottomMargin1), "bottom margin 1", () -> box1State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(bottomMarginText), "bottom margin text", () -> textBoxState[0].getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(bottomMargin2), "bottom margin 2", () -> box2State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(padding1), "padding1", () -> box1State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(padding2), "padding2", () -> box2State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(w1), "box 1 width", () -> box1State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(h1), "box 1 height", () -> box1State.getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(wText), "text box width", () -> textBoxState[0].getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(hText), "text box height", () -> textBoxState[0].getCenter().x);
+			addSpring(plotter, springs, solverState.getSpring(w2), "box 2 width", () -> box2State.getCenter().y);
+			addSpring(plotter, springs, solverState.getSpring(h2), "box 2 height", () -> box2State.getCenter().x);
+		}
 
 		JFrame plotterFrame = plotter.showFrame("Layout Solver", null);
 		plotterFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

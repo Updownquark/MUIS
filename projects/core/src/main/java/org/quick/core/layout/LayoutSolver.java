@@ -181,6 +181,7 @@ public class LayoutSolver<L> {
 
 			@Override
 			public TensionAndSnap getTension(int length) {
+				length = cap(length);
 				int cs = crossSize.getAsInt();
 				int pref = cap(sizer.getPreferred(cs, true));
 				if (length < pref) {
@@ -1269,20 +1270,20 @@ public class LayoutSolver<L> {
 		BoxDef box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
 		// Margins
 		SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 50)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 		SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 50)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 		SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 50)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 		SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 50)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 		SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 50)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 		SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
-			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 50)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 		// Between the boxes
 		SpringDef padding = solver.createSpring(box1.getRight(), box2.getLeft(), //
-			forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 25)));
+			forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
 		// Now the box dimensions
 		SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
 			forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
@@ -1330,7 +1331,7 @@ public class LayoutSolver<L> {
 				}
 				if (reSolve[0]) {
 					reSolve[0] = false;
-					reSolve(solverState);
+					reSolve(solverState, plotter.getWidth(), plotter.getHeight());
 				}
 			}
 		}, "Re-solver");
@@ -1352,14 +1353,14 @@ public class LayoutSolver<L> {
 		updateShapes(boxes, springs);
 	}
 
-	private static void reSolve(State<String> solverState) {
+	private static void reSolve(State<String> solverState, int width, int height) {
 		solverState.reset();
 		// solverState.stretch(-MAX_TENSION, -MAX_TENSION);
 		// solverState.stretch(-MAX_PREF_TENSION, -MAX_PREF_TENSION);
 		// solverState.stretch(0, 0);
 		// solverState.stretch(MAX_PREF_TENSION, MAX_PREF_TENSION);
-		solverState.stretch(MAX_TENSION, MAX_TENSION);
-		// solverState.stretch(plotter.getWidth(), plotter.getHeight());
+		// solverState.stretch(MAX_TENSION, MAX_TENSION);
+		solverState.layout(width, height);
 	}
 
 	private static class SpringHolder {

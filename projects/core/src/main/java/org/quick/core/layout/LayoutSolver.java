@@ -473,8 +473,11 @@ public class LayoutSolver<L> {
 			theBoundState.bottom.setPosition(size.height);
 			if (!isInitialized) {
 				isInitialized = true;
+				long start = System.currentTimeMillis();
 				init();
+				System.out.println("Initialized in " + org.qommons.QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
 			}
+			long start = System.currentTimeMillis();
 			int maxMoves = MAX_TRIES * theLines.size();
 			DivStateImpl toMove = theLinesByForce.peekFirst();
 			int moves = 0;
@@ -530,7 +533,7 @@ public class LayoutSolver<L> {
 				}
 				toMove = theLinesByForce.peekFirst();
 			}
-			System.out.println(moves + " moves");
+			System.out.println(moves + " moves in " + org.qommons.QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
 			return this;
 		}
 
@@ -632,6 +635,8 @@ public class LayoutSolver<L> {
 				else
 					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
 			}
+			System.out.println(
+				"Moving " + minBound + (minBound.equals(maxBound) ? "" : "..." + maxBound) + " (" + force + ")");
 			// Instead of finding the absolute best equilibrium for the line set, we'll stop doing work when the force on the line set
 			// drops so that a different line set has more force and is therefore higher-priority
 			float cutoffForce;
@@ -671,6 +676,7 @@ public class LayoutSolver<L> {
 				trailingForce = force;
 			}
 			int position = initPosition;
+			System.out.println("\tStep");
 			stepping: while (leadingMost < trailingMost - 1 && force != 0 && Math.abs(force) >= cutoffForce) {
 				int nextSnap = force > 0 ? trailingMost : leadingMost;
 				int signum = (int) Math.signum(force);
@@ -682,12 +688,14 @@ public class LayoutSolver<L> {
 							- incomingSpringDestOffsets.get(i);
 						if (signum > 0) {
 							if (snap < nextSnap) {
+								System.out.println("\t\tSnap to " + snap + " for " + spring + " " + incomingTensions.get(i));
 								nextSnap = snap;
 								if (nextSnap <= leadingMost)
 									break stepping;
 							}
 						} else {
 							if (snap > nextSnap) {
+								System.out.println("\t\tSnap to " + snap + " for " + spring + " " + incomingTensions.get(i));
 								nextSnap = snap;
 								if (nextSnap >= trailingMost)
 									break stepping;
@@ -702,12 +710,14 @@ public class LayoutSolver<L> {
 						int snap = spring.theDest.theDivider.getPosition() - outgoingTensions.get(i).snap - outgoingSpringSrcOffsets.get(i);
 						if (signum > 0) {
 							if (snap < nextSnap) {
+								System.out.println("\t\tSnap to " + snap + " for " + spring + " " + outgoingTensions.get(i));
 								nextSnap = snap;
 								if (nextSnap <= leadingMost)
 									break stepping;
 							}
 						} else {
 							if (snap > nextSnap) {
+								System.out.println("\t\tSnap to " + snap + " for " + spring + " " + outgoingTensions.get(i));
 								nextSnap = snap;
 								if (nextSnap >= trailingMost)
 									break stepping;
@@ -720,6 +730,7 @@ public class LayoutSolver<L> {
 				// Re-compute forces
 				position = nextSnap;
 				force = computeAdjustedForce(nextSnap);
+				System.out.println("\t\t\tforce=" + force);
 				if (force == 0) {
 					leadingMost = trailingMost = position;
 					leadingForce = trailingForce = position;
@@ -731,7 +742,6 @@ public class LayoutSolver<L> {
 					leadingForce = force;
 				}
 			}
-			boolean cutoff = false;
 			if (force == 0) {
 			} else if (trailingMost - leadingMost <= 1) {
 				if (Math.abs(leadingForce) < Math.abs(trailingForce)) {
@@ -742,21 +752,28 @@ public class LayoutSolver<L> {
 					force = trailingForce;
 				}
 			} else if (Math.abs(force) < cutoffForce) {
-				cutoff = true;
+				System.out.println("\tcutoff (" + cutoffForce + ")");
+				// Cutoff--there's another line with higher priority
 			} else {
 				// Steps can't help us at this point. Use binary search.
 				float[] f = new float[1];
 				int lead = leadingMost, trail = trailingMost;
+				System.out.println(
+					"\tbsearch between " + leadingMost + " (" + leadingForce + ") and " + trailingMost + " (" + trailingForce + ")");
 				position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
 					if (pos == lead)
 						return 1;
 					else if (pos == trail)
 						return -1;
 					f[0] = computeAdjustedForce(pos);
-					if (f[0] == 0 || Math.abs(f[0]) <= cutoffForce)
+					System.out.println("\t\t" + pos + ": " + f[0]);
+					if (f[0] == 0)
 						return 0;
-					else
-						return f[0] > 0 ? -1 : 1;
+					else if (Math.abs(f[0]) <= cutoffForce) {
+						System.out.println("\t\tcutoff(" + cutoffForce + ")");
+						return 0;
+					} else
+						return f[0] > 0 ? 1 : -1;
 				});
 				if (position < 0)
 					position = -position - 1;
@@ -772,6 +789,7 @@ public class LayoutSolver<L> {
 			}
 			boolean modified = position != initPosition;
 			if (modified) {
+				System.out.println("\tMoving to " + position);
 				if (lastCalculatedForces != position)
 					computeAdjustedForce(position);
 				// From here on out, we can't just use the backing position-sorted list to iterate,
@@ -811,7 +829,8 @@ public class LayoutSolver<L> {
 					if (forceChanged)
 						line.forceChanged();
 				}
-			}
+			} else
+				System.out.println("\tStable");
 			// Reset "local variables" for the next adjustment
 			incomingSprings.clear();
 			outgoingSprings.clear();
@@ -841,177 +860,6 @@ public class LayoutSolver<L> {
 				force -= outgoingTensions.get(i).tension;
 			}
 			return force;
-		}
-
-		private void adjust(DivStateImpl toMove) {
-			float cutoffForce = theLinesByForce.size() == 1 ? 0 : Math.abs(theLinesByForce.get(1).theTotalForce);
-			int leadingMost, trailingMost;
-			float leadingForce, trailingForce;
-			if (toMove.theTotalForce > 0) {
-				leadingMost = toMove.thePosition;
-				leadingForce = toMove.theTotalForce;
-				trailingMost = theBoundState.get(toMove.getOrientation(), End.trailing).getPosition();
-				trailingForce = 0;
-			} else {
-				leadingMost = 0;
-				leadingForce = 0;
-				trailingMost = toMove.thePosition;
-				trailingForce = -toMove.theTotalForce;
-			}
-			float force = toMove.theTotalForce;
-			TensionAndSnap[] outgoingTensions = toMove.theOutgoing.copyTensionState();
-			TensionAndSnap[] incomingTensions = toMove.theIncoming.copyTensionState();
-			boolean stepped = false;
-			int position = toMove.thePosition;
-			stepping: while (leadingMost < trailingMost - 1 && force != 0 && Math.abs(force) >= cutoffForce) {
-				int nextSnap = force > 0 ? trailingMost : leadingMost;
-				int signum = (int) Math.signum(force);
-				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
-					int springSign = (int) Math.signum(outgoingTensions[i].tension);
-					if (springSign != 0 && signum != springSign) {
-						int snap = spring.theDest.theDivider.getPosition() - outgoingTensions[i].snap;
-						if (signum > 0) {
-							if (snap < nextSnap) {
-								nextSnap = snap;
-								if (nextSnap <= leadingMost)
-									break stepping;
-							}
-						} else {
-							if (snap > nextSnap) {
-								nextSnap = snap;
-								if (nextSnap >= trailingMost)
-									break stepping;
-							}
-						}
-					}
-				}
-				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
-					int springSign = (int) Math.signum(incomingTensions[i].tension);
-					if (signum == springSign) {
-						int snap = spring.theSource.theDivider.getPosition() + incomingTensions[i].snap;
-						if (signum > 0) {
-							if (snap < nextSnap) {
-								nextSnap = snap;
-								if (nextSnap <= leadingMost)
-									break stepping;
-							}
-						} else {
-							if (snap > nextSnap) {
-								nextSnap = snap;
-								if (nextSnap >= trailingMost)
-									break stepping;
-							}
-						}
-					}
-				}
-				if (nextSnap == trailingMost || nextSnap == leadingMost)
-					break;
-				// Re-compute forces
-				position = nextSnap;
-				force = 0;
-				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
-					outgoingTensions[i] = spring.theSpring.theEvaluator.getTension(spring.theDest.theDivider.thePosition - nextSnap);
-					force -= outgoingTensions[i].tension;
-				}
-				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
-					incomingTensions[i] = spring.theSpring.theEvaluator.getTension(nextSnap - spring.theSource.theDivider.thePosition);
-					force += incomingTensions[i].tension;
-				}
-				if (force < 0) {
-					trailingMost = nextSnap;
-					trailingForce = force;
-				} else {
-					leadingMost = nextSnap;
-					leadingForce = force;
-				}
-			}
-			boolean tensionsCalculated = true;
-			if (force == 0 || Math.abs(force) < cutoffForce) {
-			} else if (!stepped && leadingMost < trailingMost - 1) {
-				// Steps can't help us at this point. Use binary search.
-				float[] f = new float[1];
-				int lead = leadingMost, trail = trailingMost;
-				position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
-					if (pos == lead)
-						return 1;
-					else if (pos == trail)
-						return -1;
-					f[0] = 0;
-					for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
-						SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
-						outgoingTensions[i] = spring.theSpring.theEvaluator.getTension(spring.theDest.theDivider.thePosition - pos);
-						f[0] -= outgoingTensions[i].tension;
-					}
-					for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
-						SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
-						incomingTensions[i] = spring.theSpring.theEvaluator.getTension(pos - spring.theSource.theDivider.thePosition);
-						f[0] += incomingTensions[i].tension;
-					}
-					if (f[0] == 0 || Math.abs(f[0]) <= cutoffForce)
-						return 0;
-					else
-						return f[0] > 0 ? -1 : 1;
-				});
-				if (position < 0)
-					position = -position - 1;
-				force = f[0];
-				if (Math.abs(leadingForce) < Math.abs(force)) {
-					position = leadingMost;
-					force = leadingForce;
-					tensionsCalculated = false;
-				}
-				if (Math.abs(trailingForce) < Math.abs(force)) {
-					position = trailingMost;
-					force = trailingForce;
-					tensionsCalculated = false;
-				}
-			} else if (leadingForce < trailingForce) {
-				if (leadingMost != position) {
-					position = leadingMost;
-					force = leadingForce;
-					tensionsCalculated = false;
-				}
-			} else {
-				if (trailingMost != position) {
-					position = trailingMost;
-					force = trailingForce;
-					tensionsCalculated = false;
-				}
-			}
-			if (!tensionsCalculated) {
-				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
-					outgoingTensions[i] = spring.theSpring.theEvaluator.getTension(spring.theDest.theDivider.thePosition - position);
-				}
-				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
-					incomingTensions[i] = spring.theSpring.theEvaluator.getTension(position - spring.theSource.theDivider.thePosition);
-				}
-			}
-			if (toMove.setPosition(position)) {
-				for (int i = 0; i < toMove.theOutgoing.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theOutgoing.theSprings.get(i);
-					TensionAndSnap newTension = outgoingTensions[i];
-					spring.theTension = newTension;
-					if (spring.theDest.forceChanged())
-						spring.theDest.theDivider.forceChanged();
-				}
-				toMove.theOutgoing.forceChanged();
-				for (int i = 0; i < toMove.theIncoming.theSprings.size(); i++) {
-					SpringStateImpl spring = toMove.theIncoming.theSprings.get(i);
-					TensionAndSnap newTension = incomingTensions[i];
-					spring.theTension = newTension;
-					if (spring.theSource.forceChanged())
-						spring.theSource.theDivider.forceChanged();
-				}
-				toMove.theIncoming.forceChanged();
-				toMove.forceChanged();
-			} else
-				toMove.stabilized();
 		}
 	}
 
@@ -1168,13 +1016,6 @@ public class LayoutSolver<L> {
 			theForce = 0;
 			for (SpringStateImpl spring : theSprings)
 				spring.reset();
-		}
-
-		TensionAndSnap[] copyTensionState() {
-			TensionAndSnap[] tensions = new TensionAndSnap[theSprings.size()];
-			for (int i = 0; i < theSprings.size(); i++)
-				tensions[i] = theSprings.get(i).theTension;
-			return tensions;
 		}
 	}
 
@@ -1358,7 +1199,7 @@ public class LayoutSolver<L> {
 		updateRenderThread.start();
 		reSolveThread.start();
 		plotter.setAction(() -> printAll(boxes, springs));
-		solverState.layout(Dimension.fromAWT(plotter.getSize()));
+		reSolve[0] = true;
 		updateShapes(boxes, springs);
 	}
 

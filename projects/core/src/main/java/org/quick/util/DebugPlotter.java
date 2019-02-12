@@ -16,6 +16,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 import org.qommons.collect.BetterHashMap;
 import org.qommons.collect.BetterMap;
@@ -55,54 +56,50 @@ public class DebugPlotter extends JComponent {
 	private final BetterMap<Shape, ShapeHolder> theShapes;
 	private final JPopupMenu thePopup;
 	private final JLabel thePopupText;
-	private Runnable theAction;
+	private Runnable theDoubleClick;
+	private Runnable theRightClick;
 
 	public DebugPlotter() {
 		theShapes = BetterHashMap.build().unsafe().buildMap();
 		thePopup = new JPopupMenu();
 		thePopupText = new JLabel();
 		thePopup.add(thePopupText);
+		thePopupText.addMouseMotionListener(new MouseMotionListener() {
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				DebugPlotter.this.mouseMoved(SwingUtilities.convertMouseEvent(e.getComponent(), e, DebugPlotter.this));
+			}
+
+			@Override
+			public void mouseDragged(MouseEvent e) {}
+		});
 		addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if (e.getClickCount() == 2)
+				if (SwingUtilities.isRightMouseButton(e))
+					rightClick();
+				else if (e.getClickCount() == 2)
 					doubleClick();
 			}
 		});
 		addMouseMotionListener(new MouseMotionListener() {
 			@Override
-			public void mouseDragged(MouseEvent e) {}
+			public void mouseMoved(MouseEvent e) {
+				DebugPlotter.this.mouseMoved(e);
+			}
 
 			@Override
-			public void mouseMoved(MouseEvent e) {
-				Rectangle2D rect = new Rectangle2D.Double(e.getX() - HOVER_RESOLUTION / 2.0, e.getY() - HOVER_RESOLUTION / 2.0, //
-					HOVER_RESOLUTION, HOVER_RESOLUTION);
-				StringBuilder popupText = null;
-				for (ShapeHolder shape : theShapes.values().reverse()) {
-					if (shape.shape.intersects(rect)) {
-						String text = shape.text.get();
-						if (text != null) {
-							if (popupText == null)
-								popupText = new StringBuilder();
-							else {
-								popupText.insert(0, "<html>");
-								popupText.append("<br>");
-							}
-							popupText.append(text);
-						}
-					}
-				}
-				if (popupText != null) {
-					thePopupText.setText(popupText.toString());
-					thePopup.show(DebugPlotter.this, e.getX(), e.getY());
-				} else
-					thePopup.setVisible(false);
-			}
+			public void mouseDragged(MouseEvent e) {}
 		});
 	}
 
-	public DebugPlotter setAction(Runnable action) {
-		theAction = action;
+	public DebugPlotter setDoubleClick(Runnable action) {
+		theDoubleClick = action;
+		return this;
+	}
+
+	public DebugPlotter setRightClick(Runnable action) {
+		theRightClick = action;
 		return this;
 	}
 
@@ -136,9 +133,39 @@ public class DebugPlotter extends JComponent {
 		}
 	}
 
+	private void mouseMoved(MouseEvent e) {
+		Rectangle2D rect = new Rectangle2D.Double(e.getX() - HOVER_RESOLUTION / 2.0, e.getY() - HOVER_RESOLUTION / 2.0, //
+			HOVER_RESOLUTION, HOVER_RESOLUTION);
+		StringBuilder popupText = null;
+		for (ShapeHolder shape : theShapes.values().reverse()) {
+			if (shape.shape.intersects(rect)) {
+				String text = shape.text.get();
+				if (text != null) {
+					if (popupText == null)
+						popupText = new StringBuilder();
+					else {
+						popupText.insert(0, "<html>");
+						popupText.append("<br>");
+					}
+					popupText.append(text);
+				}
+			}
+		}
+		if (popupText != null) {
+			thePopupText.setText(popupText.toString());
+			thePopup.show(DebugPlotter.this, e.getX(), e.getY());
+		} else
+			thePopup.setVisible(false);
+	}
+
 	private void doubleClick() {
-		if (theAction != null)
-			theAction.run();
+		if (theDoubleClick != null)
+			theDoubleClick.run();
+	}
+
+	private void rightClick() {
+		if (theRightClick != null)
+			theRightClick.run();
 	}
 
 	public JFrame showFrame(String title, Rectangle bounds) {

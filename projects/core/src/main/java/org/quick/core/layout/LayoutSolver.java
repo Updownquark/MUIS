@@ -6,8 +6,11 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.BitSet;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,7 @@ import org.qommons.collect.BetterList;
 import org.qommons.collect.BetterMap;
 import org.qommons.collect.CollectionElement;
 import org.qommons.collect.ElementId;
+import org.qommons.tree.BetterTreeSet;
 import org.qommons.tree.SortedTreeList;
 import org.quick.core.Point;
 import org.quick.core.layout.LayoutSpringEvaluator.TensionAndSnap;
@@ -246,18 +250,19 @@ public class LayoutSolver<L> {
 		}
 	};
 
-	private static final int MAX_TRIES = 100; // TODO Should be static when not debugging
+	private static final int MAX_TRIES = 100;
 
 	private final BoxImpl theBounds;
 
 	private final BetterMap<L, DivImpl> theLines;
+	private int theSpringCount;
 	private boolean isSealed;
 
 	public LayoutSolver() {
 		theLines = BetterHashMap.build().unsafe().buildMap();
 		theBounds = new BoxImpl(//
-			new DivImpl((L) "Left Bound", false, End.leading), new DivImpl((L) "Right Bound", false, End.trailing), //
-			new DivImpl((L) "Top Bound", true, End.leading), new DivImpl((L) "Bottom Bound", true, End.trailing)//
+			new DivImpl((L) "Left Bound", 0, false, End.leading), new DivImpl((L) "Right Bound", 1, false, End.trailing), //
+			new DivImpl((L) "Top Bound", 2, true, End.leading), new DivImpl((L) "Bottom Bound", 3, true, End.trailing)//
 		);
 		SpringImpl hTension = new SpringImpl(theBounds.left, theBounds.right, BOUNDS_TENSION);
 		SpringImpl vTension = new SpringImpl(theBounds.top, theBounds.bottom, BOUNDS_TENSION);
@@ -280,7 +285,7 @@ public class LayoutSolver<L> {
 	public DividerDef getOrCreateLine(L lineObject, boolean vertical) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
-		return theLines.computeIfAbsent(lineObject, lo -> new DivImpl(lineObject, vertical, null));
+		return theLines.computeIfAbsent(lineObject, lo -> new DivImpl(lineObject, theLines.size() + 4, vertical, null));
 	}
 
 	public DividerDef getLine(L lineObject) {
@@ -313,14 +318,16 @@ public class LayoutSolver<L> {
 	}
 
 	private class DivImpl implements DividerDef {
+		final int id;
 		private final L theValue;
 		final boolean isVertical;
 		final End borderEnd;
 		private final List<SpringImpl> theOutgoingSprings;
 		private final List<SpringImpl> theIncomingSprings;
 
-		DivImpl(L value, boolean vertical, End borderEnd) {
+		DivImpl(L value, int id, boolean vertical, End borderEnd) {
 			theValue = value;
+			this.id = id;
 			isVertical = vertical;
 			this.borderEnd = borderEnd;
 			theOutgoingSprings = new LinkedList<>();
@@ -349,12 +356,15 @@ public class LayoutSolver<L> {
 	}
 
 	private class SpringImpl implements SpringDef {
+		final int id;
 		private final DivImpl theSource;
 		private final DivImpl theDest;
 		final LayoutSpringEvaluator theEvaluator;
 		List<SpringImpl> theLinkedSprings;
 
 		SpringImpl(DivImpl source, DivImpl dest, LayoutSpringEvaluator evaluator) {
+			id = theSpringCount;
+			theSpringCount++;
 			theSource = source;
 			theDest = dest;
 			theEvaluator = evaluator;
@@ -422,12 +432,27 @@ public class LayoutSolver<L> {
 	private static boolean DEBUG = true;
 	private static boolean PRINT_SPEED = true;
 
+	private static final Comparator<LayoutSolver<?>.DivStateImpl> POSITION_COMPARE = new Comparator<LayoutSolver<?>.DivStateImpl>() {
+		@Override
+		public int compare(LayoutSolver<?>.DivStateImpl div1, LayoutSolver<?>.DivStateImpl div2) {
+			End end = div1.theDivider.borderEnd;
+			if (end != null) {
+				if (end == End.leading)
+					return -1;
+				else
+					return 1;
+			} else
+				return div1.thePosition - div2.thePosition;
+		}
+	};
+
 	private class LayoutStateImpl implements State<L> {
 		private final IdentityHashMap<DivImpl, DivStateImpl> theLineStates;
 		private final IdentityHashMap<SpringImpl, SpringStateImpl> theSpringStates;
 		private final BetterList<DivStateImpl> theHLinesByPosition;
 		private final BetterList<DivStateImpl> theVLinesByPosition;
 		private final BetterList<DivStateImpl> theLinesByForce;
+		private final List<SpringStateImpl> theSpringStatesById;
 
 		private final BoxStateImpl theBoundState;
 		private boolean isStretching;
@@ -439,11 +464,12 @@ public class LayoutSolver<L> {
 		LayoutStateImpl() {
 			theLineStates = new IdentityHashMap<>();
 			theSpringStates = new IdentityHashMap<>();
+			BetterList<SpringStateImpl> springsByIndex = new BetterTreeSet<>(false, (s1, s2) -> s1.theSpring.id - s2.theSpring.id);
 			theBoundState = new BoxStateImpl(this, //
-				new DivStateImpl(this, theBounds.left), new DivStateImpl(this, theBounds.right), //
-				new DivStateImpl(this, theBounds.top), new DivStateImpl(this, theBounds.bottom));
+				new DivStateImpl(this, theBounds.left, springsByIndex), new DivStateImpl(this, theBounds.right, springsByIndex), //
+				new DivStateImpl(this, theBounds.top, springsByIndex), new DivStateImpl(this, theBounds.bottom, springsByIndex));
 			for (DivImpl line : theLines.values())
-				theLineStates.put(line, new DivStateImpl(this, line));
+				theLineStates.put(line, new DivStateImpl(this, line, springsByIndex));
 			theBoundState.left.theIncoming.fillIncoming();
 			theBoundState.right.theIncoming.fillIncoming();
 			theBoundState.top.theIncoming.fillIncoming();
@@ -452,8 +478,10 @@ public class LayoutSolver<L> {
 				line.theIncoming.fillIncoming();
 			theLinesByForce = new SortedTreeList<>(false,
 				(div1, div2) -> -Float.compare(Math.abs(div1.theTotalForce), Math.abs(div2.theTotalForce)));
-			theHLinesByPosition = new SortedTreeList<>(false, (div1, div2) -> div1.thePosition - div2.thePosition);
-			theVLinesByPosition = new SortedTreeList<>(false, (div1, div2) -> div1.thePosition - div2.thePosition);
+			theHLinesByPosition = new SortedTreeList<>(false, POSITION_COMPARE);
+			theVLinesByPosition = new SortedTreeList<>(false, POSITION_COMPARE);
+			theSpringStatesById = new ArrayList<>(theSpringCount);
+			theSpringStatesById.addAll(springsByIndex);
 		}
 
 		@Override
@@ -524,6 +552,9 @@ public class LayoutSolver<L> {
 			return adjustLayout(true);
 		}
 
+		// This method adjusts the layout by moving high-priority (absolute force) adjacent sets of edges
+		// in the direction of their net force to achieve equilibrium until all edges are in their optimum position.
+		// Empirically, this seems to work well for simple layouts but not when there are any linked springs.
 		private State<L> adjustLayout(boolean stretch) {
 			if (!isInitialized) {
 				isStretching = stretch;
@@ -540,9 +571,8 @@ public class LayoutSolver<L> {
 			long start = PRINT_SPEED ? System.currentTimeMillis() : 0;
 			int maxMoves = MAX_TRIES * theLines.size();
 			DivStateImpl toMove = theLinesByForce.peekFirst();
-			int moves = 0;
-			for (int i = 0; toMove != null && i < maxMoves; i++) {
-				moves++;
+			int moves;
+			for (moves = 0; toMove != null && moves < maxMoves; moves++) {
 				// Rather than move just one line at a time, we can try to move a larger set of adjacent lines
 				// This is much more efficient in general.
 				boolean signum = toMove.theTotalForce > 0;
@@ -581,7 +611,7 @@ public class LayoutSolver<L> {
 					min = CollectionElement.getElementId(linesByPosition.getAdjacentElement(min, true))) {
 					for (ElementId max = maxBound; max != null && max.compareTo(toMove.thePositionSortedElement) >= 0; //
 						max = CollectionElement.getElementId(linesByPosition.getAdjacentElement(max, false))) {
-						if (adjustEdgeSet(toMove.theDivider.isVertical, min, max, stretch)) {
+						if (adjustEdgeSet(toMove.theDivider.isVertical, min, max, stretch, false)) {
 							moved = true;
 							break outer;
 						}
@@ -594,6 +624,60 @@ public class LayoutSolver<L> {
 			if (PRINT_SPEED)
 				System.out.println(moves + " moves in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
 			return this;
+		}
+
+		private State<L> adjustViaWave(boolean stretch) {
+			if (!isInitialized) {
+				isStretching = stretch;
+				isInitialized = true;
+				long start = DEBUG ? System.currentTimeMillis() : 0;
+				init();
+				if (DEBUG)
+					System.out.println("Initialized in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
+			} else if (isStretching != stretch) {
+				isStretching = stretch;
+				theBoundState.right.forceChanged();
+				theBoundState.bottom.forceChanged();
+			}
+			long start = PRINT_SPEED ? System.currentTimeMillis() : 0;
+			int maxWaves = MAX_TRIES * theLines.size();
+			DivStateImpl waveSource = theLinesByForce.peekFirst();
+			int waves;
+			WaveSpringQueue springsToVisit = new WaveSpringQueue(theSpringCount);
+			BitSet visitedSprings = new BitSet(theSpringCount);
+			BitSet springsToRecalc = new BitSet(theSpringCount);
+			for (waves = 0; waveSource != null && waves < maxWaves; waves++) {
+				doWave(waveSource, true, true, springsToVisit, visitedSprings, springsToRecalc, stretch);
+
+				// Pop all springs from the queue.
+				IndexAndDirection propagation = springsToVisit.pop();
+				while (propagation != null) {
+					SpringStateImpl spring = theSpringStatesById.get(propagation.index);
+					if (propagation.incoming)
+						doWave(spring.theSource.theDivider, true, false, springsToVisit, visitedSprings, springsToRecalc, stretch);
+					if (propagation.incoming)
+						doWave(spring.theDest.theDivider, false, true, springsToVisit, visitedSprings, springsToRecalc, stretch);
+				}
+				// For all springs in the recalc BitSet, recalculate them
+				for (int springIdx = springsToRecalc.nextSetBit(0); springIdx >= 0; springIdx = springsToRecalc.nextSetBit(springIdx))
+					theSpringStatesById.get(springIdx).recalculate();
+			}
+			if (PRINT_SPEED)
+				System.out.println(waves + " waves in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
+			return this;
+		}
+
+		private void doWave(DivStateImpl edge, boolean incoming, boolean outgoing, WaveSpringQueue waveQueue, BitSet visitedSprings,
+			BitSet springsToRecalc, boolean stretch) {
+			if (edge.theTotalForce == 0)
+				return;
+			if (adjustEdgeSet(edge.theDivider.isVertical, edge.thePositionSortedElement, edge.thePositionSortedElement, stretch, true)) {
+				int todo = todo;
+				// TODO Add all of the edge's springs that have NOT yet been visited to the springsToVisit with the according direction
+				// For springs with linked springs, add those too with both directions
+				// TODO Randomly reorder the set of springs to add? Prioritize by tension? By target net force?
+				// If a spring HAS been visited, add it to the recalc BitSet
+			}
 		}
 
 		private void init() {
@@ -658,7 +742,7 @@ public class LayoutSolver<L> {
 		private static final int MAX_BOUND_VALUE = 1000000;
 		private static final boolean WITH_CUTOFF = false;
 
-		private boolean adjustEdgeSet(boolean vertical, ElementId minBound, ElementId maxBound, boolean flexBounds) {
+		private boolean adjustEdgeSet(boolean vertical, ElementId minBound, ElementId maxBound, boolean flexBounds, boolean halfWay) {
 			BetterList<DivStateImpl> linesByPosition = vertical ? theVLinesByPosition : theHLinesByPosition;
 			// Determine the set of springs that act upon the given set of lines as a whole,
 			// i.e. the springs that have one end on a line in the set and the other end on a line not in the set
@@ -674,7 +758,7 @@ public class LayoutSolver<L> {
 						incomingSprings.add(spring);
 						incomingSpringDestOffsets.add(spring.theDest.theDivider.thePosition - initPosition);
 						incomingTensions.add(spring.theTension);
-						force += spring.theTension.tension;
+						force += spring.getTension();
 					}
 				}
 				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
@@ -683,7 +767,7 @@ public class LayoutSolver<L> {
 						outgoingSprings.add(spring);
 						outgoingSpringSrcOffsets.add(spring.theSource.theDivider.thePosition - initPosition);
 						outgoingTensions.add(spring.theTension);
-						force -= spring.theTension.tension;
+						force -= spring.getTension();
 					}
 				}
 				if (el.getElementId().equals(maxBound))
@@ -895,6 +979,12 @@ public class LayoutSolver<L> {
 			}
 			boolean modified = position != initPosition;
 			if (modified) {
+				if (halfWay) {
+					int halfwayPos = (position + initPosition) / 2;
+					if (halfwayPos != initPosition)
+						position = halfwayPos;
+				}
+
 				if (DEBUG)
 					System.out.println("\tMoving to " + position);
 				if (lastCalculatedForces != position)
@@ -996,6 +1086,146 @@ public class LayoutSolver<L> {
 		}
 	}
 
+	/** This is a really super-specialized, high-efficiency integer queue with a fixed capacity */
+	private static class WaveSpringQueue implements Iterable<IndexAndDirection> {
+		private final int[] theValues;
+		private final long[] theDirections;
+		private final long[] theContent;
+		private final IndexAndDirection thePopped;
+		private int theStart;
+		private int theEnd;
+		private boolean isFull;
+
+		WaveSpringQueue(int capacity) {
+			theValues = new int[capacity];
+			int words = wordIndex(capacity - 1) + 1;
+			theContent = new long[words];
+			theDirections = new long[words * 2];
+			thePopped = new IndexAndDirection();
+		}
+
+		boolean isFull() {
+			return isFull;
+		}
+
+		boolean contains(int index) {
+			return getBit(theContent, index);
+		}
+
+		IndexAndDirection pop() {
+			if (theStart == theEnd && !isFull)
+				return null;
+			thePopped.index = theValues[theStart];
+			thePopped.outgoing = getBit(theDirections, theStart);
+			clearBit(theContent, thePopped.index);
+			theStart = increment(theStart);
+			isFull = false;
+			return thePopped;
+		}
+
+		boolean push(int springIndex, boolean incoming, boolean outgoing) {
+			if (!setBit(theContent, springIndex))
+				return false;
+			else if (isFull)
+				throw new IllegalStateException("Queue is at capacity");
+			theValues[theEnd] = springIndex;
+			if (incoming)
+				setBit(theDirections, theEnd * 2);
+			else
+				clearBit(theDirections, theEnd * 2);
+			if (outgoing)
+				setBit(theDirections, theEnd * 2 + 1);
+			else
+				clearBit(theDirections, theEnd * 2 + 1);
+			theEnd = increment(theEnd);
+			if (theStart == theEnd)
+				isFull = true;
+			return true;
+		}
+
+		private int increment(int index) {
+			index++;
+			if (index == theValues.length)
+				index = 0;
+			return index;
+		}
+
+		@Override
+		public Iterator<IndexAndDirection> iterator() {
+			return new Iterator<IndexAndDirection>() {
+				private final IndexAndDirection value = new IndexAndDirection();
+				private int theIndex = theStart;
+				private boolean hasNexed;
+
+				@Override
+				public boolean hasNext() {
+					if (theIndex != theEnd)
+						return true;
+					else if (isFull && !hasNexed)
+						return true;
+					else
+						return false;
+				}
+
+				@Override
+				public IndexAndDirection next() {
+					value.index = theValues[theIndex];
+					value.incoming = getBit(theDirections, theIndex * 2);
+					value.outgoing = getBit(theDirections, theIndex * 2 + 1);
+					hasNexed = true;
+					theIndex = increment(theIndex);
+					return value;
+				}
+			};
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder str = new StringBuilder("[");
+			int i = theStart;
+			boolean skipOne = isFull;
+			while (skipOne || i != theEnd) {
+				skipOne = false;
+				if (i != theStart)
+					str.append(",");
+				str.append(theValues[i]);
+				i = increment(i);
+			}
+			str.append("]");
+			return str.toString();
+		}
+
+		private final static int ADDRESS_BITS_PER_WORD = 6;
+
+		private static int wordIndex(int bitIndex) {
+			return bitIndex >> ADDRESS_BITS_PER_WORD;
+		}
+
+		private static boolean getBit(long[] words, int bitIndex) {
+			int wordIndex = wordIndex(bitIndex);
+			return (words[wordIndex] & (1L << bitIndex)) != 0;
+		}
+
+		private static boolean setBit(long[] words, int bitIndex) {
+			int wordIndex = wordIndex(bitIndex);
+			if ((words[wordIndex] & (1L << bitIndex)) != 0)
+				return false;
+			words[wordIndex] |= (1L << bitIndex); // Restores invariants
+			return true;
+		}
+
+		private static void clearBit(long[] words, int bitIndex) {
+			int wordIndex = wordIndex(bitIndex);
+			words[wordIndex] &= ~(1L << bitIndex);
+		}
+	}
+
+	private static class IndexAndDirection {
+		int index;
+		boolean incoming;
+		boolean outgoing;
+	}
+
 	private class DivStateImpl implements DividerState {
 		final LayoutStateImpl theLayoutState;
 		final DivImpl theDivider;
@@ -1008,11 +1238,11 @@ public class LayoutSolver<L> {
 		private ElementId thePositionSortedElement;
 		private ElementId theForceSortedElement;
 
-		DivStateImpl(LayoutStateImpl layoutState, DivImpl divider) {
+		DivStateImpl(LayoutStateImpl layoutState, DivImpl divider, BetterList<SpringStateImpl> springsByIndex) {
 			theLayoutState = layoutState;
 			theDivider = divider;
-			theIncoming = new SpringSet(this, true);
-			theOutgoing = new SpringSet(this, false);
+			theIncoming = new SpringSet(this, true, springsByIndex);
+			theOutgoing = new SpringSet(this, false, springsByIndex);
 		}
 
 		void reset() {
@@ -1078,11 +1308,11 @@ public class LayoutSolver<L> {
 			if (thePositionSortedElement != null) {
 				boolean belongs = true;
 				CollectionElement<DivStateImpl> adj = linesByPosition.getAdjacentElement(thePositionSortedElement, false);
-				if (adj != null && adj.get().thePosition > thePosition)
+				if (adj != null && POSITION_COMPARE.compare(adj.get(), this) > 0)
 					belongs = false;
 				if (belongs) {
 					adj = linesByPosition.getAdjacentElement(thePositionSortedElement, true);
-					if (adj != null && adj.get().thePosition < thePosition)
+					if (adj != null && POSITION_COMPARE.compare(adj.get(), this) < 0)
 						belongs = false;
 				}
 				if (!belongs) {
@@ -1121,7 +1351,7 @@ public class LayoutSolver<L> {
 		final List<SpringStateImpl> theSprings;
 		float theForce;
 
-		SpringSet(DivStateImpl divider, boolean incoming) {
+		SpringSet(DivStateImpl divider, boolean incoming, BetterList<SpringStateImpl> springsByIndex) {
 			theDivider = divider;
 			isIncoming = incoming;
 			theSprings = new ArrayList<>((incoming ? divider.theDivider.theIncomingSprings : divider.theDivider.theOutgoingSprings).size());
@@ -1130,6 +1360,7 @@ public class LayoutSolver<L> {
 					SpringStateImpl springState = new SpringStateImpl(this, spring);
 					theDivider.theLayoutState.theSpringStates.put(spring, springState);
 					theSprings.add(springState);
+					springsByIndex.add(springState);
 				}
 			}
 		}
@@ -1146,7 +1377,7 @@ public class LayoutSolver<L> {
 		boolean forceChanged() {
 			float totalForce = 0;
 			for (SpringStateImpl springState : theSprings)
-				totalForce += springState.theTension.tension;
+				totalForce += springState.getTension();
 			if (!isIncoming)
 				totalForce = -totalForce;
 			if (totalForce == theForce)
@@ -1166,7 +1397,7 @@ public class LayoutSolver<L> {
 		final SpringSet theSource;
 		SpringSet theDest;
 		final SpringImpl theSpring;
-		final List<SpringStateImpl> theLinkedSprings;
+		private final List<SpringStateImpl> theLinkedSprings;
 		TensionAndSnap theTension;
 
 		SpringStateImpl(SpringSet source, SpringImpl spring) {
@@ -1188,9 +1419,8 @@ public class LayoutSolver<L> {
 		}
 
 		void updateLinkedSprings() {
-			for (SpringStateImpl spring : theLinkedSprings) {
+			for (SpringStateImpl spring : theLinkedSprings)
 				spring.recalculate();
-			}
 		}
 
 		boolean recalculate() {
@@ -1200,8 +1430,7 @@ public class LayoutSolver<L> {
 					: theSource.theDivider.theLayoutState.theHTension;
 				tas = new TensionAndSnap(tension, tension > 0 ? 10000000 : 0);
 			} else
-				tas = theSpring.theEvaluator
-				.getTension(theDest.theDivider.thePosition - theSource.theDivider.thePosition);
+				tas = theSpring.theEvaluator.getTension(theDest.theDivider.thePosition - theSource.theDivider.thePosition);
 			if (theTension.equals(tas.tension))
 				return false;
 			theTension = tas;
@@ -1283,8 +1512,8 @@ public class LayoutSolver<L> {
 	 */
 	public static void main(String[] args) {
 		DebugPlotter plotter = new DebugPlotter();
-		Map<BoxState, Line2D[]> boxes = new HashMap<>(); // Each entry is 4 lines--left, right, top, bottom
-		Map<SpringState, SpringHolder> springs = new HashMap<>();
+		Map<BoxState, Line2D[]> boxes = new LinkedHashMap<>(); // Each value is 4 lines--left, right, top, bottom
+		Map<SpringState, SpringHolder> springs = new LinkedHashMap<>();
 		LayoutSolver<String> solver = new LayoutSolver<>();
 		State<String> solverState;
 
@@ -1388,6 +1617,7 @@ public class LayoutSolver<L> {
 				forSizer(() -> textBoxState[0].getHeight(), new ConstAreaSizer(25000)));
 			SpringDef hText = solver.createSpring(textBox.getTop(), textBox.getBottom(), //
 				forSizer(() -> textBoxState[0].getWidth(), new ConstAreaSizer(25000)));
+			solver.linkSprings(wText, hText);
 			SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
 				forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
 			SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
@@ -1545,5 +1775,51 @@ public class LayoutSolver<L> {
 		}
 		for (SpringDef spring : springs.keySet())
 			System.out.println(spring);
+	}
+
+	private static class ConstAreaSizer extends AbstractSizeGuide {
+		private int theArea;
+
+		ConstAreaSizer(int area) {
+			theArea = area;
+		}
+
+		@Override
+		public int getMin(int crossSize, boolean csMax) {
+			if (csMax)
+				return cap(theArea / cap(crossSize));
+			return getPreferred(crossSize, csMax);
+		}
+
+		@Override
+		public int getMinPreferred(int crossSize, boolean csMax) {
+			return getMin(crossSize, csMax);
+		}
+
+		@Override
+		public int getPreferred(int crossSize, boolean csMax) {
+			return cap(theArea / cap(crossSize));
+		}
+
+		@Override
+		public int getMaxPreferred(int crossSize, boolean csMax) {
+			return getPreferred(crossSize, csMax);
+		}
+
+		@Override
+		public int getMax(int crossSize, boolean csMax) {
+			return getPreferred(crossSize, csMax);
+		}
+
+		@Override
+		public int getBaseline(int size) {
+			return 0;
+		}
+
+		private int cap(int size) {
+			if (size < 30)
+				return 30;
+			return size;
+		}
 	}
 }

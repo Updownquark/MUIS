@@ -6,7 +6,8 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -34,28 +35,28 @@ import org.quick.core.layout.LayoutSpringEvaluator.TensionAndSnap;
 import org.quick.util.DebugPlotter;
 
 public class LayoutSolver<L> {
-	public interface DividerDef {
+	public interface EdgeDef {
 		Orientation getOrientation();
 	}
 
-	public interface DividerState extends DividerDef {
+	public interface EdgeState extends EdgeDef {
 		int getPosition();
 
 		float getForce();
 	}
 
 	public interface SpringDef {
-		DividerDef getSource();
+		EdgeDef getSource();
 
-		DividerDef getDest();
+		EdgeDef getDest();
 	}
 
 	public interface SpringState extends SpringDef {
 		@Override
-		DividerState getSource();
+		EdgeState getSource();
 
 		@Override
-		DividerState getDest();
+		EdgeState getDest();
 
 		default int getLength() {
 			return getDest().getPosition() - getSource().getPosition();
@@ -65,15 +66,15 @@ public class LayoutSolver<L> {
 	}
 
 	public interface BoxDef {
-		DividerDef getLeft();
+		EdgeDef getLeft();
 
-		DividerDef getRight();
+		EdgeDef getRight();
 
-		DividerDef getTop();
+		EdgeDef getTop();
 
-		DividerDef getBottom();
+		EdgeDef getBottom();
 
-		default DividerDef get(Orientation orientation, End end) {
+		default EdgeDef getEdge(Orientation orientation, End end) {
 			switch (orientation) {
 			case horizontal:
 				return end == End.leading ? getLeft() : getRight();
@@ -85,20 +86,20 @@ public class LayoutSolver<L> {
 
 	public interface BoxState extends BoxDef {
 		@Override
-		DividerState getLeft();
+		EdgeState getLeft();
 
 		@Override
-		DividerState getRight();
+		EdgeState getRight();
 
 		@Override
-		DividerState getTop();
+		EdgeState getTop();
 
 		@Override
-		DividerState getBottom();
+		EdgeState getBottom();
 
 		@Override
-		default DividerState get(Orientation orientation, End end) {
-			return (DividerState) BoxDef.super.get(orientation, end);
+		default EdgeState getEdge(Orientation orientation, End end) {
+			return (EdgeState) BoxDef.super.getEdge(orientation, end);
 		}
 
 		default Point getTopLeft() {
@@ -124,9 +125,9 @@ public class LayoutSolver<L> {
 
 		BoxState getBounds();
 
-		DividerState getLine(L lineObj);
+		EdgeState getEdge(L lineObj);
 
-		DividerState getLine(DividerDef line);
+		EdgeState getEdge(EdgeDef line);
 
 		SpringState getSpring(SpringDef spring);
 
@@ -137,6 +138,10 @@ public class LayoutSolver<L> {
 		State<L> stretch(float hTension, float vTension);
 
 		BoxState getBox(BoxDef box);
+
+		boolean isEdgeMoving(EdgeState edge);
+
+		int getWaveNumber();
 	}
 
 	public static final float SUPER_TENSION = 1_000_000;
@@ -198,8 +203,12 @@ public class LayoutSolver<L> {
 						if (length == min)
 							return new TensionAndSnap(MAX_TENSION, minPref);
 						else if (length < min) {
-							float tension = MAX_TENSION + (SUPER_TENSION - MAX_TENSION) * (min - length) / min;
-							return new TensionAndSnap(tension, minPref);
+							if (length < 0)
+								return new TensionAndSnap(SUPER_TENSION, min);
+							else {
+								float tension = MAX_TENSION + (SUPER_TENSION - MAX_TENSION) * (min - length) / min;
+								return new TensionAndSnap(tension, min);
+							}
 						} else {
 							float tension = MAX_PREF_TENSION + (MAX_TENSION - MAX_PREF_TENSION) * (minPref - length) / (minPref - min);
 							return new TensionAndSnap(tension, minPref);
@@ -228,9 +237,7 @@ public class LayoutSolver<L> {
 			}
 
 			private int cap(int size) {
-				if (size < 0)
-					return 0;
-				else if (size > MAX_LAYOUT_SIZE)
+				if (size > MAX_LAYOUT_SIZE)
 					return MAX_LAYOUT_SIZE;
 				else
 					return size;
@@ -254,12 +261,12 @@ public class LayoutSolver<L> {
 
 	private final BoxImpl theBounds;
 
-	private final BetterMap<L, DivImpl> theLines;
+	private final BetterMap<L, DivImpl> theEdges;
 	private int theSpringCount;
 	private boolean isSealed;
 
 	public LayoutSolver() {
-		theLines = BetterHashMap.build().unsafe().buildMap();
+		theEdges = BetterHashMap.build().unsafe().buildMap();
 		theBounds = new BoxImpl(//
 			new DivImpl((L) "Left Bound", 0, false, End.leading), new DivImpl((L) "Right Bound", 1, false, End.trailing), //
 			new DivImpl((L) "Top Bound", 2, true, End.leading), new DivImpl((L) "Bottom Bound", 3, true, End.trailing)//
@@ -278,21 +285,21 @@ public class LayoutSolver<L> {
 
 	public BoxDef getOrCreateBox(L left, L right, L top, L bottom) {
 		return new BoxImpl(//
-			(DivImpl) getOrCreateLine(left, false), (DivImpl) getOrCreateLine(right, false), //
-			(DivImpl) getOrCreateLine(top, true), (DivImpl) getOrCreateLine(bottom, true));
+			(DivImpl) getOrCreateEdge(left, false), (DivImpl) getOrCreateEdge(right, false), //
+			(DivImpl) getOrCreateEdge(top, true), (DivImpl) getOrCreateEdge(bottom, true));
 	}
 
-	public DividerDef getOrCreateLine(L lineObject, boolean vertical) {
+	public EdgeDef getOrCreateEdge(L edgeObject, boolean vertical) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
-		return theLines.computeIfAbsent(lineObject, lo -> new DivImpl(lineObject, theLines.size() + 4, vertical, null));
+		return theEdges.computeIfAbsent(edgeObject, lo -> new DivImpl(edgeObject, theEdges.size() + 4, vertical, null));
 	}
 
-	public DividerDef getLine(L lineObject) {
-		return theLines.get(lineObject);
+	public EdgeDef getEdge(L edgeObject) {
+		return theEdges.get(edgeObject);
 	}
 
-	public SpringDef createSpring(DividerDef src, DividerDef dest, LayoutSpringEvaluator eval) {
+	public SpringDef createSpring(EdgeDef src, EdgeDef dest, LayoutSpringEvaluator eval) {
 		if (isSealed)
 			throw new IllegalStateException("This solver cannot be altered");
 		if (src.getOrientation() != dest.getOrientation())
@@ -312,12 +319,12 @@ public class LayoutSolver<L> {
 		((SpringImpl) spring1).affects((SpringImpl) spring2);
 	}
 
-	public State use() {
+	public State<L> use() {
 		isSealed = true;
 		return new LayoutStateImpl();
 	}
 
-	private class DivImpl implements DividerDef {
+	private class DivImpl implements EdgeDef {
 		final int id;
 		private final L theValue;
 		final boolean isVertical;
@@ -347,6 +354,13 @@ public class LayoutSolver<L> {
 		@Override
 		public Orientation getOrientation() {
 			return Orientation.of(isVertical);
+		}
+
+		boolean isMobile(boolean stretchOp) {
+			if (borderEnd == null)
+				return true;
+			else
+				return stretchOp && borderEnd == End.trailing; // For stretch operations, the right and bottom edges can move
 		}
 
 		@Override
@@ -380,12 +394,12 @@ public class LayoutSolver<L> {
 		}
 
 		@Override
-		public DividerDef getSource() {
+		public EdgeDef getSource() {
 			return theSource;
 		}
 
 		@Override
-		public DividerDef getDest() {
+		public EdgeDef getDest() {
 			return theDest;
 		}
 
@@ -432,10 +446,10 @@ public class LayoutSolver<L> {
 	private static boolean DEBUG = true;
 	private static boolean PRINT_SPEED = true;
 
-	private static final Comparator<LayoutSolver<?>.DivStateImpl> POSITION_COMPARE = new Comparator<LayoutSolver<?>.DivStateImpl>() {
+	private static final Comparator<LayoutSolver<?>.EdgeStateImpl> POSITION_COMPARE = new Comparator<LayoutSolver<?>.EdgeStateImpl>() {
 		@Override
-		public int compare(LayoutSolver<?>.DivStateImpl div1, LayoutSolver<?>.DivStateImpl div2) {
-			End end = div1.theDivider.borderEnd;
+		public int compare(LayoutSolver<?>.EdgeStateImpl div1, LayoutSolver<?>.EdgeStateImpl div2) {
+			End end = div1.theEdge.borderEnd;
 			if (end != null) {
 				if (end == End.leading)
 					return -1;
@@ -447,12 +461,12 @@ public class LayoutSolver<L> {
 	};
 
 	private class LayoutStateImpl implements State<L> {
-		private final IdentityHashMap<DivImpl, DivStateImpl> theLineStates;
+		private final IdentityHashMap<DivImpl, EdgeStateImpl> theEdgeStates;
 		private final IdentityHashMap<SpringImpl, SpringStateImpl> theSpringStates;
-		private final BetterList<DivStateImpl> theHLinesByPosition;
-		private final BetterList<DivStateImpl> theVLinesByPosition;
-		private final BetterList<DivStateImpl> theLinesByForce;
-		private final List<SpringStateImpl> theSpringStatesById;
+		private final BetterList<EdgeStateImpl> theHEdgesByPosition;
+		private final BetterList<EdgeStateImpl> theVEdgesByPosition;
+		private final BetterList<EdgeStateImpl> theEdgesByForce;
+		private final List<SpringStateImpl> theSpringStatesById = new ArrayList<>(theSpringCount);
 
 		private final BoxStateImpl theBoundState;
 		private boolean isStretching;
@@ -460,27 +474,28 @@ public class LayoutSolver<L> {
 		private float theVTension;
 
 		private boolean isInitialized;
+		private int[] theMovingEdges;
+		private int theWaveNumber;
 
 		LayoutStateImpl() {
-			theLineStates = new IdentityHashMap<>();
+			theEdgeStates = new IdentityHashMap<>();
 			theSpringStates = new IdentityHashMap<>();
 			BetterList<SpringStateImpl> springsByIndex = new BetterTreeSet<>(false, (s1, s2) -> s1.theSpring.id - s2.theSpring.id);
 			theBoundState = new BoxStateImpl(this, //
-				new DivStateImpl(this, theBounds.left, springsByIndex), new DivStateImpl(this, theBounds.right, springsByIndex), //
-				new DivStateImpl(this, theBounds.top, springsByIndex), new DivStateImpl(this, theBounds.bottom, springsByIndex));
-			for (DivImpl line : theLines.values())
-				theLineStates.put(line, new DivStateImpl(this, line, springsByIndex));
+				new EdgeStateImpl(this, theBounds.left, springsByIndex), new EdgeStateImpl(this, theBounds.right, springsByIndex), //
+				new EdgeStateImpl(this, theBounds.top, springsByIndex), new EdgeStateImpl(this, theBounds.bottom, springsByIndex));
+			for (DivImpl edge : theEdges.values())
+				theEdgeStates.put(edge, new EdgeStateImpl(this, edge, springsByIndex));
 			theBoundState.left.theIncoming.fillIncoming();
 			theBoundState.right.theIncoming.fillIncoming();
 			theBoundState.top.theIncoming.fillIncoming();
 			theBoundState.bottom.theIncoming.fillIncoming();
-			for (DivStateImpl line : theLineStates.values())
+			for (EdgeStateImpl line : theEdgeStates.values())
 				line.theIncoming.fillIncoming();
-			theLinesByForce = new SortedTreeList<>(false,
-				(div1, div2) -> -Float.compare(Math.abs(div1.theTotalForce), Math.abs(div2.theTotalForce)));
-			theHLinesByPosition = new SortedTreeList<>(false, POSITION_COMPARE);
-			theVLinesByPosition = new SortedTreeList<>(false, POSITION_COMPARE);
-			theSpringStatesById = new ArrayList<>(theSpringCount);
+			theEdgesByForce = new SortedTreeList<>(false,
+				(edge1, edge2) -> -Float.compare(Math.abs(edge1.theTotalForce), Math.abs(edge2.theTotalForce)));
+			theHEdgesByPosition = new SortedTreeList<>(false, POSITION_COMPARE);
+			theVEdgesByPosition = new SortedTreeList<>(false, POSITION_COMPARE);
 			theSpringStatesById.addAll(springsByIndex);
 		}
 
@@ -495,14 +510,14 @@ public class LayoutSolver<L> {
 		}
 
 		@Override
-		public DividerState getLine(L lineObj) {
-			DivImpl divider = theLines.get(lineObj);
-			return divider == null ? null : theLineStates.get(divider);
+		public EdgeState getEdge(L edgeObj) {
+			DivImpl divider = theEdges.get(edgeObj);
+			return divider == null ? null : theEdgeStates.get(divider);
 		}
 
 		@Override
-		public DividerState getLine(DividerDef line) {
-			return theLineStates.get(line);
+		public EdgeState getEdge(EdgeDef line) {
+			return theEdgeStates.get(line);
 		}
 
 		@Override
@@ -513,8 +528,21 @@ public class LayoutSolver<L> {
 		@Override
 		public BoxState getBox(BoxDef box) {
 			return new BoxStateImpl(this, //
-				theLineStates.get(((BoxImpl) box).left), theLineStates.get(((BoxImpl) box).right), //
-				theLineStates.get(((BoxImpl) box).top), theLineStates.get(((BoxImpl) box).bottom));
+				theEdgeStates.get(((BoxImpl) box).left), theEdgeStates.get(((BoxImpl) box).right), //
+				theEdgeStates.get(((BoxImpl) box).top), theEdgeStates.get(((BoxImpl) box).bottom));
+		}
+
+		@Override
+		public boolean isEdgeMoving(EdgeState edge) {
+			int[] moving = theMovingEdges;
+			if (moving == null || moving.length == 0)
+				return false;
+			return Arrays.binarySearch(moving, ((EdgeStateImpl) edge).theEdge.id) >= 0;
+		}
+
+		@Override
+		public int getWaveNumber() {
+			return theWaveNumber;
 		}
 
 		@Override
@@ -524,11 +552,11 @@ public class LayoutSolver<L> {
 			theBoundState.right.reset();
 			theBoundState.top.reset();
 			theBoundState.bottom.reset();
-			for (DivStateImpl line : theLineStates.values())
-				line.reset();
-			theLinesByForce.clear();
-			theHLinesByPosition.clear();
-			theVLinesByPosition.clear();
+			for (EdgeStateImpl edge : theEdgeStates.values())
+				edge.reset();
+			theEdgesByForce.clear();
+			theHEdgesByPosition.clear();
+			theVEdgesByPosition.clear();
 			return this;
 		}
 
@@ -538,7 +566,7 @@ public class LayoutSolver<L> {
 			theBoundState.bottom.setPosition(height);
 			theHTension = 0;
 			theVTension = 0;
-			return adjustLayout(false);
+			return adjustViaWave(false);
 		}
 
 		@Override
@@ -549,7 +577,7 @@ public class LayoutSolver<L> {
 			theVTension = vTension * (theBounds.top.theOutgoingSprings.size() - 1 + theBounds.bottom.theIncomingSprings.size() - 1) / 2;
 			// Then perform the normal layout operation with the additional degree of freedom
 			// that the right and bottom bounds can be adjusted
-			return adjustLayout(true);
+			return adjustViaWave(true);
 		}
 
 		// This method adjusts the layout by moving high-priority (absolute force) adjacent sets of edges
@@ -565,23 +593,23 @@ public class LayoutSolver<L> {
 					System.out.println("Initialized in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
 			} else if (isStretching != stretch) {
 				isStretching = stretch;
-				theBoundState.right.forceChanged();
-				theBoundState.bottom.forceChanged();
+				theBoundState.right.forceChanged(true);
+				theBoundState.bottom.forceChanged(true);
 			}
 			long start = PRINT_SPEED ? System.currentTimeMillis() : 0;
-			int maxMoves = MAX_TRIES * theLines.size();
-			DivStateImpl toMove = theLinesByForce.peekFirst();
+			int maxMoves = MAX_TRIES * theEdges.size();
+			EdgeStateImpl toMove = theEdgesByForce.peekFirst();
 			int moves;
 			for (moves = 0; toMove != null && moves < maxMoves; moves++) {
 				// Rather than move just one line at a time, we can try to move a larger set of adjacent lines
 				// This is much more efficient in general.
 				boolean signum = toMove.theTotalForce > 0;
-				BetterList<DivStateImpl> linesByPosition = toMove.theDivider.isVertical ? theVLinesByPosition : theHLinesByPosition;
+				BetterList<EdgeStateImpl> linesByPosition = toMove.theEdge.isVertical ? theVEdgesByPosition : theHEdgesByPosition;
 				// Find the min line to move
 				ElementId minBound = toMove.thePositionSortedElement;
-				CollectionElement<DivStateImpl> el = linesByPosition.getAdjacentElement(toMove.thePositionSortedElement, false);
+				CollectionElement<EdgeStateImpl> el = linesByPosition.getAdjacentElement(toMove.thePositionSortedElement, false);
 				while (el != null) {
-					End borderEnd = el.get().theDivider.borderEnd;
+					End borderEnd = el.get().theEdge.borderEnd;
 					if (borderEnd == null || (stretch && borderEnd == End.trailing)) { // Exclude bounds if they are not flexible
 						float force = el.get().theTotalForce;
 						if (Math.abs(force) < MAX_PREF_TENSION || (force > 0) == signum)
@@ -595,7 +623,7 @@ public class LayoutSolver<L> {
 				ElementId maxBound = toMove.thePositionSortedElement;
 				el = linesByPosition.getAdjacentElement(toMove.thePositionSortedElement, true);
 				while (el != null) {
-					End borderEnd = el.get().theDivider.borderEnd;
+					End borderEnd = el.get().theEdge.borderEnd;
 					if (borderEnd == null || (stretch && borderEnd == End.trailing)) { // Exclude bounds if they are not flexible
 						float force = el.get().theTotalForce;
 						if (Math.abs(force) < MAX_PREF_TENSION || (force > 0) == signum)
@@ -611,7 +639,8 @@ public class LayoutSolver<L> {
 					min = CollectionElement.getElementId(linesByPosition.getAdjacentElement(min, true))) {
 					for (ElementId max = maxBound; max != null && max.compareTo(toMove.thePositionSortedElement) >= 0; //
 						max = CollectionElement.getElementId(linesByPosition.getAdjacentElement(max, false))) {
-						if (adjustEdgeSet(toMove.theDivider.isVertical, min, max, stretch, false)) {
+						theMovingEdges = null;
+						if (adjustEdgeSet(toMove.theEdge.isVertical, min, max, stretch, false)) {
 							moved = true;
 							break outer;
 						}
@@ -619,7 +648,8 @@ public class LayoutSolver<L> {
 				}
 				if (!moved)
 					toMove.stabilized();
-				toMove = theLinesByForce.peekFirst();
+				theMovingEdges = null;
+				toMove = theEdgesByForce.peekFirst();
 			}
 			if (PRINT_SPEED)
 				System.out.println(moves + " moves in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
@@ -636,53 +666,110 @@ public class LayoutSolver<L> {
 					System.out.println("Initialized in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
 			} else if (isStretching != stretch) {
 				isStretching = stretch;
-				theBoundState.right.forceChanged();
-				theBoundState.bottom.forceChanged();
+				theBoundState.right.forceChanged(true);
+				theBoundState.bottom.forceChanged(true);
 			}
 			long start = PRINT_SPEED ? System.currentTimeMillis() : 0;
-			int maxWaves = MAX_TRIES * theLines.size();
-			DivStateImpl waveSource = theLinesByForce.peekFirst();
+			int maxWaves = MAX_TRIES * theEdges.size();
+			EdgeStateImpl waveSource = theEdgesByForce.peekFirst();
 			int waves;
+			int moves = 0;
 			WaveSpringQueue springsToVisit = new WaveSpringQueue(theSpringCount);
-			BitSet visitedSprings = new BitSet(theSpringCount);
-			BitSet springsToRecalc = new BitSet(theSpringCount);
 			for (waves = 0; waveSource != null && waves < maxWaves; waves++) {
-				doWave(waveSource, true, true, springsToVisit, visitedSprings, springsToRecalc, stretch);
+				propagateWave(waveSource, true, true, springsToVisit, stretch);
 
 				// Pop all springs from the queue.
 				IndexAndDirection propagation = springsToVisit.pop();
 				while (propagation != null) {
 					SpringStateImpl spring = theSpringStatesById.get(propagation.index);
-					if (propagation.incoming)
-						doWave(spring.theSource.theDivider, true, false, springsToVisit, visitedSprings, springsToRecalc, stretch);
-					if (propagation.incoming)
-						doWave(spring.theDest.theDivider, false, true, springsToVisit, visitedSprings, springsToRecalc, stretch);
+					if (propagation.incoming
+						&& propagateWave(spring.theSource.theEdge, true, false, springsToVisit, stretch))
+						moves++;
+					if (propagation.outgoing
+						&& propagateWave(spring.theDest.theEdge, false, true, springsToVisit, stretch))
+						moves++;
+					propagation = springsToVisit.pop();
 				}
-				// For all springs in the recalc BitSet, recalculate them
-				for (int springIdx = springsToRecalc.nextSetBit(0); springIdx >= 0; springIdx = springsToRecalc.nextSetBit(springIdx))
-					theSpringStatesById.get(springIdx).recalculate();
+				springsToVisit.clearContent();
 			}
 			if (PRINT_SPEED)
-				System.out.println(waves + " waves in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
+				System.out
+					.println(waves + " waves (" + moves + " moves) in " + QommonsUtils.printTimeLength(System.currentTimeMillis() - start));
 			return this;
 		}
 
-		private void doWave(DivStateImpl edge, boolean incoming, boolean outgoing, WaveSpringQueue waveQueue, BitSet visitedSprings,
-			BitSet springsToRecalc, boolean stretch) {
-			if (edge.theTotalForce == 0)
-				return;
-			if (adjustEdgeSet(edge.theDivider.isVertical, edge.thePositionSortedElement, edge.thePositionSortedElement, stretch, true)) {
-				int todo = todo;
-				// TODO Add all of the edge's springs that have NOT yet been visited to the springsToVisit with the according direction
-				// For springs with linked springs, add those too with both directions
-				// TODO Randomly reorder the set of springs to add? Prioritize by tension? By target net force?
-				// If a spring HAS been visited, add it to the recalc BitSet
+		// Can't be static because it refers to fields in this (non-static) class
+		private final Comparator<IndexAndDirection> BY_TARGET_FORCE = new Comparator<IndexAndDirection>() {
+			@Override
+			public int compare(IndexAndDirection i1, IndexAndDirection i2) {
+				SpringStateImpl spring1 = theSpringStatesById.get(i1.index);
+				SpringStateImpl spring2 = theSpringStatesById.get(i2.index);
+				float maxForce1, maxForce2;
+				if (i1.outgoing) {
+					maxForce1 = Math.abs(spring1.theDest.theEdge.theTotalForce);
+					if (i1.incoming)
+						maxForce1 = Math.max(Math.abs(spring1.theSource.theEdge.theTotalForce), maxForce1);
+				} else
+					maxForce1 = Math.abs(spring1.theSource.theEdge.theTotalForce);
+				if (i2.outgoing) {
+					maxForce2 = Math.abs(spring2.theDest.theEdge.theTotalForce);
+					if (i2.incoming)
+						maxForce2 = Math.max(Math.abs(spring2.theSource.theEdge.theTotalForce), maxForce1);
+				} else
+					maxForce2 = Math.abs(spring2.theSource.theEdge.theTotalForce);
+				return -Float.compare(maxForce1, maxForce2); // Largest absolute net force first
 			}
+		};
+
+		// Inner variable so I don't have to re-create it all the time
+		private final List<IndexAndDirection> propagationTargets = new ArrayList<>();
+
+		private boolean propagateWave(EdgeStateImpl edge, boolean incoming, boolean outgoing, WaveSpringQueue waveQueue, boolean stretch) {
+			if (!edge.theEdge.isMobile(stretch) || edge.theTotalForce == 0)
+				return false;
+			boolean moved = adjustEdgeSet(edge.theEdge.isVertical, edge.thePositionSortedElement, edge.thePositionSortedElement, stretch,
+				true);
+			if (moved) {
+				// Add all of the edge's springs that have NOT yet been visited to the springsToVisit with the according direction
+				// Add them to a temporary list first, then sort (prioritize) them by target net force before adding to the wave queue
+				if(incoming){
+					for(SpringStateImpl spring : edge.theIncoming.theSprings){
+						if (waveQueue.reserve(spring.theSpring.id)) {
+							propagationTargets.add(new IndexAndDirection(spring.theSpring.id, true, false));
+							// For springs with linked springs, add those too with both directions
+							for (SpringStateImpl linked : spring.theLinkedSprings) {
+								if (waveQueue.reserve(linked.theSpring.id))
+									propagationTargets.add(new IndexAndDirection(linked.theSpring.id, true, true));
+							}
+						}
+					}
+
+				}
+				if(outgoing){
+					for(SpringStateImpl spring : edge.theOutgoing.theSprings){
+						if (waveQueue.reserve(spring.theSpring.id)) {
+							propagationTargets.add(new IndexAndDirection(spring.theSpring.id, true, false));
+							// For springs with linked springs, add those too with both directions
+							for (SpringStateImpl linked : spring.theLinkedSprings) {
+								if (waveQueue.reserve(linked.theSpring.id))
+									propagationTargets.add(new IndexAndDirection(linked.theSpring.id, true, true));
+							}
+						}
+					}
+				}
+				// Prioritize by target net force
+				Collections.sort(propagationTargets, BY_TARGET_FORCE);
+				for (IndexAndDirection prop : propagationTargets)
+					waveQueue.push(prop.index, prop.incoming, prop.outgoing);
+			}
+			theMovingEdges = null;
+			propagationTargets.clear();
+			return moved;
 		}
 
 		private void init() {
 			List<SpringStateImpl> dirtySprings = new LinkedList<>();
-			if (theLines.isEmpty())
+			if (theEdges.isEmpty())
 				return;
 			theBoundState.left.setPosition(0);
 			theBoundState.top.setPosition(0);
@@ -690,7 +777,7 @@ public class LayoutSolver<L> {
 				initConstraints(theBoundState.left, Ternian.TRUE, dirtySprings);
 			if (theBounds.top.theOutgoingSprings != null)
 				initConstraints(theBoundState.top, Ternian.TRUE, dirtySprings);
-			for (DivStateImpl line : theLineStates.values()) {
+			for (EdgeStateImpl line : theEdgeStates.values()) {
 				if (!line.isPositioned()) {
 					line.setPosition(0);
 					initConstraints(line, Ternian.NONE, dirtySprings);
@@ -700,16 +787,17 @@ public class LayoutSolver<L> {
 				initConstraints(theBoundState.right, Ternian.FALSE, dirtySprings);
 			if (theBounds.bottom.theIncomingSprings != null)
 				initConstraints(theBoundState.bottom, Ternian.FALSE, dirtySprings);
+			boolean stretching = theHTension != 0 || theVTension != 0;
 			for (SpringStateImpl spring : dirtySprings)
-				spring.recalculate();
+				spring.recalculate(stretching);
 			return;
 		}
 
-		private void initConstraints(DivStateImpl line, Ternian outgoing, List<SpringStateImpl> dirtySprings) {
+		private void initConstraints(EdgeStateImpl line, Ternian outgoing, List<SpringStateImpl> dirtySprings) {
 			if (outgoing != Ternian.FALSE) {
 				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
 					LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
-					DivStateImpl dest = spring.theDest.theDivider;
+					EdgeStateImpl dest = spring.theDest.theEdge;
 					if (eval != BOUNDS_TENSION && !dest.isPositioned()) {
 						dest.setPosition(line.thePosition + eval.getSize(0));
 						initConstraints(dest, Ternian.TRUE, dirtySprings);
@@ -720,7 +808,7 @@ public class LayoutSolver<L> {
 			if (outgoing != Ternian.TRUE) {
 				for (SpringStateImpl spring : line.theIncoming.theSprings) {
 					LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
-					DivStateImpl src = spring.theSource.theDivider;
+					EdgeStateImpl src = spring.theSource.theEdge;
 					if (eval != BOUNDS_TENSION && !src.isPositioned()) {
 						src.setPosition(line.thePosition - eval.getSize(0));
 						initConstraints(src, Ternian.FALSE, dirtySprings);
@@ -738,34 +826,40 @@ public class LayoutSolver<L> {
 		private final IntList outgoingSpringSrcOffsets = new IntList();
 		private final List<TensionAndSnap> incomingTensions = new ArrayList<>();
 		private final List<TensionAndSnap> outgoingTensions = new ArrayList<>();
+
 		private int lastCalculatedForces;
 		private static final int MAX_BOUND_VALUE = 1000000;
-		private static final boolean WITH_CUTOFF = false;
 
-		private boolean adjustEdgeSet(boolean vertical, ElementId minBound, ElementId maxBound, boolean flexBounds, boolean halfWay) {
-			BetterList<DivStateImpl> linesByPosition = vertical ? theVLinesByPosition : theHLinesByPosition;
+		private boolean adjustEdgeSet(boolean vertical, ElementId minBound, ElementId maxBound, boolean stretching, boolean wave) {
+			BetterList<EdgeStateImpl> linesByPosition = vertical ? theVEdgesByPosition : theHEdgesByPosition;
 			// Determine the set of springs that act upon the given set of lines as a whole,
 			// i.e. the springs that have one end on a line in the set and the other end on a line not in the set
 			float force = 0;
 			int initPosition;
-			CollectionElement<DivStateImpl> el = linesByPosition.getElement(minBound);
+			// TODO At least in the case of wave=true, we don't want to find the absolute equilibrium for the target edge.
+			// If there are other (mobile) edges connected to the target by springs which also have a force on them
+			// that would (if moved) relax the overall force on the target, we want to allow that line to contribute as well.
+			// Otherwise, we could be doing extra work, plus we could get stuck moving back and forth
+			// between two unstable states on either side of the true equilibrium for the system
+			CollectionElement<EdgeStateImpl> el = linesByPosition.getElement(minBound);
 			initPosition = el.get().thePosition;
 			while (true) {
-				DivStateImpl line = el.get();
+				EdgeStateImpl line = el.get();
+
 				for (SpringStateImpl spring : line.theIncoming.theSprings) {
-					if (spring.theSource.theDivider.thePositionSortedElement.compareTo(minBound) < 0//
-						|| spring.theSource.theDivider.thePositionSortedElement.compareTo(maxBound) > 0) {
+					if (spring.theSource.theEdge.thePositionSortedElement.compareTo(minBound) < 0//
+						|| spring.theSource.theEdge.thePositionSortedElement.compareTo(maxBound) > 0) {
 						incomingSprings.add(spring);
-						incomingSpringDestOffsets.add(spring.theDest.theDivider.thePosition - initPosition);
+						incomingSpringDestOffsets.add(spring.theDest.theEdge.thePosition - initPosition);
 						incomingTensions.add(spring.theTension);
 						force += spring.getTension();
 					}
 				}
 				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
-					if (spring.theDest.theDivider.thePositionSortedElement.compareTo(minBound) < 0//
-						|| spring.theDest.theDivider.thePositionSortedElement.compareTo(maxBound) > 0) {
+					if (spring.theDest.theEdge.thePositionSortedElement.compareTo(minBound) < 0//
+						|| spring.theDest.theEdge.thePositionSortedElement.compareTo(maxBound) > 0) {
 						outgoingSprings.add(spring);
-						outgoingSpringSrcOffsets.add(spring.theSource.theDivider.thePosition - initPosition);
+						outgoingSpringSrcOffsets.add(spring.theSource.theEdge.thePosition - initPosition);
 						outgoingTensions.add(spring.theTension);
 						force -= spring.getTension();
 					}
@@ -775,31 +869,46 @@ public class LayoutSolver<L> {
 				else
 					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
 			}
-			// Instead of finding the absolute best equilibrium for the line set, we'll stop doing work when the force on the line set
-			// drops so that a different line set has more force and is therefore higher-priority
-			float cutoffForce;
-			if (WITH_CUTOFF) {
-				float cf = 0;
-				for (DivStateImpl line : theLinesByForce) {
-					if (line.theDivider.isVertical != vertical || line.thePositionSortedElement.compareTo(minBound) < 0
-						|| line.thePositionSortedElement.compareTo(maxBound) > 0) {
-						cf = Math.abs(line.theTotalForce);
+			boolean halfWay = false;
+			if (wave) {
+				for (SpringStateImpl spring : incomingSprings) {
+					float extForce = spring.theSource.theEdge.theTotalForce;
+					if (!spring.theSource.theEdge.theEdge.isMobile(stretching))
+						continue;
+					if (spring.theSource.theEdge.theEdge.isMobile(stretching) && extForce != 0 && (extForce > 0) != (force > 0)) {
+						// This connected edge would, if allowed to move, also serve to relax the force on the edge set we're moving now
+						// Give it a chance
+						halfWay = true;
 						break;
 					}
 				}
-				cutoffForce = cf;
-			} else
-				cutoffForce = 0;
+				if (!halfWay) {
+					for (SpringStateImpl spring : outgoingSprings) {
+						float extForce = spring.theDest.theEdge.theTotalForce;
+						if (spring.theDest.theEdge.theEdge.isMobile(stretching) && extForce != 0 && (extForce > 0) != (force > 0)) {
+							// This connected edge would, if moved, also serve to relax the force on the edge set we're moving now
+							// Give it a chance
+							halfWay = true;
+							break;
+						}
+					}
+				}
+			}
 			if (DEBUG)
 				System.out.println(
-					"Moving " + minBound + (minBound.equals(maxBound) ? "" : "..." + maxBound) + " (" + force + "), cutoff=" + cutoffForce);
+					"Moving " + minBound + (minBound.equals(maxBound) ? "" : "..." + maxBound) + " (" + force + ")");
 			int[] relPositions = new int[linesByPosition.getElementsBefore(maxBound) - linesByPosition.getElementsBefore(minBound) + 1];
+			int[] moving = new int[relPositions.length];
 			el = linesByPosition.getElement(minBound);
 			initPosition = el.get().thePosition;
+			moving[0] = el.get().theEdge.id;
 			for (int i = 1; i < relPositions.length; i++) {
 				el = linesByPosition.getAdjacentElement(el.getElementId(), true);
 				relPositions[i] = el.get().thePosition - initPosition;
+				moving[i] = el.get().theEdge.id;
 			}
+			theMovingEdges = moving;
+			theWaveNumber++;
 			lastCalculatedForces = initPosition;
 
 			boolean hasLeadingForce, hasTrailingForce;
@@ -809,10 +918,10 @@ public class LayoutSolver<L> {
 				leadingMost = initPosition;
 				leadingForce = force;
 				hasLeadingForce = true;
-				if (flexBounds)
+				if (stretching)
 					trailingMost = MAX_BOUND_VALUE;
 				else
-					trailingMost = theBoundState.get(Orientation.of(vertical), End.trailing).getPosition()
+					trailingMost = theBoundState.getEdge(Orientation.of(vertical), End.trailing).getPosition()
 						- relPositions[relPositions.length - 1];
 				trailingForce = 0;
 				hasTrailingForce = false;
@@ -834,7 +943,7 @@ public class LayoutSolver<L> {
 					SpringStateImpl spring = incomingSprings.get(i);
 					int springSign = (int) Math.signum(incomingTensions.get(i).tension);
 					if (signum == springSign) {
-						int snap = spring.theSource.theDivider.getPosition() + incomingTensions.get(i).snap
+						int snap = spring.theSource.theEdge.getPosition() + incomingTensions.get(i).snap
 							- incomingSpringDestOffsets.get(i);
 						if (signum > 0) {
 							if (snap < nextSnap) {
@@ -859,7 +968,7 @@ public class LayoutSolver<L> {
 					SpringStateImpl spring = outgoingSprings.get(i);
 					int springSign = (int) Math.signum(outgoingTensions.get(i).tension);
 					if (springSign != 0 && signum != springSign) {
-						int snap = spring.theDest.theDivider.getPosition() - outgoingTensions.get(i).snap - outgoingSpringSrcOffsets.get(i);
+						int snap = spring.theDest.theEdge.getPosition() - outgoingTensions.get(i).snap - outgoingSpringSrcOffsets.get(i);
 						if (signum > 0) {
 							if (snap < nextSnap) {
 								if (DEBUG)
@@ -900,8 +1009,6 @@ public class LayoutSolver<L> {
 					leadingForce = force;
 					hasLeadingForce = true;
 				}
-				if (Math.abs(force) < cutoffForce)
-					break;
 			}
 			if (!hasLeadingForce)
 				leadingForce = computeAdjustedForce(leadingMost);
@@ -928,19 +1035,13 @@ public class LayoutSolver<L> {
 					}
 				}
 			}
-			if (trailingMost - leadingMost <= 1) {
+			if (trailingMost == leadingMost) {
+				position = leadingMost;
+			} else if (trailingMost == leadingMost + 1) {
 				if (Math.abs(leadingForce) < Math.abs(trailingForce))
 					position = leadingMost;
 				else
 					position = trailingMost;
-			} else if (Math.abs(force) < cutoffForce) {
-				if (DEBUG)
-					System.out.println("\tcutoff (" + cutoffForce + ")");
-				if (Math.abs(leadingForce) < Math.abs(trailingForce))
-					position = leadingMost;
-				else
-					position = trailingMost;
-				// Cutoff--there's another line with higher priority
 			} else {
 				// Steps can't help us at this point. Use binary search.
 				float[] f = new float[1];
@@ -958,11 +1059,7 @@ public class LayoutSolver<L> {
 						System.out.println("\t\t" + pos + ": " + f[0]);
 					if (f[0] == 0)
 						return 0;
-					else if (Math.abs(f[0]) <= cutoffForce) {
-						if (DEBUG)
-							System.out.println("\t\tcutoff(" + cutoffForce + ")");
-						return 0;
-					} else
+					else
 						return f[0] > 0 ? 1 : -1;
 				});
 				if (position < 0)
@@ -979,7 +1076,12 @@ public class LayoutSolver<L> {
 			}
 			boolean modified = position != initPosition;
 			if (modified) {
-				if (halfWay) {
+				if (wave) {
+					// TODO I don't think this is good enough.
+					// In some situations, it would obviously be better to move all the way to equilibrium,
+					// e.g. when moving toward an immobile boundary.
+					// The precise case in which this is true and whether there is a middle ground or a more specific goal toward which
+					// one could binary search is not obvious to me at the moment.
 					int halfwayPos = (position + initPosition) / 2;
 					if (halfwayPos != initPosition)
 						position = halfwayPos;
@@ -992,7 +1094,7 @@ public class LayoutSolver<L> {
 				// From here on out, we can't just use the backing position-sorted list to iterate,
 				// because setting the positions here will affect the list's content
 				// So we need to create a copy
-				List<DivStateImpl> includedLines = new ArrayList<>(relPositions.length);
+				List<EdgeStateImpl> includedLines = new ArrayList<>(relPositions.length);
 				el = linesByPosition.getElement(minBound);
 				for (int i = 0; i < relPositions.length; i++) {
 					includedLines.add(el.get());
@@ -1006,27 +1108,27 @@ public class LayoutSolver<L> {
 					SpringStateImpl spring = incomingSprings.get(i);
 					TensionAndSnap newTension = incomingTensions.get(i);
 					spring.theTension = newTension;
-					spring.updateLinkedSprings();
+					spring.updateLinkedSprings(stretching);
 					if (spring.theSource.forceChanged())
-						spring.theSource.theDivider.forceChanged();
+						spring.theSource.theEdge.forceChanged(stretching);
 				}
 				for (int i = 0; i < outgoingSprings.size(); i++) {
 					SpringStateImpl spring = outgoingSprings.get(i);
 					TensionAndSnap newTension = outgoingTensions.get(i);
 					spring.theTension = newTension;
-					spring.updateLinkedSprings();
+					spring.updateLinkedSprings(stretching);
 					if (spring.theDest.forceChanged())
-						spring.theDest.theDivider.forceChanged();
+						spring.theDest.theEdge.forceChanged(stretching);
 				}
 
 				// Set the forces on the lines in the set
-				for (DivStateImpl line : includedLines) {
+				for (EdgeStateImpl line : includedLines) {
 					// Don't just use || here, because then if incoming force is changed, the outgoing forceChanged() won't be called
 					boolean forceChanged = line.theIncoming.forceChanged();
 					if (line.theOutgoing.forceChanged())
 						forceChanged = true;
 					if (forceChanged)
-						line.forceChanged();
+						line.forceChanged(stretching);
 				}
 			} else {
 				if (DEBUG)
@@ -1039,7 +1141,7 @@ public class LayoutSolver<L> {
 			outgoingSpringSrcOffsets.clear();
 			incomingTensions.clear();
 			outgoingTensions.clear();
-			lastCalculatedForces = -1;
+			lastCalculatedForces = Integer.MIN_VALUE;
 			return modified;
 		}
 
@@ -1055,7 +1157,7 @@ public class LayoutSolver<L> {
 					float tension = spring.getSource().getOrientation().isVertical() ? theVTension : theHTension;
 					newTension = new TensionAndSnap(tension, tension > 0 ? 10000000 : 0);
 				} else
-					newTension = eval.getTension(springDestPosition - spring.theSource.theDivider.thePosition);
+					newTension = eval.getTension(springDestPosition - spring.theSource.theEdge.thePosition);
 				incomingTensions.set(i, newTension);
 				force += incomingTensions.get(i).tension;
 			}
@@ -1068,7 +1170,7 @@ public class LayoutSolver<L> {
 					float tension = spring.getSource().getOrientation().isVertical() ? theVTension : theHTension;
 					newTension = new TensionAndSnap(tension, tension > 0 ? 10000000 : 0);
 				} else
-					newTension = eval.getTension(spring.theDest.theDivider.thePosition - springSrcPosition);
+					newTension = eval.getTension(spring.theDest.theEdge.thePosition - springSrcPosition);
 				outgoingTensions.set(i, newTension);
 				force -= outgoingTensions.get(i).tension;
 			}
@@ -1086,6 +1188,7 @@ public class LayoutSolver<L> {
 		}
 	}
 
+	/** This is a super-specialized queue to keep track of springs visited during a breadth-first traversal of the edge graph (a wave) */
 	/** This is a really super-specialized, high-efficiency integer queue with a fixed capacity */
 	private static class WaveSpringQueue implements Iterable<IndexAndDirection> {
 		private final int[] theValues;
@@ -1104,29 +1207,28 @@ public class LayoutSolver<L> {
 			thePopped = new IndexAndDirection();
 		}
 
-		boolean isFull() {
-			return isFull;
-		}
-
-		boolean contains(int index) {
-			return getBit(theContent, index);
-		}
-
 		IndexAndDirection pop() {
 			if (theStart == theEnd && !isFull)
 				return null;
 			thePopped.index = theValues[theStart];
 			thePopped.outgoing = getBit(theDirections, theStart);
-			clearBit(theContent, thePopped.index);
+			// Specifically commenting this out because we want to keep a record of all content visited during the entire wave
+			// clearBit(theContent, thePopped.index);
 			theStart = increment(theStart);
 			isFull = false;
 			return thePopped;
 		}
 
-		boolean push(int springIndex, boolean incoming, boolean outgoing) {
-			if (!setBit(theContent, springIndex))
-				return false;
-			else if (isFull)
+		/**
+		 * @param springIndex The spring to reserve a place for in the queue
+		 * @return Whether there is a place for the spring (i.e. false if the spring has already been in the queue during the current wave)
+		 */
+		boolean reserve(int springIndex) {
+			return !setBit(theContent, springIndex);
+		}
+
+		void push(int springIndex, boolean incoming, boolean outgoing) {
+			if (isFull)
 				throw new IllegalStateException("Queue is at capacity");
 			theValues[theEnd] = springIndex;
 			if (incoming)
@@ -1140,7 +1242,10 @@ public class LayoutSolver<L> {
 			theEnd = increment(theEnd);
 			if (theStart == theEnd)
 				isFull = true;
-			return true;
+		}
+
+		void clearContent() {
+			Arrays.fill(theContent, 0);
 		}
 
 		private int increment(int index) {
@@ -1206,12 +1311,19 @@ public class LayoutSolver<L> {
 			return (words[wordIndex] & (1L << bitIndex)) != 0;
 		}
 
+		/**
+		 * Sets a bit in the given word set to true
+		 *
+		 * @param words The words to test
+		 * @param bitIndex The index of the bit to test
+		 * @return The previous state of the bit
+		 */
 		private static boolean setBit(long[] words, int bitIndex) {
 			int wordIndex = wordIndex(bitIndex);
 			if ((words[wordIndex] & (1L << bitIndex)) != 0)
-				return false;
+				return true;
 			words[wordIndex] |= (1L << bitIndex); // Restores invariants
-			return true;
+			return false;
 		}
 
 		private static void clearBit(long[] words, int bitIndex) {
@@ -1224,11 +1336,20 @@ public class LayoutSolver<L> {
 		int index;
 		boolean incoming;
 		boolean outgoing;
+
+		IndexAndDirection() {
+		}
+
+		IndexAndDirection(int index, boolean incoming, boolean outgoing) {
+			this.index = index;
+			this.incoming = incoming;
+			this.outgoing = outgoing;
+		}
 	}
 
-	private class DivStateImpl implements DividerState {
+	private class EdgeStateImpl implements EdgeState {
 		final LayoutStateImpl theLayoutState;
-		final DivImpl theDivider;
+		final DivImpl theEdge;
 		final SpringSet theIncoming;
 		final SpringSet theOutgoing;
 
@@ -1238,9 +1359,9 @@ public class LayoutSolver<L> {
 		private ElementId thePositionSortedElement;
 		private ElementId theForceSortedElement;
 
-		DivStateImpl(LayoutStateImpl layoutState, DivImpl divider, BetterList<SpringStateImpl> springsByIndex) {
+		EdgeStateImpl(LayoutStateImpl layoutState, DivImpl divider, BetterList<SpringStateImpl> springsByIndex) {
 			theLayoutState = layoutState;
-			theDivider = divider;
+			theEdge = divider;
 			theIncoming = new SpringSet(this, true, springsByIndex);
 			theOutgoing = new SpringSet(this, false, springsByIndex);
 		}
@@ -1254,43 +1375,39 @@ public class LayoutSolver<L> {
 			theIncoming.theForce = 0;
 		}
 
-		void forceChanged() {
+		void forceChanged(boolean stretching) {
 			theTotalForce = theIncoming.theForce + theOutgoing.theForce;
 			boolean shouldRegisterForce;
 			if (theTotalForce == 0)
 				shouldRegisterForce = false;
-			else if (theDivider.borderEnd == null)
-				shouldRegisterForce = true;
-			else if (theLayoutState.isStretching && theDivider.borderEnd == End.trailing)
-				shouldRegisterForce = true;
 			else
-				shouldRegisterForce = false;
+				shouldRegisterForce = theEdge.isMobile(stretching);
 			if (theForceSortedElement != null) {
 				if (!shouldRegisterForce) {
-					theLayoutState.theLinesByForce.mutableElement(theForceSortedElement).remove();
+					theLayoutState.theEdgesByForce.mutableElement(theForceSortedElement).remove();
 					theForceSortedElement = null;
 				} else {
 					boolean belongs = true;
-					CollectionElement<DivStateImpl> adj = theLayoutState.theLinesByForce.getAdjacentElement(theForceSortedElement, false);
+					CollectionElement<EdgeStateImpl> adj = theLayoutState.theEdgesByForce.getAdjacentElement(theForceSortedElement, false);
 					if (adj != null && Math.abs(adj.get().theTotalForce) < Math.abs(theTotalForce))
 						belongs = false;
 					if (belongs) {
-						adj = theLayoutState.theLinesByForce.getAdjacentElement(theForceSortedElement, true);
+						adj = theLayoutState.theEdgesByForce.getAdjacentElement(theForceSortedElement, true);
 						if (adj != null && Math.abs(adj.get().theTotalForce) > Math.abs(theTotalForce))
 							belongs = false;
 					}
 					if (!belongs) {
-						theLayoutState.theLinesByForce.mutableElement(theForceSortedElement).remove();
-						theForceSortedElement = theLayoutState.theLinesByForce.addElement(this, false).getElementId();
+						theLayoutState.theEdgesByForce.mutableElement(theForceSortedElement).remove();
+						theForceSortedElement = theLayoutState.theEdgesByForce.addElement(this, false).getElementId();
 					}
 				}
 			} else if (shouldRegisterForce)
-				theForceSortedElement = theLayoutState.theLinesByForce.addElement(this, false).getElementId();
+				theForceSortedElement = theLayoutState.theEdgesByForce.addElement(this, false).getElementId();
 		}
 
 		void stabilized() {
 			if (theForceSortedElement != null) {
-				theLayoutState.theLinesByForce.mutableElement(theForceSortedElement).remove();
+				theLayoutState.theEdgesByForce.mutableElement(theForceSortedElement).remove();
 				theForceSortedElement = null;
 			}
 		}
@@ -1303,11 +1420,11 @@ public class LayoutSolver<L> {
 			if (thePosition == position && thePositionSortedElement != null)
 				return false;
 			thePosition = position;
-			BetterList<DivStateImpl> linesByPosition = theDivider.isVertical ? theLayoutState.theVLinesByPosition
-				: theLayoutState.theHLinesByPosition;
+			BetterList<EdgeStateImpl> linesByPosition = theEdge.isVertical ? theLayoutState.theVEdgesByPosition
+				: theLayoutState.theHEdgesByPosition;
 			if (thePositionSortedElement != null) {
 				boolean belongs = true;
-				CollectionElement<DivStateImpl> adj = linesByPosition.getAdjacentElement(thePositionSortedElement, false);
+				CollectionElement<EdgeStateImpl> adj = linesByPosition.getAdjacentElement(thePositionSortedElement, false);
 				if (adj != null && POSITION_COMPARE.compare(adj.get(), this) > 0)
 					belongs = false;
 				if (belongs) {
@@ -1326,7 +1443,7 @@ public class LayoutSolver<L> {
 
 		@Override
 		public Orientation getOrientation() {
-			return theDivider.getOrientation();
+			return theEdge.getOrientation();
 		}
 
 		@Override
@@ -1341,24 +1458,24 @@ public class LayoutSolver<L> {
 
 		@Override
 		public String toString() {
-			return theDivider + ": " + thePosition + " (" + theTotalForce + ")";
+			return theEdge + ": " + thePosition + " (" + theTotalForce + ")";
 		}
 	}
 
 	private class SpringSet {
-		final DivStateImpl theDivider;
+		final EdgeStateImpl theEdge;
 		private final boolean isIncoming;
 		final List<SpringStateImpl> theSprings;
 		float theForce;
 
-		SpringSet(DivStateImpl divider, boolean incoming, BetterList<SpringStateImpl> springsByIndex) {
-			theDivider = divider;
+		SpringSet(EdgeStateImpl divider, boolean incoming, BetterList<SpringStateImpl> springsByIndex) {
+			theEdge = divider;
 			isIncoming = incoming;
-			theSprings = new ArrayList<>((incoming ? divider.theDivider.theIncomingSprings : divider.theDivider.theOutgoingSprings).size());
+			theSprings = new ArrayList<>((incoming ? divider.theEdge.theIncomingSprings : divider.theEdge.theOutgoingSprings).size());
 			if (!incoming) {
-				for (SpringImpl spring : divider.theDivider.theOutgoingSprings) {
+				for (SpringImpl spring : divider.theEdge.theOutgoingSprings) {
 					SpringStateImpl springState = new SpringStateImpl(this, spring);
-					theDivider.theLayoutState.theSpringStates.put(spring, springState);
+					theEdge.theLayoutState.theSpringStates.put(spring, springState);
 					theSprings.add(springState);
 					springsByIndex.add(springState);
 				}
@@ -1366,8 +1483,8 @@ public class LayoutSolver<L> {
 		}
 
 		void fillIncoming() {
-			for (SpringImpl spring : theDivider.theDivider.theIncomingSprings) {
-				SpringStateImpl springState = theDivider.theLayoutState.theSpringStates.get(spring);
+			for (SpringImpl spring : theEdge.theEdge.theIncomingSprings) {
+				SpringStateImpl springState = theEdge.theLayoutState.theSpringStates.get(spring);
 				springState.theDest = this;
 				theSprings.add(springState);
 				springState.findLinked();
@@ -1410,7 +1527,7 @@ public class LayoutSolver<L> {
 		void findLinked() {
 			if (theSpring.theLinkedSprings != null) {
 				for (SpringImpl spring : theSpring.theLinkedSprings)
-					theLinkedSprings.add(theSource.theDivider.theLayoutState.theSpringStates.get(spring));
+					theLinkedSprings.add(theSource.theEdge.theLayoutState.theSpringStates.get(spring));
 			}
 		}
 
@@ -1418,37 +1535,37 @@ public class LayoutSolver<L> {
 			theTension = TensionAndSnap.ZERO;
 		}
 
-		void updateLinkedSprings() {
+		void updateLinkedSprings(boolean stretching) {
 			for (SpringStateImpl spring : theLinkedSprings)
-				spring.recalculate();
+				spring.recalculate(stretching);
 		}
 
-		boolean recalculate() {
+		boolean recalculate(boolean stretching) {
 			TensionAndSnap tas;
 			if (theSpring.theEvaluator == BOUNDS_TENSION) {
-				float tension = theSpring.theSource.getOrientation().isVertical() ? theSource.theDivider.theLayoutState.theVTension
-					: theSource.theDivider.theLayoutState.theHTension;
+				float tension = theSpring.theSource.getOrientation().isVertical() ? theSource.theEdge.theLayoutState.theVTension
+					: theSource.theEdge.theLayoutState.theHTension;
 				tas = new TensionAndSnap(tension, tension > 0 ? 10000000 : 0);
 			} else
-				tas = theSpring.theEvaluator.getTension(theDest.theDivider.thePosition - theSource.theDivider.thePosition);
+				tas = theSpring.theEvaluator.getTension(theDest.theEdge.thePosition - theSource.theEdge.thePosition);
 			if (theTension.equals(tas.tension))
 				return false;
 			theTension = tas;
 			if (theSource.forceChanged())
-				theSource.theDivider.forceChanged();
+				theSource.theEdge.forceChanged(stretching);
 			if (theDest.forceChanged())
-				theDest.theDivider.forceChanged();
+				theDest.theEdge.forceChanged(stretching);
 			return true;
 		}
 
 		@Override
-		public DividerState getSource() {
-			return theSource.theDivider;
+		public EdgeState getSource() {
+			return theSource.theEdge;
 		}
 
 		@Override
-		public DividerState getDest() {
-			return theDest.theDivider;
+		public EdgeState getDest() {
+			return theDest.theEdge;
 		}
 
 		@Override
@@ -1468,12 +1585,12 @@ public class LayoutSolver<L> {
 	}
 
 	private class BoxStateImpl implements BoxState {
-		final DivStateImpl left;
-		final DivStateImpl right;
-		final DivStateImpl top;
-		final DivStateImpl bottom;
+		final EdgeStateImpl left;
+		final EdgeStateImpl right;
+		final EdgeStateImpl top;
+		final EdgeStateImpl bottom;
 
-		BoxStateImpl(LayoutStateImpl layoutState, DivStateImpl left, DivStateImpl right, DivStateImpl top, DivStateImpl bottom) {
+		BoxStateImpl(LayoutStateImpl layoutState, EdgeStateImpl left, EdgeStateImpl right, EdgeStateImpl top, EdgeStateImpl bottom) {
 			this.left = left;
 			this.right = right;
 			this.top = top;
@@ -1481,22 +1598,22 @@ public class LayoutSolver<L> {
 		}
 
 		@Override
-		public DividerState getLeft() {
+		public EdgeState getLeft() {
 			return left;
 		}
 
 		@Override
-		public DividerState getRight() {
+		public EdgeState getRight() {
 			return right;
 		}
 
 		@Override
-		public DividerState getTop() {
+		public EdgeState getTop() {
 			return top;
 		}
 
 		@Override
-		public DividerState getBottom() {
+		public EdgeState getBottom() {
 			return bottom;
 		}
 	}
@@ -1512,7 +1629,7 @@ public class LayoutSolver<L> {
 	 */
 	public static void main(String[] args) {
 		DebugPlotter plotter = new DebugPlotter();
-		Map<BoxState, Line2D[]> boxes = new LinkedHashMap<>(); // Each value is 4 lines--left, right, top, bottom
+		Map<BoxState, BoxHolder> boxes = new LinkedHashMap<>();
 		Map<SpringState, SpringHolder> springs = new LinkedHashMap<>();
 		LayoutSolver<String> solver = new LayoutSolver<>();
 		State<String> solverState;
@@ -1565,9 +1682,9 @@ public class LayoutSolver<L> {
 			BoxState box1State = solverState.getBox(box1);
 			BoxState box2State = solverState.getBox(box2);
 
-			addBox(plotter, boxes, solverState.getBounds(), "bounds");
-			addBox(plotter, boxes, box1State, "box1");
-			addBox(plotter, boxes, box2State, "box2");
+			addBox(plotter, solverState, boxes, solverState.getBounds(), "bounds");
+			addBox(plotter, solverState, boxes, box1State, "box1");
+			addBox(plotter, solverState, boxes, box2State, "box2");
 
 			addSpring(plotter, springs, solverState.getSpring(leftMargin), "left margin", () -> box1State.getCenter().y);
 			addSpring(plotter, springs, solverState.getSpring(rightMargin), "right margin", () -> box2State.getCenter().y);
@@ -1628,10 +1745,10 @@ public class LayoutSolver<L> {
 			textBoxState[0] = solverState.getBox(textBox);
 			BoxState box2State = solverState.getBox(box2);
 
-			addBox(plotter, boxes, solverState.getBounds(), "bounds");
-			addBox(plotter, boxes, box1State, "box1");
-			addBox(plotter, boxes, textBoxState[0], "textBox");
-			addBox(plotter, boxes, box2State, "box2");
+			addBox(plotter, solverState, boxes, solverState.getBounds(), "bounds");
+			addBox(plotter, solverState, boxes, box1State, "box1");
+			addBox(plotter, solverState, boxes, textBoxState[0], "textBox");
+			addBox(plotter, solverState, boxes, box2State, "box2");
 
 			addSpring(plotter, springs, solverState.getSpring(leftMargin), "left margin", () -> box1State.getCenter().y);
 			addSpring(plotter, springs, solverState.getSpring(rightMargin), "right margin", () -> box2State.getCenter().y);
@@ -1673,13 +1790,16 @@ public class LayoutSolver<L> {
 			}
 		}, "Re-solver");
 		Thread updateRenderThread = new Thread(() -> {
+			int waveNumber = solverState.getWaveNumber();
 			while (true) {
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
 				}
-				if (updateShapes(boxes, springs))
+				if (updateShapes(boxes, springs) || waveNumber != solverState.getWaveNumber()) {
+					waveNumber = solverState.getWaveNumber();
 					EventQueue.invokeLater(() -> plotter.repaint());
+				}
 			}
 		}, "Plot updater");
 		updateRenderThread.start();
@@ -1700,6 +1820,55 @@ public class LayoutSolver<L> {
 		solverState.layout(width, height);
 	}
 
+	private static class BoxHolder {
+		private final BoxState theBox;
+		private final State<String> theState;
+
+		private final Line2D theLeft;
+		private final Line2D theRight;
+		private final Line2D theTop;
+		private final Line2D theBottom;
+
+		private final DebugPlotter.ShapeHolder leftRender;
+		private final DebugPlotter.ShapeHolder rightRender;
+		private final DebugPlotter.ShapeHolder topRender;
+		private final DebugPlotter.ShapeHolder bottomRender;
+
+		BoxHolder(DebugPlotter plotter, State<String> state, BoxState box, String boxName) {
+			theBox = box;
+			theState = state;
+
+			theLeft = new Line2D.Float();
+			theRight = new Line2D.Float();
+			theTop = new Line2D.Float();
+			theBottom = new Line2D.Float();
+
+			leftRender = plotter.add(theLeft).setColor(() -> state.isEdgeMoving(box.getLeft()) ? Color.green : Color.black)
+				.setText(() -> boxName + " left: P " + box.getLeft().getPosition() + " F " + box.getLeft().getForce());
+			rightRender = plotter.add(theRight).setColor(() -> state.isEdgeMoving(box.getRight()) ? Color.green : Color.black)
+				.setText(() -> boxName + " right: P" + box.getRight().getPosition() + " F " + box.getRight().getForce());
+			topRender = plotter.add(theTop).setColor(() -> state.isEdgeMoving(box.getTop()) ? Color.green : Color.black)
+				.setText(() -> boxName + " top: P " + box.getTop().getPosition() + " F " + box.getTop().getForce());
+			bottomRender = plotter.add(theBottom).setColor(() -> state.isEdgeMoving(box.getBottom()) ? Color.green : Color.black)
+				.setText(() -> boxName + " bottom: P " + box.getBottom().getPosition() + " F " + box.getBottom().getForce());
+		}
+
+		boolean update() {
+			double left = theBox.getLeft().getPosition();
+			double right = theBox.getRight().getPosition();
+			double top = theBox.getTop().getPosition();
+			double bottom = theBox.getBottom().getPosition();
+			if (theLeft.getX1() != left || theLeft.getY1() != top || theLeft.getY2() != bottom || theRight.getX1() != right) {
+				theLeft.setLine(left, top, left, bottom);
+				theRight.setLine(right, top, right, bottom);
+				theTop.setLine(left, top, right, top);
+				theBottom.setLine(left, bottom, right, bottom);
+				return true;
+			} else
+				return false;
+		}
+	}
+
 	private static class SpringHolder {
 		final Line2D line;
 		final IntSupplier location;
@@ -1711,21 +1880,8 @@ public class LayoutSolver<L> {
 		}
 	}
 
-	private static void addBox(DebugPlotter plotter, Map<BoxState, Line2D[]> boxes, BoxState box, String boxName) {
-		Line2D[] lines = new Line2D[4];
-		lines[0] = new Line2D.Float();
-		lines[1] = new Line2D.Float();
-		lines[2] = new Line2D.Float();
-		lines[3] = new Line2D.Float();
-		boxes.put(box, lines);
-		plotter.add(lines[0]).setColor(Color.black)
-			.setText(() -> boxName + " left: P " + box.getLeft().getPosition() + " F " + box.getLeft().getForce());
-		plotter.add(lines[1]).setColor(Color.black)
-			.setText(() -> boxName + " right: P" + box.getRight().getPosition() + " F " + box.getRight().getForce());
-		plotter.add(lines[2]).setColor(Color.black)
-			.setText(() -> boxName + " top: P " + box.getTop().getPosition() + " F " + box.getTop().getForce());
-		plotter.add(lines[3]).setColor(Color.black)
-			.setText(() -> boxName + " bottom: P " + box.getBottom().getPosition() + " F " + box.getBottom().getForce());
+	private static void addBox(DebugPlotter plotter, State<String> state, Map<BoxState, BoxHolder> boxes, BoxState box, String boxName) {
+		boxes.put(box, new BoxHolder(plotter, state, box, boxName));
 	}
 
 	private static void addSpring(DebugPlotter plotter, Map<SpringState, SpringHolder> springs, SpringState spring, String springName,
@@ -1735,21 +1891,11 @@ public class LayoutSolver<L> {
 		plotter.add(line).setColor(Color.blue).setText(() -> springName + ": L " + spring.getLength() + " T " + spring.getTension());
 	}
 
-	private static boolean updateShapes(Map<BoxState, Line2D[]> boxes, Map<SpringState, SpringHolder> springs) {
+	private static boolean updateShapes(Map<BoxState, BoxHolder> boxes, Map<SpringState, SpringHolder> springs) {
 		boolean updated = false;
-		for (Map.Entry<BoxState, Line2D[]> box : boxes.entrySet()) {
-			double left = box.getKey().getLeft().getPosition();
-			double right = box.getKey().getRight().getPosition();
-			double top = box.getKey().getTop().getPosition();
-			double bottom = box.getKey().getBottom().getPosition();
-			if (box.getValue()[0].getX1() != left || box.getValue()[0].getY1() != top || box.getValue()[0].getY2() != bottom
-				|| box.getValue()[1].getX1() != right) {
+		for (BoxHolder box : boxes.values()) {
+			if (box.update())
 				updated = true;
-				box.getValue()[0].setLine(left, top, left, bottom);
-				box.getValue()[1].setLine(right, top, right, bottom);
-				box.getValue()[2].setLine(left, top, right, top);
-				box.getValue()[3].setLine(left, bottom, right, bottom);
-			}
 		}
 		if (updated) {
 			for (Map.Entry<SpringState, SpringHolder> spring : springs.entrySet()) {
@@ -1766,7 +1912,7 @@ public class LayoutSolver<L> {
 		return updated;
 	}
 
-	private static void printAll(Map<BoxState, Line2D[]> boxes, Map<SpringState, SpringHolder> springs) {
+	private static void printAll(Map<BoxState, ?> boxes, Map<SpringState, SpringHolder> springs) {
 		for (BoxDef box : boxes.keySet()) {
 			System.out.println(box.getLeft());
 			System.out.println(box.getRight());

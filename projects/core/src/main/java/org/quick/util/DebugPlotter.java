@@ -42,6 +42,11 @@ public class DebugPlotter extends JComponent {
 			return this;
 		}
 
+		public ShapeHolder setColor(Supplier<Color> color) {
+			this.color = color;
+			return this;
+		}
+
 		public ShapeHolder setText(String text) {
 			this.text = () -> text;
 			return this;

@@ -12,9 +12,11 @@ import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.function.IntSupplier;
 
@@ -648,7 +650,8 @@ public class LayoutSolver<L> {
 					for (ElementId max = maxBound; max != null && max.compareTo(toMove.thePositionSortedElement) >= 0; //
 						max = CollectionElement.getElementId(linesByPosition.getAdjacentElement(max, false))) {
 						theMovingEdges = null;
-						if (adjustEdgeSet(toMove.theEdge.isVertical, min, max, stretch, null)) {
+						if (adjustment.init(stretch, between(toMove.theEdge.isVertical, min, max)).adjustEdgeSet(toMove.theEdge.isVertical,
+							null)) {
 							moved = true;
 							break outer;
 						}
@@ -757,7 +760,7 @@ public class LayoutSolver<L> {
 		private boolean propagateWave(EdgeStateImpl edge, boolean incoming, boolean outgoing, WaveSpringQueue waveQueue, boolean stretch) {
 			if (!edge.theEdge.isMobile(stretch) || edge.theTotalForce == 0)
 				return false;
-			boolean moved = adjustEdgeSet(edge.theEdge.isVertical, edge.thePositionSortedElement, edge.thePositionSortedElement, stretch,
+			boolean moved = adjustment.init(stretch, Arrays.asList(edge)).adjustEdgeSet(edge.theEdge.isVertical,
 				idx -> waveQueue.hasContained(idx));
 			if (moved) {
 				// Add all of the edge's springs that have NOT yet been visited to the springsToVisit with the according direction
@@ -848,442 +851,493 @@ public class LayoutSolver<L> {
 			}
 		}
 
-		// These are basically local variables that I don't want to waste performance initializing repeatedly
-		// This state class is NOT thread-safe, so this should be fine within good usage as long as I clear them after usage
-		private final List<AdjustingSpring> incomingSprings = new ArrayList<>();
-		private final List<AdjustingSpring> outgoingSprings = new ArrayList<>();
 
-		private int lastCalculatedForces;
-		private static final int MAX_BOUND_VALUE = 1000000;
+		private class EdgeSetAdjustment {
+			private final Set<EdgeStateImpl> edges = new LinkedHashSet<>();
+			private final List<AdjustingSpring> incomingSprings = new ArrayList<>();
+			private final List<AdjustingSpring> outgoingSprings = new ArrayList<>();
 
-		private class AdjustingSpring {
-			final SpringStateImpl spring;
-			final boolean isOutgoing;
-			final int anchorOffset;
-			TensionAndSnap tension;
-			final List<LinkedSpringAdjustment> linkedSpringAdjustments;
+			private int lastCalculatedForces;
+			private boolean isVertical;
+			private boolean isStretching;
+			private EdgeSetAdjustment theSecondaryAdjustment;
 
-			AdjustingSpring(SpringStateImpl spring, boolean outgoing, int initPosition) {
-				this.spring = spring;
-				isOutgoing = outgoing;
-				anchorOffset = (outgoing ? spring.theSource : spring.theDest).theEdge.thePosition - initPosition;
-				tension = spring.theTension;
-				linkedSpringAdjustments = new ArrayList<>(spring.theLinkedSprings.size());
-				for (SpringStateImpl linked : spring.theLinkedSprings)
-					linkedSpringAdjustments.add(new LinkedSpringAdjustment(linked));
+			EdgeSetAdjustment(boolean secondary) {
+				theSecondaryAdjustment = secondary ? null : new EdgeSetAdjustment(true);
 			}
 
-			float recalculate(int systemPosition) {
-				int anchorPosition = systemPosition + anchorOffset;
-				if (!linkedSpringAdjustments.isEmpty()) {
-					// This here is a bit of a hack.
-					// The implementations behind linked springs inspect the position state of the cross edges,
-					// so the only way to communicate the test case to the linked spring is to actually do the adjustment temporarily
-					int oldPos;
+			EdgeSetAdjustment init(boolean vertical, boolean stretching, Iterable<EdgeStateImpl> edges) {
+				isVertical = vertical;
+				isStretching = stretching;
+				for (EdgeStateImpl edge : edges)
+					this.edges.add(edge);
+				return this;
+			}
+
+			private class AdjustingSpring {
+				final SpringStateImpl spring;
+				final boolean isOutgoing;
+				final int anchorOffset;
+				TensionAndSnap tension;
+				final List<LinkedSpringAdjustment> linkedSpringAdjustments;
+
+				AdjustingSpring(SpringStateImpl spring, boolean outgoing, int initPosition) {
+					this.spring = spring;
+					isOutgoing = outgoing;
+					anchorOffset = (outgoing ? spring.theSource : spring.theDest).theEdge.thePosition - initPosition;
+					tension = spring.theTension;
+					if (theSecondaryAdjustment == null)
+						linkedSpringAdjustments = Collections.emptyList();
+					else {
+						linkedSpringAdjustments = new ArrayList<>(spring.theLinkedSprings.size());
+						for (SpringStateImpl linked : spring.theLinkedSprings)
+							linkedSpringAdjustments.add(new LinkedSpringAdjustment(linked));
+					}
+				}
+
+				float recalculate(int systemPosition) {
+					int anchorPosition = systemPosition + anchorOffset;
+					if (!linkedSpringAdjustments.isEmpty()) {
+						// This here is a bit of a hack.
+						// The implementations behind linked springs inspect the position state of the cross edges,
+						// so the only way to communicate the test case to the linked spring is to actually do the adjustment temporarily
+						int oldPos;
+						if (isOutgoing) {
+							oldPos = spring.theSource.theEdge.thePosition;
+							spring.theSource.theEdge.thePosition = anchorPosition;
+						} else {
+							oldPos = spring.theDest.theEdge.thePosition;
+							spring.theDest.theEdge.thePosition = anchorPosition;
+						}
+						try {
+							for (LinkedSpringAdjustment linked : linkedSpringAdjustments)
+								linked.adjust();
+						} finally {
+							if (isOutgoing)
+								spring.theSource.theEdge.thePosition = oldPos;
+							else
+								spring.theDest.theEdge.thePosition = oldPos;
+						}
+					}
+					LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
+					TensionAndSnap newTension;
+					if (eval == BOUNDS_TENSION) {
+						float tensionF = spring.getSource().getOrientation().isVertical() ? theVTension : theHTension;
+						newTension = new TensionAndSnap(tensionF, tensionF > 0 ? 10000000 : 0);
+					} else if (isOutgoing)
+						newTension = eval.getTension(spring.theDest.theEdge.thePosition - anchorPosition);
+					else
+						newTension = eval.getTension(anchorPosition - spring.theSource.theEdge.thePosition);
+					tension = newTension;
+					return spring.slacken(newTension.tension);
+				}
+
+				void updateForce(boolean stretching) {
+					spring.theTension = tension;
+					spring.pullInSlack();
+					for (LinkedSpringAdjustment linked : linkedSpringAdjustments)
+						linked.apply(stretching);
 					if (isOutgoing) {
-						oldPos = spring.theSource.theEdge.thePosition;
-						spring.theSource.theEdge.thePosition = anchorPosition;
+						if (spring.theDest.forceChanged())
+							spring.theDest.theEdge.forceChanged(stretching);
 					} else {
-						oldPos = spring.theDest.theEdge.thePosition;
-						spring.theDest.theEdge.thePosition = anchorPosition;
-					}
-					try {
-						for (LinkedSpringAdjustment linked : linkedSpringAdjustments)
-							linked.adjust();
-					} finally {
-						if (isOutgoing)
-							spring.theSource.theEdge.thePosition = oldPos;
-						else
-							spring.theDest.theEdge.thePosition = oldPos;
+						if (spring.theSource.forceChanged())
+							spring.theSource.theEdge.forceChanged(stretching);
 					}
 				}
-				LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
-				TensionAndSnap newTension;
-				if (eval == BOUNDS_TENSION) {
-					float tensionF = spring.getSource().getOrientation().isVertical() ? theVTension : theHTension;
-					newTension = new TensionAndSnap(tensionF, tensionF > 0 ? 10000000 : 0);
-				} else if (isOutgoing)
-					newTension = eval.getTension(spring.theDest.theEdge.thePosition - anchorPosition);
-				else
-					newTension = eval.getTension(anchorPosition - spring.theSource.theEdge.thePosition);
-				tension = newTension;
-				return spring.slacken(newTension.tension);
 			}
 
-			void updateForce(boolean stretching) {
-				spring.theTension = tension;
-				spring.pullInSlack();
-				for (LinkedSpringAdjustment linked : linkedSpringAdjustments)
-					linked.apply(stretching);
-				if (isOutgoing) {
-					if (spring.theDest.forceChanged())
-						spring.theDest.theEdge.forceChanged(stretching);
-				} else {
-					if (spring.theSource.forceChanged())
-						spring.theSource.theEdge.forceChanged(stretching);
+			private class LinkedSpringAdjustment {
+				final SpringStateImpl theSpring;
+				int sourcePosition;
+				int destPosition;
+				TensionAndSnap tension;
+
+				LinkedSpringAdjustment(SpringStateImpl linked) {
+					theSpring = linked;
+					sourcePosition = theSpring.theSource.theEdge.thePosition;
+					destPosition = theSpring.theDest.theEdge.thePosition;
+					tension = theSpring.theTension;
 				}
-			}
-		}
 
-		private class LinkedSpringAdjustment {
-			final SpringStateImpl theSpring;
-			int sourcePosition;
-			int destPosition;
-			TensionAndSnap tension;
-
-			LinkedSpringAdjustment(SpringStateImpl linked) {
-				theSpring = linked;
-				sourcePosition = theSpring.theSource.theEdge.thePosition;
-				destPosition = theSpring.theDest.theEdge.thePosition;
-				tension = theSpring.theTension;
-			}
-
-			void adjust() {
-				int todo = todo;
-				// TODO Figure out the optimum placement for both the source and dest given the dynamic current tension
-			}
-
-			void apply(boolean stretching) {
-				if (!theSpring.theTension.equals(tension)) {
-					theSpring.theTension = tension;
+				void adjust() {
+					if (!theSpring.recalculate(isStretching))
+						return;
+					int todo = todo;
+					// TODO Figure out the optimum placement for both the source and dest given the dynamic current tension
+					theSpring.theTension = theSpring.theSpring.theEvaluator.getTension(theSpring.getLength());
+					do {
+						float srcForce = theSpring.theSource.theEdge.theTotalForce;
+						float destForce = theSpring.theDest.theEdge.theTotalForce;
+						boolean moved;
+						if (srcForce == 0 || destForce == 0 || Math.signum(srcForce) == Math.signum(destForce)) {
+							moved = theSecondaryAdjustment
+								.init(!isVertical, isStretching, Arrays.asList(theSpring.theSource.theEdge, theSpring.theDest.theEdge))
+								.adjustEdgeSet(preQueuedSprings);
+							// Move both at once
+						} else if (Math.abs(srcForce) > Math.abs(destForce)) {
+							// Move the source line
+						} else {
+							// Move the dest line
+						}
+					} while (moved);
 				}
-				if (sourcePosition != theSpring.theSource.theEdge.thePosition) {
-					theSpring.theSource.theEdge.setPosition(sourcePosition);
-					for (SpringStateImpl spring : theSpring.theSource.theEdge.theIncoming.theSprings)
-						spring.checkTension();
-					for (SpringStateImpl spring : theSpring.theSource.theEdge.theOutgoing.theSprings) {
-						if (spring != theSpring)
+
+				void apply(boolean stretching) {
+					if (!theSpring.theTension.equals(tension)) {
+						theSpring.theTension = tension;
+					}
+					if (sourcePosition != theSpring.theSource.theEdge.thePosition) {
+						theSpring.theSource.theEdge.setPosition(sourcePosition);
+						for (SpringStateImpl spring : theSpring.theSource.theEdge.theIncoming.theSprings)
 							spring.checkTension();
+						for (SpringStateImpl spring : theSpring.theSource.theEdge.theOutgoing.theSprings) {
+							if (spring != theSpring)
+								spring.checkTension();
+						}
 					}
-				}
-				if (destPosition != theSpring.theDest.theEdge.thePosition) {
-					theSpring.theDest.theEdge.setPosition(destPosition);
-					for (SpringStateImpl spring : theSpring.theDest.theEdge.theOutgoing.theSprings)
-						spring.checkTension();
-					for (SpringStateImpl spring : theSpring.theDest.theEdge.theIncoming.theSprings) {
-						if (spring != theSpring)
+					if (destPosition != theSpring.theDest.theEdge.thePosition) {
+						theSpring.theDest.theEdge.setPosition(destPosition);
+						for (SpringStateImpl spring : theSpring.theDest.theEdge.theOutgoing.theSprings)
 							spring.checkTension();
+						for (SpringStateImpl spring : theSpring.theDest.theEdge.theIncoming.theSprings) {
+							if (spring != theSpring)
+								spring.checkTension();
+						}
 					}
+					if (theSpring.theSource.forceChanged())
+						theSpring.theSource.theEdge.forceChanged(stretching);
+					if (theSpring.theDest.forceChanged())
+						theSpring.theDest.theEdge.forceChanged(stretching);
 				}
-				if (theSpring.theSource.forceChanged())
-					theSpring.theSource.theEdge.forceChanged(stretching);
-				if (theSpring.theDest.forceChanged())
-					theSpring.theDest.theEdge.forceChanged(stretching);
 			}
-		}
 
-		private boolean adjustEdgeSet(boolean vertical, ElementId minBound, ElementId maxBound, boolean stretching,
-			IntPredicate preQueuedSprings) {
-			BetterList<EdgeStateImpl> linesByPosition = vertical ? theVEdgesByPosition : theHEdgesByPosition;
-			// Determine the set of springs that act upon the given set of lines as a whole,
-			// i.e. the springs that have one end on a line in the set and the other end on a line not in the set
-			float force = 0;
-			int initPosition;
-			// TODO At least in the case of wave=true, we don't want to find the absolute equilibrium for the target edge.
-			// If there are other (mobile) edges connected to the target by springs which also have a force on them
-			// that would (if moved) relax the overall force on the target, we want to allow that line to contribute as well.
-			// Otherwise, we could be doing extra work, plus we could get stuck moving back and forth
-			// between two unstable states on either side of the true equilibrium for the system
-			CollectionElement<EdgeStateImpl> el = linesByPosition.getElement(minBound);
-			initPosition = el.get().thePosition;
-			while (true) {
-				EdgeStateImpl line = el.get();
-
-				for (SpringStateImpl spring : line.theIncoming.theSprings) {
-					if (spring.theSource.theEdge.thePositionSortedElement.compareTo(minBound) < 0//
-						|| spring.theSource.theEdge.thePositionSortedElement.compareTo(maxBound) > 0) {
-						incomingSprings.add(new AdjustingSpring(spring, false, initPosition));
-						force += spring.getTension();
+			private boolean adjustEdgeSet(IntPredicate preQueuedSprings) {
+				BetterList<EdgeStateImpl> linesByPosition = isVertical ? theVEdgesByPosition : theHEdgesByPosition;
+				// Determine the set of springs that act upon the given set of lines as a whole,
+				// i.e. the springs that have one end on a line in the set and the other end on a line not in the set
+				float force = 0;
+				int initPosition;
+				// TODO At least in the case of wave=true, we don't want to find the absolute equilibrium for the target edge.
+				// If there are other (mobile) edges connected to the target by springs which also have a force on them
+				// that would (if moved) relax the overall force on the target, we want to allow that line to contribute as well.
+				// Otherwise, we could be doing extra work, plus we could get stuck moving back and forth
+				// between two unstable states on either side of the true equilibrium for the system
+				initPosition = edges.iterator().next().thePosition;
+				for (EdgeStateImpl edge : edges) {
+					for (SpringStateImpl spring : edge.theIncoming.theSprings) {
+						if (!edges.contains(spring.theSource.theEdge) || !edges.contains(spring.theSource.theEdge)) {
+							incomingSprings.add(new AdjustingSpring(spring, false, initPosition));
+							force += spring.getTension();
+						}
+					}
+					for (SpringStateImpl spring : edge.theOutgoing.theSprings) {
+						if (!edges.contains(spring.theSource.theEdge) || !edges.contains(spring.theSource.theEdge)) {
+							outgoingSprings.add(new AdjustingSpring(spring, true, initPosition));
+							force -= spring.getTension();
+						}
 					}
 				}
-				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
-					if (spring.theDest.theEdge.thePositionSortedElement.compareTo(minBound) < 0//
-						|| spring.theDest.theEdge.thePositionSortedElement.compareTo(maxBound) > 0) {
-						outgoingSprings.add(new AdjustingSpring(spring, true, initPosition));
-						force -= spring.getTension();
-					}
-				}
-				if (el.getElementId().equals(maxBound))
-					break;
-				else
-					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
-			}
-			boolean halfWay = false;
-			if (preQueuedSprings != null) {
-				for (AdjustingSpring spring : incomingSprings) {
-					if (preQueuedSprings.test(spring.spring.theSpring.id) || !spring.spring.theSource.theEdge.theEdge.isMobile(stretching))
-						continue;
-					float extForce = spring.spring.theSource.theEdge.theTotalForce;
-					if (extForce != 0 && (extForce > 0) != (force > 0)) {
-						// This connected edge would, if allowed to move, also serve to relax the force on the edge set we're moving now
-						// Give it a chance
-						halfWay = true;
-						break;
-					}
-				}
-				if (!halfWay) {
-					for (AdjustingSpring spring : outgoingSprings) {
+				boolean halfWay = false;
+				if (preQueuedSprings != null) {
+					for (AdjustingSpring spring : incomingSprings) {
 						if (preQueuedSprings.test(spring.spring.theSpring.id)
-							|| !spring.spring.theDest.theEdge.theEdge.isMobile(stretching))
+							|| !spring.spring.theSource.theEdge.theEdge.isMobile(isStretching))
 							continue;
-						float extForce = spring.spring.theDest.theEdge.theTotalForce;
+						float extForce = spring.spring.theSource.theEdge.theTotalForce;
 						if (extForce != 0 && (extForce > 0) != (force > 0)) {
-							// This connected edge would, if moved, also serve to relax the force on the edge set we're moving now
+							// This connected edge would, if allowed to move, also serve to relax the force on the edge set we're moving now
 							// Give it a chance
 							halfWay = true;
 							break;
 						}
 					}
+					if (!halfWay) {
+						for (AdjustingSpring spring : outgoingSprings) {
+							if (preQueuedSprings.test(spring.spring.theSpring.id)
+								|| !spring.spring.theDest.theEdge.theEdge.isMobile(isStretching))
+								continue;
+							float extForce = spring.spring.theDest.theEdge.theTotalForce;
+							if (extForce != 0 && (extForce > 0) != (force > 0)) {
+								// This connected edge would, if moved, also serve to relax the force on the edge set we're moving now
+								// Give it a chance
+								halfWay = true;
+								break;
+							}
+						}
+					}
 				}
-			}
-			if (DEBUG)
-				System.out.println(
-					"Moving " + minBound + (minBound.equals(maxBound) ? "" : "..." + maxBound) + " (" + force + ")");
-			int[] relPositions = new int[linesByPosition.getElementsBefore(maxBound) - linesByPosition.getElementsBefore(minBound) + 1];
-			int[] moving = new int[relPositions.length];
-			el = linesByPosition.getElement(minBound);
-			initPosition = el.get().thePosition;
-			moving[0] = el.get().theEdge.id;
-			for (int i = 1; i < relPositions.length; i++) {
-				el = linesByPosition.getAdjacentElement(el.getElementId(), true);
-				relPositions[i] = el.get().thePosition - initPosition;
-				moving[i] = el.get().theEdge.id;
-			}
-			theMovingEdges = moving;
-			theWaveNumber++;
-			lastCalculatedForces = initPosition;
+				if (DEBUG)
+					System.out.println("Moving " + edges + " (" + force + ")");
+				int[] relPositions = new int[edges.size()];
+				int[] moving = new int[relPositions.length];
+				int i = 0;
+				for (EdgeStateImpl edge : edges) {
+					relPositions[i] = edge.thePosition - initPosition;
+					moving[i] = edge.theEdge.id;
+					i++;
+				}
+				theMovingEdges = moving;
+				theWaveNumber++;
+				lastCalculatedForces = initPosition;
 
-			boolean hasLeadingForce, hasTrailingForce;
-			int leadingMost, trailingMost;
-			float leadingForce, trailingForce;
-			if (force > 0) {
-				leadingMost = initPosition;
-				leadingForce = force;
-				hasLeadingForce = true;
-				if (stretching)
-					trailingMost = MAX_BOUND_VALUE;
-				else
-					trailingMost = theBoundState.getEdge(Orientation.of(vertical), End.trailing).getPosition()
-						- relPositions[relPositions.length - 1];
-				trailingForce = 0;
-				hasTrailingForce = false;
-			} else {
-				leadingMost = 0;
-				leadingForce = 0;
-				hasLeadingForce = false;
-				trailingMost = initPosition;
-				trailingForce = force;
-				hasTrailingForce = true;
-			}
-			int position = initPosition;
-			stepping: while (leadingMost < trailingMost - 1) {
-				if (DEBUG)
-					System.out.println("\tStep");
-				int nextSnap = force > 0 ? trailingMost : leadingMost;
-				int signum = (int) Math.signum(force);
-				for (AdjustingSpring spring : incomingSprings) {
-					int springSign = (int) Math.signum(spring.tension.tension);
-					if (signum == springSign) {
-						int snap = spring.spring.theSource.theEdge.getPosition() + spring.tension.snap - spring.anchorOffset;
-						if (signum > 0) {
-							if (snap < nextSnap) {
-								if (DEBUG)
-									System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
-								nextSnap = snap;
-								if (nextSnap <= leadingMost)
-									break stepping;
-							}
-						} else {
-							if (snap > nextSnap) {
-								if (DEBUG)
-									System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
-								nextSnap = snap;
-								if (nextSnap >= trailingMost)
-									break stepping;
-							}
-						}
-					}
-				}
-				for (AdjustingSpring spring : outgoingSprings) {
-					int springSign = (int) Math.signum(spring.tension.tension);
-					if (springSign != 0 && signum != springSign) {
-						int snap = spring.spring.theDest.theEdge.getPosition() - spring.tension.snap - spring.anchorOffset;
-						if (signum > 0) {
-							if (snap < nextSnap) {
-								if (DEBUG)
-									System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
-								nextSnap = snap;
-								if (nextSnap <= leadingMost)
-									break stepping;
-							}
-						} else {
-							if (snap > nextSnap) {
-								if (DEBUG)
-									System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
-								nextSnap = snap;
-								if (nextSnap >= trailingMost)
-									break stepping;
-							}
-						}
-					}
-				}
-				if (nextSnap == trailingMost || nextSnap == leadingMost)
-					break;
-				// Re-compute forces
-				position = nextSnap;
-				force = computeAdjustedForce(nextSnap);
-				if (DEBUG)
-					System.out.println("\t\t\tforce=" + force);
-				if (force == 0) {
-					leadingMost = trailingMost = position;
-					leadingForce = trailingForce = force;
-					hasLeadingForce = hasTrailingForce = true;
-					break;
-				} else if (force < 0) {
-					trailingMost = position;
-					trailingForce = force;
-					hasTrailingForce = true;
-				} else {
-					leadingMost = position;
+				boolean hasLeadingForce, hasTrailingForce;
+				int leadingMost, trailingMost;
+				float leadingForce, trailingForce;
+				if (force > 0) {
+					leadingMost = initPosition;
 					leadingForce = force;
 					hasLeadingForce = true;
-				}
-			}
-			if (!hasLeadingForce)
-				leadingForce = computeAdjustedForce(leadingMost);
-			if (!hasTrailingForce)
-				trailingForce = computeAdjustedForce(trailingMost);
-			if (trailingMost - leadingMost > 1) {
-				// Do a linear interpolation step to try to narrow the range
-				int interpPos = interpolate(leadingMost, leadingForce, trailingMost, trailingForce);
-				if (interpPos != leadingMost && interpPos != trailingMost) {
-					float interpForce = computeAdjustedForce(interpPos);
-					if (DEBUG)
-						System.out.println("\tinterpolated " + leadingMost + "(" + leadingForce + ")..." + trailingMost + "("
-							+ trailingForce + ")=" + interpPos + " (" + interpForce + ")");
-					if (interpForce > 0) {
-						leadingMost = interpPos;
-						leadingForce = interpForce;
-					} else {
-						trailingMost = interpPos;
-						trailingForce = interpForce;
-					}
-					if (Math.abs(interpForce) < Math.abs(force)) {
-						position = interpPos;
-						force = interpForce;
-					}
-				}
-			}
-			if (trailingMost == leadingMost) {
-				position = leadingMost;
-			} else if (trailingMost == leadingMost + 1) {
-				if (Math.abs(leadingForce) < Math.abs(trailingForce))
-					position = leadingMost;
-				else
-					position = trailingMost;
-			} else {
-				// Steps can't help us at this point. Use binary search.
-				float[] f = new float[1];
-				int lead = leadingMost, trail = trailingMost;
-				if (DEBUG)
-					System.out.println(
-						"\tbsearch between " + leadingMost + " (" + leadingForce + ") and " + trailingMost + " (" + trailingForce + ")");
-				position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
-					if (pos == lead)
-						return 1;
-					else if (pos == trail)
-						return -1;
-					f[0] = computeAdjustedForce(pos);
-					if (DEBUG)
-						System.out.println("\t\t" + pos + ": " + f[0]);
-					if (f[0] == 0)
-						return 0;
+					if (isStretching)
+						trailingMost = MAX_BOUND_VALUE;
 					else
-						return f[0] > 0 ? 1 : -1;
-				});
-				if (position < 0)
-					position = -position - 1;
-				force = f[0];
-				if (Math.abs(leadingForce) < Math.abs(force)) {
-					position = leadingMost;
-					force = leadingForce;
+						trailingMost = theBoundState.getEdge(Orientation.of(isVertical), End.trailing).getPosition()
+							- relPositions[relPositions.length - 1];
+					trailingForce = 0;
+					hasTrailingForce = false;
+				} else {
+					leadingMost = 0;
+					leadingForce = 0;
+					hasLeadingForce = false;
+					trailingMost = initPosition;
+					trailingForce = force;
+					hasTrailingForce = true;
 				}
-				if (Math.abs(trailingForce) < Math.abs(force)) {
-					position = trailingMost;
-					force = trailingForce;
-				}
-			}
-			boolean modified = position != initPosition;
-			if (modified) {
-				if (halfWay) {
-					int halfwayPos = (position + initPosition) / 2;
-					if (halfwayPos != initPosition){
-						position = halfwayPos;
-						if (DEBUG)
-							System.out.println("Halved move to " + position);
+				int position = initPosition;
+				stepping: while (leadingMost < trailingMost - 1) {
+					if (DEBUG)
+						System.out.println("\tStep");
+					int nextSnap = force > 0 ? trailingMost : leadingMost;
+					int signum = (int) Math.signum(force);
+					for (AdjustingSpring spring : incomingSprings) {
+						int springSign = (int) Math.signum(spring.tension.tension);
+						if (signum == springSign) {
+							int snap = spring.spring.theSource.theEdge.getPosition() + spring.tension.snap - spring.anchorOffset;
+							if (signum > 0) {
+								if (snap < nextSnap) {
+									if (DEBUG)
+										System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
+									nextSnap = snap;
+									if (nextSnap <= leadingMost)
+										break stepping;
+								}
+							} else {
+								if (snap > nextSnap) {
+									if (DEBUG)
+										System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
+									nextSnap = snap;
+									if (nextSnap >= trailingMost)
+										break stepping;
+								}
+							}
+						}
+					}
+					for (AdjustingSpring spring : outgoingSprings) {
+						int springSign = (int) Math.signum(spring.tension.tension);
+						if (springSign != 0 && signum != springSign) {
+							int snap = spring.spring.theDest.theEdge.getPosition() - spring.tension.snap - spring.anchorOffset;
+							if (signum > 0) {
+								if (snap < nextSnap) {
+									if (DEBUG)
+										System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
+									nextSnap = snap;
+									if (nextSnap <= leadingMost)
+										break stepping;
+								}
+							} else {
+								if (snap > nextSnap) {
+									if (DEBUG)
+										System.out.println("\t\tSnap to " + snap + " for " + spring + " " + spring.tension);
+									nextSnap = snap;
+									if (nextSnap >= trailingMost)
+										break stepping;
+								}
+							}
+						}
+					}
+					if (nextSnap == trailingMost || nextSnap == leadingMost)
+						break;
+					// Re-compute forces
+					position = nextSnap;
+					force = computeAdjustedForce(nextSnap);
+					if (DEBUG)
+						System.out.println("\t\t\tforce=" + force);
+					if (force == 0) {
+						leadingMost = trailingMost = position;
+						leadingForce = trailingForce = force;
+						hasLeadingForce = hasTrailingForce = true;
+						break;
+					} else if (force < 0) {
+						trailingMost = position;
+						trailingForce = force;
+						hasTrailingForce = true;
+					} else {
+						leadingMost = position;
+						leadingForce = force;
+						hasLeadingForce = true;
 					}
 				}
-
-				if (DEBUG)
-					System.out.println("\tMoving to " + position);
-				if (lastCalculatedForces != position)
-					computeAdjustedForce(position);
-				// From here on out, we can't just use the backing position-sorted list to iterate,
-				// because setting the positions here will affect the list's content
-				// So we need to create a copy
-				List<EdgeStateImpl> includedLines = new ArrayList<>(relPositions.length);
-				el = linesByPosition.getElement(minBound);
-				for (int i = 0; i < relPositions.length; i++) {
-					includedLines.add(el.get());
-					el = linesByPosition.getAdjacentElement(el.getElementId(), true);
+				if (!hasLeadingForce)
+					leadingForce = computeAdjustedForce(leadingMost);
+				if (!hasTrailingForce)
+					trailingForce = computeAdjustedForce(trailingMost);
+				if (trailingMost - leadingMost > 1) {
+					// Do a linear interpolation step to try to narrow the range
+					int interpPos = interpolate(leadingMost, leadingForce, trailingMost, trailingForce);
+					if (interpPos != leadingMost && interpPos != trailingMost) {
+						float interpForce = computeAdjustedForce(interpPos);
+						if (DEBUG)
+							System.out.println("\tinterpolated " + leadingMost + "(" + leadingForce + ")..." + trailingMost + "("
+								+ trailingForce + ")=" + interpPos + " (" + interpForce + ")");
+						if (interpForce > 0) {
+							leadingMost = interpPos;
+							leadingForce = interpForce;
+						} else {
+							trailingMost = interpPos;
+							trailingForce = interpForce;
+						}
+						if (Math.abs(interpForce) < Math.abs(force)) {
+							position = interpPos;
+							force = interpForce;
+						}
+					}
 				}
-				// Set the positions
-				for (int i = 0; i < includedLines.size(); i++)
-					includedLines.get(i).setPosition(position + relPositions[i]);
-				// Update spring tensions and forces on the lines outside the set
-				for (AdjustingSpring spring : incomingSprings)
-					spring.updateForce(stretching);
-				for (AdjustingSpring spring : outgoingSprings)
-					spring.updateForce(stretching);
-
-				// Set the forces on the lines in the set
-				for (EdgeStateImpl line : includedLines) {
-					// Don't just use || here, because then if incoming force is changed, the outgoing forceChanged() won't be called
-					boolean forceChanged = line.theIncoming.forceChanged();
-					if (line.theOutgoing.forceChanged())
-						forceChanged = true;
-					if (forceChanged)
-						line.forceChanged(stretching);
+				if (trailingMost == leadingMost) {
+					position = leadingMost;
+				} else if (trailingMost == leadingMost + 1) {
+					if (Math.abs(leadingForce) < Math.abs(trailingForce))
+						position = leadingMost;
+					else
+						position = trailingMost;
+				} else {
+					// Steps can't help us at this point. Use binary search.
+					float[] f = new float[1];
+					int lead = leadingMost, trail = trailingMost;
+					if (DEBUG)
+						System.out.println("\tbsearch between " + leadingMost + " (" + leadingForce + ") and " + trailingMost + " ("
+							+ trailingForce + ")");
+					position = ArrayUtils.binarySearch(leadingMost, trailingMost, pos -> {
+						if (pos == lead)
+							return 1;
+						else if (pos == trail)
+							return -1;
+						f[0] = computeAdjustedForce(pos);
+						if (DEBUG)
+							System.out.println("\t\t" + pos + ": " + f[0]);
+						if (f[0] == 0)
+							return 0;
+						else
+							return f[0] > 0 ? 1 : -1;
+					});
+					if (position < 0)
+						position = -position - 1;
+					force = f[0];
+					if (Math.abs(leadingForce) < Math.abs(force)) {
+						position = leadingMost;
+						force = leadingForce;
+					}
+					if (Math.abs(trailingForce) < Math.abs(force)) {
+						position = trailingMost;
+						force = trailingForce;
+					}
 				}
-			} else {
-				if (DEBUG)
-					System.out.println("\tStable");
+				boolean modified = position != initPosition;
+				if (modified) {
+					if (halfWay) {
+						int halfwayPos = (position + initPosition) / 2;
+						if (halfwayPos != initPosition) {
+							position = halfwayPos;
+							if (DEBUG)
+								System.out.println("Halved move to " + position);
+						}
+					}
+
+					if (DEBUG)
+						System.out.println("\tMoving to " + position);
+					if (lastCalculatedForces != position)
+						computeAdjustedForce(position);
+					// Set the positions
+					i = 0;
+					for (EdgeStateImpl edge : edges)
+						edge.setPosition(position + relPositions[i++]);
+					// Update spring tensions and forces on the lines outside the set
+					for (AdjustingSpring spring : incomingSprings)
+						spring.updateForce(isStretching);
+					for (AdjustingSpring spring : outgoingSprings)
+						spring.updateForce(isStretching);
+
+					// Set the forces on the lines in the set
+					for (EdgeStateImpl edge : edges) {
+						// Don't just use || here, because then if incoming force is changed, the outgoing forceChanged() won't be called
+						boolean forceChanged = edge.theIncoming.forceChanged();
+						if (edge.theOutgoing.forceChanged())
+							forceChanged = true;
+						if (forceChanged)
+							edge.forceChanged(isStretching);
+					}
+				} else {
+					if (DEBUG)
+						System.out.println("\tStable");
+				}
+				// Reset "local variables" for the next adjustment
+				incomingSprings.clear();
+				outgoingSprings.clear();
+				lastCalculatedForces = Integer.MIN_VALUE;
+				edges.clear();
+				return modified;
 			}
-			// Reset "local variables" for the next adjustment
-			incomingSprings.clear();
-			outgoingSprings.clear();
-			lastCalculatedForces = Integer.MIN_VALUE;
-			return modified;
+
+			private float computeAdjustedForce(int position) {
+				lastCalculatedForces = position;
+				float force = 0;
+				for (AdjustingSpring spring : incomingSprings)
+					force += spring.recalculate(position);
+				for (AdjustingSpring spring : outgoingSprings)
+					force -= spring.recalculate(position);
+				return force;
+			}
+
+			private int interpolate(int leadingMost, float leadingForce, int trailingMost, float trailingForce) {
+				int interpPos = Math.round(leadingMost + leadingForce * (trailingMost - leadingMost) / (leadingForce - trailingForce));
+				// Increment to try to enclose the real result more often
+				if ((interpPos - leadingMost) < (trailingMost - interpPos))
+					interpPos++;
+				else
+					interpPos--;
+				return interpPos;
+			}
 		}
 
-		private float computeAdjustedForce(int position) {
-			lastCalculatedForces = position;
-			float force = 0;
-			for (AdjustingSpring spring : incomingSprings)
-				force += spring.recalculate(position);
-			for (AdjustingSpring spring : outgoingSprings)
-				force -= spring.recalculate(position);
-			return force;
-		}
+		private final EdgeSetAdjustment adjustment = new EdgeSetAdjustment(false);
+		private static final int MAX_BOUND_VALUE = 1000000;
 
-		private int interpolate(int leadingMost, float leadingForce, int trailingMost, float trailingForce) {
-			int interpPos = Math.round(leadingMost + leadingForce * (trailingMost - leadingMost) / (leadingForce - trailingForce));
-			// Increment to try to enclose the real result more often
-			if ((interpPos - leadingMost) < (trailingMost - interpPos))
-				interpPos++;
-			else
-				interpPos--;
-			return interpPos;
+		private Iterable<EdgeStateImpl> between(boolean vertical, ElementId minBound, ElementId maxBound) {
+			BetterList<EdgeStateImpl> edges = vertical ? theVEdgesByPosition : theHEdgesByPosition;
+			return new Iterable<EdgeStateImpl>() {
+				@Override
+				public Iterator<EdgeStateImpl> iterator() {
+					return new Iterator<EdgeStateImpl>() {
+						private ElementId el = minBound;
+
+						@Override
+						public boolean hasNext() {
+							return el != null && !el.equals(maxBound);
+						}
+
+						@Override
+						public EdgeStateImpl next() {
+							EdgeStateImpl edge = edges.getElement(minBound).get();
+							el = CollectionElement.getElementId(edges.getAdjacentElement(el, true));
+							return edge;
+						}
+					};
+				}
+
+				@Override
+				public String toString() {
+					return minBound + (minBound.equals(maxBound) ? "" : "..." + maxBound);
+				}
+			};
 		}
 	}
 

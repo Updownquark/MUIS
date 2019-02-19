@@ -1,22 +1,11 @@
-package org.quick.core.layout;
+package org.quick.base.layout;
 
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.IntPredicate;
 import java.util.function.IntSupplier;
 
@@ -25,18 +14,65 @@ import javax.swing.JFrame;
 import org.qommons.ArrayUtils;
 import org.qommons.QommonsUtils;
 import org.qommons.Ternian;
-import org.qommons.collect.BetterHashMap;
-import org.qommons.collect.BetterList;
-import org.qommons.collect.BetterMap;
-import org.qommons.collect.CollectionElement;
-import org.qommons.collect.ElementId;
+import org.qommons.collect.*;
 import org.qommons.tree.BetterTreeSet;
 import org.qommons.tree.SortedTreeList;
 import org.quick.core.Point;
-import org.quick.core.layout.LayoutSpringEvaluator.TensionAndSnap;
+import org.quick.core.layout.*;
 import org.quick.util.DebugPlotter;
 
+/**
+ * <p>
+ * LayoutSolver is an API for defining a layout consisting of edges and springs between them, then solving for the best layout.
+ * </p>
+ *
+ * <p>
+ * As of this moment, it works pretty well for layouts without linked springs. But components whose width and height are co-dependent (e.g.
+ * text boxes, which need more-or-less constant area to layout wrapped text in; and images, whose width and height must be proportional to
+ * avoid distorting the image) do not work well at all. They're very slow and the result is not aesthetic at all.
+ * </p>
+ *
+ * <p>
+ * Putting this in cold storage for now. The multi-move and wave implementations both work ok, but multi-move is faster and wave doesn't
+ * seem to have any consistent aesthetic advantages.
+ * </p>
+ *
+ * @param <L>
+ */
 public class LayoutSolver<L> {
+	public interface LayoutSpringEvaluator {
+		int getSize(float tension);
+
+		/**
+		 * @param length The difference between the destination position and the source position (in pixels)
+		 * @return The tension of this spring. Positive tension means a desire for a larger distance; negative means a desire to shrink the
+		 *         distance.
+		 */
+		TensionAndSnap getTension(int length);
+	}
+
+	public static class TensionAndSnap {
+		public static final TensionAndSnap ZERO = new TensionAndSnap(0, 0);
+		public final float tension;
+		public final int snap;
+
+		public TensionAndSnap(float tension, int snap) {
+			if (Float.isNaN(tension))
+				throw new IllegalArgumentException("NaN");
+			this.tension = tension;
+			this.snap = snap;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof TensionAndSnap && tension == ((TensionAndSnap) o).tension && snap == ((TensionAndSnap) o).snap;
+		}
+
+		@Override
+		public String toString() {
+			return tension + "->" + snap;
+		}
+	}
 	public interface EdgeDef {
 		Orientation getOrientation();
 	}
@@ -571,6 +607,7 @@ public class LayoutSolver<L> {
 			theBoundState.bottom.setPosition(height);
 			theHTension = 0;
 			theVTension = 0;
+			// return adjustViaMultiMove(false);
 			return adjustViaWave(false);
 		}
 
@@ -582,7 +619,8 @@ public class LayoutSolver<L> {
 			theVTension = vTension * (theBounds.top.theOutgoingSprings.size() - 1 + theBounds.bottom.theIncomingSprings.size() - 1) / 2;
 			// Then perform the normal layout operation with the additional degree of freedom
 			// that the right and bottom bounds can be adjusted
-			return adjustViaWave(true);
+			return adjustViaMultiMove(true);
+			// return adjustViaWave(true);
 		}
 
 		// This method adjusts the layout by moving high-priority (absolute force) adjacent sets of edges
@@ -981,7 +1019,7 @@ public class LayoutSolver<L> {
 							moved = theSecondaryAdjustment.adjustEdgeSet(!isVertical, isStretching,
 								Arrays.asList(theSpring.theDest.theEdge), thePreQueuedSprings);
 						}
-					} while (--tries > 0 && moved);
+					} while (moved && --tries > 0);
 				}
 
 				void apply(boolean stretching) {
@@ -1235,7 +1273,9 @@ public class LayoutSolver<L> {
 						else
 							return f[0] > 0 ? 1 : -1;
 					});
-					if (position < 0)
+					// The bsearch method returns -(result+1) if an exact match (force==0) wasn't found,
+					// but only if the input indexes were non-negative
+					if (position < 0 && leadingMost >= 0)
 						position = -position - 1;
 					force = f[0];
 					if (Math.abs(leadingForce) < Math.abs(force)) {
@@ -1325,15 +1365,18 @@ public class LayoutSolver<L> {
 				public Iterator<EdgeStateImpl> iterator() {
 					return new Iterator<EdgeStateImpl>() {
 						private ElementId el = minBound;
+						private boolean isDone;
 
 						@Override
 						public boolean hasNext() {
-							return el != null && !el.equals(maxBound);
+							return !isDone;
 						}
 
 						@Override
 						public EdgeStateImpl next() {
-							EdgeStateImpl edge = edges.getElement(minBound).get();
+							if (el.equals(maxBound))
+								isDone = true;
+							EdgeStateImpl edge = edges.getElement(el).get();
 							el = CollectionElement.getElementId(edges.getAdjacentElement(el, true));
 							return edge;
 						}
@@ -1956,13 +1999,13 @@ public class LayoutSolver<L> {
 			SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
 				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef topMarginText = solver.createSpring(solver.getBounds().getTop(), textBox.getTop(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 1000, 1000)));
 			SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
 				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
 				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef bottomMarginText = solver.createSpring(textBox.getBottom(), solver.getBounds().getBottom(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 1000, 1000)));
 			SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
 				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			// Between the boxes
@@ -2055,7 +2098,7 @@ public class LayoutSolver<L> {
 	}
 
 	private static void reSolve(State<String> solverState, int width, int height) {
-		// solverState.reset();
+		solverState.reset();
 		// solverState.stretch(-MAX_TENSION, -MAX_TENSION);
 		// solverState.stretch(-MAX_PREF_TENSION, -MAX_PREF_TENSION);
 		// solverState.stretch(0, 0);

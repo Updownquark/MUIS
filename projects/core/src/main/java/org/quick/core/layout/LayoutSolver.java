@@ -650,7 +650,7 @@ public class LayoutSolver<L> {
 					for (ElementId max = maxBound; max != null && max.compareTo(toMove.thePositionSortedElement) >= 0; //
 						max = CollectionElement.getElementId(linesByPosition.getAdjacentElement(max, false))) {
 						theMovingEdges = null;
-						if (adjustment.init(stretch, between(toMove.theEdge.isVertical, min, max)).adjustEdgeSet(toMove.theEdge.isVertical,
+						if (adjustment.adjustEdgeSet(toMove.theEdge.isVertical, stretch, between(toMove.theEdge.isVertical, min, max),
 							null)) {
 							moved = true;
 							break outer;
@@ -760,7 +760,7 @@ public class LayoutSolver<L> {
 		private boolean propagateWave(EdgeStateImpl edge, boolean incoming, boolean outgoing, WaveSpringQueue waveQueue, boolean stretch) {
 			if (!edge.theEdge.isMobile(stretch) || edge.theTotalForce == 0)
 				return false;
-			boolean moved = adjustment.init(stretch, Arrays.asList(edge)).adjustEdgeSet(edge.theEdge.isVertical,
+			boolean moved = adjustment.adjustEdgeSet(edge.theEdge.isVertical, stretch, Arrays.asList(edge),
 				idx -> waveQueue.hasContained(idx));
 			if (moved) {
 				// Add all of the edge's springs that have NOT yet been visited to the springsToVisit with the according direction
@@ -858,20 +858,13 @@ public class LayoutSolver<L> {
 			private final List<AdjustingSpring> outgoingSprings = new ArrayList<>();
 
 			private int lastCalculatedForces;
-			private boolean isVertical;
-			private boolean isStretching;
-			private EdgeSetAdjustment theSecondaryAdjustment;
+			boolean isVertical;
+			boolean isStretching;
+			IntPredicate thePreQueuedSprings;
+			EdgeSetAdjustment theSecondaryAdjustment;
 
 			EdgeSetAdjustment(boolean secondary) {
 				theSecondaryAdjustment = secondary ? null : new EdgeSetAdjustment(true);
-			}
-
-			EdgeSetAdjustment init(boolean vertical, boolean stretching, Iterable<EdgeStateImpl> edges) {
-				isVertical = vertical;
-				isStretching = stretching;
-				for (EdgeStateImpl edge : edges)
-					this.edges.add(edge);
-				return this;
 			}
 
 			private class AdjustingSpring {
@@ -945,6 +938,11 @@ public class LayoutSolver<L> {
 							spring.theSource.theEdge.forceChanged(stretching);
 					}
 				}
+
+				@Override
+				public String toString() {
+					return spring.theSpring + ": " + tension;
+				}
 			}
 
 			private class LinkedSpringAdjustment {
@@ -963,24 +961,27 @@ public class LayoutSolver<L> {
 				void adjust() {
 					if (!theSpring.recalculate(isStretching))
 						return;
-					int todo = todo;
-					// TODO Figure out the optimum placement for both the source and dest given the dynamic current tension
+					// Figure out the optimum placement for both the source and dest given the dynamic current tension
 					theSpring.theTension = theSpring.theSpring.theEvaluator.getTension(theSpring.getLength());
+					int tries = 3;
+					boolean moved = false;
 					do {
 						float srcForce = theSpring.theSource.theEdge.theTotalForce;
 						float destForce = theSpring.theDest.theEdge.theTotalForce;
-						boolean moved;
 						if (srcForce == 0 || destForce == 0 || Math.signum(srcForce) == Math.signum(destForce)) {
-							moved = theSecondaryAdjustment
-								.init(!isVertical, isStretching, Arrays.asList(theSpring.theSource.theEdge, theSpring.theDest.theEdge))
-								.adjustEdgeSet(preQueuedSprings);
 							// Move both at once
+							moved = theSecondaryAdjustment.adjustEdgeSet(!isVertical, isStretching,
+								Arrays.asList(theSpring.theSource.theEdge, theSpring.theDest.theEdge), thePreQueuedSprings);
 						} else if (Math.abs(srcForce) > Math.abs(destForce)) {
 							// Move the source line
+							moved = theSecondaryAdjustment.adjustEdgeSet(!isVertical, isStretching,
+								Arrays.asList(theSpring.theSource.theEdge), thePreQueuedSprings);
 						} else {
 							// Move the dest line
+							moved = theSecondaryAdjustment.adjustEdgeSet(!isVertical, isStretching,
+								Arrays.asList(theSpring.theDest.theEdge), thePreQueuedSprings);
 						}
-					} while (moved);
+					} while (--tries > 0 && moved);
 				}
 
 				void apply(boolean stretching) {
@@ -1012,8 +1013,13 @@ public class LayoutSolver<L> {
 				}
 			}
 
-			private boolean adjustEdgeSet(IntPredicate preQueuedSprings) {
-				BetterList<EdgeStateImpl> linesByPosition = isVertical ? theVEdgesByPosition : theHEdgesByPosition;
+			boolean adjustEdgeSet(boolean vertical, boolean stretching, Iterable<EdgeStateImpl> toMove,
+				IntPredicate preQueuedSprings) {
+				isVertical = vertical;
+				isStretching = stretching;
+				thePreQueuedSprings = preQueuedSprings;
+				for (EdgeStateImpl edge : toMove)
+					this.edges.add(edge);
 				// Determine the set of springs that act upon the given set of lines as a whole,
 				// i.e. the springs that have one end on a line in the set and the other end on a line not in the set
 				float force = 0;
@@ -1026,13 +1032,13 @@ public class LayoutSolver<L> {
 				initPosition = edges.iterator().next().thePosition;
 				for (EdgeStateImpl edge : edges) {
 					for (SpringStateImpl spring : edge.theIncoming.theSprings) {
-						if (!edges.contains(spring.theSource.theEdge) || !edges.contains(spring.theSource.theEdge)) {
+						if (!edges.contains(spring.theSource.theEdge)) {
 							incomingSprings.add(new AdjustingSpring(spring, false, initPosition));
 							force += spring.getTension();
 						}
 					}
 					for (SpringStateImpl spring : edge.theOutgoing.theSprings) {
-						if (!edges.contains(spring.theSource.theEdge) || !edges.contains(spring.theSource.theEdge)) {
+						if (!edges.contains(spring.theDest.theEdge)) {
 							outgoingSprings.add(new AdjustingSpring(spring, true, initPosition));
 							force -= spring.getTension();
 						}
@@ -1284,6 +1290,7 @@ public class LayoutSolver<L> {
 				outgoingSprings.clear();
 				lastCalculatedForces = Integer.MIN_VALUE;
 				edges.clear();
+				thePreQueuedSprings = null;
 				return modified;
 			}
 
@@ -2048,7 +2055,7 @@ public class LayoutSolver<L> {
 	}
 
 	private static void reSolve(State<String> solverState, int width, int height) {
-		solverState.reset();
+		// solverState.reset();
 		// solverState.stretch(-MAX_TENSION, -MAX_TENSION);
 		// solverState.stretch(-MAX_PREF_TENSION, -MAX_PREF_TENSION);
 		// solverState.stretch(0, 0);
@@ -2170,7 +2177,7 @@ public class LayoutSolver<L> {
 		@Override
 		public int getMin(int crossSize, boolean csMax) {
 			if (csMax)
-				return cap(theArea / cap(crossSize));
+				return cap(theArea / cap(crossSize)) - 1;
 			return getPreferred(crossSize, csMax);
 		}
 
@@ -2191,7 +2198,7 @@ public class LayoutSolver<L> {
 
 		@Override
 		public int getMax(int crossSize, boolean csMax) {
-			return getPreferred(crossSize, csMax);
+			return getPreferred(crossSize, csMax) + 1;
 		}
 
 		@Override

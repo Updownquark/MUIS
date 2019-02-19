@@ -38,34 +38,31 @@ public class LayoutSize {
 
 	/**
 	 * @param pixels The pixels to add to this size
-	 * @return The pixel value of this size
+	 * @return This size
 	 */
-	public int add(int pixels) {
+	public LayoutSize add(int pixels) {
 		if(isMax) {
 			if(pixels > thePixels)
 				thePixels = pixels;
-			return thePixels;
-		} else {
-			int total = LayoutUtils.add(thePixels, pixels);
-			if(total < 0)
-				total = Integer.MAX_VALUE;
-			thePixels = total;
-			return total;
-		}
+		} else
+			thePixels = LayoutUtils.add(thePixels, pixels);
+		return this;
 	}
 
 	/** @param pixels The pixels to subtract from this size */
-	public void minus(int pixels) {
+	public LayoutSize minus(int pixels) {
 		thePixels -= pixels;
+		return this;
 	}
 
 	/** @param percent The percent to add to this size */
-	public void addPercent(float percent) {
+	public LayoutSize addPercent(float percent) {
 		if(isMax) {
 			if(percent > thePercent)
 				thePercent = percent;
 		} else
 			thePercent += percent;
+		return this;
 	}
 
 	/**
@@ -138,6 +135,30 @@ public class LayoutSize {
 		return this;
 	}
 
+	public LayoutSize multiply(int mult) {
+		boolean neg = mult < 0;
+		if (neg)
+			mult = -mult;
+		if (neg && thePixels < 0) {
+			thePixels = -thePixels;
+			thePercent = -thePercent;
+		}
+		thePercent *= mult;
+		if (thePixels != 0) {
+			int pixOrder = 32 - Integer.numberOfLeadingZeros(thePixels);
+			int multOrder = 32 - Integer.numberOfLeadingZeros(mult);
+			if (pixOrder + multOrder > 32)
+				thePixels = Integer.MAX_VALUE;
+			else
+				thePixels *= mult;
+		}
+		if (neg && thePixels > 0) {
+			thePixels = -thePixels;
+			thePercent = -thePercent;
+		}
+		return this;
+	}
+
 	/**
 	 * Replaces this value with the given value
 	 *
@@ -151,9 +172,10 @@ public class LayoutSize {
 	}
 
 	/** Clears this size to 0 */
-	public void clear() {
+	public LayoutSize clear() {
 		thePixels = 0;
 		thePercent = 0;
+		return this;
 	}
 
 	/** @return This size's pixel value */
@@ -169,6 +191,10 @@ public class LayoutSize {
 	/** @return Whether this layout size is empty */
 	public boolean isZero() {
 		return thePixels == 0 && thePercent == 0;
+	}
+
+	public boolean isMaxValue() {
+		return thePixels == Integer.MAX_VALUE;
 	}
 
 	/** @return The negative of this layout size */

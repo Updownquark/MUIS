@@ -22,6 +22,7 @@ import org.observe.SimpleSettableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
 import org.quick.core.QuickCache.CacheException;
+import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickBehavior;
@@ -1009,25 +1010,17 @@ public abstract class QuickTemplate extends QuickElement {
 	}
 
 	@Override
-	public SizeGuide getWSizer() {
+	public SizeGuide getSizer(Orientation orientation) {
 		if (theLayout != null)
-			return theLayout.getWSizer(this, getPhysicalChildren().toArray());
+			return theLayout.getSizer(this, getPhysicalChildren(), orientation);
 		else
-			return super.getWSizer();
-	}
-
-	@Override
-	public SizeGuide getHSizer() {
-		if (theLayout != null)
-			return theLayout.getHSizer(this, getPhysicalChildren().toArray());
-		else
-			return super.getWSizer();
+			return super.getSizer(orientation);
 	}
 
 	@Override
 	public void doLayout() {
 		if (theLayout != null)
-			theLayout.layout(this, getPhysicalChildren().toArray());
+			theLayout.layout(this, getPhysicalChildren());
 		super.doLayout();
 	}
 

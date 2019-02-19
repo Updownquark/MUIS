@@ -3,9 +3,7 @@ package org.quick.base.layout;
 import static org.quick.core.layout.LayoutAttributes.*;
 
 import java.awt.Rectangle;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import org.observe.Observable;
 import org.quick.core.QuickElement;
@@ -40,61 +38,23 @@ public class SimpleLayout implements QuickLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(QuickElement parent, QuickElement[] children) {
-		return getSizer(children, Orientation.horizontal);
-	}
-
-	@Override
-	public SizeGuide getHSizer(QuickElement parent, QuickElement[] children) {
-		return getSizer(children, Orientation.vertical);
-	}
-
-	/**
-	 * Gets a sizer for a container in one dimension
-	 *
-	 * @param children The children to lay out
-	 * @param orient The orientation to get the sizer for
-	 * @return The size policy for the container of the given children in the given dimension
-	 */
-	protected SizeGuide getSizer(final QuickElement[] children, final Orientation orient) {
-		return new SizeGuide() {
-			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
-			}
-
-			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
-			}
-
+	public SizeGuide getSizer(QuickElement parent, Iterable<? extends QuickElement> children, Orientation orientation) {
+		return new SizeGuide.GenericSizeGuide() {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				if (children.length == 0) {
+				List<QuickElement> ch = new ArrayList<>();
+				for (QuickElement child : children)
+					ch.add(child);
+				if (ch.isEmpty()) {
 					if (type == LayoutGuideType.max)
 						return Integer.MAX_VALUE;
 					return 0;
 				}
-				int[] res = new int[children.length];
+				int[] res = new int[ch.size()];
 				for (int i = 0; i < res.length; i++) {
 					// Need to take into account constraints on the opposite orientation.
-					int childCrossSize = childCrossSize(crossSize, children[i], orient);
-					res[i] = getSize(children[i], type, childCrossSize, csMax);
+					int childCrossSize = childCrossSize(crossSize, ch.get(i), orientation);
+					res[i] = getSize(ch.get(i), type, childCrossSize, csMax);
 				}
 				switch (type) {
 				case min:
@@ -113,14 +73,14 @@ public class SimpleLayout implements QuickLayout {
 				if (!LayoutUtils.checkLayoutChild(child))
 					return 0;
 
-				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null)).get();
-				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null)).get();
+				Position lead = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.leading, null)).get();
+				Position trail = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.trailing, null)).get();
 
 				Size[] layoutSizes;
 				if (lead != null && trail != null && lead.getUnit() == LengthUnit.lexips && trail.getUnit() == LengthUnit.pixels)
-					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type.opposite(), crossSize, csMax);
+					layoutSizes = LayoutUtils.getLayoutSize(child, orientation, type.opposite(), crossSize, csMax);
 				else
-					layoutSizes = LayoutUtils.getLayoutSize(child, orient, type, crossSize, csMax);
+					layoutSizes = LayoutUtils.getLayoutSize(child, orientation, type, crossSize, csMax);
 				if (layoutSizes.length == 1)
 					return getSize(type, lead, trail, layoutSizes[0]);
 				else {
@@ -185,30 +145,35 @@ public class SimpleLayout implements QuickLayout {
 
 			@Override
 			public int getBaseline(int size) {
-				if (children.length == 0)
-					return 0;
+				boolean first = true;
+				Position initLeading = null, initTrailing = null;
 				for (QuickElement child : children) {
-					int childSize = LayoutUtils.getSize(child, orient, LayoutGuideType.pref, size, Integer.MAX_VALUE, true, null);
-					int ret = child.bounds().get(orient).getGuide().getBaseline(childSize);
+					if (first) {
+						first = false;
+						initLeading = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.leading, null)).get();
+						initTrailing = child.atts().get(LayoutAttributes.getPosAtt(orientation, End.trailing, null)).get();
+					}
+					int childSize = LayoutUtils.getSize(child, orientation, LayoutGuideType.pref, size, Integer.MAX_VALUE, true, null);
+					int ret = child.bounds().get(orientation).getGuide().getBaseline(childSize);
 					if (ret < 0)
 						continue;
-					Position pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null)).get();
+					Position pos = initLeading;
 					if (pos != null) {
 						return ret + pos.evaluate(size);
 					}
-					pos = children[0].atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null)).get();
+					pos = initTrailing;
 					if (pos != null) {
 						return size - pos.evaluate(size) - childSize + ret;
 					}
 					return ret;
 				}
-				return -1;
+				return 0;
 			}
 		};
 	}
 
 	@Override
-	public void layout(QuickElement parent, QuickElement[] children) {
+	public void layout(QuickElement parent, List<? extends QuickElement> children) {
 		Rectangle bounds = new Rectangle();
 		for (QuickElement child : children) {
 			layout(parent, child, Orientation.horizontal, bounds);

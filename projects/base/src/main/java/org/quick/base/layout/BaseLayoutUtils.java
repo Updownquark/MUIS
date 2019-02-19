@@ -18,15 +18,17 @@ public class BaseLayoutUtils {
 	 * @param paddingY The padding size along the vertical axis
 	 * @return The main size of the layout
 	 */
-	public static int getBoxLayoutSize(QuickElement [] children, Orientation orient, LayoutGuideType type, int crossSize, boolean csMax,
+	public static int getBoxLayoutSize(Iterable<? extends QuickElement> children, Orientation orient, LayoutGuideType type, int crossSize,
+		boolean csMax,
 		Size paddingX, Size paddingY) {
 		LayoutSize temp = new LayoutSize();
-		for(int i = 0; i < children.length; i++) {
-			if (type != LayoutGuideType.min) {
-				if (i > 0 && i < children.length - 1)
-					temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
+		boolean first = true;
+		for (QuickElement child : children) {
+			if (first && type != LayoutGuideType.min) {
+				first = false;
+				temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
 			}
-			LayoutUtils.getSize(children[i], orient, type, Integer.MAX_VALUE, crossSize, csMax, temp);
+			LayoutUtils.getSize(child, orient, type, Integer.MAX_VALUE, crossSize, csMax, temp);
 		}
 		if(temp.getPixels() == 0) {
 			switch (type) {
@@ -53,7 +55,8 @@ public class BaseLayoutUtils {
 	 * @param addTo The layout size to add the result to (may be null)
 	 * @return The cross size of the layout
 	 */
-	public static int getBoxLayoutCrossSize(QuickElement [] children, Orientation orient, LayoutGuideType type, int mainSize,
+	public static int getBoxLayoutCrossSize(Iterable<? extends QuickElement> children, Orientation orient, LayoutGuideType type,
+		int mainSize,
 		boolean sizeMax, LayoutSize addTo) {
 		LayoutSize temp = new LayoutSize(true);
 		int ret = 0;

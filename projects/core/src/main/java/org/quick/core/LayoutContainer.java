@@ -1,5 +1,6 @@
 package org.quick.core;
 
+import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager2.AttributeValue;
 import org.quick.core.prop.QuickAttribute;
@@ -40,21 +41,12 @@ public class LayoutContainer extends QuickElement {
 	}
 
 	@Override
-	public SizeGuide getWSizer() {
+	public SizeGuide getSizer(Orientation orientation) {
 		QuickLayout layout = getLayout();
 		if (layout != null)
-			return layout.getWSizer(this, getPhysicalChildren().toArray());
+			return layout.getSizer(this, getPhysicalChildren(), orientation);
 		else
-			return super.getWSizer();
-	}
-
-	@Override
-	public SizeGuide getHSizer() {
-		QuickLayout layout = getLayout();
-		if (layout != null)
-			return layout.getHSizer(this, getPhysicalChildren().toArray());
-		else
-			return super.getHSizer();
+			return super.getSizer(orientation);
 	}
 
 	@Override
@@ -63,7 +55,7 @@ public class LayoutContainer extends QuickElement {
 			return;
 		QuickLayout layout = getLayout();
 		if (layout != null)
-			layout.layout(this, getPhysicalChildren().toArray());
+			layout.layout(this, getPhysicalChildren());
 		super.doLayout();
 	}
 }

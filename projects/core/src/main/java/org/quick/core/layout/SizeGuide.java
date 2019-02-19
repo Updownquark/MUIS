@@ -45,7 +45,21 @@ public interface SizeGuide {
 	 * @param csMax Whether the cross size should be treated as a maximum or an absolute size
 	 * @return The size guide setting of the given type in this guide
 	 */
-	int get(LayoutGuideType type, int crossSize, boolean csMax);
+	default int get(LayoutGuideType type, int crossSize, boolean csMax) {
+		switch (type) {
+		case min:
+			return getMin(crossSize, csMax);
+		case minPref:
+			return getMinPreferred(crossSize, csMax);
+		case pref:
+			return getPreferred(crossSize, csMax);
+		case maxPref:
+			return getMaxPreferred(crossSize, csMax);
+		case max:
+			return getMax(crossSize, csMax);
+		}
+		throw new IllegalStateException("Unrecognized layout guide type: " + type);
+	}
 
 	/**
 	 * @param size The hypothetical size of the widget in this dimension
@@ -94,5 +108,35 @@ public interface SizeGuide {
 		if(ret < i1)
 			return Integer.MAX_VALUE;
 		return ret;
+	}
+
+	public static interface GenericSizeGuide extends SizeGuide {
+		@Override
+		default int getMin(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.min, crossSize, csMax);
+		}
+
+		@Override
+		default int getMinPreferred(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.minPref, crossSize, csMax);
+		}
+
+		@Override
+		default int getPreferred(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.pref, crossSize, csMax);
+		}
+
+		@Override
+		default int getMaxPreferred(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.maxPref, crossSize, csMax);
+		}
+
+		@Override
+		default int getMax(int crossSize, boolean csMax) {
+			return get(LayoutGuideType.max, crossSize, csMax);
+		}
+
+		@Override
+		abstract int get(LayoutGuideType type, int crossSize, boolean csMax);
 	}
 }

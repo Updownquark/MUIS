@@ -3,6 +3,7 @@ package org.quick.base.layout;
 import static org.quick.core.layout.LayoutAttributes.*;
 
 import java.awt.Rectangle;
+import java.util.List;
 
 import org.observe.Observable;
 import org.quick.core.QuickElement;
@@ -24,8 +25,8 @@ public class BoxLayout implements QuickLayout {
 	/** Creates a box layout */
 	public BoxLayout() {
 		theListener = CompoundListener.build()//
-			.accept(direction).onEvent(CompoundListener.sizeNeedsChanged).acceptAll(alignment, crossAlignment)
-			.onEvent(CompoundListener.layout)//
+			.accept(direction).onEvent(CompoundListener.sizeNeedsChanged)//
+			.acceptAll(alignment, crossAlignment).onEvent(CompoundListener.layout)//
 			.child(childBuilder -> {
 				childBuilder.acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onEvent(CompoundListener.sizeNeedsChanged);
 			})//
@@ -38,35 +39,14 @@ public class BoxLayout implements QuickLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
+	public SizeGuide getSizer(QuickElement parent, Iterable<? extends QuickElement> children, Orientation orientation) {
 		Direction dir = parent.atts().getValue(direction, Direction.right);
 		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
-		switch (dir) {
-		case up:
-		case down:
-			return getCrossSizer(parent, children, dir.getOrientation(), margin);
-		case left:
-		case right:
+		if (dir.getOrientation().equals(orientation))
 			return getMainSizer(parent, children, dir.getOrientation(), margin, padding);
-		}
-		throw new IllegalStateException("Unrecognized layout direction: " + dir);
-	}
-
-	@Override
-	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
-		Direction dir = parent.atts().getValue(direction, Direction.right);
-		Size margin = parent.getStyle().get(LayoutStyle.margin).get();
-		Size padding = parent.getStyle().get(LayoutStyle.padding).get();
-		switch (dir) {
-		case up:
-		case down:
-			return getMainSizer(parent, children, dir.getOrientation(), margin, padding);
-		case left:
-		case right:
+		else
 			return getCrossSizer(parent, children, dir.getOrientation(), margin);
-		}
-		throw new IllegalStateException("Unrecognized layout direction: " + dir);
 	}
 
 	/**
@@ -80,8 +60,8 @@ public class BoxLayout implements QuickLayout {
 	 * @param padding The padding size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizeGuide getMainSizer(final QuickElement parent, final QuickElement [] children, final Orientation orient, final Size margin,
-		final Size padding) {
+	protected SizeGuide getMainSizer(final QuickElement parent, final Iterable<? extends QuickElement> children, final Orientation orient,
+		final Size margin, final Size padding) {
 		return new SizeGuide() {
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -148,7 +128,8 @@ public class BoxLayout implements QuickLayout {
 	 * @param margin The margin size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizeGuide getCrossSizer(final QuickElement parent, final QuickElement [] children, final Orientation orient, final Size margin) {
+	protected SizeGuide getCrossSizer(final QuickElement parent, Iterable<? extends QuickElement> children, final Orientation orient,
+		final Size margin) {
 		return new SizeGuide() {
 			@Override
 			public int getMin(int crossSize, boolean csMax) {
@@ -211,7 +192,7 @@ public class BoxLayout implements QuickLayout {
 	}
 
 	@Override
-	public void layout(QuickElement parent, final QuickElement [] children) {
+	public void layout(QuickElement parent, List<? extends QuickElement> children) {
 		final Direction dir = parent.atts().getValue(direction, Direction.right);
 		Alignment align = parent.atts().getValue(alignment, Alignment.begin);
 		Alignment crossAlign = parent.atts().getValue(crossAlignment, Alignment.begin);
@@ -224,10 +205,10 @@ public class BoxLayout implements QuickLayout {
 		LayoutUtils.LayoutInterpolation<LayoutSize []> result = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<LayoutSize []>() {
 			@Override
 			public LayoutSize [] getLayoutValue(LayoutGuideType type) {
-				LayoutSize [] ret = new LayoutSize[children.length];
+				LayoutSize[] ret = new LayoutSize[children.size()];
 				for(int i = 0; i < ret.length; i++) {
 					ret[i] = new LayoutSize();
-					LayoutUtils.getSize(children[i], dir.getOrientation(), type, parallelSize, crossSizeWOMargin, false, ret[i]);
+					LayoutUtils.getSize(children.get(i), dir.getOrientation(), type, parallelSize, crossSizeWOMargin, false, ret[i]);
 				}
 				return ret;
 			}
@@ -248,8 +229,8 @@ public class BoxLayout implements QuickLayout {
 			}
 		}, parallelSize, LayoutGuideType.min, align == Alignment.justify ? LayoutGuideType.max : LayoutGuideType.pref);
 
-		Rectangle [] bounds = new Rectangle[children.length];
-		for(int c = 0; c < children.length; c++) {
+		Rectangle[] bounds = new Rectangle[children.size()];
+		for (int c = 0; c < children.size(); c++) {
 			bounds[c] = new Rectangle();
 			int mainSize = result.lowerValue[c].getTotal(parallelSize);
 			if(result.proportion > 0)
@@ -257,18 +238,21 @@ public class BoxLayout implements QuickLayout {
 					* (result.upperValue[c].getTotal(parallelSize) - result.lowerValue[c].getTotal(parallelSize)));
 			LayoutUtils.setSize(bounds[c], dir.getOrientation(), mainSize);
 
-			int prefCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.pref, crossSizeWOMargin,
+			int prefCrossSize = LayoutUtils.getSize(children.get(c), dir.getOrientation().opposite(), LayoutGuideType.pref,
+				crossSizeWOMargin,
 				mainSize, false, null);
 			int oppSize;
 			if (crossSizeWOMargin < prefCrossSize) {
-				int minCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.min, crossSizeWOMargin,
+				int minCrossSize = LayoutUtils.getSize(children.get(c), dir.getOrientation().opposite(), LayoutGuideType.min,
+					crossSizeWOMargin,
 					mainSize, false, null);
 				if(crossSize < minCrossSize)
 					oppSize = minCrossSize;
 				else
 					oppSize = crossSizeWOMargin;
 			} else if(align == Alignment.justify) {
-				int maxCrossSize = LayoutUtils.getSize(children[c], dir.getOrientation().opposite(), LayoutGuideType.max, crossSizeWOMargin,
+				int maxCrossSize = LayoutUtils.getSize(children.get(c), dir.getOrientation().opposite(), LayoutGuideType.max,
+					crossSizeWOMargin,
 					mainSize, false, null);
 				if (crossSizeWOMargin < maxCrossSize)
 					oppSize = crossSizeWOMargin;
@@ -296,7 +280,7 @@ public class BoxLayout implements QuickLayout {
 		case begin:
 		case end:
 			int pos = 0;
-			for(int c = 0; c < children.length; c++) {
+			for (int c = 0; c < children.size(); c++) {
 				int childPos = pos;
 				if(c == 0)
 					childPos += marginSz;
@@ -319,8 +303,8 @@ public class BoxLayout implements QuickLayout {
 
 			pos = 0;
 			int usedSpace = 0;
-			for(int c = 0; c < children.length; c++) {
-				int extraSpace = (freeSpace - usedSpace) / (children.length + 1 - c);
+			for (int c = 0; c < children.size(); c++) {
+				int extraSpace = (freeSpace - usedSpace) / (children.size() + 1 - c);
 				int childPos = pos + extraSpace;
 				if(c == 0)
 					childPos += marginSz;
@@ -360,8 +344,8 @@ public class BoxLayout implements QuickLayout {
 					crossMargin + (newCrossSizeWOMargin - LayoutUtils.getSize(bound, dir.getOrientation().opposite())) / 2);
 		}
 
-		for(int c = 0; c < children.length; c++)
-			children[c].bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
+		for (int c = 0; c < children.size(); c++)
+			children.get(c).bounds().setBounds(bounds[c].x, bounds[c].y, bounds[c].width, bounds[c].height);
 	}
 
 	@Override

@@ -22,6 +22,7 @@ import org.quick.core.QuickConstants.States;
 import org.quick.core.event.BoundsChangedEvent;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.MouseEvent;
+import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager2;
@@ -671,17 +672,18 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	/** @return The size policy for this item's width */
-	public SizeGuide getWSizer() {
-		if(theHSizer == null)
-			theHSizer = new SimpleSizeGuide();
-		return theHSizer;
-	}
-
-	/** @return The size policy for this item's height */
-	public SizeGuide getHSizer() {
-		if(theVSizer == null)
-			theVSizer = new SimpleSizeGuide();
-		return theVSizer;
+	public SizeGuide getSizer(Orientation orientation) {
+		SizeGuide sizer;
+		if (orientation.isVertical()) {
+			if (theVSizer == null)
+				theVSizer = new SimpleSizeGuide();
+			sizer = theVSizer;
+		} else {
+			if (theHSizer == null)
+				theHSizer = new SimpleSizeGuide();
+			sizer = theHSizer;
+		}
+		return sizer;
 	}
 
 	// End bounds methods

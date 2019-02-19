@@ -277,7 +277,7 @@ public class ElementBounds extends VetoableSettableValue<Rectangle> implements B
 
 		@Override
 		public SizeGuide getGuide() {
-			return isVertical ? theElement.getHSizer() : theElement.getWSizer();
+			return theElement.getSizer(Orientation.of(isVertical));
 		}
 
 		@Override

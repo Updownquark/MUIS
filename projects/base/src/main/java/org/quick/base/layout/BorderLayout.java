@@ -5,6 +5,8 @@ import static org.quick.core.layout.LayoutUtils.add;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 
+import java.util.List;
+
 import org.observe.Observable;
 import org.quick.core.QuickElement;
 import org.quick.core.Rectangle;
@@ -49,110 +51,57 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(QuickElement parent, QuickElement [] children) {
-		return getSizer(parent, children, horizontal);
-	}
-
-	@Override
-	public SizeGuide getHSizer(QuickElement parent, QuickElement [] children) {
-		return getSizer(parent, children, vertical);
-	}
-
-	/**
-	 * @param parent The container to lay the elements out in
-	 * @param children The elements to lay out
-	 * @param orient The orientation to get the sizer for
-	 * @return The sizer for this layout with the given contents and the given orientation
-	 */
-	public SizeGuide getSizer(final QuickElement parent, final QuickElement [] children, final Orientation orient) {
-		return new SizeGuide() {
-			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
-			}
-
-			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
-			}
-
+	public SizeGuide getSizer(QuickElement parent, Iterable<? extends QuickElement> children, Orientation orient) {
+		return new SizeGuide.GenericSizeGuide() {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				Size margin = parent.getStyle().get(LayoutStyle.margin).get();
 				Size padding = parent.getStyle().get(LayoutStyle.padding).get();
-				if (children.length == 0) {
+				if (!children.iterator().hasNext()) {
 					if (type == LayoutGuideType.min)
 						return 0;
 					return margin.evaluate(0) * 2;
 				}
-				LayoutSize ret = get(type, crossSize, csMax, 0, padding, null);
+				int origCrossSize = crossSize;
+				if (type != LayoutGuideType.min)
+					crossSize -= margin.evaluate(crossSize) * 2;
+				if (crossSize < 0)
+					crossSize = 0;
+				LayoutSize ret=new LayoutSize();
+				LayoutSize cross=new LayoutSize(true);
+				LayoutSize temp = new LayoutSize();
+				QuickElement center=null;
+				for(QuickElement child : children){
+					Region childRegion = child.atts().getValue(region, Region.center);
+					if(childRegion == Region.center) {
+						if(center != null) {
+							// Error later, in layout()
+						} else
+							center = child;
+					} else if(childRegion.getOrientation() == orient){
+						ret.add(cross);
+						cross.clear();
+						LayoutUtils.getSize(child, orient, type, 0, crossSize, csMax, ret);
+						ret.add(padding);
+					} else {
+						LayoutUtils.getSize(child, orient, type, crossSize, Integer.MAX_VALUE, true, cross);
+						if (crossSize > 0) {
+							LayoutUtils.getSize(child, orient.opposite(), type, crossSize, Integer.MAX_VALUE, true, temp.clear());
+							crossSize -= temp.add(padding).getTotal(origCrossSize);
+							if (crossSize < 0)
+								crossSize = 0;
+						}
+					}
+				}
+				ret.add(cross);
+				if (center != null) {
+					ret.add(padding);
+					ret.add(padding);
+					LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
+				}
 				ret.add(margin);
 				ret.add(margin);
 				return ret.getTotal();
-			}
-
-			private LayoutSize get(LayoutGuideType type, int crossSize, boolean csMax, int startIndex, Size padding, QuickElement center) {
-				Region childRegion = children[startIndex].atts().getValue(region, Region.center);
-				if(childRegion == Region.center) {
-					if(center != null) {
-						// Error later, in layout()
-					} else if(startIndex < children.length - 1)
-						center = children[startIndex];
-					if(startIndex < children.length - 1)
-						return get(type, crossSize, csMax, startIndex + 1, padding, center);
-					else {
-						LayoutSize ret = new LayoutSize();
-						if(center != null)
-							LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
-						return ret;
-					}
-				} else if(childRegion.getOrientation() == orient) {
-					LayoutSize ret = new LayoutSize();
-					while(childRegion.getOrientation() == orient) {
-						LayoutUtils.getSize(children[startIndex], orient, type, 0, crossSize, csMax, ret);
-						ret.add(padding);
-						startIndex++;
-						if(startIndex == children.length)
-							break;
-						childRegion = children[startIndex].atts().getValue(region, Region.center);
-					}
-					if(startIndex < children.length)
-						ret.add(get(type, crossSize, csMax, startIndex, padding, center));
-					else if(center != null)
-						LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
-					return ret;
-				} else {
-					LayoutSize ret = new LayoutSize(true);
-					while(childRegion.getOrientation() != orient) {
-						LayoutUtils.getSize(children[startIndex], orient, type, 0, crossSize, csMax, ret);
-						startIndex++;
-						if(startIndex == children.length)
-							break;
-						childRegion = children[startIndex].atts().getValue(region, Region.center);
-					}
-					if(startIndex < children.length)
-						ret.add(get(type, crossSize, csMax, startIndex, padding, center));
-					else if(center != null) {
-						ret = new LayoutSize(ret);
-						LayoutUtils.getSize(center, orient, type, 0, crossSize, csMax, ret);
-					}
-					return ret;
-				}
 			}
 
 			@Override
@@ -163,7 +112,7 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 	}
 
 	@Override
-	public void layout(final QuickElement parent, final QuickElement [] children) {
+	public void layout(final QuickElement parent, List<? extends QuickElement> children) {
 		final int parentWidth = parent.bounds().getWidth();
 		final int parentHeight = parent.bounds().getHeight();
 		final Size margin = parent.getStyle().get(LayoutStyle.margin).get();
@@ -171,69 +120,20 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 		LayoutUtils.LayoutInterpolation<int []> wResult = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<int []>() {
 			@Override
 			public int [] getLayoutValue(LayoutGuideType type) {
-				int [] ret = new int[children.length];
-				for(int c = 0; c < children.length; c++)
-					ret[c] = LayoutUtils.getSize(children[c], horizontal, type, parentWidth, parentHeight, true, null);
+				int[] ret = new int[children.size()];
+				for (int c = 0; c < children.size(); c++)
+					ret[c] = LayoutUtils.getSize(children.get(c), horizontal, type, parentWidth, parentHeight, true, null);
 				return ret;
 			}
 
 			@Override
 			public long getSize(int[] layoutValue) {
-				long ret = 0;
-				ret += margin.evaluate(parentWidth) * 2;
-				ret += getSize(layoutValue, 0, -1);
-				return ret;
-			}
-
-			private int getSize(int [] layoutValue, int startIndex, int centerIndex) {
-				Region childRegion = children[startIndex].atts().getValue(region, Region.center);
-				if(childRegion == Region.center) {
-					if(centerIndex >= 0) {
-						// Error later
-					} else
-						centerIndex = startIndex;
-					if(startIndex < children.length - 1)
-						return getSize(layoutValue, startIndex + 1, centerIndex);
-					else
-						return layoutValue[centerIndex];
-				} else if(childRegion.getOrientation() == horizontal) {
-					int ret = 0;
-					while(childRegion.getOrientation() == horizontal) {
-						ret = add(ret, layoutValue[startIndex]);
-						ret = add(ret, padding.evaluate(parentWidth));
-						startIndex++;
-						if(startIndex == children.length)
-							break;
-						childRegion = children[startIndex].atts().getValue(region, Region.center);
-					}
-					if(startIndex < children.length)
-						ret = add(ret, getSize(layoutValue, startIndex, centerIndex));
-					else if(centerIndex >= 0)
-						ret = add(ret, layoutValue[centerIndex]);
-					return ret;
-				} else {
-					int ret = 0;
-					while(childRegion.getOrientation() == vertical) {
-						if(layoutValue[startIndex] > ret)
-							ret = layoutValue[startIndex];
-						startIndex++;
-						if(startIndex == children.length)
-							break;
-						childRegion = children[startIndex].atts().getValue(region, Region.center);
-					}
-					if(startIndex < children.length) {
-						int restRet = getSize(layoutValue, startIndex, centerIndex);
-						if(restRet > ret)
-							ret = restRet;
-					} else if(centerIndex >= 0)
-						ret = add(ret, layoutValue[centerIndex]);
-					return ret;
-				}
+				return BorderLayout.this.getSize(parentWidth, margin, padding, children, layoutValue);
 			}
 		}, parent.bounds().getWidth(), LayoutGuideType.min, LayoutGuideType.max);
 
-		final int[] widths = new int[children.length];
-		for (int c = 0; c < children.length; c++) {
+		final int[] widths = new int[children.size()];
+		for (int c = 0; c < widths.length; c++) {
 			widths[c] = wResult.lowerValue[c];
 			if(wResult.proportion > 0)
 				widths[c] = add(widths[c],
@@ -243,69 +143,20 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 		LayoutUtils.LayoutInterpolation<int []> hResult = LayoutUtils.interpolate(new LayoutUtils.LayoutChecker<int []>() {
 			@Override
 			public int [] getLayoutValue(LayoutGuideType type) {
-				int [] ret = new int[children.length];
-				for(int c = 0; c < children.length; c++)
-					ret[c] = LayoutUtils.getSize(children[c], vertical, type, parentHeight, widths[c], false, null);
+				int[] ret = new int[children.size()];
+				for (int c = 0; c < children.size(); c++)
+					ret[c] = LayoutUtils.getSize(children.get(c), vertical, type, parentHeight, widths[c], false, null);
 				return ret;
 			}
 
 			@Override
 			public long getSize(int[] layoutValue) {
-				long ret = 0;
-				ret += margin.evaluate(parentHeight) * 2;
-				ret += getSize(layoutValue, 0, -1);
-				return ret;
-			}
-
-			private int getSize(int [] layoutValue, int startIndex, int centerIndex) {
-				Region childRegion = children[startIndex].atts().getValue(region, Region.center);
-				if(childRegion == Region.center) {
-					if(centerIndex >= 0) {
-						// Error later
-					} else
-						centerIndex = startIndex;
-					if(startIndex < children.length - 1)
-						return getSize(layoutValue, startIndex + 1, centerIndex);
-					else
-						return layoutValue[centerIndex];
-				} else if(childRegion.getOrientation() == vertical) {
-					int ret = 0;
-					while(childRegion.getOrientation() == vertical) {
-						ret = add(ret, layoutValue[startIndex]);
-						ret = add(ret, padding.evaluate(parentHeight));
-						startIndex++;
-						if(startIndex == children.length)
-							break;
-						childRegion = children[startIndex].atts().getValue(region, Region.center);
-					}
-					if(startIndex < children.length)
-						ret = add(ret, getSize(layoutValue, startIndex, centerIndex));
-					else if(centerIndex >= 0)
-						ret = add(ret, layoutValue[centerIndex]);
-					return ret;
-				} else {
-					int ret = 0;
-					while(childRegion.getOrientation() == horizontal) {
-						if(layoutValue[startIndex] > ret)
-							ret = layoutValue[startIndex];
-						startIndex++;
-						if(startIndex == children.length)
-							break;
-						childRegion = children[startIndex].atts().getValue(region, Region.center);
-					}
-					if(startIndex < children.length) {
-						int restRet = getSize(layoutValue, startIndex, centerIndex);
-						if(restRet > ret)
-							ret = restRet;
-					} else if(centerIndex >= 0)
-						ret = add(ret, layoutValue[centerIndex]);
-					return ret;
-				}
+				return BorderLayout.this.getSize(parentHeight, margin, padding, children, layoutValue);
 			}
 		}, parent.bounds().getHeight(), LayoutGuideType.min, LayoutGuideType.max);
 
-		int[] heights = new int[children.length];
-		for (int c = 0; c < children.length; c++) {
+		int[] heights = new int[children.size()];
+		for (int c = 0; c < children.size(); c++) {
 			heights[c] = hResult.lowerValue[c];
 			if(hResult.proportion > 0)
 				heights[c] = add(heights[c],
@@ -318,13 +169,13 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 		int topEdge = margin.evaluate(parentHeight);
 		int bottomEdge = parentHeight - margin.evaluate(parentHeight);
 		int centerIndex = -1;
-		Rectangle[] bounds = new Rectangle[children.length];
-		for (int c = 0; c < children.length; c++) {
-			Region childRegion = children[c].atts().getValue(region, Region.center);
+		Rectangle[] bounds = new Rectangle[children.size()];
+		for (int c = 0; c < children.size(); c++) {
+			Region childRegion = children.get(c).atts().getValue(region, Region.center);
 			if(childRegion == Region.center) {
 				if(centerIndex >= 0)
 					parent.msg().error("Only one element may be in the center region in a border layout."//
-						+ "  Only first center will be layed out.", "element", children[c]);
+						+ "  Only first center will be layed out.", "element", children.get(c));
 				else
 					centerIndex = c;
 				continue; // Lay out center last
@@ -359,8 +210,28 @@ public class BorderLayout implements org.quick.core.QuickLayout {
 			bounds[centerIndex] = new Rectangle(leftEdge, topEdge, //
 				Math.max(0, rightEdge - leftEdge), Math.max(0, bottomEdge - topEdge));
 
-		for(int c = 0; c < children.length; c++)
-			children[c].bounds().set(bounds[c], null);
+		for (int c = 0; c < children.size(); c++)
+			children.get(c).bounds().set(bounds[c], null);
+	}
+
+	private long getSize(int parentLength, Size margin, Size padding, List<? extends QuickElement> children, int[] layoutValue) {
+		long ret = 0;
+		ret += margin.evaluate(parentLength) * 2;
+		QuickElement center = null;
+		for (int i = 0; i < children.size(); i++) {
+			QuickElement child = children.get(i);
+			Region childRegion = child.atts().getValue(region, Region.center);
+			if (childRegion == Region.center) {
+				if (center != null) {
+					// Error later, in layout()
+				} else {
+					center = child;
+					ret += layoutValue[i] + padding.evaluate(parentLength) * 2;
+				}
+			} else if (!childRegion.getOrientation().isVertical())
+				ret += layoutValue[i] + padding.evaluate(parentLength);
+		}
+		return ret;
 	}
 
 	@Override

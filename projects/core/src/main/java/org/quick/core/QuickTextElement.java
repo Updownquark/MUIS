@@ -11,7 +11,8 @@ import java.util.Iterator;
 
 import org.observe.ObservableValue;
 import org.observe.SimpleSettableValue;
-import org.quick.core.layout.AbstractSizeGuide;
+import org.quick.core.layout.LayoutGuideType;
+import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.MutableDocumentModel;
@@ -196,130 +197,101 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 	}
 
 	@Override
-	public SizeGuide getWSizer() {
-		float maxW = 0;
-		float lineW = 0;
-		for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, Integer.MAX_VALUE)) {
-			if (metric.isNewLine()) {
-				if (lineW > maxW)
-					maxW = lineW;
-				lineW = 0;
+	public SizeGuide getSizer(Orientation orientation) {
+		if (orientation.isVertical()) {
+			if (theDocument.get().length() == 0) {
+				java.awt.Font font = org.quick.util.QuickUtils.getFont(getStyle()).get();
+				java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(),
+					getStyle().get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
+				java.awt.font.LineMetrics metrics = font.getLineMetrics("Iq", context);
+				int height = Math.round(metrics.getAscent() + metrics.getDescent());
+				return new SimpleSizeGuide(height, height, height, height, height);
 			}
-			lineW += metric.getWidth();
-		}
-		if (lineW > maxW)
-			maxW = lineW;
-		int max = Math.round(maxW);
+			return new SizeGuide.GenericSizeGuide() {
+				private int theCachedWidth;
 
-		int min;
-		boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine).get());
-		maxW = 0;
-		lineW = 0;
-		for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, 1)) {
-			boolean newLine = metric.isNewLine();
-			if (!newLine)
-				newLine = isMultiLine && metric.charAt(metric.length() - 1) == '\n';
-			if (metric.isNewLine()) {
-				if (lineW > maxW)
-					maxW = lineW;
-				lineW = 0;
-			}
-			lineW += metric.getWidth();
-		}
-		if (lineW > maxW)
-			maxW = lineW;
-		min = Math.round(maxW);
-		// Not quite sure why these padding values need to be here, but the text wraps unnecessarily if they're not
-		min += Math.round(min / 50f);
-		max += Math.round(max / 50f);
-		return new SimpleSizeGuide(min, min, max, max, max);
-	}
+				private int theCachedHeight;
 
-	@Override
-	public SizeGuide getHSizer() {
-		if (theDocument.get().length() == 0) {
-			java.awt.Font font = org.quick.util.QuickUtils.getFont(getStyle()).get();
-			java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(font.getTransform(),
-				getStyle().get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
-			java.awt.font.LineMetrics metrics = font.getLineMetrics("Iq", context);
-			int height = Math.round(metrics.getAscent() + metrics.getDescent());
-			return new SimpleSizeGuide(height, height, height, height, height);
-		}
-		return new AbstractSizeGuide() {
-			private int theCachedWidth;
+				private int theCachedBaseline;
 
-			private int theCachedHeight;
-
-			private int theCachedBaseline;
-
-			{
-				theCachedWidth = -1;
-			}
-
-			private void getSizes(int crossSize) {
-				if (crossSize == theCachedWidth)
-					return;
-				theCachedWidth = crossSize;
-				float totalH = 0;
-				float lineH = 0;
-				float baselineOffset = -1;
-				float baseline = -1;
-				for (org.quick.core.model.QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, crossSize)) {
-					if (metric.isNewLine()) {
-						totalH += lineH;
-						if (baseline < 0 && baselineOffset >= 0)
-							baseline = lineH - baselineOffset;
-						lineH = 0;
-					}
-					float h = metric.getHeight();
-					if (h > lineH)
-						lineH = h;
-					if (baselineOffset < 0)
-						baseline = h - metric.getBaseline();
+				{
+					theCachedWidth = -1;
 				}
-				totalH += lineH;
 
-				theCachedHeight = Math.round(totalH);
-				theCachedBaseline = Math.round(baseline);
-			}
+				@Override
+				public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+					if (crossSize == theCachedWidth)
+						return theCachedHeight;
+					theCachedWidth = crossSize;
+					float totalH = 0;
+					float lineH = 0;
+					float baselineOffset = -1;
+					float baseline = -1;
+					for (org.quick.core.model.QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, crossSize)) {
+						if (metric.isNewLine()) {
+							totalH += lineH;
+							if (baseline < 0 && baselineOffset >= 0)
+								baseline = lineH - baselineOffset;
+							lineH = 0;
+						}
+						float h = metric.getHeight();
+						if (h > lineH)
+							lineH = h;
+						if (baselineOffset < 0)
+							baseline = h - metric.getBaseline();
+					}
+					totalH += lineH;
 
-			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				getSizes(crossSize);
-				return theCachedHeight;
-			}
+					theCachedHeight = Math.round(totalH);
+					theCachedBaseline = Math.round(baseline);
+					return theCachedHeight;
+				}
 
-			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				getSizes(crossSize);
-				return theCachedHeight;
+				@Override
+				public int getBaseline(int widgetSize) {
+					if (theCachedWidth < 0)
+						get(LayoutGuideType.pref, Integer.MAX_VALUE, false);
+					return theCachedBaseline;
+				}
+			};
+		} else {
+			float maxW = 0;
+			float lineW = 0;
+			for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, Integer.MAX_VALUE)) {
+				if (metric.isNewLine()) {
+					if (lineW > maxW)
+						maxW = lineW;
+					lineW = 0;
+				}
+				lineW += metric.getWidth();
 			}
+			if (lineW > maxW)
+				maxW = lineW;
+			int max = Math.round(maxW);
 
-			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				getSizes(crossSize);
-				return theCachedHeight;
+			int min;
+			boolean isMultiLine = Boolean.TRUE.equals(atts().get(multiLine).get());
+			maxW = 0;
+			lineW = 0;
+			for (QuickDocumentModel.StyledSequenceMetric metric : theDocument.get().metrics(0, 1)) {
+				boolean newLine = metric.isNewLine();
+				if (!newLine)
+					newLine = isMultiLine && metric.charAt(metric.length() - 1) == '\n';
+				if (metric.isNewLine()) {
+					if (lineW > maxW)
+						maxW = lineW;
+					lineW = 0;
+				}
+				lineW += metric.getWidth();
 			}
-
-			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				getSizes(crossSize);
-				return theCachedHeight;
-			}
-
-			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				getSizes(crossSize);
-				return theCachedHeight;
-			}
-
-			@Override
-			public int getBaseline(int widgetSize) {
-				if (theCachedWidth < 0)
-					getSizes(Integer.MAX_VALUE);
-				return theCachedBaseline;
-			}
-		};
+			if (lineW > maxW)
+				maxW = lineW;
+			min = Math.round(maxW);
+			// Not quite sure why these padding values need to be here, but the text wraps unnecessarily if they're not
+			min += Math.round(min / 50f);
+			max += Math.round(max / 50f);
+			return new SimpleSizeGuide(min, min, max, max, max);
+		}
 	}
 
 	@Override

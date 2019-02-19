@@ -4,8 +4,7 @@ import static org.quick.core.layout.LayoutUtils.addRadius;
 import static org.quick.core.layout.LayoutUtils.removeRadius;
 
 import org.quick.base.style.BorderStyle;
-import org.quick.core.layout.LayoutUtils;
-import org.quick.core.layout.SizeGuide;
+import org.quick.core.layout.*;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.Size;
@@ -47,24 +46,15 @@ public class BorderPane extends SimpleContainer {
 	}
 
 	@Override
-	public SizeGuide getWSizer() {
+	public SizeGuide getSizer(Orientation orientation) {
 		QuickStyle selfStyle = getStyle();
 		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
 		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
 		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
-		return new RadiusAddSizePolicy(getContentPane().getWSizer(), radius, thickness);
+		return new RadiusAddSizePolicy(getContentPane().getSizer(orientation), radius, thickness);
 	}
 
-	@Override
-	public SizeGuide getHSizer() {
-		QuickStyle selfStyle = getStyle();
-		Size radius = selfStyle.get(BackgroundStyle.cornerRadius).get();
-		int thickness = selfStyle.get(BorderStyle.thickness).get().intValue();
-		thickness += selfStyle.get(BorderStyle.inset).get().intValue();
-		return new RadiusAddSizePolicy(getContentPane().getHSizer(), radius, thickness);
-	}
-
-	private static class RadiusAddSizePolicy extends org.quick.core.layout.AbstractSizeGuide {
+	private static class RadiusAddSizePolicy implements SizeGuide.GenericSizeGuide {
 		private final SizeGuide theWrapped;
 
 		private org.quick.core.style.Size theRadius;
@@ -78,28 +68,8 @@ public class BorderPane extends SimpleContainer {
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize, boolean csMax) {
-			return _addRadius(theWrapped.getMinPreferred(_removeRadius(crossSize), csMax));
-		}
-
-		@Override
-		public int getMaxPreferred(int crossSize, boolean csMax) {
-			return _addRadius(theWrapped.getMaxPreferred(_removeRadius(crossSize), csMax));
-		}
-
-		@Override
-		public int getMin(int crossSize, boolean csMax) {
-			return _addRadius(theWrapped.getMin(_removeRadius(crossSize), csMax));
-		}
-
-		@Override
-		public int getPreferred(int crossSize, boolean csMax) {
-			return _addRadius(theWrapped.getPreferred(_removeRadius(crossSize), csMax));
-		}
-
-		@Override
-		public int getMax(int crossSize, boolean csMax) {
-			return _addRadius(theWrapped.getMax(_removeRadius(crossSize), csMax));
+		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			return _addRadius(theWrapped.get(type, _removeRadius(crossSize), csMax));
 		}
 
 		@Override

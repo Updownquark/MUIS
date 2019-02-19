@@ -1,7 +1,7 @@
 package org.quick.core.layout;
 
 /** A simple implementation of {@link SizeGuide} that allows all its parameters to be set directly */
-public class SimpleSizeGuide extends AbstractSizeGuide {
+public class SimpleSizeGuide implements SizeGuide {
 	private int theMin;
 
 	private int thePref;

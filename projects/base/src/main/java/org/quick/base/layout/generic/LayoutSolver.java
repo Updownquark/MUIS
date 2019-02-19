@@ -1,4 +1,4 @@
-package org.quick.base.layout;
+package org.quick.base.layout.generic;
 
 import java.awt.Color;
 import java.awt.EventQueue;
@@ -17,7 +17,6 @@ import org.qommons.Ternian;
 import org.qommons.collect.*;
 import org.qommons.tree.BetterTreeSet;
 import org.qommons.tree.SortedTreeList;
-import org.quick.core.Point;
 import org.quick.core.layout.*;
 import org.quick.util.DebugPlotter;
 
@@ -40,132 +39,14 @@ import org.quick.util.DebugPlotter;
  * @param <L>
  */
 public class LayoutSolver<L> {
-	public interface LayoutSpringEvaluator {
-		int getSize(float tension);
-
-		/**
-		 * @param length The difference between the destination position and the source position (in pixels)
-		 * @return The tension of this spring. Positive tension means a desire for a larger distance; negative means a desire to shrink the
-		 *         distance.
-		 */
-		TensionAndSnap getTension(int length);
-	}
-
-	public static class TensionAndSnap {
-		public static final TensionAndSnap ZERO = new TensionAndSnap(0, 0);
-		public final float tension;
-		public final int snap;
-
-		public TensionAndSnap(float tension, int snap) {
-			if (Float.isNaN(tension))
-				throw new IllegalArgumentException("NaN");
-			this.tension = tension;
-			this.snap = snap;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o instanceof TensionAndSnap && tension == ((TensionAndSnap) o).tension && snap == ((TensionAndSnap) o).snap;
-		}
-
-		@Override
-		public String toString() {
-			return tension + "->" + snap;
-		}
-	}
-	public interface EdgeDef {
-		Orientation getOrientation();
-	}
-
-	public interface EdgeState extends EdgeDef {
-		int getPosition();
-
-		float getForce();
-	}
-
-	public interface SpringDef {
-		EdgeDef getSource();
-
-		EdgeDef getDest();
-	}
-
-	public interface SpringState extends SpringDef {
-		@Override
-		EdgeState getSource();
-
-		@Override
-		EdgeState getDest();
-
-		default int getLength() {
-			return getDest().getPosition() - getSource().getPosition();
-		}
-
-		float getTension();
-	}
-
-	public interface BoxDef {
-		EdgeDef getLeft();
-
-		EdgeDef getRight();
-
-		EdgeDef getTop();
-
-		EdgeDef getBottom();
-
-		default EdgeDef getEdge(Orientation orientation, End end) {
-			switch (orientation) {
-			case horizontal:
-				return end == End.leading ? getLeft() : getRight();
-			default:
-				return end == End.leading ? getTop() : getBottom();
-			}
-		}
-	}
-
-	public interface BoxState extends BoxDef {
-		@Override
-		EdgeState getLeft();
-
-		@Override
-		EdgeState getRight();
-
-		@Override
-		EdgeState getTop();
-
-		@Override
-		EdgeState getBottom();
-
-		@Override
-		default EdgeState getEdge(Orientation orientation, End end) {
-			return (EdgeState) BoxDef.super.getEdge(orientation, end);
-		}
-
-		default Point getTopLeft() {
-			return new Point(getLeft().getPosition(), getTop().getPosition());
-		}
-
-		default Point getCenter() {
-			return new Point((getLeft().getPosition() + getRight().getPosition()) / 2, //
-				(getTop().getPosition() + getBottom().getPosition()) / 2);
-		}
-
-		default int getWidth() {
-			return getRight().getPosition() - getLeft().getPosition();
-		}
-
-		default int getHeight() {
-			return getBottom().getPosition() - getTop().getPosition();
-		}
-	}
-
 	public interface State<L> {
 		LayoutSolver<L> getSolver();
 
 		BoxState getBounds();
 
-		EdgeState getEdge(L lineObj);
+		EdgeState getEdge(L edgeObj);
 
-		EdgeState getEdge(EdgeDef line);
+		EdgeState getEdge(EdgeDef edge);
 
 		SpringState getSpring(SpringDef spring);
 
@@ -182,119 +63,6 @@ public class LayoutSolver<L> {
 		int getWaveNumber();
 	}
 
-	public static final float SUPER_TENSION = 1_000_000;
-	public static final float MAX_TENSION = 1_000;
-	public static final float MAX_PREF_TENSION = 1;
-	public static final int MAX_LAYOUT_SIZE = 1_000_000;
-
-	public static LayoutSpringEvaluator forSizer(IntSupplier crossSize, SizeGuide sizer) {
-		return new LayoutSpringEvaluator() {
-			@Override
-			public int getSize(float tension) {
-				int cs = crossSize.getAsInt();
-				if (tension == 0)
-					return cap(sizer.getPreferred(cs, true));
-				else if (tension < 0) {
-					tension = -tension;
-					if (tension == MAX_PREF_TENSION)
-						return cap(sizer.getMinPreferred(cs, true));
-					else if (tension < MAX_PREF_TENSION) {
-						int pref = cap(sizer.getPreferred(cs, true));
-						int minPref = cap(sizer.getMinPreferred(cs, true));
-						return Math.round(minPref + (pref - minPref) * tension / MAX_PREF_TENSION);
-					} else if (tension >= MAX_TENSION)
-						return cap(sizer.getMin(cs, true));
-					else {
-						int minPref = cap(sizer.getMinPreferred(cs, true));
-						int min = cap(sizer.getMin(cs, true));
-						return Math.round(min + (minPref - min) * (tension - MAX_PREF_TENSION) / (MAX_TENSION - MAX_PREF_TENSION));
-					}
-				} else {
-					if (tension == MAX_PREF_TENSION)
-						return cap(sizer.getMaxPreferred(cs, true));
-					else if (tension < MAX_PREF_TENSION) {
-						int pref = cap(sizer.getPreferred(cs, true));
-						int maxPref = cap(sizer.getMaxPreferred(cs, true));
-						return Math.round(pref + (maxPref - pref) * tension / MAX_PREF_TENSION);
-					} else if (tension >= MAX_TENSION)
-						return cap(sizer.getMax(cs, true));
-					else {
-						int maxPref = cap(sizer.getMaxPreferred(cs, true));
-						int max = cap(sizer.getMax(cs, true));
-						return Math.round(maxPref + (max - maxPref) * (tension - MAX_PREF_TENSION) / (MAX_TENSION - MAX_PREF_TENSION));
-					}
-				}
-			}
-
-			@Override
-			public TensionAndSnap getTension(int length) {
-				length = cap(length);
-				int cs = crossSize.getAsInt();
-				int pref = cap(sizer.getPreferred(cs, true));
-				if (length < pref) {
-					int minPref = cap(sizer.getMinPreferred(cs, true));
-					if (length >= minPref) {
-						float tension = MAX_PREF_TENSION * (pref - length) / (pref - minPref);
-						return new TensionAndSnap(tension, pref);
-					} else {
-						int min = cap(sizer.getMin(cs, true));
-						if (length == min)
-							return new TensionAndSnap(MAX_TENSION, minPref);
-						else if (length < min) {
-							if (length < 0)
-								return new TensionAndSnap(SUPER_TENSION, min);
-							else {
-								float tension = MAX_TENSION + (SUPER_TENSION - MAX_TENSION) * (min - length) / min;
-								return new TensionAndSnap(tension, min);
-							}
-						} else {
-							float tension = MAX_PREF_TENSION + (MAX_TENSION - MAX_PREF_TENSION) * (minPref - length) / (minPref - min);
-							return new TensionAndSnap(tension, minPref);
-						}
-					}
-				} else if (length == pref) {
-					return new TensionAndSnap(0, pref);
-				} else {
-					int maxPref = cap(sizer.getMaxPreferred(cs, true));
-					if (length <= maxPref) {
-						float tension = -MAX_PREF_TENSION * (length - pref) / (maxPref - pref);
-						return new TensionAndSnap(tension, pref);
-					} else {
-						int max = cap(sizer.getMax(cs, true));
-						if (length == max)
-							return new TensionAndSnap(-MAX_TENSION, maxPref);
-						else if (length > max) {
-							float tension = -MAX_TENSION - (SUPER_TENSION - MAX_TENSION) * (length - max) / (MAX_LAYOUT_SIZE - max);
-							return new TensionAndSnap(tension, max);
-						} else {
-							float tension = -MAX_PREF_TENSION - (MAX_TENSION - MAX_PREF_TENSION) * (length - maxPref) / (max - maxPref);
-							return new TensionAndSnap(tension, maxPref);
-						}
-					}
-				}
-			}
-
-			private int cap(int size) {
-				if (size > MAX_LAYOUT_SIZE)
-					return MAX_LAYOUT_SIZE;
-				else
-					return size;
-			}
-		};
-	}
-
-	private static final LayoutSpringEvaluator BOUNDS_TENSION = new LayoutSpringEvaluator() {
-		@Override
-		public int getSize(float tension) {
-			throw new IllegalStateException("Placeholder! Should not actually be called");
-		}
-
-		@Override
-		public TensionAndSnap getTension(int length) {
-			throw new IllegalStateException("Placeholder! Should not actually be called");
-		}
-	};
-
 	private static final int MAX_TRIES = 100;
 
 	private final BoxImpl theBounds;
@@ -309,8 +77,8 @@ public class LayoutSolver<L> {
 			new EdgeImpl((L) "Left Bound", 0, false, End.leading), new EdgeImpl((L) "Right Bound", 1, false, End.trailing), //
 			new EdgeImpl((L) "Top Bound", 2, true, End.leading), new EdgeImpl((L) "Bottom Bound", 3, true, End.trailing)//
 		);
-		SpringImpl hTension = new SpringImpl(theBounds.left, theBounds.right, BOUNDS_TENSION);
-		SpringImpl vTension = new SpringImpl(theBounds.top, theBounds.bottom, BOUNDS_TENSION);
+		SpringImpl hTension = new SpringImpl(theBounds.left, theBounds.right, LayoutSpringEvaluator.BOUNDS_TENSION);
+		SpringImpl vTension = new SpringImpl(theBounds.top, theBounds.bottom, LayoutSpringEvaluator.BOUNDS_TENSION);
 		theBounds.left.constrain(hTension, true);
 		theBounds.right.constrain(hTension, false);
 		theBounds.top.constrain(vTension, true);
@@ -660,7 +428,7 @@ public class LayoutSolver<L> {
 					End borderEnd = el.get().theEdge.borderEnd;
 					if (borderEnd == null || (stretch && borderEnd == End.trailing)) { // Exclude bounds if they are not flexible
 						float force = el.get().theTotalForce;
-						if (Math.abs(force) < MAX_PREF_TENSION || (force > 0) == signum)
+						if (Math.abs(force) < LayoutSpringEvaluator.MAX_PREF_TENSION || (force > 0) == signum)
 							minBound = el.getElementId();
 						else
 							break;
@@ -674,7 +442,7 @@ public class LayoutSolver<L> {
 					End borderEnd = el.get().theEdge.borderEnd;
 					if (borderEnd == null || (stretch && borderEnd == End.trailing)) { // Exclude bounds if they are not flexible
 						float force = el.get().theTotalForce;
-						if (Math.abs(force) < MAX_PREF_TENSION || (force > 0) == signum)
+						if (Math.abs(force) < LayoutSpringEvaluator.MAX_PREF_TENSION || (force > 0) == signum)
 							maxBound = el.getElementId();
 						else
 							break;
@@ -869,7 +637,7 @@ public class LayoutSolver<L> {
 				for (SpringStateImpl spring : line.theOutgoing.theSprings) {
 					LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
 					EdgeStateImpl dest = spring.theDest.theEdge;
-					if (eval != BOUNDS_TENSION && !dest.isPositioned()) {
+					if (eval != LayoutSpringEvaluator.BOUNDS_TENSION && !dest.isPositioned()) {
 						dest.setPosition(line.thePosition + eval.getSize(0));
 						initConstraints(dest, Ternian.TRUE, dirtySprings);
 					} else
@@ -880,7 +648,7 @@ public class LayoutSolver<L> {
 				for (SpringStateImpl spring : line.theIncoming.theSprings) {
 					LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
 					EdgeStateImpl src = spring.theSource.theEdge;
-					if (eval != BOUNDS_TENSION && !src.isPositioned()) {
+					if (eval != LayoutSpringEvaluator.BOUNDS_TENSION && !src.isPositioned()) {
 						src.setPosition(line.thePosition - eval.getSize(0));
 						initConstraints(src, Ternian.FALSE, dirtySprings);
 					} else
@@ -952,7 +720,7 @@ public class LayoutSolver<L> {
 					}
 					LayoutSpringEvaluator eval = spring.theSpring.theEvaluator;
 					TensionAndSnap newTension;
-					if (eval == BOUNDS_TENSION) {
+					if (eval == LayoutSpringEvaluator.BOUNDS_TENSION) {
 						float tensionF = spring.getSource().getOrientation().isVertical() ? theVTension : theHTension;
 						newTension = new TensionAndSnap(tensionF, tensionF > 0 ? 10000000 : 0);
 					} else if (isOutgoing)
@@ -1806,7 +1574,7 @@ public class LayoutSolver<L> {
 
 		boolean checkTension() {
 			TensionAndSnap tas;
-			if (theSpring.theEvaluator == BOUNDS_TENSION) {
+			if (theSpring.theEvaluator == LayoutSpringEvaluator.BOUNDS_TENSION) {
 				float tension = theSpring.theSource.getOrientation().isVertical() ? theSource.theEdge.theLayoutState.theVTension
 					: theSource.theEdge.theLayoutState.theHTension;
 				tas = new TensionAndSnap(tension, tension > 0 ? 10000000 : 0);
@@ -1846,7 +1614,7 @@ public class LayoutSolver<L> {
 		@Override
 		public String toString() {
 			String str = theSpring.toString() + ": ";
-			if (theSpring.theEvaluator == BOUNDS_TENSION)
+			if (theSpring.theEvaluator == LayoutSpringEvaluator.BOUNDS_TENSION)
 				str += "stretch";
 			else
 				str += theTension;
@@ -1942,29 +1710,29 @@ public class LayoutSolver<L> {
 			BoxDef box2 = solver.getOrCreateBox("b2 left", "b2 right", "b2 top", "b2 bottom");
 			// Margins
 			SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			// Between the boxes
 			SpringDef padding = solver.createSpring(box1.getRight(), box2.getLeft(), //
-				forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
 			// Now the box dimensions
 			SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
 			SpringDef h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
 			SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
 			SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
 
 			solverState = solver.use();
 			BoxState box1State = solverState.getBox(box1);
@@ -1993,40 +1761,40 @@ public class LayoutSolver<L> {
 
 			// Margins
 			SpringDef leftMargin = solver.createSpring(solver.getBounds().getLeft(), box1.getLeft(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef rightMargin = solver.createSpring(box2.getRight(), solver.getBounds().getRight(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef topMargin1 = solver.createSpring(solver.getBounds().getTop(), box1.getTop(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef topMarginText = solver.createSpring(solver.getBounds().getTop(), textBox.getTop(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 1000, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 1000, 1000)));
 			SpringDef topMargin2 = solver.createSpring(solver.getBounds().getTop(), box2.getTop(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef bottomMargin1 = solver.createSpring(box1.getBottom(), solver.getBounds().getBottom(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			SpringDef bottomMarginText = solver.createSpring(textBox.getBottom(), solver.getBounds().getBottom(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 1000, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 1000, 1000)));
 			SpringDef bottomMargin2 = solver.createSpring(box2.getBottom(), solver.getBounds().getBottom(),
-				forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 3, 3, 3, 1000)));
 			// Between the boxes
 			SpringDef padding1 = solver.createSpring(box1.getRight(), textBox.getLeft(), //
-				forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
 			SpringDef padding2 = solver.createSpring(textBox.getRight(), box2.getLeft(), //
-				forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(0, 5, 10, 15, 1000)));
 			// Now the box dimensions
 			SpringDef w1 = solver.createSpring(box1.getLeft(), box1.getRight(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 50, 100, 150, 500)));
 			SpringDef h1 = solver.createSpring(box1.getTop(), box1.getBottom(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
 			SpringDef wText = solver.createSpring(textBox.getLeft(), textBox.getRight(), //
-				forSizer(() -> textBoxState[0].getHeight(), new ConstAreaSizer(25000)));
+				LayoutSpringEvaluator.forSizer(() -> textBoxState[0].getHeight(), new ConstAreaSizer(25000)));
 			SpringDef hText = solver.createSpring(textBox.getTop(), textBox.getBottom(), //
-				forSizer(() -> textBoxState[0].getWidth(), new ConstAreaSizer(25000)));
+				LayoutSpringEvaluator.forSizer(() -> textBoxState[0].getWidth(), new ConstAreaSizer(25000)));
 			solver.linkSprings(wText, hText);
 			SpringDef w2 = solver.createSpring(box2.getLeft(), box2.getRight(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 30, 75, 100, 300)));
 			SpringDef h2 = solver.createSpring(box2.getTop(), box2.getBottom(), //
-				forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
+				LayoutSpringEvaluator.forSizer(() -> 0, new SimpleSizeGuide(10, 40, 80, 125, 400)));
 
 			solverState = solver.use();
 			BoxState box1State = solverState.getBox(box1);

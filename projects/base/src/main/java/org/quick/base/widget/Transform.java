@@ -118,16 +118,7 @@ public class Transform extends SimpleContainer {
 	}
 
 	@Override
-	public SizeGuide getWSizer() {
-		return getSizer(Orientation.horizontal);
-	}
-
-	@Override
-	public SizeGuide getHSizer() {
-		return getSizer(Orientation.vertical);
-	}
-
-	private SizeGuide getSizer(Orientation orientation) {
+	public SizeGuide getSizer(Orientation orientation) {
 		Block contents = getContents();
 		Double rotation = atts().get(rotate).get();
 		Double s = atts().get(scale).get();
@@ -135,8 +126,8 @@ public class Transform extends SimpleContainer {
 		Double sy = atts().get(scaleY).get();
 		double sxv = sx != null ? sx : (s != null ? s : 1);
 		double syv = sy != null ? sx : (s != null ? s : 1);
-		return new TransformingSizeGuide(normalize(rotation), sxv, syv, contents.getWSizer(), contents.getHSizer(),
-			orientation);
+		return new TransformingSizeGuide(normalize(rotation), sxv, syv, contents.getSizer(Orientation.horizontal),
+			contents.getSizer(Orientation.vertical), orientation);
 	}
 
 	@Override

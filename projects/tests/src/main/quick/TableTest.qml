@@ -11,18 +11,29 @@
 		</model>
 	</head>
 	<body layout="base:simple" xmlns:base="../../../../base/QuickRegistry.xml">
-		<!-- TODO Enclose this table in a scroll pane when such a thing exists -->
-		<table rows="rows" row-value="row">
-			<table-column>
-				<label role="renderer" value="row" />
-				<text-field role="editor" value="row" />
-			</table-column>
-			<table-column>
-				<label role="renderer" value="org.quick.test.util.QuickTestUtils.reverse(row)" />
-			</table-column>
-			<table-column>
-				<label role="renderer" value="row.hashCode()" />
-			</table-column>
-		</table>
+		<block layout="border">
+			<!-- TODO Enclose this table in a scroll pane when such a thing exists -->
+			<!-- TODO Remove the row-height attribute when dynamic row height is supported -->
+			<table region="center" rows="rows" row-value="row" row-element-value="rowElement" row-height="25">
+				<table-column>
+					<label role="renderer" value="row" />
+					<text-field role="editor" value="row" />
+				</table-column>
+				<table-column>
+					<label role="renderer" value="org.quick.test.util.QuickTestUtils.reverse(row)" />
+				</table-column>
+				<table-column>
+					<label role="renderer" value="row.hashCode()" />
+				</table-column>
+				<table-column>
+					<button role="renderer" action="rows.mutableElement(rowElement.getElementId()).remove()">
+						<image src="redX" />
+					</button>
+				</table-column>
+			</table>
+			<block region="right" layout="box" direction="down">
+				<button action="rows.add(&quot;String&quot;)">Add Row</button>
+			</block>
+		</block>
 	</body>
 </quick>

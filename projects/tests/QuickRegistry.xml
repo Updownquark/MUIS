@@ -21,6 +21,7 @@
 		<resource tag="fire">src/main/resources/fire.gif</resource>
 		<resource tag="waterfall">src/main/resources/waterfall.gif</resource>
 		<resource tag="plant">src/main/resources/plant.gif</resource>
+		<resource tag="redX">src/main/resources/redX.png</resource>
 	</resources>
 	<security />
 </registry>

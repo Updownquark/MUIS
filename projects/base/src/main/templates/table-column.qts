@@ -5,6 +5,7 @@
 	</head>
 	<body>
 		<template-element template-attach-point="renderer" template-external="true" />
+		<template-element template-attach-point="hover" template-external="true" />
 		<template-element template-attach-point="editor" template-external="true" />
 	</body>
 </template>

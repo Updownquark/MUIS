@@ -24,6 +24,8 @@
         <type tag="table">org.quick.base.widget.Table</type>
         <type tag="table-column">org.quick.base.widget.Table</type>
         <type tag="tree">org.quick.base.widget.Tree</type>
+        <type tag="table">org.quick.base.widget.Table</type>
+        <type tag="table-column">org.quick.base.widget.TableColumn</type>
         
 		<!-- Layouts -->
         <type tag="simple">org.quick.base.layout.SimpleLayout</type>

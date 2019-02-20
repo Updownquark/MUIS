@@ -1,10 +1,14 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.quick.core;
 
+import java.awt.Graphics2D;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
@@ -907,20 +911,21 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @return The cached bounds used to draw each of the element's children
 	 */
 	public QuickElementCapture [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
-		QuickElement[] children = QuickUtils.sortByZ(ch().toArray());
-		QuickElementCapture [] childBounds = new QuickElementCapture[children.length];
-		if(children.length == 0)
-			return childBounds;
-		java.awt.Rectangle awtArea;
-		if (area != null)
-			awtArea = area.toAwt();
-		else
-			awtArea = new java.awt.Rectangle(0, 0, theBounds.getWidth(), theBounds.getHeight());
+		List<QuickElement> children = Arrays.asList(QuickUtils.sortByZ(ch().toArray()));
+		if (children.isEmpty())
+			return new QuickElementCapture[0];
+		if (area == null)
+			area = new Rectangle(0, 0, bounds().getWidth(), bounds().getHeight());
+		return paintChildren(children, graphics, area);
+	}
+
+	public static QuickElementCapture[] paintChildren(Iterable<? extends QuickElement> children, Graphics2D graphics, Rectangle area) {
+		java.awt.Rectangle awtArea = area.toAwt();
+		List<QuickElementCapture> childBounds = new ArrayList<>();
 		int translateX = 0;
 		int translateY = 0;
 		try {
-			for(int c = 0; c < children.length; c++) {
-				QuickElement child = children[c];
+			for (QuickElement child : children) {
 				java.awt.Rectangle childArea = child.theBounds.getBounds().toAwt();
 				int childX = childArea.x;
 				int childY = childArea.y;
@@ -933,15 +938,15 @@ public abstract class QuickElement implements QuickParseEnv {
 				translateX = -childX;
 				translateY = -childY;
 				if (childArea.isEmpty())
-					childBounds[c] = child.paint(graphics, new Rectangle(childArea.x, childArea.y, 0, 0));
+					childBounds.add(child.paint(graphics, new Rectangle(childArea.x, childArea.y, 0, 0)));
 				else
-					childBounds[c] = child.paint(graphics, Rectangle.fromAwt(childArea));
+					childBounds.add(child.paint(graphics, Rectangle.fromAwt(childArea)));
 			}
 		} finally {
-			if(translateX != 0 || translateY != 0)
+			if (translateX != 0 || translateY != 0)
 				graphics.translate(translateX, translateY);
 		}
-		return childBounds;
+		return childBounds.toArray(new QuickElementCapture[childBounds.size()]);
 	}
 
 	/** @return The time since which this element has needed a paint operation */
@@ -959,6 +964,74 @@ public abstract class QuickElement implements QuickParseEnv {
 	@Override
 	public final int hashCode() {
 		return super.hashCode();
+	}
+
+	public QuickElement copy(QuickElement parent, Consumer<QuickElement> postProcess) throws IllegalStateException {
+		QuickElement copy = initCopy();
+		Runnable attFinishTemp = copy.tempAcceptAttributes(this);
+		if (life().isAfter(CoreStage.INIT_SELF.name()) > 1)
+			copy.init(theDocument, theToolkit, theClassView, parent, theNamespace, theTagName);
+		Runnable chFinishTemp = null;
+		if (life().isAfter(CoreStage.INIT_CHILDREN.name()) > 1)
+			chFinishTemp = copy.initCopyChildren(this);
+		if (postProcess != null)
+			postProcess.accept(copy);
+		attFinishTemp.run();
+		if (chFinishTemp != null)
+			chFinishTemp.run();
+		return copy;
+	}
+
+	protected QuickElement initCopy() {
+		QuickElement copy;
+		try {
+			copy = getClass().getConstructor().newInstance();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+			| NoSuchMethodException | SecurityException e) {
+			throw new IllegalStateException("Unable to copy " + this, e);
+		}
+		return copy;
+	}
+
+	private Runnable tempAcceptAttributes(QuickElement copyFrom) {
+		String duplicate = "duplicate";
+		List<AttributeManager2.AttributeAcceptance> tempAcceptance = new ArrayList<>();
+		for (AttributeManager2.AttributeValue<?> attr : copyFrom.atts().getAllAttributes()) {
+			ObservableValue<?> container = attr.getContainer().get();
+			atts().accept(attr.getAttribute(), duplicate, acc -> {
+				tempAcceptance.add(acc);
+				if (container != null)
+					((AttributeManager2.IndividualAttributeAcceptance<Object>) acc).initContainer(container);
+				else
+					((AttributeManager2.IndividualAttributeAcceptance<Object>) acc).init(attr.get());
+			});
+		}
+		return () -> {
+			for (AttributeManager2.AttributeAcceptance acc : tempAcceptance)
+				acc.reject();
+			tempAcceptance.clear();
+		};
+	}
+
+	private Runnable initCopyChildren(QuickElement copyFrom) {
+		List<QuickElement> children = new ArrayList<>(copyFrom.theChildren);
+		List<QuickElement> newChildren = new ArrayList<>(children.size());
+		List<Runnable> finishTemp = new ArrayList<>();
+		for (int i = 0; i < children.size(); i++) {
+			QuickElement child = children.get(i);
+			QuickElement childCopy = child.initCopy();
+			finishTemp.add(childCopy.tempAcceptAttributes(child));
+			newChildren.add(childCopy);
+			childCopy.init(theDocument, theToolkit, child.theClassView, this, child.theNamespace, child.theTagName);
+		}
+		initChildren(children);
+		for (int i = 0; i < children.size(); i++)
+			finishTemp.add(newChildren.get(i).initCopyChildren(children.get(i)));
+		return () -> {
+			for (Runnable ft : finishTemp)
+				ft.run();
+			finishTemp.clear();
+		};
 	}
 
 	private static class CoreStateControllers {

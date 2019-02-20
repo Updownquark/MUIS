@@ -309,6 +309,8 @@ public class AttributeManager2 {
 		}
 
 		IndividualAttributeAcceptance<T> init(T value);
+
+		IndividualAttributeAcceptance<T> initContainer(ObservableValue<? extends T> value);
 	}
 
 	static int compare(QuickAttribute<?> attr1, QuickAttribute<?> attr2) {
@@ -779,6 +781,15 @@ public class AttributeManager2 {
 				throw new IllegalStateException("Initialization can only be done during acceptance");
 			if (isAccepted && theAttribute.get() == null)
 				theAttribute.set(value, theWanter);
+			return this;
+		}
+
+		@Override
+		public IndividualAttributeAcceptance<T> initContainer(ObservableValue<? extends T> value) {
+			if (isInitialized)
+				throw new IllegalStateException("Initialization can only be done during acceptance");
+			if (isAccepted && theAttribute.get() == null)
+				theAttribute.setContainer(value);
 			return this;
 		}
 

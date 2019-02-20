@@ -671,8 +671,7 @@ public class FlowLayoutTester {
 					row.add(theChildren[c]);
 					if(theWraps[c]) {
 						temp.clear();
-						BaseLayoutUtils.getBoxLayoutCrossSize(row.toArray(new QuickElement[row.size()]), theOrientation, type, crossSize,
-							csMax, temp);
+						BaseLayoutUtils.getBoxLayoutCrossSize(row, theOrientation, type, crossSize, csMax, temp);
 						if(c == 0)
 							temp.add(theOrientation == Orientation.horizontal ? theMarginY : theMarginX);
 						else
@@ -688,8 +687,7 @@ public class FlowLayoutTester {
 				}
 				row.add(theChildren[theWraps.length]);
 				temp.clear();
-				BaseLayoutUtils.getBoxLayoutCrossSize(row.toArray(new QuickElement[row.size()]), theOrientation, type, crossSize, csMax,
-					temp);
+				BaseLayoutUtils.getBoxLayoutCrossSize(row, theOrientation, type, crossSize, csMax, temp);
 				temp.add(theOrientation == Orientation.horizontal ? theMarginY : theMarginX);
 				int rowHeight = temp.getPixels();
 				percentSum += temp.getPercent();

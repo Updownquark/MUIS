@@ -7,8 +7,7 @@ import java.net.URL;
 import org.quick.base.data.ImageData;
 import org.quick.core.QuickLayout;
 import org.quick.core.Rectangle;
-import org.quick.core.layout.SimpleSizeGuide;
-import org.quick.core.layout.SizeGuide;
+import org.quick.core.layout.*;
 
 /** Renders an image */
 public class GenericImage extends org.quick.core.LayoutContainer {
@@ -348,65 +347,35 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 	}
 
 	@Override
-	public SizeGuide getWSizer() {
+	public SizeGuide getSizer(Orientation orientation) {
 		ImageData img = getDisplayedImage();
 		int w, h;
 		if(img != null) {
 			w = img.getWidth();
 			h = img.getHeight();
 		} else
-			return super.getWSizer();
-
+			return super.getSizer(orientation);
+		int primary = orientation.isVertical() ? h : w;
+		int secondary = orientation.isVertical() ? w : h;
 		switch (theHResizePolicy) {
 		case none:
-			return super.getWSizer();
+			return super.getSizer(orientation);
 		case lock:
-			return new SimpleSizeGuide(w, w, w, w, w);
+			return new SimpleSizeGuide(primary, primary, primary, primary, primary);
 		case lockIfEmpty:
 			if(ch().isEmpty())
-				return new SimpleSizeGuide(w, w, w, w, w);
+				return new SimpleSizeGuide(primary, primary, primary, primary, primary);
 			else
-				return super.getWSizer();
+				return super.getSizer(orientation);
 		case repeat:
-			return super.getWSizer();
+			return super.getSizer(orientation);
 		case resize:
 			if(isProportionLocked)
-                return new ProportionalSizeGuide(w, h);
+				return new ProportionalSizeGuide(primary, secondary);
 			else
-				return new SimpleSizeGuide(0, 0, w, Integer.MAX_VALUE, Integer.MAX_VALUE);
+				return new SimpleSizeGuide(0, 0, primary, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
-		return super.getWSizer();
-	}
-
-	@Override
-	public SizeGuide getHSizer() {
-		ImageData img = getDisplayedImage();
-		int w, h;
-		if(img != null) {
-			w = img.getWidth();
-			h = img.getHeight();
-		} else
-			return super.getHSizer();
-
-		switch (theVResizePolicy) {
-		case none:
-			return super.getHSizer();
-		case lock:
-			return new SimpleSizeGuide(h, h, h, h, h);
-		case lockIfEmpty:
-			if(ch().isEmpty())
-				return new SimpleSizeGuide(h, h, h, h, h);
-			else
-				return super.getHSizer();
-		case repeat:
-			return super.getHSizer();
-		case resize:
-			if(isProportionLocked)
-                return new ProportionalSizeGuide(h, w);
-			else
-				return new SimpleSizeGuide(0, 0, h, Integer.MAX_VALUE, Integer.MAX_VALUE);
-		}
-		return super.getHSizer();
+		return super.getSizer(orientation);
 	}
 
 	/** @return The image that would be displayed if this widget were painted now (may be the loading or error image) */
@@ -511,9 +480,8 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		graphics.drawImage(img.get(imgIdx), gfxX1, gfxY1, gfxX2, gfxY2, imgX1, imgY1, imgX2, imgY2, null);
 	}
 
-	private static class ProportionalSizeGuide extends org.quick.core.layout.AbstractSizeGuide {
+	private static class ProportionalSizeGuide implements SizeGuide.GenericSizeGuide {
 		private final int theMainDim;
-
 		private final int theCrossDim;
 
         ProportionalSizeGuide(int main, int cross) {
@@ -522,33 +490,9 @@ public class GenericImage extends org.quick.core.LayoutContainer {
 		}
 
 		@Override
-		public int getMinPreferred(int crossSize, boolean csMax) {
-			if(csMax)
+		public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+			if (type.isMin() && csMax)
 				return 0;
-			else
-				return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public int getMaxPreferred(int crossSize, boolean csMax) {
-			return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public int getMin(int crossSize, boolean csMax) {
-			if(csMax)
-				return 0;
-			else
-				return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public int getPreferred(int crossSize, boolean csMax) {
-			return theMainDim * crossSize / theCrossDim;
-		}
-
-		@Override
-		public int getMax(int crossSize, boolean csMax) {
 			return theMainDim * crossSize / theCrossDim;
 		}
 

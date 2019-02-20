@@ -1,5 +1,6 @@
 package org.quick.core;
 
+import org.qommons.Transaction;
 import org.quick.core.layout.Orientation;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager2.AttributeValue;
@@ -43,9 +44,11 @@ public class LayoutContainer extends QuickElement {
 	@Override
 	public SizeGuide getSizer(Orientation orientation) {
 		QuickLayout layout = getLayout();
-		if (layout != null)
-			return layout.getSizer(this, getPhysicalChildren(), orientation);
-		else
+		if (layout != null) {
+			try (Transaction t = getPhysicalChildren().lock(false, null)) {
+				return layout.getSizer(this, getPhysicalChildren(), orientation);
+			}
+		} else
 			return super.getSizer(orientation);
 	}
 
@@ -54,8 +57,11 @@ public class LayoutContainer extends QuickElement {
 		if (bounds().isEmpty())
 			return;
 		QuickLayout layout = getLayout();
-		if (layout != null)
-			layout.layout(this, getPhysicalChildren());
+		if (layout != null) {
+			try (Transaction t = getPhysicalChildren().lock(false, null)) {
+				layout.layout(this, getPhysicalChildren());
+			}
+		}
 		super.doLayout();
 	}
 }

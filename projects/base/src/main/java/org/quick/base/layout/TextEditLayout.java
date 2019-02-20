@@ -1,7 +1,9 @@
 package org.quick.base.layout;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.awt.Font;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.Point2D;
+import java.util.*;
 
 import org.observe.Observable;
 import org.observe.SimpleObservable;
@@ -10,8 +12,7 @@ import org.qommons.collect.CollectionElement;
 import org.qommons.collect.ElementId;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickLayout;
-import org.quick.core.layout.LayoutGuideType;
-import org.quick.core.layout.SizeGuide;
+import org.quick.core.layout.*;
 import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
@@ -19,8 +20,10 @@ import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
+import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.util.CompoundListener;
+import org.quick.util.QuickUtils;
 
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickLayout {
@@ -86,155 +89,74 @@ public class TextEditLayout implements QuickLayout {
 	}
 
 	@Override
-	public SizeGuide getWSizer(final QuickElement parent, final QuickElement [] children) {
-		if(children.length == 0)
-			return new org.quick.core.layout.SimpleSizeGuide();
-		if(children.length > 1) {
+	public SizeGuide getSizer(QuickElement parent, Iterable<? extends QuickElement> children, Orientation orientation) {
+		Iterator<? extends QuickElement> iter = children.iterator();
+		if (!iter.hasNext())
+			return new SimpleSizeGuide();
+		QuickElement firstChild = iter.next();
+		if (iter.hasNext()) {
 			parent.msg().error(getClass().getSimpleName() + " allows only one child in a container");
-			return new org.quick.core.layout.SimpleSizeGuide();
+			return new SimpleSizeGuide();
 		}
-		if(!(children[0] instanceof DocumentedElement)) {
+		if (!(firstChild instanceof DocumentedElement)) {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
-			return new org.quick.core.layout.SimpleSizeGuide();
+			return new SimpleSizeGuide();
 		}
-		return new SizeGuide() {
-			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
-			}
-
-			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
-			}
-
+		return new SizeGuide.GenericSizeGuide() {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
 				if(type.isPref()) {
-					final int length = parent.atts().getValue(charLengthAtt, 12);
-					org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
+					QuickDocumentModel doc = ((DocumentedElement) firstChild).getDocumentModel().get();
 					QuickStyle style;
 					if (doc.length() > 0)
 						style = doc.getStyleAt(0);
 					else
-						style = children[0].getStyle();
-					java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
-					java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(),
-						style.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
-					return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
-				}
-				return children[0].bounds().getHorizontal().getGuide().get(type, crossSize, csMax);
-			}
-
-			@Override
-			public int getBaseline(int size) {
-				return children[0].bounds().getHorizontal().getGuide().getBaseline(size);
-			}
-		};
-	}
-
-	@Override
-	public SizeGuide getHSizer(final QuickElement parent, final QuickElement [] children) {
-		if(children.length == 0)
-			return new org.quick.core.layout.SimpleSizeGuide();
-		if(children.length > 1) {
-			parent.msg().error(getClass().getSimpleName() + " allows only one child in a container");
-			return new org.quick.core.layout.SimpleSizeGuide();
-		}
-		if(!(children[0] instanceof DocumentedElement)) {
-			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
-			return new org.quick.core.layout.SimpleSizeGuide();
-		}
-		return new SizeGuide() {
-			@Override
-			public int getMin(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.min, crossSize, csMax);
-			}
-
-			@Override
-			public int getMinPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.minPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.pref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMaxPreferred(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.maxPref, crossSize, csMax);
-			}
-
-			@Override
-			public int getMax(int crossSize, boolean csMax) {
-				return get(LayoutGuideType.max, crossSize, csMax);
-			}
-
-			@Override
-			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				if(type.isPref()) {
-					final Integer rows = parent.atts().get(charRowsAtt).get();
-					if(rows != null) {
-						org.quick.core.model.QuickDocumentModel doc = ((DocumentedElement) children[0]).getDocumentModel().get();
-						QuickStyle style;
-						if(doc.length() > 0)
-							style = doc.getStyleAt(0);
-						else
-							style = children[0].getStyle();
-						java.awt.Font font = org.quick.util.QuickUtils.getFont(style).get();
-						java.awt.font.FontRenderContext ctx = new java.awt.font.FontRenderContext(font.getTransform(), style
-							.get(org.quick.core.style.FontStyle.antiAlias).get().booleanValue(), false);
-						return (int) (rows * font.getStringBounds("00", ctx).getHeight());
+						style = firstChild.getStyle();
+					Font font = QuickUtils.getFont(style).get();
+					FontRenderContext ctx = new FontRenderContext(font.getTransform(), style.get(FontStyle.antiAlias).get().booleanValue(),
+						false);
+					if (orientation.isVertical()) {
+						final Integer rows = parent.atts().get(charRowsAtt).get();
+						if (rows != null)
+							return (int) (rows * font.getStringBounds("00", ctx).getHeight());
+					} else {
+						final int length = parent.atts().getValue(charLengthAtt, 12);
+						return (int) (length * font.getStringBounds("00", ctx).getWidth() / 2);
 					}
 				}
-				return children[0].bounds().getVertical().getGuide().get(type, crossSize, csMax);
+				return firstChild.bounds().get(orientation).getGuide().get(type, crossSize, csMax);
 			}
 
 			@Override
 			public int getBaseline(int size) {
-				return children[0].bounds().getVertical().getGuide().getBaseline(size);
+				return firstChild.bounds().getHorizontal().getGuide().getBaseline(size);
 			}
 		};
 	}
 
 	@Override
-	public void layout(QuickElement parent, QuickElement [] children) {
-		if(children.length != 1) {
+	public void layout(QuickElement parent, List<? extends QuickElement> children) {
+		if (children.size() != 1) {
 			parent.msg().error(getClass().getSimpleName() + " allows exactly one child in a container");
 			return;
 		}
-		if(!(children[0] instanceof DocumentedElement)) {
+		if (!(children.get(0) instanceof DocumentedElement)) {
 			parent.msg().error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		boolean wrap = children[0].getStyle().get(org.quick.core.style.FontStyle.wordWrap).get();
+		QuickElement child = children.get(0);
+		DocumentedElement docChild = (DocumentedElement) child;
+		boolean wrap = child.getStyle().get(org.quick.core.style.FontStyle.wordWrap).get();
 		int w = parent.bounds().getWidth();
-		int h = children[0].bounds().getVertical().getGuide().getPreferred(w, !wrap);
+		int h = child.bounds().getVertical().getGuide().getPreferred(w, !wrap);
 
-		DocumentedElement child = (DocumentedElement) children[0];
-		if (!(child.getDocumentModel().get() instanceof SelectableDocumentModel)) {
-			children[0].bounds().setBounds(0, 0, w, h);
+		if (!(docChild.getDocumentModel().get() instanceof SelectableDocumentModel)) {
+			child.bounds().setBounds(0, 0, w, h);
 			return;
 		}
-		SelectableDocumentModel doc = (SelectableDocumentModel) child.getDocumentModel().get();
-		java.awt.geom.Point2D loc = doc.getLocationAt(doc.getCursor(), Integer.MAX_VALUE);
-		int x = children[0].bounds().getX();
+		SelectableDocumentModel doc = (SelectableDocumentModel) docChild.getDocumentModel().get();
+		Point2D loc = doc.getLocationAt(doc.getCursor(), Integer.MAX_VALUE);
+		int x = child.bounds().getX();
 		if(w <= parent.bounds().getWidth())
 			x = 0;
 		else {
@@ -248,7 +170,7 @@ public class TextEditLayout implements QuickLayout {
 				x = parent.bounds().getWidth() - w;
 		}
 
-		int y = children[0].bounds().getY();
+		int y = child.bounds().getY();
 		if(h <= parent.bounds().getHeight())
 			y = 0;
 		else {
@@ -267,7 +189,7 @@ public class TextEditLayout implements QuickLayout {
 		if(h < parent.bounds().getHeight())
 			h = parent.bounds().getHeight();
 
-		children[0].bounds().setBounds(x, y, w, h);
+		child.bounds().setBounds(x, y, w, h);
 	}
 
 	@Override

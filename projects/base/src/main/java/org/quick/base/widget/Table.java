@@ -9,6 +9,7 @@ import org.observe.ObservableValueEvent;
 import org.observe.Subscription;
 import org.observe.collect.CollectionChangeEvent.ElementChange;
 import org.observe.collect.ObservableCollection;
+import org.qommons.ArrayUtils;
 import org.qommons.Transaction;
 import org.qommons.collect.ElementId;
 import org.quick.base.layout.BaseLayoutUtils;
@@ -78,17 +79,17 @@ public class Table extends QuickTemplate {
 				atts().accept(columnValueModelName, this, aa -> aa.required().init("column"));
 				atts().accept(columnElementModelName, this, aa -> aa.required().init("columnElement"));
 			}
-			// TODO size needs changed when margin or padding changes
-
+			// TODO size needs changed and rowSize=dirty when margin or padding changes
 			// Accept row-height for a vertical table and row-width for a horizontal one
-			// TODO size needs changed when row-height or row-width changes
 			atts().get(LayoutAttributes.orientation).changes().act(new Consumer<ObservableValueEvent<Orientation>>() {
 				private AttributeManager2.AttributeAcceptance rowDimAcc;
 				private Subscription rowDimSub;
 				private Consumer<ObservableValueEvent<Size>> rowDimAction = evt -> {
 					theConfiguredRowSize = evt.getNewValue();
-					if (!evt.isInitial())
+					if (!evt.isInitial()) {
+						isRowSizeDirty = true;
 						sizeNeedsChanged();
+					}
 				};
 
 				@Override
@@ -112,6 +113,8 @@ public class Table extends QuickTemplate {
 			_rows.changes().act(evt -> {
 				boolean sizeNeedsChanged = false;
 				try (Transaction t = getContentLocker().lock(false, evt)) {
+					// TODO Can do better by propagating the size needs change along theRowSizes collection
+					// instead of marking it dirty and calculating the whole thing again
 					switch (evt.type) {
 					case add:
 						for (ElementChange<?> el : evt.elements)
@@ -230,8 +233,17 @@ public class Table extends QuickTemplate {
 		return theRowSizes.get(row).size;
 	}
 
-	public ElementId getRowAt(Point point) {
-
+	public int getRowAt(Point point) {
+		int pos = atts().get(LayoutAttributes.orientation).get().isVertical() ? point.y : point.x;
+		return ArrayUtils.binarySearch(theRowSizes, sz -> {
+			int diff = pos - sz.position;
+			if (diff < 0)
+				return -1;
+			else if (diff >= sz.size)
+				return 1;
+			else
+				return 0;
+		});
 	}
 
 	protected void setSelected(TableColumn column, ElementId row) {

@@ -5,6 +5,7 @@ import java.awt.Cursor;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.observe.Observable;
 import org.observe.ObservableValue;
@@ -12,11 +13,13 @@ import org.observe.SettableValue;
 import org.observe.VetoableSettableValue;
 import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
+import org.qommons.Transactable;
 import org.quick.core.event.FocusEvent;
 import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.event.MouseEvent;
 import org.quick.core.event.ScrollEvent;
 import org.quick.core.event.UserEvent;
+import org.quick.core.mgr.HierarchicalResourcePool;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
@@ -69,6 +72,10 @@ public class QuickDocument implements QuickParseEnv {
 
 	private final ExpressionContext theContext;
 
+	private final HierarchicalResourcePool theResourcePool;
+
+	private final Transactable theLock;
+
 	private final Observable<?> theDispose;
 
 	private QuickClassView theClassView;
@@ -81,7 +88,7 @@ public class QuickDocument implements QuickParseEnv {
 
 	private QuickMessageCenter theMessageCenter;
 
-	private org.quick.core.style.DocumentStyleSheet theDocumentStyle;
+	private DocumentStyleSheet theDocumentStyle;
 
 	private ScrollPolicy theScrollPolicy;
 
@@ -126,7 +133,10 @@ public class QuickDocument implements QuickParseEnv {
 		theLocation = location;
 		theHead = head;
 		theClassView = classView;
+		theLock = Transactable.transactable(new ReentrantReadWriteLock());
+		theResourcePool = new HierarchicalResourcePool(this, env.getResourcePool(), theLock, true);
 		theDispose = dispose;
+		theDispose.take(1).act(d -> theResourcePool.setActive(false));
 
 		theContext = DefaultExpressionContext.build().withParent(env.getContext())//
 			.withValueGetter(name -> {
@@ -160,6 +170,11 @@ public class QuickDocument implements QuickParseEnv {
 				if (event.getNewValue() != null && theGraphics != null)
 					theGraphics.setCursor(event.getNewValue());
 			});
+	}
+
+	/** @return This document's resource pool */
+	public HierarchicalResourcePool getResourcePool() {
+		return theResourcePool;
 	}
 
 	/** @return An observable that will fire when this document is disposed */

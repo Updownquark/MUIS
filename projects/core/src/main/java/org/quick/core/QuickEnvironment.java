@@ -9,9 +9,11 @@ import org.observe.Observable;
 import org.observe.SimpleObservable;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
+import org.qommons.Transactable;
 import org.qommons.collect.CollectionLockingStrategy;
 import org.qommons.collect.StampedLockingStrategy;
 import org.qommons.tree.BetterTreeList;
+import org.quick.core.mgr.HierarchicalResourcePool;
 import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.DefaultStyleParser;
 import org.quick.core.parser.QuickContentCreator;
@@ -54,6 +56,7 @@ public class QuickEnvironment implements QuickParseEnv {
 	private final java.util.Map<String, QuickToolkit> theToolkits;
 	private final QuickCache theCache;
 	private final EnvironmentStyle theStyle;
+	private final HierarchicalResourcePool theResourcePool;
 	private final SimpleObservable<Void> theDeath;
 
 	private ObservableCollection<StyleSheet> theStyleDependencyController;
@@ -66,7 +69,10 @@ public class QuickEnvironment implements QuickParseEnv {
 		theCache = new QuickCache();
 		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class),
 			new BetterTreeList<>(theContentLocker));
+		theResourcePool = new HierarchicalResourcePool(this, HierarchicalResourcePool.ROOT, Transactable.transactable(theAttributeLocker),
+			true);
 		theDeath = new SimpleObservable<>(null, false, theAttributeLocker, null);
+		theDeath.take(1).act(v -> theResourcePool.setActive(false));
 		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect());
 	}
 
@@ -76,6 +82,10 @@ public class QuickEnvironment implements QuickParseEnv {
 
 	CollectionLockingStrategy getContentLocker() {
 		return theContentLocker;
+	}
+
+	public HierarchicalResourcePool getResourcePool() {
+		return theResourcePool;
 	}
 
 	@Override

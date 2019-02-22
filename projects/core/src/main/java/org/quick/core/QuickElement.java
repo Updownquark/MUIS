@@ -17,6 +17,7 @@ import org.observe.collect.CollectionChangeEvent;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
 import org.qommons.Lockable;
+import org.qommons.Transactable;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionLockingStrategy;
 import org.qommons.collect.StampedLockingStrategy;
@@ -31,6 +32,7 @@ import org.quick.core.layout.SimpleSizeGuide;
 import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.mgr.ElementBounds;
+import org.quick.core.mgr.HierarchicalResourcePool;
 import org.quick.core.mgr.QuickEventManager;
 import org.quick.core.mgr.QuickLifeCycleManager;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
@@ -76,6 +78,8 @@ public abstract class QuickElement implements QuickParseEnv {
 	private final QuickMessageCenter theMessageCenter;
 
 	private final QuickEventManager theEvents;
+
+	private final HierarchicalResourcePool theResourcePool;
 
 	private QuickDocument theDocument;
 
@@ -125,11 +129,13 @@ public abstract class QuickElement implements QuickParseEnv {
 	public QuickElement() {
 		theAttributeLocker = new ReentrantReadWriteLock();
 		theContentLocker = new StampedLockingStrategy();
+		theResourcePool = new HierarchicalResourcePool(this, null, Transactable.transactable(theAttributeLocker), true);
 		theParent = new org.observe.SimpleSettableValue<>(TypeTokens.get().of(QuickElement.class), true, theAttributeLocker, null)//
 			.filterAccept(el -> el == QuickElement.this ? "An element cannot have itself as a parent" : null);
 		theParent.changes().act(evt -> {
 			if (evt.getOldValue() != null)
 				evt.getOldValue().theChildren.remove(QuickElement.this);
+			theResourcePool.setParent(evt.getNewValue() == null ? null : evt.getNewValue().getResourcePool());
 		});
 		theMessageCenter = new QuickMessageCenter(null, null, this);
 		theLifeCycleManager = new QuickLifeCycleManager(this, (Controller controller) -> {
@@ -305,6 +311,11 @@ public abstract class QuickElement implements QuickParseEnv {
 	/** @return A locker controlling threaded access to this element's multi-valued attributes (e.g. children) */
 	public CollectionLockingStrategy getContentLocker() {
 		return theContentLocker;
+	}
+
+	/** This element's resource pool */
+	public HierarchicalResourcePool getResourcePool() {
+		return theResourcePool;
 	}
 
 	/** @return The document that this element belongs to */

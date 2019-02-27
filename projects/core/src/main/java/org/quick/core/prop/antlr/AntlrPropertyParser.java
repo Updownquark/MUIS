@@ -612,7 +612,7 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 					else
 						push(new ExpressionTypes.ArrayType(ctx, (ExpressionTypes.Type) pop(ctx.unannPrimitiveType()), dims));
 				}
-					push(new ExpressionTypes.PrimitiveType(ctx, void.class));
+				push(new ExpressionTypes.PrimitiveType(ctx, void.class));
 			}
 		}
 
@@ -733,6 +733,29 @@ public class AntlrPropertyParser extends AbstractPropertyParser {
 				ascend(ctx.classType(), ctx);
 			else
 				ascend(ctx.arrayType(), ctx);
+		}
+
+		@Override
+		public void exitTypeArguments(TypeArgumentsContext ctx) {
+			ascend(ctx.typeArgumentList(), ctx);
+		}
+
+		@Override
+		public void exitTypeArgument(TypeArgumentContext ctx) {
+			ascend(ctx.referenceType(), ctx);
+		}
+
+		@Override
+		public void exitTypeArgumentList(TypeArgumentListContext ctx) {
+			for (TypeArgumentContext tac : ctx.typeArgument())
+				push(pop(tac));
+		}
+
+		@Override
+		public void exitTypeArgumentsOrDiamond(TypeArgumentsOrDiamondContext ctx) {
+			if (ctx.typeArguments() == null)
+				throw new IllegalStateException("Support for the diamond operator has not been implemented");
+			ascend(ctx.typeArguments(), ctx);
 		}
 
 		@Override

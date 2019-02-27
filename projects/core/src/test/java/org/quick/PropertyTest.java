@@ -16,6 +16,7 @@ import org.observe.ObservableValueTester;
 import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
 import org.observe.Subscription;
+import org.observe.collect.ObservableCollection;
 import org.observe.collect.ObservableCollectionTester;
 import org.observe.collect.ObservableSet;
 import org.observe.util.TypeTokens;
@@ -169,6 +170,14 @@ public class PropertyTest {
 			Assert.assertEquals(Colors.blue, //
 				propParser.parseProperty(colorAtt, env, "${colors.blue}")//
 					.get());
+
+			QuickProperty<ObservableCollection<?>> collectionProperty = QuickAttribute.build("collection", QuickPropertyType//
+				.build("collection", new TypeToken<ObservableCollection<?>>() {}).build()).build();
+			Object result = propParser.parseProperty(collectionProperty, env, //
+				"org.observe.collect.ObservableCollection.create(org.observe.util.TypeTokens().STRING,"
+					+ "new org.qommons.tree.SortedTreeList<String>(true, org.qommons.QommonsUtils.DISTINCT_NUMBER_TOLERANT))");
+			Assert.assertTrue("Not a collection", result instanceof ObservableCollection);
+			Assert.assertEquals(TypeTokens.get().STRING, ((ObservableCollection<?>) result).getType());
 		} catch (QuickParseException e) {
 			throw new IllegalStateException(e);
 		}

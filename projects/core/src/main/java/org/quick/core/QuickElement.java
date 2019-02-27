@@ -236,7 +236,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		theStateControllers.middleClicked = theStateEngine.control(States.MIDDLE_CLICK);
 		theStateControllers.hovered = theStateEngine.control(States.HOVER);
 		theStateControllers.focused = theStateEngine.control(States.FOCUS);
-		events().filterMap(MouseEvent.mouse).act(event -> {
+		theResourcePool.pool(events().filterMap(MouseEvent.mouse)).act(event -> {
 			switch (event.getType()) {
 			case pressed:
 				switch (event.getButton()) {
@@ -298,7 +298,7 @@ public abstract class QuickElement implements QuickParseEnv {
 				break;
 			}
 		});
-		events().filterMap(FocusEvent.focusEvent).act(event -> {
+		theResourcePool.pool(events().filterMap(FocusEvent.focusEvent)).act(event -> {
 			theStateControllers.focused.setActive(event.isFocus(), event);
 		});
 	}
@@ -313,7 +313,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		return theContentLocker;
 	}
 
-	/** This element's resource pool */
+	/** @return This element's resource pool */
 	public HierarchicalResourcePool getResourcePool() {
 		return theResourcePool;
 	}
@@ -509,7 +509,7 @@ public abstract class QuickElement implements QuickParseEnv {
 				tk = (QuickToolkit) child.getClass().getClassLoader();
 			else
 				tk = getDocument().getEnvironment().getCoreToolkit();
-			org.quick.core.QuickClassView classView = new org.quick.core.QuickClassView(getDocument().getEnvironment(), theClassView, tk);
+			QuickClassView classView = new QuickClassView(getDocument().getEnvironment(), theClassView, tk);
 			child.init(getDocument(), tk, classView, this, null, null);
 		}
 		if (child.life().isAfter(CoreStage.INIT_CHILDREN.name()) < 0 && life().isAfter(CoreStage.INITIALIZED.name()) > 0) {
@@ -518,7 +518,7 @@ public abstract class QuickElement implements QuickParseEnv {
 		if (child.life().isAfter(CoreStage.STARTUP.name()) < 0 && life().isAfter(CoreStage.READY.name()) > 0) {
 			child.postCreate();
 		}
-		Subscription eventSub = child.events().filterMap(BoundsChangedEvent.bounds).act(event -> {
+		Subscription eventSub = theResourcePool.pool(child.events().filterMap(BoundsChangedEvent.bounds)).act(event -> {
 			if (isHoldingEvents == 0) {
 				Rectangle paintRect = event.getNewValue().union(event.getOldValue());
 				repaint(paintRect, false);
@@ -686,7 +686,10 @@ public abstract class QuickElement implements QuickParseEnv {
 			parent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
 	}
 
-	/** @return The size policy for this item's width */
+	/**
+	 * @param orientation The orientation direction to get the sizer for
+	 * @return The size policy for this item along the given orientation
+	 */
 	public SizeGuide getSizer(Orientation orientation) {
 		SizeGuide sizer;
 		if (orientation.isVertical()) {
@@ -796,6 +799,8 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	/** Alerts the system that this element's size needs may have changed */
 	public final void sizeNeedsChanged() {
+		if (isHoldingEvents > 0)
+			return;
 		QuickElement parent = getParent().get();
 		if (parent != null && parent.bounds().isEmpty())
 			return;
@@ -811,7 +816,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param postActions Actions to perform after the layout action completes
 	 */
 	public final void relayout(boolean now, Runnable... postActions) {
-		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
+		if (isHoldingEvents > 0 || theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point laying out if there's nothing to show
 		if (theLayoutDirtyTime == 0)
 			theLayoutDirtyTime = System.currentTimeMillis();
@@ -894,7 +899,7 @@ public abstract class QuickElement implements QuickParseEnv {
 	 * @param postActions The actions to be performed after the event is handled successfully
 	 */
 	public final void repaint(Rectangle area, boolean now, Runnable... postActions) {
-		if(theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
+		if (isHoldingEvents > 0 || theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
 			return; // No point painting if there's nothing to show
 		if (thePaintDirtyTime == 0)
 			thePaintDirtyTime = System.currentTimeMillis();

@@ -1,17 +1,18 @@
 package org.quick.core.mgr;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.observe.Observable;
-import org.observe.Observer;
 import org.observe.Subscription;
 import org.qommons.Transactable;
 import org.qommons.Transaction;
-import org.qommons.collect.BetterHashMap;
-import org.qommons.collect.BetterMap;
 import org.qommons.collect.ListenerList;
-import org.qommons.collect.RRWLockingStrategy;
 
 public class HierarchicalResourcePool implements ObservableResourcePool {
 	public static final RootResourcePool ROOT = new RootResourcePool();
@@ -23,7 +24,7 @@ public class HierarchicalResourcePool implements ObservableResourcePool {
 	private boolean isActuallyActive;
 	private final List<HierarchicalResourcePool> theChildren;
 	private final Transactable theLock;
-	private final BetterMap<Observable<?>, PooledResource<?>> theResources;
+	private final ListenerList<PooledSubscription<?, ?>> theSubscriptions;
 
 	public HierarchicalResourcePool(Object subject, HierarchicalResourcePool parent, Transactable lock, boolean active) {
 		theSubject = subject;
@@ -31,7 +32,7 @@ public class HierarchicalResourcePool implements ObservableResourcePool {
 		theLock = lock;
 		isLocallyActive = active;
 		theChildren = new ArrayList<>();
-		theResources = BetterHashMap.build().identity().withLocking(new RRWLockingStrategy(lock)).buildMap();
+		theSubscriptions = ListenerList.build().allowReentrant().withFastSize(false).build();
 		if (parent != null) {
 			try (Transaction t = parent.lock(true, this)) {
 				isParentActive = parent.isActuallyActive;
@@ -92,8 +93,8 @@ public class HierarchicalResourcePool implements ObservableResourcePool {
 			return;
 		} else {
 			isActuallyActive = actuallyActive;
-			for (PooledResource<?> resource : theResources.values())
-				resource.setConnected(actuallyActive);
+			theSubscriptions.forEach(resource -> //
+			resource.setActive(actuallyActive));
 			try (Transaction roT = theLock.lock(false, null)) {
 				writeT.close();
 				for (HierarchicalResourcePool child : theChildren)
@@ -124,8 +125,8 @@ public class HierarchicalResourcePool implements ObservableResourcePool {
 	}
 
 	@Override
-	public <T> Observable<T> pool(Observable<T> resource) {
-		return (PooledResource<T>) theResources.computeIfAbsent(resource, PooledResource::new);
+	public <R, S> PooledResourceBuilder<R, S> build(Function<? super R, ? extends S> subscribe, R listener) {
+		return new PRBImpl<>(subscribe, listener);
 	}
 
 	@Override
@@ -133,71 +134,69 @@ public class HierarchicalResourcePool implements ObservableResourcePool {
 		return theSubject + " resPool";
 	}
 
-	private class PooledResource<T> implements Observable<T> {
-		private final Observable<T> theObservable;
-		private final ListenerList<SubscribedObserver<? super T>> theObservers;
+	private class PRBImpl<R, S> implements PooledResourceBuilder<R, S> {
+		private final Function<? super R, ? extends S> theSubscribe;
+		private final R theListener;
+		private List<Consumer<? super R>> theOnSubscribe;
 
-		PooledResource(Observable<T> observable) {
-			theObservable = observable;
-			theObservers = ListenerList.build().allowReentrant().withFastSize(false).build();
+		PRBImpl(Function<? super R, ? extends S> subscribe, R listener) {
+			theSubscribe = subscribe;
+			theListener = listener;
 		}
 
 		@Override
-		public Subscription subscribe(Observer<? super T> observer) {
-			SubscribedObserver<? super T> subObs = new SubscribedObserver<>(observer);
-			try (Transaction t = theLock.lock(false, null)) {
-				if (isActive())
-					subObs.subscription = theObservable.subscribe(observer);
-				Runnable listRemove = theObservers.add(subObs, true);
-				return () -> {
-					listRemove.run();
-					subObs.unsubscribe();
-				};
+		public PooledResourceBuilder<R, S> onSubscribe(Consumer<? super R> listener) {
+			if (theOnSubscribe == null)
+				theOnSubscribe = new LinkedList<>();
+			theOnSubscribe.add(listener);
+			return this;
+		}
+
+		@Override
+		public Subscription unsubscribe(BiConsumer<? super R, ? super S> unsubscribe) {
+			return new PooledSubscription<>(theListener, theSubscribe, //
+				theOnSubscribe == null ? Collections.emptyList() : theOnSubscribe, //
+				unsubscribe);
+		}
+	}
+
+	private class PooledSubscription<S, R> implements Subscription {
+		private final R theListener;
+		private final Function<? super R, ? extends S> theSubscribe;
+		private final List<Consumer<? super R>> theOnSubscribe;
+		private final BiConsumer<? super R, ? super S> theUnsubscribe;
+		private final Runnable thePoolRemove;
+		private S theSubscription;
+
+		PooledSubscription(R listener, Function<? super R, ? extends S> subscribe, List<Consumer<? super R>> onSubscribe,
+			BiConsumer<? super R, ? super S> unsubscribe) {
+			theListener = listener;
+			theSubscribe = subscribe;
+			theOnSubscribe = onSubscribe;
+			theUnsubscribe = unsubscribe;
+			thePoolRemove = theSubscriptions.add(this, false);
+		}
+
+		void setActive(boolean active) {
+			if (active) {
+				for (Consumer<? super R> onSubscribe : theOnSubscribe)
+					onSubscribe.accept(theListener);
+				theSubscription = theSubscribe.apply(theListener);
+			} else {
+				theUnsubscribe.accept(theListener, theSubscription);
+				theSubscription = null;
 			}
 		}
 
 		@Override
-		public boolean isSafe() {
-			return theObservable.isSafe();
-		}
-
-		@Override
-		public Transaction lock() {
-			return theObservable.lock(); // TODO Is there a way to safely avoid locking the observable when the pool is inactive?
-		}
-
-		@Override
-		public Transaction tryLock() {
-			return theObservable.tryLock(); // TODO Is there a way to safely avoid locking the observable when the pool is inactive?
-		}
-
-		void setConnected(boolean connected) {
-			theObservers.forEach(subObs -> {
-				if (connected)
-					subObs.subscription = theObservable.subscribe(subObs.observer);
-				else
-					subObs.unsubscribe();
-			});
-		}
-
-		@Override
-		public String toString() {
-			return HierarchicalResourcePool.this + ": " + theObservable;
-		}
-	}
-
-	private static class SubscribedObserver<T> {
-		final Observer<? super T> observer;
-		Subscription subscription;
-
-		SubscribedObserver(Observer<? super T> observer) {
-			this.observer = observer;
-		}
-
-		void unsubscribe() {
-			Subscription sub = subscription;
-			subscription = null;
-			sub.unsubscribe();
+		public void unsubscribe() {
+			thePoolRemove.run();
+			try (Transaction t = HierarchicalResourcePool.this.lock(false, null)) {
+				if (isActive()) {
+					theUnsubscribe.accept(theListener, theSubscription);
+					theSubscription = null;
+				}
+			}
 		}
 	}
 

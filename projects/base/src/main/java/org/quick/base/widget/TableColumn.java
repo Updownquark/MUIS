@@ -5,6 +5,7 @@ import java.util.*;
 
 import org.observe.SimpleSettableValue;
 import org.observe.collect.ObservableCollection;
+import org.qommons.Transaction;
 import org.qommons.collect.CollectionElement;
 import org.qommons.collect.ElementId;
 import org.quick.base.layout.BaseLayoutUtils;
@@ -47,7 +48,7 @@ public class TableColumn extends QuickTemplate {
 		theSelectedRow = theHoveredRow = null;
 		life().runWhen(() -> {
 			ObservableCollection<?> rows = getTable().atts().get(Table.rows).get();
-			rows.onChange(evt->{
+			getResourcePool().build(rows::onChange, evt -> {
 				switch(evt.getType()){
 				case add:
 					break;
@@ -62,9 +63,14 @@ public class TableColumn extends QuickTemplate {
 					}
 					break;
 				}
-			});
-			rows.simpleChanges().act(v -> updateHover());
-			rows.changes().act(evt -> {
+			}).onSubscribe(r -> {
+				updateHover();
+				if (theSelectedRow != null && !theSelectedRow.isPresent())
+					setSelectedRow(null);
+
+			}).unsubscribe((r, s) -> s.unsubscribe());
+			getResourcePool().pool(rows.simpleChanges()).act(v -> updateHover());
+			getResourcePool().pool(rows.changes()).act(evt -> {
 				Orientation orientation=getTable().atts().get(LayoutAttributes.orientation).get();
 				int firstRowPos=getTable().getRowPosition(evt.elements.get(0).index);
 				switch(evt.type){
@@ -234,7 +240,11 @@ public class TableColumn extends QuickTemplate {
 		boolean wasActive = theEditingRow != null;
 		if (row == null) {
 			if (wasActive) {
-				// TODO Disable editor
+				// Disable editor
+				theEditor.getResourcePool().setActive(false);
+				try (Transaction t = theEditor.holdEvents(true, false)) {
+					theEditor.bounds().setBounds(-1, -1, 0, 0);
+				}
 				updateHover();
 				sizeNeedsChanged();
 				relayout(false);
@@ -242,8 +252,12 @@ public class TableColumn extends QuickTemplate {
 		} else if (!Objects.equals(row, theEditingRow)) {
 			theEditingRow = row;
 			theEditorValue.set(getTable().getRows().getElement(row).get(), null);
+			try (Transaction t = theEditor.holdEvents(true, false)) {
+				theEditor.bounds().set(getCellBounds(row), null);
+			}
 			if (!wasActive) {
-				// TODO Enable editor
+				// Enable editor
+				theEditor.getResourcePool().setActive(true);
 			}
 			updateHover();
 			sizeNeedsChanged();
@@ -265,14 +279,22 @@ public class TableColumn extends QuickTemplate {
 		if (row == null) {
 			if (wasActive) {
 				// TODO Disable hover
+				theHover.getResourcePool().setActive(false);
+				try (Transaction t = theEditor.holdEvents(true, false)) {
+					theHover.bounds().setBounds(-1, -1, 0, 0);
+				}
 				sizeNeedsChanged();
 				relayout(false);
 			}
 		} else if (!Objects.equals(row, theHoveredRow)) {
 			theHoveredRow = row;
 			theHoverValue.set(getTable().getRows().getElement(row).get(), null);
+			try (Transaction t = theEditor.holdEvents(true, false)) {
+				theHover.bounds().set(getCellBounds(row), null);
+			}
 			if (!wasActive) {
-				// TODO Enable hover
+				// Enable hover
+				theHover.getResourcePool().setActive(true);
 			}
 			sizeNeedsChanged();
 			relayout(false);
@@ -315,13 +337,11 @@ public class TableColumn extends QuickTemplate {
 
 								@Override
 								public QuickElement next() {
-									// TODO Disconnect the renderer (will already be disconnected at first)
-									theRenderValue.set(rows.getElement(theRow).get(), null);
-									// TODO Connect the renderer
-									theRow = CollectionElement.getElementId(rows.getAdjacentElement(theRow, true));
-									if (theRow == null) {
-										// TODO Disconnect the renderer
-										theRenderValue.set(null, null);
+									try (Transaction t = theRenderer.holdEvents(true, true)) {
+										theRenderValue.set(rows.getElement(theRow).get(), null);
+										theRow = CollectionElement.getElementId(rows.getAdjacentElement(theRow, true));
+										if (theRow == null)
+											theRenderValue.set(null, null);
 									}
 									return theRenderer;
 								}
@@ -391,14 +411,15 @@ public class TableColumn extends QuickTemplate {
 
 						@Override
 						public QuickElement next() {
-							// TODO Disconnect the renderer (will already be disconnected at first)
-							theRenderValue.set(rows.getElement(theRow).get(), null);
-							int padding = 0; // TODO Margin/padding between columns?
-							if (orientation.isVertical())
-								theRenderer.bounds().setBounds(padding, thePosition, bounds().getWidth(), table.getRowLength(theIndex));
-							else
-								theRenderer.bounds().setBounds(thePosition, padding, table.getRowLength(theIndex), bounds().getHeight());
-							// TODO Connect the renderer
+							try (Transaction t = theRenderer.holdEvents(true, true)) {
+								theRenderValue.set(rows.getElement(theRow).get(), null);
+								int padding = 0; // TODO Margin/padding between columns?
+								if (orientation.isVertical())
+									theRenderer.bounds().setBounds(padding, thePosition, bounds().getWidth(), table.getRowLength(theIndex));
+								else
+									theRenderer.bounds().setBounds(thePosition, padding, table.getRowLength(theIndex),
+										bounds().getHeight());
+							}
 							theRow = CollectionElement.getElementId(rows.getAdjacentElement(theRow, true));
 							theIndex++;
 							thePosition = table.getRowPosition(theIndex);
@@ -407,8 +428,9 @@ public class TableColumn extends QuickTemplate {
 					};
 				}
 			}, graphics, area);
-			// TODO Disconnect the renderer
-			theRenderValue.set(null, null);
+			try (Transaction t = theRenderer.holdEvents(true, true)) {
+				theRenderValue.set(null, null);
+			}
 		}
 	}
 

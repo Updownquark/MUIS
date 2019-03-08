@@ -76,11 +76,11 @@ public class QuickEnvironment implements QuickParseEnv {
 		theStyle = new EnvironmentStyle(theStyleDependencyController.flow().unmodifiable().collect());
 	}
 
-	ReentrantReadWriteLock getAttributeLocker() {
+	public ReentrantReadWriteLock getAttributeLocker() {
 		return theAttributeLocker;
 	}
 
-	CollectionLockingStrategy getContentLocker() {
+	public CollectionLockingStrategy getContentLocker() {
 		return theContentLocker;
 	}
 

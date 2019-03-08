@@ -18,6 +18,7 @@ import org.quick.core.QuickElement;
 import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
+import org.quick.util.CompoundListener;
 import org.quick.util.CompoundListener.CompoundListenerBuilder;
 import org.quick.util.CompoundListener.ElementMock;
 import org.quick.util.CompoundListener.EventListener;

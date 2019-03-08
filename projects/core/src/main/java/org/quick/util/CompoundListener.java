@@ -54,14 +54,6 @@ public interface CompoundListener {
 		<T> T getStyle(StyleAttribute<T> attr);
 	}
 
-	/** A utility change listener to cause a layout action in the element or parent element */
-	public static final EventListener layout = (evented, root, event) -> {
-		evented.relayout(false);
-	};
-
-	/** A utility change listener to call {@link QuickElement#sizeNeedsChanged()} on the element or parent element */
-	public static final EventListener sizeNeedsChanged = (evented, root, event) -> evented.sizeNeedsChanged();
-
 	/** Builds a compound listener */
 	public interface CompoundListenerBuilder {
 		/**

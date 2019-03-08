@@ -1,15 +1,11 @@
 package org.quick.base.widget;
 
-import java.util.function.Consumer;
-
 import org.observe.*;
 import org.observe.util.TypeTokens;
 import org.quick.base.BaseAttributes;
-import org.quick.base.layout.TextEditLayout;
 import org.quick.base.model.AdjustableFormatter;
 import org.quick.core.QuickTemplate;
 import org.quick.core.QuickTextElement;
-import org.quick.core.event.KeyBoardEvent;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.tags.AcceptAttribute;
@@ -28,8 +24,8 @@ import com.google.common.reflect.TypeToken;
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "formatFactory"), //
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "document"), //
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "rich"), //
-	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"), //
-	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"), //
+	@AcceptAttribute(declaringClass = TextField.class, field = "charLengthAtt"), //
+	@AcceptAttribute(declaringClass = TextField.class, field = "charRowsAtt"), //
 	@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine") //
 })
 public class Spinner extends QuickTemplate {
@@ -46,26 +42,6 @@ public class Spinner extends QuickTemplate {
 			setButtonAction(true);
 			setButtonAction(false);
 		}, org.quick.core.QuickConstants.CoreStage.INIT_CHILDREN.toString(), 1);
-		events().filterMap(KeyBoardEvent.key).act(new Consumer<KeyBoardEvent>() {
-			private Button.ClickControl theUpControl;
-			private Button.ClickControl theDownControl;
-
-			@Override
-			public void accept(KeyBoardEvent event) {
-				theUpControl = Button.release(theUpControl, event);
-				theDownControl = Button.release(theDownControl, event);
-				if (Boolean.TRUE.equals(atts().get(QuickTextElement.multiLine).get())) {
-					return;
-				}
-				if (event.getKeyCode() == KeyBoardEvent.KeyCode.UP_ARROW) {
-					if (event.wasPressed())
-						theUpControl = getAdjust(true).press(event);
-				} else if (event.getKeyCode() == KeyBoardEvent.KeyCode.DOWN_ARROW) {
-					if (event.wasPressed())
-						theDownControl = getAdjust(false).press(event);
-				}
-			}
-		});
 	}
 
 	/** @return This spinner's text field */

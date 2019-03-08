@@ -12,7 +12,6 @@ import org.observe.collect.ObservableCollection;
 import org.qommons.ArrayUtils;
 import org.qommons.Transaction;
 import org.qommons.collect.ElementId;
-import org.quick.base.layout.BaseLayoutUtils;
 import org.quick.core.*;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.layout.*;
@@ -26,6 +25,10 @@ import org.quick.core.style.Size;
 import org.quick.core.tags.AcceptAttribute;
 import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.Template;
+import org.quick.widget.base.layout.BaseLayoutUtils;
+import org.quick.widget.core.QuickElementCapture;
+import org.quick.widget.core.layout.SimpleSizeGuide;
+import org.quick.widget.core.layout.SizeGuide;
 
 @QuickElementType(attributes = { //
 	@AcceptAttribute(declaringClass = Table.class, field = "rows", required = true), //

@@ -1,3 +1,4 @@
+package org.quick.base.widget;
 //package org.quick.base.widget;
 //
 //import java.awt.*;

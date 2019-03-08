@@ -1,10 +1,8 @@
 /* Created Feb 23, 2009 by Andrew Butler */
 package org.quick.core;
 
-import java.awt.Graphics2D;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -12,11 +10,8 @@ import java.util.function.Consumer;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
-import org.observe.Subscription;
-import org.observe.collect.CollectionChangeEvent;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
-import org.qommons.Lockable;
 import org.qommons.Transactable;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionLockingStrategy;
@@ -24,16 +19,8 @@ import org.qommons.collect.StampedLockingStrategy;
 import org.qommons.tree.BetterTreeList;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
-import org.quick.core.event.BoundsChangedEvent;
-import org.quick.core.event.FocusEvent;
-import org.quick.core.event.MouseEvent;
-import org.quick.core.layout.Orientation;
-import org.quick.core.layout.SimpleSizeGuide;
-import org.quick.core.layout.SizeGuide;
 import org.quick.core.mgr.AttributeManager2;
-import org.quick.core.mgr.ElementBounds;
 import org.quick.core.mgr.HierarchicalResourcePool;
-import org.quick.core.mgr.QuickEventManager;
 import org.quick.core.mgr.QuickLifeCycleManager;
 import org.quick.core.mgr.QuickLifeCycleManager.Controller;
 import org.quick.core.mgr.QuickMessageCenter;
@@ -42,17 +29,12 @@ import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.prop.DefaultExpressionContext;
 import org.quick.core.prop.ExpressionContext;
-import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style.LightedStyle;
 import org.quick.core.style.QuickElementStyle;
 import org.quick.core.style.StyleAttributes;
-import org.quick.core.style.StyleChangeObservable;
-import org.quick.core.style.Texture;
 import org.quick.core.tags.AcceptAttribute;
 import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.QuickTagUtils;
 import org.quick.core.tags.State;
-import org.quick.util.QuickUtils;
 
 /** The base display element in Quick. Contains base methods to administer content (children, style, placement, etc.) */
 @QuickElementType(
@@ -76,8 +58,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	private final StateEngine theStateEngine;
 
 	private final QuickMessageCenter theMessageCenter;
-
-	private final QuickEventManager theEvents;
 
 	private final HierarchicalResourcePool theResourcePool;
 
@@ -105,25 +85,7 @@ public abstract class QuickElement implements QuickParseEnv {
 
 	private final QuickElementStyle theStyle;
 
-	private final StyleChangeObservable theDefaultStyleListener;
-
-	private final CoreStateControllers theStateControllers;
-
-	private int theZ;
-
-	private ElementBounds theBounds;
-
-	private SizeGuide theHSizer;
-
-	private SizeGuide theVSizer;
-
 	private boolean isFocusable;
-
-	private long thePaintDirtyTime;
-
-	private long theLayoutDirtyTime;
-
-	private volatile int isHoldingEvents;
 
 	/** Creates a Quick element */
 	public QuickElement() {
@@ -142,26 +104,17 @@ public abstract class QuickElement implements QuickParseEnv {
 			theLifeCycleController = controller;
 		}, CoreStage.READY.toString());
 		theStateEngine = new StateEngine(this);
-		theEvents = new QuickEventManager(this);
-		theStateControllers = new CoreStateControllers();
 		String lastStage = null;
 		for(CoreStage stage : CoreStage.values())
 			if(stage != CoreStage.OTHER && stage != CoreStage.READY) {
 				theLifeCycleManager.addStage(stage.toString(), lastStage);
 				lastStage = stage.toString();
 			}
-		theBounds = new ElementBounds(this);
 		theChildren = ObservableCollection.create(TypeTokens.get().of(QuickElement.class), new BetterTreeList<>(theContentLocker));
 		theExposedChildren = theChildren.flow().unmodifiable(false).collect();
 		theAttributeManager = new AttributeManager2(this, theAttributeLocker);
 		theStyle = new QuickElementStyle(this);
 		theSelfModel = QuickAppModel.empty("this");
-		theDefaultStyleListener = new StyleChangeObservable(theStyle);
-		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
-		theDefaultStyleListener.act(evt -> {
-			if (isHoldingEvents == 0)
-				repaint(null, false);
-		});
 		List<Runnable> childRemoves = new ArrayList<>();
 		theChildren.subscribe(evt -> {
 			switch (evt.getType()) {
@@ -183,40 +136,7 @@ public abstract class QuickElement implements QuickParseEnv {
 				break;
 			}
 		}, true);
-		theChildren.simpleChanges().act(cause -> sizeNeedsChanged());
-		theChildren.changes().act(event -> {
-			if (isHoldingEvents != 0)
-				return;
-			Rectangle bounds = null;
-			switch (event.type) {
-			case add:
-			case remove:
-				for (QuickElement child : event.getValues())
-					bounds = bounds == null ? child.bounds().get() : bounds.union(child.bounds().get());
-				break;
-			case set:
-				for (CollectionChangeEvent.ElementChange<QuickElement> el : event.elements) {
-					bounds = bounds == null ? el.newValue.bounds().get() : bounds.union(el.newValue.bounds().get());
-					if (el.oldValue != null && !el.oldValue.bounds().isEmpty())
-						bounds = bounds.union(el.oldValue.bounds().get());
-				}
-				break;
-			}
-			if (bounds != null)
-				repaint(bounds, false);
-		});
-		bounds().changes().act(event -> {
-			if (isHoldingEvents != 0)
-				return;
-			Rectangle old = event.getOldValue();
-			if (old == null || event.getNewValue().width != old.width || event.getNewValue().height != old.height)
-				relayout(false);
-		});
-		theLifeCycleManager.runWhen(() -> {
-			repaint(null, false);
-		}, CoreStage.INIT_SELF.toString(), 2);
 		addAnnotatedStates();
-		addStateListeners();
 		theLifeCycleController.advance(CoreStage.PARSE_SELF.toString());
 	}
 
@@ -228,79 +148,6 @@ public abstract class QuickElement implements QuickParseEnv {
 				msg().warn(e.getMessage(), "state", state);
 			}
 		}
-	}
-
-	private void addStateListeners() {
-		theStateControllers.clicked = theStateEngine.control(States.CLICK);
-		theStateControllers.rightClicked = theStateEngine.control(States.RIGHT_CLICK);
-		theStateControllers.middleClicked = theStateEngine.control(States.MIDDLE_CLICK);
-		theStateControllers.hovered = theStateEngine.control(States.HOVER);
-		theStateControllers.focused = theStateEngine.control(States.FOCUS);
-		theResourcePool.pool(events().filterMap(MouseEvent.mouse)).act(event -> {
-			switch (event.getType()) {
-			case pressed:
-				switch (event.getButton()) {
-				case left:
-					theStateControllers.clicked.setActive(true, event);
-					break;
-				case right:
-					theStateControllers.rightClicked.setActive(true, event);
-					break;
-				case middle:
-					theStateControllers.middleClicked.setActive(true, event);
-					break;
-				default:
-					break;
-				}
-				break;
-			case released:
-				switch (event.getButton()) {
-				case left:
-					theStateControllers.clicked.setActive(false, event);
-					break;
-				case right:
-					theStateControllers.rightClicked.setActive(false, event);
-					break;
-				case middle:
-					theStateControllers.middleClicked.setActive(false, event);
-					break;
-				default:
-					break;
-				}
-				break;
-			case clicked:
-				break;
-			case moved:
-				break;
-			case entered:
-				theStateControllers.hovered.setActive(true, event);
-				for(org.quick.core.event.MouseEvent.ButtonType button : theDocument.getPressedButtons()) {
-					switch (button) {
-					case left:
-						theStateControllers.clicked.setActive(true, event);
-						break;
-					case right:
-						theStateControllers.rightClicked.setActive(true, event);
-						break;
-					case middle:
-						theStateControllers.middleClicked.setActive(true, event);
-						break;
-					default:
-						break;
-					}
-				}
-				break;
-			case exited:
-				theStateControllers.clicked.setActive(false, event);
-				theStateControllers.rightClicked.setActive(false, event);
-				theStateControllers.middleClicked.setActive(false, event);
-				theStateControllers.hovered.setActive(false, event);
-				break;
-			}
-		});
-		theResourcePool.pool(events().filterMap(FocusEvent.focusEvent)).act(event -> {
-			theStateControllers.focused.setActive(event.isFocus(), event);
-		});
 	}
 
 	/** @return A locker controlling threaded access to this element's single-valued attributes */
@@ -344,6 +191,16 @@ public abstract class QuickElement implements QuickParseEnv {
 		return theClassView;
 	}
 
+	/**
+	 * Returns a message center that allows messaging on this element
+	 *
+	 * @return This element's message center
+	 */
+	@Override
+	public QuickMessageCenter msg() {
+		return theMessageCenter;
+	}
+
 	/** @return The namespace that this tag was instantiated in */
 	public final String getNamespace() {
 		return theNamespace;
@@ -380,20 +237,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	 */
 	public AttributeManager2 atts() {
 		return getAttributeManager();
-	}
-
-	/** @return The manager of this element's events */
-	public QuickEventManager getEventManager() {
-		return theEvents;
-	}
-
-	/**
-	 * Short-hand for {@link #getEventManager()}
-	 *
-	 * @return The manager of this element's events
-	 */
-	public QuickEventManager events() {
-		return theEvents;
 	}
 
 	/** @return The style that modifies this element's appearance */
@@ -487,8 +330,6 @@ public abstract class QuickElement implements QuickParseEnv {
 			theChildren.clear();
 			theChildren.addAll(children);
 		}
-		if(theBounds.getWidth() != 0 && theBounds.getHeight() != 0) // No point laying out if there's nothing to show
-			relayout(false);
 		theLifeCycleController.advance(CoreStage.INITIALIZED.toString());
 	}
 
@@ -518,26 +359,11 @@ public abstract class QuickElement implements QuickParseEnv {
 		if (child.life().isAfter(CoreStage.STARTUP.name()) < 0 && life().isAfter(CoreStage.READY.name()) > 0) {
 			child.postCreate();
 		}
-		Subscription eventSub = theResourcePool.pool(child.events().filterMap(BoundsChangedEvent.bounds)).act(event -> {
-			if (isHoldingEvents == 0) {
-				Rectangle paintRect = event.getNewValue().union(event.getOldValue());
-				repaint(paintRect, false);
-			}
-		});
 
 		return () -> {
-			eventSub.unsubscribe();
 			if (child.getParent() == this)
 				child.setParent(null);
 		};
-	}
-
-	/**
-	 * Called when a child is removed to this parent
-	 *
-	 * @param child The child that has been removed from this parent
-	 */
-	protected void unregisterChild(QuickElement child) {
 	}
 
 	/** Called to initialize an element after all the parsing and linking has been performed */
@@ -545,30 +371,10 @@ public abstract class QuickElement implements QuickParseEnv {
 		theLifeCycleController.advance(CoreStage.STARTUP.toString());
 		for(QuickElement child : theChildren)
 			child.postCreate();
-		theDefaultStyleListener.begin();
 		theLifeCycleController.advance(CoreStage.READY.toString());
 	}
 
 	// End life cycle methods
-
-	/**
-	 * Returns a message center that allows messaging on this element
-	 *
-	 * @return This element's message center
-	 */
-	public QuickMessageCenter getMessageCenter() {
-		return theMessageCenter;
-	}
-
-	/**
-	 * Short-hand for {@link #getMessageCenter()}
-	 *
-	 * @return This element's message center
-	 */
-	@Override
-	public QuickMessageCenter msg() {
-		return getMessageCenter();
-	}
 
 	@Override
 	public ExpressionContext getContext() {
@@ -578,30 +384,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	/** @return The "this" model for this element */
 	public QuickAppModel getSelfModel() {
 		return theSelfModel;
-	}
-
-	/**
-	 * Places a temporary hold on this element so that changes to its content or attributes do not cause events
-	 *
-	 * @param editAttributes Whether attributes are expected to be modified during the hold
-	 * @param editContent Whether content is expected to be modified during the hold
-	 * @return A transaction to close to release the lock
-	 */
-	public Transaction holdEvents(boolean editAttributes, boolean editContent) {
-		if (!editAttributes && !editContent)
-			throw new IllegalArgumentException("Either an attribute or content lock must be held");
-		Transaction release = Lockable.lockAll(//
-			Lockable.lockable(theAttributeLocker, editContent), //
-			Lockable.lockable(theContentLocker, editContent, editContent, null));
-		isHoldingEvents++;
-		boolean[] released = new boolean[1];
-		return () -> {
-			if (!released[0]) {
-				released[0] = true;
-				isHoldingEvents--;
-				release.close();
-			}
-		};
 	}
 
 	// Hierarchy methods
@@ -650,72 +432,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	}
 
 	// End hierarchy methods
-
-	/**
-	 * @return The default style listener to add domains and styles to listen to. When one of the registered styles changes, this element
-	 *         repaints itself.
-	 */
-	public final StyleChangeObservable getDefaultStyleListener() {
-		return theDefaultStyleListener;
-	}
-
-	// Bounds methods
-
-	/** @return The bounds of this element */
-	public final ElementBounds getBounds() {
-		return theBounds;
-	}
-
-	/** @return The bounds of this element */
-	public final ElementBounds bounds() {
-		return theBounds;
-	}
-
-	/** @return The z-index determining the order in which this element is drawn among its siblings */
-	public final int getZ() {
-		return theZ;
-	}
-
-	/** @param z The z-index determining the order in which this element is drawn among its siblings */
-	public final void setZ(int z) {
-		if(theZ == z)
-			return;
-		theZ = z;
-		QuickElement parent = theParent.get();
-		if (parent != null && isHoldingEvents == 0)
-			parent.repaint(new Rectangle(theBounds.getX(), theBounds.getY(), theBounds.getWidth(), theBounds.getHeight()), false);
-	}
-
-	/**
-	 * @param orientation The orientation direction to get the sizer for
-	 * @return The size policy for this item along the given orientation
-	 */
-	public SizeGuide getSizer(Orientation orientation) {
-		SizeGuide sizer;
-		if (orientation.isVertical()) {
-			if (theVSizer == null)
-				theVSizer = new SimpleSizeGuide();
-			sizer = theVSizer;
-		} else {
-			if (theHSizer == null)
-				theHSizer = new SimpleSizeGuide();
-			sizer = theHSizer;
-		}
-		return sizer;
-	}
-
-	// End bounds methods
-
-	/**
-	 * @param x The x-position to check for click-through
-	 * @param y The y-position to check for click-through
-	 * @return Whether positional events are consumed by this element, or whether they should be propagated to elements under this element.
-	 *         By default, this method returns true if and only if the background transparency is one.
-	 */
-	public boolean isClickThrough(int x, int y) {
-		return false;
-		// return getStyle().getSelf().get(BackgroundStyle.transparency) >= 1;
-	}
 
 	/** @return Whether this element is able to accept the focus for the document */
 	public boolean isFocusable() {
@@ -781,196 +497,6 @@ public abstract class QuickElement implements QuickParseEnv {
 	public String toString() {
 		return asXML("", false);
 	}
-
-	// Layout methods
-
-	/**
-	 * Causes this element to adjust the position and size of its children in a way defined in this element type's implementation. By
-	 * default this only calls the doLayout() method of its physical children and {@link #repaint(Rectangle, boolean, Runnable...)}.
-	 */
-	protected void doLayout() {
-		if (theBounds.isEmpty())
-			return;
-		theLayoutDirtyTime = 0;
-		for(QuickElement child : getPhysicalChildren())
-			child.doLayout();
-		repaint(null, false);
-	}
-
-	/** Alerts the system that this element's size needs may have changed */
-	public final void sizeNeedsChanged() {
-		if (isHoldingEvents > 0)
-			return;
-		QuickElement parent = getParent().get();
-		if (parent != null && parent.bounds().isEmpty())
-			return;
-		else if (bounds().isEmpty())
-			return;
-		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.SizeNeedsChangedEvent(this), false);
-	}
-
-	/**
-	 * Causes a call to {@link #doLayout()}
-	 *
-	 * @param now Whether to perform the layout action now or allow it to be performed asynchronously
-	 * @param postActions Actions to perform after the layout action completes
-	 */
-	public final void relayout(boolean now, Runnable... postActions) {
-		if (isHoldingEvents > 0 || theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
-			return; // No point laying out if there's nothing to show
-		if (theLayoutDirtyTime == 0)
-			theLayoutDirtyTime = System.currentTimeMillis();
-		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.LayoutEvent(this, now, postActions), now);
-	}
-
-	/** @return The time since which this element has needed a layout operation */
-	public final long getLayoutDirtyTime() {
-		return theLayoutDirtyTime;
-	}
-
-	// End layout methods
-
-	// Paint methods
-
-	/** @return Whether this element is at least partially transparent */
-	public boolean isTransparent() {
-		return getStyle().get(BackgroundStyle.transparency).get() > 0;
-	}
-
-	/**
-	 * @return The bounds within which this element may draw and receive events, relative to the layout x,y position. This may extend
-	 *         outside the element's layout bounds (e.g. for a menu, which expands, but does not cause a relayout when it does so).
-	 */
-	public Rectangle getPaintBounds() {
-		return new Rectangle(0, 0, theBounds.getWidth(), theBounds.getHeight());
-	}
-
-	/**
-	 * Renders this element in a graphics context.
-	 *
-	 * @param graphics The graphics context to render this element in
-	 * @param area The area to draw
-	 * @return The cached bounds used to draw the element
-	 */
-	public QuickElementCapture paint(java.awt.Graphics2D graphics, Rectangle area) {
-		Rectangle paintBounds = getPaintBounds();
-		int cacheX = paintBounds.x + theBounds.getX();
-		int cacheY = paintBounds.y + theBounds.getY();
-		int cacheZ = theZ;
-		Rectangle preClip = Rectangle.fromAwt(graphics.getClipBounds());
-		try {
-			graphics.setClip(paintBounds.x, paintBounds.y, paintBounds.width, paintBounds.height);
-			boolean visible = !((area != null && (area.width <= 0 || area.height <= 0)) || theBounds.getWidth() <= 0 || theBounds
-				.getHeight() <= 0);
-			if(visible)
-				paintSelf(graphics, area);
-			QuickElementCapture ret = createCapture(cacheX, cacheY, cacheZ, paintBounds.width, paintBounds.height);
-			for(QuickElementCapture childBound : paintChildren(graphics, area)) {
-				childBound.setParent(ret);
-				childBound.seal();
-				ret.addChild(childBound);
-			}
-			return ret;
-		} finally {
-			graphics.setClip(preClip == null ? null : preClip.toAwt());
-		}
-	}
-
-	/**
-	 * @param x The x-coordinate of the capture
-	 * @param y The y-coordinate of the capture
-	 * @param z The z-index of the capture
-	 * @param w The width of the capture
-	 * @param h The height of the capture
-	 * @return A capture for this element
-	 */
-	protected QuickElementCapture createCapture(int x, int y, int z, int w, int h) {
-		return new QuickElementCapture(null, this, x, y, z, w, h);
-	}
-
-	/**
-	 * Causes this element to be repainted.
-	 *
-	 * @param area The area in this element that needs to be repainted. May be null to specify that the entire element needs to be redrawn.
-	 * @param now Whether this element should be repainted immediately or not. This parameter should usually be false when this is called as
-	 *            a result of a user operation such as a mouse or keyboard event because this allows all necessary paint events to be
-	 *            performed at one time with no duplication after the event is finished. This parameter may be true if this is called from
-	 *            an independent thread.
-	 * @param postActions The actions to be performed after the event is handled successfully
-	 */
-	public final void repaint(Rectangle area, boolean now, Runnable... postActions) {
-		if (isHoldingEvents > 0 || theBounds.getWidth() <= 0 || theBounds.getHeight() <= 0)
-			return; // No point painting if there's nothing to show
-		if (thePaintDirtyTime == 0)
-			thePaintDirtyTime = System.currentTimeMillis();
-		QuickEventQueue.get().scheduleEvent(new QuickEventQueue.PaintEvent(this, area, now, postActions), now);
-	}
-
-	/**
-	 * Renders this element's background or its content, but NOT its children. Children are rendered by
-	 * {@link #paintChildren(java.awt.Graphics2D, Rectangle)}. By default, this merely draws the element's background color.
-	 *
-	 * @param graphics The graphics context to draw in
-	 * @param area The area to paint
-	 */
-	public void paintSelf(java.awt.Graphics2D graphics, Rectangle area) {
-		Texture tex = getStyle().get(BackgroundStyle.texture).get();
-		if(tex != null)
-			tex.render(graphics, this, area);
-	}
-
-	/**
-	 * Draws this element's children
-	 *
-	 * @param graphics The graphics context to render in
-	 * @param area The area in this element's coordinates to repaint
-	 * @return The cached bounds used to draw each of the element's children
-	 */
-	public QuickElementCapture [] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
-		List<QuickElement> children = Arrays.asList(QuickUtils.sortByZ(ch().toArray()));
-		if (children.isEmpty())
-			return new QuickElementCapture[0];
-		if (area == null)
-			area = new Rectangle(0, 0, bounds().getWidth(), bounds().getHeight());
-		return paintChildren(children, graphics, area);
-	}
-
-	public static QuickElementCapture[] paintChildren(Iterable<? extends QuickElement> children, Graphics2D graphics, Rectangle area) {
-		java.awt.Rectangle awtArea = area.toAwt();
-		List<QuickElementCapture> childBounds = new ArrayList<>();
-		int translateX = 0;
-		int translateY = 0;
-		try {
-			for (QuickElement child : children) {
-				java.awt.Rectangle childArea = child.theBounds.getBounds().toAwt();
-				int childX = childArea.x;
-				int childY = childArea.y;
-				childArea = childArea.intersection(awtArea);
-				childArea.x -= childX;
-				childArea.y -= childY;
-				translateX += childX;
-				translateY += childY;
-				graphics.translate(translateX, translateY);
-				translateX = -childX;
-				translateY = -childY;
-				if (childArea.isEmpty())
-					childBounds.add(child.paint(graphics, new Rectangle(childArea.x, childArea.y, 0, 0)));
-				else
-					childBounds.add(child.paint(graphics, Rectangle.fromAwt(childArea)));
-			}
-		} finally {
-			if (translateX != 0 || translateY != 0)
-				graphics.translate(translateX, translateY);
-		}
-		return childBounds.toArray(new QuickElementCapture[childBounds.size()]);
-	}
-
-	/** @return The time since which this element has needed a paint operation */
-	public final long getPaintDirtyTime() {
-		return thePaintDirtyTime;
-	}
-
-	// End paint methods
 
 	@Override
 	public final boolean equals(Object o) {
@@ -1048,17 +574,5 @@ public abstract class QuickElement implements QuickParseEnv {
 				ft.run();
 			finishTemp.clear();
 		};
-	}
-
-	private static class CoreStateControllers {
-		StateEngine.StateController clicked;
-
-		StateEngine.StateController rightClicked;
-
-		StateEngine.StateController middleClicked;
-
-		StateEngine.StateController hovered;
-
-		StateEngine.StateController focused;
 	}
 }

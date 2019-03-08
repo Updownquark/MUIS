@@ -304,8 +304,6 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 	private void fireListeners(QuickMessage msg, QuickEvent cause) {
 		for(QuickMessageListener listener : theListeners)
 			listener.messageReceived(msg);
-		if(theElement != null)
-			theElement.events().fire(new QuickMessageEvent(theElement, msg, false, cause));
 	}
 
 	private void reEvalWorstMessage() {
@@ -344,8 +342,6 @@ public class QuickMessageCenter implements Iterable<QuickMessage> {
 				theWrapped.remove();
 				if(theLastMessage.type == theWorstMessageType)
 					reEvalWorstMessage();
-				if(theElement != null)
-					theElement.events().fire(new QuickMessageEvent(theElement, theLastMessage, true, null));
 			}
 		};
 	}

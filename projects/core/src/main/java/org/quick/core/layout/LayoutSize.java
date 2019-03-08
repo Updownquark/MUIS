@@ -45,7 +45,7 @@ public class LayoutSize {
 			if(pixels > thePixels)
 				thePixels = pixels;
 		} else
-			thePixels = LayoutUtils.add(thePixels, pixels);
+			thePixels = addSizes(thePixels, pixels);
 		return this;
 	}
 
@@ -231,7 +231,7 @@ public class LayoutSize {
 		if(isMax)
 			return percentPix > thePixels ? percentPix : thePixels;
 		else
-			return LayoutUtils.add(thePixels, percentPix);
+			return addSizes(thePixels, percentPix);
 	}
 
 	@Override
@@ -242,5 +242,21 @@ public class LayoutSize {
 			return thePercent + "%";
 		else
 			return thePixels + "px" + (isMax ? " or " : "+") + thePercent + "%";
+	}
+
+	/**
+	 * Adds 2 sizes, accounting for overflow (capping at {@link Integer#MAX_VALUE})
+	 *
+	 * @param size1 The first size to add
+	 * @param size2 The second size to add
+	 * @return The sum of the two sizes, capped at {@link Integer#MAX_VALUE}
+	 */
+	public static int addSizes(int size1, int size2) {
+		if (size1 == Integer.MAX_VALUE || size2 == Integer.MAX_VALUE)
+			return Integer.MAX_VALUE;
+		int res = size1 + size2;
+		if (res < size1)
+			return Integer.MAX_VALUE;
+		return res;
 	}
 }

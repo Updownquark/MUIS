@@ -5,8 +5,8 @@ import java.util.function.Consumer;
 
 import org.quick.core.Point;
 import org.quick.core.Rectangle;
-import org.quick.core.event.KeyBoardEvent;
-import org.quick.core.event.MouseEvent;
+import org.quick.widget.core.event.KeyBoardEvent;
+import org.quick.widget.core.event.MouseEvent;
 
 /**
  * Provides testing feedback for mouse events--paints the font color over pixels where the mouse passed over while the left button was

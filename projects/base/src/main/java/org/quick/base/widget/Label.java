@@ -62,7 +62,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 							docModel = new RichDocumentModel(textEl);
 						else if (!(docModel instanceof RichDocumentModel)) {
 							try {
-								docModel = new QuickRichTextParser().parse(new RichDocumentModel(textEl), textEl.getText(),
+								docModel = QuickRichTextParser.parse(new RichDocumentModel(textEl), textEl.getText(),
 									getDocument().getEnvironment().getPropertyParser(), this);
 							} catch (QuickException e) {
 								msg().error("Could not parse rich text", e);
@@ -146,7 +146,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.cor
 				RichDocumentModel richDoc = (RichDocumentModel) textEl.getDocumentModel().get();
 				richDoc.setText("");
 				try {
-					new org.quick.base.model.QuickRichTextParser().parse(richDoc, text, doc().getEnvironment().getPropertyParser(), this);
+					org.quick.base.model.QuickRichTextParser.parse(richDoc, text, doc().getEnvironment().getPropertyParser(), this);
 				} catch (QuickException e) {
 					msg().error("Could not parse rich text", e);
 				}

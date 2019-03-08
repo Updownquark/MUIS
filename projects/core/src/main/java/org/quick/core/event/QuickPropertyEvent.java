@@ -3,7 +3,6 @@ package org.quick.core.event;
 
 import org.observe.ObservableValueEvent;
 import org.quick.core.QuickElement;
-import org.quick.core.event.boole.TypedPredicate;
 
 import com.google.common.reflect.TypeToken;
 
@@ -13,11 +12,6 @@ import com.google.common.reflect.TypeToken;
  * @param <T> The type of the property that was changed
  */
 public abstract class QuickPropertyEvent<T> extends ObservableValueEvent<T> implements QuickEvent {
-	/** Filters for property events */
-	public static final TypedPredicate<QuickEvent, QuickPropertyEvent<?>> base = value -> {
-		return value instanceof QuickPropertyEvent ? (QuickPropertyEvent<?>) value : null;
-	};
-
 	private final QuickElement theElement;
 
 	/**

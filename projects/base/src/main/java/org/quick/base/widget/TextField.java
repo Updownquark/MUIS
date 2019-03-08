@@ -1,7 +1,5 @@
 package org.quick.base.widget;
 
-import static org.quick.core.QuickTextElement.multiLine;
-
 import java.util.Objects;
 
 import org.observe.*;
@@ -10,21 +8,21 @@ import org.observe.util.WeakListening;
 import org.qommons.*;
 import org.quick.base.BaseAttributes;
 import org.quick.base.BaseConstants;
-import org.quick.base.layout.TextEditLayout;
 import org.quick.base.model.*;
 import org.quick.core.QuickTextElement;
-import org.quick.core.event.FocusEvent;
-import org.quick.core.event.KeyBoardEvent;
-import org.quick.core.event.KeyBoardEvent.KeyCode;
 import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.mgr.StateEngine.StateController;
 import org.quick.core.model.*;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.QuickDocumentModel.QuickDocumentChangeEvent;
+import org.quick.core.prop.QuickAttribute;
+import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.tags.*;
 import org.quick.util.QuickUtils;
 
 import com.google.common.reflect.TypeToken;
+
+import javafx.scene.input.KeyCode;
 
 /**
  * A text field allows the user to edit a {@link QuickDocumentModel document}. Optionally, the content of this document can be synchronized
@@ -37,8 +35,8 @@ import com.google.common.reflect.TypeToken;
  */
 @Template(location = "../../../../text-field.qts")
 @QuickElementType(attributes = { @AcceptAttribute(declaringClass = ModelAttributes.class, field = "value", required = true),
-	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charLengthAtt"),
-	@AcceptAttribute(declaringClass = TextEditLayout.class, field = "charRowsAtt"),
+	@AcceptAttribute(declaringClass = TextField.class, field = "charLengthAtt"),
+	@AcceptAttribute(declaringClass = TextField.class, field = "charRowsAtt"),
 	@AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine"),
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "format"),
 	@AcceptAttribute(declaringClass = BaseAttributes.class, field = "formatFactory"),
@@ -52,23 +50,23 @@ import com.google.common.reflect.TypeToken;
 public class TextField extends org.quick.core.QuickTemplate implements DocumentedElement {
 	private final StateController theErrorController;
 	private final StateController theEnabledController;
-	private final SimpleTextEditing theTextEditing;
 
 	private volatile boolean isDocDirty;
 	private Object theLastParsedValue;
 
 	private Observable<QuickDocumentChangeEvent> theDocChanges;
+	/** Allows the user to set the height (in characters) of a text-editing widget */
+	public static final QuickAttribute<Integer> charRowsAtt = QuickAttribute.build("rows", QuickPropertyType.integer).build();
+	/** Allows the user to set the length (in characters) of a text-editing widget */
+	public static final QuickAttribute<Integer> charLengthAtt = QuickAttribute.build("length", QuickPropertyType.integer).build();
 
 	/** Creates a text field */
 	public TextField() {
 		theErrorController = state().control(BaseConstants.States.ERROR);
 		theEnabledController = state().control(BaseConstants.States.ENABLED);
-		theTextEditing = new SimpleTextEditing();
-
 		life().runWhen(() -> {
 			QuickDocumentModel doc = QuickDocumentModel.flatten(getValueElement().getDocumentModel());
 			theDocChanges = WeakListening.weaklyListeningObservable(doc.changes());
-			theTextEditing.install(this); // Installs the text editing behavior
 			// Mark the document dirty when the user edits it
 			theDocChanges.filter(evt -> {
 				if (evt instanceof ContentChangeEvent && evt instanceof Causable) {
@@ -98,27 +96,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 			// When the value changes outside of this widget, update the document
 			atts().get(ModelAttributes.value).changes().noInit().act(event -> {
 				if (!isDocDirty)
-					resetDocument(event);
-			});
-			// Set up the cursor overlay
-			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
-			cursor.setElement(this, getValueElement());
-
-			// When the user leaves this widget, flush--either modify the value or reset the document
-			events().filterMap(FocusEvent.blur).act(event -> {
-				if (theErrorController.isActive())
-					resetDocument(event);
-				else
-					pushChanges(event);
-			});
-			// When the user presses enter (CTRL+enter is required for a multi-line text field), push the changes
-			// When the user presses escape, reset the document
-			events().filterMap(KeyBoardEvent.key.press()).act(event -> {
-				if (event.getKeyCode() == KeyBoardEvent.KeyCode.ENTER) {
-					if (atts().getValue(multiLine, false) && !event.isControlPressed())
-						return;
-					pushChanges(event);
-				} else if (event.getKeyCode() == KeyBoardEvent.KeyCode.ESCAPE)
 					resetDocument(event);
 			});
 
@@ -328,7 +305,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		isDocDirty = true;
 	}
 
-	private void pushChanges(Object cause) {
+	public void pushChanges(Object cause) {
 		if (!isDocDirty || atts().get(ModelAttributes.value) == null || theErrorController.isActive())
 			return;
 		SettableValue<?> mv = atts().get(ModelAttributes.value);
@@ -337,7 +314,7 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 		resetDocument(textEdit);
 	}
 
-	private void resetDocument(Object cause) {
+	public void resetDocument(Object cause) {
 		if (atts().get(ModelAttributes.value) == null)
 			return;
 		ObservableValue<?> mv = atts().get(ModelAttributes.value);

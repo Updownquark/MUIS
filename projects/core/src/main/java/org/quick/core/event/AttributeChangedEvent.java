@@ -3,7 +3,6 @@ package org.quick.core.event;
 import java.util.function.Function;
 
 import org.quick.core.QuickElement;
-import org.quick.core.event.boole.TypedPredicate;
 import org.quick.core.prop.QuickAttribute;
 
 /**
@@ -17,32 +16,6 @@ public class AttributeChangedEvent<T> extends QuickPropertyEvent<T> {
 	public static final Function<QuickEvent, AttributeChangedEvent<?>> base = value -> {
 		return value instanceof AttributeChangedEvent ? (AttributeChangedEvent<?>) value : null;
 	};
-
-	/**
-	 * A filter for attribute change events on a particular attribute
-	 *
-	 * @param <T> The type of the attribute
-	 */
-	public static class AttributeTypedPredicate<T> implements TypedPredicate<AttributeChangedEvent<?>, AttributeChangedEvent<T>> {
-		private final QuickAttribute<T> theAttribute;
-
-		private AttributeTypedPredicate(QuickAttribute<T> att) {
-			theAttribute = att;
-		}
-
-		/** @return The attribute that this filter accepts events for */
-		public QuickAttribute<T> getAttribute() {
-			return theAttribute;
-		}
-
-		@Override
-		public AttributeChangedEvent<T> cast(AttributeChangedEvent<?> value) {
-			if(value.getAttribute() == theAttribute)
-				return (AttributeChangedEvent<T>) value;
-			else
-				return null;
-		}
-	}
 
 	/**
 	 * @param <T> The type of the attribute

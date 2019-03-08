@@ -11,9 +11,4 @@ public class BodyElement extends LayoutContainer {
 			getResourcePool().setParent(getDocument().getResourcePool());
 		}, CoreStage.INIT_SELF, 1);
 	}
-
-	@Override
-	protected QuickLayout getDefaultLayout() {
-		return new LayerLayout();
-	}
 }

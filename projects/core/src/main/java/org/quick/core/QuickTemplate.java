@@ -15,15 +15,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.observe.Observable;
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
 import org.observe.SimpleSettableValue;
 import org.observe.collect.ObservableCollection;
 import org.observe.util.TypeTokens;
 import org.quick.core.QuickCache.CacheException;
-import org.quick.core.layout.Orientation;
-import org.quick.core.layout.SizeGuide;
 import org.quick.core.model.QuickAppModel;
 import org.quick.core.model.QuickBehavior;
 import org.quick.core.model.QuickModelConfig;
@@ -272,7 +269,7 @@ public abstract class QuickTemplate extends QuickElement {
 		private Map<AttachPoint<?>, QuickContent> theAttachPointWidgets;
 		private Map<String, QuickModelConfig> theModels;
 		private Class<? extends QuickLayout> theLayoutClass;
-		private List<Class<? extends QuickBehavior<?>>> theBehaviors;
+		private List<Class<? extends QuickBehavior>> theBehaviors;
 
 		/**
 		 * @param definer The templated class that defines the template structure
@@ -309,7 +306,7 @@ public abstract class QuickTemplate extends QuickElement {
 			theModels = Collections.unmodifiableMap(models);
 		}
 
-		private void setBehaviors(List<Class<? extends QuickBehavior<?>>> behaviors) {
+		private void setBehaviors(List<Class<? extends QuickBehavior>> behaviors) {
 			theBehaviors = Collections.unmodifiableList(behaviors);
 		}
 
@@ -381,7 +378,7 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 
 		/** @return The behaviors that will be installed to instances of this template */
-		public List<Class<? extends QuickBehavior<?>>> getBehaviors() {
+		public List<Class<? extends QuickBehavior>> getBehaviors() {
 			return theBehaviors;
 		}
 
@@ -531,12 +528,12 @@ public abstract class QuickTemplate extends QuickElement {
 			String behaviorStr = content.getAttributes().remove(BEHAVIOR);
 			if (behaviorStr != null) {
 				String[] split = behaviorStr.split("\\s*,\\s*");
-				ArrayList<Class<? extends QuickBehavior<?>>> behaviors = new ArrayList<>();
+				ArrayList<Class<? extends QuickBehavior>> behaviors = new ArrayList<>();
 				for (String bStr : split) {
-					Class<? extends QuickBehavior<?>> bClass;
+					Class<? extends QuickBehavior> bClass;
 					if (bStr.indexOf('.') >= 0)
 						try {
-							bClass = (Class<? extends QuickBehavior<?>>) QuickBehavior.class
+							bClass = (Class<? extends QuickBehavior>) QuickBehavior.class
 								.asSubclass(templateType.getClassLoader().loadClass(bStr));
 						} catch (ClassNotFoundException e) {
 							throw new QuickException(
@@ -544,17 +541,12 @@ public abstract class QuickTemplate extends QuickElement {
 						}
 					else
 						try {
-							bClass = (Class<? extends QuickBehavior<?>>) docStruct.getContent().getClassView().loadMappedClass(bStr,
+							bClass = docStruct.getContent().getClassView().loadMappedClass(bStr,
 								QuickBehavior.class);
 						} catch (QuickException e) {
 							throw new QuickException("Behavior class " + bStr + " not found for template type " + templateType.getName(),
 								e);
 						}
-					Class<?> behaviorTarget = getBehaviorTarget(bClass);
-					if (!behaviorTarget.isAssignableFrom(templateType)) {
-						throw new QuickException("Behavior " + bClass.getName() + " targets instances of " + behaviorTarget.getName()
-							+ ". It cannot be installed on " + templateType.getName() + " instances");
-					}
 					behaviors.add(bClass);
 				}
 				templateStruct.setBehaviors(behaviors);
@@ -597,15 +589,6 @@ public abstract class QuickTemplate extends QuickElement {
 				return templateType.getName();
 			else
 				return templateType.getName().substring(dotIdx + 1);
-		}
-
-		private static Class<?> getBehaviorTarget(Class<? extends QuickBehavior<?>> behaviorClass) throws QuickException {
-			ParameterizedType targetType = getBehaviorTargetType(behaviorClass);
-			if (targetType.getActualTypeArguments()[0] instanceof Class)
-				return (Class<?>) targetType.getActualTypeArguments()[0];
-			else
-				throw new QuickException(QuickBehavior.class + " target type " + targetType.getActualTypeArguments()[0]
-					+ " cannot be resolved." + " Define the behavior's target explicitly.");
 		}
 
 		private static ParameterizedType getBehaviorTargetType(java.lang.reflect.Type type) {
@@ -905,7 +888,7 @@ public abstract class QuickTemplate extends QuickElement {
 
 	private QuickLayout theLayout;
 
-	private List<QuickBehavior<?>> theBehaviors;
+	private List<QuickBehavior> theBehaviors;
 
 	/** Creates a templated widget */
 	public QuickTemplate() {
@@ -933,8 +916,8 @@ public abstract class QuickTemplate extends QuickElement {
 			}
 		}, QuickConstants.CoreStage.INIT_SELF.toString(), 1);
 		life().runWhen(() -> {
-			for (Class<? extends QuickBehavior<?>> behaviorClass : theTemplateStructure.getBehaviors()) {
-				QuickBehavior<?> behavior;
+			for (Class<? extends QuickBehavior> behaviorClass : theTemplateStructure.getBehaviors()) {
+				QuickBehavior behavior;
 				try {
 					behavior = behaviorClass.newInstance();
 				} catch (InstantiationException | IllegalAccessException e) {
@@ -1009,19 +992,8 @@ public abstract class QuickTemplate extends QuickElement {
 		}
 	}
 
-	@Override
-	public SizeGuide getSizer(Orientation orientation) {
-		if (theLayout != null)
-			return theLayout.getSizer(this, getPhysicalChildren(), orientation);
-		else
-			return super.getSizer(orientation);
-	}
-
-	@Override
-	public void doLayout() {
-		if (theLayout != null)
-			theLayout.layout(this, getPhysicalChildren());
-		super.doLayout();
+	public QuickLayout getLayout() {
+		return theLayout;
 	}
 
 	@Override
@@ -1033,23 +1005,12 @@ public abstract class QuickTemplate extends QuickElement {
 	 * @param <E> The type of element the behavior applies to
 	 * @param behavior The behavior to install in this widget
 	 */
-	protected <E> void addBehavior(QuickBehavior<E> behavior) {
-		behavior.install((E) this);
+	protected <E> void addBehavior(QuickBehavior behavior) {
 		theBehaviors.add(behavior);
 	}
 
-	/**
-	 * @param <E> The type of element the behavior applies to
-	 * @param behavior The behavior to uninstall from this widget
-	 */
-	protected <E> void removeBehavior(QuickBehavior<E> behavior) {
-		if (!theBehaviors.remove(behavior))
-			throw new IllegalArgumentException("This behavior is not installed on this element");
-		behavior.uninstall((E) this);
-	}
-
 	/** @return All behaviors installed in this widget */
-	protected List<QuickBehavior<?>> getBehaviors() {
+	public List<QuickBehavior> getBehaviors() {
 		return Collections.unmodifiableList(theBehaviors);
 	}
 
@@ -1076,9 +1037,6 @@ public abstract class QuickTemplate extends QuickElement {
 			return;
 
 		initTemplateChildren(this, theTemplateStructure.getWidgetStructure());
-
-		if (theLayout != null)
-			theLayout.install(this, Observable.empty);
 
 		// Don't need these anymore
 		theAttachmentMappings = null;
@@ -1132,7 +1090,7 @@ public abstract class QuickTemplate extends QuickElement {
 			}
 		}
 
-		QuickParseEnv templateParseEnv = new SimpleParseEnv(getClassView(), getMessageCenter(), theTemplateContext);
+		QuickParseEnv templateParseEnv = new SimpleParseEnv(getClassView(), msg(), theTemplateContext);
 		for (QuickContent content : structure.getWidgetStructure().getChildren())
 			createTemplateChild(structure, this, content, getDocument().getEnvironment().getContentCreator(), templateParseEnv);
 	}

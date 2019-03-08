@@ -4,18 +4,13 @@ import java.awt.Color;
 import java.awt.font.TextAttribute;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 
 import org.observe.ObservableValue;
-import org.observe.ObservableValueEvent;
 import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
-import org.quick.core.Point;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickException;
-import org.quick.core.Rectangle;
-import org.quick.core.event.UserEvent;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
@@ -26,15 +21,6 @@ import com.google.common.reflect.TypeToken;
 /** A set of utilities to use with core Quick elements */
 public class QuickUtils {
 	private QuickUtils() {
-	}
-
-	/**
-	 * @param elements The elements to sort by their z-values
-	 * @return The sorted elements
-	 */
-	public static QuickElement[] sortByZ(QuickElement[] elements) {
-		Arrays.sort(elements, (ch1, ch2) -> ch2.getZ() - ch1.getZ());
-		return elements;
 	}
 
 	/**
@@ -126,69 +112,6 @@ public class QuickUtils {
 		QuickElement branch1 = i < path1.length ? path1[i] : null;
 		QuickElement branch2 = i < path2.length ? path2[i] : null;
 		return new QuickElement[] {path1[i - 1], branch1, branch2};
-	}
-
-	/**
-	 * Translates a rectangle from one element's coordinates into another's
-	 *
-	 * @param area The area to translate--not modified
-	 * @param el1 The element whose coordinates <code>area</code> is in. May be null if the area is in the document root's coordinate system
-	 * @param el2 The element whose coordinates to translate <code>area</code> to
-	 * @return <code>area</code> translated from <code>el1</code>'s coordinates to <code>el2</code>'s
-	 */
-	public static Rectangle relative(Rectangle area, QuickElement el1, QuickElement el2) {
-		Point relP = relative(area.getPosition(), el1, el2);
-		return new Rectangle(relP.x, relP.y, area.width, area.height);
-	}
-
-	/**
-	 * Translates a point from one element's coordinates into another's
-	 *
-	 * @param point The point to translate--not modified
-	 * @param el1 The element whose coordinates <code>point</code> is in. May be null if the point is in the document root's coordinate
-	 *            system
-	 * @param el2 The element whose coordinates to translate <code>point</code> to
-	 * @return <code>point</code> translated from <code>el1</code>'s coordinates to <code>el2</code>'s
-	 */
-	public static Point relative(Point point, QuickElement el1, QuickElement el2) {
-		if(el1 == null)
-			el1 = getRoot(el2);
-		int x = point.x;
-		int y = point.y;
-		QuickElement common = commonAncestor(el1, el2);
-		if(common == null)
-			return null;
-		QuickElement parent = el2;
-		while (parent != null && parent != common) {
-			x -= parent.bounds().getX();
-			y -= parent.bounds().getY();
-			parent = parent.getParent().get();
-		}
-		parent = el1;
-		while (parent != null && parent != common) {
-			x += parent.bounds().getX();
-			y += parent.bounds().getY();
-			parent = parent.getParent().get();
-		}
-		return new Point(x, y);
-	}
-
-	/**
-	 * @param element The element to get the position of
-	 * @return The position of the top-left corner of the element relative to the document root
-	 */
-	public static Point getDocumentPosition(QuickElement element) {
-		int x = 0;
-		int y = 0;
-		QuickElement el = element;
-		QuickElement parent = el.getParent().get();
-		while (parent != null) {
-			x += el.bounds().getX();
-			y += el.bounds().getY();
-			el = parent;
-			parent = el.getParent().get();
-		}
-		return new Point(x, y);
 	}
 
 	/**
@@ -309,22 +232,6 @@ public class QuickUtils {
 			attribs.put(TextAttribute.POSTURE, slant.get());
 			return java.awt.Font.getFont(attribs);
 		}, family, color, kerning, ligs, underline, weight, strike, slant);
-	}
-
-	/**
-	 * @param event The observable event
-	 * @return The user event that ultimately caused the observable event (may be null)
-	 */
-	public static UserEvent getUserEvent(ObservableValueEvent<?> event) {
-		while(event != null) {
-			if(event.getCause() instanceof UserEvent)
-				return (UserEvent) event.getCause();
-			else if(event.getCause() instanceof ObservableValueEvent)
-				event = (ObservableValueEvent<?>) event.getCause();
-			else
-				event = null;
-		}
-		return null;
 	}
 
 	/**

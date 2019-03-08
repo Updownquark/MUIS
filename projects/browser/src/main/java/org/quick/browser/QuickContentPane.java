@@ -15,10 +15,10 @@ import org.quick.core.QuickDocument;
 import org.quick.core.QuickDocument.GraphicsGetter;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickHeadSection;
-import org.quick.core.event.KeyBoardEvent.KeyCode;
-import org.quick.core.event.MouseEvent.MouseEventType;
 import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.SimpleParseEnv;
+import org.quick.widget.core.event.KeyBoardEvent.KeyCode;
+import org.quick.widget.core.event.MouseEvent.MouseEventType;
 
 /** An AWT component that renders a Quick document */
 public class QuickContentPane extends java.awt.Component {
@@ -215,25 +215,25 @@ public class QuickContentPane extends java.awt.Component {
 		return new Dimension(root.getWSizer(getHeight()).getMax(), root.getHSizer(getWidth()).getMax());
 	}*/
 
-	void moused(org.quick.core.event.MouseEvent.MouseEventType type, MouseEvent evt) {
+	void moused(org.quick.widget.core.event.MouseEvent.MouseEventType type, MouseEvent evt) {
 		if (theContent == null)
 			return;
-		org.quick.core.event.MouseEvent.ButtonType buttonType;
+		org.quick.widget.core.event.MouseEvent.ButtonType buttonType;
 		switch (evt.getButton()) {
 		case MouseEvent.NOBUTTON:
-			buttonType = org.quick.core.event.MouseEvent.ButtonType.none;
+			buttonType = org.quick.widget.core.event.MouseEvent.ButtonType.none;
 			break;
 		case MouseEvent.BUTTON1:
-			buttonType = org.quick.core.event.MouseEvent.ButtonType.left;
+			buttonType = org.quick.widget.core.event.MouseEvent.ButtonType.left;
 			break;
 		case MouseEvent.BUTTON2:
-			buttonType = org.quick.core.event.MouseEvent.ButtonType.middle;
+			buttonType = org.quick.widget.core.event.MouseEvent.ButtonType.middle;
 			break;
 		case MouseEvent.BUTTON3:
-			buttonType = org.quick.core.event.MouseEvent.ButtonType.right;
+			buttonType = org.quick.widget.core.event.MouseEvent.ButtonType.right;
 			break;
 		default:
-			buttonType = org.quick.core.event.MouseEvent.ButtonType.other;
+			buttonType = org.quick.widget.core.event.MouseEvent.ButtonType.other;
 			break;
 		}
 		theContent.mouse(evt.getX(), evt.getY(), type, buttonType, evt.getClickCount(), evt);

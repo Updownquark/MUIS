@@ -98,7 +98,7 @@ public class BackgroundStyle implements StyleDomain {
 
 	static {
 		instance = new BackgroundStyle();
-		texture = StyleAttribute.build(instance, "texture", QuickPropertyType.forTypeInstance(Texture.class, null), new BaseTexture())
+		texture = StyleAttribute.build(instance, "texture", QuickPropertyType.forTypeInstance(Texture.class, null), null)
 			.build();
 		instance.register(texture);
 		color = StyleAttribute.build(instance, "color", QuickPropertyType.color, new java.awt.Color(255, 255, 255)).build();

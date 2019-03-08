@@ -33,7 +33,6 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickProperty;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.core.style.BaseTexture;
 import org.quick.core.style.Colors;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.LengthUnit;
@@ -141,7 +140,7 @@ public class PropertyTest {
 				propParser.parseProperty(BackgroundStyle.cursor, env, "nResize")//
 					.get());
 
-			Assert.assertEquals(BaseTexture.class, //
+			Assert.assertNull(//
 				propParser.parseProperty(BackgroundStyle.texture, env, "no-texture")//
 					.get().getClass());
 

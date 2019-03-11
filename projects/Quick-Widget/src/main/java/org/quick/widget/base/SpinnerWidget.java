@@ -44,6 +44,6 @@ public class SpinnerWidget extends QuickTemplateWidget {
 	 * @return The button adjuster (up or down) for this spinner
 	 */
 	protected ButtonWidget getAdjust(boolean up) {
-		return (ButtonWidget) getElement(getTemplate().getAttachPoint(up ? "up" : "down")).get();
+		return (ButtonWidget) getChild(getElement().getAdjust(up));
 	}
 }

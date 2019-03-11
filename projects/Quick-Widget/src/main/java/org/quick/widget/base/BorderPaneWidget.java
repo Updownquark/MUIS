@@ -31,8 +31,7 @@ public class BorderPaneWidget extends SimpleContainerWidget {
 	}
 
 	public BlockWidget getContentPane() {
-		// TODO How do we get attach points?
-		// return (Block) getElement(getTemplate().getAttachPoint("contents")).get();
+		return (BlockWidget) getChild(getElement().getContentPane());
 	}
 
 	@Override

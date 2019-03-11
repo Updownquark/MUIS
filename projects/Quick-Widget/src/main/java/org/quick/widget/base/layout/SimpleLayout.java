@@ -38,21 +38,21 @@ import org.quick.widget.core.layout.SizeGuide;
  * and {@link LayoutAttributes#height}) attributes or sizers.
  */
 public class SimpleLayout implements QuickWidgetLayout {
-	private final CompoundListener theListener;
+	private final CompoundListener<QuickWidget> theListener;
 
 	/** Creates a simple layout */
 	public SimpleLayout() {
-		theListener = CompoundListener.build()//
+		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
 			.child(childBuilder -> {
 				childBuilder.acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
-					.onEvent(CompoundListener.sizeNeedsChanged);
+					.onEvent(sizeNeedsChanged);
 			})//
 			.build();
 	}
 
 	@Override
 	public void install(QuickWidget parent, Observable<?> until) {
-		theListener.listen(parent.getElement(), parent.getElement(), until);
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

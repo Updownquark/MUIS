@@ -32,14 +32,14 @@ import org.quick.widget.core.layout.SizeGuide;
 
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickWidgetLayout {
-	private final CompoundListener theListener;
+	private final CompoundListener<QuickWidget> theListener;
 
 	/** Creates the layout */
 	public TextEditLayout() {
-		theListener = CompoundListener.build()//
-			.acceptAll(TextField.charLengthAtt, TextField.charRowsAtt).onEvent(CompoundListener.sizeNeedsChanged)//
+		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
+			.acceptAll(TextField.charLengthAtt, TextField.charRowsAtt).onEvent(sizeNeedsChanged)//
 			.child(childBuilder -> {
-				childBuilder.watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onEvent(CompoundListener.layout);
+				childBuilder.watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onEvent(layout);
 			})//
 			.build();
 	}
@@ -75,7 +75,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 				}
 			});
 		}
-		theListener.listen(parent.getElement(), parent.getElement(), until);
+		theListener.listen(parent, parent, until);
 	}
 
 	private void childAdded(QuickWidget parent, QuickWidget child, Observable<?> until) {

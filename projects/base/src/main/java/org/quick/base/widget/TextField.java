@@ -291,8 +291,12 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	}
 
 	/** @return The text element containing the text that is the value of this text field */
-	protected org.quick.core.QuickTextElement getValueElement() {
+	public QuickTextElement getValueElement() {
 		return (org.quick.core.QuickTextElement) getElement(getTemplate().getAttachPoint("value")).get();
+	}
+
+	public DocumentCursorOverlay getCursorOverlay() {
+		return (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
 	}
 
 	/** @return The document model that is edited directly by the user */

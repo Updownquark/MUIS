@@ -3,6 +3,12 @@ package org.quick.widget.base.layout;
 import static org.quick.core.layout.LayoutAttributes.alignment;
 import static org.quick.core.layout.LayoutAttributes.crossAlignment;
 import static org.quick.core.layout.LayoutAttributes.direction;
+import static org.quick.core.layout.LayoutAttributes.height;
+import static org.quick.core.layout.LayoutAttributes.maxHeight;
+import static org.quick.core.layout.LayoutAttributes.maxWidth;
+import static org.quick.core.layout.LayoutAttributes.minHeight;
+import static org.quick.core.layout.LayoutAttributes.minWidth;
+import static org.quick.core.layout.LayoutAttributes.width;
 
 import java.awt.Rectangle;
 import java.util.List;
@@ -30,22 +36,22 @@ import org.quick.widget.core.layout.SizeGuide;
  * the sizes of children.
  */
 public class BoxLayout implements QuickWidgetLayout {
-	private final CompoundListener theListener;
+	private final CompoundListener<QuickWidget> theListener;
 
 	/** Creates a box layout */
 	public BoxLayout() {
-		theListener = CompoundListener.build()//
-			.accept(direction).onEvent(CompoundListener.sizeNeedsChanged)//
-			.acceptAll(alignment, crossAlignment).onEvent(CompoundListener.layout)//
+		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
+			.accept(direction).onEvent(sizeNeedsChanged)//
+			.acceptAll(alignment, crossAlignment).onEvent(layout)//
 			.child(childBuilder -> {
-				childBuilder.acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onEvent(CompoundListener.sizeNeedsChanged);
+				childBuilder.acceptAll(width, minWidth, maxWidth, height, minHeight, maxHeight).onEvent(sizeNeedsChanged);
 			})//
 			.build();
 	}
 
 	@Override
 	public void install(QuickWidget parent, Observable<?> until) {
-		theListener.listen(parent.getElement(), parent.getElement(), until);
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

@@ -53,7 +53,7 @@ public class Spinner extends QuickTemplate {
 	 * @param up Whether to get the up or down button
 	 * @return The button adjuster (up or down) for this spinner
 	 */
-	protected Button getAdjust(boolean up) {
+	public Button getAdjust(boolean up) {
 		return (Button) getElement(getTemplate().getAttachPoint(up ? "up" : "down")).get();
 	}
 

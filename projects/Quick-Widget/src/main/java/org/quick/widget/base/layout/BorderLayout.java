@@ -1,6 +1,24 @@
 package org.quick.widget.base.layout;
 
+import static org.quick.core.layout.LayoutAttributes.bottom;
+import static org.quick.core.layout.LayoutAttributes.height;
+import static org.quick.core.layout.LayoutAttributes.left;
+import static org.quick.core.layout.LayoutAttributes.maxBottom;
+import static org.quick.core.layout.LayoutAttributes.maxHeight;
+import static org.quick.core.layout.LayoutAttributes.maxLeft;
+import static org.quick.core.layout.LayoutAttributes.maxRight;
+import static org.quick.core.layout.LayoutAttributes.maxTop;
+import static org.quick.core.layout.LayoutAttributes.maxWidth;
+import static org.quick.core.layout.LayoutAttributes.minBottom;
+import static org.quick.core.layout.LayoutAttributes.minHeight;
+import static org.quick.core.layout.LayoutAttributes.minLeft;
+import static org.quick.core.layout.LayoutAttributes.minRight;
+import static org.quick.core.layout.LayoutAttributes.minTop;
+import static org.quick.core.layout.LayoutAttributes.minWidth;
 import static org.quick.core.layout.LayoutAttributes.region;
+import static org.quick.core.layout.LayoutAttributes.right;
+import static org.quick.core.layout.LayoutAttributes.top;
+import static org.quick.core.layout.LayoutAttributes.width;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 import static org.quick.widget.core.layout.LayoutUtils.add;
@@ -26,26 +44,26 @@ import org.quick.widget.core.layout.SizeGuide;
  * which may have zero or one component in it.
  */
 public class BorderLayout implements QuickWidgetLayout {
-	private final CompoundListener theListener;
+	private final CompoundListener<QuickWidget> theListener;
 
 	/** Creates a border layout */
 	public BorderLayout() {
-		theListener = CompoundListener.build()//
-			.watchAll(LayoutStyle.margin, LayoutStyle.padding).onEvent(CompoundListener.sizeNeedsChanged)//
+		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
+			.watchAll(LayoutStyle.margin, LayoutStyle.padding).onEvent(sizeNeedsChanged)//
 			.child(builder -> {
-				builder.accept(region).onEvent(CompoundListener.sizeNeedsChanged);
+				builder.accept(region).onEvent(sizeNeedsChanged);
 				builder.when(el -> el.getAttribute(region) == Region.left, builder2 -> {
-					builder2.acceptAll(width, minWidth, maxWidth, right, minRight, maxRight).onEvent(CompoundListener.sizeNeedsChanged);
+					builder2.acceptAll(width, minWidth, maxWidth, right, minRight, maxRight).onEvent(sizeNeedsChanged);
 				});
 				builder.when(el -> el.getAttribute(region) == Region.right, builder2 -> {
-					builder2.acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft).onEvent(CompoundListener.sizeNeedsChanged);
+					builder2.acceptAll(width, minWidth, maxWidth, left, minLeft, maxLeft).onEvent(sizeNeedsChanged);
 				});
 				builder.when(el -> el.getAttribute(region) == Region.top, builder2 -> {
 					builder2.acceptAll(height, minHeight, maxHeight, bottom, minBottom, maxBottom)
-						.onEvent(CompoundListener.sizeNeedsChanged);
+						.onEvent(sizeNeedsChanged);
 				});
 				builder.when(el -> el.getAttribute(region) == Region.bottom, builder2 -> {
-					builder2.acceptAll(height, minHeight, maxHeight, top, minTop, maxTop).onEvent(CompoundListener.sizeNeedsChanged);
+					builder2.acceptAll(height, minHeight, maxHeight, top, minTop, maxTop).onEvent(sizeNeedsChanged);
 				});
 			})//
 			.build();
@@ -53,7 +71,7 @@ public class BorderLayout implements QuickWidgetLayout {
 
 	@Override
 	public void install(QuickWidget parent, Observable<?> until) {
-		theListener.listen(parent.getElement(), parent.getElement(), until);
+		theListener.listen(parent, parent, until);
 	}
 
 	@Override

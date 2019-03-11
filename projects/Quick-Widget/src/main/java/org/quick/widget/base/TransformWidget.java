@@ -44,7 +44,7 @@ public class TransformWidget extends SimpleContainerWidget {
 	}
 
 	public BlockWidget getContents() {
-		return (BlockWidget) getElement(getTemplate().getAttachPoint("contents")).get();
+		return (BlockWidget) getChild(getElement().getContents());
 	}
 
 	@Override

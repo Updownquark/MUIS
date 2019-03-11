@@ -78,7 +78,7 @@ public class DocCursorOverlayWidget extends QuickWidget {
 	 * @param editor The documented element governing this overlay
 	 * @param text The text element that the cursor is to be displayed over
 	 */
-	public void setElement(QuickWidget editor, QuickTextWidget text) {
+	public void setEditor(QuickWidget editor, QuickTextWidget text) {
 		if (theTextWidget != null)
 			throw new IllegalStateException("A " + getClass().getSimpleName() + "'s text element may only be set once");
 		theEditor = editor;

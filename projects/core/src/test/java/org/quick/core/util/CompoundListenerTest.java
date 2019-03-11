@@ -33,7 +33,7 @@ public class CompoundListenerTest {
 	@Test
 	public void testBasic() {
 		int[] events = new int[1];
-		CompoundListener listener = CompoundListener.build()//
+		CompoundListener<QuickElement> listener = CompoundListener.<QuickElement> build(el -> el, (p, el) -> el)//
 			.accept(region).watch(color).onChange(() -> {
 				events[0]++;
 			})//
@@ -87,7 +87,7 @@ public class CompoundListenerTest {
 	@Test
 	public void testChild() {
 		int[] events = new int[1];
-		CompoundListener listener = CompoundListener.build()//
+		CompoundListener<QuickElement> listener = CompoundListener.<QuickElement> build(el -> el, (p, el) -> el)//
 			.child(childBuilder -> {
 				childBuilder.accept(region).watch(color).onChange(() -> {
 					events[0]++;
@@ -172,7 +172,7 @@ public class CompoundListenerTest {
 	public void testCondition() {
 		int[] events = new int[1];
 		int correctEvents = 0;
-		CompoundListener listener = CompoundListener.build()//
+		CompoundListener<QuickElement> listener = CompoundListener.<QuickElement> build(el -> el, (p, el) -> el)//
 			.child(builder -> {
 				builder.accept(region).onChange(() -> {
 					events[0]++;

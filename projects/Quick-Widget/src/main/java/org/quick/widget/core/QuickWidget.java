@@ -3,7 +3,9 @@ package org.quick.widget.core;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
@@ -41,6 +43,8 @@ public abstract class QuickWidget {
 
 	private final ObservableCollection<QuickWidget> theChildren;
 
+	private final Map<QuickElement, QuickWidget> theChildMap;
+
 	private final QuickEventManager theEvents;
 
 	private final ElementBounds theBounds;
@@ -62,13 +66,13 @@ public abstract class QuickWidget {
 	public QuickWidget(QuickWidgetDocument doc, QuickElement element, QuickWidget parent) {
 		theDocument = doc;
 		theElement = element;
-		theChildren = theElement.ch().flow().map(TypeTokens.get().of(QuickWidget.class), //
-			el -> doc.getWidgetImpl().createWidget(el), opts -> opts.cache(true).reEvalOnUpdate(false)).collect();
+		theParent = new SimpleSettableValue<>(QuickWidget.class, true);
+		theParent.set(parent, null);
 		theEvents = new QuickEventManager(this);
 		theBounds = new ElementBounds(this);
 		theStateControllers = new CoreStateControllers();
-		theParent = new SimpleSettableValue<>(QuickWidget.class, true);
-		theParent.set(parent, null);
+		theChildMap = new HashMap<>();
+		theChildren = createChildren();
 		bounds().changes().act(event -> {
 			if (isHoldingEvents != 0)
 				return;
@@ -83,6 +87,8 @@ public abstract class QuickWidget {
 			if (theBounds.getWidth() != 0 && theBounds.getHeight() != 0) // No point laying out if there's nothing to show
 				relayout(false);
 		}, CoreStage.INITIALIZED, -1);
+		theDefaultStyleListener = new StyleChangeObservable(theElement.getStyle());
+		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theElement.life().runWhen(() -> {
 			theDefaultStyleListener.begin();
 		}, CoreStage.READY, -1);
@@ -91,15 +97,19 @@ public abstract class QuickWidget {
 		theChildren.subscribe(evt -> {
 			switch (evt.getType()) {
 			case add:
+				theChildMap.put(evt.getNewValue().getElement(), evt.getNewValue());
 				childRemoves.add(evt.getIndex(), registerChild(//
 					evt.getNewValue()));
 				break;
 			case remove:
 				Runnable remove = childRemoves.remove(evt.getIndex());
 				remove.run();
+				theChildMap.remove(evt.getOldValue().getElement());
 				break;
 			case set:
 				if (evt.getOldValue() != evt.getNewValue()) {
+					theChildMap.remove(evt.getOldValue().getElement());
+					theChildMap.put(evt.getNewValue().getElement(), evt.getNewValue());
 					remove = childRemoves.get(evt.getIndex());
 					remove.run();
 					childRemoves.set(evt.getIndex(), registerChild(//
@@ -130,12 +140,23 @@ public abstract class QuickWidget {
 				repaint(bounds, false);
 		});
 		addStateListeners();
-		theDefaultStyleListener = new StyleChangeObservable(theElement.getStyle());
-		theDefaultStyleListener.watch(BackgroundStyle.getDomainInstance(), LightedStyle.getDomainInstance());
 		theDefaultStyleListener.act(evt -> {
 			if (isHoldingEvents == 0)
 				repaint(null, false);
 		});
+	}
+
+	protected ObservableCollection<QuickWidget> createChildren() {
+		return theElement.ch().flow().map(TypeTokens.get().of(QuickWidget.class), //
+			this::createChild, opts -> opts.cache(true).reEvalOnUpdate(false)).collect();
+	}
+
+	protected QuickWidget createChild(QuickElement childElement) {
+		return getDocument().getWidgetImpl().createWidget(childElement);
+	}
+
+	public QuickWidget getChild(QuickElement childElement) {
+		return childElement == null ? null : theChildMap.get(childElement);
 	}
 
 	private void addStateListeners() {

@@ -5,9 +5,13 @@ import java.util.List;
 import org.observe.Observable;
 import org.quick.core.QuickLayout;
 import org.quick.core.layout.Orientation;
+import org.quick.util.CompoundListener;
 import org.quick.widget.core.QuickWidget;
 
 public interface QuickWidgetLayout extends QuickLayout {
+	CompoundListener.EventListener<QuickWidget> sizeNeedsChanged = (evented, root, event) -> evented.sizeNeedsChanged();
+	CompoundListener.EventListener<QuickWidget> layout = (evented, root, event) -> evented.relayout(false);
+
 	/**
 	 * Installs this layout for an element
 	 *

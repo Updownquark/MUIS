@@ -3,7 +3,6 @@ package org.quick.widget.base;
 import static org.quick.core.QuickTextElement.multiLine;
 
 import org.quick.base.BaseConstants;
-import org.quick.base.widget.DocumentCursorOverlay;
 import org.quick.base.widget.TextField;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.widget.core.QuickTemplateWidget;
@@ -24,9 +23,9 @@ public class TextFieldWidget extends QuickTemplateWidget {
 			theTextEditing.install(this); // Installs the text editing behavior
 
 			// Set up the cursor overlay
-			QuickTextWidget valueEl = (QuickTextWidget) getElement(getTemplate().getAttachPoint("value")).get();
-			DocumentCursorOverlay cursor = (DocumentCursorOverlay) getElement(getTemplate().getAttachPoint("cursor-overlay")).get();
-			cursor.setElement(this, getValueElement());
+			QuickTextWidget valueW = getValueWidget();
+			DocCursorOverlayWidget cursor = getDocCursorOverlay();
+			cursor.setEditor(TextFieldWidget.this, valueW);
 
 			// When the user leaves this widget, flush--either modify the value or reset the document
 			events().filterMap(FocusEvent.blur).act(event -> {
@@ -53,4 +52,11 @@ public class TextFieldWidget extends QuickTemplateWidget {
 		return (TextField) super.getElement();
 	}
 
+	protected QuickTextWidget getValueWidget() {
+		return (QuickTextWidget) getChild(getElement().getValueElement());
+	}
+
+	protected DocCursorOverlayWidget getDocCursorOverlay() {
+		return (DocCursorOverlayWidget) getChild(getElement().getCursorOverlay());
+	}
 }

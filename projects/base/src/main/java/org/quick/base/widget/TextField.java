@@ -19,7 +19,6 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.tags.*;
 import org.quick.util.QuickUtils;
-import org.quick.widget.core.model.DocumentedElement;
 
 import com.google.common.reflect.TypeToken;
 
@@ -48,7 +47,7 @@ import javafx.scene.input.KeyCode;
 	@State(name = BaseConstants.States.ERROR_NAME, priority = BaseConstants.States.ERROR_PRIORITY), //
 	@State(name = BaseConstants.States.ENABLED_NAME, priority = BaseConstants.States.ENABLED_PRIORITY)//
 })
-public class TextField extends org.quick.core.QuickTemplate implements DocumentedElement {
+public class TextField extends org.quick.core.QuickTemplate {
 	private final StateController theErrorController;
 	private final StateController theEnabledController;
 
@@ -301,7 +300,6 @@ public class TextField extends org.quick.core.QuickTemplate implements Documente
 	}
 
 	/** @return The document model that is edited directly by the user */
-	@Override
 	public ObservableValue<QuickDocumentModel> getDocumentModel() {
 		return getValueElement().getDocumentModel();
 	}

@@ -36,7 +36,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 
 	/** Creates the layout */
 	public TextEditLayout() {
-		theListener = CompoundListener.<QuickWidget> build()//
+		theListener = CompoundListener.<QuickWidget> buildFromQDW()//
 			.acceptAll(TextField.charLengthAtt, TextField.charRowsAtt).onEvent(sizeNeedsChanged)//
 			.child(childBuilder -> {
 				childBuilder.watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onEvent(layout);

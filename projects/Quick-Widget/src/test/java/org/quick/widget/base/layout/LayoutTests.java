@@ -73,10 +73,10 @@ public class LayoutTests {
 				return new SimpleLayout();
 			}
 		};
-		parentEl.init(doc.getDocument(), null, doc.getDocument().cv(), null, null, null);
+		parentEl.init(doc.getQuickDoc(), null, doc.getQuickDoc().cv(), null, null, null);
 		TestLayout child1Layout = new TestLayout().setW(new SimpleSizeGuide(10, 20, 30, 40, 50));
 		LayoutContainer child1El = new LayoutContainer();
-		child1El.init(doc.getDocument(), null, doc.getDocument().cv(), parentEl, null, null);
+		child1El.init(doc.getQuickDoc(), null, doc.getQuickDoc().cv(), parentEl, null, null);
 		child1El.initChildren(Collections.emptyList());
 		parentEl.initChildren(Arrays.asList(child1El));
 		parentEl.postCreate();

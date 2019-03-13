@@ -3,8 +3,8 @@ package org.quick.base.widget;
 import java.awt.Image;
 import java.net.URL;
 
+import org.observe.*;
 import org.quick.base.data.ImageData;
-import org.quick.base.widget.GenericImage.ImageAnimator;
 
 /** Renders an image */
 public abstract class GenericImage extends org.quick.core.LayoutContainer {
@@ -64,6 +64,9 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 
 	volatile ImageData theErrorImage;
 
+	private final SettableValue<ImageData> theDisplayedImage;
+	private final SimpleObservable<Void> theSizePolicyChange;
+
 	private ImageResizePolicy theHResizePolicy;
 
 	private ImageResizePolicy theVResizePolicy;
@@ -72,15 +75,10 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 
 	boolean isSizeLocked;
 
-	private int theImageIndex;
-
-	private ImageData thePreDisplayed;
-
-	private Object theLock;
-
 	/** Creates a generic image */
 	public GenericImage() {
-		theLock = new Object();
+		theDisplayedImage = new SimpleSettableValue<>(ImageData.class, true);
+		theSizePolicyChange = new SimpleObservable<>();
 		life().runWhen(() -> {
 			org.quick.core.QuickEnvironment env = getDocument().getEnvironment();
 			String res = getToolkit().getMappedResource("img-load-icon");
@@ -94,7 +92,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 							public void itemGenerated(URL key, ImageData value) {
 								if(theLoadingImage == null) {
 									theLoadingImage = value;
-									imageChanged();
+									checkDisplayedImage();
 								}
 							}
 
@@ -117,7 +115,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 							public void itemGenerated(URL key, ImageData value) {
 								if(theErrorImage == null) {
 									theLoadingImage = value;
-									imageChanged();
+									checkDisplayedImage();
 								}
 							}
 
@@ -152,7 +150,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 						return;
 					theImage = value;
 					isLoading = false;
-					imageChanged();
+					checkDisplayedImage();
 				}
 
 				@Override
@@ -162,7 +160,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 					msg().error("Could not load image from " + key, exception);
 					theLoadError = exception;
 					isLoading = false;
-					imageChanged();
+					checkDisplayedImage();
 				}
 			});
 	}
@@ -176,7 +174,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 	public void setImage(ImageData image) {
 		theLocation = null;
 		theImage = image;
-		imageChanged();
+		checkDisplayedImage();
 	}
 
 	/** @param image The image that this widget should render */
@@ -192,36 +190,13 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 	/** @param image The image to display while the target image is loading */
 	public void setLoadingImage(ImageData image) {
 		theLoadingImage = image;
-		imageChanged();
+		checkDisplayedImage();
 	}
 
 	/** @param image The image to display when a target image fails to load */
 	public void setErrorImage(ImageData image) {
 		theErrorImage = image;
-		imageChanged();
-	}
-
-	void imageChanged() {
-		ImageData img = getDisplayedImage();
-		if(img == thePreDisplayed)
-			return;
-		synchronized(theLock) {
-			img = getDisplayedImage();
-			if(img == thePreDisplayed)
-				return;
-			ImageAnimator anim = theAnimator;
-			theAnimator = null;
-			if(anim != null)
-				anim.stop();
-			theImageIndex = 0;
-			thePreDisplayed = img;
-			if(img.getImageCount() > 1) {
-				theAnimator = new ImageAnimator();
-				org.quick.motion.AnimationManager.get().start(theAnimator);
-			}
-			sizeNeedsChanged();
-			repaint(null, false);
-		}
+		checkDisplayedImage();
 	}
 
 	/** @return The policy that this widget follows when it is resized horizontally */
@@ -236,8 +211,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 		if(theHResizePolicy == policy)
 			return;
 		theHResizePolicy = policy;
-		sizeNeedsChanged();
-		repaint(null, false);
+		theSizePolicyChange.onNext(null);
 	}
 
 	/** @return The policy that this widget follows when it is resized vertically */
@@ -252,8 +226,7 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 		if(theVResizePolicy == policy)
 			return;
 		theVResizePolicy = policy;
-		sizeNeedsChanged();
-		repaint(null, false);
+		theSizePolicyChange.onNext(null);
 	}
 
 	/**
@@ -271,34 +244,27 @@ public abstract class GenericImage extends org.quick.core.LayoutContainer {
 		if(locked == isProportionLocked)
 			return;
 		isProportionLocked = locked;
-		sizeNeedsChanged();
-		repaint(null, false);
+		theSizePolicyChange.onNext(null);
+	}
+
+	private void checkDisplayedImage() {
+		ImageData toDisplay;
+		if(isLoading)
+			toDisplay = theLoadingImage;
+		else if(theLoadError != null)
+			toDisplay = theErrorImage;
+		else
+			toDisplay = theImage;
+		if (theDisplayedImage.get() != toDisplay)
+			theDisplayedImage.set(toDisplay, null);
 	}
 
 	/** @return The image that would be displayed if this widget were painted now (may be the loading or error image) */
-	public ImageData getDisplayedImage() {
-		if(isLoading)
-			return theLoadingImage;
-		else if(theLoadError != null)
-			return theErrorImage;
-		else
-			return theImage;
+	public ObservableValue<ImageData> getDisplayedImage() {
+		return theDisplayedImage.unsettable();
 	}
 
-	public int getImageIndex() {
-		return theImageIndex;
-	}
-
-	/** @param index The index of the frame in the animated image to display */
-	public void setImageIndex(int index) {
-		ImageData img = getDisplayedImage();
-		if(img == null || img.getImageCount() < 2)
-			index = 0;
-		else
-			index %= img.getImageCount();
-		if(theImageIndex != index) {
-			theImageIndex = index;
-			repaint(null, true);
-		}
+	public Observable<?> onSizePolicyChange() {
+		return theSizePolicyChange.readOnly();
 	}
 }

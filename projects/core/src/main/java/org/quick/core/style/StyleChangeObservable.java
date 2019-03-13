@@ -191,8 +191,7 @@ public class StyleChangeObservable implements Observable<ObservableValueEvent<?>
 			.filter(att -> {
 				return (theDomains.contains(att.getDomain()) || theAttributes.contains(att)) ? null : "Not interested";
 			}).map(OBS_TYPE, att -> theStyle.get(att, true).changes().noInit()).collectActive(theRestart);
-		Observable<? extends ObservableValueEvent<?>> styleEventObservable = ObservableCollection
-			.fold(filteredAttributeChanges);
+		Observable<? extends ObservableValueEvent<?>> styleEventObservable = ObservableCollection.fold(filteredAttributeChanges);
 		theSubscription = styleEventObservable.act(evt -> {
 			theStyleListeners.forEach(listener -> listener.onNext(evt));
 		});

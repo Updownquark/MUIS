@@ -17,6 +17,8 @@ import org.qommons.Causable;
 import org.qommons.Transaction;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.QuickState;
+import org.quick.core.style.BackgroundStyle;
+import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleChangeObservable;
@@ -47,10 +49,13 @@ public abstract class AbstractSelectableDocumentModel implements SelectableDocum
 		theLock = new ReentrantReadWriteLock();
 		theCauseStack = new LinkedList<>();
 
-		/* Clear the metrics/rendering cache when the style changes.  Otherwise, style changes won't cause the document to re-render
-		 * correctly because the cache may have the old color/size/etc */
-		// TODO This represents a memory leak, since it is never unsubscribed
-		element.getDefaultStyleListener().act(event -> {
+		// TODO This could represent a memory leak if this document is ever discarded while the element is still active,
+		// since it is never unsubscribed
+		StyleChangeObservable textStyles = new StyleChangeObservable(element.getStyle())//
+			.watch(BackgroundStyle.color, BackgroundStyle.transparency)//
+			.watch(FontStyle.getDomainInstance());
+
+		textStyles.act(event -> {
 			int minSel = theCursor;
 			int maxSel = theCursor;
 			if (theSelectionAnchor < minSel)
@@ -60,16 +65,14 @@ public abstract class AbstractSelectableDocumentModel implements SelectableDocum
 			if (minSel == 0 && maxSel == length()) {
 				return; // No unselected text
 			}
-			clearCache();
 			int evtStart = minSel == 0 ? maxSel : 0;
 			int evtEnd = maxSel == length() ? minSel : length();
 			fireStyleEvent(evtStart, evtEnd, event);
 		});
-		new StyleChangeObservable(theSelectedStyle, element.getDefaultStyleListener()).act(event -> {
+		new StyleChangeObservable(theSelectedStyle, textStyles).act(event -> {
 			if (theCursor == theSelectionAnchor) {
 				return; // No selected text
 			}
-			clearCache();
 			int evtStart = theSelectionAnchor;
 			int evtEnd = theCursor;
 			if (evtStart > evtEnd) {

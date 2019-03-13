@@ -1,6 +1,24 @@
 package org.quick.widget.base.layout;
 
-import static org.quick.core.layout.LayoutAttributes.*;
+import static org.quick.core.layout.LayoutAttributes.bottom;
+import static org.quick.core.layout.LayoutAttributes.height;
+import static org.quick.core.layout.LayoutAttributes.left;
+import static org.quick.core.layout.LayoutAttributes.maxBottom;
+import static org.quick.core.layout.LayoutAttributes.maxHeight;
+import static org.quick.core.layout.LayoutAttributes.maxLeft;
+import static org.quick.core.layout.LayoutAttributes.maxRight;
+import static org.quick.core.layout.LayoutAttributes.maxTop;
+import static org.quick.core.layout.LayoutAttributes.maxWidth;
+import static org.quick.core.layout.LayoutAttributes.minBottom;
+import static org.quick.core.layout.LayoutAttributes.minHeight;
+import static org.quick.core.layout.LayoutAttributes.minLeft;
+import static org.quick.core.layout.LayoutAttributes.minRight;
+import static org.quick.core.layout.LayoutAttributes.minTop;
+import static org.quick.core.layout.LayoutAttributes.minWidth;
+import static org.quick.core.layout.LayoutAttributes.region;
+import static org.quick.core.layout.LayoutAttributes.right;
+import static org.quick.core.layout.LayoutAttributes.top;
+import static org.quick.core.layout.LayoutAttributes.width;
 import static org.quick.core.layout.Orientation.horizontal;
 import static org.quick.core.layout.Orientation.vertical;
 import static org.quick.widget.core.layout.LayoutUtils.add;
@@ -30,7 +48,7 @@ public class BorderLayout implements QuickWidgetLayout {
 
 	/** Creates a border layout */
 	public BorderLayout() {
-		theListener = CompoundListener.<QuickWidget> build()//
+		theListener = CompoundListener.<QuickWidget> buildFromQDW()//
 			.watchAll(LayoutStyle.margin, LayoutStyle.padding).onEvent(sizeNeedsChanged)//
 			.child(builder -> {
 				builder.accept(region).onEvent(sizeNeedsChanged);

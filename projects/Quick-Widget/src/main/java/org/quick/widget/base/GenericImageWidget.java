@@ -4,6 +4,7 @@ import java.awt.Graphics2D;
 
 import org.quick.base.data.ImageData;
 import org.quick.base.widget.GenericImage;
+import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.widget.base.layout.SimpleLayout;
@@ -22,13 +23,13 @@ public class GenericImageWidget extends LayoutContainerWidget {
 
 		@Override
 		public boolean update(long time) {
-			ImageData img = getElement().getDisplayedImage();
+			ImageData img = getElement().getDisplayedImage().get();
 			if (img == null || isStopped)
 				return true;
 			int total = 0;
 			for (int i = 0; i < img.getImageCount(); i++) {
 				if (time < total) {
-					getElement().setImageIndex(i);
+					setImageIndex(i);
 					break;
 				}
 				total += img.getDelay(i);
@@ -40,7 +41,7 @@ public class GenericImageWidget extends LayoutContainerWidget {
 				total = 0;
 				for (int i = 0; i < img.getImageCount(); i++) {
 					if (time < total) {
-						getElement().setImageIndex(i);
+						setImageIndex(i);
 						break;
 					}
 					total += img.getDelay(i);
@@ -51,7 +52,7 @@ public class GenericImageWidget extends LayoutContainerWidget {
 
 		@Override
 		public long getMaxFrequency() {
-			ImageData img = getElement().getDisplayedImage();
+			ImageData img = getElement().getDisplayedImage().get();
 			if (img == null)
 				return 0;
 			int ret = 0;
@@ -79,8 +80,14 @@ public class GenericImageWidget extends LayoutContainerWidget {
 
 	private ImageAnimator theAnimator;
 
+	private int theImageIndex;
+
 	public GenericImageWidget(QuickWidgetDocument doc, GenericImage element, QuickWidget parent) {
 		super(doc, element, parent);
+
+		getElement().life().runWhen(() -> {
+			getElement().getDisplayedImage().changes().act(evt -> imageChanged(evt.getNewValue()));
+		}, CoreStage.INIT_SELF, 1);
 	}
 
 	@Override
@@ -93,9 +100,23 @@ public class GenericImageWidget extends LayoutContainerWidget {
 		return new SimpleLayout();
 	}
 
+	protected void imageChanged(ImageData image) {
+		ImageAnimator anim = theAnimator;
+		theAnimator = null;
+		if (anim != null)
+			anim.stop();
+		theImageIndex = 0;
+		if (image.getImageCount() > 1) {
+			theAnimator = new ImageAnimator();
+			org.quick.motion.AnimationManager.get().start(theAnimator);
+		}
+		sizeNeedsChanged();
+		repaint(null, false);
+	}
+
 	@Override
 	public SizeGuide getSizer(Orientation orientation) {
-		ImageData img = getElement().getDisplayedImage();
+		ImageData img = getElement().getDisplayedImage().get();
 		int w, h;
 		if (img != null) {
 			w = img.getWidth();
@@ -129,17 +150,17 @@ public class GenericImageWidget extends LayoutContainerWidget {
 	public boolean isTransparent() {
 		if (!super.isTransparent())
 			return false;
-		ImageData img = getElement().getDisplayedImage();
+		ImageData img = getElement().getDisplayedImage().get();
 		return img == null || img.hasTransparency();
 	}
 
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		ImageData img = getElement().getDisplayedImage();
+		ImageData img = getElement().getDisplayedImage().get();
 		if (img == null)
 			return;
-		int imgIdx = getElement().getImageIndex();
+		int imgIdx = getImageIndex();
 		imgIdx %= img.getImageCount();
 		int h = img.getHeight();
 		java.awt.Point off = img.getOffset(imgIdx);
@@ -168,6 +189,23 @@ public class GenericImageWidget extends LayoutContainerWidget {
 				drawImage(graphics, img, offY, bounds().getHeight(), 0, h, area, imgIdx);
 			}
 			break;
+		}
+	}
+
+	public int getImageIndex() {
+		return theImageIndex;
+	}
+
+	/** @param index The index of the frame in the animated image to display */
+	public void setImageIndex(int index) {
+		ImageData img = getElement().getDisplayedImage().get();
+		if (img == null || img.getImageCount() < 2)
+			index = 0;
+		else
+			index %= img.getImageCount();
+		if (theImageIndex != index) {
+			theImageIndex = index;
+			repaint(null, true);
 		}
 	}
 

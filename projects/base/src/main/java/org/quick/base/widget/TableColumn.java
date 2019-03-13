@@ -2,117 +2,126 @@ package org.quick.base.widget;
 
 import java.awt.Graphics2D;
 import java.util.*;
+import java.util.function.Consumer;
 
-import org.observe.SimpleSettableValue;
+import org.observe.*;
 import org.observe.collect.ObservableCollection;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionElement;
 import org.qommons.collect.ElementId;
-import org.quick.core.*;
+import org.qommons.collect.MutableCollectionElement;
 import org.quick.core.QuickConstants.CoreStage;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickTemplate;
 import org.quick.core.layout.*;
 import org.quick.core.model.ModelAttributes;
 import org.quick.core.tags.AcceptAttribute;
 import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.Template;
 import org.quick.widget.base.layout.BaseLayoutUtils;
-import org.quick.widget.core.Point;
 import org.quick.widget.core.QuickElementCapture;
-import org.quick.widget.core.Rectangle;
-import org.quick.widget.core.event.MouseEvent;
-import org.quick.widget.core.event.MouseEvent.MouseEventType;
 import org.quick.widget.core.layout.SizeGuide;
 
+import com.google.common.reflect.TypeParameter;
 import com.google.common.reflect.TypeToken;
 
 @QuickElementType(attributes = { //
 	@AcceptAttribute(declaringClass = ModelAttributes.class, field = "name", required = false)//
 })
 @Template(location = "../../../../table-column.qts")
-public class TableColumn extends QuickTemplate {
+public class TableColumn<R, C> extends QuickTemplate {
 	private AttachPoint<QuickElement> theRendererAP;
 	private AttachPoint<QuickElement> theHoverAP;
 	private AttachPoint<QuickElement> theEditorAP;
 
-	private boolean isSelected;
-	private ElementId theSelectedRow;
-	private ElementId theEditingRow;
-	private Point theHoveredPoint;
-	private ElementId theHoveredRow;
+	private ElementId theColumnElement;
 
 	private QuickElement theRenderer;
 	private QuickElement theHover;
 	private QuickElement theEditor;
 
-	private SimpleSettableValue<Object> theRenderValue;
-	private SimpleSettableValue<Object> theHoverValue;
-	private SimpleSettableValue<Object> theEditorValue;
+	private SettableValue<MutableCollectionElement<R>> theHoverElement;
+	private SettableValue<MutableCollectionElement<R>> theEditorElement;
+	private SimpleObservable<Void> theHoverRefresh;
+	private ObservableValue<R> theHoverValue;
+	private SimpleObservable<Void> theEditorRefresh;
+	private ObservableValue<R> theEditorValue;
 
 	public TableColumn() {
-		theSelectedRow = theHoveredRow = null;
 		life().runWhen(() -> {
-			ObservableCollection<?> rows = getTable().atts().get(Table.rows).get();
+			ObservableCollection<R> rows = getTable().getRows();
+			TypeToken<MutableCollectionElement<R>> mceType = new TypeToken<MutableCollectionElement<R>>() {}
+				.where(new TypeParameter<R>() {}, rows.getType());
+			theHoverElement = new SimpleSettableValue<>(mceType, true, getAttributeLocker(), null);
+			theEditorElement = new SimpleSettableValue<>(mceType, true, getAttributeLocker(), null);
+			theHoverRefresh = new SimpleObservable<>(null, false, getAttributeLocker(), null);
+			theHoverValue = theHoverElement.refresh(theHoverRefresh).map(rows.getType(), el -> el.get());
+			theEditorRefresh = new SimpleObservable<>(null, false, getAttributeLocker(), null);
+			theEditorValue = theEditorElement.refresh(theEditorRefresh).map(rows.getType(), el -> el.get());
+
+			getResourcePool().poolValue(getTable().getHoveredColumn()).changes().act(new Consumer<ObservableValueEvent<ElementId>>() {
+				private Subscription theHoverElSub;
+
+				@Override
+				public void accept(ObservableValueEvent<ElementId> evt) {
+					if(evt.getNewValue()==null || !evt.getNewValue().equals(getColumnElement())){
+						if (theHoverElSub != null) {
+							theHoverElSub.unsubscribe();
+							theHoverElSub = null;
+							theHoverElement.set(null, evt);
+						} else {
+							theHoverElSub = getResourcePool().poolValue(getTable().getHoveredRow()).changes().act(evt2 -> {
+								theHoverElement.set(rows.mutableElement(evt2.getNewValue()), evt2);
+							});
+						}
+					}
+				}
+			});
+			getResourcePool().poolValue(getTable().getSelectedColumn()).changes().act(new Consumer<ObservableValueEvent<ElementId>>() {
+				private Subscription theEditorElSub;
+
+				@Override
+				public void accept(ObservableValueEvent<ElementId> evt) {
+					if (evt.getNewValue() == null || !evt.getNewValue().equals(getColumnElement())) {
+						if (theEditorElSub != null) {
+							theEditorElSub.unsubscribe();
+							theEditorElSub = null;
+							theEditorElement.set(null, evt);
+						} else {
+							theEditorElSub = getResourcePool().poolValue(getTable().getSelectedRow()).changes().act(evt2 -> {
+								theEditorElement.set(rows.mutableElement(evt2.getNewValue()), evt2);
+							});
+						}
+					}
+				}
+			});
 			getResourcePool().build(rows::onChange, evt -> {
-				switch(evt.getType()){
+				switch (evt.getType()) {
 				case add:
 					break;
 				case remove:
-					if(theSelectedRow!=null && !theSelectedRow.isPresent())
-						setSelectedRow(null);
-					break;
+					break; // The table takes care of this
 				case set:
-					if(theSelectedRow!=null && theSelectedRow.equals(evt.getElementId())){
-						if(isSelected)
-							theEditorValue.set(rows.getElement(theSelectedRow).get(), evt);
-					}
+					if (evt.getElementId().equals(CollectionElement.getElementId(theHoverElement.get())))
+						theHoverRefresh.onNext(null);
+					if (evt.getElementId().equals(CollectionElement.getElementId(theEditorElement.get())))
+						theEditorRefresh.onNext(null);
 					break;
 				}
 			}).onSubscribe(r -> {
-				updateHover();
-				if (theSelectedRow != null && !theSelectedRow.isPresent())
-					setSelectedRow(null);
-
+				if (getTable().getHoveredRow().equals(CollectionElement.getElementId(theHoverElement.get())))
+					theHoverRefresh.onNext(null);
+				if (getTable().getSelectedRow().equals(CollectionElement.getElementId(theEditorElement.get())))
+					theEditorRefresh.onNext(null);
 			}).unsubscribe((r, s) -> s.unsubscribe());
-			getResourcePool().pool(rows.simpleChanges()).act(v -> updateHover());
-			getResourcePool().pool(rows.changes()).act(evt -> {
-				Orientation orientation=getTable().atts().get(LayoutAttributes.orientation).get();
-				int firstRowPos=getTable().getRowPosition(evt.elements.get(0).index);
-				switch(evt.type){
-				case add:
-				case remove:
-					if(orientation.isVertical())
-						repaint(new Rectangle(0, firstRowPos, bounds().getWidth(), bounds().getHeight()-firstRowPos), false);
-					else
-						repaint(new Rectangle(firstRowPos, 0, bounds().getWidth()-firstRowPos, bounds().getHeight()), false);
-					break;
-				case set:
-					int lastRowEnd = getTable().getRowPosition(evt.elements.get(evt.elements.size() - 1).index)//
-						+ getTable().getRowLength(evt.elements.get(evt.elements.size() - 1).index);
-					if (orientation.isVertical())
-						repaint(new Rectangle(0, firstRowPos, bounds().getWidth(), lastRowEnd), false);
-					else
-						repaint(new Rectangle(firstRowPos, 0, lastRowEnd, bounds().getHeight()), false);
-					break;
-				}
-			});
-
-			TypeToken<Object> type = (TypeToken<Object>) rows.getType();
-			theRenderValue = new SimpleSettableValue<>(type, true);
-			theHoverValue = new SimpleSettableValue<>(type, true);
-			theEditorValue = new SimpleSettableValue<>(type, true);
 
 			theRendererAP = (AttachPoint<QuickElement>) getTemplate().getAttachPoint("renderer");
 			theHoverAP = (AttachPoint<QuickElement>) getTemplate().getAttachPoint("hover");
 			theEditorAP = (AttachPoint<QuickElement>) getTemplate().getAttachPoint("editor");
 
-			String rowValueName = getTable().atts().get(Table.rowValueModelName).get();
-			String rowElementName = getTable().atts().get(Table.rowElementModelName).get();
-			// TODO Inject the row value into the renderer, hover, and editor models
-			if (getTable().atts().get(Table.columns).get() != null) {
-				String columnValueName = getTable().atts().get(Table.columnValueModelName).get();
-				String columnElementName = getTable().atts().get(Table.columnElementModelName).get();
-				// TODO Inject the column value into the renderer, hover, and editor models
-			}
+			// Inject the row value into the renderer, hover, and editor models
+			addModelValue(getTable().getRows().getType(), getTable().atts().get(Table.rowValueModelName).get(),
+				getTable().atts().get(Table.rowElementModelName).get(), false);
 
 			class RenderHoverEditor {
 				private boolean isCausingChange;
@@ -145,6 +154,7 @@ public class TableColumn extends QuickTemplate {
 				private void installCopy(QuickElement element, AttachPoint<QuickElement> ap, Object cause) {
 					isCausingChange = true;
 					element.copy(TableColumn.this, el -> {
+						// TODO Install column and row model values
 						el.atts().setValue(getTemplate().role, ap, cause);
 						if (ap == theHoverAP)
 							theHover = el;
@@ -177,34 +187,51 @@ public class TableColumn extends QuickTemplate {
 					rhe.editorChanged(evt.getNewValue(), evt);
 			});
 		}, CoreStage.INIT_CHILDREN, 1);
-		life().runWhen(() -> {
-			ObservableCollection<?> rows = getTable().atts().get(Table.rows).get();
-			events().filterMap(MouseEvent.mouse.addTypes(MouseEventType.moved)).act(evt -> {
-				theHoveredPoint = evt.getPosition(TableColumn.this);
-				updateHover();
-			});
-			events().filterMap(MouseEvent.mouse.addTypes(MouseEventType.exited)).act(evt -> {
-				theHoveredPoint = null;
-				updateHover();
-			});
-			events().filterMap(MouseEvent.mouse.addTypes(MouseEventType.pressed)).act(evt -> {
-				int row = getTable().getRowAt(evt.getPosition(TableColumn.this));
-				ElementId rowId = row < 0 ? null : rows.getElement(row).getElementId();
-				if (isSelected && Objects.equals(theSelectedRow, rowId))
-					return;
-				getTable().setSelected(this, rowId);
-				setSelected(true);
-			});
-		}, CoreStage.STARTUP, 1);
 	}
 
-	protected Table getTable() {
+	public Table<R, C> getTable() {
 		QuickElement parent = getParent().get();
 		if (parent != null && !(parent instanceof Table)) {
 			msg().fatal("table-column elements must be the child of a table", "parent", parent);
 			return null;
 		}
-		return (Table) parent;
+		return (Table<R, C>) parent;
+	}
+
+	public ObservableValue<MutableCollectionElement<R>> getHoverElement() {
+		return theHoverElement.unsettable();
+	}
+
+	public ObservableValue<MutableCollectionElement<R>> getEditorElement() {
+		return theEditorElement.unsettable();
+	}
+
+	public ObservableValue<R> getHoverValue() {
+		return theHoverValue;
+	}
+
+	public ObservableValue<R> getEditorValue() {
+		return theEditorValue;
+	}
+
+	void initColumnElement(ElementId columnElement) {
+		theColumnElement = columnElement;
+	}
+
+	public ElementId getColumnElement() {
+		return theColumnElement;
+	}
+
+	void initColumnValue(TypeToken<C> columnType, String columnValueName, String columnElementName) {
+		addModelValue(columnType, columnValueName, columnElementName, true);
+	}
+
+	void setColumnValue(MutableCollectionElement<C> columnValue) {
+		int todo = todo; // TODO
+	}
+
+	private <T> void addModelValue(TypeToken<T> type, String valueName, String elementName, boolean forLocal) {
+		int todo = todo; // TODO
 	}
 
 	public void rowUpdated(ElementId row) {
@@ -241,68 +268,9 @@ public class TableColumn extends QuickTemplate {
 	}
 
 	private void setEditingRow(ElementId row) {
-		boolean wasActive = theEditingRow != null;
-		if (row == null) {
-			if (wasActive) {
-				// Disable editor
-				theEditor.getResourcePool().setActive(false);
-				try (Transaction t = theEditor.holdEvents(true, false)) {
-					theEditor.bounds().setBounds(-1, -1, 0, 0);
-				}
-				updateHover();
-				sizeNeedsChanged();
-				relayout(false);
-			}
-		} else if (!Objects.equals(row, theEditingRow)) {
-			theEditingRow = row;
-			theEditorValue.set(getTable().getRows().getElement(row).get(), null);
-			try (Transaction t = theEditor.holdEvents(true, false)) {
-				theEditor.bounds().set(getCellBounds(row), null);
-			}
-			if (!wasActive) {
-				// Enable editor
-				theEditor.getResourcePool().setActive(true);
-			}
-			updateHover();
-			sizeNeedsChanged();
-			relayout(false);
-		}
 	}
 
 	private void updateHover() {
-		ElementId row;
-		if (theHoveredPoint == null)
-			row = null;
-		else {
-			int rowIdx = getTable().getRowAt(theHoveredPoint);
-			row = rowIdx < 0 ? null : getTable().getRows().getElement(rowIdx).getElementId();
-			if (isSelected && Objects.equals(theSelectedRow, row))
-				row = null;
-		}
-		boolean wasActive = theHoveredRow != null;
-		if (row == null) {
-			if (wasActive) {
-				// TODO Disable hover
-				theHover.getResourcePool().setActive(false);
-				try (Transaction t = theEditor.holdEvents(true, false)) {
-					theHover.bounds().setBounds(-1, -1, 0, 0);
-				}
-				sizeNeedsChanged();
-				relayout(false);
-			}
-		} else if (!Objects.equals(row, theHoveredRow)) {
-			theHoveredRow = row;
-			theHoverValue.set(getTable().getRows().getElement(row).get(), null);
-			try (Transaction t = theEditor.holdEvents(true, false)) {
-				theHover.bounds().set(getCellBounds(row), null);
-			}
-			if (!wasActive) {
-				// Enable hover
-				theHover.getResourcePool().setActive(true);
-			}
-			sizeNeedsChanged();
-			relayout(false);
-		}
 	}
 
 	public SizeGuide getCellSize(Object row) {}

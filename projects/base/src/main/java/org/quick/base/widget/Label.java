@@ -30,7 +30,7 @@ import org.quick.core.tags.Template;
 		@AcceptAttribute(declaringClass = BaseAttributes.class, field = "formatFactory"),
 		@AcceptAttribute(declaringClass = ModelAttributes.class, field = "value"),//
 	})
-public class Label extends org.quick.core.QuickTemplate implements org.quick.widget.core.model.DocumentedElement {
+public class Label extends org.quick.core.QuickTemplate {
 	/** Creates the label */
 	public Label() {
 		life().runWhen(
@@ -125,7 +125,7 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.wid
 	}
 
 	/** @return The text element containing this label's text */
-	protected QuickTextElement getValue() {
+	public QuickTextElement getValue() {
 		return (QuickTextElement) getElement(getTemplate().getAttachPoint("value")).get();
 	}
 
@@ -156,7 +156,6 @@ public class Label extends org.quick.core.QuickTemplate implements org.quick.wid
 		}
 	}
 
-	@Override
 	public ObservableValue<QuickDocumentModel> getDocumentModel() {
 		// TODO This does not account for the fact that the value element could change (e.g. setText above)
 		return getValue().getDocumentModel();

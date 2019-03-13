@@ -4,13 +4,13 @@ import java.awt.Graphics2D;
 
 import org.quick.base.data.ImageData;
 import org.quick.base.widget.GenericImage;
-import org.quick.core.Rectangle;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.widget.base.layout.SimpleLayout;
 import org.quick.widget.core.LayoutContainerWidget;
 import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.layout.QuickWidgetLayout;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;

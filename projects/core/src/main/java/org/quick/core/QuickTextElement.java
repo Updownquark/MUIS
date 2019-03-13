@@ -14,7 +14,7 @@ import com.google.common.reflect.TypeToken;
 
 /** A Quick element that serves as a placeholder for text content which may be interspersed with element children in an element. */
 @QuickElementType(attributes = { @AcceptAttribute(declaringClass = QuickTextElement.class, field = "multiLine") })
-public class QuickTextElement extends QuickLeaf implements org.quick.core.model.DocumentedElement {
+public class QuickTextElement extends QuickLeaf {
 	/** Whether a text element's document supports multiple lines */
 	public static final QuickAttribute<Boolean> multiLine = QuickAttribute.build("multi-line", QuickPropertyType.boole).build();
 
@@ -78,7 +78,6 @@ public class QuickTextElement extends QuickLeaf implements org.quick.core.model.
 		return getDocumentModel().get().toString();
 	}
 
-	@Override
 	public ObservableValue<QuickDocumentModel> getDocumentModel() {
 		return theDocument.unsettable();
 	}

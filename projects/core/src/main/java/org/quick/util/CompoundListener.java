@@ -1,19 +1,17 @@
 package org.quick.util;
 
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.observe.Observable;
 import org.observe.ObservableValueEvent;
-import org.quick.core.QuickElement;
+import org.quick.core.QuickDefinedWidget;
 import org.quick.core.prop.QuickAttribute;
 import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleDomain;
 
 /** A utility to accept and listen to attributes and listen to style attributes of an element or an element's children in a modular way. */
-public interface CompoundListener<W> {
+public interface CompoundListener<W extends QuickDefinedWidget> {
 	/**
 	 * Adds configured attributes and listeners to a widget
 	 *
@@ -26,7 +24,7 @@ public interface CompoundListener<W> {
 	void listen(W widget, W root, Observable<?> until);
 
 	/** Performs actions in response to configured events */
-	public interface EventListener<W> {
+	public interface EventListener<W extends QuickDefinedWidget> {
 		/**
 		 * Called when a configured event occurs
 		 *
@@ -57,7 +55,7 @@ public interface CompoundListener<W> {
 	}
 
 	/** Builds a compound listener */
-	public interface CompoundListenerBuilder<W> {
+	public interface CompoundListenerBuilder<W extends QuickDefinedWidget> {
 		/**
 		 * @param attr The attribute to accept in the element(s) that this listener applies to
 		 * @return The listener for chaining
@@ -160,7 +158,7 @@ public interface CompoundListener<W> {
 
 		/**
 		 * @param builder A function to build a listener to be applied to all children of elements passed to
-		 *        {@link CompoundListener#listen(Object, Object, Observable)}
+		 *        {@link CompoundListener#listen(QuickDefinedWidget, QuickDefinedWidget, Observable)}
 		 * @return This builder, for chaining
 		 */
 		CompoundListenerBuilder<W> child(Consumer<CompoundListenerBuilder<W>> builder);
@@ -168,7 +166,7 @@ public interface CompoundListener<W> {
 		/**
 		 * @param test The condition evaluator
 		 * @param builder A function to build a listener to be applied to elements passed to
-		 *        {@link CompoundListener#listen(Object, Object, Observable)} when they pass the given test
+		 *        {@link CompoundListener#listen(QuickDefinedWidget, QuickDefinedWidget, Observable)} when they pass the given test
 		 * @return This builder, for chaining
 		 */
 		CompoundListenerBuilder<W> when(Predicate<ElementMock> test, Consumer<CompoundListenerBuilder<W>> builder);
@@ -193,12 +191,9 @@ public interface CompoundListener<W> {
 
 	/**
 	 * @param <W> The type of the widget
-	 * @param element The method to use to retrieve the element from a widget
-	 * @param childGetter The method to use to get a child widget from the parent by its element
 	 * @return A builder to make compound listeners
 	 */
-	public static <W> CompoundListenerBuilder<W> build(Function<? super W, ? extends QuickElement> element,
-		BiFunction<W, ? super QuickElement, ? extends W> childGetter) {
-		return new CompoundListenerImpl.ElementListenerBuilder<>(element, childGetter);
+	public static <W extends QuickDefinedWidget> CompoundListenerBuilder<W> build() {
+		return new CompoundListenerImpl.ElementListenerBuilder<>();
 	}
 }

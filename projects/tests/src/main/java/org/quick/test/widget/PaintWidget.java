@@ -3,8 +3,8 @@ package org.quick.test.widget;
 import java.awt.Graphics2D;
 import java.util.function.Consumer;
 
-import org.quick.core.Point;
-import org.quick.core.Rectangle;
+import org.quick.widget.core.Point;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.event.KeyBoardEvent;
 import org.quick.widget.core.event.MouseEvent;
 

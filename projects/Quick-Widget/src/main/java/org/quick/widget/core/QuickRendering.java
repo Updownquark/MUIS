@@ -2,7 +2,6 @@ package org.quick.widget.core;
 
 import java.awt.image.BufferedImage;
 
-import org.quick.core.Point;
 import org.quick.widget.util.QuickWidgetUtils;
 
 /** Represents a rendering of a Quick document and some state associated with the rendering */

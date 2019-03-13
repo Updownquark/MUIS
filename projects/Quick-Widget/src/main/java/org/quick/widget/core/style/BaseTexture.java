@@ -2,10 +2,10 @@ package org.quick.widget.core.style;
 
 import java.awt.Graphics2D;
 
-import org.quick.core.Rectangle;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.Size;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 
 /** Renders the background style of the widget */
 public class BaseTexture implements QuickWidgetTexture {

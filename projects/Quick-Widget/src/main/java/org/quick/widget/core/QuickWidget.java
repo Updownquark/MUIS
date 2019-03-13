@@ -1,11 +1,7 @@
 package org.quick.widget.core;
 
 import java.awt.Graphics2D;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
@@ -18,8 +14,9 @@ import org.qommons.Lockable;
 import org.qommons.Transaction;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.QuickConstants.States;
+import org.quick.core.QuickDefinedWidget;
 import org.quick.core.QuickElement;
-import org.quick.core.Rectangle;
+import org.quick.core.QuickException;
 import org.quick.core.layout.Orientation;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.style.BackgroundStyle;
@@ -34,7 +31,7 @@ import org.quick.widget.core.mgr.QuickEventManager;
 import org.quick.widget.core.style.BaseTexture;
 import org.quick.widget.core.style.QuickWidgetTexture;
 
-public abstract class QuickWidget {
+public abstract class QuickWidget implements QuickDefinedWidget {
 	private final QuickWidgetDocument theDocument;
 
 	private final QuickElement theElement;
@@ -127,7 +124,7 @@ public abstract class QuickWidget {
 			case remove:
 				for (QuickWidget child : event.getValues())
 					bounds = bounds == null ? child.bounds().get() : bounds.union(child.bounds().get());
-				break;
+					break;
 			case set:
 				for (CollectionChangeEvent.ElementChange<QuickWidget> el : event.elements) {
 					bounds = bounds == null ? el.newValue.bounds().get() : bounds.union(el.newValue.bounds().get());
@@ -148,13 +145,20 @@ public abstract class QuickWidget {
 
 	protected ObservableCollection<QuickWidget> createChildren() {
 		return theElement.ch().flow().map(TypeTokens.get().of(QuickWidget.class), //
-			this::createChild, opts -> opts.cache(true).reEvalOnUpdate(false)).collect();
+				this::createChild, opts -> opts.cache(true).reEvalOnUpdate(false))
+			.filter(el -> el == null ? "Unable to create child" : null).collect();
 	}
 
 	protected QuickWidget createChild(QuickElement childElement) {
-		return getDocument().getWidgetImpl().createWidget(childElement);
+		try {
+			return getDocument().getWidgetImpl().createWidget(theDocument, childElement);
+		} catch (QuickException e) {
+			getElement().msg().error("Could not create child for element", e, "element", childElement);
+			return null;
+		}
 	}
 
+	@Override
 	public QuickWidget getChild(QuickElement childElement) {
 		return childElement == null ? null : theChildMap.get(childElement);
 	}
@@ -264,14 +268,17 @@ public abstract class QuickWidget {
 	 */
 	protected void unregisterChild(QuickWidget child) {}
 
+	@Override
 	public QuickWidgetDocument getDocument() {
 		return theDocument;
 	}
 
+	@Override
 	public QuickElement getElement() {
 		return theElement;
 	}
 
+	@Override
 	public ObservableValue<QuickWidget> getParent() {
 		return theParent.unsettable();
 	}
@@ -280,6 +287,7 @@ public abstract class QuickWidget {
 		// TODO
 	}
 
+	@Override
 	public ObservableCollection<QuickWidget> getChildren() {
 		return theChildren;
 	}

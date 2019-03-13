@@ -6,11 +6,11 @@ import java.util.function.Function;
 import org.observe.ObservableValue;
 import org.observe.VetoableSettableValue;
 import org.observe.util.TypeTokens;
-import org.quick.core.Dimension;
-import org.quick.core.Point;
-import org.quick.core.Rectangle;
 import org.quick.core.layout.Orientation;
+import org.quick.widget.core.Dimension;
+import org.quick.widget.core.Point;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.layout.Bounds;
 import org.quick.widget.core.layout.SizeGuide;
 

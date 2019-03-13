@@ -1,4 +1,4 @@
-package org.quick.core;
+package org.quick.widget.core;
 
 /** An immutable x,y width*height class */
 public class Rectangle {

@@ -4,16 +4,14 @@ import static org.quick.base.BaseConstants.States.ENABLED;
 import static org.quick.core.QuickConstants.States.FOCUS;
 
 import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.time.Duration;
 
 import org.qommons.BiTuple;
 import org.quick.base.style.TextEditStyle;
 import org.quick.base.widget.DocumentCursorOverlay;
-import org.quick.core.Point;
-import org.quick.core.Rectangle;
 import org.quick.core.mgr.StateEngine;
-import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
@@ -21,9 +19,8 @@ import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.motion.Animation;
-import org.quick.widget.core.QuickTextWidget;
-import org.quick.widget.core.QuickWidget;
-import org.quick.widget.core.QuickWidgetDocument;
+import org.quick.widget.core.*;
+import org.quick.widget.core.model.DocumentedElement;
 import org.quick.widget.util.QuickWidgetUtils;
 
 public class DocCursorOverlayWidget extends QuickWidget {
@@ -85,7 +82,7 @@ public class DocCursorOverlayWidget extends QuickWidget {
 		theTextWidget = text;
 		StateEngine state = theEditor.getElement().state();
 		state.observe(FOCUS).combine(BiTuple::new, state.observe(ENABLED)).value()//
-			.act(tuple -> enableChanged(tuple.getValue1(), tuple.getValue2()));
+		.act(tuple -> enableChanged(tuple.getValue1(), tuple.getValue2()));
 		QuickDocumentModel.flatten(((DocumentedElement) theEditor.getElement()).getDocumentModel()).changes().act(evt -> {
 			if (evt instanceof SelectionChangeEvent) {
 				resetCursorImage();
@@ -213,7 +210,7 @@ public class DocCursorOverlayWidget extends QuickWidget {
 		imgGraphics.dispose();
 
 		boolean wordWrap = theEditor.getElement().getStyle().get(FontStyle.wordWrap).get();
-		java.awt.geom.Point2D cursorLoc2D = ((DocumentedElement) theEditor.getElement()).getDocumentModel().get()
+		Point2D cursorLoc2D = ((DocumentedElement) theEditor).getRenderableDocument()
 			.getLocationAt(doc.getCursor(), wordWrap ? theTextWidget.bounds().getWidth() : Integer.MAX_VALUE);
 		int locX = (int) Math.round(cursorLoc2D.getX());
 		int locY = (int) Math.round(cursorLoc2D.getY());

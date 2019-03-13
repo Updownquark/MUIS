@@ -4,9 +4,9 @@ import java.util.ArrayList;
 
 import org.observe.ObservableValueEvent;
 import org.qommons.ArrayUtils;
-import org.quick.core.Point;
-import org.quick.core.Rectangle;
+import org.quick.widget.core.Point;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.event.UserEvent;
 
 public class QuickWidgetUtils {

@@ -2,7 +2,7 @@ package org.quick.widget.core.event;
 
 import java.util.Set;
 
-import org.quick.core.Point;
+import org.quick.widget.core.Point;
 import org.quick.widget.core.QuickEventPositionCapture;
 import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;

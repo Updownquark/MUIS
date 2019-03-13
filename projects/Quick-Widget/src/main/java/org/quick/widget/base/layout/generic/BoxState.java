@@ -1,8 +1,8 @@
 package org.quick.widget.base.layout.generic;
 
-import org.quick.core.Point;
 import org.quick.core.layout.End;
 import org.quick.core.layout.Orientation;
+import org.quick.widget.core.Point;
 
 public interface BoxState extends BoxDef {
 	@Override

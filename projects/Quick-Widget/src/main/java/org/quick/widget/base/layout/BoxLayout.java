@@ -1,26 +1,12 @@
 package org.quick.widget.base.layout;
 
-import static org.quick.core.layout.LayoutAttributes.alignment;
-import static org.quick.core.layout.LayoutAttributes.crossAlignment;
-import static org.quick.core.layout.LayoutAttributes.direction;
-import static org.quick.core.layout.LayoutAttributes.height;
-import static org.quick.core.layout.LayoutAttributes.maxHeight;
-import static org.quick.core.layout.LayoutAttributes.maxWidth;
-import static org.quick.core.layout.LayoutAttributes.minHeight;
-import static org.quick.core.layout.LayoutAttributes.minWidth;
-import static org.quick.core.layout.LayoutAttributes.width;
+import static org.quick.core.layout.LayoutAttributes.*;
 
 import java.awt.Rectangle;
 import java.util.List;
 
 import org.observe.Observable;
-import org.quick.core.layout.Alignment;
-import org.quick.core.layout.Direction;
-import org.quick.core.layout.End;
-import org.quick.core.layout.LayoutAttributes;
-import org.quick.core.layout.LayoutGuideType;
-import org.quick.core.layout.LayoutSize;
-import org.quick.core.layout.Orientation;
+import org.quick.core.layout.*;
 import org.quick.core.style.LayoutStyle;
 import org.quick.core.style.Size;
 import org.quick.util.CompoundListener;
@@ -40,7 +26,7 @@ public class BoxLayout implements QuickWidgetLayout {
 
 	/** Creates a box layout */
 	public BoxLayout() {
-		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
+		theListener = CompoundListener.<QuickWidget> build()//
 			.accept(direction).onEvent(sizeNeedsChanged)//
 			.acceptAll(alignment, crossAlignment).onEvent(layout)//
 			.child(childBuilder -> {

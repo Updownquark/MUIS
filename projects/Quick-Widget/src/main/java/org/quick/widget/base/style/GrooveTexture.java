@@ -3,9 +3,9 @@ package org.quick.widget.base.style;
 import java.awt.Color;
 import java.awt.Graphics2D;
 
-import org.quick.core.Rectangle;
 import org.quick.core.layout.Orientation;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.style.QuickWidgetTexture;
 
 /** Implements a texture making an element look like a rounded groove */

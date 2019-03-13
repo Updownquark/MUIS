@@ -11,6 +11,7 @@ import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.SelectableDocumentModel;
 import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
+import org.quick.widget.core.RenderableDocumentModel.StyledSequenceMetric;
 import org.quick.widget.core.event.KeyBoardEvent;
 import org.quick.widget.core.event.MouseEvent;
 
@@ -35,7 +36,8 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 					SelectableDocumentModel doc = (SelectableDocumentModel) widget.getElement().getDocumentModel().get();
 					switch ((event.getClickCount() - 1) % 3) {
 					case 0: // Single-click
-						int position = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
+						int position = Math
+						.round(widget.getRenderableDocument().getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
 						if (event.isShiftPressed()) {
 							theAnchor = doc.getSelectionAnchor();
 						} else
@@ -45,7 +47,8 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 						}
 						break;
 					case 1: // Double-click. Select word.
-						int pos = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
+						int pos = Math
+						.round(widget.getRenderableDocument().getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
 						theAnchor = selectWord(doc, pos, event);
 						break;
 					case 2: // Triple-click. Select line.
@@ -55,7 +58,8 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 								doc.setSelection(0, doc.length());
 							}
 						} else {
-							pos = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
+							pos = Math.round(
+								widget.getRenderableDocument().getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
 							theAnchor = selectLine(doc, pos, event);
 						}
 						break;
@@ -73,7 +77,8 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 					theAnchor = -1;
 					return;
 				}
-				int cursor = Math.round(selectableDoc.getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
+				int cursor = Math
+					.round(widget.getRenderableDocument().getPositionAt(event.getX(), event.getY(), widget.bounds().getWidth()));
 				try (Transaction t = selectableDoc.holdForWrite(event)) {
 					selectableDoc.setSelection(theAnchor, cursor);
 				}
@@ -177,7 +182,7 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 		if (doc.getCursor() == doc.getSelectionAnchor())
 			return false;
 		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
-			.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
+		.setContents(new java.awt.datatransfer.StringSelection(doc.getSelectedText()), null);
 		if (cut && doc instanceof MutableDocumentModel)
 			((MutableDocumentModel) doc).delete(doc.getSelectionAnchor(), doc.getCursor());
 		return true;
@@ -219,13 +224,14 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 		if (!(widget.getElement().getDocumentModel().get() instanceof SelectableDocumentModel))
 			return false;
 		SelectableDocumentModel doc = (SelectableDocumentModel) widget.getElement().getDocumentModel().get();
-		Point2D loc = doc.getLocationAt(doc.getCursor(), widget.bounds().getWidth());
+		Point2D loc = widget.getRenderableDocument().getLocationAt(doc.getCursor(), widget.bounds().getWidth());
 		if (loc.getY() == 0)
 			return false; // Can't go up from here.
 		int cursorXLoc = theCursorXLoc;
 		if (cursorXLoc < 0)
 			cursorXLoc = (int) loc.getX();
-		int newCursor = Math.round(doc.getPositionAt(cursorXLoc, (float) loc.getY() - 1, widget.bounds().getWidth()));
+		int newCursor = Math
+			.round(widget.getRenderableDocument().getPositionAt(cursorXLoc, (float) loc.getY() - 1, widget.bounds().getWidth()));
 
 		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);
@@ -244,11 +250,11 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 		int cursor = doc.getCursor();
 		int cursorXLoc = theCursorXLoc;
 		if (cursorXLoc < 0) {
-			Point2D loc = doc.getLocationAt(cursor, widget.bounds().getWidth());
+			Point2D loc = widget.getRenderableDocument().getLocationAt(cursor, widget.bounds().getWidth());
 			cursorXLoc = (int) loc.getX();
 		}
 		int y = -1;
-		for (QuickDocumentModel.StyledSequenceMetric metric : doc.metrics(cursor, widget.bounds().getWidth())) {
+		for (StyledSequenceMetric metric : widget.getRenderableDocument().metrics(cursor, widget.bounds().getWidth())) {
 			if (metric.isNewLine()) {
 				y = (int) metric.getTop();
 				break;
@@ -257,7 +263,7 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 		if (y < 0)
 			return false; // No newline after cursor. Can't go down.
 
-		int newCursor = Math.round(doc.getPositionAt(cursorXLoc, y, widget.bounds().getWidth()));
+		int newCursor = Math.round(widget.getRenderableDocument().getPositionAt(cursorXLoc, y, widget.bounds().getWidth()));
 
 		if (shift)
 			doc.setSelection(doc.getSelectionAnchor(), newCursor);
@@ -275,8 +281,8 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 		if (!widget.getElement().getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = 0;
 		else {
-			Point2D loc = doc.getLocationAt(doc.getCursor(), widget.bounds().getWidth());
-			newCursor = (int) doc.getPositionAt(0, (float) loc.getY(), widget.bounds().getWidth());
+			Point2D loc = widget.getRenderableDocument().getLocationAt(doc.getCursor(), widget.bounds().getWidth());
+			newCursor = (int) widget.getRenderableDocument().getPositionAt(0, (float) loc.getY(), widget.bounds().getWidth());
 		}
 		if (doc.getSelectionAnchor() == newCursor && doc.getCursor() == newCursor)
 			return false;
@@ -297,8 +303,9 @@ public class TextSelectionBehavior implements QuickWidgetBehavior<QuickTextWidge
 		if (!widget.getElement().getStyle().get(org.quick.core.style.FontStyle.wordWrap).get())
 			newCursor = doc.length();
 		else {
-			Point2D loc = doc.getLocationAt(doc.getCursor(), widget.bounds().getWidth());
-			newCursor = (int) doc.getPositionAt(widget.bounds().getWidth(), (float) loc.getY(), widget.bounds().getWidth());
+			Point2D loc = widget.getRenderableDocument().getLocationAt(doc.getCursor(), widget.bounds().getWidth());
+			newCursor = (int) widget.getRenderableDocument().getPositionAt(widget.bounds().getWidth(), (float) loc.getY(),
+				widget.bounds().getWidth());
 		}
 		if (doc.getSelectionAnchor() == newCursor && doc.getCursor() == newCursor)
 			return false;

@@ -8,8 +8,8 @@ import java.awt.Stroke;
 import java.awt.geom.Arc2D;
 
 import org.quick.base.style.BorderStyle;
-import org.quick.core.Rectangle;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.style.BaseTexture;
 
 /** Draws a border at the very edge of an element */

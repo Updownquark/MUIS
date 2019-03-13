@@ -5,11 +5,11 @@ import java.util.function.Consumer;
 import org.observe.SimpleObservable;
 import org.quick.core.QuickElement;
 import org.quick.core.QuickTextElement;
-import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.MutableSelectableDocumentModel;
 import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetBehavior;
 import org.quick.widget.core.event.CharInputEvent;
+import org.quick.widget.core.model.DocumentedElement;
 
 /** Behavior allowing keyboard input */
 public class SimpleTextEditing implements QuickWidgetBehavior<QuickWidget> {

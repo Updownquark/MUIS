@@ -26,7 +26,9 @@ import org.quick.core.tags.AcceptAttribute;
 import org.quick.core.tags.QuickElementType;
 import org.quick.core.tags.Template;
 import org.quick.widget.base.layout.BaseLayoutUtils;
+import org.quick.widget.core.Point;
 import org.quick.widget.core.QuickElementCapture;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
 

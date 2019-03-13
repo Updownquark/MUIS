@@ -1,15 +1,6 @@
 package org.quick.widget.base.layout;
 
-import static org.quick.core.layout.LayoutAttributes.bottom;
-import static org.quick.core.layout.LayoutAttributes.height;
-import static org.quick.core.layout.LayoutAttributes.left;
-import static org.quick.core.layout.LayoutAttributes.maxHeight;
-import static org.quick.core.layout.LayoutAttributes.maxWidth;
-import static org.quick.core.layout.LayoutAttributes.minHeight;
-import static org.quick.core.layout.LayoutAttributes.minWidth;
-import static org.quick.core.layout.LayoutAttributes.right;
-import static org.quick.core.layout.LayoutAttributes.top;
-import static org.quick.core.layout.LayoutAttributes.width;
+import static org.quick.core.layout.LayoutAttributes.*;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -18,11 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.observe.Observable;
-import org.quick.core.layout.End;
-import org.quick.core.layout.LayoutAttributes;
-import org.quick.core.layout.LayoutGuideType;
-import org.quick.core.layout.LayoutSize;
-import org.quick.core.layout.Orientation;
+import org.quick.core.layout.*;
 import org.quick.core.style.LengthUnit;
 import org.quick.core.style.Position;
 import org.quick.core.style.Size;
@@ -42,10 +29,10 @@ public class SimpleLayout implements QuickWidgetLayout {
 
 	/** Creates a simple layout */
 	public SimpleLayout() {
-		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
+		theListener = CompoundListener.<QuickWidget> build()//
 			.child(childBuilder -> {
 				childBuilder.acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
-					.onEvent(sizeNeedsChanged);
+				.onEvent(sizeNeedsChanged);
 			})//
 			.build();
 	}

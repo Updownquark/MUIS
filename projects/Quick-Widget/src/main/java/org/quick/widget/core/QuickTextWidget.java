@@ -1,27 +1,27 @@
 package org.quick.widget.core;
 
-import static org.quick.core.style.FontStyle.family;
-import static org.quick.core.style.FontStyle.size;
-import static org.quick.core.style.FontStyle.slant;
-import static org.quick.core.style.FontStyle.stretch;
-import static org.quick.core.style.FontStyle.weight;
+import static org.quick.core.style.FontStyle.*;
 
 import java.awt.Graphics2D;
 import java.util.Iterator;
 
+import org.observe.ObservableValue;
 import org.quick.core.QuickConstants;
 import org.quick.core.QuickTextElement;
-import org.quick.core.Rectangle;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
 import org.quick.core.style.FontStyle;
+import org.quick.widget.core.RenderableDocumentModel.StyledSequenceMetric;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
+import org.quick.widget.core.model.DocumentedElement;
 
-public class QuickTextWidget extends QuickWidget {
+public class QuickTextWidget extends QuickWidget implements DocumentedElement {
+	private final RenderableDocumentModel theDocumentModel;
+
 	public QuickTextWidget(QuickWidgetDocument doc, QuickTextElement element, QuickWidget parent) {
 		super(doc, element, parent);
 		QuickDocumentModel theFlattenedDocument = QuickDocumentModel.flatten(getElement().getDocumentModel());
@@ -40,6 +40,7 @@ public class QuickTextWidget extends QuickWidget {
 			if (needsRepaint)
 				repaint(null, repaintImmediate);
 		});
+		theDocumentModel = new RenderableDocumentModel(theFlattenedDocument, element.getResourcePool());
 		getDefaultStyleListener().watch(FontStyle.getDomainInstance());
 		getElement().life().runWhen(() -> {
 			new TextSelectionBehavior().install(QuickTextWidget.this);
@@ -51,6 +52,16 @@ public class QuickTextWidget extends QuickWidget {
 	@Override
 	public QuickTextElement getElement() {
 		return (QuickTextElement) super.getElement();
+	}
+
+	@Override
+	public ObservableValue<QuickDocumentModel> getDocumentModel() {
+		return getElement().getDocumentModel();
+	}
+
+	@Override
+	public RenderableDocumentModel getRenderableDocument() {
+		return theDocumentModel;
 	}
 
 	@Override
@@ -84,8 +95,7 @@ public class QuickTextWidget extends QuickWidget {
 					float lineH = 0;
 					float baselineOffset = -1;
 					float baseline = -1;
-					for (org.quick.core.model.QuickDocumentModel.StyledSequenceMetric metric : getElement().getDocumentModel().get()
-						.metrics(0, crossSize)) {
+					for (StyledSequenceMetric metric : getRenderableDocument().metrics(0, crossSize)) {
 						if (metric.isNewLine()) {
 							totalH += lineH;
 							if (baseline < 0 && baselineOffset >= 0)
@@ -115,7 +125,7 @@ public class QuickTextWidget extends QuickWidget {
 		} else {
 			float maxW = 0;
 			float lineW = 0;
-			for (QuickDocumentModel.StyledSequenceMetric metric : getElement().getDocumentModel().get().metrics(0, Integer.MAX_VALUE)) {
+			for (StyledSequenceMetric metric : getRenderableDocument().metrics(0, Integer.MAX_VALUE)) {
 				if (metric.isNewLine()) {
 					if (lineW > maxW)
 						maxW = lineW;
@@ -131,7 +141,7 @@ public class QuickTextWidget extends QuickWidget {
 			boolean isMultiLine = Boolean.TRUE.equals(getElement().atts().get(QuickTextElement.multiLine).get());
 			maxW = 0;
 			lineW = 0;
-			for (QuickDocumentModel.StyledSequenceMetric metric : getElement().getDocumentModel().get().metrics(0, 1)) {
+			for (StyledSequenceMetric metric : getRenderableDocument().metrics(0, 1)) {
 				boolean newLine = metric.isNewLine();
 				if (!newLine)
 					newLine = isMultiLine && metric.charAt(metric.length() - 1) == '\n';
@@ -155,7 +165,7 @@ public class QuickTextWidget extends QuickWidget {
 	@Override
 	public void paintSelf(Graphics2D graphics, Rectangle area) {
 		super.paintSelf(graphics, area);
-		getElement().getDocumentModel().get().draw(graphics, area, bounds().getWidth());
+		getRenderableDocument().draw(graphics, area, bounds().getWidth());
 	}
 
 	static boolean isFontDifferent(QuickDocumentModel.StyleChangeEvent evt) {

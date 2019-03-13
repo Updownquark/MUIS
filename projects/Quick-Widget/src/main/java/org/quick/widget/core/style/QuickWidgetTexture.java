@@ -2,9 +2,9 @@ package org.quick.widget.core.style;
 
 import java.awt.Graphics2D;
 
-import org.quick.core.Rectangle;
 import org.quick.core.style.Texture;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 
 public interface QuickWidgetTexture extends Texture {
 	/**

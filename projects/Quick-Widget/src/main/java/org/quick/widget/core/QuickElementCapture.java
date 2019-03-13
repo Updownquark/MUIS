@@ -3,7 +3,6 @@ package org.quick.widget.core;
 import java.util.Iterator;
 
 import org.qommons.IterableUtils;
-import org.quick.core.Point;
 import org.quick.core.QuickElement;
 import org.quick.widget.util.QuickWidgetUtils;
 

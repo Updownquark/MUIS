@@ -22,7 +22,7 @@ import org.quick.core.style.StyleAttribute;
 import org.quick.core.style.StyleChangeObservable;
 
 /** A base implementation of a selectable document model */
-public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocumentModel implements SelectableDocumentModel {
+public abstract class AbstractSelectableDocumentModel implements SelectableDocumentModel {
 	private QuickStyle theNormalStyle;
 	private QuickStyle theSelectedStyle;
 	private int theSelectionAnchor;
@@ -515,7 +515,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 */
 	protected void fireSelectionEvent(int oldAnchor, int oldCursor, int newAnchor, int newCursor, java.util.List<StyledSequence> before,
 		java.util.List<StyledSequence> after, Object cause) {
-		clearCache();
 		int oldMin = oldAnchor;
 		int oldMax = oldCursor;
 		if(oldMin > oldMax) {
@@ -579,7 +578,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 * @param cause The event or thing that caused this event
 	 */
 	protected void fireStyleEvent(int start, int end, Object cause) {
-		clearCache();
 		StyleChangeEventImpl change = new StyleChangeEventImpl(this, start, end, null, null, cause);
 		try (Transaction evtT = Causable.use(change)) {
 			theStyleChanges.onNext(change);
@@ -602,7 +600,6 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 	 */
 	protected void fireContentEvent(String value, String change, int startIndex, int endIndex, boolean remove, int anchor, int cursor,
 		Object cause) {
-		clearCache();
 		ContentChangeEvent evt;
 		if(anchor < 0 && cursor < 0)
 			evt = new ContentChangeEventImpl(this, value, change, startIndex, endIndex, remove, cause);
@@ -613,6 +610,14 @@ public abstract class AbstractSelectableDocumentModel extends AbstractQuickDocum
 			if (theCauseStack.isEmpty())
 				theSimpleChanges.onNext(evt);
 		}
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		for (StyledSequence seq : this)
+			str.append(seq);
+		return str.toString();
 	}
 
 	private static class StyledSequenceWrapper implements StyledSequence {

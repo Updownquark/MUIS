@@ -4,13 +4,9 @@ import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 
 import org.quick.base.widget.Transform;
-import org.quick.core.Point;
-import org.quick.core.Rectangle;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
-import org.quick.widget.core.QuickElementCapture;
-import org.quick.widget.core.QuickWidget;
-import org.quick.widget.core.QuickWidgetDocument;
+import org.quick.widget.core.*;
 import org.quick.widget.core.layout.SizeGuide;
 
 public class TransformWidget extends SimpleContainerWidget {

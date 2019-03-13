@@ -2,10 +2,10 @@ package org.quick.widget.core.style;
 
 import java.awt.Graphics2D;
 
-import org.quick.core.Rectangle;
-import org.quick.core.model.DocumentedElement;
-import org.quick.core.model.QuickDocumentModel;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
+import org.quick.widget.core.RenderableDocumentModel.StyledSequenceMetric;
+import org.quick.widget.core.model.DocumentedElement;
 
 /** Renders the background of a {@link DocumentedElement} in accordance with each text segment's style */
 public class DocumentTexture extends BaseTexture {
@@ -13,8 +13,7 @@ public class DocumentTexture extends BaseTexture {
 	public void render(Graphics2D graphics, QuickWidget widget, Rectangle area) {
 		super.render(graphics, widget, area);
 		DocumentedElement docEl = (DocumentedElement) widget.getElement();
-		QuickDocumentModel doc = docEl.getDocumentModel().get();
-		for (QuickDocumentModel.StyledSequenceMetric metric : doc.metrics(0, widget.bounds().getWidth())) {
+		for (StyledSequenceMetric metric : docEl.getRenderableDocument().metrics(0, widget.bounds().getWidth())) {
 			int x = (int) metric.getLeft();
 			int y = (int) metric.getTop();
 			int w = (int) metric.getWidth();

@@ -1,4 +1,4 @@
-package org.quick.core;
+package org.quick.widget.core;
 
 public class Dimension {
 	public final int width;

@@ -6,8 +6,8 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
 import org.quick.core.QuickCache.CacheException;
-import org.quick.core.Rectangle;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.style.QuickWidgetTexture;
 
 /** Renders a raised, round, button-looking texture over an element */
@@ -318,7 +318,7 @@ public class RaisedRoundTexture implements QuickWidgetTexture
 		}
 	}
 
-	private static void fill(Graphics2D graphics, int x, int y, int w, int h, org.quick.core.Rectangle area) {
+	private static void fill(Graphics2D graphics, int x, int y, int w, int h, org.quick.widget.core.Rectangle area) {
 		if(area!=null){
 			x=Math.max(x, area.x);
 			y=Math.max(y, area.y);

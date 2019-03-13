@@ -19,6 +19,7 @@ import org.quick.core.prop.QuickAttribute;
 import org.quick.core.prop.QuickPropertyType;
 import org.quick.core.tags.*;
 import org.quick.util.QuickUtils;
+import org.quick.widget.core.model.DocumentedElement;
 
 import com.google.common.reflect.TypeToken;
 

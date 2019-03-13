@@ -2,11 +2,7 @@ package org.quick.widget.core;
 
 import java.awt.Cursor;
 import java.awt.Toolkit;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
@@ -15,17 +11,11 @@ import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
 import org.qommons.ConcurrentHashSet;
 import org.qommons.Transaction;
-import org.quick.core.QuickDocument;
-import org.quick.core.QuickElement;
-import org.quick.core.Rectangle;
+import org.quick.core.*;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.widget.core.event.FocusEvent;
-import org.quick.widget.core.event.KeyBoardEvent;
-import org.quick.widget.core.event.MouseEvent;
-import org.quick.widget.core.event.ScrollEvent;
-import org.quick.widget.core.event.UserEvent;
+import org.quick.widget.core.event.*;
 
-public class QuickWidgetDocument {
+public class QuickWidgetDocument implements QuickDefinedDocument {
 	/** The different policies this document can take with regards to scrolling events */
 	public static enum ScrollPolicy {
 		/**
@@ -92,35 +82,43 @@ public class QuickWidgetDocument {
 
 	public QuickWidgetDocument(QuickWidgetImplementation impl, QuickDocument doc) {
 		theDoc = doc;
+		theWidgetImpl = impl;
 		theAwtToolkit = Toolkit.getDefaultToolkit();
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new ConcurrentHashSet<>();
 		thePressedKeys = new ConcurrentHashSet<>();
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
-		theRoot = (BodyWidget) theWidgetImpl.createWidget(doc.getRoot());
+		try {
+			theRoot = (BodyWidget) theWidgetImpl.createWidget(this, doc.getRoot());
+		} catch (QuickException e) {
+			throw new IllegalStateException("Could not instantiate body");
+		}
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
 		theFocus = new VetoableSettableValue<>(TypeTokens.get().of(QuickWidget.class), true, theDoc.getEnvironment().getAttributeLocker());
 		theTarget = new VetoableSettableValue<>(TypeTokens.get().of(QuickEventPositionCapture.class), true,
 			theDoc.getEnvironment().getAttributeLocker());
 		ObservableValue
-			.flatten(theTarget
-				.map(target -> target == null ? null : target.getTarget().getWidget().getElement().getStyle().get(BackgroundStyle.cursor)))
-			.changes().act(event -> {
-				if (event.getNewValue() != null && theGraphics != null)
-					theGraphics.setCursor(event.getNewValue());
-			});
+		.flatten(theTarget
+			.map(target -> target == null ? null : target.getTarget().getWidget().getElement().getStyle().get(BackgroundStyle.cursor)))
+		.changes().act(event -> {
+			if (event.getNewValue() != null && theGraphics != null)
+				theGraphics.setCursor(event.getNewValue());
+		});
 	}
 
-	public QuickDocument getDocument() {
+	@Override
+	public QuickDocument getQuickDoc() {
 		return theDoc;
 	}
 
+	@Override
 	public QuickWidgetImplementation getWidgetImpl() {
 		return theWidgetImpl;
 	}
 
+	@Override
 	public BodyWidget getRoot() {
 		return theRoot;
 	}

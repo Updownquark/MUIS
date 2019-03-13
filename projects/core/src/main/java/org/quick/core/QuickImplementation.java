@@ -1,5 +1,5 @@
 package org.quick.core;
 
-public interface QuickImplementation<W> {
-	W createWidget(QuickElement element, Class<? extends W> type) throws QuickException;
+public interface QuickImplementation<D extends QuickDefinedDocument, W extends QuickDefinedWidget> {
+	W createWidget(QuickDefinedDocument doc, QuickElement element) throws QuickException;
 }

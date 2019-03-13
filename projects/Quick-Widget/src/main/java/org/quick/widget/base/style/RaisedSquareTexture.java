@@ -3,8 +3,8 @@ package org.quick.widget.base.style;
 import java.awt.Color;
 import java.awt.Graphics2D;
 
-import org.quick.core.Rectangle;
 import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.style.QuickWidgetTexture;
 
 /** Renders a raised, square, button-looking texture over an element */

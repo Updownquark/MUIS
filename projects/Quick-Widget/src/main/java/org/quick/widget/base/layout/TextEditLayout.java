@@ -16,7 +16,6 @@ import org.qommons.collect.ElementId;
 import org.quick.base.widget.TextField;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
-import org.quick.core.model.DocumentedElement;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
 import org.quick.core.model.QuickDocumentModel.StyleChangeEvent;
@@ -29,6 +28,7 @@ import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.layout.QuickWidgetLayout;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
+import org.quick.widget.core.model.DocumentedElement;
 
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickWidgetLayout {
@@ -36,7 +36,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 
 	/** Creates the layout */
 	public TextEditLayout() {
-		theListener = CompoundListener.build(QuickWidget::getElement, QuickWidget::getChild)//
+		theListener = CompoundListener.<QuickWidget> build()//
 			.acceptAll(TextField.charLengthAtt, TextField.charRowsAtt).onEvent(sizeNeedsChanged)//
 			.child(childBuilder -> {
 				childBuilder.watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onEvent(layout);
@@ -82,10 +82,10 @@ public class TextEditLayout implements QuickWidgetLayout {
 		if (child instanceof DocumentedElement) {
 			QuickDocumentModel doc = QuickDocumentModel.flatten(((DocumentedElement) child).getDocumentModel());
 			doc.changes().takeUntil(until).filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
-				.act(evt -> parent.relayout(false));
+			.act(evt -> parent.relayout(false));
 		} else
 			parent.getElement().msg()
-				.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
+			.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 	}
 
 	@Override
@@ -100,7 +100,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 		}
 		if (!(firstChild instanceof DocumentedElement)) {
 			parent.getElement().msg()
-				.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
+			.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return new SimpleSizeGuide();
 		}
 		return new SizeGuide.GenericSizeGuide() {
@@ -143,7 +143,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 		}
 		if (!(children.get(0) instanceof DocumentedElement)) {
 			parent.getElement().msg()
-				.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
+			.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
 		QuickWidget child = children.get(0);
@@ -157,7 +157,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 			return;
 		}
 		SelectableDocumentModel doc = (SelectableDocumentModel) docChild.getDocumentModel().get();
-		Point2D loc = doc.getLocationAt(doc.getCursor(), Integer.MAX_VALUE);
+		Point2D loc = docChild.getRenderableDocument().getLocationAt(doc.getCursor(), Integer.MAX_VALUE);
 		int x = child.bounds().getX();
 		if(w <= parent.bounds().getWidth())
 			x = 0;

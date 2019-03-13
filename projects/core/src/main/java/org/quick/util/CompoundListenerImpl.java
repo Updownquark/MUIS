@@ -5,9 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.observe.Observable;
@@ -16,6 +14,7 @@ import org.observe.ObservableValueEvent;
 import org.observe.Observer;
 import org.observe.SimpleObservable;
 import org.qommons.collect.ElementId;
+import org.quick.core.QuickDefinedWidget;
 import org.quick.core.QuickElement;
 import org.quick.core.mgr.AttributeManager2;
 import org.quick.core.prop.QuickAttribute;
@@ -47,18 +46,13 @@ class CompoundListenerImpl {
 		}
 	}
 
-	static class ElementListenerBuilder<W> implements CompoundListenerBuilder<W> {
-		private final Function<? super W, ? extends QuickElement> theElementGetter;
-		private final BiFunction<W, ? super QuickElement, ? extends W> theChildGetter;
+	static class ElementListenerBuilder<W extends QuickDefinedWidget> implements CompoundListenerBuilder<W> {
 		private final List<AttributeAccept<?>> theAttributes;
 		private final List<StyleAttribute<?>> theStyleAttributes;
 		private final List<EventListener<W>> theEventListeners;
 		private final List<CompoundListener<W>> theSubListeners;
 
-		ElementListenerBuilder(Function<? super W, ? extends QuickElement> element,
-			BiFunction<W, ? super QuickElement, ? extends W> childGetter) {
-			theElementGetter = element;
-			theChildGetter = childGetter;
+		ElementListenerBuilder() {
 			theAttributes = new ArrayList<>();
 			theStyleAttributes = new ArrayList<>();
 			theEventListeners = new ArrayList<>();
@@ -79,17 +73,17 @@ class CompoundListenerImpl {
 
 		@Override
 		public CompoundListenerBuilder<W> child(Consumer<CompoundListenerBuilder<W>> builder) {
-			ElementListenerBuilder<W> childBuilder = new ElementListenerBuilder<>(theElementGetter, theChildGetter);
+			ElementListenerBuilder<W> childBuilder = new ElementListenerBuilder<>();
 			builder.accept(childBuilder);
-			theSubListeners.add(new ChildListener<>(childBuilder.build(), theElementGetter, theChildGetter));
+			theSubListeners.add(new ChildListener<>(childBuilder.build()));
 			return this;
 		}
 
 		@Override
 		public CompoundListenerBuilder<W> when(Predicate<ElementMock> test, Consumer<CompoundListenerBuilder<W>> builder) {
-			ElementListenerBuilder<W> condBuilder = new ElementListenerBuilder<>(theElementGetter, theChildGetter);
+			ElementListenerBuilder<W> condBuilder = new ElementListenerBuilder<>();
 			builder.accept(condBuilder);
-			theSubListeners.add(new ConditionalListener<>(test, theElementGetter, condBuilder.build()));
+			theSubListeners.add(new ConditionalListener<>(test, condBuilder.build()));
 			return this;
 		}
 
@@ -101,21 +95,19 @@ class CompoundListenerImpl {
 
 		@Override
 		public CompoundListener<W> build() {
-			return new ElementListener<>(theElementGetter, theAttributes, theStyleAttributes, theEventListeners, theSubListeners);
+			return new ElementListener<>(theAttributes, theStyleAttributes, theEventListeners, theSubListeners);
 		}
 	}
 
-	private static class ElementListener<W> implements CompoundListener<W> {
-		private final Function<? super W, ? extends QuickElement> theElementGetter;
+	private static class ElementListener<W extends QuickDefinedWidget> implements CompoundListener<W> {
 		private final List<AttributeAccept<?>> theAttributes;
 		private final List<StyleAttribute<?>> theStyleAttributes;
 		private final List<EventListener<W>> theEventListeners;
 		private final List<CompoundListener<W>> theSubListeners;
 		private final Map<QuickElement, ElementListening> theElementAttributeAccepts;
 
-		ElementListener(Function<? super W, ? extends QuickElement> element, List<AttributeAccept<?>> attrs, List<StyleAttribute<?>> styles,
-			List<EventListener<W>> listeners, List<CompoundListener<W>> subs) {
-			theElementGetter = element;
+		ElementListener(List<AttributeAccept<?>> attrs, List<StyleAttribute<?>> styles, List<EventListener<W>> listeners,
+			List<CompoundListener<W>> subs) {
 			theAttributes = Collections.unmodifiableList(new ArrayList<>(attrs));
 			theStyleAttributes = Collections.unmodifiableList(new ArrayList<>(styles));
 			theEventListeners = Collections.unmodifiableList(new ArrayList<>(listeners));
@@ -137,18 +129,14 @@ class CompoundListenerImpl {
 				@Override
 				public <V extends ObservableValueEvent<?>> void onCompleted(V value) {}
 			};
-			theElementAttributeAccepts.put(el(widget), new ElementListening(el(widget)));
+			theElementAttributeAccepts.put(widget.getElement(), new ElementListening(widget.getElement()));
 			for (AttributeAccept<?> attr : theAttributes)
-				el(widget).atts().get(attr.attr).changes().noInit().takeUntil(until).subscribe(events);
+				widget.getElement().atts().get(attr.attr).changes().noInit().takeUntil(until).subscribe(events);
 			for (StyleAttribute<?> attr : theStyleAttributes)
-				el(widget).getStyle().get(attr).changes().noInit().takeUntil(until).subscribe(events);
+				widget.getElement().getStyle().get(attr).changes().noInit().takeUntil(until).subscribe(events);
 			until.take(1).act(evt -> theElementAttributeAccepts.remove(widget).reject());
 			for (CompoundListener<W> sub : theSubListeners)
 				sub.listen(widget, root, until);
-		}
-
-		private QuickElement el(W widget) {
-			return theElementGetter.apply(widget);
 		}
 
 		private class ElementListening {
@@ -183,27 +171,22 @@ class CompoundListenerImpl {
 		}
 	}
 
-	private static class ChildListener<W> implements CompoundListener<W> {
+	private static class ChildListener<W extends QuickDefinedWidget> implements CompoundListener<W> {
 		private final CompoundListener<W> theElementListener;
-		private final Function<? super W, ? extends QuickElement> theElementGetter;
-		private final BiFunction<W, ? super QuickElement, ? extends W> theChildGetter;
 
-		ChildListener(CompoundListener<W> elListener, Function<? super W, ? extends QuickElement> elementGetter,
-			BiFunction<W, ? super QuickElement, ? extends W> childGetter) {
+		ChildListener(CompoundListener<W> elListener) {
 			theElementListener = elListener;
-			theElementGetter = elementGetter;
-			theChildGetter = childGetter;
 		}
 
 		@Override
 		public void listen(W widget, W root, Observable<?> until) {
 			Map<ElementId, SimpleObservable<Void>> childSubs = new HashMap<>();
-			theElementGetter.apply(widget).ch().subscribe(evt -> {
+			widget.getElement().ch().subscribe(evt -> {
 				switch (evt.getType()) {
 				case add:
 					SimpleObservable<Void> sub = new SimpleObservable<>(null, false, false);
 					childSubs.put(evt.getElementId(), sub);
-					theElementListener.listen(theChildGetter.apply(widget, evt.getNewValue()), root,
+					theElementListener.listen((W) widget.getChild(evt.getNewValue()), root,
 						until == null ? sub : Observable.or(until, sub));
 					break;
 				case remove:
@@ -213,7 +196,7 @@ class CompoundListenerImpl {
 					if (evt.getOldValue() != evt.getNewValue()) {
 						sub = childSubs.get(evt.getElementId());
 						sub.onNext(null);
-						theElementListener.listen(theChildGetter.apply(widget, evt.getNewValue()), root,
+						theElementListener.listen((W) widget.getChild(evt.getNewValue()), root,
 							until == null ? sub : Observable.or(until, sub));
 					}
 					break;
@@ -223,27 +206,23 @@ class CompoundListenerImpl {
 	}
 
 	/** A listener that applies another listener when a condition is met */
-	private static class ConditionalListener<W> implements CompoundListener<W> {
+	private static class ConditionalListener<W extends QuickDefinedWidget> implements CompoundListener<W> {
 		private final Predicate<ElementMock> theCondition;
-		private final Function<? super W, ? extends QuickElement> theElementGetter;
 		private final CompoundListener<W> theElementListener;
 
-		ConditionalListener(Predicate<ElementMock> condition, Function<? super W, ? extends QuickElement> elementGetter,
-			CompoundListener<W> elListener) {
+		ConditionalListener(Predicate<ElementMock> condition, CompoundListener<W> elListener) {
 			theCondition = condition;
-			theElementGetter = elementGetter;
 			theElementListener = elListener;
 		}
 
 		@Override
 		public void listen(W widget, W root, Observable<?> until) {
-			ElementMockImpl<W> mock = new ElementMockImpl<>(widget, theElementGetter.apply(widget), root, until, theElementListener,
-				theCondition);
+			ElementMockImpl<W> mock = new ElementMockImpl<>(widget, widget.getElement(), root, until, theElementListener, theCondition);
 			mock.start();
 		}
 	}
 
-	private static class ElementMockImpl<W> implements ElementMock {
+	private static class ElementMockImpl<W extends QuickDefinedWidget> implements ElementMock {
 		private final W theWidget;
 		private final QuickElement theElement;
 		private final W theRoot;

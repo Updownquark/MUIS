@@ -1,6 +1,7 @@
 package org.quick.base.widget;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import org.observe.ObservableValueEvent;
@@ -36,8 +37,7 @@ public class Table<R, C> extends QuickTemplate {
 	public static final QuickAttribute<ObservableCollection<?>> columns = QuickAttribute.build("columns", ModelAttributes.collectionType)
 		.build();
 	public static final QuickAttribute<String> rowValueModelName = QuickAttribute.build("row-value", QuickPropertyType.string).build();
-	public static final QuickAttribute<String> rowElementModelName = QuickAttribute.build("row-element", QuickPropertyType.string)
-		.build();
+	public static final QuickAttribute<String> rowElementModelName = QuickAttribute.build("row-element", QuickPropertyType.string).build();
 	public static final QuickAttribute<String> columnValueModelName = QuickAttribute.build("column-value", QuickPropertyType.string)
 		.build();
 	public static final QuickAttribute<String> columnElementModelName = QuickAttribute.build("column-element", QuickPropertyType.string)
@@ -53,6 +53,9 @@ public class Table<R, C> extends QuickTemplate {
 	private final SettableValue<ElementId> theHoveredRow;
 	private final SettableValue<ElementId> theSelectedColumn;
 	private final SettableValue<ElementId> theHoveredColumn;
+
+	private String theColumnElementModelName;
+	private String theColumnValueModelName;
 
 	public Table() {
 		theSelectedRow = new SimpleSettableValue<>(TypeTokens.get().of(ElementId.class), true, getAttributeLocker(), null)
@@ -111,10 +114,11 @@ public class Table<R, C> extends QuickTemplate {
 			theRows = (ObservableCollection<R>) atts().get(rows).get();
 			theColumnValues = (ObservableCollection<C>) atts().get(columns).get();
 			if (theColumnValues != null) {
-				atts().accept(columnValueModelName, this, aa -> aa.required().init("column"));
-				atts().accept(columnElementModelName, this, aa -> aa.required().init("columnElement"));
+				theColumnValueModelName = atts().accept(columnValueModelName, this, aa -> aa.required().init("column")).get();
+				theColumnElementModelName = atts().accept(columnElementModelName, this, aa -> aa.required().init("columnElement")).get();
+				ensureConstant(columnValueModelName);
+				ensureConstant(columnElementModelName);
 			}
-			// TODO size needs changed and rowSize=dirty when margin or padding changes
 			// Accept row-height for a vertical table and row-width for a horizontal one
 			atts().get(LayoutAttributes.orientation).changes().act(new Consumer<ObservableValueEvent<Orientation>>() {
 				private AttributeManager2.AttributeAcceptance rowDimAcc;
@@ -152,8 +156,6 @@ public class Table<R, C> extends QuickTemplate {
 					return;
 				}
 				TableColumn<R, C> templateColumn = theColumns.getFirst();
-				templateColumn.initColumnValue(theColumnValues.getType(), atts().get(columnValueModelName).get(),
-					atts().get(columnElementModelName).get());
 				theColumns.clear();
 				boolean[] areCVsChanging = new boolean[1];
 				theColumnValues.subscribe(evt -> {
@@ -162,14 +164,15 @@ public class Table<R, C> extends QuickTemplate {
 						switch (evt.getType()) {
 						case add:
 							TableColumn<R, C> newColumn = templateColumn.copy(Table.this, null);
-							newColumn.setColumnValue(theColumnValues.mutableElement(evt.getElementId()));
+							newColumn.setColumnValue(theColumnValues.mutableElement(evt.getElementId()), theColumnElementModelName,
+								theColumnValueModelName);
 							theColumns.add(evt.getIndex(), newColumn);
 							break;
 						case remove:
 							theColumns.remove(evt.getIndex());
 							break;
 						case set:
-							theColumns.get(evt.getIndex()).setColumnValue(theColumnValues.mutableElement(evt.getElementId()));
+							theColumns.get(evt.getIndex()).updateColumnValue();
 							break;
 						}
 					} finally {
@@ -195,7 +198,7 @@ public class Table<R, C> extends QuickTemplate {
 			theColumns.onChange(evt -> {
 				switch (evt.getType()) {
 				case add:
-					evt.getNewValue().initColumnElement(evt.getElementId());
+					evt.getNewValue().initColumnId(evt.getElementId());
 					break;
 				case remove:
 					if (evt.getOldValue().equals(theSelectedColumn.get()))
@@ -205,7 +208,7 @@ public class Table<R, C> extends QuickTemplate {
 					break;
 				case set:
 					if (evt.getOldValue() != evt.getNewValue())
-						evt.getNewValue().initColumnElement(evt.getElementId());
+						evt.getNewValue().initColumnId(evt.getElementId());
 					break;
 				}
 			});
@@ -225,12 +228,18 @@ public class Table<R, C> extends QuickTemplate {
 		return theColumns;
 	}
 
-	public void setSelected(ElementId columnEl, ElementId row) {
-		for (TableColumn<R, C> col : getContainer(theColumnAP).getContent()) {
-			col.setSelectedRow(row);
-			if (!col.getColumnElement().equals(columnEl))
-				col.setSelected(false);
-		}
+	public void setSelected(ElementId columnId, ElementId row, Object cause) {
+		if (!Objects.equals(row, theSelectedRow.get()))
+			theSelectedRow.set(row, cause);
+		if (!Objects.equals(columnId, theSelectedColumn.get()))
+			theSelectedColumn.set(columnId, cause);
+	}
+
+	public void setHovered(ElementId columnId, ElementId row, Object cause) {
+		if (!Objects.equals(columnId, theSelectedRow.get()))
+			theHoveredRow.set(row, cause);
+		if (!Objects.equals(columnId, theHoveredColumn.get()))
+			theHoveredColumn.set(columnId, cause);
 	}
 
 	public SettableValue<ElementId> getSelectedRow() {

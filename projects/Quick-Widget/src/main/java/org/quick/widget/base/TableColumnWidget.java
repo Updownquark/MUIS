@@ -1,44 +1,46 @@
 package org.quick.widget.base;
 
-import java.util.Objects;
+import java.awt.Graphics2D;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.observe.ObservableValue;
-import org.observe.SettableValue;
-import org.observe.SimpleSettableValue;
 import org.observe.collect.ObservableCollection;
+import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionElement;
 import org.qommons.collect.ElementId;
 import org.quick.base.widget.TableColumn;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.layout.LayoutAttributes;
+import org.quick.core.layout.LayoutGuideType;
+import org.quick.core.layout.LayoutSize;
 import org.quick.core.layout.Orientation;
+import org.quick.widget.base.layout.BaseLayoutUtils;
 import org.quick.widget.core.Point;
+import org.quick.widget.core.QuickElementCapture;
 import org.quick.widget.core.QuickTemplateWidget;
 import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
 import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.event.MouseEvent;
 import org.quick.widget.core.event.MouseEvent.MouseEventType;
-
-import com.google.common.reflect.TypeParameter;
-import com.google.common.reflect.TypeToken;
+import org.quick.widget.core.layout.SizeGuide;
 
 public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 	private Point theHoveredPoint;
-	private boolean isSelected;
 
-	private final SettableValue<CollectionElement<R>> theRenderElement;
-	private final ObservableValue<R> theRenderValue;
+	private final ObservableValue<QuickWidget> theRenderer;
+	private final ObservableValue<QuickWidget> theHover;
+	private final ObservableValue<QuickWidget> theEditor;
 
 	public TableColumnWidget(QuickWidgetDocument doc, TableColumn<R, C> element, QuickWidget parent) {
 		super(doc, element, parent);
 
-		ObservableCollection<R> rows = getElement().getTable().getRows();
-		theRenderElement = new SimpleSettableValue<>(
-			new TypeToken<CollectionElement<R>>() {}.where(new TypeParameter<R>() {}, rows.getType()), true,
-			getElement().getAttributeLocker(), null);
-		theRenderValue = theRenderElement.map(rows.getType(), el -> el.get());
+		theRenderer = getElement().getRenderer().map(TypeTokens.get().of(QuickWidget.class), renderer -> getChild(renderer));
+		theHover = getElement().getRenderer().map(TypeTokens.get().of(QuickWidget.class), hover -> getChild(hover));
+		theEditor = getElement().getRenderer().map(TypeTokens.get().of(QuickWidget.class), editor -> getChild(editor));
 
 		getElement().life().runWhen(() -> {
 			getElement().getResourcePool().pool(getElement().getTable().getRows().changes()).act(evt -> {
@@ -64,86 +66,28 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 			});
 		}, CoreStage.INIT_CHILDREN, 1);
 		getElement().life().runWhen(() -> {
+			ObservableCollection<R> rows = getTable().getElement().getRows();
 			events().filterMap(MouseEvent.mouse.addTypes(MouseEventType.moved)).act(evt -> {
 				theHoveredPoint = evt.getPosition(TableColumnWidget.this);
-				updateHover();
+				updateHover(evt);
 			});
 			events().filterMap(MouseEvent.mouse.addTypes(MouseEventType.exited)).act(evt -> {
 				theHoveredPoint = null;
-				updateHover();
+				updateHover(evt);
 			});
 			events().filterMap(MouseEvent.mouse.addTypes(MouseEventType.pressed)).act(evt -> {
 				int row = getTable().getRowAt(evt.getPosition(TableColumnWidget.this));
 				ElementId rowId = row < 0 ? null : rows.getElement(row).getElementId();
-				if (isSelected && Objects.equals(getElement().getTable().getSelectedRow().get(), rowId))
-					return;
-
-				isSelected = true;
-				getElement().getTable().setSelected(getElement().getColumnElement(), rowId);
+				getElement().getTable().setSelected(getElement().getColumnId(), rowId, evt);
 			});
 
-			getElement().getHoverElement().changes().act(evt -> {
-				ElementId row;
-				if (theHoveredPoint == null)
-					row = null;
-				else {
-					int rowIdx = getTable().getRowAt(theHoveredPoint);
-					row = rowIdx < 0 ? null : getTable().getRows().getElement(rowIdx).getElementId();
-					if (isSelected && Objects.equals(theSelectedRow, row))
-						row = null;
-				}
-				boolean wasActive = theHoveredRow != null;
-				if (row == null) {
-					if (wasActive) {
-						// TODO Disable hover
-						theHover.getResourcePool().setActive(false);
-						try (Transaction t = theEditor.holdEvents(true, false)) {
-							theHover.bounds().setBounds(-1, -1, 0, 0);
-						}
-						sizeNeedsChanged();
-						relayout(false);
-					}
-				} else if (!Objects.equals(row, theHoveredRow)) {
-					theHoveredRow = row;
-					theHoverValue.set(getTable().getRows().getElement(row).get(), null);
-					try (Transaction t = theEditor.holdEvents(true, false)) {
-						theHover.bounds().set(getCellBounds(row), null);
-					}
-					if (!wasActive) {
-						// Enable hover
-						theHover.getResourcePool().setActive(true);
-					}
-					sizeNeedsChanged();
-					relayout(false);
-				}
+			getElement().getHoverElement().noInitChanges().act(evt -> {
+				sizeNeedsChanged();
+				relayout(false);
 			});
-			getElement().getEditorElement().changes().act(evt -> {
-				boolean wasActive = theEditingRow != null;
-				if (row == null) {
-					if (wasActive) {
-						// Disable editor
-						theEditor.getResourcePool().setActive(false);
-						try (Transaction t = theEditor.holdEvents(true, false)) {
-							theEditor.bounds().setBounds(-1, -1, 0, 0);
-						}
-						updateHover();
-						sizeNeedsChanged();
-						relayout(false);
-					}
-				} else if (!Objects.equals(row, theEditingRow)) {
-					theEditingRow = row;
-					theEditorValue.set(getTable().getRows().getElement(row).get(), null);
-					try (Transaction t = theEditor.holdEvents(true, false)) {
-						theEditor.bounds().set(getCellBounds(row), null);
-					}
-					if (!wasActive) {
-						// Enable editor
-						theEditor.getResourcePool().setActive(true);
-					}
-					updateHover();
-					sizeNeedsChanged();
-					relayout(false);
-				}
+			getElement().getEditorElement().noInitChanges().act(evt -> {
+				sizeNeedsChanged();
+				relayout(false);
 			});
 		}, CoreStage.STARTUP, 1);
 	}
@@ -155,5 +99,170 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 
 	public TableWidget<R, C> getTable() {
 		return (TableWidget<R, C>) getParent().get();
+	}
+
+	private void updateHover(Object cause) {
+		ElementId row;
+		if (theHoveredPoint == null)
+			row = null;
+		else {
+			int rowIdx = getTable().getRowAt(theHoveredPoint);
+			row = rowIdx < 0 ? null : getElement().getTable().getRows().getElement(rowIdx).getElementId();
+			getElement().getTable().setHovered(getElement().getColumnId(), row, cause);
+		}
+	}
+
+	public SizeGuide getCellSize(Object row) {}
+
+	public Rectangle getCellBounds(ElementId row) {
+		TableWidget<R, C> table = getTable();
+		int index = table.getElement().getRows().getElementsBefore(row);
+		int rowPos = table.getRowPosition(index);
+		int rowSize = table.getRowLength(index);
+		int padding = 0; // TODO Margin/padding between columns?
+		if (table.getElement().atts().get(LayoutAttributes.orientation).get().isVertical())
+			return new Rectangle(padding, rowPos, bounds().getWidth(), rowSize);
+		else
+			return new Rectangle(rowPos, padding, rowSize, bounds().getHeight());
+	}
+
+	@Override
+	public SizeGuide getSizer(Orientation orientation) {
+		if (orientation == getTable().getElement().atts().get(LayoutAttributes.orientation).get())
+			return getTable().getSizer(orientation);
+		else {
+			ObservableCollection<R> rows = getTable().getElement().getRows();
+			QuickWidget renderer = theRenderer.get();
+			return new SizeGuide.GenericSizeGuide() {
+				@Override
+				public int get(LayoutGuideType type, int crossSize, boolean csMax) {
+					return BaseLayoutUtils.getBoxLayoutCrossSize(new Iterable<QuickWidget>() {
+						@Override
+						public Iterator<QuickWidget> iterator() {
+							return new Iterator<QuickWidget>() {
+								private ElementId theRow = CollectionElement.getElementId(rows.getTerminalElement(true));
+
+								@Override
+								public boolean hasNext() {
+									if (theRow == null) {
+										try (Transaction t = renderer.holdEvents(true, true)) {
+											getElement().getRenderElement().set(null, null);
+										}
+									}
+									return theRow != null;
+								}
+
+								@Override
+								public QuickWidget next() {
+									try (Transaction t = renderer.holdEvents(true, true)) {
+										getElement().getRenderElement().set(rows.getElement(theRow), null);
+									}
+									theRow = CollectionElement.getElementId(rows.getAdjacentElement(theRow, true));
+									return renderer;
+								}
+							};
+						}
+					}, orientation.opposite(), type, crossSize, csMax, new LayoutSize());
+				}
+
+				@Override
+				public int getBaseline(int size) {
+					return 0;
+				}
+			};
+		}
+	}
+
+	@Override
+	public void doLayout() {
+		CollectionElement<R> hoveredRow = getElement().getHoverElement().get();
+		if (hoveredRow != null)
+			theHover.get().bounds().set(getCellBounds(hoveredRow.getElementId()), null);
+		CollectionElement<R> editorRow = getElement().getEditorElement().get();
+		if (editorRow != null)
+			theEditor.get().bounds().set(getCellBounds(editorRow.getElementId()), null);
+	}
+
+	@Override
+	public void paintSelf(Graphics2D graphics, Rectangle area) {
+		super.paintSelf(graphics, area);
+		TableWidget<R, C> table = getTable();
+		ObservableCollection<R> rows = table.getElement().getRows();
+		if (rows.isEmpty())
+			return;
+		// Render all cells overlapping the given rectangle
+		if (area == null)
+			area = new Rectangle(0, 0, bounds().getX(), bounds().getY());
+		Orientation orientation = table.getElement().atts().get(LayoutAttributes.orientation).get();
+		int start, end;
+		if (orientation.isVertical()) {
+			start = area.y;
+			end = area.getMaxY();
+		} else {
+			start = area.x;
+			end = area.getMaxX();
+		}
+		int rowIdx = table.getRowAt(area.getPosition());
+		if (rowIdx < 0) {
+			if (table.getRowPosition(0) >= start)
+				rowIdx = 0;
+			else
+				return;
+		}
+		ElementId row = rows.getElement(rowIdx).getElementId();
+		int initIndex = rowIdx;
+		int initPosition = table.getRowPosition(initIndex);
+		if (initPosition < end) {
+			QuickWidget renderer = theRenderer.get();
+			paintChildren(new Iterable<QuickWidget>() {
+				@Override
+				public Iterator<QuickWidget> iterator() {
+					return new Iterator<QuickWidget>() {
+						ElementId theRow = row;
+						int theIndex = initIndex;
+						int thePosition = initPosition;
+
+						@Override
+						public boolean hasNext() {
+							return thePosition < end;
+						}
+
+						@Override
+						public QuickWidget next() {
+							try (Transaction t = renderer.holdEvents(true, true)) {
+								getElement().getRenderElement().set(rows.getElement(theRow), null);
+								int padding = 0; // TODO Margin/padding between columns?
+								if (orientation.isVertical())
+									renderer.bounds().setBounds(padding, thePosition, bounds().getWidth(), table.getRowLength(theIndex));
+								else
+									renderer.bounds().setBounds(thePosition, padding, table.getRowLength(theIndex),
+										bounds().getHeight());
+							}
+							theRow = CollectionElement.getElementId(rows.getAdjacentElement(theRow, true));
+							theIndex++;
+							thePosition = table.getRowPosition(theIndex);
+							return renderer;
+						}
+					};
+				}
+			}, graphics, area);
+			try (Transaction t = renderer.holdEvents(true, true)) {
+				getElement().getRenderElement().set(null, null);
+			}
+		}
+	}
+
+	@Override
+	public QuickElementCapture[] paintChildren(Graphics2D graphics, Rectangle area) {
+		List<QuickWidget> children = new ArrayList<>(2);
+		CollectionElement<R> hoveredRow = getElement().getHoverElement().get();
+		if (hoveredRow != null)
+			children.add(theHover.get());
+		CollectionElement<R> editorRow = getElement().getEditorElement().get();
+		if (editorRow != null)
+			children.add(theEditor.get());
+		if (area == null)
+			area = new Rectangle(0, 0, bounds().getWidth(), bounds().getHeight());
+		return paintChildren(children, graphics, area);
 	}
 }

@@ -1,6 +1,5 @@
 package org.quick.widget.base;
 
-import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -12,7 +11,6 @@ import org.observe.collect.ObservableCollection;
 import org.qommons.ArrayUtils;
 import org.qommons.Transaction;
 import org.quick.base.widget.Table;
-import org.quick.base.widget.TableColumn;
 import org.quick.core.QuickConstants.CoreStage;
 import org.quick.core.layout.LayoutAttributes;
 import org.quick.core.layout.LayoutGuideType;
@@ -22,11 +20,9 @@ import org.quick.core.style.LengthUnit;
 import org.quick.core.style.Size;
 import org.quick.widget.base.layout.BaseLayoutUtils;
 import org.quick.widget.core.Point;
-import org.quick.widget.core.QuickElementCapture;
 import org.quick.widget.core.QuickTemplateWidget;
 import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
-import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
 
@@ -44,7 +40,6 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 
 		getElement().life().runWhen(() -> {
 			// TODO size needs changed and rowSize=dirty when margin or padding changes
-			// Accept row-height for a vertical table and row-width for a horizontal one
 			getElement().atts().get(LayoutAttributes.orientation).changes().act(new Consumer<ObservableValueEvent<Orientation>>() {
 				private Subscription rowDimSub;
 				private Consumer<ObservableValueEvent<Size>> rowDimAction = evt -> {
@@ -131,7 +126,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 
 	public ObservableCollection<TableColumnWidget<R, C>> getColumns() {
 		return getElement().getColumns().flow()
-			.map(new TypeToken<TableColumn<R, C>>() {}, col -> (TableColumnWidget<R, C>) getChild(col), opts -> opts.cache(false))
+			.map(new TypeToken<TableColumnWidget<R, C>>() {}, col -> (TableColumnWidget<R, C>) getChild(col), opts -> opts.cache(false))
 			.collectPassive();
 	}
 
@@ -257,7 +252,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 					}
 				}
 			} else {
-				// TODO Not implemented
+				// TODO Not implemented where rowSize is not set
 			}
 		}
 	}
@@ -325,7 +320,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 	public void doLayout() {
 		ObservableCollection<? extends TableColumnWidget<R, C>> tableColumns = getColumns();
 		try (Transaction colT = tableColumns.lock(false, null)) {
-			for (TableColumn column : tableColumns)
+			for (TableColumnWidget<R, C> column : tableColumns)
 				column.doLayout();
 			Orientation orient = getElement().atts().get(LayoutAttributes.orientation).get();
 			int rowDim = bounds().get(orient).getSize();
@@ -333,7 +328,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 			int margin = getElement().getStyle().get(LayoutStyle.margin).get().evaluate(colDim);
 			int padding = getElement().getStyle().get(LayoutStyle.padding).get().evaluate(colDim);
 			int pos = margin;
-			for (TableColumn column : tableColumns) {
+			for (TableColumnWidget<R, C> column : tableColumns) {
 				int colWidth = column.bounds().get(orient.opposite()).getSize();
 				if (orient.isVertical())
 					column.bounds().setBounds(pos, margin, colWidth, rowDim);
@@ -341,17 +336,6 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 					column.bounds().setBounds(margin, pos, rowDim, colWidth);
 				pos += padding + colWidth;
 			}
-		}
-	}
-
-	@Override
-	public QuickElementCapture[] paintChildren(Graphics2D graphics, Rectangle area) {
-		if (getElement().getColumnValues() == null)
-			return super.paintChildren(graphics, area);
-		else {
-			// TODO Render the stamped columns
-			// Return the element capture for the hovered cell
-			return null;
 		}
 	}
 }

@@ -35,21 +35,21 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 			throw new QuickParseException("Could not parse toolkit XML for " + location, e);
 		}
 		QuickToolkit.Builder builder = QuickToolkit.build(theEnvironment, location);
-		String name = rootEl.getChildTextTrim("name");
+		String name = rootEl.getAttributeValue("name");
 		if (name == null)
-			throw new QuickParseException("No name element for toolkit at " + location);
+			throw new QuickParseException("No name attribute for toolkit at " + location);
 		builder.setName(name);
 		String descrip = rootEl.getChildTextTrim("description");
 		if (descrip == null)
 			throw new QuickParseException("No description element for toolkit at " + location);
 		builder.setDescription(descrip);
-		String version = rootEl.getChildTextTrim("version");
+		String version = rootEl.getAttributeValue("version");
 		if (version == null)
-			throw new QuickParseException("No version element for toolkit at " + location);
+			throw new QuickParseException("No version attribute for toolkit at " + location);
 		builder.setVersion(Version.fromString(version));
 		for (Element el : rootEl.getChildren()) {
 			String elName = el.getName();
-			if (elName.equals("name") || elName.equals("description") || elName.equals("version"))
+			if (elName.equals("description"))
 				continue;
 			if (elName.equals("dependencies"))
 				for (Element dEl : el.getChildren()) {

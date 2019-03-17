@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<quick-widget-set name="Quick Core Widgets" version="0.0.1">
+	<implements toolkit="Quick Core" version="0.0.1" />
+	<description>
+		The independent reference implementation for the Quick Core toolkit.  Renders all elements from scratch,
+		not drawing on other graphical toolkits except java's Graphics2D.
+	</description>
+	<dependencies>
+		<classpath>classes</classpath>
+	</dependencies>
+	<types>
+	    <!-- Element types -->
+		<type tag="body">org.quick.widget.core.BodyWidget</type>
+		<!-- The text type is mapped so as to be accessible for styles. The tag should not be used in Quick files. -->
+		<type tag="text">org.quick.widget.core.QuickTextWidget</type>
+		<!-- Layouts -->
+		<type tag="layer">org.quick.widget.core.layout.LayerLayout</type>
+		<!-- Style related types -->
+		<type tag="no-texture">org.quick.widget.core.style.BaseTexture</type>
+		<type tag="doc-texture">org.quick.widget.core.style.DocumentTexture</type>
+	</types>
+	<security />
+</quick-widget-set>

@@ -4,16 +4,7 @@ import org.quick.core.BodyElement;
 import org.quick.widget.core.layout.LayerLayout;
 import org.quick.widget.core.layout.QuickWidgetLayout;
 
-public class BodyWidget extends LayoutContainerWidget {
-	public BodyWidget(QuickWidgetDocument doc, BodyElement element) {
-		super(doc, element, null);
-	}
-
-	@Override
-	public BodyElement getElement() {
-		return (BodyElement) super.getElement();
-	}
-
+public class BodyWidget<E extends BodyElement> extends LayoutContainerWidget<E> {
 	@Override
 	protected QuickWidgetLayout getDefaultLayout() {
 		return new LayerLayout();

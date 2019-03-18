@@ -10,13 +10,14 @@ import java.util.Set;
 
 import org.quick.core.parser.Version;
 
-public class QuickLibrary extends java.net.URLClassLoader {
+public abstract class QuickLibrary extends java.net.URLClassLoader {
 	private final URL theURI;
 
 	private final String theName;
 	private final String theDescription;
 	private final Version theVersion;
 
+	private QuickLibrary thePriorityDependency;
 	private final Map<String, String> theClassMappings;
 	private final Map<String, String> theResourceMappings;
 	private final List<? extends QuickLibrary> theDependencies;
@@ -36,6 +37,10 @@ public class QuickLibrary extends java.net.URLClassLoader {
 
 		for (URL cp : cps)
 			super.addURL(cp);
+	}
+
+	protected void setPriorityDependency(QuickLibrary dependency) {
+		thePriorityDependency = dependency;
 	}
 
 	/** @return The URI location of this library */
@@ -68,6 +73,11 @@ public class QuickLibrary extends java.net.URLClassLoader {
 	 * @return The class name mapped to the tag name, or null if the tag name has not been mapped in this library
 	 */
 	public String getMappedClass(String tagName) {
+		if (thePriorityDependency != null) {
+			String priMapped = thePriorityDependency.getMappedClass(tagName);
+			if (priMapped != null)
+				return priMapped;
+		}
 		int sep = tagName.indexOf(':');
 		if (sep >= 0)
 			tagName = tagName.substring(sep + 1);
@@ -87,6 +97,11 @@ public class QuickLibrary extends java.net.URLClassLoader {
 	 * @return The location of the resource mapped to the tag name, or null if the tag name has not been mapped in this library
 	 */
 	public String getMappedResource(String tagName) {
+		if (thePriorityDependency != null) {
+			String priMapped = thePriorityDependency.getMappedResource(tagName);
+			if (priMapped != null)
+				return priMapped;
+		}
 		int sep = tagName.indexOf(':');
 		if (sep >= 0)
 			tagName = tagName.substring(sep + 1);
@@ -141,6 +156,11 @@ public class QuickLibrary extends java.net.URLClassLoader {
 	@Override
 	protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
 		ClassNotFoundException cnfe;
+		if (thePriorityDependency != null)
+			try {
+				thePriorityDependency.loadClass(name, resolve);
+			} catch (ClassNotFoundException e) {
+			}
 		try {
 			return super.loadClass(name, resolve);
 		} catch (ClassNotFoundException e) {
@@ -246,6 +266,10 @@ public class QuickLibrary extends java.net.URLClassLoader {
 		return conn.getLastModified() > 0;
 	}
 
+	protected QuickLibrary getPriorityDependency() {
+		return thePriorityDependency;
+	}
+
 	/** @return All libraries that this library depends on */
 	public List<? extends QuickLibrary> getDependencies() {
 		return theDependencies;
@@ -259,5 +283,159 @@ public class QuickLibrary extends java.net.URLClassLoader {
 	@Override
 	public String toString() {
 		return theName + " v" + theVersion;
+	}
+
+	/** Builds a QuickLibrary */
+	public static abstract class Builder<L extends QuickLibrary, B extends Builder<L, B>> {
+		private final URL theLocation;
+
+		private String theName;
+		private String theDescription;
+		private Version theVersion;
+
+		private List<URL> theClassPaths;
+		private List<QuickLibrary> theDependencies;
+		private Map<String, String> theClassMappings;
+		private Map<String, String> theResourceLocations;
+		private List<QuickPermission> thePermissions;
+
+		private L theBuiltLibrary;
+
+		protected Builder(URL location) {
+			theLocation = location;
+			theClassPaths = new ArrayList<>();
+			theDependencies = new ArrayList<>();
+			theClassMappings = new LinkedHashMap<>();
+			theResourceLocations = new LinkedHashMap<>();
+			thePermissions = new ArrayList<>();
+		}
+
+		public URL getLocation() {
+			return theLocation;
+		}
+
+		/**
+		 * @param name The name for this library
+		 * @return This builder, for chaining
+		 */
+		public B setName(String name) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theName = name;
+			return (B) this;
+		}
+
+		/**
+		 * @param descrip The description for this library
+		 * @return This builder, for chaining
+		 */
+		public B setDescription(String descrip) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theDescription = descrip;
+			return (B) this;
+		}
+
+		/**
+		 * @param version The version for this library
+		 * @return This builder, for chaining
+		 */
+		public B setVersion(Version version) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theVersion = version;
+			return (B) this;
+		}
+
+		/**
+		 * @param classPath The class path to add to this library
+		 * @return This builder, for chaining
+		 */
+		public B addClassPath(URL classPath) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theClassPaths.add(classPath);
+			return (B) this;
+		}
+
+		/**
+		 * Adds a toolkit dependency for this library
+		 *
+		 * @param lib The library that this library requires to perform its functionality
+		 * @return This builder, for chaining
+		 */
+		public B addDependency(QuickLibrary lib) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theDependencies.add(lib);
+			return (B) this;
+		}
+
+		/**
+		 * Maps a class to a tag name for this library
+		 *
+		 * @param tagName The tag name to map the class to
+		 * @param className The fully-qualified java class name to map the tag to
+		 * @return This builder, for chaining
+		 */
+		public B map(String tagName, String className) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theClassMappings.put(tagName, className);
+			return (B) this;
+		}
+
+		/**
+		 * Maps a resource to a tag name for this library
+		 *
+		 * @param tagName The tag name to map the resource to
+		 * @param resourceLocation The location of the resource to map the tag to
+		 * @return This builder, for chaining
+		 */
+		public B mapResource(String tagName, String resourceLocation) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			theResourceLocations.put(tagName, resourceLocation);
+			return (B) this;
+		}
+
+		/**
+		 * Adds a permission requirement to this library
+		 *
+		 * @param perm The permission that this library requires or requests
+		 * @return This builder, for chaining
+		 */
+		public B addPermission(QuickPermission perm) {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The builder may not be changed after the library is built");
+			thePermissions.add(perm);
+			return (B) this;
+		}
+
+		/** @return The built library */
+		public L build() {
+			if (theBuiltLibrary != null)
+				throw new IllegalStateException("The library may only be built once");
+			if (theName == null)
+				throw new IllegalStateException("No name set");
+			if (theDescription == null)
+				throw new IllegalStateException("No description set");
+			if (theVersion == null)
+				throw new IllegalStateException("No version set");
+
+			theBuiltLibrary = createLibrary(theLocation, theName, theDescription, theVersion, theClassPaths, theClassMappings,
+				theResourceLocations, theDependencies, thePermissions);
+			return theBuiltLibrary;
+		}
+
+		public abstract L createLibrary(URL location, String name, String description, Version version, List<URL> classPaths,
+			Map<String, String> classMappings, Map<String, String> resourceLocations, List<QuickLibrary> dependencies,
+			List<QuickPermission> permissions);
+
+		public L getBuilt() {
+			if (theBuiltLibrary == null)
+				throw new IllegalStateException("Not built");
+			return theBuiltLibrary;
+		}
 	}
 }

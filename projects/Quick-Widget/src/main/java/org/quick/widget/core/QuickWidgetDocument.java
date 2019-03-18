@@ -15,7 +15,7 @@ import org.quick.core.*;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.widget.core.event.*;
 
-public class QuickWidgetDocument implements QuickDefinedDocument {
+public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>> {
 	/** The different policies this document can take with regards to scrolling events */
 	public static enum ScrollPolicy {
 		/**
@@ -53,14 +53,14 @@ public class QuickWidgetDocument implements QuickDefinedDocument {
 		void renderUpdate(QuickWidgetDocument doc);
 	}
 
-	private final QuickWidgetImplementation theWidgetImpl;
+	private final QuickWidgetImplementation theWidgetSet;
 	private final QuickDocument theDoc;
 	private final Toolkit theAwtToolkit;
 	private final BodyWidget theRoot;
 
 	private ScrollPolicy theScrollPolicy;
 
-	private final SettableValue<QuickWidget> theFocus;
+	private final SettableValue<QuickWidget<?>> theFocus;
 	private final SettableValue<QuickEventPositionCapture> theTarget;
 
 	private boolean hasMouse;
@@ -80,9 +80,9 @@ public class QuickWidgetDocument implements QuickDefinedDocument {
 
 	private Collection<RenderListener> theRenderListeners;
 
-	public QuickWidgetDocument(QuickWidgetImplementation impl, QuickDocument doc) {
+	public QuickWidgetDocument(QuickWidgetSet<QuickDefinedDocument, QuickWidget<?>> widgets, QuickDocument doc) {
 		theDoc = doc;
-		theWidgetImpl = impl;
+		theWidgetSet = widgets;
 		theAwtToolkit = Toolkit.getDefaultToolkit();
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new ConcurrentHashSet<>();
@@ -90,7 +90,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument {
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
 		try {
-			theRoot = (BodyWidget) theWidgetImpl.createWidget(this, doc.getRoot());
+			theRoot = (BodyWidget) theWidgetSet.createWidget(this, doc.getRoot(), null);
 		} catch (QuickException e) {
 			throw new IllegalStateException("Could not instantiate body");
 		}
@@ -115,7 +115,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument {
 
 	@Override
 	public QuickWidgetImplementation getWidgetImpl() {
-		return theWidgetImpl;
+		return theWidgetSet;
 	}
 
 	@Override

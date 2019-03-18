@@ -2,6 +2,7 @@ package org.quick.widget.core;
 
 import java.awt.Graphics2D;
 import java.util.*;
+import java.util.function.Consumer;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
@@ -9,7 +10,6 @@ import org.observe.SimpleSettableValue;
 import org.observe.Subscription;
 import org.observe.collect.CollectionChangeEvent;
 import org.observe.collect.ObservableCollection;
-import org.observe.util.TypeTokens;
 import org.qommons.Lockable;
 import org.qommons.Transaction;
 import org.quick.core.QuickConstants.CoreStage;
@@ -31,16 +31,20 @@ import org.quick.widget.core.mgr.QuickEventManager;
 import org.quick.widget.core.style.BaseTexture;
 import org.quick.widget.core.style.QuickWidgetTexture;
 
-public abstract class QuickWidget implements QuickDefinedWidget {
-	private final QuickWidgetDocument theDocument;
+import com.google.common.reflect.TypeToken;
 
-	private final QuickElement theElement;
+public abstract class QuickWidget<E extends QuickElement> implements QuickDefinedWidget<QuickWidgetDocument, E> {
+	public static final TypeToken<QuickWidget<?>> WILDCARD = new TypeToken<QuickWidget<?>>() {};
 
-	private final SettableValue<QuickWidget> theParent;
+	private QuickWidgetDocument theDocument;
 
-	private final ObservableCollection<QuickWidget> theChildren;
+	private E theElement;
 
-	private final Map<QuickElement, QuickWidget> theChildMap;
+	private final SettableValue<QuickWidget<?>> theParent;
+
+	private ObservableCollection<QuickWidget<?>> theChildren;
+
+	private final Map<QuickElement, QuickWidget<?>> theChildMap;
 
 	private final QuickEventManager theEvents;
 
@@ -48,7 +52,7 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 
 	private final CoreStateControllers theStateControllers;
 
-	private final StyleChangeObservable theDefaultStyleListener;
+	private StyleChangeObservable theDefaultStyleListener;
 
 	private SizeGuide theHSizer;
 
@@ -60,16 +64,12 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 
 	private long theLayoutDirtyTime;
 
-	public QuickWidget(QuickWidgetDocument doc, QuickElement element, QuickWidget parent) {
-		theDocument = doc;
-		theElement = element;
-		theParent = new SimpleSettableValue<>(QuickWidget.class, true);
-		theParent.set(parent, null);
+	public QuickWidget() {
+		theParent = new SimpleSettableValue<>(WILDCARD, true);
 		theEvents = new QuickEventManager(this);
 		theBounds = new ElementBounds(this);
 		theStateControllers = new CoreStateControllers();
 		theChildMap = new HashMap<>();
-		theChildren = createChildren();
 		bounds().changes().act(event -> {
 			if (isHoldingEvents != 0)
 				return;
@@ -77,6 +77,14 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 			if (old == null || event.getNewValue().width != old.width || event.getNewValue().height != old.height)
 				relayout(false);
 		});
+	}
+
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		theDocument = document;
+		theElement = element;
+		theParent.set((QuickWidget<?>) parent, null);
+		theChildren = createChildren();
 		theElement.life().runWhen(() -> {
 			repaint(null, false);
 		}, CoreStage.INIT_SELF.toString(), 2);
@@ -90,17 +98,17 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 			theDefaultStyleListener.begin();
 		}, CoreStage.READY, -1);
 		theChildren.simpleChanges().act(cause -> sizeNeedsChanged());
-		List<Runnable> childRemoves = new ArrayList<>();
+		List<Consumer<Object>> childRemoves = new ArrayList<>();
 		theChildren.subscribe(evt -> {
 			switch (evt.getType()) {
 			case add:
 				theChildMap.put(evt.getNewValue().getElement(), evt.getNewValue());
 				childRemoves.add(evt.getIndex(), registerChild(//
-					evt.getNewValue()));
+					evt.getNewValue(), evt));
 				break;
 			case remove:
-				Runnable remove = childRemoves.remove(evt.getIndex());
-				remove.run();
+				Consumer<Object> remove = childRemoves.remove(evt.getIndex());
+				remove.accept(evt);
 				theChildMap.remove(evt.getOldValue().getElement());
 				break;
 			case set:
@@ -108,9 +116,9 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 					theChildMap.remove(evt.getOldValue().getElement());
 					theChildMap.put(evt.getNewValue().getElement(), evt.getNewValue());
 					remove = childRemoves.get(evt.getIndex());
-					remove.run();
+					remove.accept(evt);
 					childRemoves.set(evt.getIndex(), registerChild(//
-						evt.getNewValue()));
+						evt.getNewValue(), evt));
 				}
 				break;
 			}
@@ -122,11 +130,11 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 			switch (event.type) {
 			case add:
 			case remove:
-				for (QuickWidget child : event.getValues())
+				for (QuickWidget<?> child : event.getValues())
 					bounds = bounds == null ? child.bounds().get() : bounds.union(child.bounds().get());
 					break;
 			case set:
-				for (CollectionChangeEvent.ElementChange<QuickWidget> el : event.elements) {
+				for (CollectionChangeEvent.ElementChange<QuickWidget<?>> el : event.elements) {
 					bounds = bounds == null ? el.newValue.bounds().get() : bounds.union(el.newValue.bounds().get());
 					if (el.oldValue != null && !el.oldValue.bounds().isEmpty())
 						bounds = bounds.union(el.oldValue.bounds().get());
@@ -143,15 +151,15 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 		});
 	}
 
-	protected ObservableCollection<QuickWidget> createChildren() {
-		return theElement.ch().flow().map(TypeTokens.get().of(QuickWidget.class), //
-				this::createChild, opts -> opts.cache(true).reEvalOnUpdate(false))
+	protected ObservableCollection<QuickWidget<?>> createChildren() {
+		return theElement.ch().flow().map(WILDCARD, //
+			this::createChild, opts -> opts.cache(true).reEvalOnUpdate(false))
 			.filter(el -> el == null ? "Unable to create child" : null).collect();
 	}
 
-	protected QuickWidget createChild(QuickElement childElement) {
+	protected <CE extends QuickElement> QuickWidget<CE> createChild(CE childElement) {
 		try {
-			return getDocument().getWidgetImpl().createWidget(theDocument, childElement);
+			return (QuickWidget<CE>) getDocument().getWidgetSet().createWidget(theDocument, childElement, this);
 		} catch (QuickException e) {
 			getElement().msg().error("Could not create child for element", e, "element", childElement);
 			return null;
@@ -159,8 +167,8 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 	}
 
 	@Override
-	public QuickWidget getChild(QuickElement childElement) {
-		return childElement == null ? null : theChildMap.get(childElement);
+	public <CE extends QuickElement> QuickWidget<CE> getChild(CE childElement) {
+		return childElement == null ? null : (QuickWidget<CE>) theChildMap.get(childElement);
 	}
 
 	private void addStateListeners() {
@@ -242,9 +250,9 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 	 * @param child The child that has been added to this parent
 	 * @return A runnable that will be executed when the element is no longer a child of this widget
 	 */
-	protected Runnable registerChild(QuickWidget child) {
+	protected Consumer<Object> registerChild(QuickWidget<?> child, Object addCause) {
 		if (child.getParent() != this)
-			child.setParent(this);
+			child.setParent(this, addCause);
 
 		Subscription eventSub = theElement.getResourcePool().poolValue(child.bounds()).noInitChanges().act(event -> {
 			if (isHoldingEvents == 0) {
@@ -253,11 +261,11 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 			}
 		});
 
-		return () -> {
+		return removeCause -> {
 			eventSub.unsubscribe();
 			unregisterChild(child);
 			if (child.getParent() == this)
-				child.setParent(null);
+				child.setParent(null, removeCause);
 		};
 	}
 
@@ -266,7 +274,7 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 	 *
 	 * @param child The child that has been removed from this parent
 	 */
-	protected void unregisterChild(QuickWidget child) {}
+	protected void unregisterChild(QuickWidget<?> child) {}
 
 	@Override
 	public QuickWidgetDocument getDocument() {
@@ -274,21 +282,21 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 	}
 
 	@Override
-	public QuickElement getElement() {
+	public E getElement() {
 		return theElement;
 	}
 
 	@Override
-	public ObservableValue<QuickWidget> getParent() {
+	public ObservableValue<QuickWidget<?>> getParent() {
 		return theParent.unsettable();
 	}
 
-	protected void setParent(QuickWidget parent) {
-		// TODO
+	protected void setParent(QuickWidget<?> parent, Object cause) {
+		theParent.set(parent, cause);
 	}
 
 	@Override
-	public ObservableCollection<QuickWidget> getChildren() {
+	public ObservableCollection<QuickWidget<?>> getChildren() {
 		return theChildren;
 	}
 
@@ -367,7 +375,7 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 		if (theBounds.isEmpty())
 			return;
 		theLayoutDirtyTime = 0;
-		for (QuickWidget child : getChildren())
+		for (QuickWidget<?> child : getChildren())
 			child.doLayout();
 		repaint(null, false);
 	}
@@ -376,7 +384,7 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 	public final void sizeNeedsChanged() {
 		if (isHoldingEvents > 0)
 			return;
-		QuickWidget parent = getParent().get();
+		QuickWidget<?> parent = getParent().get();
 		if (parent != null && parent.bounds().isEmpty())
 			return;
 		else if (bounds().isEmpty())
@@ -515,7 +523,7 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 	 * @return The cached bounds used to draw each of the element's children
 	 */
 	public QuickElementCapture[] paintChildren(java.awt.Graphics2D graphics, Rectangle area) {
-		List<QuickWidget> children = Arrays.asList(getChildren().toArray());
+		List<QuickWidget<?>> children = Arrays.asList(getChildren().toArray());
 		if (children.isEmpty())
 			return new QuickElementCapture[0];
 		if (area == null)
@@ -523,13 +531,13 @@ public abstract class QuickWidget implements QuickDefinedWidget {
 		return paintChildren(children, graphics, area);
 	}
 
-	public static QuickElementCapture[] paintChildren(Iterable<? extends QuickWidget> children, Graphics2D graphics, Rectangle area) {
+	public static QuickElementCapture[] paintChildren(Iterable<? extends QuickWidget<?>> children, Graphics2D graphics, Rectangle area) {
 		java.awt.Rectangle awtArea = area.toAwt();
 		List<QuickElementCapture> childBounds = new ArrayList<>();
 		int translateX = 0;
 		int translateY = 0;
 		try {
-			for (QuickWidget child : children) {
+			for (QuickWidget<?> child : children) {
 				java.awt.Rectangle childArea = child.theBounds.getBounds().toAwt();
 				int childX = childArea.x;
 				int childY = childArea.y;

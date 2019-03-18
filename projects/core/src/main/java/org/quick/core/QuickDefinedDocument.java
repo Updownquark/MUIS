@@ -1,9 +1,11 @@
 package org.quick.core;
 
-public interface QuickDefinedDocument {
+public interface QuickDefinedDocument<W extends QuickDefinedWidget<?, ?>> {
+	void init(QuickDocument document, QuickWidgetSet<?, W> widgetSet) throws QuickException;
+
 	QuickDocument getQuickDoc();
 
-	QuickImplementation<? extends QuickDefinedDocument, ? extends QuickDefinedWidget> getWidgetImpl();
+	QuickWidgetSet<?, W> getWidgetSet();
 
 	QuickDefinedWidget getRoot();
 }

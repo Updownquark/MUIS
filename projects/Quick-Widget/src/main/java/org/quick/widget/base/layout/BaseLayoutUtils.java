@@ -21,12 +21,12 @@ public class BaseLayoutUtils {
 	 * @param paddingY The padding size along the vertical axis
 	 * @return The main size of the layout
 	 */
-	public static int getBoxLayoutSize(Iterable<? extends QuickWidget> children, Orientation orient, LayoutGuideType type, int crossSize,
+	public static int getBoxLayoutSize(Iterable<? extends QuickWidget<?>> children, Orientation orient, LayoutGuideType type, int crossSize,
 		boolean csMax,
 		Size paddingX, Size paddingY) {
 		LayoutSize temp = new LayoutSize();
 		boolean first = true;
-		for (QuickWidget child : children) {
+		for (QuickWidget<?> child : children) {
 			if (first && type != LayoutGuideType.min) {
 				first = false;
 				temp.add(orient == Orientation.horizontal ? paddingX : paddingY);
@@ -58,12 +58,12 @@ public class BaseLayoutUtils {
 	 * @param addTo The layout size to add the result to (may be null)
 	 * @return The cross size of the layout
 	 */
-	public static int getBoxLayoutCrossSize(Iterable<? extends QuickWidget> children, Orientation orient, LayoutGuideType type,
+	public static int getBoxLayoutCrossSize(Iterable<? extends QuickWidget<?>> children, Orientation orient, LayoutGuideType type,
 		int mainSize,
 		boolean sizeMax, LayoutSize addTo) {
 		LayoutSize temp = new LayoutSize(true);
 		int ret = 0;
-		for (QuickWidget child : children) {
+		for (QuickWidget<?> child : children) {
 			int sz = LayoutUtils.getSize(child, orient.opposite(), type, Integer.MAX_VALUE, mainSize, sizeMax, temp);
 			if(sz > ret)
 				ret = sz;

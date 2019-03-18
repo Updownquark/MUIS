@@ -11,6 +11,8 @@ import java.time.Duration;
 import org.qommons.BiTuple;
 import org.quick.base.style.TextEditStyle;
 import org.quick.base.widget.DocumentCursorOverlay;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.mgr.StateEngine;
 import org.quick.core.model.QuickDocumentModel;
 import org.quick.core.model.QuickDocumentModel.ContentChangeEvent;
@@ -19,12 +21,16 @@ import org.quick.core.model.SelectableDocumentModel.SelectionChangeEvent;
 import org.quick.core.style.FontStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.motion.Animation;
-import org.quick.widget.core.*;
+import org.quick.widget.core.Point;
+import org.quick.widget.core.QuickTextWidget;
+import org.quick.widget.core.QuickWidget;
+import org.quick.widget.core.QuickWidgetDocument;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.model.DocumentedElement;
 import org.quick.widget.util.QuickWidgetUtils;
 
-public class DocCursorOverlayWidget extends QuickWidget {
-	private QuickWidget theEditor;
+public class DocCursorOverlayWidget<E extends DocumentCursorOverlay> extends QuickWidget<E> {
+	private QuickWidget<?> theEditor;
 	private QuickTextWidget theTextWidget;
 
 	private volatile BufferedImage theCursorImage;
@@ -36,10 +42,11 @@ public class DocCursorOverlayWidget extends QuickWidget {
 	private boolean isFocused;
 	private boolean isEnabled;
 
-	final Animation theCursorBlinkAnimation;
+	Animation theCursorBlinkAnimation;
 
-	public DocCursorOverlayWidget(QuickWidgetDocument doc, DocumentCursorOverlay element, QuickWidget parent) {
-		super(doc, element, parent);
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
 		theCursorBlinkAnimation = new Animation() {
 			@Override
 			public boolean update(long time) {
@@ -64,18 +71,13 @@ public class DocCursorOverlayWidget extends QuickWidget {
 		};
 	}
 
-	@Override
-	public DocumentCursorOverlay getElement() {
-		return (DocumentCursorOverlay) super.getElement();
-	}
-
 	/**
 	 * This method must be called by the owning text editor
 	 *
 	 * @param editor The documented element governing this overlay
 	 * @param text The text element that the cursor is to be displayed over
 	 */
-	public void setEditor(QuickWidget editor, QuickTextWidget text) {
+	public void setEditor(QuickWidget<?> editor, QuickTextWidget text) {
 		if (theTextWidget != null)
 			throw new IllegalStateException("A " + getClass().getSimpleName() + "'s text element may only be set once");
 		theEditor = editor;

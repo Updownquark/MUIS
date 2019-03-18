@@ -2,13 +2,20 @@ package org.quick.core.parser;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.jdom2.Element;
+import org.qommons.ArrayUtils;
+import org.quick.core.QuickDefinedDocument;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickElement;
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickException;
+import org.quick.core.QuickLibrary;
 import org.quick.core.QuickPermission;
 import org.quick.core.QuickToolkit;
+import org.quick.core.QuickWidgetSet;
 import org.quick.core.style.ImmutableStyleSheet;
 import org.quick.util.QuickUtils;
 
@@ -28,53 +35,151 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 
 	@Override
 	public QuickToolkit parseToolkit(URL location, Consumer<QuickToolkit> onBuild) throws IOException, QuickParseException {
-		Element rootEl;
-		try {
-			rootEl = new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(location.openStream())).getRootElement();
-		} catch (org.jdom2.JDOMException e) {
-			throw new QuickParseException("Could not parse toolkit XML for " + location, e);
-		}
+		Element rootEl = parseXml(location, "toolkit");
+
 		QuickToolkit.Builder builder = QuickToolkit.build(theEnvironment, location);
+		parseLibrary(builder, rootEl, "style-sheets");
+		QuickToolkit toolkit = builder.build();
+		onBuild.accept(toolkit);
+		for (Element el : rootEl.getChildren("style-sheet")) {
+			String ref = el.getAttributeValue("ref");
+			URL ssLoc;
+			try {
+				ssLoc = QuickUtils.resolveURL(location, ref);
+			} catch (QuickException e) {
+				ssLoc = null;
+				theEnvironment.getMessageCenter().error("Could not resolve style sheet location " + ref, e);
+			}
+			if (ssLoc != null) {
+				try {
+					ImmutableStyleSheet ret = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, toolkit,
+						theEnvironment.getPropertyParser(), theEnvironment.cv(), theEnvironment.msg());
+					// If there are fatal errors, the parser will return log the errors and return null
+					if (ret != null) {
+						// ret.startAnimation();
+						builder.addStyleSheet(ret);
+					}
+				} catch (Exception e) {
+					theEnvironment.getMessageCenter().error("Could not read or parse style sheet at " + ref, e);
+				}
+			}
+		}
+		return toolkit;
+	}
+
+	@Override
+	public QuickWidgetSet<?, ?> parseWidgets(URL location) throws IOException, QuickParseException {
+		return _parseWidgets(location);
+	}
+
+	private <D extends QuickDefinedDocument<?>, W extends QuickDefinedWidget<D, ?>> QuickWidgetSet<D, W> _parseWidgets(URL location)
+		throws IOException, QuickParseException {
+		Element rootEl=parseXml(location, "widget set");
+
+		QuickToolkit intf = theEnvironment.getToolkit(new URL(rootEl.getAttributeValue("implements")));
+		QuickWidgetSet.Builder<D, W> builder = QuickWidgetSet.build(location, intf);
+		parseLibrary(builder, rootEl, "document-type", "widgets");
+		String docTypeName = rootEl.getChildTextTrim("document-type");
+		if (docTypeName == null)
+			throw new QuickParseException("Expected document-type element");
+		List<Element> widgets = rootEl.getChildren("widgets");
+		if (widgets.isEmpty())
+			throw new QuickParseException("Expected widgets element");
+		else if (widgets.size() > 1)
+			throw new QuickParseException("Expected exactly one widgets element");
+
+		builder.build();
+
+		try {
+			builder.withDocType((Class<? extends D>) builder.getBuilt().loadClass(docTypeName, QuickDefinedDocument.class));
+		} catch (QuickException e) {
+			throw new QuickParseException("Could not find document type " + docTypeName, e);
+		}
+		for (Element el : widgets.get(0).getChildren()) {
+			if (!el.getName().equals("widget"))
+				throw new QuickParseException("widgets element must only have widget children");
+			String element = el.getAttributeValue("element");
+			String mappedType;
+			mappedType = intf.getMappedClass(element);
+			if (mappedType == null)
+				throw new QuickParseException("Unrecognized element type: " + element);
+			Class<? extends QuickElement> elType;
+			try {
+				elType = intf.loadClass(mappedType, QuickElement.class);
+			} catch (QuickException e) {
+				throw new QuickParseException("Could not load element " + element + "(" + mappedType + ")", e);
+			}
+			String widgetTypeName = el.getTextTrim();
+			Class<? extends W> widgetType;
+			try {
+				widgetType = (Class<? extends W>) builder.getBuilt().loadClass(widgetTypeName, QuickDefinedWidget.class);
+			} catch (QuickException e) {
+				throw new QuickParseException("Could not find widget type " + widgetTypeName, e);
+			}
+			builder.withWidget(elType, widgetType);
+		}
+		return builder.build();
+	}
+
+	private Element parseXml(URL location, String libType) throws IOException, QuickParseException {
+		try {
+			return new org.jdom2.input.SAXBuilder().build(new java.io.InputStreamReader(location.openStream())).getRootElement();
+		} catch (org.jdom2.JDOMException e) {
+			throw new QuickParseException("Could not parse " + libType + " XML for " + location, e);
+		}
+	}
+
+	private void parseLibrary(QuickLibrary.Builder<?, ?> builder, Element rootEl, String... extraCategories)
+		throws IOException, QuickParseException {
 		String name = rootEl.getAttributeValue("name");
 		if (name == null)
-			throw new QuickParseException("No name attribute for toolkit at " + location);
+			throw new QuickParseException("No name attribute for " + builder.getLibraryType() + " at " + builder.getLocation());
 		builder.setName(name);
-		String descrip = rootEl.getChildTextTrim("description");
-		if (descrip == null)
-			throw new QuickParseException("No description element for toolkit at " + location);
-		builder.setDescription(descrip);
 		String version = rootEl.getAttributeValue("version");
 		if (version == null)
-			throw new QuickParseException("No version attribute for toolkit at " + location);
+			throw new QuickParseException("No version attribute for " + builder.getLibraryType() + " at " + builder.getLocation());
 		builder.setVersion(Version.fromString(version));
+		String descrip = rootEl.getChildTextTrim("description");
+		if (descrip == null)
+			throw new QuickParseException("No description element for " + builder.getLibraryType() + " at " + builder.getLocation());
+		builder.setDescription(descrip);
+
 		for (Element el : rootEl.getChildren()) {
 			String elName = el.getName();
-			if (elName.equals("description"))
-				continue;
-			if (elName.equals("dependencies"))
+			if (elName.equals("description")) {
+			} else if (elName.equals("dependencies")) {
 				for (Element dEl : el.getChildren()) {
-					if (dEl.getName().equals("depends")) {
+					if (dEl.getName().equals("toolkit")) {
 						QuickToolkit dependency;
 						try {
-							dependency = theEnvironment.getToolkit(QuickUtils.resolveURL(location, dEl.getTextTrim()));
+							dependency = theEnvironment.getToolkit(QuickUtils.resolveURL(builder.getLocation(), dEl.getTextTrim()));
 						} catch (QuickException e) {
-							throw new QuickParseException(
-								"Could not resolve or parse dependency " + dEl.getTextTrim() + " of toolkit " + location, e);
+							throw new QuickParseException("Could not resolve or parse toolkit dependency " + dEl.getTextTrim() + " of "
+								+ builder.getLibraryType() + " " + builder.getLocation(), e);
+						}
+						builder.addDependency(dependency);
+					} else if (dEl.getName().equals("widget-set")) {
+						QuickWidgetSet<?, ?> dependency;
+						try {
+							dependency = theEnvironment.getWidgetSet(QuickUtils.resolveURL(builder.getLocation(), dEl.getTextTrim()));
+						} catch (QuickException e) {
+							throw new QuickParseException("Could not resolve or parse widget-set dependency " + dEl.getTextTrim() + " of "
+								+ builder.getLibraryType() + " " + builder.getLocation(), e);
 						}
 						builder.addDependency(dependency);
 					} else if (dEl.getName().equals("classpath")) {
 						URL classPath;
 						try {
-							classPath = QuickUtils.resolveURL(location, dEl.getTextTrim());
+							classPath = QuickUtils.resolveURL(builder.getLocation(), dEl.getTextTrim());
 						} catch (QuickException e) {
-							throw new QuickParseException(
-								"Could not resolve classpath " + dEl.getTextTrim() + " for toolkit \"" + name + "\" at " + location, e);
+							throw new QuickParseException("Could not resolve classpath " + dEl.getTextTrim() + " for "
+								+ builder.getLibraryType() + " \"" + name + "\" at " + builder.getLocation(), e);
 						}
 						builder.addClassPath(classPath);
 					} else
 						throw new QuickParseException("Illegal element under " + elName);
 				}
-			else if (elName.equals("types"))
+			} else if (elName.equals("types")) {
 				for (Element tEl : el.getChildren()) {
 					if (!tEl.getName().equals("type"))
 						throw new QuickParseException("Illegal element under " + elName);
@@ -91,7 +196,7 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 						throw new QuickParseException("\"" + className + "\" is not a valid class name");
 					builder.map(tagName, className);
 				}
-			else if (elName.equals("resources"))
+			} else if (elName.equals("resources")) {
 				for (Element tEl : el.getChildren()) {
 					if (!tEl.getName().equals("resource"))
 						throw new QuickParseException("Illegal element under " + elName);
@@ -107,9 +212,7 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 					// TODO check validity of resource location
 					builder.mapResource(tagName, resourceLocation);
 				}
-			else if (elName.equals("style-sheet")) {
-				continue;
-			} else if (elName.equals("security"))
+			} else if (elName.equals("security")) {
 				for (Element pEl : el.getChildren()) {
 					if (!pEl.getName().equals("permission"))
 						throw new QuickParseException("Illegal element under " + elName);
@@ -150,35 +253,10 @@ public class DefaultToolkitParser implements QuickToolkitParser {
 						}
 					builder.addPermission(new QuickPermission(type, subType, params, req, explanation));
 				}
-			else
+			} else if (ArrayUtils.contains(extraCategories, elName)) {
+			} else
 				throw new QuickParseException("Illegal element \"" + elName + "\" under \"" + rootEl.getName() + "\"");
 		}
-		QuickToolkit toolkit = builder.build();
-		onBuild.accept(toolkit);
-		for (Element el : rootEl.getChildren("style-sheet")) {
-			String ref = el.getAttributeValue("ref");
-			URL ssLoc;
-			try {
-				ssLoc = QuickUtils.resolveURL(location, ref);
-			} catch (QuickException e) {
-				ssLoc = null;
-				theEnvironment.getMessageCenter().error("Could not resolve style sheet location " + ref, e);
-			}
-			if (ssLoc != null) {
-				try {
-					ImmutableStyleSheet ret = theEnvironment.getStyleParser().parseStyleSheet(ssLoc, toolkit,
-						theEnvironment.getPropertyParser(), theEnvironment.cv(), theEnvironment.msg());
-					// If there are fatal errors, the parser will return log the errors and return null
-					if (ret != null) {
-						// ret.startAnimation();
-						builder.addStyleSheet(ret);
-					}
-				} catch (Exception e) {
-					theEnvironment.getMessageCenter().error("Could not read or parse style sheet at " + ref, e);
-				}
-			}
-		}
-		return toolkit;
 	}
 
 	private boolean checkTagName(String tagName) {

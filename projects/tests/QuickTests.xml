@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<registry>
-	<name>Quick Test</name>
+<registry name="Quick Test" version="0.0.1">
 	<description>
 		This toolkit provides access to code used for testing Quick functionality
 	</description>
-	<version>0.0.1</version>
 	<dependencies>
 		<classpath>classes</classpath>
-		<depends>../base/QuickRegistry.xml</depends>
+		<toolkit>../base/QuickBase.xml</toolkit>
 	</dependencies>
 	<types>
 		<type tag="paint">org.quick.test.widget.PaintWidget</type>

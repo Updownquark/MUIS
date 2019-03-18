@@ -87,6 +87,11 @@ public class QuickToolkit extends QuickLibrary {
 		}
 
 		@Override
+		public String getLibraryType() {
+			return "toolkit";
+		}
+
+		@Override
 		public Builder addDependency(QuickLibrary lib) {
 			if (!(lib instanceof QuickToolkit))
 				throw new IllegalArgumentException("A toolkit cannot depend on a " + lib.getClass().getSimpleName());

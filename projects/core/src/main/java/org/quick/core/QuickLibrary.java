@@ -310,6 +310,8 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 			thePermissions = new ArrayList<>();
 		}
 
+		public abstract String getLibraryType();
+
 		public URL getLocation() {
 			return theLocation;
 		}
@@ -320,7 +322,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B setName(String name) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theName = name;
 			return (B) this;
 		}
@@ -331,7 +333,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B setDescription(String descrip) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theDescription = descrip;
 			return (B) this;
 		}
@@ -342,7 +344,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B setVersion(Version version) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theVersion = version;
 			return (B) this;
 		}
@@ -353,7 +355,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B addClassPath(URL classPath) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theClassPaths.add(classPath);
 			return (B) this;
 		}
@@ -366,7 +368,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B addDependency(QuickLibrary lib) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theDependencies.add(lib);
 			return (B) this;
 		}
@@ -380,7 +382,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B map(String tagName, String className) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theClassMappings.put(tagName, className);
 			return (B) this;
 		}
@@ -394,7 +396,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		 */
 		public B mapResource(String tagName, String resourceLocation) {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The builder may not be changed after the library is built");
+				throw new IllegalStateException("The builder may not be changed after the " + getLibraryType() + " is built");
 			theResourceLocations.put(tagName, resourceLocation);
 			return (B) this;
 		}
@@ -415,7 +417,7 @@ public abstract class QuickLibrary extends java.net.URLClassLoader {
 		/** @return The built library */
 		public L build() {
 			if (theBuiltLibrary != null)
-				throw new IllegalStateException("The library may only be built once");
+				throw new IllegalStateException("The " + getLibraryType() + " may only be built once");
 			if (theName == null)
 				throw new IllegalStateException("No name set");
 			if (theDescription == null)

@@ -1,29 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<quick-widget-set name="Quick Base Widgets" version="0.0.1">
-	<implements toolkit="Quick Base" version="0.0.1" />
+<quick-widget-set name="Quick Base Widgets" version="0.0.1"
+	implements="../../../base/QuickBase.xml">
 	<description>
 		The independent reference implementation for the Quick Base toolkit.  Renders all elements from scratch,
 		not drawing on other graphical toolkits except java's Graphics2D.
 	</description>
 	<dependencies>
 		<classpath>classes</classpath>
+		<widget-set>QuickCoreWidgets.xml</widget-set>
 	</dependencies>
+	<widgets>
+        <widget element="block">org.quick.widget.base.BlockWidget</widget>
+        <widget element="image">org.quick.widget.base.ImageWidget</widget>
+        <widget element="button">org.quick.widget.base.ButtonWidget</widget>
+        <widget element="toggle-button">org.quick.widget.base.ToggleButtonWidget</widget>
+        <widget element="label">org.quick.widget.base.LabelWidget</widget>
+        <widget element="border">org.quick.widget.base.BorderPaneWidget</widget>
+        <widget element="text-cursor-overlay">org.quick.widget.base.DocCursorOverlayWidget</widget>
+        <widget element="text-field">org.quick.widget.base.TextFieldWidget</widget>
+        <widget element="spinner">org.quick.widget.base.SpinnerWidget</widget>
+        <widget element="table">org.quick.widget.base.TableWidget</widget>
+        <widget element="table-column">org.quick.widget.base.TableColumnWidget</widget>
+        <widget element="tree">org.quick.widget.base.Tree</widget>
+	</widgets>
 	<types>
-		<!-- Widgets -->
-        <type tag="block">org.quick.widget.base.BlockWidget</type>
-        <type tag="image">org.quick.widget.base.ImageWidget</type>
-        <type tag="button">org.quick.widget.base.ButtonWidget</type>
-        <type tag="toggle-button">org.quick.widget.base.ToggleButtonWidget</type>
-        <type tag="label">org.quick.widget.base.LabelWidget</type>
-        <type tag="border">org.quick.widget.base.BorderPaneWidget</type>
-        <type tag="text-cursor-overlay">org.quick.widget.base.DocCursorOverlayWidget</type>
-        <type tag="text-field">org.quick.widget.base.TextFieldWidget</type>
-        <type tag="spinner">org.quick.widget.base.SpinnerWidget</type>
-        <type tag="table">org.quick.widget.base.TableWidget</type>
-        <type tag="table-column">org.quick.widget.base.TableColumnWidget</type>
-        <type tag="tree">org.quick.widget.base.Tree</type>
-        
 		<!-- Layouts -->
         <type tag="simple">org.quick.widget.base.layout.SimpleLayout</type>
         <!--<type tag="flow">org.quick.base.layout.FlowLayout</type>-->

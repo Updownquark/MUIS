@@ -6,8 +6,9 @@ import java.util.function.Consumer;
 
 import org.quick.core.QuickEnvironment;
 import org.quick.core.QuickToolkit;
+import org.quick.core.QuickWidgetSet;
 
-/** Parses {@link QuickToolkit}s */
+/** Parses {@link QuickToolkit}s and {@link QuickWidgetSet}s */
 public interface QuickToolkitParser {
 	/** @return The environment that this parser parses toolkits for */
 	QuickEnvironment getEnvironment();
@@ -20,4 +21,12 @@ public interface QuickToolkitParser {
 	 * @throws QuickParseException If the toolkit fails to parse
 	 */
 	QuickToolkit parseToolkit(URL location, Consumer<QuickToolkit> onBuild) throws IOException, QuickParseException;
+
+	/**
+	 * @param location The location of the widget set definition
+	 * @return The parsed and initialized widget set
+	 * @throws IOException If the widget set's data cannot be read
+	 * @throws QuickParseException If the widget set fails to parse
+	 */
+	QuickWidgetSet<?, ?> parseWidgets(URL location) throws IOException, QuickParseException;
 }

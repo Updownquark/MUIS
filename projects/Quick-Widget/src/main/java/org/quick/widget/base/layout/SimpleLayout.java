@@ -38,11 +38,11 @@ import org.quick.widget.core.layout.SizeGuide;
  * and {@link LayoutAttributes#height}) attributes or sizers.
  */
 public class SimpleLayout implements QuickWidgetLayout {
-	private final CompoundListener<QuickWidget> theListener;
+	private final CompoundListener<QuickWidget<?>> theListener;
 
 	/** Creates a simple layout */
 	public SimpleLayout() {
-		theListener = CompoundListener.<QuickWidget> buildFromQDW()//
+		theListener = CompoundListener.<QuickWidget<?>> buildFromQDW()//
 			.child(childBuilder -> {
 				childBuilder.acceptAll(left, right, top, bottom, width, height, minWidth, maxWidth, minHeight, maxHeight)
 				.onEvent(sizeNeedsChanged);
@@ -51,17 +51,17 @@ public class SimpleLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void install(QuickWidget parent, Observable<?> until) {
+	public void install(QuickWidget<?> parent, Observable<?> until) {
 		theListener.listen(parent, parent, until);
 	}
 
 	@Override
-	public SizeGuide getSizer(QuickWidget parent, Iterable<? extends QuickWidget> children, Orientation orientation) {
+	public SizeGuide getSizer(QuickWidget<?> parent, Iterable<? extends QuickWidget<?>> children, Orientation orientation) {
 		return new SizeGuide.GenericSizeGuide() {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-				List<QuickWidget> ch = new ArrayList<>();
-				for (QuickWidget child : children)
+				List<QuickWidget<?>> ch = new ArrayList<>();
+				for (QuickWidget<?> child : children)
 					ch.add(child);
 				if (ch.isEmpty()) {
 					if (type == LayoutGuideType.max)
@@ -87,7 +87,7 @@ public class SimpleLayout implements QuickWidgetLayout {
 				throw new IllegalStateException("Unrecognized layout guide type: " + type);
 			}
 
-			private int getSize(QuickWidget child, LayoutGuideType type, int crossSize, boolean csMax) {
+			private int getSize(QuickWidget<?> child, LayoutGuideType type, int crossSize, boolean csMax) {
 				if (!LayoutUtils.checkLayoutChild(child.getElement()))
 					return 0;
 
@@ -165,7 +165,7 @@ public class SimpleLayout implements QuickWidgetLayout {
 			public int getBaseline(int size) {
 				boolean first = true;
 				Position initLeading = null, initTrailing = null;
-				for (QuickWidget child : children) {
+				for (QuickWidget<?> child : children) {
 					if (first) {
 						first = false;
 						initLeading = child.getElement().atts().get(LayoutAttributes.getPosAtt(orientation, End.leading, null)).get();
@@ -191,16 +191,16 @@ public class SimpleLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void layout(QuickWidget parent, List<? extends QuickWidget> children) {
+	public void layout(QuickWidget<?> parent, List<? extends QuickWidget<?>> children) {
 		Rectangle bounds = new Rectangle();
-		for (QuickWidget child : children) {
+		for (QuickWidget<?> child : children) {
 			layout(parent, child, Orientation.horizontal, bounds);
 			layout(parent, child, Orientation.vertical, bounds);
 			child.bounds().setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 		}
 	}
 
-	private static void layout(QuickWidget parent, QuickWidget child, Orientation orient, Rectangle bounds) {
+	private static void layout(QuickWidget<?> parent, QuickWidget<?> child, Orientation orient, Rectangle bounds) {
 		Position lead = child.getElement().atts().get(LayoutAttributes.getPosAtt(orient, End.leading, null)).get();
 		Position trail = child.getElement().atts().get(LayoutAttributes.getPosAtt(orient, End.trailing, null)).get();
 		int parentLength = parent.bounds().get(orient).getSize();
@@ -250,7 +250,7 @@ public class SimpleLayout implements QuickWidgetLayout {
 		}
 	}
 
-	private static int childCrossSize(int crossSize, QuickWidget child, Orientation orient) {
+	private static int childCrossSize(int crossSize, QuickWidget<?> child, Orientation orient) {
 		int childCrossSize;
 		Size size = child.getElement().atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), null)).get();
 		Size maxSize = child.getElement().atts().get(LayoutAttributes.getSizeAtt(orient.opposite(), LayoutGuideType.max)).get();

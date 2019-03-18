@@ -6,25 +6,34 @@ import org.observe.ObservableValue;
 import org.quick.base.BaseConstants;
 import org.quick.base.widget.TextField;
 import org.quick.core.QuickConstants.CoreStage;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.model.QuickDocumentModel;
-import org.quick.widget.core.*;
+import org.quick.widget.core.QuickTemplateWidget;
+import org.quick.widget.core.QuickTextWidget;
+import org.quick.widget.core.QuickWidgetDocument;
+import org.quick.widget.core.RenderableDocumentModel;
 import org.quick.widget.core.event.FocusEvent;
 import org.quick.widget.core.event.KeyBoardEvent;
 import org.quick.widget.core.model.DocumentedElement;
 
-public class TextFieldWidget extends QuickTemplateWidget implements DocumentedElement {
+public class TextFieldWidget<E extends TextField> extends QuickTemplateWidget<E> implements DocumentedElement {
 	private final SimpleTextEditing theTextEditing;
 
-	public TextFieldWidget(QuickWidgetDocument doc, TextField element, QuickWidget parent) {
-		super(doc, element, parent);
-
+	public TextFieldWidget() {
 		theTextEditing = new SimpleTextEditing();
+	}
+
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
+
 		getElement().life().runWhen(() -> {
 			theTextEditing.install(this); // Installs the text editing behavior
 
 			// Set up the cursor overlay
 			QuickTextWidget valueW = getValueWidget();
-			DocCursorOverlayWidget cursor = getDocCursorOverlay();
+			DocCursorOverlayWidget<?> cursor = getDocCursorOverlay();
 			cursor.setEditor(TextFieldWidget.this, valueW);
 
 			// When the user leaves this widget, flush--either modify the value or reset the document
@@ -48,11 +57,6 @@ public class TextFieldWidget extends QuickTemplateWidget implements DocumentedEl
 	}
 
 	@Override
-	public TextField getElement() {
-		return (TextField) super.getElement();
-	}
-
-	@Override
 	public ObservableValue<QuickDocumentModel> getDocumentModel() {
 		return getValueWidget().getDocumentModel();
 	}
@@ -66,7 +70,7 @@ public class TextFieldWidget extends QuickTemplateWidget implements DocumentedEl
 		return (QuickTextWidget) getChild(getElement().getValueElement());
 	}
 
-	protected DocCursorOverlayWidget getDocCursorOverlay() {
-		return (DocCursorOverlayWidget) getChild(getElement().getCursorOverlay());
+	protected DocCursorOverlayWidget<?> getDocCursorOverlay() {
+		return (DocCursorOverlayWidget<?>) getChild(getElement().getCursorOverlay());
 	}
 }

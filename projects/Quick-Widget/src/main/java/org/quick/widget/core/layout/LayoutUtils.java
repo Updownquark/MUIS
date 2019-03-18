@@ -100,7 +100,7 @@ public class LayoutUtils {
 	 * @param addTo The layout size to add the result to (may be null)
 	 * @return The intended pixel-size of the element
 	 */
-	public static int getSize(QuickWidget widget, Orientation orientation, LayoutGuideType type, int parallelSize, int crossSize,
+	public static int getSize(QuickWidget<?> widget, Orientation orientation, LayoutGuideType type, int parallelSize, int crossSize,
 		boolean csMax, LayoutSize addTo) {
 		LayoutAttributes.SizeAttribute att;
 		Size ret;
@@ -159,7 +159,7 @@ public class LayoutUtils {
 	 *         returned when the units for the min and max attributes are incompatible with the unit for the preferred value, which may be
 	 *         determined by an attribute or the child's own layout manager.
 	 */
-	public static Size[] getLayoutSize(QuickWidget widget, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
+	public static Size[] getLayoutSize(QuickWidget<?> widget, Orientation orientation, LayoutGuideType type, int crossSize, boolean csMax) {
 		Size ret = widget.getElement().atts().get(LayoutAttributes.getSizeAtt(orientation, null)).get();
 		if (ret != null)
 			return new Size[] { ret };

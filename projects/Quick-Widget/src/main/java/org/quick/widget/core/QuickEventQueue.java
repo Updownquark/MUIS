@@ -6,7 +6,6 @@ import org.qommons.ArrayUtils;
 import org.qommons.Causable;
 import org.qommons.ProgramTracker;
 import org.qommons.Transaction;
-import org.quick.core.QuickElement;
 import org.quick.widget.core.event.PositionedUserEvent;
 import org.quick.widget.core.event.UserEvent;
 import org.quick.widget.core.layout.LayoutUtils;
@@ -192,7 +191,7 @@ public class QuickEventQueue {
 		/** The priority of paint events */
 		public static final int PRIORITY = 0;
 
-		private final QuickWidget theWidget;
+		private final QuickWidget<?> theWidget;
 
 		private final Rectangle theArea;
 
@@ -204,7 +203,7 @@ public class QuickEventQueue {
 		 * @param now Whether the repaint should happen quickly or be processed in normal time
 		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public PaintEvent(QuickWidget element, Rectangle area, boolean now, Runnable... postActions) {
+		public PaintEvent(QuickWidget<?> element, Rectangle area, boolean now, Runnable... postActions) {
 			super(PRIORITY, postActions);
 			theWidget = element;
 			theArea = area;
@@ -212,7 +211,7 @@ public class QuickEventQueue {
 		}
 
 		/** @return The element that needs to be repainted */
-		public QuickWidget getElement() {
+		public QuickWidget<?> getElement() {
 			return theWidget;
 		}
 
@@ -234,7 +233,7 @@ public class QuickEventQueue {
 		@Override
 		protected void doHandleAction() {
 			QuickWidgetDocument doc = theWidget.getDocument();
-			QuickWidget element = theWidget;
+			QuickWidget<?> element = theWidget;
 			Rectangle area = theArea;
 			if(element != doc.getRoot() && element.isTransparent()) {
 				Point docPos = QuickWidgetUtils.getDocumentPosition(element);
@@ -351,7 +350,7 @@ public class QuickEventQueue {
 		/** The priority of layout events */
 		public static final int PRIORITY = 10;
 
-		private final QuickWidget theWidget;
+		private final QuickWidget<?> theWidget;
 
 		private final boolean isNow;
 
@@ -360,14 +359,14 @@ public class QuickEventQueue {
 		 * @param now Whether the layout should happen quickly or be processed in normal time
 		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public LayoutEvent(QuickWidget element, boolean now, Runnable... postActions) {
+		public LayoutEvent(QuickWidget<?> element, boolean now, Runnable... postActions) {
 			super(PRIORITY, postActions);
 			theWidget = element;
 			isNow = now;
 		}
 
 		/** @return The widget that needs to be layed out */
-		public QuickWidget getWidget() {
+		public QuickWidget<?> getWidget() {
 			return theWidget;
 		}
 
@@ -427,23 +426,23 @@ public class QuickEventQueue {
 		/** The priority of layout events */
 		public static final int PRIORITY = 20;
 
-		private final QuickWidget theWidget;
+		private final QuickWidget<?> theWidget;
 
 		/** @param element The widget that this event is being fired in */
-		public SizeNeedsChangedEvent(QuickWidget element) {
+		public SizeNeedsChangedEvent(QuickWidget<?> element) {
 			super(PRIORITY);
 			theWidget = element;
 		}
 
 		/** @return The widget whose size needs have changed */
-		public QuickWidget getElement() {
+		public QuickWidget<?> getElement() {
 			return theWidget;
 		}
 
 		@Override
 		protected void doHandleAction() {
-			QuickWidget child = theWidget;
-			QuickWidget parent = theWidget.getParent().get();
+			QuickWidget<?> child = theWidget;
+			QuickWidget<?> parent = theWidget.getParent().get();
 			while (parent != null) {
 				if (!isInPreferred(org.quick.core.layout.Orientation.horizontal, parent, child)
 					|| !isInPreferred(org.quick.core.layout.Orientation.vertical, parent, child)) {
@@ -458,7 +457,7 @@ public class QuickEventQueue {
 				child.doLayout();
 		}
 
-		private static boolean isInPreferred(org.quick.core.layout.Orientation orient, QuickWidget parent, QuickWidget child) {
+		private static boolean isInPreferred(org.quick.core.layout.Orientation orient, QuickWidget<?> parent, QuickWidget<?> child) {
 			org.quick.widget.core.mgr.ElementBounds.ElementBoundsDimension dim = child.bounds().get(orient);
 			int size = dim.getSize();
 			int cross = child.bounds().get(orient.opposite()).getSize();
@@ -509,7 +508,7 @@ public class QuickEventQueue {
 		/** The priority of rebound events */
 		public static final int PRIORITY = 20;
 
-		private final QuickWidget theWidget;
+		private final QuickWidget<?> theWidget;
 
 		private final Rectangle theBounds;
 
@@ -518,14 +517,14 @@ public class QuickEventQueue {
 		 * @param bounds The bounds to set on the element
 		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public ReboundEvent(QuickWidget element, Rectangle bounds, Runnable... postActions) {
+		public ReboundEvent(QuickWidget<?> element, Rectangle bounds, Runnable... postActions) {
 			super(PRIORITY, postActions);
 			theWidget = element;
 			theBounds = bounds;
 		}
 
 		/** @return The widget whose bounds need to be set */
-		public QuickWidget getElement() {
+		public QuickWidget<?> getElement() {
 			return theWidget;
 		}
 
@@ -565,7 +564,7 @@ public class QuickEventQueue {
 		/** The priority of mouse events */
 		public static final int PRIORITY = 100;
 
-		private final QuickWidget theRoot;
+		private final QuickWidget<?> theRoot;
 
 		private final PositionedUserEvent theEvent;
 
@@ -577,7 +576,7 @@ public class QuickEventQueue {
 		 * @param downward Whether this event fires downward from the root to the deepest level or the reverse
 		 * @param postActions The actions to be performed after the event is handled successfully
 		 */
-		public PositionQueueEvent(QuickWidget root, PositionedUserEvent evt, boolean downward, Runnable... postActions) {
+		public PositionQueueEvent(QuickWidget<?> root, PositionedUserEvent evt, boolean downward, Runnable... postActions) {
 			super(PRIORITY, postActions);
 			theRoot = root;
 			theEvent = evt;
@@ -585,7 +584,7 @@ public class QuickEventQueue {
 		}
 
 		/** @return The root from which this event fires downward or to which it fires upward */
-		public QuickWidget getRoot() {
+		public QuickWidget<?> getRoot() {
 			return theRoot;
 		}
 
@@ -603,10 +602,10 @@ public class QuickEventQueue {
 		protected void doHandleAction() {
 			if(theEvent.getCapture() == null) { // Non-positioned event
 				if(isDownward)
-					for (QuickWidget pathEl : QuickWidgetUtils.path(theEvent.getWidget()))
+					for (QuickWidget<?> pathEl : QuickWidgetUtils.path(theEvent.getWidget()))
 						pathEl.events().fire(theEvent.copyFor(pathEl));
 				else {
-					QuickWidget el = theEvent.getWidget();
+					QuickWidget<?> el = theEvent.getWidget();
 					while(el != null) {
 						el.events().fire(theEvent.copyFor(el));
 						el = el.getParent().get();
@@ -665,10 +664,10 @@ public class QuickEventQueue {
 		@Override
 		protected void doHandleAction() {
 			if(isDownward)
-				for (QuickWidget pathEl : QuickWidgetUtils.path(theEvent.getWidget()))
+				for (QuickWidget<?> pathEl : QuickWidgetUtils.path(theEvent.getWidget()))
 					pathEl.events().fire(theEvent.copyFor(pathEl));
 			else {
-				QuickWidget el = theEvent.getWidget();
+				QuickWidget<?> el = theEvent.getWidget();
 				while(el != null) {
 					UserEvent copy = theEvent.copyFor(el);
 					try (Transaction copyT = Causable.use(copy)) {
@@ -853,14 +852,14 @@ public class QuickEventQueue {
 
 	/**
 	 * @return The amount of time for which this queue will let paint events rest until
-	 *         {@link QuickElement#repaint(Rectangle, boolean, Runnable...)} stops being called repeatedly
+	 *         {@link QuickWidget#repaint(Rectangle, boolean, Runnable...)} stops being called repeatedly
 	 */
 	public long getPaintDirtyTolerance() {
 		return thePaintDirtyTolerance;
 	}
 
 	/**
-	 * @return The amount of time for which this queue will let layout events rest until {@link QuickElement#relayout(boolean, Runnable...)}
+	 * @return The amount of time for which this queue will let layout events rest until {@link QuickWidget#relayout(boolean, Runnable...)}
 	 *         stops being called repeatedly
 	 */
 	public long getLayoutDirtyTolerance() {

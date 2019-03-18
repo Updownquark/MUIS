@@ -13,6 +13,8 @@ import org.quick.base.BaseConstants;
 import org.quick.base.style.ButtonStyle;
 import org.quick.base.widget.Button;
 import org.quick.core.QuickConstants;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.mgr.StateEngine;
@@ -21,29 +23,30 @@ import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.Size;
 import org.quick.motion.Animation;
 import org.quick.widget.core.Point;
-import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
 import org.quick.widget.core.event.KeyBoardEvent;
 import org.quick.widget.core.event.MouseEvent;
 import org.quick.widget.core.layout.LayoutUtils;
 import org.quick.widget.core.layout.SizeGuide;
 
-public class ButtonWidget extends SimpleContainerWidget {
+public class ButtonWidget<E extends Button> extends SimpleContainerWidget<E> {
 	interface ClickControl {
 		void release(Object cause);
 
 		void cancel(Object cause);
 	}
 
-	private final StateEngine.StateController theDepressedController;
-	private final StateEngine.StateController theEnabledController;
+	private StateEngine.StateController theDepressedController;
+	private StateEngine.StateController theEnabledController;
 
 	private AtomicReference<ClickControlImpl> theCurrentClick;
 
 	private ObservableAction<?> theAction;
 
-	public ButtonWidget(QuickWidgetDocument doc, Button element, QuickWidget parent) {
-		super(doc, element, parent);
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
+
 		theDepressedController = getElement().state().control(BaseConstants.States.DEPRESSED);
 		theEnabledController = getElement().state().control(ENABLED);
 		theEnabledController.setActive(true, null);
@@ -160,15 +163,6 @@ public class ButtonWidget extends SimpleContainerWidget {
 		return ObservableAction.flatten(getElement().atts().get(ModelAttributes.action));
 	}
 
-	@Override
-	public Button getElement() {
-		return (Button) super.getElement();
-	}
-
-	public BlockWidget getContentPane() {
-		return (BlockWidget) getChild(getElement().getContentPane());
-	}
-
 	/**
 	 * Utility method to cancel a click controller that may be null
 	 *
@@ -222,7 +216,7 @@ public class ButtonWidget extends SimpleContainerWidget {
 		int h = bounds().getHeight();
 		int contentW = LayoutUtils.removeRadius(w, radius);
 		int contentH = LayoutUtils.removeRadius(h, radius);
-		BlockWidget content = getContentPane();
+		BlockWidget<?> content = getContentPane();
 		int lOff = (w - contentW) / 2;
 		int tOff = (h - contentH) / 2;
 		content.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);

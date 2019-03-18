@@ -12,10 +12,10 @@ import org.quick.widget.core.event.CharInputEvent;
 import org.quick.widget.core.model.DocumentedElement;
 
 /** Behavior allowing keyboard input */
-public class SimpleTextEditing implements QuickWidgetBehavior<QuickWidget> {
+public class SimpleTextEditing implements QuickWidgetBehavior<QuickWidget<?>> {
 	private Consumer<CharInputEvent> theInputListener;
 
-	private SimpleObservable<QuickWidget> theUninstallObservable;
+	private SimpleObservable<QuickWidget<?>> theUninstallObservable;
 
 	private boolean isEnabled = true;
 
@@ -28,7 +28,7 @@ public class SimpleTextEditing implements QuickWidgetBehavior<QuickWidget> {
 	}
 
 	@Override
-	public void install(QuickWidget widget) {
+	public void install(QuickWidget<?> widget) {
 		theUninstallObservable = new SimpleObservable<>(null, false, widget.getElement().getAttributeLocker(), null);
 		widget.events().filterMap(CharInputEvent.charInput).takeUntil(theUninstallObservable.filter(el -> {
 			return el == widget;
@@ -38,7 +38,7 @@ public class SimpleTextEditing implements QuickWidgetBehavior<QuickWidget> {
 	}
 
 	@Override
-	public void uninstall(QuickWidget widget) {
+	public void uninstall(QuickWidget<?> widget) {
 		theUninstallObservable.onNext(widget);
 	}
 

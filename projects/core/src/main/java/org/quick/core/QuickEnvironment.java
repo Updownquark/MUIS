@@ -1,7 +1,10 @@
 package org.quick.core;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
@@ -18,6 +21,7 @@ import org.quick.core.mgr.QuickMessageCenter;
 import org.quick.core.parser.DefaultStyleParser;
 import org.quick.core.parser.QuickContentCreator;
 import org.quick.core.parser.QuickDocumentParser;
+import org.quick.core.parser.QuickParseException;
 import org.quick.core.parser.QuickPropertyParser;
 import org.quick.core.parser.QuickStyleParser;
 import org.quick.core.parser.QuickToolkitParser;
@@ -53,7 +57,8 @@ public class QuickEnvironment implements QuickParseEnv {
 	private final ReentrantReadWriteLock theAttributeLocker;
 	private final CollectionLockingStrategy theContentLocker;
 	private final QuickMessageCenter theMessageCenter;
-	private final java.util.Map<String, QuickToolkit> theToolkits;
+	private final Map<String, QuickToolkit> theToolkits;
+	private final Map<String, QuickWidgetSet<?, ?>> theWidgetSets;
 	private final QuickCache theCache;
 	private final EnvironmentStyle theStyle;
 	private final HierarchicalResourcePool theResourcePool;
@@ -66,6 +71,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		theContentLocker = new StampedLockingStrategy();
 		theMessageCenter = new QuickMessageCenter(this, null, null);
 		theToolkits = new java.util.concurrent.ConcurrentHashMap<>();
+		theWidgetSets = new java.util.concurrent.ConcurrentHashMap<>();
 		theCache = new QuickCache();
 		theStyleDependencyController = ObservableCollection.create(TypeTokens.get().of(StyleSheet.class),
 			new BetterTreeList<>(theContentLocker));
@@ -99,7 +105,6 @@ public class QuickEnvironment implements QuickParseEnv {
 	public QuickDocumentParser getDocumentParser() {
 		return theDocumentParser;
 	}
-
 
 	/** @return The content creator for the environment */
 	public QuickContentCreator getContentCreator() {
@@ -161,17 +166,17 @@ public class QuickEnvironment implements QuickParseEnv {
 	 * @throws java.io.IOException If the toolkit resources cannot be retrieved
 	 * @throws org.quick.core.parser.QuickParseException If the toolkit cannot be parsed
 	 */
-	public QuickToolkit getToolkit(java.net.URL location) throws java.io.IOException, org.quick.core.parser.QuickParseException {
+	public QuickToolkit getToolkit(URL location) throws IOException, QuickParseException {
 		// Need to make sure the core toolkit is loaded first
-		if(CORE_TOOLKIT != null && !CORE_TOOLKIT.equals(location))
+		if (CORE_TOOLKIT != null && !CORE_TOOLKIT.equals(location))
 			getCoreToolkit();
 		QuickToolkit toolkit = theToolkits.get(location.toString());
-		if(toolkit != null)
+		if (toolkit != null)
 			return toolkit;
 		theAttributeLocker.writeLock().lock();
 		try {
 			toolkit = theToolkits.get(location.toString());
-			if(toolkit != null)
+			if (toolkit != null)
 				return toolkit;
 			toolkit = theToolkitParser.parseToolkit(location, tk -> {
 				theStyleDependencyController.add(tk.getStyle());
@@ -183,15 +188,32 @@ public class QuickEnvironment implements QuickParseEnv {
 		return toolkit;
 	}
 
+	public QuickWidgetSet<?, ?> getWidgetSet(URL location) throws IOException, QuickParseException {
+		QuickWidgetSet<?, ?> widgetSet = theWidgetSets.get(location.toString());
+		if (widgetSet != null)
+			return widgetSet;
+		theAttributeLocker.writeLock().lock();
+		try {
+			widgetSet = theWidgetSets.get(location.toString());
+			if (widgetSet != null)
+				return widgetSet;
+			widgetSet = theToolkitParser.parseWidgets(location);
+			theWidgetSets.put(location.toString(), widgetSet);
+		} finally {
+			theAttributeLocker.writeLock().unlock();
+		}
+		return widgetSet;
+	}
+
 	/** @return The toolkit containing the core Quick classes */
 	public QuickToolkit getCoreToolkit() {
-		if(CORE_TOOLKIT == null)
+		if (CORE_TOOLKIT == null)
 			throw new IllegalStateException("No such resource " + CORE_TOOLKIT + " for core toolkit");
 		try {
 			return getToolkit(CORE_TOOLKIT);
-		} catch(java.io.IOException e) {
+		} catch (java.io.IOException e) {
 			throw new IllegalStateException("Could not obtain core toolkit " + CORE_TOOLKIT, e);
-		} catch(org.quick.core.parser.QuickParseException e) {
+		} catch (org.quick.core.parser.QuickParseException e) {
 			throw new IllegalStateException("Could not parse core toolkit " + CORE_TOOLKIT, e);
 		}
 	}
@@ -212,7 +234,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		 * @return This builder
 		 */
 		public Builder withDefaults() {
-			if(isBuilt.get())
+			if (isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.theContext = DefaultExpressionContext.build()//
 				.build();
@@ -253,7 +275,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		 * @return This builder
 		 */
 		public Builder setToolkitParser(QuickToolkitParser toolkitParser) {
-			if(isBuilt.get())
+			if (isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.theToolkitParser = toolkitParser;
 			return this;
@@ -264,7 +286,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		 * @return This builder
 		 */
 		public Builder setDocumentParser(QuickDocumentParser documentParser) {
-			if(isBuilt.get())
+			if (isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.theDocumentParser = documentParser;
 			return this;
@@ -275,7 +297,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		 * @return This builder
 		 */
 		public Builder setContentCreator(QuickContentCreator contentCreator) {
-			if(isBuilt.get())
+			if (isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.theContentCreator = contentCreator;
 			return this;
@@ -286,7 +308,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		 * @return This builder
 		 */
 		public Builder setStyleParser(QuickStyleParser styleParser) {
-			if(isBuilt.get())
+			if (isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.theStyleParser = styleParser;
 			return this;
@@ -297,7 +319,7 @@ public class QuickEnvironment implements QuickParseEnv {
 		 * @return This builder
 		 */
 		public Builder setPropertyParser(QuickPropertyParser propertyParser) {
-			if(isBuilt.get())
+			if (isBuilt.get())
 				throw new IllegalStateException("The builder may not be changed after the environment is built");
 			theEnv.thePropertyParser = propertyParser;
 			return this;
@@ -312,15 +334,15 @@ public class QuickEnvironment implements QuickParseEnv {
 
 		/** @return A new QuickEnvironment with this builder's settings */
 		public QuickEnvironment build() {
-			if(theEnv.theToolkitParser == null)
+			if (theEnv.theToolkitParser == null)
 				throw new IllegalStateException("No toolkit parser set");
-			if(theEnv.theDocumentParser == null)
+			if (theEnv.theDocumentParser == null)
 				throw new IllegalStateException("No document parser set");
-			if(theEnv.theContentCreator == null)
+			if (theEnv.theContentCreator == null)
 				throw new IllegalStateException("No content creator set");
-			if(theEnv.theStyleParser == null)
+			if (theEnv.theStyleParser == null)
 				throw new IllegalStateException("No style parser set");
-			if(theEnv.thePropertyParser == null)
+			if (theEnv.thePropertyParser == null)
 				throw new IllegalStateException("No property parser set");
 			isBuilt.set(true);
 			return theEnv;

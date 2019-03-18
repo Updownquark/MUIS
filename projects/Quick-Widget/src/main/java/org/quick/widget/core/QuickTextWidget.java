@@ -1,12 +1,18 @@
 package org.quick.widget.core;
 
-import static org.quick.core.style.FontStyle.*;
+import static org.quick.core.style.FontStyle.family;
+import static org.quick.core.style.FontStyle.size;
+import static org.quick.core.style.FontStyle.slant;
+import static org.quick.core.style.FontStyle.stretch;
+import static org.quick.core.style.FontStyle.weight;
 
 import java.awt.Graphics2D;
 import java.util.Iterator;
 
 import org.observe.ObservableValue;
 import org.quick.core.QuickConstants;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.QuickTextElement;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
@@ -19,11 +25,13 @@ import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
 import org.quick.widget.core.model.DocumentedElement;
 
-public class QuickTextWidget extends QuickWidget implements DocumentedElement {
-	private final RenderableDocumentModel theDocumentModel;
+public class QuickTextWidget extends QuickWidget<QuickTextElement> implements DocumentedElement {
+	private RenderableDocumentModel theDocumentModel;
 
-	public QuickTextWidget(QuickWidgetDocument doc, QuickTextElement element, QuickWidget parent) {
-		super(doc, element, parent);
+	@Override
+	public void init(QuickWidgetDocument document, QuickTextElement element, QuickDefinedWidget<QuickWidgetDocument, ?> parent)
+		throws QuickException {
+		super.init(document, element, parent);
 		QuickDocumentModel theFlattenedDocument = QuickDocumentModel.flatten(getElement().getDocumentModel());
 		theFlattenedDocument.changes().act(evt -> {
 			boolean needsResize = false;
@@ -47,11 +55,6 @@ public class QuickTextWidget extends QuickWidget implements DocumentedElement {
 		}, QuickConstants.CoreStage.PARSE_CHILDREN.toString(), 1);
 		getElement().life().runWhen(() -> getElement().atts().get(QuickTextElement.multiLine).changes().act(evt -> sizeNeedsChanged()),
 			QuickConstants.CoreStage.INITIALIZED.toString(), 1);
-	}
-
-	@Override
-	public QuickTextElement getElement() {
-		return (QuickTextElement) super.getElement();
 	}
 
 	@Override

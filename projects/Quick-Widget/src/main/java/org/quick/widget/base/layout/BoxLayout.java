@@ -36,11 +36,11 @@ import org.quick.widget.core.layout.SizeGuide;
  * the sizes of children.
  */
 public class BoxLayout implements QuickWidgetLayout {
-	private final CompoundListener<QuickWidget> theListener;
+	private final CompoundListener<QuickWidget<?>> theListener;
 
 	/** Creates a box layout */
 	public BoxLayout() {
-		theListener = CompoundListener.<QuickWidget> buildFromQDW()//
+		theListener = CompoundListener.<QuickWidget<?>> buildFromQDW()//
 			.accept(direction).onEvent(sizeNeedsChanged)//
 			.acceptAll(alignment, crossAlignment).onEvent(layout)//
 			.child(childBuilder -> {
@@ -50,12 +50,12 @@ public class BoxLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void install(QuickWidget parent, Observable<?> until) {
+	public void install(QuickWidget<?> parent, Observable<?> until) {
 		theListener.listen(parent, parent, until);
 	}
 
 	@Override
-	public SizeGuide getSizer(QuickWidget parent, Iterable<? extends QuickWidget> children, Orientation orientation) {
+	public SizeGuide getSizer(QuickWidget<?> parent, Iterable<? extends QuickWidget<?>> children, Orientation orientation) {
 		Direction dir = parent.getElement().atts().getValue(direction, Direction.right);
 		Size margin = parent.getElement().getStyle().get(LayoutStyle.margin).get();
 		Size padding = parent.getElement().getStyle().get(LayoutStyle.padding).get();
@@ -76,7 +76,8 @@ public class BoxLayout implements QuickWidgetLayout {
 	 * @param padding The padding size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizeGuide getMainSizer(final QuickWidget parent, final Iterable<? extends QuickWidget> children, final Orientation orient,
+	protected SizeGuide getMainSizer(final QuickWidget<?> parent, final Iterable<? extends QuickWidget<?>> children,
+		final Orientation orient,
 		final Size margin, final Size padding) {
 		return new SizeGuide() {
 			@Override
@@ -144,7 +145,7 @@ public class BoxLayout implements QuickWidgetLayout {
 	 * @param margin The margin size for the parent
 	 * @return The size policy for the children
 	 */
-	protected SizeGuide getCrossSizer(final QuickWidget parent, Iterable<? extends QuickWidget> children, final Orientation orient,
+	protected SizeGuide getCrossSizer(final QuickWidget<?> parent, Iterable<? extends QuickWidget<?>> children, final Orientation orient,
 		final Size margin) {
 		return new SizeGuide() {
 			@Override
@@ -208,7 +209,7 @@ public class BoxLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void layout(QuickWidget parent, List<? extends QuickWidget> children) {
+	public void layout(QuickWidget<?> parent, List<? extends QuickWidget<?>> children) {
 		final Direction dir = parent.getElement().atts().getValue(direction, Direction.right);
 		Alignment align = parent.getElement().atts().getValue(alignment, Alignment.begin);
 		Alignment crossAlign = parent.getElement().atts().getValue(crossAlignment, Alignment.begin);

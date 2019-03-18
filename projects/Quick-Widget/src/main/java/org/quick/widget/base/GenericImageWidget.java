@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import org.quick.base.data.ImageData;
 import org.quick.base.widget.GenericImage;
 import org.quick.core.QuickConstants.CoreStage;
+import org.quick.core.QuickException;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.widget.base.layout.SimpleLayout;
@@ -16,7 +17,7 @@ import org.quick.widget.core.layout.QuickWidgetLayout;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
 
-public class GenericImageWidget extends LayoutContainerWidget {
+public class GenericImageWidget<E extends GenericImage> extends LayoutContainerWidget<E> {
 	/** An animator that repaints this GenericImage when the image is animated */
 	public class ImageAnimator implements org.quick.motion.Animation {
 		private volatile boolean isStopped;
@@ -82,17 +83,12 @@ public class GenericImageWidget extends LayoutContainerWidget {
 
 	private int theImageIndex;
 
-	public GenericImageWidget(QuickWidgetDocument doc, GenericImage element, QuickWidget parent) {
-		super(doc, element, parent);
-
+	@Override
+	public void init(QuickWidgetDocument doc, E element, QuickWidget<?> parent) throws QuickException {
+		super.init(doc, element, parent);
 		getElement().life().runWhen(() -> {
 			getElement().getDisplayedImage().changes().act(evt -> imageChanged(evt.getNewValue()));
 		}, CoreStage.INIT_SELF, 1);
-	}
-
-	@Override
-	public GenericImage getElement() {
-		return (GenericImage) super.getElement();
 	}
 
 	@Override

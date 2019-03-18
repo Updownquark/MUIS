@@ -32,11 +32,11 @@ import org.quick.widget.core.model.DocumentedElement;
 
 /** Controls the location of the text inside a text-editing widget */
 public class TextEditLayout implements QuickWidgetLayout {
-	private final CompoundListener<QuickWidget> theListener;
+	private final CompoundListener<QuickWidget<?>> theListener;
 
 	/** Creates the layout */
 	public TextEditLayout() {
-		theListener = CompoundListener.<QuickWidget> buildFromQDW()//
+		theListener = CompoundListener.<QuickWidget<?>> buildFromQDW()//
 			.acceptAll(TextField.charLengthAtt, TextField.charRowsAtt).onEvent(sizeNeedsChanged)//
 			.child(childBuilder -> {
 				childBuilder.watchAll(org.quick.core.style.FontStyle.getDomainInstance()).onEvent(layout);
@@ -45,11 +45,11 @@ public class TextEditLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void install(QuickWidget parent, Observable<?> until) {
+	public void install(QuickWidget<?> parent, Observable<?> until) {
 		Map<ElementId, SimpleObservable<Void>> childRemoves = new HashMap<>();
 		try (Transaction t = parent.getChildren().lock(false, null)) {
 			SimpleObservable<Void> remove = new SimpleObservable<>(null, false, parent.getElement().getAttributeLocker(), null);
-			CollectionElement<? extends QuickWidget> el = parent.getChildren().getTerminalElement(true);
+			CollectionElement<? extends QuickWidget<?>> el = parent.getChildren().getTerminalElement(true);
 			while (el != null) {
 				childAdded(parent, el.get(), remove);
 				childRemoves.put(el.getElementId(), remove);
@@ -78,7 +78,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 		theListener.listen(parent, parent, until);
 	}
 
-	private void childAdded(QuickWidget parent, QuickWidget child, Observable<?> until) {
+	private void childAdded(QuickWidget<?> parent, QuickWidget<?> child, Observable<?> until) {
 		if (child instanceof DocumentedElement) {
 			QuickDocumentModel doc = QuickDocumentModel.flatten(((DocumentedElement) child).getDocumentModel());
 			doc.changes().takeUntil(until).filter(evt -> evt instanceof ContentChangeEvent || evt instanceof StyleChangeEvent)
@@ -89,11 +89,11 @@ public class TextEditLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public SizeGuide getSizer(QuickWidget parent, Iterable<? extends QuickWidget> children, Orientation orientation) {
-		Iterator<? extends QuickWidget> iter = children.iterator();
+	public SizeGuide getSizer(QuickWidget<?> parent, Iterable<? extends QuickWidget<?>> children, Orientation orientation) {
+		Iterator<? extends QuickWidget<?>> iter = children.iterator();
 		if (!iter.hasNext())
 			return new SimpleSizeGuide();
-		QuickWidget firstChild = iter.next();
+		QuickWidget<?> firstChild = iter.next();
 		if (iter.hasNext()) {
 			parent.getElement().msg().error(getClass().getSimpleName() + " allows only one child in a container");
 			return new SimpleSizeGuide();
@@ -136,7 +136,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void layout(QuickWidget parent, List<? extends QuickWidget> children) {
+	public void layout(QuickWidget<?> parent, List<? extends QuickWidget<?>> children) {
 		if (children.size() != 1) {
 			parent.getElement().msg().error(getClass().getSimpleName() + " allows exactly one child in a container");
 			return;
@@ -146,7 +146,7 @@ public class TextEditLayout implements QuickWidgetLayout {
 			.error(getClass().getSimpleName() + " requires the container's child to be a " + DocumentedElement.class.getName());
 			return;
 		}
-		QuickWidget child = children.get(0);
+		QuickWidget<?> child = children.get(0);
 		DocumentedElement docChild = (DocumentedElement) child;
 		boolean wrap = child.getElement().getStyle().get(org.quick.core.style.FontStyle.wordWrap).get();
 		int w = parent.bounds().getWidth();

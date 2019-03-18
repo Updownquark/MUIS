@@ -12,6 +12,8 @@ import org.qommons.ArrayUtils;
 import org.qommons.Transaction;
 import org.quick.base.widget.Table;
 import org.quick.core.QuickConstants.CoreStage;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.layout.LayoutAttributes;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
@@ -21,21 +23,22 @@ import org.quick.core.style.Size;
 import org.quick.widget.base.layout.BaseLayoutUtils;
 import org.quick.widget.core.Point;
 import org.quick.widget.core.QuickTemplateWidget;
-import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
 import org.quick.widget.core.layout.SimpleSizeGuide;
 import org.quick.widget.core.layout.SizeGuide;
 
 import com.google.common.reflect.TypeToken;
 
-public class TableWidget<R, C> extends QuickTemplateWidget {
+public class TableWidget<R, C, E extends Table<R, C>> extends QuickTemplateWidget<E> {
 	private Size theConfiguredRowSize;
 	private List<RowSizer> theRowSizes;
 	private SimpleSizeGuide theRowSizer;
 	private boolean isRowSizeDirty;
 
-	public TableWidget(QuickWidgetDocument doc, Table<R, C> element, QuickWidget parent) {
-		super(doc, element, parent);
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
+
 		theRowSizer = new SimpleSizeGuide();
 
 		getElement().life().runWhen(() -> {
@@ -65,7 +68,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 		getElement().life().runWhen(() -> {
 			// TODO Probably need to keep a full row x column cache table of row sizers to optimize size recalculations due to model changes
 			ObservableCollection<?> _rows = getElement().getRows();
-			ObservableCollection<? extends TableColumnWidget<R, C>> cols = getColumns();
+			ObservableCollection<? extends TableColumnWidget<R, C, ?>> cols = getColumns();
 			_rows.changes().act(evt -> {
 				boolean sizeNeedsChanged = false;
 				try (Transaction t = getElement().getContentLocker().lock(false, evt)) {
@@ -119,14 +122,10 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 		}, CoreStage.INIT_CHILDREN, 1);
 	}
 
-	@Override
-	public Table<R, C> getElement() {
-		return (Table<R, C>) super.getElement();
-	}
-
-	public ObservableCollection<TableColumnWidget<R, C>> getColumns() {
+	public ObservableCollection<TableColumnWidget<R, C, ?>> getColumns() {
 		return getElement().getColumns().flow()
-			.map(new TypeToken<TableColumnWidget<R, C>>() {}, col -> (TableColumnWidget<R, C>) getChild(col), opts -> opts.cache(false))
+			.map(new TypeToken<TableColumnWidget<R, C, ?>>() {}, col -> (TableColumnWidget<R, C, ?>) getChild(col),
+				opts -> opts.cache(false))
 			.collectPassive();
 	}
 
@@ -136,14 +135,14 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 		int position;
 		int size;
 
-		RowSizer(Object row, List<? extends TableColumnWidget<R, C>> columns) {
+		RowSizer(Object row, List<? extends TableColumnWidget<R, C, ?>> columns) {
 			theRow = row;
 			columnSizes = new ArrayList<>(columns.size());
-			for (TableColumnWidget<R, C> col : columns)
+			for (TableColumnWidget<R, C, ?> col : columns)
 				columnSizes.add(theConfiguredRowSize == null ? col.getCellSize(theRow) : null);
 		}
 
-		boolean setRow(Object row, List<? extends TableColumnWidget<R, C>> columns) {
+		boolean setRow(Object row, List<? extends TableColumnWidget<R, C, ?>> columns) {
 			theRow = row;
 			if (theConfiguredRowSize != null)
 				return false;
@@ -152,7 +151,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 			return true;
 		}
 
-		boolean columnAdded(int index, TableColumnWidget<R, C> column) {
+		boolean columnAdded(int index, TableColumnWidget<R, C, ?> column) {
 			columnSizes.add(index, theConfiguredRowSize == null ? column.getCellSize(theRow) : null);
 			return true;
 		}
@@ -162,7 +161,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 			return true;
 		}
 
-		boolean columnChanged(int index, TableColumnWidget<R, C> column) {
+		boolean columnChanged(int index, TableColumnWidget<R, C, ?> column) {
 			columnSizes.set(index, theConfiguredRowSize == null ? column.getCellSize(theRow) : null);
 			return theConfiguredRowSize == null;
 		}
@@ -260,7 +259,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 	@Override
 	public SizeGuide getSizer(Orientation orientation) {
 		ObservableCollection<?> tableRows = getElement().atts().get(Table.rows).get();
-		ObservableCollection<TableColumnWidget<R, C>> tableColumns = getColumns();
+		ObservableCollection<TableColumnWidget<R, C, ?>> tableColumns = getColumns();
 		try (Transaction rowT = tableRows.lock(false, null); Transaction colT = tableColumns.lock(false, null)) {
 			Orientation axis = getElement().atts().get(LayoutAttributes.orientation).get();
 			if (axis == orientation) {
@@ -318,9 +317,9 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 
 	@Override
 	public void doLayout() {
-		ObservableCollection<? extends TableColumnWidget<R, C>> tableColumns = getColumns();
+		ObservableCollection<? extends TableColumnWidget<R, C, ?>> tableColumns = getColumns();
 		try (Transaction colT = tableColumns.lock(false, null)) {
-			for (TableColumnWidget<R, C> column : tableColumns)
+			for (TableColumnWidget<R, C, ?> column : tableColumns)
 				column.doLayout();
 			Orientation orient = getElement().atts().get(LayoutAttributes.orientation).get();
 			int rowDim = bounds().get(orient).getSize();
@@ -328,7 +327,7 @@ public class TableWidget<R, C> extends QuickTemplateWidget {
 			int margin = getElement().getStyle().get(LayoutStyle.margin).get().evaluate(colDim);
 			int padding = getElement().getStyle().get(LayoutStyle.padding).get().evaluate(colDim);
 			int pos = margin;
-			for (TableColumnWidget<R, C> column : tableColumns) {
+			for (TableColumnWidget<R, C, ?> column : tableColumns) {
 				int colWidth = column.bounds().get(orient.opposite()).getSize();
 				if (orient.isVertical())
 					column.bounds().setBounds(pos, margin, colWidth, rowDim);

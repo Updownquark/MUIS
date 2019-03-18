@@ -2,19 +2,21 @@ package org.quick.widget.base;
 
 import org.quick.base.style.BorderStyle;
 import org.quick.base.widget.BorderPane;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
 import org.quick.core.style.BackgroundStyle;
 import org.quick.core.style.QuickStyle;
 import org.quick.core.style.Size;
-import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
 import org.quick.widget.core.layout.LayoutUtils;
 import org.quick.widget.core.layout.SizeGuide;
 
-public class BorderPaneWidget extends SimpleContainerWidget {
-	public BorderPaneWidget(QuickWidgetDocument doc, BorderPane element, QuickWidget parent) {
-		super(doc, element, parent);
+public class BorderPaneWidget<E extends BorderPane> extends SimpleContainerWidget<E> {
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
 		getElement().life().runWhen(() -> {
 			QuickStyle selfStyle = getElement().getStyle();
 			org.observe.Observable.or(//
@@ -23,15 +25,6 @@ public class BorderPaneWidget extends SimpleContainerWidget {
 				selfStyle.get(BorderStyle.inset).changes().noInit()//
 			).act(event -> relayout(false));
 		}, org.quick.core.QuickConstants.CoreStage.INITIALIZED.toString(), 1);
-	}
-
-	@Override
-	public BorderPane getElement() {
-		return (BorderPane) super.getElement();
-	}
-
-	public BlockWidget getContentPane() {
-		return (BlockWidget) getChild(getElement().getContentPane());
 	}
 
 	@Override
@@ -44,7 +37,7 @@ public class BorderPaneWidget extends SimpleContainerWidget {
 		int h = bounds().getHeight();
 		int contentW = LayoutUtils.removeRadius(w, radius) - thickness * 2;
 		int contentH = LayoutUtils.removeRadius(h, radius) - thickness * 2;
-		BlockWidget content = getContentPane();
+		BlockWidget<?> content = getContentPane();
 		int lOff = (w - contentW) / 2;
 		int tOff = (h - contentH) / 2;
 		content.bounds().setBounds(lOff, tOff, w - lOff - lOff, h - tOff - tOff);

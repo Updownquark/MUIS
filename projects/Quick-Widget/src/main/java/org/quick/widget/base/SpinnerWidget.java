@@ -3,15 +3,17 @@ package org.quick.widget.base;
 import java.util.function.Consumer;
 
 import org.quick.base.widget.Spinner;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.QuickTextElement;
 import org.quick.widget.core.QuickTemplateWidget;
-import org.quick.widget.core.QuickWidget;
 import org.quick.widget.core.QuickWidgetDocument;
 import org.quick.widget.core.event.KeyBoardEvent;
 
-public class SpinnerWidget extends QuickTemplateWidget {
-	public SpinnerWidget(QuickWidgetDocument doc, Spinner element, QuickWidget parent) {
-		super(doc, element, parent);
+public class SpinnerWidget<E extends Spinner> extends QuickTemplateWidget<E> {
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
 		events().filterMap(KeyBoardEvent.key).act(new Consumer<KeyBoardEvent>() {
 			private ButtonWidget.ClickControl theUpControl;
 			private ButtonWidget.ClickControl theDownControl;
@@ -32,11 +34,6 @@ public class SpinnerWidget extends QuickTemplateWidget {
 				}
 			}
 		});
-	}
-
-	@Override
-	public Spinner getElement() {
-		return (Spinner) super.getElement();
 	}
 
 	/**

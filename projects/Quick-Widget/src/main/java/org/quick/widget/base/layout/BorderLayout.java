@@ -44,11 +44,11 @@ import org.quick.widget.core.layout.SizeGuide;
  * which may have zero or one component in it.
  */
 public class BorderLayout implements QuickWidgetLayout {
-	private final CompoundListener<QuickWidget> theListener;
+	private final CompoundListener<QuickWidget<?>> theListener;
 
 	/** Creates a border layout */
 	public BorderLayout() {
-		theListener = CompoundListener.<QuickWidget> buildFromQDW()//
+		theListener = CompoundListener.<QuickWidget<?>> buildFromQDW()//
 			.watchAll(LayoutStyle.margin, LayoutStyle.padding).onEvent(sizeNeedsChanged)//
 			.child(builder -> {
 				builder.accept(region).onEvent(sizeNeedsChanged);
@@ -70,12 +70,12 @@ public class BorderLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void install(QuickWidget parent, Observable<?> until) {
+	public void install(QuickWidget<?> parent, Observable<?> until) {
 		theListener.listen(parent, parent, until);
 	}
 
 	@Override
-	public SizeGuide getSizer(QuickWidget parent, Iterable<? extends QuickWidget> children, Orientation orient) {
+	public SizeGuide getSizer(QuickWidget<?> parent, Iterable<? extends QuickWidget<?>> children, Orientation orient) {
 		return new SizeGuide.GenericSizeGuide() {
 			@Override
 			public int get(LayoutGuideType type, int crossSize, boolean csMax) {
@@ -94,8 +94,8 @@ public class BorderLayout implements QuickWidgetLayout {
 				LayoutSize ret=new LayoutSize();
 				LayoutSize cross=new LayoutSize(true);
 				LayoutSize temp = new LayoutSize();
-				QuickWidget center = null;
-				for (QuickWidget child : children) {
+				QuickWidget<?> center = null;
+				for (QuickWidget<?> child : children) {
 					Region childRegion = child.getElement().atts().getValue(region, Region.center);
 					if(childRegion == Region.center) {
 						if(center != null) {
@@ -136,7 +136,7 @@ public class BorderLayout implements QuickWidgetLayout {
 	}
 
 	@Override
-	public void layout(final QuickWidget parent, List<? extends QuickWidget> children) {
+	public void layout(final QuickWidget<?> parent, List<? extends QuickWidget<?>> children) {
 		final int parentWidth = parent.bounds().getWidth();
 		final int parentHeight = parent.bounds().getHeight();
 		final Size margin = parent.getElement().getStyle().get(LayoutStyle.margin).get();
@@ -152,7 +152,7 @@ public class BorderLayout implements QuickWidgetLayout {
 
 			@Override
 			public long getSize(int[] layoutValue) {
-				return BorderLayout.this.getSize(parentWidth, margin, padding, children, layoutValue);
+				return BorderLayout.getSize(parentWidth, margin, padding, children, layoutValue);
 			}
 		}, parent.bounds().getWidth(), LayoutGuideType.min, LayoutGuideType.max);
 
@@ -175,7 +175,7 @@ public class BorderLayout implements QuickWidgetLayout {
 
 			@Override
 			public long getSize(int[] layoutValue) {
-				return BorderLayout.this.getSize(parentHeight, margin, padding, children, layoutValue);
+				return BorderLayout.getSize(parentHeight, margin, padding, children, layoutValue);
 			}
 		}, parent.bounds().getHeight(), LayoutGuideType.min, LayoutGuideType.max);
 
@@ -238,12 +238,12 @@ public class BorderLayout implements QuickWidgetLayout {
 			children.get(c).bounds().set(bounds[c], null);
 	}
 
-	private static long getSize(int parentLength, Size margin, Size padding, List<? extends QuickWidget> children, int[] layoutValue) {
+	private static long getSize(int parentLength, Size margin, Size padding, List<? extends QuickWidget<?>> children, int[] layoutValue) {
 		long ret = 0;
 		ret += margin.evaluate(parentLength) * 2;
-		QuickWidget center = null;
+		QuickWidget<?> center = null;
 		for (int i = 0; i < children.size(); i++) {
-			QuickWidget child = children.get(i);
+			QuickWidget<?> child = children.get(i);
 			Region childRegion = child.getElement().atts().getValue(region, Region.center);
 			if (childRegion == Region.center) {
 				if (center != null) {

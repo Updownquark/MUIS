@@ -2,7 +2,11 @@ package org.quick.widget.core;
 
 import java.awt.Cursor;
 import java.awt.Toolkit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.observe.ObservableValue;
 import org.observe.SettableValue;
@@ -11,9 +15,17 @@ import org.observe.util.TypeTokens;
 import org.qommons.ArrayUtils;
 import org.qommons.ConcurrentHashSet;
 import org.qommons.Transaction;
-import org.quick.core.*;
+import org.quick.core.QuickDefinedDocument;
+import org.quick.core.QuickDocument;
+import org.quick.core.QuickElement;
+import org.quick.core.QuickException;
+import org.quick.core.QuickWidgetSet;
 import org.quick.core.style.BackgroundStyle;
-import org.quick.widget.core.event.*;
+import org.quick.widget.core.event.FocusEvent;
+import org.quick.widget.core.event.KeyBoardEvent;
+import org.quick.widget.core.event.MouseEvent;
+import org.quick.widget.core.event.ScrollEvent;
+import org.quick.widget.core.event.UserEvent;
 
 public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>> {
 	/** The different policies this document can take with regards to scrolling events */
@@ -53,10 +65,10 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 		void renderUpdate(QuickWidgetDocument doc);
 	}
 
-	private final QuickWidgetImplementation theWidgetSet;
-	private final QuickDocument theDoc;
+	private QuickWidgetSet<QuickWidgetDocument, QuickWidget<?>> theWidgetSet;
+	private QuickDocument theDoc;
 	private final Toolkit theAwtToolkit;
-	private final BodyWidget theRoot;
+	private BodyWidget theRoot;
 
 	private ScrollPolicy theScrollPolicy;
 
@@ -80,23 +92,16 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 
 	private Collection<RenderListener> theRenderListeners;
 
-	public QuickWidgetDocument(QuickWidgetSet<QuickDefinedDocument, QuickWidget<?>> widgets, QuickDocument doc) {
-		theDoc = doc;
-		theWidgetSet = widgets;
+	public QuickWidgetDocument() {
 		theAwtToolkit = Toolkit.getDefaultToolkit();
 		theScrollPolicy = ScrollPolicy.MOUSE;
 		thePressedButtons = new ConcurrentHashSet<>();
 		thePressedKeys = new ConcurrentHashSet<>();
 		theButtonsLock = new Object();
 		theKeysLock = new Object();
-		try {
-			theRoot = (BodyWidget) theWidgetSet.createWidget(this, doc.getRoot(), null);
-		} catch (QuickException e) {
-			throw new IllegalStateException("Could not instantiate body");
-		}
 		theRenderListeners = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-		theFocus = new VetoableSettableValue<>(TypeTokens.get().of(QuickWidget.class), true, theDoc.getEnvironment().getAttributeLocker());
+		theFocus = new VetoableSettableValue<>(QuickWidget.WILDCARD, true, theDoc.getEnvironment().getAttributeLocker());
 		theTarget = new VetoableSettableValue<>(TypeTokens.get().of(QuickEventPositionCapture.class), true,
 			theDoc.getEnvironment().getAttributeLocker());
 		ObservableValue
@@ -109,12 +114,23 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 	}
 
 	@Override
+	public void init(QuickDocument document, QuickWidgetSet<?, QuickWidget<?>> widgetSet) throws QuickException {
+		theDoc = document;
+		theWidgetSet = (QuickWidgetSet<QuickWidgetDocument, QuickWidget<?>>) widgetSet;
+		try {
+			theRoot = (BodyWidget) theWidgetSet.createWidget(this, document.getRoot(), null);
+		} catch (QuickException e) {
+			throw new IllegalStateException("Could not instantiate body");
+		}
+	}
+
+	@Override
 	public QuickDocument getQuickDoc() {
 		return theDoc;
 	}
 
 	@Override
-	public QuickWidgetImplementation getWidgetImpl() {
+	public QuickWidgetSet<QuickWidgetDocument, QuickWidget<?>> getWidgetSet() {
 		return theWidgetSet;
 	}
 
@@ -167,7 +183,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 	}
 
 	/** @return The widget that has focus in this document */
-	public ObservableValue<QuickWidget> getFocus() {
+	public ObservableValue<QuickWidget<?>> getFocus() {
 		return theFocus;
 	}
 
@@ -451,7 +467,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 		if (searchFocus(theFocus.get(), cause, false))
 			return;
 		/* If we get here, then there was no previous focusable element. We must wrap around to the last focusable widget. */
-		QuickWidget deepest = getDeepestElement(theRoot, false);
+		QuickWidget<?> deepest = getDeepestElement(theRoot, false);
 		searchFocus(deepest, cause, false);
 	}
 
@@ -466,22 +482,22 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 		if (searchFocus(theFocus.get(), cause, true))
 			return;
 		/* If we get here, then there was no next focusable element. We must wrap around to the first focusable widget. */
-		QuickWidget deepest = getDeepestElement(theRoot, true);
+		QuickWidget<?> deepest = getDeepestElement(theRoot, true);
 		searchFocus(deepest, cause, true);
 	}
 
-	boolean searchFocus(QuickWidget el, UserEvent cause, boolean forward) {
-		QuickWidget lastChild = theFocus.get();
-		QuickWidget parent = theFocus.get().getParent().get();
+	boolean searchFocus(QuickWidget<?> el, UserEvent cause, boolean forward) {
+		QuickWidget<?> lastChild = theFocus.get();
+		QuickWidget<?> parent = theFocus.get().getParent().get();
 		while (parent != null) {
-			QuickWidget[] children = parent.getChildren().toArray();
+			QuickWidget<?>[] children = parent.getChildren().toArray();
 			if (!forward) {
 				ArrayUtils.reverse(children);
 			}
 			boolean foundLastChild = false;
 			for (int c = 0; c < children.length; c++)
 				if (foundLastChild) {
-					QuickWidget deepest = getDeepestElement(children[c], forward);
+					QuickWidget<?> deepest = getDeepestElement(children[c], forward);
 					if (deepest != children[c]) {
 						// Do searchFocus from this deep element
 						parent = deepest;
@@ -502,7 +518,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 		return false;
 	}
 
-	static QuickWidget getDeepestElement(QuickWidget root, boolean first) {
+	static QuickWidget<?> getDeepestElement(QuickWidget<?> root, boolean first) {
 		while (!root.getChildren().isEmpty())
 			if (first)
 				root = root.getChildren().get(0);
@@ -520,7 +536,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 	 */
 	public void scroll(int x, int y, int amount) {
 		ScrollEvent evt = null;
-		QuickWidget element = null;
+		QuickWidget<?> element = null;
 		QuickRendering rendering = theRendering;
 		if (rendering == null)
 			return;
@@ -577,7 +593,7 @@ public class QuickWidgetDocument implements QuickDefinedDocument<QuickWidget<?>>
 	private void scroll(KeyBoardEvent evt, QuickRendering rendering) {
 		QuickEventPositionCapture capture = null;
 		if (!evt.isUsed()) {
-			QuickWidget scrollElement = null;
+			QuickWidget<?> scrollElement = null;
 			switch (theScrollPolicy) {
 			case MOUSE:
 				if (hasMouse && rendering != null) {

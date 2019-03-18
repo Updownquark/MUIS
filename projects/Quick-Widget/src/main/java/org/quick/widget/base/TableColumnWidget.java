@@ -7,12 +7,13 @@ import java.util.List;
 
 import org.observe.ObservableValue;
 import org.observe.collect.ObservableCollection;
-import org.observe.util.TypeTokens;
 import org.qommons.Transaction;
 import org.qommons.collect.CollectionElement;
 import org.qommons.collect.ElementId;
 import org.quick.base.widget.TableColumn;
 import org.quick.core.QuickConstants.CoreStage;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.layout.LayoutAttributes;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.LayoutSize;
@@ -28,19 +29,22 @@ import org.quick.widget.core.event.MouseEvent;
 import org.quick.widget.core.event.MouseEvent.MouseEventType;
 import org.quick.widget.core.layout.SizeGuide;
 
-public class TableColumnWidget<R, C> extends QuickTemplateWidget {
+public class TableColumnWidget<R, C, E extends TableColumn<R, C>> extends QuickTemplateWidget<E> {
 	private Point theHoveredPoint;
 
-	private final ObservableValue<QuickWidget> theRenderer;
-	private final ObservableValue<QuickWidget> theHover;
-	private final ObservableValue<QuickWidget> theEditor;
+	private final ObservableValue<QuickWidget<?>> theRenderer;
+	private final ObservableValue<QuickWidget<?>> theHover;
+	private final ObservableValue<QuickWidget<?>> theEditor;
 
-	public TableColumnWidget(QuickWidgetDocument doc, TableColumn<R, C> element, QuickWidget parent) {
-		super(doc, element, parent);
+	public TableColumnWidget() {
+		theRenderer = getElement().getRenderer().map(QuickWidget.WILDCARD, renderer -> getChild(renderer));
+		theHover = getElement().getRenderer().map(QuickWidget.WILDCARD, hover -> getChild(hover));
+		theEditor = getElement().getRenderer().map(QuickWidget.WILDCARD, editor -> getChild(editor));
+	}
 
-		theRenderer = getElement().getRenderer().map(TypeTokens.get().of(QuickWidget.class), renderer -> getChild(renderer));
-		theHover = getElement().getRenderer().map(TypeTokens.get().of(QuickWidget.class), hover -> getChild(hover));
-		theEditor = getElement().getRenderer().map(TypeTokens.get().of(QuickWidget.class), editor -> getChild(editor));
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
 
 		getElement().life().runWhen(() -> {
 			getElement().getResourcePool().pool(getElement().getTable().getRows().changes()).act(evt -> {
@@ -92,11 +96,6 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 		}, CoreStage.STARTUP, 1);
 	}
 
-	@Override
-	public TableColumn<R, C> getElement() {
-		return (TableColumn<R, C>) super.getElement();
-	}
-
 	public TableWidget<R, C> getTable() {
 		return (TableWidget<R, C>) getParent().get();
 	}
@@ -132,14 +131,14 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 			return getTable().getSizer(orientation);
 		else {
 			ObservableCollection<R> rows = getTable().getElement().getRows();
-			QuickWidget renderer = theRenderer.get();
+			QuickWidget<?> renderer = theRenderer.get();
 			return new SizeGuide.GenericSizeGuide() {
 				@Override
 				public int get(LayoutGuideType type, int crossSize, boolean csMax) {
-					return BaseLayoutUtils.getBoxLayoutCrossSize(new Iterable<QuickWidget>() {
+					return BaseLayoutUtils.getBoxLayoutCrossSize(new Iterable<QuickWidget<?>>() {
 						@Override
-						public Iterator<QuickWidget> iterator() {
-							return new Iterator<QuickWidget>() {
+						public Iterator<QuickWidget<?>> iterator() {
+							return new Iterator<QuickWidget<?>>() {
 								private ElementId theRow = CollectionElement.getElementId(rows.getTerminalElement(true));
 
 								@Override
@@ -153,7 +152,7 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 								}
 
 								@Override
-								public QuickWidget next() {
+								public QuickWidget<?> next() {
 									try (Transaction t = renderer.holdEvents(true, true)) {
 										getElement().getRenderElement().set(rows.getElement(theRow), null);
 									}
@@ -213,11 +212,11 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 		int initIndex = rowIdx;
 		int initPosition = table.getRowPosition(initIndex);
 		if (initPosition < end) {
-			QuickWidget renderer = theRenderer.get();
-			paintChildren(new Iterable<QuickWidget>() {
+			QuickWidget<?> renderer = theRenderer.get();
+			paintChildren(new Iterable<QuickWidget<?>>() {
 				@Override
-				public Iterator<QuickWidget> iterator() {
-					return new Iterator<QuickWidget>() {
+				public Iterator<QuickWidget<?>> iterator() {
+					return new Iterator<QuickWidget<?>>() {
 						ElementId theRow = row;
 						int theIndex = initIndex;
 						int thePosition = initPosition;
@@ -228,7 +227,7 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 						}
 
 						@Override
-						public QuickWidget next() {
+						public QuickWidget<?> next() {
 							try (Transaction t = renderer.holdEvents(true, true)) {
 								getElement().getRenderElement().set(rows.getElement(theRow), null);
 								int padding = 0; // TODO Margin/padding between columns?
@@ -254,7 +253,7 @@ public class TableColumnWidget<R, C> extends QuickTemplateWidget {
 
 	@Override
 	public QuickElementCapture[] paintChildren(Graphics2D graphics, Rectangle area) {
-		List<QuickWidget> children = new ArrayList<>(2);
+		List<QuickWidget<?>> children = new ArrayList<>(2);
 		CollectionElement<R> hoveredRow = getElement().getHoverElement().get();
 		if (hoveredRow != null)
 			children.add(theHover.get());

@@ -46,15 +46,15 @@ public class LayoutTests {
 		}
 
 		@Override
-		public void install(QuickWidget parent, Observable<?> until) {}
+		public void install(QuickWidget<?> parent, Observable<?> until) {}
 
 		@Override
-		public SizeGuide getSizer(QuickWidget parent, Iterable<? extends QuickWidget> children, Orientation orientation) {
+		public SizeGuide getSizer(QuickWidget<?> parent, Iterable<? extends QuickWidget<?>> children, Orientation orientation) {
 			return orientation.isVertical() ? theHSizer : theWSizer;
 		}
 
 		@Override
-		public void layout(QuickWidget parent, List<? extends QuickWidget> children) {}
+		public void layout(QuickWidget<?> parent, List<? extends QuickWidget<?>> children) {}
 	}
 
 	/**
@@ -65,9 +65,14 @@ public class LayoutTests {
 	@Test
 	public void testSimpleLayout() throws QuickException {
 		QuickDocument elDoc = org.quick.QuickTestUtils.createDocument();
-		QuickWidgetDocument doc = new QuickWidgetDocument(null, elDoc);
+		QuickWidgetDocument doc = new QuickWidgetDocument();
+		doc.init(elDoc, null);
 		LayoutContainer parentEl = new LayoutContainer();
-		LayoutContainerWidget parent = new LayoutContainerWidget(doc, parentEl, null) {
+		LayoutContainerWidget<?> parent = new LayoutContainerWidget<LayoutContainer>() {
+			{
+				init(doc, parentEl, null);
+			}
+
 			@Override
 			protected QuickWidgetLayout getDefaultLayout() {
 				return new SimpleLayout();
@@ -80,7 +85,11 @@ public class LayoutTests {
 		child1El.initChildren(Collections.emptyList());
 		parentEl.initChildren(Arrays.asList(child1El));
 		parentEl.postCreate();
-		LayoutContainerWidget child1 = new LayoutContainerWidget(doc, child1El, parent) {
+		LayoutContainerWidget<?> child1 = new LayoutContainerWidget<LayoutContainer>() {
+			{
+				init(doc, child1El, parent);
+			}
+
 			@Override
 			protected QuickWidgetLayout getDefaultLayout() {
 				return child1Layout;

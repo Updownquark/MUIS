@@ -15,7 +15,7 @@ import org.quick.widget.core.layout.SizeGuide;
 
 /** Allows a flow layout to quickly test out different wrapping configurations for a set of widgets */
 public class FlowLayoutTester {
-	private QuickWidget[] theChildren;
+	private QuickWidget<?>[] theChildren;
 
 	private Orientation theOrientation;
 
@@ -51,7 +51,7 @@ public class FlowLayoutTester {
 	 * @param children The children to lay out
 	 */
 	public FlowLayoutTester(Orientation main, Size paddingX, Size paddingY, Size marginX, Size marginY, boolean fillContainer,
-		QuickWidget... children) {
+		QuickWidget<?>... children) {
 		theChildren = children;
 		theOrientation = main;
 		thePaddingX = paddingX;
@@ -480,7 +480,7 @@ public class FlowLayoutTester {
 	 * @param rowHeight The content height of the row that the child is in
 	 * @return The size for the given element along the cross dimension
 	 */
-	public static int getCrossSize(QuickWidget child, Orientation mainDim, int mainSize, int rowHeight) {
+	public static int getCrossSize(QuickWidget<?> child, Orientation mainDim, int mainSize, int rowHeight) {
 		int crossSize;
 		int prefCross = LayoutUtils.getSize(child, mainDim.opposite(), LayoutGuideType.pref, rowHeight, mainSize, false, null);
 		if(prefCross > rowHeight) {
@@ -500,7 +500,7 @@ public class FlowLayoutTester {
 		return crossSize;
 	}
 
-	LayoutSize getRowHeight(final QuickWidget[] children, final int start, final int end, LayoutGuideType type, final int size) {
+	LayoutSize getRowHeight(final QuickWidget<?>[] children, final int start, final int end, LayoutGuideType type, final int size) {
 		// Get the baseline to use for the row
 		int baseline = 0;
 		Orientation orient = theOrientation.opposite();
@@ -563,7 +563,7 @@ public class FlowLayoutTester {
 		return max;
 	}
 
-	LayoutSize getSumSize(QuickWidget[] children, int start, int end, Orientation orient, LayoutGuideType type, int crossSize,
+	LayoutSize getSumSize(QuickWidget<?>[] children, int start, int end, Orientation orient, LayoutGuideType type, int crossSize,
 		boolean csMax) {
 		LayoutSize ret = new LayoutSize();
 		ret.add(orient == Orientation.horizontal ? theMarginX : theMarginY);
@@ -663,7 +663,7 @@ public class FlowLayoutTester {
 			if(ret != null)
 				return ret;
 			LayoutSize temp = new LayoutSize();
-			ArrayList<QuickWidget> row = new ArrayList<>();
+			ArrayList<QuickWidget<?>> row = new ArrayList<>();
 			int size = 0;
 			boolean sizeChanged = true;
 			int iterations = 5;

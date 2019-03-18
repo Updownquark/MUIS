@@ -15,4 +15,8 @@ import org.quick.core.tags.Template;
 		@AcceptAttribute(declaringClass = LayoutAttributes.class, field = "crossAlignment", defaultValue = "center")//
 	})
 public abstract class SimpleContainer extends QuickTemplate {
+	/** @return The panel containing the contents of this border */
+	public Block getContentPane() {
+		return (Block) getElement(getTemplate().getAttachPoint("contents")).get();
+	}
 }

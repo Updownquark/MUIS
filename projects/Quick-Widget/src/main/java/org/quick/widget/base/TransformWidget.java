@@ -4,14 +4,20 @@ import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 
 import org.quick.base.widget.Transform;
+import org.quick.core.QuickDefinedWidget;
+import org.quick.core.QuickException;
 import org.quick.core.layout.LayoutGuideType;
 import org.quick.core.layout.Orientation;
-import org.quick.widget.core.*;
+import org.quick.widget.core.Point;
+import org.quick.widget.core.QuickElementCapture;
+import org.quick.widget.core.QuickWidgetDocument;
+import org.quick.widget.core.Rectangle;
 import org.quick.widget.core.layout.SizeGuide;
 
-public class TransformWidget extends SimpleContainerWidget {
-	public TransformWidget(QuickWidgetDocument doc, Transform element, QuickWidget parent) {
-		super(doc, element, parent);
+public class TransformWidget<E extends Transform> extends SimpleContainerWidget<E> {
+	@Override
+	public void init(QuickWidgetDocument document, E element, QuickDefinedWidget<QuickWidgetDocument, ?> parent) throws QuickException {
+		super.init(document, element, parent);
 		getElement().life().runWhen(() -> {
 			getElement().atts().get(Transform.flip).changes().act(event -> {
 				sizeNeedsChanged();
@@ -35,17 +41,8 @@ public class TransformWidget extends SimpleContainerWidget {
 	}
 
 	@Override
-	public Transform getElement() {
-		return (Transform) super.getElement();
-	}
-
-	public BlockWidget getContents() {
-		return (BlockWidget) getChild(getElement().getContents());
-	}
-
-	@Override
 	public void doLayout() {
-		BlockWidget contents = getContents();
+		BlockWidget<?> contents = getContentPane();
 		double rotation = normalize(getElement().atts().get(Transform.rotate).get());
 		Double s = getElement().atts().get(Transform.scale).get();
 		Double sx = getElement().atts().get(Transform.scaleX).get();
@@ -93,7 +90,7 @@ public class TransformWidget extends SimpleContainerWidget {
 
 	@Override
 	public SizeGuide getSizer(Orientation orientation) {
-		BlockWidget contents = getContents();
+		BlockWidget<?> contents = getContentPane();
 		Double rotation = getElement().atts().get(Transform.rotate).get();
 		Double s = getElement().atts().get(Transform.scale).get();
 		Double sx = getElement().atts().get(Transform.scaleX).get();
@@ -159,7 +156,7 @@ public class TransformWidget extends SimpleContainerWidget {
 
 	@Override
 	public QuickElementCapture[] paintChildren(Graphics2D graphics, Rectangle area) {
-		BlockWidget content = getContents();
+		BlockWidget<?> content = getContentPane();
 		Orientation reflection = getElement().atts().get(Transform.flip).get();
 		double rotation = normalize(getElement().atts().get(Transform.rotate).get());
 		Double s = getElement().atts().get(Transform.scale).get();

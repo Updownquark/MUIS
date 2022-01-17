@@ -3,6 +3,8 @@ Quick
 
 Quality User Interface Creation Kit
 
+This project is deprecated.  I've done a hard pivot on this idea, pulling the core concepts into the Qonfig and Quick APIs in the Qommons and ObServe projects, respectively.  I may refer back to this document and this project for ideas on how to make those APIs better, but the entire implementation of this is abandoned.
+
 My user inteface architecture
 
 (Copied from the old repository description at https://code.google.com/p/webapplicationmarkup/, so may not be up-to-date and may call itself WAM or MUIS occasionally)
